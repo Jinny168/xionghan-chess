@@ -1,7 +1,33 @@
 from chess_pieces import ChessPiece, Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia
+from config import game_config
 
 class GameRules:
     """匈汉象棋游戏规则类，负责验证移动的合法性和胜负判定"""
+    
+    # 添加类属性来存储游戏规则设置
+    king_can_leave_palace = game_config.get_setting("king_can_leave_palace", True)  # 汉/汗是否可以出九宫
+    king_lose_diagonal_outside_palace = game_config.get_setting("king_lose_diagonal_outside_palace", True)  # 汉/汗出九宫后是否失去斜走能力
+    king_can_diagonal_in_palace = game_config.get_setting("king_can_diagonal_in_palace", True)  # 汉/汗在九宫内是否可以斜走
+    shi_can_leave_palace = game_config.get_setting("shi_can_leave_palace", True)  # 士是否可以出九宫
+    shi_gain_straight_outside_palace = game_config.get_setting("shi_gain_straight_outside_palace", True)  # 士出九宫后是否获得直走能力
+    
+    @staticmethod
+    def set_game_settings(settings):
+        """设置游戏规则参数
+        
+        Args:
+            settings (dict): 游戏规则设置字典
+        """
+        if "king_can_leave_palace" in settings:
+            GameRules.king_can_leave_palace = settings["king_can_leave_palace"]
+        if "king_lose_diagonal_outside_palace" in settings:
+            GameRules.king_lose_diagonal_outside_palace = settings["king_lose_diagonal_outside_palace"]
+        if "king_can_diagonal_in_palace" in settings:
+            GameRules.king_can_diagonal_in_palace = settings["king_can_diagonal_in_palace"]
+        if "shi_can_leave_palace" in settings:
+            GameRules.shi_can_leave_palace = settings["shi_can_leave_palace"]
+        if "shi_gain_straight_outside_palace" in settings:
+            GameRules.shi_gain_straight_outside_palace = settings["shi_gain_straight_outside_palace"]
     
     @staticmethod
     def get_piece_at(pieces, row, col):
@@ -245,7 +271,7 @@ class GameRules:
         
         士/仕移动规则：
         - 在九宫内：可斜走一格
-        - 离开九宫：增加直走一格的能力
+        - 离开九宫：根据设置决定是否增加直走一格的能力
         """
         # 计算移动距离
         row_diff = to_row - from_row
@@ -257,20 +283,56 @@ class GameRules:
         else:  # black
             in_palace = (1 <= from_row <= 3 and 5 <= from_col <= 7)   # 黑方九宫
         
-        # 如果在九宫内，允许斜走一格
-        if in_palace:
-            if abs(row_diff) == 1 and abs(col_diff) == 1:
-                return True
-        else:
-            # 如果离开九宫，可以斜走一格或直走一格
-            is_diagonal_move = (abs(row_diff) == 1 and abs(col_diff) == 1)  # 斜走
-            is_horizontal_move = (row_diff == 0 and abs(col_diff) == 1)     # 横走
-            is_vertical_move = (abs(row_diff) == 1 and col_diff == 0)       # 竖走
-            
-            if is_diagonal_move or is_horizontal_move or is_vertical_move:
-                return True
+        # 检查目标位置是否在九宫内
+        if color == "red":
+            in_target_palace = (9 <= to_row <= 11 and 5 <= to_col <= 7)  # 红方九宫
+        else:  # black
+            in_target_palace = (1 <= to_row <= 3 and 5 <= to_col <= 7)   # 黑方九宫
         
-        return False
+        # 如果当前在九宫内，但目标位置在九宫外，且不允许出九宫，则禁止移动
+        if in_palace and not in_target_palace and not GameRules.shi_can_leave_palace:
+            return False
+        
+        # 如果当前在九宫外，且不允许出九宫，但目标位置在九宫内，这种情况下允许返回九宫
+        # 如果当前在九宫外，且不允许出九宫，且目标位置也在九宫外，则禁止移动
+        
+        # 检查移动方式是否合法
+        is_diagonal_move = (abs(row_diff) == 1 and abs(col_diff) == 1)  # 斜走
+        is_horizontal_move = (row_diff == 0 and abs(col_diff) == 1)     # 横走
+        is_vertical_move = (abs(row_diff) == 1 and col_diff == 0)       # 竖走
+        
+        if not is_diagonal_move and not is_horizontal_move and not is_vertical_move:
+            # 移动距离不符合规则
+            return False
+        
+        if in_palace:
+            # 在九宫内，只允许斜走
+            if is_diagonal_move:
+                return True
+            else:
+                return False
+        else:
+            # 不在九宫内
+            if not GameRules.shi_can_leave_palace:
+                # 如果不允许出九宫，但当前已经不在九宫内，说明规则设置与当前状态冲突
+                # 按照规则，不允许出九宫的士不应该在九宫外，但为了兼容性，我们限制其移动
+                # 如果目标位置也在九宫外，不允许移动
+                if not in_target_palace:
+                    return False
+                # 如果目标位置在九宫内，允许返回九宫
+                elif in_target_palace:
+                    return is_diagonal_move  # 只允许斜走回九宫
+            else:
+                # 允许出九宫，检查移动规则
+                if is_diagonal_move:
+                    # 斜走始终允许
+                    return True
+                elif GameRules.shi_gain_straight_outside_palace and (is_horizontal_move or is_vertical_move):
+                    # 如果设置允许出九宫后获得直走能力，且是直走，则允许
+                    return True
+                else:
+                    # 其他情况不允许
+                    return False
 
     @staticmethod
     def is_valid_king_move(pieces, color, from_row, from_col, to_row, to_col):
@@ -289,7 +351,6 @@ class GameRules:
         col_diff = to_col - from_col
         
         # 判断是否在九宫内
-
         if color == "red":
             in_own_palace = (9 <= from_row <= 11 and 5 <= from_col <= 7)  # 红方在自己九宫内
         else:  # black
@@ -297,12 +358,35 @@ class GameRules:
         
         # 根据位置应用不同的移动规则
         if in_own_palace:
-            # 在九宫内，可以横竖斜走一格
-            if max(abs(row_diff), abs(col_diff)) != 1:
-                return False
+            # 在九宫内，根据设置决定是否可以斜走
+            if GameRules.king_can_diagonal_in_palace:
+                # 在九宫内，可以横竖斜走一格
+                if max(abs(row_diff), abs(col_diff)) != 1:
+                    return False
+            else:
+                # 在九宫内，只能横竖走一格
+                if not ((abs(row_diff) == 1 and col_diff == 0) or (row_diff == 0 and abs(col_diff) == 1)):
+                    return False
         else:
-            # 在九宫外，失去斜走能力，只能横竖走一格
-            if not ((abs(row_diff) == 1 and col_diff == 0) or (row_diff == 0 and abs(col_diff) == 1)):
+            # 在九宫外，根据设置决定是否失去斜走能力
+            if GameRules.king_lose_diagonal_outside_palace:
+                # 在九宫外，失去斜走能力，只能横竖走一格
+                if not ((abs(row_diff) == 1 and col_diff == 0) or (row_diff == 0 and abs(col_diff) == 1)):
+                    return False
+            else:
+                # 在九宫外，仍可斜走一格
+                if max(abs(row_diff), abs(col_diff)) != 1:
+                    return False
+        
+        # 检查是否允许汉/汗出九宫
+        if not GameRules.king_can_leave_palace:
+            # 如果不允许出九宫，判断目标位置是否在九宫内
+            if color == "red":
+                in_target_palace = (9 <= to_row <= 11 and 5 <= to_col <= 7)  # 红方九宫
+            else:  # black
+                in_target_palace = (1 <= to_row <= 3 and 5 <= to_col <= 7)   # 黑方九宫
+            
+            if not in_target_palace:
                 return False
         
         # 汉/汗进入敌方九宫直接获胜（在移动合法的基础上）

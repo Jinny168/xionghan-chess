@@ -4,35 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/xionghan-chess.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build_exe.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/chess_ai.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/chess_board.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/chess_pieces.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/fonts/fangsong.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/fonts/kaiti.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/fonts/msyh.ttc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/fonts/simhei.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/fonts/simkai.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/fonts/xingkai.ttf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/game_rules.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/game_state.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/icon.ico" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sounds/capture.wav" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sounds/check.wav" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sounds/generate_sounds.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sounds/move.wav" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/xionghan_chess.spec" afterDir="false" />
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="最新更新">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/game_rules.py" beforeDir="false" afterPath="$PROJECT_DIR$/game_rules.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -143,8 +118,25 @@
       <updated>1766671530498</updated>
       <workItem from="1766671531856" duration="370000" />
       <workItem from="1766671912389" duration="5585000" />
-      <workItem from="1766747459026" duration="3036000" />
+      <workItem from="1766747459026" duration="5894000" />
     </task>
+    <task id="LOCAL-00001" summary="最新更新">
+      <option name="closed" value="true" />
+      <created>1766754002405</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1766754002405</updated>
+    </task>
+    <task id="LOCAL-00002" summary="最新更新">
+      <option name="closed" value="true" />
+      <created>1766754023519</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1766754023519</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -153,8 +145,23 @@
   <component name="UnknownFeatures">
     <option featureType="com.intellij.fileTypeFactory" implementationName="*.spec" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="最新更新" />
+    <option name="LAST_COMMIT_MESSAGE" value="最新更新" />
+  </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/xionghan_chess$build_exe.coverage" NAME="build_exe 覆盖结果" MODIFIED="1766748391935" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1766749111672" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1766756759723" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
