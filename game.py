@@ -8,48 +8,21 @@ import pygame
 from chess_ai import ChessAI
 from chess_board import ChessBoard
 from chess_pieces import King, Jia
+from config import game_config
+from dialogs import PopupDialog, ConfirmDialog
 from game_rules import GameRules
 from game_state import GameState
 from ui_elements import Avatar, Button
-from dialogs import PopupDialog, ConfirmDialog
 from utils import load_font
-from config import game_config
 
 # 初始化PyGame
 pygame.init()
 pygame.mixer.init()  # 初始化音频模块
 
-# 常量定义
-DEFAULT_WINDOW_WIDTH = 1200  # 默认窗口宽度
-DEFAULT_WINDOW_HEIGHT = 900  # 默认窗口高度
-
-LEFT_PANEL_WIDTH_RATIO = 130 / 850  # 左侧面板宽度比例
-BOARD_MARGIN_TOP_RATIO = 50 / 850  # 棋盘顶部边距比例
-FPS = 60
-
-# 颜色定义
-BACKGROUND_COLOR = (240, 217, 181)  # 更温暖的背景色
-PANEL_COLOR = (230, 210, 185)       # 面板背景色
-PANEL_BORDER = (160, 140, 110)      # 面板边框色
-BLACK = (0, 0, 0)
-RED = (180, 30, 30)  # 更深的红色
-GREEN = (0, 128, 0)
-WHITE = (255, 255, 255)
-POPUP_BG = (250, 240, 230)  # 更亮的弹窗背景色
-BUTTON_COLOR = (100, 100, 200)
-BUTTON_HOVER = (120, 120, 220)
-BUTTON_TEXT = (240, 240, 255)
-GOLD = (218, 165, 32)
-LAST_MOVE_SOURCE = (0, 200, 80, 100)      # 上一步起点颜色（绿色半透明）
-LAST_MOVE_TARGET = (0, 200, 80, 150)      # 上一步终点颜色（绿色半透明但更深）
-
-# 游戏模式
-MODE_PVP = "pvp"  # 人人对战
-MODE_PVC = "pvc"  # 人机对战
-
-# 玩家阵营
-CAMP_RED = "red"   # 玩家执红
-CAMP_BLACK = "black"  # 玩家执黑
+from config import (
+    DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
+    LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO, FPS,
+    BACKGROUND_COLOR, PANEL_BORDER, BLACK, RED, MODE_PVP, MODE_PVC, CAMP_RED, )
 
 def resource_path(relative_path):
     """获取资源文件的绝对路径，兼容PyInstaller打包后的环境"""
@@ -101,6 +74,12 @@ def draw_background(surface):
 class ChessGame:
     def __init__(self, game_mode=MODE_PVP, player_camp=CAMP_RED, game_settings=None):
         """初始化游戏"""
+        self.clock = None
+        self.screen = None
+        self.is_fullscreen = None
+        self.window_width = None
+        self.window_height = None
+        self.windowed_size = (1200,900)
         pygame.init()
         
         # 初始化窗口
@@ -160,7 +139,7 @@ class ChessGame:
         """初始化窗口"""
         self.window_width = DEFAULT_WINDOW_WIDTH
         self.window_height = DEFAULT_WINDOW_HEIGHT
-        self.is_fullscreen = False
+        self.is_fullscreen = True
         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
         pygame.display.set_caption("匈汉象棋")
         self.clock = pygame.time.Clock()
@@ -175,7 +154,7 @@ class ChessGame:
             10, 
             40, 
             30, 
-            "全屏", 
+            "退出",
             14
         )
         
@@ -822,7 +801,7 @@ class ChessGame:
         black_title = title_font.render("黑方阵亡:", True, BLACK)
         
         # 将阵亡棋子信息移到右侧
-        right_panel_x = self.window_width - 550  # 右侧边栏起始x坐标
+        right_panel_x = self.window_width - 250  # 右侧边栏起始x坐标
         self.screen.blit(red_title, (right_panel_x, 60))
         self.screen.blit(black_title, (right_panel_x, 180))
         
@@ -857,7 +836,7 @@ class ChessGame:
         history_title = title_font.render("棋谱记录:", True, (0, 0, 0))
         
         # 将棋谱记录移到右侧
-        right_panel_x = self.window_width - 550  # 右侧边栏起始x坐标
+        right_panel_x = self.window_width - 250  # 右侧边栏起始x坐标
         self.screen.blit(history_title, (right_panel_x, 300))
         
         # 绘制历史记录（带滚动功能）

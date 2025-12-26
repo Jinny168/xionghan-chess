@@ -1,5 +1,36 @@
 """全局配置管理模块"""
 
+# 窗口常量
+DEFAULT_WINDOW_WIDTH = 1200
+DEFAULT_WINDOW_HEIGHT = 900
+
+# 布局常量
+LEFT_PANEL_WIDTH_RATIO = 130 / 850
+BOARD_MARGIN_TOP_RATIO = 50 / 850
+FPS = 60
+
+# 颜色常量
+BACKGROUND_COLOR = (240, 217, 181)
+PANEL_COLOR = (230, 210, 185)
+PANEL_BORDER = (160, 140, 110)
+BLACK = (0, 0, 0)
+RED = (180, 30, 30)
+GREEN = (0, 128, 0)
+WHITE = (255, 255, 255)
+POPUP_BG = (250, 240, 230)
+BUTTON_COLOR = (100, 100, 200)
+BUTTON_HOVER = (120, 120, 220)
+BUTTON_TEXT = (240, 240, 255)
+GOLD = (218, 165, 32)
+LAST_MOVE_SOURCE = (0, 200, 80, 100)
+LAST_MOVE_TARGET = (0, 200, 80, 150)
+
+# 游戏模式常量
+MODE_PVP = "pvp"
+MODE_PVC = "pvc"
+CAMP_RED = "red"
+CAMP_BLACK = "black"
+
 class GameConfig:
     """游戏配置管理类"""
     def __init__(self):

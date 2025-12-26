@@ -1,42 +1,15 @@
 import sys
-import os
 
 import pygame
 
+from config import (
+    DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
+    BACKGROUND_COLOR, BLACK, GOLD,
+    MODE_PVP, MODE_PVC, CAMP_RED, CAMP_BLACK, FPS
+)
 from ui_elements import Button
 from utils import load_font
 
-# 常量定义
-DEFAULT_WINDOW_WIDTH = 1200  # 默认窗口宽度
-DEFAULT_WINDOW_HEIGHT = 900  # 默认窗口高度
-
-LEFT_PANEL_WIDTH_RATIO = 130 / 850  # 左侧面板宽度比例
-BOARD_MARGIN_TOP_RATIO = 50 / 850  # 棋盘顶部边距比例
-FPS = 60
-
-# 颜色定义
-BACKGROUND_COLOR = (240, 217, 181)  # 更温暖的背景色
-PANEL_COLOR = (230, 210, 185)       # 面板背景色
-PANEL_BORDER = (160, 140, 110)      # 面板边框色
-BLACK = (0, 0, 0)
-RED = (180, 30, 30)  # 更深的红色
-GREEN = (0, 128, 0)
-WHITE = (255, 255, 255)
-POPUP_BG = (250, 240, 230)  # 更亮的弹窗背景色
-BUTTON_COLOR = (100, 100, 200)
-BUTTON_HOVER = (120, 120, 220)
-BUTTON_TEXT = (240, 240, 255)
-GOLD = (218, 165, 32)
-LAST_MOVE_SOURCE = (0, 200, 80, 100)      # 上一步起点颜色（绿色半透明）
-LAST_MOVE_TARGET = (0, 200, 80, 150)      # 上一步终点颜色（绿色半透明但更深）
-
-# 游戏模式
-MODE_PVP = "pvp"  # 人人对战
-MODE_PVC = "pvc"  # 人机对战
-
-# 玩家阵营
-CAMP_RED = "red"   # 玩家执红
-CAMP_BLACK = "black"  # 玩家执黑
 
 def draw_background(surface):
     """绘制统一的背景纹理"""
