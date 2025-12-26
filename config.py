@@ -13,6 +13,13 @@ class GameConfig:
             # 士设置
             "shi_can_leave_palace": True,  # 士是否可以出九宫
             "shi_gain_straight_outside_palace": True,  # 士出九宫后是否获得直走能力
+            
+            # 相设置
+            "xiang_can_cross_river": True,  # 相是否可以过河
+            "xiang_gain_jump_two_outside_river": True,  # 相过河后是否获得隔两格吃子能力
+            
+            # 马设置
+            "ma_can_straight_three": True,  # 马是否可以获得直走三格的能力
         }
     
     def get_setting(self, key, default=None):

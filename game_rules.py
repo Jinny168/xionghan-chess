@@ -10,6 +10,9 @@ class GameRules:
     king_can_diagonal_in_palace = game_config.get_setting("king_can_diagonal_in_palace", True)  # 汉/汗在九宫内是否可以斜走
     shi_can_leave_palace = game_config.get_setting("shi_can_leave_palace", True)  # 士是否可以出九宫
     shi_gain_straight_outside_palace = game_config.get_setting("shi_gain_straight_outside_palace", True)  # 士出九宫后是否获得直走能力
+    xiang_can_cross_river = game_config.get_setting("xiang_can_cross_river", True)  # 相是否可以过河
+    xiang_gain_jump_two_outside_river = game_config.get_setting("xiang_gain_jump_two_outside_river", True)  # 相过河后是否获得隔两格吃子能力
+    ma_can_straight_three = game_config.get_setting("ma_can_straight_three", True)  # 马是否可以获得直走三格的能力
     
     @staticmethod
     def set_game_settings(settings):
@@ -28,6 +31,12 @@ class GameRules:
             GameRules.shi_can_leave_palace = settings["shi_can_leave_palace"]
         if "shi_gain_straight_outside_palace" in settings:
             GameRules.shi_gain_straight_outside_palace = settings["shi_gain_straight_outside_palace"]
+        if "xiang_can_cross_river" in settings:
+            GameRules.xiang_can_cross_river = settings["xiang_can_cross_river"]
+        if "xiang_gain_jump_two_outside_river" in settings:
+            GameRules.xiang_gain_jump_two_outside_river = settings["xiang_gain_jump_two_outside_river"]
+        if "ma_can_straight_three" in settings:
+            GameRules.ma_can_straight_three = settings["ma_can_straight_three"]
     
     @staticmethod
     def get_piece_at(pieces, row, col):
@@ -144,35 +153,44 @@ class GameRules:
         row_diff = abs(to_row - from_row)
         col_diff = abs(to_col - from_col)
         
-        # 马走"日"字或直三走法
-        if not (((row_diff == 2 and col_diff == 1) or (row_diff == 1 and col_diff == 2)) or  # 日字
-                ((row_diff == 3 and col_diff == 0) or (row_diff == 0 and col_diff == 3))):   # 直三
-            return False
-        
         # 检查目标位置是否有己方棋子
         target_piece = GameRules.get_piece_at(pieces, to_row, to_col)
         if target_piece and target_piece.color == GameRules.get_piece_at(pieces, from_row, from_col).color:
             return False
 
+        # 检查基本移动规则：日字
+        is_normal_ma_move = ((row_diff == 2 and col_diff == 1) or (row_diff == 1 and col_diff == 2))  # 日字
+        
+        # 检查是否允许直走三格
+        is_straight_three_move = False
+        if GameRules.ma_can_straight_three:
+            is_straight_three_move = ((row_diff == 3 and col_diff == 0) or (row_diff == 0 and col_diff == 3))  # 直三
+        
+        # 马移动必须是日字或直三（如果设置允许）
+        if not (is_normal_ma_move or is_straight_three_move):
+            return False
+        
         # 检查是否有阻挡
-        if row_diff == 2:  # 竖着走日字，检查横向阻挡
-            block_row = from_row + (1 if to_row > from_row else -1)
-            if GameRules.get_piece_at(pieces, block_row, from_col):
-                return False
-        elif row_diff == 3:  # 竖着走直线，检查路径阻挡
-            step = 1 if to_row > from_row else -1
-            for i in range(1, 3):
-                if GameRules.get_piece_at(pieces, from_row + i * step, from_col):
+        if is_normal_ma_move:  # 传统日字走法
+            if row_diff == 2:  # 竖着走日字，检查横向阻挡
+                block_row = from_row + (1 if to_row > from_row else -1)
+                if GameRules.get_piece_at(pieces, block_row, from_col):
                     return False
-        elif col_diff == 2:  # 横着走日字，检查纵向阻挡
-            block_col = from_col + (1 if to_col > from_col else -1)
-            if GameRules.get_piece_at(pieces, from_row, block_col):
-                return False
-        elif col_diff == 3:  # 横着走直线，检查路径阻挡
-            step = 1 if to_col > from_col else -1
-            for i in range(1, 3):
-                if GameRules.get_piece_at(pieces, from_row, from_col + i * step):
+            elif col_diff == 2:  # 横着走日字，检查纵向阻挡
+                block_col = from_col + (1 if to_col > from_col else -1)
+                if GameRules.get_piece_at(pieces, from_row, block_col):
                     return False
+        elif is_straight_three_move:  # 直三走法
+            if row_diff == 3:  # 竖着走直线，检查路径阻挡
+                step = 1 if to_row > from_row else -1
+                for i in range(1, 3):
+                    if GameRules.get_piece_at(pieces, from_row + i * step, from_col):
+                        return False
+            elif col_diff == 3:  # 横着走直线，检查路径阻挡
+                step = 1 if to_col > from_col else -1
+                for i in range(1, 3):
+                    if GameRules.get_piece_at(pieces, from_row, from_col + i * step):
+                        return False
         
         return True
 
@@ -192,24 +210,45 @@ class GameRules:
         if target_piece and target_piece.color == color:
             return False
         
-        # 判断相是否在敌方区域
-        is_in_enemy_territory = False
-        if color == "red":
-            # 红方相在黑方区域（1-6行）
-            if from_row <= 6:
-                is_in_enemy_territory = True
-        else:  # black
-            # 黑方相在红方区域（6-12行）
-            if from_row >= 6:
-                is_in_enemy_territory = True
+        # 判断相是否可以过河
+        can_cross_river = GameRules.xiang_can_cross_river
         
-        # 如果相在敌方区域，检查是否可以横竖隔一格移动（吃子）
-        if is_in_enemy_territory:
-            # 检查是否是横竖方向移动2格（隔一格）
+        # 检查是否是正常的田字移动（斜向移动2格，形如"田"）
+        if abs(to_row - from_row) == 2 and abs(to_col - from_col) == 2:
+            # 正常的田字移动，检查"塞象眼"
+            center_row = (from_row + to_row) // 2
+            center_col = (from_col + to_col) // 2
+            if GameRules.get_piece_at(pieces, center_row, center_col):
+                return False  # 被塞象眼
+            
+            # 检查是否违反过河规则
+            if not can_cross_river:
+                # 在传统象棋中，红方相的活动范围是底线到河界（下方区域），黑方相的活动范围是河界到顶线（上方区域）
+                # 对于13x13的匈汉象棋棋盘，我们假设河界在中间区域，比如第5-8行（索引4-7）
+                # 红方相的活动范围：第6-12行（索引5-12）
+                # 黑方相的活动范围：第0-6行（索引0-6）
+                # 传统象棋中，红相不能过河（不能到黑方区域），黑相不能过河（不能到红方区域）
+                
+                if color == "red":
+                    # 红方相：起始位置应该在下方区域（索引较大的行）
+                    # 如果目标位置在上方区域（索引较小的行），则是过河
+                    if to_row < 6:  # 6是河界线，红方相不能到索引小于6的行
+                        return False
+                else:  # color == "black"
+                    # 黑方相：起始位置应该在上方区域（索引较小的行）
+                    # 如果目标位置在下方区域（索引较大的行），则是过河
+                    if to_row > 6:  # 6是河界线，黑方相不能到索引大于6的行
+                        return False
+            
+            return True
+        
+        # 如果不是田字移动，检查是否是横竖隔一格移动（特殊能力）
+        if GameRules.xiang_gain_jump_two_outside_river:
             row_diff = abs(to_row - from_row)
             col_diff = abs(to_col - from_col)
             
-            if (row_diff == 2 and col_diff == 0) or (row_diff == 0 and col_diff == 2):  # 横竖隔一格
+            # 检查是否是横竖方向移动2格（隔一格）
+            if (row_diff == 2 and col_diff == 0) or (row_diff == 0 and col_diff == 2):
                 # 检查中间是否有棋子（塞相眼）
                 mid_row = (from_row + to_row) // 2
                 mid_col = (from_col + to_col) // 2
@@ -218,52 +257,62 @@ class GameRules:
                 if GameRules.get_piece_at(pieces, mid_row, mid_col):
                     return False  # 中间有棋子，被塞相眼
                 
-                # 还需要检查是否存在两个子与相横向相连的情况，使本来可以被吃的隔一格棋子不能被吃
-                # 检查与目标方向垂直的相邻位置是否有棋子
-                if row_diff == 2:  # 垂直移动
-                    # 检查水平方向相邻位置
-                    for offset in [-1, 1]:
-                        adj_col = mid_col + offset
-                        if 0 <= adj_col < 13:
-                            adj_piece = GameRules.get_piece_at(pieces, mid_row, adj_col)
-                            if adj_piece and adj_piece.color != color:  # 敌方棋子
-                                # 检查另一个方向是否有同色棋子
-                                opp_adj_col = mid_col - offset
-                                if 0 <= opp_adj_col < 13:
-                                    opp_adj_piece = GameRules.get_piece_at(pieces, mid_row, opp_adj_col)
-                                    if opp_adj_piece and opp_adj_piece.color == color:  # 己方棋子
-                                        # 两个子与相横向相连，隔一格棋子不能被吃
-                                        if not target_piece or target_piece.row == adj_piece.row and abs(target_piece.col - adj_piece.col) == 2:
-                                            return False
-                elif col_diff == 2:  # 水平移动
-                    # 检查垂直方向相邻位置
-                    for offset in [-1, 1]:
-                        adj_row = mid_row + offset
-                        if 0 <= adj_row < 13:
-                            adj_piece = GameRules.get_piece_at(pieces, adj_row, mid_col)
-                            if adj_piece and adj_piece.color != color:  # 敌方棋子
-                                # 检查另一个方向是否有同色棋子
-                                opp_adj_row = mid_row - offset
-                                if 0 <= opp_adj_row < 13:
-                                    opp_adj_piece = GameRules.get_piece_at(pieces, opp_adj_row, mid_col)
-                                    if opp_adj_piece and opp_adj_piece.color == color:  # 己方棋子
-                                        # 两个子与相横向相连，隔一格棋子不能被吃
-                                        if not target_piece or target_piece.col == adj_piece.col and abs(target_piece.row - adj_piece.row) == 2:
-                                            return False
+                # 判断是否在敌方区域
+                is_in_enemy_territory = False
+                if color == "red":
+                    # 红方相在黑方区域（1-6行，即索引0-6）
+                    if from_row <= 6:
+                        is_in_enemy_territory = True
+                else:  # black
+                    # 黑方相在红方区域（6-12行，即索引6-12）
+                    if from_row >= 6:
+                        is_in_enemy_territory = True
                 
-                return True
+                # 只有在敌方区域才能使用隔两格的能力
+                if is_in_enemy_territory:
+                    # 检查是否违反过河规则
+                    if not can_cross_river:
+                        # 如果不允许过河，这种特殊移动也不应该被允许
+                        # 因为这种移动能力只有在过河后才能使用
+                        return False
+                    
+                    # 还需要检查是否存在两个子与相横向相连的情况，使本来可以被吃的隔一格棋子不能被吃
+                    # 检查与目标方向垂直的相邻位置是否有棋子
+                    if row_diff == 2:  # 垂直移动
+                        # 检查水平方向相邻位置
+                        for offset in [-1, 1]:
+                            adj_col = mid_col + offset
+                            if 0 <= adj_col < 13:
+                                adj_piece = GameRules.get_piece_at(pieces, mid_row, adj_col)
+                                if adj_piece and adj_piece.color != color:  # 敌方棋子
+                                    # 检查另一个方向是否有同色棋子
+                                    opp_adj_col = mid_col - offset
+                                    if 0 <= opp_adj_col < 13:
+                                        opp_adj_piece = GameRules.get_piece_at(pieces, mid_row, opp_adj_col)
+                                        if opp_adj_piece and opp_adj_piece.color == color:  # 己方棋子
+                                            # 两个子与相横向相连，隔一格棋子不能被吃
+                                            if not target_piece or target_piece.row == adj_piece.row and abs(target_piece.col - adj_piece.col) == 2:
+                                                return False
+                    elif col_diff == 2:  # 水平移动
+                        # 检查垂直方向相邻位置
+                        for offset in [-1, 1]:
+                            adj_row = mid_row + offset
+                            if 0 <= adj_row < 13:
+                                adj_piece = GameRules.get_piece_at(pieces, adj_row, mid_col)
+                                if adj_piece and adj_piece.color != color:  # 敌方棋子
+                                    # 检查另一个方向是否有同色棋子
+                                    opp_adj_row = mid_row - offset
+                                    if 0 <= opp_adj_row < 13:
+                                        opp_adj_piece = GameRules.get_piece_at(pieces, opp_adj_row, mid_col)
+                                        if opp_adj_piece and opp_adj_piece.color == color:  # 己方棋子
+                                            # 两个子与相横向相连，隔一格棋子不能被吃
+                                            if not target_piece or target_piece.col == adj_piece.col and abs(target_piece.row - adj_piece.row) == 2:
+                                                return False
+                    
+                    return True
         
-        # 如果不在敌方区域或不是横竖隔一格移动，则按传统斜向走田字
-        if abs(to_row - from_row) != 2 or abs(to_col - from_col) != 2:
-            return False
-        
-        # 检查"塞象眼"
-        center_row = (from_row + to_row) // 2
-        center_col = (from_col + to_col) // 2
-        if GameRules.get_piece_at(pieces, center_row, center_col):
-            return False
-        
-        return True
+        # 不符合任何允许的移动方式
+        return False
 
     @staticmethod
     def is_valid_shi_move(color, from_row, from_col, to_row, to_col):

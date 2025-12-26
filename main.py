@@ -37,6 +37,8 @@ def main():
     
     # 运行游戏循环
     while True:
+        settings_result = None  # 初始化settings_result变量
+        
         if game_mode == "settings":  # 如果选择了设置界面
             settings_screen = SettingsScreen()
             settings_result = settings_screen.run()
