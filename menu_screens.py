@@ -7,8 +7,9 @@ from ui_elements import Button
 from utils import load_font
 
 # 常量定义
-DEFAULT_WINDOW_WIDTH = 850  # 默认窗口宽度
-DEFAULT_WINDOW_HEIGHT = 850  # 默认窗口高度
+DEFAULT_WINDOW_WIDTH = 1200  # 默认窗口宽度
+DEFAULT_WINDOW_HEIGHT = 900  # 默认窗口高度
+
 LEFT_PANEL_WIDTH_RATIO = 130 / 850  # 左侧面板宽度比例
 BOARD_MARGIN_TOP_RATIO = 50 / 850  # 棋盘顶部边距比例
 FPS = 60

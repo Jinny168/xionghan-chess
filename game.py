@@ -20,8 +20,9 @@ pygame.init()
 pygame.mixer.init()  # 初始化音频模块
 
 # 常量定义
-DEFAULT_WINDOW_WIDTH = 850  # 默认窗口宽度
-DEFAULT_WINDOW_HEIGHT = 850  # 默认窗口高度
+DEFAULT_WINDOW_WIDTH = 1200  # 默认窗口宽度
+DEFAULT_WINDOW_HEIGHT = 900  # 默认窗口高度
+
 LEFT_PANEL_WIDTH_RATIO = 130 / 850  # 左侧面板宽度比例
 BOARD_MARGIN_TOP_RATIO = 50 / 850  # 棋盘顶部边距比例
 FPS = 60
@@ -792,18 +793,18 @@ class ChessGame:
     
     def draw_info_panel(self):
         """绘制游戏信息面板"""
-        # 当游戏进行中，在楚河汉界中央显示当前回合
+        # 当游戏进行中，在左上角显示当前回合
         if not self.game_state.game_over:
             # 创建回合信息文本
             turn_color = RED if self.game_state.player_turn == "red" else BLACK
             turn_text = f"当前回合: {'红方' if self.game_state.player_turn == 'red' else '黑方'}"
             
-            # 计算位置 - 在楚河汉界中央位置
-            font = load_font(30)
+            # 计算位置 - 在左上角，对局时长下方
+            font = load_font(20)
             text_surface = font.render(turn_text, True, turn_color)
+            # 位于对局时长信息的下方
             text_rect = text_surface.get_rect(
-                center=(self.window_width  - (self.window_width - self.left_panel_width) // 4,
-                       self.board_margin_top + 6 * self.board.grid_size)
+                topleft=(10, 40)  # 在左上角，对局时长下方
             )
             self.screen.blit(text_surface, text_rect)
 

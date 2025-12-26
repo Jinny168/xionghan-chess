@@ -1,20 +1,8 @@
-import os
-import random
-import sys
-from datetime import time
-
 import pygame
 
-from chess_ai import ChessAI
-from chess_board import ChessBoard
-from chess_pieces import King, Jia
-from game_rules import GameRules
-from game_state import GameState
-from utils import load_font
-
+from game import ChessGame
 from menu_screens import ModeSelectionScreen, RulesScreen, CampSelectionScreen
 from settings import SettingsScreen
-from game import ChessGame
 
 # 初始化PyGame
 pygame.init()
