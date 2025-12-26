@@ -44,41 +44,46 @@ class SettingsScreen:
         self.option_font = load_font(24)
         self.desc_font = load_font(18)
         
-        # 选项复选框位置
-        y_start = 150
-        spacing = 80
+        # 设置选项区域的起始位置
+        y_start = 120
+        section_spacing = 40  # 分类间距
+        option_spacing = 60  # 选项间距
         
-        # 汉/汗是否可以出九宫选项
-        self.king_palace_checkbox = pygame.Rect(100, y_start, 20, 20)
-        self.king_palace_label = (130, y_start)
+        # 汉/汗设置区域标题
+        self.king_section_title = (80, y_start - 10)
+        # 汉/汗设置选项
+        self.king_palace_checkbox = pygame.Rect(150, y_start, 20, 20)
+        self.king_palace_label = (180, y_start)
         
-        # 汉/汗出九宫后是否失去斜走能力选项
-        self.king_diagonal_checkbox = pygame.Rect(100, y_start + spacing, 20, 20)
-        self.king_diagonal_label = (130, y_start + spacing)
+        self.king_diagonal_checkbox = pygame.Rect(150, y_start + option_spacing, 20, 20)
+        self.king_diagonal_label = (180, y_start + option_spacing)
         
-        # 汉/汗在九宫内是否可以斜走选项
-        self.king_diagonal_in_palace_checkbox = pygame.Rect(100, y_start + 2 * spacing, 20, 20)
-        self.king_diagonal_in_palace_label = (130, y_start + 2 * spacing)
+        self.king_diagonal_in_palace_checkbox = pygame.Rect(150, y_start + 2 * option_spacing, 20, 20)
+        self.king_diagonal_in_palace_label = (180, y_start + 2 * option_spacing)
         
-        # 士是否可以出九宫选项
-        self.shi_palace_checkbox = pygame.Rect(100, y_start + 3 * spacing, 20, 20)
-        self.shi_palace_label = (130, y_start + 3 * spacing)
+        # 士设置区域标题
+        self.shi_section_title = (80, y_start + 3 * option_spacing + section_spacing - 10)
+        # 士设置选项
+        self.shi_palace_checkbox = pygame.Rect(150, y_start + 3 * option_spacing + section_spacing, 20, 20)
+        self.shi_palace_label = (180, y_start + 3 * option_spacing + section_spacing)
         
-        # 士出九宫后是否获得直走能力选项
-        self.shi_straight_checkbox = pygame.Rect(100, y_start + 4 * spacing, 20, 20)
-        self.shi_straight_label = (130, y_start + 4 * spacing)
+        self.shi_straight_checkbox = pygame.Rect(150, y_start + 4 * option_spacing + section_spacing, 20, 20)
+        self.shi_straight_label = (180, y_start + 4 * option_spacing + section_spacing)
         
-        # 相是否可以过河选项
-        self.xiang_cross_checkbox = pygame.Rect(100, y_start + 5 * spacing, 20, 20)
-        self.xiang_cross_label = (130, y_start + 5 * spacing)
+        # 相设置区域标题
+        self.xiang_section_title = (80, y_start + 5 * option_spacing + 2 * section_spacing - 10)
+        # 相设置选项
+        self.xiang_cross_checkbox = pygame.Rect(150, y_start + 5 * option_spacing + 2 * section_spacing, 20, 20)
+        self.xiang_cross_label = (180, y_start + 5 * option_spacing + 2 * section_spacing)
         
-        # 相过河后是否获得隔两格吃子能力选项
-        self.xiang_jump_checkbox = pygame.Rect(100, y_start + 6 * spacing, 20, 20)
-        self.xiang_jump_label = (130, y_start + 6 * spacing)
+        self.xiang_jump_checkbox = pygame.Rect(150, y_start + 6 * option_spacing + 2 * section_spacing, 20, 20)
+        self.xiang_jump_label = (180, y_start + 6 * option_spacing + 2 * section_spacing)
         
-        # 马是否可以获得直走三格的能力选项
-        self.ma_straight_checkbox = pygame.Rect(100, y_start + 7 * spacing, 20, 20)
-        self.ma_straight_label = (130, y_start + 7 * spacing)
+        # 马设置区域标题
+        self.ma_section_title = (80, y_start + 7 * option_spacing + 3 * section_spacing - 10)
+        # 马设置选项
+        self.ma_straight_checkbox = pygame.Rect(150, y_start + 7 * option_spacing + 3 * section_spacing, 20, 20)
+        self.ma_straight_label = (180, y_start + 7 * option_spacing + 3 * section_spacing)
         
         # 按钮
         button_width = 120
@@ -88,7 +93,7 @@ class SettingsScreen:
         # 确认按钮
         self.confirm_button = Button(
             self.window_width // 2 - button_width - button_spacing // 2,
-            y_start + 8 * spacing + 50,
+            y_start + 8 * option_spacing + 3 * section_spacing + 50,
             button_width,
             button_height,
             "确认",
@@ -98,7 +103,7 @@ class SettingsScreen:
         # 返回按钮
         self.back_button = Button(
             self.window_width // 2 + button_spacing // 2,
-            y_start + 8 * spacing + 50,
+            y_start + 8 * option_spacing + 3 * section_spacing + 50,
             button_width,
             button_height,
             "返回",
@@ -115,7 +120,9 @@ class SettingsScreen:
         title_rect = title_surface.get_rect(center=(self.window_width // 2, 80))
         self.screen.blit(title_surface, title_rect)
         
-        # 绘制选项
+        # 绘制汉/汗区域标题图标
+        self.draw_piece_icon("汉", self.king_section_title[0], self.king_section_title[1])
+        
         # 汉/汗是否可以出九宫
         pygame.draw.rect(self.screen, BLACK, self.king_palace_checkbox, 2)
         if self.king_can_leave_palace:
@@ -164,6 +171,9 @@ class SettingsScreen:
         desc_surface = self.desc_font.render("汉/汗在九宫内允许斜向移动", True, (100, 100, 100))
         self.screen.blit(desc_surface, (self.king_diagonal_in_palace_label[0], self.king_diagonal_in_palace_label[1] + 30))
         
+        # 绘制士区域标题图标
+        self.draw_piece_icon("仕", self.shi_section_title[0], self.shi_section_title[1])
+        
         # 士是否可以出九宫
         pygame.draw.rect(self.screen, BLACK, self.shi_palace_checkbox, 2)
         if self.shi_can_leave_palace:
@@ -196,6 +206,9 @@ class SettingsScreen:
         desc_surface = self.desc_font.render("士走出九宫后可以横竖移动", True, (100, 100, 100))
         self.screen.blit(desc_surface, (self.shi_straight_label[0], self.shi_straight_label[1] + 30))
         
+        # 绘制相区域标题图标
+        self.draw_piece_icon("相", self.xiang_section_title[0], self.xiang_section_title[1])
+        
         # 相是否可以过河
         pygame.draw.rect(self.screen, BLACK, self.xiang_cross_checkbox, 2)
         if self.xiang_can_cross_river:
@@ -227,6 +240,9 @@ class SettingsScreen:
         
         desc_surface = self.desc_font.render("相过河后可横竖方向隔一格吃子", True, (100, 100, 100))
         self.screen.blit(desc_surface, (self.xiang_jump_label[0], self.xiang_jump_label[1] + 30))
+        
+        # 绘制马区域标题图标
+        self.draw_piece_icon("马", self.ma_section_title[0], self.ma_section_title[1])
         
         # 马是否可以获得直走三格的能力
         pygame.draw.rect(self.screen, BLACK, self.ma_straight_checkbox, 2)
@@ -297,6 +313,25 @@ class SettingsScreen:
         game_config.update_settings(settings)
         
         return settings
+    
+    def draw_piece_icon(self, text, x, y):
+        """绘制棋子图标，类似Avatar的实现"""
+        # 创建一个圆形背景
+        radius = 12  # 小圆圈的半径
+        circle_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+        pygame.draw.circle(circle_surface, (255, 255, 240), (radius, radius), radius)  # 白色背景
+        pygame.draw.circle(circle_surface, (0, 0, 0), (radius, radius), radius, 1)  # 黑色边框
+        
+        # 获取字体
+        piece_font = load_font(16, bold=True)
+        
+        # 渲染文字
+        text_surface = piece_font.render(text, True, RED)
+        text_rect = text_surface.get_rect(center=(radius, radius))
+        circle_surface.blit(text_surface, text_rect)
+        
+        # 将圆形图标绘制到屏幕上
+        self.screen.blit(circle_surface, (x - radius, y - radius))
     
     def run(self):
         """运行设置界面"""
