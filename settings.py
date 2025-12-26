@@ -126,12 +126,13 @@ class SettingsScreen:
         # 汉/汗是否可以出九宫
         pygame.draw.rect(self.screen, BLACK, self.king_palace_checkbox, 2)
         if self.king_can_leave_palace:
+            # 绘制对勾
             pygame.draw.line(self.screen, BLACK, 
-                           (self.king_palace_checkbox.left, self.king_palace_checkbox.top),
-                           (self.king_palace_checkbox.right, self.king_palace_checkbox.bottom), 2)
+                           (self.king_palace_checkbox.left + 4, self.king_palace_checkbox.centery),
+                           (self.king_palace_checkbox.centerx - 2, self.king_palace_checkbox.bottom - 4), 2)
             pygame.draw.line(self.screen, BLACK,
-                           (self.king_palace_checkbox.right, self.king_palace_checkbox.top),
-                           (self.king_palace_checkbox.left, self.king_palace_checkbox.bottom), 2)
+                           (self.king_palace_checkbox.centerx - 2, self.king_palace_checkbox.bottom - 4),
+                           (self.king_palace_checkbox.right - 4, self.king_palace_checkbox.top + 4), 2)
         
         label_surface = self.option_font.render("汉/汗可以出九宫", True, BLACK)
         self.screen.blit(label_surface, self.king_palace_label)
@@ -142,12 +143,13 @@ class SettingsScreen:
         # 汉/汗出九宫后是否失去斜走能力
         pygame.draw.rect(self.screen, BLACK, self.king_diagonal_checkbox, 2)
         if self.king_lose_diagonal_outside_palace:
+            # 绘制对勾
             pygame.draw.line(self.screen, BLACK, 
-                           (self.king_diagonal_checkbox.left, self.king_diagonal_checkbox.top),
-                           (self.king_diagonal_checkbox.right, self.king_diagonal_checkbox.bottom), 2)
+                           (self.king_diagonal_checkbox.left + 4, self.king_diagonal_checkbox.centery),
+                           (self.king_diagonal_checkbox.centerx - 2, self.king_diagonal_checkbox.bottom - 4), 2)
             pygame.draw.line(self.screen, BLACK,
-                           (self.king_diagonal_checkbox.right, self.king_diagonal_checkbox.top),
-                           (self.king_diagonal_checkbox.left, self.king_diagonal_checkbox.bottom), 2)
+                           (self.king_diagonal_checkbox.centerx - 2, self.king_diagonal_checkbox.bottom - 4),
+                           (self.king_diagonal_checkbox.right - 4, self.king_diagonal_checkbox.top + 4), 2)
         
         label_surface = self.option_font.render("汉/汗出九宫后失去斜走能力", True, BLACK)
         self.screen.blit(label_surface, self.king_diagonal_label)
@@ -158,12 +160,13 @@ class SettingsScreen:
         # 汉/汗在九宫内是否可以斜走
         pygame.draw.rect(self.screen, BLACK, self.king_diagonal_in_palace_checkbox, 2)
         if self.king_can_diagonal_in_palace:
+            # 绘制对勾
             pygame.draw.line(self.screen, BLACK, 
-                           (self.king_diagonal_in_palace_checkbox.left, self.king_diagonal_in_palace_checkbox.top),
-                           (self.king_diagonal_in_palace_checkbox.right, self.king_diagonal_in_palace_checkbox.bottom), 2)
+                           (self.king_diagonal_in_palace_checkbox.left + 4, self.king_diagonal_in_palace_checkbox.centery),
+                           (self.king_diagonal_in_palace_checkbox.centerx - 2, self.king_diagonal_in_palace_checkbox.bottom - 4), 2)
             pygame.draw.line(self.screen, BLACK,
-                           (self.king_diagonal_in_palace_checkbox.right, self.king_diagonal_in_palace_checkbox.top),
-                           (self.king_diagonal_in_palace_checkbox.left, self.king_diagonal_in_palace_checkbox.bottom), 2)
+                           (self.king_diagonal_in_palace_checkbox.centerx - 2, self.king_diagonal_in_palace_checkbox.bottom - 4),
+                           (self.king_diagonal_in_palace_checkbox.right - 4, self.king_diagonal_in_palace_checkbox.top + 4), 2)
         
         label_surface = self.option_font.render("汉/汗在九宫内可以斜走", True, BLACK)
         self.screen.blit(label_surface, self.king_diagonal_in_palace_label)
@@ -177,12 +180,13 @@ class SettingsScreen:
         # 士是否可以出九宫
         pygame.draw.rect(self.screen, BLACK, self.shi_palace_checkbox, 2)
         if self.shi_can_leave_palace:
+            # 绘制对勾
             pygame.draw.line(self.screen, BLACK, 
-                           (self.shi_palace_checkbox.left, self.shi_palace_checkbox.top),
-                           (self.shi_palace_checkbox.right, self.shi_palace_checkbox.bottom), 2)
+                           (self.shi_palace_checkbox.left + 4, self.shi_palace_checkbox.centery),
+                           (self.shi_palace_checkbox.centerx - 2, self.shi_palace_checkbox.bottom - 4), 2)
             pygame.draw.line(self.screen, BLACK,
-                           (self.shi_palace_checkbox.right, self.shi_palace_checkbox.top),
-                           (self.shi_palace_checkbox.left, self.shi_palace_checkbox.bottom), 2)
+                           (self.shi_palace_checkbox.centerx - 2, self.shi_palace_checkbox.bottom - 4),
+                           (self.shi_palace_checkbox.right - 4, self.shi_palace_checkbox.top + 4), 2)
         
         label_surface = self.option_font.render("士可以出九宫", True, BLACK)
         self.screen.blit(label_surface, self.shi_palace_label)
@@ -193,12 +197,13 @@ class SettingsScreen:
         # 士出九宫后是否获得直走能力
         pygame.draw.rect(self.screen, BLACK, self.shi_straight_checkbox, 2)
         if self.shi_gain_straight_outside_palace:
+            # 绘制对勾
             pygame.draw.line(self.screen, BLACK, 
-                           (self.shi_straight_checkbox.left, self.shi_straight_checkbox.top),
-                           (self.shi_straight_checkbox.right, self.shi_straight_checkbox.bottom), 2)
+                           (self.shi_straight_checkbox.left + 4, self.shi_straight_checkbox.centery),
+                           (self.shi_straight_checkbox.centerx - 2, self.shi_straight_checkbox.bottom - 4), 2)
             pygame.draw.line(self.screen, BLACK,
-                           (self.shi_straight_checkbox.right, self.shi_straight_checkbox.top),
-                           (self.shi_straight_checkbox.left, self.shi_straight_checkbox.bottom), 2)
+                           (self.shi_straight_checkbox.centerx - 2, self.shi_straight_checkbox.bottom - 4),
+                           (self.shi_straight_checkbox.right - 4, self.shi_straight_checkbox.top + 4), 2)
         
         label_surface = self.option_font.render("士出九宫后获得直走能力", True, BLACK)
         self.screen.blit(label_surface, self.shi_straight_label)
@@ -212,12 +217,13 @@ class SettingsScreen:
         # 相是否可以过河
         pygame.draw.rect(self.screen, BLACK, self.xiang_cross_checkbox, 2)
         if self.xiang_can_cross_river:
+            # 绘制对勾
             pygame.draw.line(self.screen, BLACK, 
-                           (self.xiang_cross_checkbox.left, self.xiang_cross_checkbox.top),
-                           (self.xiang_cross_checkbox.right, self.xiang_cross_checkbox.bottom), 2)
+                           (self.xiang_cross_checkbox.left + 4, self.xiang_cross_checkbox.centery),
+                           (self.xiang_cross_checkbox.centerx - 2, self.xiang_cross_checkbox.bottom - 4), 2)
             pygame.draw.line(self.screen, BLACK,
-                           (self.xiang_cross_checkbox.right, self.xiang_cross_checkbox.top),
-                           (self.xiang_cross_checkbox.left, self.xiang_cross_checkbox.bottom), 2)
+                           (self.xiang_cross_checkbox.centerx - 2, self.xiang_cross_checkbox.bottom - 4),
+                           (self.xiang_cross_checkbox.right - 4, self.xiang_cross_checkbox.top + 4), 2)
         
         label_surface = self.option_font.render("相可以过河", True, BLACK)
         self.screen.blit(label_surface, self.xiang_cross_label)
@@ -228,12 +234,13 @@ class SettingsScreen:
         # 相过河后是否获得隔两格吃子能力
         pygame.draw.rect(self.screen, BLACK, self.xiang_jump_checkbox, 2)
         if self.xiang_gain_jump_two_outside_river:
+            # 绘制对勾
             pygame.draw.line(self.screen, BLACK, 
-                           (self.xiang_jump_checkbox.left, self.xiang_jump_checkbox.top),
-                           (self.xiang_jump_checkbox.right, self.xiang_jump_checkbox.bottom), 2)
+                           (self.xiang_jump_checkbox.left + 4, self.xiang_jump_checkbox.centery),
+                           (self.xiang_jump_checkbox.centerx - 2, self.xiang_jump_checkbox.bottom - 4), 2)
             pygame.draw.line(self.screen, BLACK,
-                           (self.xiang_jump_checkbox.right, self.xiang_jump_checkbox.top),
-                           (self.xiang_jump_checkbox.left, self.xiang_jump_checkbox.bottom), 2)
+                           (self.xiang_jump_checkbox.centerx - 2, self.xiang_jump_checkbox.bottom - 4),
+                           (self.xiang_jump_checkbox.right - 4, self.xiang_jump_checkbox.top + 4), 2)
         
         label_surface = self.option_font.render("相过河后获得隔两格吃子能力", True, BLACK)
         self.screen.blit(label_surface, self.xiang_jump_label)
@@ -247,12 +254,13 @@ class SettingsScreen:
         # 马是否可以获得直走三格的能力
         pygame.draw.rect(self.screen, BLACK, self.ma_straight_checkbox, 2)
         if self.ma_can_straight_three:
+            # 绘制对勾
             pygame.draw.line(self.screen, BLACK, 
-                           (self.ma_straight_checkbox.left, self.ma_straight_checkbox.top),
-                           (self.ma_straight_checkbox.right, self.ma_straight_checkbox.bottom), 2)
+                           (self.ma_straight_checkbox.left + 4, self.ma_straight_checkbox.centery),
+                           (self.ma_straight_checkbox.centerx - 2, self.ma_straight_checkbox.bottom - 4), 2)
             pygame.draw.line(self.screen, BLACK,
-                           (self.ma_straight_checkbox.right, self.ma_straight_checkbox.top),
-                           (self.ma_straight_checkbox.left, self.ma_straight_checkbox.bottom), 2)
+                           (self.ma_straight_checkbox.centerx - 2, self.ma_straight_checkbox.bottom - 4),
+                           (self.ma_straight_checkbox.right - 4, self.ma_straight_checkbox.top + 4), 2)
         
         label_surface = self.option_font.render("马可以获得直走三格的能力", True, BLACK)
         self.screen.blit(label_surface, self.ma_straight_label)
