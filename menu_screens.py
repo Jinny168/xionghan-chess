@@ -4,23 +4,12 @@ import pygame
 
 from config import (
     DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
-    BACKGROUND_COLOR, BLACK, GOLD,
+    BLACK, GOLD,
     MODE_PVP, MODE_PVC, CAMP_RED, CAMP_BLACK, FPS
 )
 from ui_elements import Button
-from utils import load_font
+from utils import load_font, draw_background
 
-
-def draw_background(surface):
-    """绘制统一的背景纹理"""
-    # 填充基础背景色
-    surface.fill(BACKGROUND_COLOR)
-    
-    # 添加纹理效果
-    for i in range(0, surface.get_width(), 10):
-        for j in range(0, surface.get_height(), 10):
-            if (i + j) % 20 == 0:
-                pygame.draw.rect(surface, (230, 207, 171), (i, j, 5, 5))
 
 class ModeSelectionScreen:
     def __init__(self):

@@ -6,6 +6,50 @@
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="最新更新">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/game.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/game_rules.py" beforeDir="false" afterPath="$PROJECT_DIR$/game_rules.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/game_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/game_state.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/b_box.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/b_c.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/b_j.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/b_m.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/b_p.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/b_s.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/b_x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/b_z.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/back.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/bg.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/bg.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/bg_源文件.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/black.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/btn_exit.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/btn_exit2.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/btn_lose.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/dot.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/dot2.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/draw.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/eat1.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/eat2.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/eat3.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/eat4.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/load.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/lost.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/lost2.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/pk.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/r_box.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/r_c.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/r_j.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/r_m.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/r_p.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/r_s.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/r_x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/r_z.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/red.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/win.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/win2.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/棋子.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu_screens.py" beforeDir="false" afterPath="$PROJECT_DIR$/menu_screens.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,6 +86,9 @@
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess" />
     </key>
   </component>
@@ -117,7 +164,7 @@
       <workItem from="1766671531856" duration="370000" />
       <workItem from="1766671912389" duration="5585000" />
       <workItem from="1766747459026" duration="14497000" />
-      <workItem from="1766838476508" duration="471000" />
+      <workItem from="1766838476508" duration="9725000" />
     </task>
     <task id="LOCAL-00001" summary="最新更新">
       <option name="closed" value="true" />
@@ -183,7 +230,15 @@
       <option name="project" value="LOCAL" />
       <updated>1766765123386</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="最新更新">
+      <option name="closed" value="true" />
+      <created>1766839128713</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1766839128713</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -223,14 +278,34 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/game.py</url>
-          <line>397</line>
+          <line>304</line>
           <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/game.py</url>
+          <line>309</line>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/game.py</url>
+          <line>594</line>
+          <option name="timeStamp" value="5" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/game.py</url>
+          <line>965</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/game.py</url>
+          <line>236</line>
+          <option name="timeStamp" value="7" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/xionghan_chess$build_exe.coverage" NAME="build_exe 覆盖结果" MODIFIED="1766748391935" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1766838510729" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1766848232460" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

@@ -8,6 +8,7 @@ class GameState:
     def __init__(self):
         """初始化游戏状态"""
         # 初始化棋子
+        self.is_game_over = None
         self.pieces = create_initial_pieces()
 
         # 游戏状态
@@ -56,6 +57,10 @@ class GameState:
         
         # 检查移动是否合法
         if not GameRules.is_valid_move(self.pieces, piece, from_row, from_col, to_row, to_col):
+            return False
+        
+        # 检查移动后是否会导致自己被将军（送将）
+        if GameRules.would_be_in_check_after_move(self.pieces, piece, from_row, from_col, to_row, to_col):
             return False
         
         # 获取目标位置的棋子（如果有）
@@ -121,7 +126,7 @@ class GameState:
         opponent_color = "black" if self.player_turn == "red" else "red"
         
         # 检查是否将军
-        self.is_check = GameRules.is_checkmate(self.pieces, opponent_color)
+        self.is_check = GameRules.is_check(self.pieces, opponent_color)
         if self.is_check:
             # 设置将军动画计时器
             self.check_animation_time = current_time
@@ -210,7 +215,8 @@ class GameState:
         if not self.is_check:
             return None
             
-        # 被将军的是当前回合的玩家
+        # 被将军的是当前player_turn的玩家（因为player_turn在move_piece末尾已经切换）
+        # 例如，如果红方将军了黑方，move_piece后player_turn是"black"，所以要返回黑方的将/帅位置
         for piece in self.pieces:
             if isinstance(piece, King) and piece.color == self.player_turn:
                 return (piece.row, piece.col)
@@ -231,7 +237,21 @@ class GameState:
         if not piece:
             return [], []
         
-        return GameRules.calculate_possible_moves(self.pieces, piece)
+        moves, capturable = GameRules.calculate_possible_moves(self.pieces, piece)
+        
+        # 过滤掉会导致被将军的移动（送将）
+        safe_moves = []
+        for to_row, to_col in moves:
+            if not GameRules.would_be_in_check_after_move(self.pieces, piece, row, col, to_row, to_col):
+                safe_moves.append((to_row, to_col))
+        
+        # 过滤掉会导致被将军的吃子移动
+        safe_capturable = []
+        for to_row, to_col in capturable:
+            if not GameRules.would_be_in_check_after_move(self.pieces, piece, row, col, to_row, to_col):
+                safe_capturable.append((to_row, to_col))
+        
+        return safe_moves, safe_capturable
     
     def get_winner_text(self):
         """获取胜利方文本

@@ -145,6 +145,40 @@ class GameRules:
                     return False
         
         return True
+    
+    @staticmethod
+    def can_ju_attack(pieces, from_row, from_col, to_row, to_col):
+        """检查车是否能攻击到目标位置（路径检查，不考虑目标位置棋子颜色）
+        
+        Args:
+            pieces (list): 棋子列表
+            from_row (int): 起始行
+            from_col (int): 起始列
+            to_row (int): 目标行
+            to_col (int): 目标列
+            
+        Returns:
+            bool: 是否能攻击到目标位置
+        """
+        # 车只能横向或纵向移动
+        if from_row != to_row and from_col != to_col:
+            return False
+        
+        # 检查路径上是否有其他棋子
+        if from_row == to_row:  # 横向移动
+            start = min(from_col, to_col) + 1
+            end = max(from_col, to_col)
+            for col in range(start, end):
+                if GameRules.get_piece_at(pieces, from_row, col):
+                    return False
+        else:  # 纵向移动
+            start = min(from_row, to_row) + 1
+            end = max(from_row, to_row)
+            for row in range(start, end):
+                if GameRules.get_piece_at(pieces, row, from_col):
+                    return False
+        
+        return True
 
     @staticmethod
     def is_valid_ma_move(pieces, from_row, from_col, to_row, to_col):
@@ -167,6 +201,60 @@ class GameRules:
             is_straight_three_move = ((row_diff == 3 and col_diff == 0) or (row_diff == 0 and col_diff == 3))  # 直三
         
         # 马移动必须是日字或直三（如果设置允许）
+        if not (is_normal_ma_move or is_straight_three_move):
+            return False
+        
+        # 检查是否有阻挡
+        if is_normal_ma_move:  # 传统日字走法
+            if row_diff == 2:  # 竖着走日字，检查横向阻挡
+                block_row = from_row + (1 if to_row > from_row else -1)
+                if GameRules.get_piece_at(pieces, block_row, from_col):
+                    return False
+            elif col_diff == 2:  # 横着走日字，检查纵向阻挡
+                block_col = from_col + (1 if to_col > from_col else -1)
+                if GameRules.get_piece_at(pieces, from_row, block_col):
+                    return False
+        elif is_straight_three_move:  # 直三走法
+            if row_diff == 3:  # 竖着走直线，检查路径阻挡
+                step = 1 if to_row > from_row else -1
+                for i in range(1, 3):
+                    if GameRules.get_piece_at(pieces, from_row + i * step, from_col):
+                        return False
+            elif col_diff == 3:  # 横着走直线，检查路径阻挡
+                step = 1 if to_col > from_col else -1
+                for i in range(1, 3):
+                    if GameRules.get_piece_at(pieces, from_row, from_col + i * step):
+                        return False
+        
+        return True
+    
+    @staticmethod
+    def can_ma_attack(pieces, from_row, from_col, to_row, to_col):
+        """检查马是否能攻击到目标位置（不考虑目标位置棋子颜色）
+        
+        Args:
+            pieces (list): 棋子列表
+            from_row (int): 起始行
+            from_col (int): 起始列
+            to_row (int): 目标行
+            to_col (int): 目标列
+            
+        Returns:
+            bool: 是否能攻击到目标位置
+        """
+        # 计算行列差
+        row_diff = abs(to_row - from_row)
+        col_diff = abs(to_col - from_col)
+        
+        # 检查基本移动规则：日字
+        is_normal_ma_move = ((row_diff == 2 and col_diff == 1) or (row_diff == 1 and col_diff == 2))  # 日字
+        
+        # 检查是否允许直走三格
+        is_straight_three_move = False
+        if GameRules.ma_can_straight_three:
+            is_straight_three_move = ((row_diff == 3 and col_diff == 0) or (row_diff == 0 and col_diff == 3))  # 直三
+        
+        # 马攻击必须是日字或直三（如果设置允许）
         if not (is_normal_ma_move or is_straight_three_move):
             return False
         
@@ -498,6 +586,42 @@ class GameRules:
         
         # 移动时不能有棋子阻隔
         return pieces_in_path == 0
+    
+    @staticmethod
+    def can_pao_attack(pieces, from_row, from_col, to_row, to_col):
+        """检查炮是否能攻击到目标位置（不考虑目标位置棋子颜色）
+        
+        Args:
+            pieces (list): 棋子列表
+            from_row (int): 起始行
+            from_col (int): 起始列
+            to_row (int): 目标行
+            to_col (int): 目标列
+            
+        Returns:
+            bool: 是否能攻击到目标位置
+        """
+        # 炮只能横向或纵向移动
+        if from_row != to_row and from_col != to_col:
+            return False
+        
+        # 检查路径上的棋子数量
+        pieces_in_path = 0
+        if from_row == to_row:  # 横向移动
+            start = min(from_col, to_col) + 1
+            end = max(from_col, to_col)
+            for col in range(start, end):
+                if GameRules.get_piece_at(pieces, from_row, col):
+                    pieces_in_path += 1
+        else:  # 纵向移动
+            start = min(from_row, to_row) + 1
+            end = max(from_row, to_row)
+            for row in range(start, end):
+                if GameRules.get_piece_at(pieces, row, from_col):
+                    pieces_in_path += 1
+        
+        # 炮攻击必须有且只有一个炮架
+        return pieces_in_path == 1
     
     @staticmethod
     def is_valid_pawn_move(pieces, color, from_row, from_col, to_row, to_col):
@@ -1117,7 +1241,7 @@ class GameRules:
         return captures
     
     @staticmethod
-    def is_checkmate(pieces, color):
+    def is_check(pieces, color):
         """检查是否将军
         
         Args:
@@ -1137,13 +1261,104 @@ class GameRules:
         if not king:
             return True  # 没有找到将/帅，视为被将死
         
-        # 检查对方每个棋子是否能吃掉将/帅
+        # 检查对方每个棋子是否能攻击到将/帅
         for piece in pieces:
             if piece.color != color:  # 对方棋子
-                if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, king.row, king.col):
-                    return True
+                # 根据棋子类型使用相应的攻击检测方法
+                if isinstance(piece, Ju):  # 车
+                    if GameRules.can_ju_attack(pieces, piece.row, piece.col, king.row, king.col):
+                        return True
+                elif isinstance(piece, Pao):  # 炮
+                    if GameRules.can_pao_attack(pieces, piece.row, piece.col, king.row, king.col):
+                        return True
+                elif isinstance(piece, Ma):  # 马
+                    if GameRules.can_ma_attack(pieces, piece.row, piece.col, king.row, king.col):
+                        return True
+                elif isinstance(piece, King):  # 将/帅
+                    # 将帅对脸规则
+                    if piece.col == king.col:
+                        # 检查中间是否有其他棋子
+                        start_row = min(piece.row, king.row) + 1
+                        end_row = max(piece.row, king.row)
+                        has_piece_between = False
+                        for r in range(start_row, end_row):
+                            if GameRules.get_piece_at(pieces, r, piece.col):
+                                has_piece_between = True
+                                break
+                        if not has_piece_between:
+                            return True
+                else:  # 其他棋子（兵/卒、相/象、士/仕等）
+                    if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, king.row, king.col):
+                        return True
         
         return False
+    
+    @staticmethod
+    def would_be_in_check_after_move(pieces, piece, from_row, from_col, to_row, to_col):
+        """检查移动后是否会导致被将军
+        
+        Args:
+            pieces (list): 棋子列表
+            piece (ChessPiece): 要移动的棋子
+            from_row (int): 起始行
+            from_col (int): 起始列
+            to_row (int): 目标行
+            to_col (int): 目标列
+            
+        Returns:
+            bool: 移动后是否会被将军
+        """
+        # 备份原始位置和目标位置的棋子
+        original_row, original_col = piece.row, piece.col
+        target_piece = GameRules.get_piece_at(pieces, to_row, to_col)
+        
+        # 模拟移动
+        piece.row, piece.col = to_row, to_col
+        
+        # 如果目标位置有棋子，先移除它
+        if target_piece:
+            pieces.remove(target_piece)
+        
+        # 检查移动后是否被将军
+        is_in_check = GameRules.is_check(pieces, piece.color)
+        
+        # 恢复棋子位置
+        piece.row, piece.col = original_row, original_col
+        
+        # 如果目标位置有棋子，恢复它
+        if target_piece:
+            pieces.append(target_piece)
+        
+        return is_in_check
+    
+    @staticmethod
+    def is_checkmate(pieces, color):
+        """检查是否将死（无法逃脱的将军）
+        
+        Args:
+            pieces (list): 棋子列表
+            color (str): 要检查的方的颜色
+            
+        Returns:
+            bool: 是否将死
+        """
+        # 首先检查是否将军
+        if not GameRules.is_check(pieces, color):
+            return False
+        
+        # 检查该方是否有任何合法移动可以解除将军
+        for piece in pieces:
+            if piece.color == color:  # 该方的棋子
+                # 尝试所有可能的移动
+                for row in range(13):
+                    for col in range(13):
+                        if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, row, col):
+                            # 检查这个移动是否会解除将军（送将检测）
+                            if not GameRules.would_be_in_check_after_move(pieces, piece, piece.row, piece.col, row, col):
+                                return False  # 找到一个可以解除将军的移动，不是将死
+        
+        # 没有合法移动可以解除将军，是将死
+        return True
     
     @staticmethod
     def can_move_to(pieces, piece, to_row, to_col):
@@ -1220,7 +1435,7 @@ class GameRules:
             return True, player_color
         
         # 检查对方是否被将军
-        if GameRules.is_checkmate(pieces, opponent_color):
+        if GameRules.is_check(pieces, opponent_color):
             # 检查对方是否有合法移动可以解除将军
             has_valid_move = False
             for piece in pieces:
@@ -1229,28 +1444,8 @@ class GameRules:
                         for col in range(13):
                             # 尝试移动
                             if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, row, col):
-                                # 模拟移动并检查是否解除将军
-                                original_row, original_col = piece.row, piece.col
-                                target_piece = GameRules.get_piece_at(pieces, row, col)
-                                
-                                # 暂时移除目标位置的棋子（如果有）
-                                if target_piece:
-                                    pieces.remove(target_piece)
-                                
-                                # 移动棋子
-                                piece.row, piece.col = row, col
-                                
-                                # 检查是否解除将军
-                                still_check = GameRules.is_checkmate(pieces, opponent_color)
-                                
-                                # 恢复移动
-                                piece.row, piece.col = original_row, original_col
-                                
-                                # 恢复被移除的棋子（如果有）
-                                if target_piece:
-                                    pieces.append(target_piece)
-                                
-                                if not still_check:
+                                # 检查这个移动是否会解除将军（送将检测）
+                                if not GameRules.would_be_in_check_after_move(pieces, piece, piece.row, piece.col, row, col):
                                     has_valid_move = True
                                     break
                         if has_valid_move:
@@ -1258,7 +1453,7 @@ class GameRules:
                 if has_valid_move:
                     break
             
-            # 如果对方没有合法移动可以解除将军，则当前玩家获胜
+            # 如果对方没有合法移动可以解除将军，则当前玩家获胜（将死）
             if not has_valid_move:
                 return True, player_color
         
