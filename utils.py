@@ -38,3 +38,25 @@ def load_font(size, bold=False):
             except:
                 # 如果所有本地字体都加载失败，返回None表示失败
                 return None
+
+
+def draw_background(surface, background_color=None):
+    """绘制统一的背景纹理
+    
+    Args:
+        surface: pygame表面对象
+        background_color: 背景颜色，如果为None则使用默认的BACKGROUND_COLOR
+    """
+    from config import BACKGROUND_COLOR as DEFAULT_BG_COLOR
+    
+    # 使用传入的背景颜色或默认背景颜色
+    color = background_color if background_color is not None else DEFAULT_BG_COLOR
+    
+    # 填充基础背景色
+    surface.fill(color)
+
+    # 添加纹理效果
+    for i in range(0, surface.get_width(), 10):
+        for j in range(0, surface.get_height(), 10):
+            if (i + j) % 20 == 0:
+                pygame.draw.rect(surface, (230, 207, 171), (i, j, 5, 5))
