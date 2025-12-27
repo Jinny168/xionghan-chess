@@ -1,20 +1,46 @@
 import pygame
+
+from config import game_config, BLACK, RED, BACKGROUND_COLOR
 from ui_elements import Button
 from utils import load_font
-from config import game_config
 
-# 颜色定义
-BLACK = (0, 0, 0)
-RED = (180, 30, 30)
-WHITE = (255, 255, 255)
-BUTTON_COLOR = (100, 100, 200)
-BUTTON_HOVER = (120, 120, 220)
-BUTTON_TEXT = (240, 240, 255)
-BACKGROUND_COLOR = (240, 217, 181)
 
 class SettingsScreen:
     """自定义设置界面"""
     def __init__(self):
+        self.xiang_jump_checkbox = None
+        self.xiang_cross_label = None
+        self.xiang_cross_checkbox = None
+        self.xiang_jump_label = None
+        self.shi_palace_label = None
+        self.shi_straight_checkbox = None
+        self.ma_straight_checkbox = None
+        self.back_button = None
+        self.shi_straight_label = None
+        self.xiang_section_title = None
+        self.shi_palace_checkbox = None
+        self.shi_section_title = None
+        self.king_diagonal_in_palace_checkbox = None
+        self.ma_section_title = None
+        self.confirm_button = None
+        self.ma_straight_label = None
+        self.king_diagonal_in_palace_label = None
+        self.king_diagonal_label = None
+        self.king_diagonal_checkbox = None
+        self.king_palace_label = None
+        self.king_palace_checkbox = None
+        self.king_section_title = None
+        self.desc_font = None
+        self.option_font = None
+        self.title_font = None
+        self.ma_can_straight_three = None
+        self.xiang_gain_jump_two_outside_river = None
+        self.xiang_can_cross_river = None
+        self.shi_gain_straight_outside_palace = None
+        self.shi_can_leave_palace = None
+        self.king_can_diagonal_in_palace = None
+        self.king_lose_diagonal_outside_palace = None
+        self.king_can_leave_palace = None
         self.window_width = 850
         self.window_height = 850
         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
