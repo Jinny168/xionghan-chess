@@ -50,70 +50,10 @@ class ChessBoard:
         
     def update_font(self):
         """根据当前棋盘尺寸更新字体"""
-        self.chess_font = None
         font_size = int(self.grid_size * 0.5)
         
-        # 尝试使用游戏资源中的字体文件
-        font_paths = [
-            'fonts/simkai.ttf',      # 楷体
-            'fonts/kaiti.ttf',       # 楷体
-            'fonts/fangsong.ttf',    # 仿宋
-            'fonts/simhei.ttf',      # 黑体
-            'fonts/xingkai.ttf',     # 行楷
-            'fonts/msyh.ttc',        # 微软雅黑
-        ]
-        
-        # 尝试加载游戏资源中的字体文件
-        for font_path in font_paths:
-            full_path = os.path.join(os.path.dirname(__file__), font_path)
-            if os.path.exists(full_path):
-                try:
-                    self.chess_font = pygame.font.Font(full_path, font_size)
-                    if self.chess_font:
-                        break
-                except:
-                    continue
-        
-        # 如果没有找到资源字体，尝试系统字体
-        if not self.chess_font:
-            font_options = [
-                'KaiTi', 'STKaiti', '楷体', 'SimKai', 
-                'FangSong', 'STFangsong', '仿宋', 
-                'STXingkai', '华文行楷',
-                'LiSu', '隶书'
-            ]
-            
-            for font_name in font_options:
-                try:
-                    self.chess_font = load_font(font_size, bold=True)
-                    break
-                except:
-                    continue
-                    
-        # 如果所有字体都失败，使用默认字体
-        if not self.chess_font:
-            try:
-                self.chess_font = pygame.font.Font('fonts/simhei.ttf', font_size)
-            except:
-                try:
-                    self.chess_font = pygame.font.Font('fonts/simkai.ttf', font_size)
-                except:
-                    try:
-                        self.chess_font = pygame.font.Font('fonts/fangsong.ttf', font_size)
-                    except:
-                        try:
-                            self.chess_font = pygame.font.Font('fonts/xingkai.ttf', font_size)
-                        except:
-                            try:
-                                self.chess_font = pygame.font.Font('fonts/msyh.ttc', font_size)
-                            except:
-                                try:
-                                    self.chess_font = pygame.font.Font('fonts/kaiti.ttf', font_size)
-                                except:
-                                    try:
-                                        self.chess_font = pygame.font.Font('fonts/fangsong.ttf', font_size)
-                                    except:
-                                        self.chess_font = load_font(font_size, bold=True)
+        # 使用统一的字体加载函数
+        self.chess_font = load_font(font_size, bold=True)
         
     def draw(self, screen, pieces):
         """绘制棋盘和棋子"""

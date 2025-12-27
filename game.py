@@ -520,7 +520,7 @@ class ChessGame:
                             # 检查是返回主菜单还是退出游戏
                             # 在这里我们可以根据上下文决定行为
                             # 如果是退出游戏对话框，直接退出程序
-                            if "退出游戏" in self.confirm_dialog.message:
+                            if self.confirm_dialog and "退出游戏" in self.confirm_dialog.message:
                                 pygame.quit()
                                 sys.exit()
                             else:  # 返回主菜单

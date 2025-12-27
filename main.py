@@ -1,5 +1,6 @@
 import pygame
 
+from config import MODE_PVC, CAMP_RED
 from game import ChessGame
 from menu_screens import ModeSelectionScreen, RulesScreen, CampSelectionScreen
 from settings import SettingsScreen
@@ -7,14 +8,6 @@ from settings import SettingsScreen
 # 初始化PyGame
 pygame.init()
 pygame.mixer.init()  # 初始化音频模块
-
-# 游戏模式
-MODE_PVP = "pvp"  # 人人对战
-MODE_PVC = "pvc"  # 人机对战
-
-# 玩家阵营
-CAMP_RED = "red"  # 玩家执红
-CAMP_BLACK = "black"  # 玩家执黑
 
 
 def main():

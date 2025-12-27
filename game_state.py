@@ -1,6 +1,8 @@
 import time
-from chess_pieces import create_initial_pieces, ChessPiece, King, Jia, Wei
+
+from chess_pieces import create_initial_pieces, King, Jia
 from game_rules import GameRules
+
 
 class GameState:
     """游戏状态管理类，负责维护当前棋局、历史记录和状态判断"""

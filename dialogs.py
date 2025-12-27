@@ -1,14 +1,9 @@
 import pygame
+
+from config import BLACK, RED, POPUP_BG
 from ui_elements import Button
 from utils import load_font
 
-# 颜色定义
-BLACK = (0, 0, 0)
-RED = (180, 30, 30)
-POPUP_BG = (250, 240, 230)  # 更亮的弹窗背景色
-BUTTON_COLOR = (100, 100, 200)
-BUTTON_HOVER = (120, 120, 220)
-BUTTON_TEXT = (240, 240, 255)
 
 class PopupDialog:
     def __init__(self, width, height, message, total_time=0, red_time=0, black_time=0):
