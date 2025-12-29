@@ -1,3 +1,4 @@
+
 import time
 import threading
 import pygame
@@ -53,6 +54,20 @@ class ChessAI:
         self.computation_finished = False
         self.best_move_so_far = None  # 用于保存当前最佳走法
         self.best_value_so_far = float('-inf')  # 用于保存当前最佳估值
+        
+        # 线程锁，确保线程安全
+        self.lock = threading.Lock()
+        
+        # 高级搜索技术参数
+        self.search_depth = 11  # 增加搜索深度
+        self.max_think_time = 8000  # 优化思考时间
+        self.use_killer_move = True  # 启用杀手着法
+        self.killer_moves = [[None for _ in range(2)] for _ in range(20)]  # 杀手着法表
+        self.use_history_heuristic = True  # 启用历史启发
+        self.transposition_table_size = 1000000  # 增大置换表容量
+        
+        # 线程锁，确保线程安全
+        self.lock = threading.Lock()
     
     def _init_position_tables(self):
         """初始化棋子位置价值表（适用于匈汉象棋13x13棋盘）"""
@@ -198,11 +213,12 @@ class ChessAI:
     
     def get_computed_move(self):
         """获取计算完成的走法，如果计算未完成则返回当前最佳走法"""
-        if self.computation_finished:
-            return self.computed_move
-        else:
-            # 如果计算未完成，返回当前已知的最佳走法
-            return self.best_move_so_far if self.best_move_so_far is not None else self.computed_move
+        with self.lock:  # 线程安全
+            if self.computation_finished:
+                return self.computed_move
+            else:
+                # 如果计算未完成，返回当前已知的最佳走法
+                return self.best_move_so_far if self.best_move_so_far is not None else self.computed_move
     
     def _compute_move(self, game_state):
         """在单独线程中计算最佳走法"""
@@ -211,7 +227,8 @@ class ChessAI:
             self.computed_move = self._get_best_move(game_state)
         finally:
             # 标记计算完成
-            self.computation_finished = True
+            with self.lock:  # 线程安全
+                self.computation_finished = True
             # 通过pygame事件通知主线程
             pygame.event.post(pygame.event.Event(pygame.USEREVENT + 2))  # 使用不同的事件ID
     
@@ -251,12 +268,23 @@ class ChessAI:
         best_move = valid_moves[0]  # 默认使用第一个有效走法
         best_value = float('-inf')
         
+        # 根据局面复杂性动态调整搜索深度
+        # 如果局面比较复杂（有很多可走的棋子），稍微减少搜索深度以保证时间
+        # 如果局面较简单，增加搜索深度
+        complexity_factor = len(valid_moves) / 10.0  # 基于可走步数的复杂度
+        if complexity_factor > 1.5:  # 复杂局面
+            effective_depth = max(3, self.search_depth - 1)  # 减少搜索深度
+        elif complexity_factor < 0.5:  # 简单局面
+            effective_depth = min(12, self.search_depth + 1)  # 增加搜索深度
+        else:
+            effective_depth = self.search_depth  # 正常搜索深度
+        
         # 使用迭代加深搜索
         if self.use_iterative_deepening:
             # 从较浅的深度开始搜索，逐步加深
-            for current_depth in range(1, self.search_depth + 1):
+            for current_depth in range(1, effective_depth + 1):
                 # 检查是否超时（更严格的超时控制）
-                if (time.time() - start_time) * 1000 > self.max_think_time * 0.8:
+                if (time.time() - start_time) * 1000 > self.max_think_time * 0.9:  # 提高时间利用率为90%
                     break
                 
                 alpha = float('-inf')
@@ -289,9 +317,10 @@ class ChessAI:
                         # 更新历史表
                         self._update_history_move(from_pos, to_pos, current_depth)
                         
-                        # 更新当前已知最佳走法
-                        self.best_move_so_far = (from_pos, to_pos)
-                        self.best_value_so_far = value
+                        # 更新当前已知最佳走法 - 线程安全
+                        with self.lock:
+                            self.best_move_so_far = (from_pos, to_pos)
+                            self.best_value_so_far = value
                         
                         # 如果使用积极剪枝且发现明显优势的走法，提前终止
                         if self.aggressive_pruning and alpha > 5000:  # 接近胜利的局面
@@ -316,7 +345,7 @@ class ChessAI:
                 self._make_move(cloned_state, from_pos, to_pos)
                 
                 # 使用Negamax算法进行搜索
-                value = self._negamax(cloned_state, self.search_depth - 1, -beta, -alpha, False, start_time)
+                value = self._negamax(cloned_state, effective_depth - 1, -beta, -alpha, False, start_time)
                 value = -value  # 反转值，因为是对手的回合
                 
                 # 更新最佳走法
@@ -325,13 +354,15 @@ class ChessAI:
                     best_move = (from_pos, to_pos)
                     alpha = max(alpha, best_value)
                     
-                    # 更新当前已知最佳走法
-                    self.best_move_so_far = (from_pos, to_pos)
-                    self.best_value_so_far = value
+                    # 更新当前已知最佳走法 - 线程安全
+                    with self.lock:
+                        self.best_move_so_far = (from_pos, to_pos)
+                        self.best_value_so_far = value
         
         # 如果没有找到最佳走法，返回当前已知的最佳走法
         if best_move is None:
-            best_move = self.best_move_so_far
+            with self.lock:  # 线程安全
+                best_move = self.best_move_so_far
         
         # 如果仍然没有找到走法，返回随机走法
         if best_move is None and valid_moves:
@@ -356,9 +387,9 @@ class ChessAI:
         return valid_moves
     
     def _sort_moves(self, game_state, moves):
-        """启发式走法排序，提高剪枝效率
+        """改进的走法排序，提高剪枝效率
         
-        排序优先级：历史启发 > MVV-LVA > 将军 > 普通走法
+        排序优先级：杀手着法 > 历史启发 > MVV-LVA > 将军 > 普通走法
         """
         scored_moves = []
         
@@ -375,6 +406,11 @@ class ChessAI:
                     moving_piece = piece
                 elif piece.row == to_row and piece.col == to_col:
                     target_piece = piece
+            
+            # 检查是否为杀手着法（导致beta剪枝的走法）
+            if (hasattr(self, 'killer_moves') and 
+                (from_pos, to_pos) in [km for sublist in self.killer_moves for km in sublist]):
+                score += 10000  # 杀手着法优先级最高
             
             # 历史启发：使用历史表中的评分
             history_score = self.history_table.get((from_pos, to_pos), 0)
@@ -433,20 +469,51 @@ class ChessAI:
         
         # 检查置换表
         if state_key in self.transposition_table and self.transposition_table[state_key]['depth'] >= depth:
-            return self.transposition_table[state_key]['value']
+            entry = self.transposition_table[state_key]
+            if entry['type'] == 'exact':
+                return entry['value']
+            elif entry['type'] == 'lower':
+                alpha = max(alpha, entry['value'])
+            elif entry['type'] == 'upper':
+                beta = min(beta, entry['value'])
+            if alpha >= beta:
+                return entry['value']
         
         # 达到叶节点或游戏结束
         if depth == 0 or game_state.game_over:
             value = self._evaluate_board(game_state)
-            self.transposition_table[state_key] = {'value': value, 'depth': depth}
+            # 保存到置换表
+            self.transposition_table[state_key] = {
+                'value': value, 
+                'depth': depth,
+                'type': 'exact'
+            }
             return value
+        
+        # 空着剪枝（Null Move Pruning）
+        if depth >= 3 and not self._is_in_check_for_current_player(game_state):
+            # 创建一个克隆状态并执行空移动
+            cloned_state = self._clone_game_state(game_state)
+            cloned_state.player_turn = "red" if cloned_state.player_turn == "black" else "black"
+            null_score = -self._negamax(cloned_state, depth-3, -beta, -beta+1, not is_maximizing, start_time)
+            if null_score >= beta:
+                return beta
         
         # 获取并排序走法
         moves = self._get_valid_moves(game_state, self.ai_color if is_maximizing else 
                                      ("red" if self.ai_color == "black" else "black"))
         moves = self._sort_moves(game_state, moves)
         
+        # 如果没有可走的棋子，返回极大负值（表示被将死）
+        if not moves:
+            # 检查是否被将死
+            if self._is_in_check_for_current_player(game_state):
+                return float('-inf')  # 被将死，返回负无穷
+            else:
+                return 0  # 和棋（无子可动但未被将军）
+        
         best_value = float('-inf')
+        best_move = None  # 跟踪最佳走法
         
         for from_pos, to_pos in moves:
             # 检查思考时间是否超出限制
@@ -459,16 +526,20 @@ class ChessAI:
             # 递归搜索
             eval = -self._negamax(cloned_state, depth - 1, -beta, -alpha, not is_maximizing, start_time)
             
-            best_value = max(best_value, eval)
+            if eval > best_value:
+                best_value = eval
+                best_move = (from_pos, to_pos)  # 记录最佳走法
+                
             alpha = max(alpha, eval)
             
-            # 更新当前已知最佳走法，如果当前走法更好
-            if is_maximizing and eval > self.best_value_so_far:
-                self.best_value_so_far = eval
-                self.best_move_so_far = (from_pos, to_pos)
-            elif not is_maximizing and -eval > self.best_value_so_far:
-                self.best_value_so_far = -eval
-                self.best_move_so_far = (from_pos, to_pos)
+            # 更新当前已知最佳走法，如果当前走法更好 - 线程安全
+            with self.lock:
+                if is_maximizing and eval > self.best_value_so_far:
+                    self.best_value_so_far = eval
+                    self.best_move_so_far = (from_pos, to_pos)
+                elif not is_maximizing and -eval > self.best_value_so_far:
+                    self.best_value_so_far = -eval
+                    self.best_move_so_far = (from_pos, to_pos)
             
             # Alpha-Beta剪枝
             if alpha >= beta:
@@ -476,84 +547,230 @@ class ChessAI:
                 self._update_history_move(from_pos, to_pos, depth)
                 break
         
-        self.transposition_table[state_key] = {'value': best_value, 'depth': depth}
+        # 保存到置换表
+        entry_type = 'exact' if best_value > alpha and best_value < beta else (
+                     'lower' if best_value >= beta else 'upper')
+        self.transposition_table[state_key] = {
+            'value': best_value, 
+            'depth': depth,
+            'type': entry_type
+        }
+        
+        # 如果是根节点，更新最佳走法
+        if depth == self.search_depth and best_move is not None:
+            with self.lock:
+                self.best_move_so_far = best_move
+                self.best_value_so_far = best_value
+        
         return best_value
     
     def _evaluate_board(self, game_state):
-        """评估局面分数
+        """改进的局面评估函数
         
         返回正分对AI有利，负分对玩家有利
         """
         # 如果游戏已结束
         if game_state.game_over:
             if game_state.winner == self.ai_color:
-                return 10000  # AI获胜
+                return 100000  # AI获胜
             else:
-                return -10000  # 玩家获胜
+                return -100000  # 玩家获胜
         
-        ai_score = 0
-        player_score = 0
+        score = 0
         
-        # 计算棋子基础分值和位置加成
+        # 1. 棋子价值基础分
         for piece in game_state.pieces:
-            piece_value = self._get_piece_value(piece)
-            position_value = self._get_position_value(piece)
+            # 基础价值
+            base_value = self._get_piece_value(piece)
             
-            # 根据棋子威胁情况调整价值
-            threat_value = self._evaluate_piece_threats_simple(game_state, piece)
-            protection_value = self._evaluate_piece_protection_simple(game_state, piece)
+            # 2. 位置价值加成
+            pos_value = self._get_position_value(piece)
+            base_value += pos_value
             
-            # 计算总价值
-            total_value = piece_value + position_value + protection_value - threat_value
+            # 3. 动态价值调整
+            # 攻击能力加成
+            attack_value = self._evaluate_attack_capability(piece, game_state)
+            base_value += attack_value
             
+            # 防守价值加成
+            defense_value = self._evaluate_defense_value(piece, game_state)
+            base_value += defense_value
+            
+            # 根据颜色累加分数
             if piece.color == self.ai_color:
-                ai_score += total_value
+                score += base_value
             else:
-                player_score += total_value
+                score -= base_value
         
-        # 计算行动力和控制力
-        # 优化：只在需要时计算行动力
-        if self.search_depth > 1:
-            ai_moves = self._get_valid_moves(game_state, self.ai_color)
-            player_moves = self._get_valid_moves(game_state, "red" if self.ai_color == "black" else "black")
-            
-            # 行动力评估
-            ai_mobility = len(ai_moves) * 2
-            player_mobility = len(player_moves) * 2
-            
-            ai_score += ai_mobility
-            player_score += player_mobility
+        # 4. 整体态势评估
+        # 控制中心区域加成
+        center_control = self._evaluate_center_control(game_state)
+        if self.ai_color == "red":
+            score += center_control
+        else:
+            score -= center_control
         
-        # 中心控制评估
-        ai_center_control = self._evaluate_center_control_simple(game_state, self.ai_color)
-        player_center_control = self._evaluate_center_control_simple(game_state, "red" if self.ai_color == "black" else "black")
+        # 王的安全性评估
+        king_safety = self._evaluate_king_safety(game_state)
+        if self.ai_color == "red":
+            score += king_safety
+        else:
+            score -= king_safety
         
-        ai_score += ai_center_control
-        player_score += player_center_control
+        # 5. 机动性评估（棋子可移动性）
+        ai_mobility = self._evaluate_mobility(game_state, self.ai_color)
+        opponent_mobility = self._evaluate_mobility(game_state, "red" if self.ai_color == "black" else "black")
+        score += ai_mobility - opponent_mobility
         
-        # 检查将军状态
+        # 6. 将军状态评估
         if self._is_check(game_state, self.ai_color):
-            ai_score -= 150  # AI被将军，扣分
+            score -= 1000  # 被将军严重扣分
+        elif self._is_check(game_state, "red" if self.ai_color == "black" else "black"):
+            score += 500  # 将军对手加分
         
-        if self._is_check(game_state, "red" if self.ai_color == "black" else "black"):
-            player_score -= 150  # 玩家被将军，扣分
-            
-        # 评估王的安全
-        ai_king_safety = self._evaluate_king_safety_simple(game_state, self.ai_color)
-        player_king_safety = self._evaluate_king_safety_simple(game_state, "red" if self.ai_color == "black" else "black")
+        # 7. 棋子协调性评估
+        coordination = self._evaluate_piece_coordination_simple(game_state, self.ai_color)
+        if self.ai_color == "red":
+            score += coordination
+        else:
+            score -= coordination
         
-        ai_score += ai_king_safety
-        player_score += player_king_safety
+        # 8. 特殊能力评估
+        special_abilities = self._evaluate_special_abilities_simple(game_state, self.ai_color)
+        if self.ai_color == "red":
+            score += special_abilities
+        else:
+            score -= special_abilities
         
-        # 评估特殊棋子能力（简化的版本）
-        ai_special_ability = self._evaluate_special_abilities_simple(game_state, self.ai_color)
-        player_special_ability = self._evaluate_special_abilities_simple(game_state, "red" if self.ai_color == "black" else "black")
+        return score
+    
+    def _evaluate_attack_capability(self, piece, game_state):
+        """评估棋子的攻击能力"""
+        attack_value = 0
         
-        ai_score += ai_special_ability
-        player_score += player_special_ability
+        # 获取可能的攻击位置
+        possible_moves, capturable = game_state.calculate_possible_moves(piece.row, piece.col)
         
-        # 返回最终分差
-        return ai_score - player_score
+        # 评估可攻击的棋子价值
+        for to_row, to_col in capturable:
+            target_piece = game_state.get_piece_at(to_row, to_col)
+            if target_piece and target_piece.color != piece.color:
+                # MVV-LVA评估：吃掉高价值棋子加分
+                target_value = self._get_piece_value(target_piece)
+                piece_value = self._get_piece_value(piece)
+                
+                # 如果用低价值棋子吃高价值棋子，加分更多
+                if target_value > piece_value:
+                    attack_value += (target_value - piece_value) * 0.3
+                else:
+                    attack_value += target_value * 0.1
+        
+        return attack_value
+
+    def _evaluate_defense_value(self, piece, game_state):
+        """评估棋子的防守价值"""
+        defense_value = 0
+        
+        # 检查当前棋子是否保护了其他棋子
+        for other_piece in game_state.pieces:
+            if (other_piece.color == piece.color and 
+                other_piece != piece and 
+                self._can_protect_simple(game_state, piece, other_piece)):
+                # 保护高价值棋子加分
+                protected_value = self._get_piece_value(other_piece)
+                defense_value += protected_value * 0.05  # 保护价值的5%
+        
+        return defense_value
+
+    def _evaluate_center_control(self, game_state):
+        """评估对中心区域的控制"""
+        center_rows = [5, 6, 7]
+        center_cols = [5, 6, 7]
+        control_score = 0
+        
+        # 检查中心区域的控制情况
+        for row in center_rows:
+            for col in center_cols:
+                piece = game_state.get_piece_at(row, col)
+                if piece:
+                    if piece.color == self.ai_color:
+                        # 己方棋子在中心加分
+                        piece_value = self._get_piece_value(piece)
+                        control_score += max(10, piece_value // 10)
+                    else:
+                        # 敌方棋子在中心扣分
+                        piece_value = self._get_piece_value(piece)
+                        control_score -= max(10, piece_value // 10)
+        
+        # 检查能够攻击中心的棋子
+        for piece in game_state.pieces:
+            if piece.color == self.ai_color:
+                possible_moves, capturable = game_state.calculate_possible_moves(piece.row, piece.col)
+                for to_row, to_col in capturable:
+                    if to_row in center_rows and to_col in center_cols:
+                        # 能够攻击中心区域加分
+                        control_score += 5
+        
+        return control_score
+
+    def _evaluate_king_safety(self, game_state):
+        """评估王的安全性"""
+        # 找出王
+        king = None
+        for piece in game_state.pieces:
+            if isinstance(piece, King) and piece.color == self.ai_color:
+                king = piece
+                break
+        
+        if not king:
+            return -5000  # 没有王，极度危险
+        
+        safety_score = 0
+        
+        # 王在九宫格内更安全
+        if self.ai_color == "red":
+            if 9 <= king.row <= 11 and 5 <= king.col <= 7:  # 红方王在九宫内
+                safety_score += 100
+            else:
+                # 王在九宫外，检查周围保护情况
+                protected_count = 0
+                for dr in [-1, 0, 1]:
+                    for dc in [-1, 0, 1]:
+                        if dr == 0 and dc == 0:
+                            continue
+                        adj_row, adj_col = king.row + dr, king.col + dc
+                        adj_piece = game_state.get_piece_at(adj_row, adj_col)
+                        if adj_piece and adj_piece.color == self.ai_color:
+                            protected_count += 1
+                safety_score += protected_count * 15
+        else:  # black
+            if 1 <= king.row <= 3 and 5 <= king.col <= 7:  # 黑方王在九宫内
+                safety_score += 100
+            else:
+                # 王在九宫外，检查周围保护情况
+                protected_count = 0
+                for dr in [-1, 0, 1]:
+                    for dc in [-1, 0, 1]:
+                        if dr == 0 and dc == 0:
+                            continue
+                        adj_row, adj_col = king.row + dr, king.col + dc
+                        adj_piece = game_state.get_piece_at(adj_row, adj_col)
+                        if adj_piece and adj_piece.color == self.ai_color:
+                            protected_count += 1
+                safety_score += protected_count * 15
+        
+        # 检查王周围是否有敌方攻击威胁
+        enemy_threats = 0
+        for piece in game_state.pieces:
+            if piece.color != self.ai_color:  # 敌方棋子
+                possible_moves, capturable = game_state.calculate_possible_moves(piece.row, piece.col)
+                for to_row, to_col in capturable:
+                    if to_row == king.row and to_col == king.col:  # 威胁到王
+                        enemy_threats += 1
+        
+        safety_score -= enemy_threats * 50  # 每个威胁扣50分
+        
+        return safety_score
     
     def _evaluate_mobility(self, game_state, color):
         """评估棋子的机动性（可移动性）"""
@@ -836,6 +1053,10 @@ class ChessAI:
         # 这里复用游戏规则已有的检查
         return color == game_state.player_turn and game_state.is_check
     
+    def _is_in_check_for_current_player(self, game_state):
+        """检查当前玩家是否被将军"""
+        return game_state.is_check
+    
     def _clone_game_state(self, game_state):
         """创建游戏状态的高效深拷贝用于模拟"""
         # 使用更高效的克隆方法
@@ -858,6 +1079,11 @@ class ChessAI:
         cloned_state.game_over = game_state.game_over
         cloned_state.winner = game_state.winner
         cloned_state.is_check = game_state.is_check
+        cloned_state.move_history = getattr(game_state, 'move_history', [])[:]
+        cloned_state.captured_pieces = {
+            'red': getattr(game_state, 'captured_pieces', {}).get('red', [])[:],
+            'black': getattr(game_state, 'captured_pieces', {}).get('black', [])[:]
+        }
         
         # 添加必要的方法
         def get_piece_at(row, col):
@@ -868,6 +1094,7 @@ class ChessAI:
         
         cloned_state.get_piece_at = get_piece_at
         cloned_state.calculate_possible_moves = game_state.calculate_possible_moves
+        cloned_state.is_valid_move = getattr(game_state, 'is_valid_move', None)
         
         return cloned_state
     
@@ -903,6 +1130,9 @@ class ChessAI:
         
         # 切换回合
         game_state.player_turn = "red" if game_state.player_turn == "black" else "black"
+        
+        # 更新将军状态
+        game_state.is_check = False  # 在实际游戏中这个会根据规则更新，这里简化处理
         
         return True
     
@@ -1002,14 +1232,56 @@ class ChessAI:
                 if isinstance(piece, Xiang):
                     # 检查相是否在敌方区域
                     if color == "red" and piece.row <= 6:  # 红方相在黑方区域
-                        special_value += 100  # 简化价值
+                        special_value += 150  # 提高价值
+                        # 检查相在敌方区域是否能攻击敌方棋子
+                        attackable_count = 0
+                        for dr in [-2, 0, 2]:  # 横向移动2格
+                            for dc in [-2, 0, 2]:
+                                if (dr != 0 and dc == 0) or (dr == 0 and dc != 0):  # 只考虑横竖方向
+                                    target_row, target_col = piece.row + dr, piece.col + dc
+                                    if 0 <= target_row < 13 and 0 <= target_col < 13:
+                                        # 检查中间是否有棋子（塞相眼）
+                                        mid_row, mid_col = piece.row + dr//2, piece.col + dc//2
+                                        if not game_state.get_piece_at(mid_row, mid_col):
+                                            # 检查目标位置是否有敌方棋子
+                                            target_piece = game_state.get_piece_at(target_row, target_col)
+                                            if target_piece and target_piece.color != color:
+                                                attackable_count += 1
+                        special_value += attackable_count * 40
                     elif color == "black" and piece.row >= 6:  # 黑方象在红方区域
-                        special_value += 100  # 简化价值
+                        special_value += 150  # 提高价值
+                        # 检查象在敌方区域是否能攻击敌方棋子
+                        attackable_count = 0
+                        for dr in [-2, 0, 2]:  # 横向移动2格
+                            for dc in [-2, 0, 2]:
+                                if (dr != 0 and dc == 0) or (dr == 0 and dc != 0):  # 只考虑横竖方向
+                                    target_row, target_col = piece.row + dr, piece.col + dc
+                                    if 0 <= target_row < 13 and 0 <= target_col < 13:
+                                        # 检查中间是否有棋子（塞相眼）
+                                        mid_row, mid_col = piece.row + dr//2, piece.col + dc//2
+                                        if not game_state.get_piece_at(mid_row, mid_col):
+                                            # 检查目标位置是否有敌方棋子
+                                            target_piece = game_state.get_piece_at(target_row, target_col)
+                                            if target_piece and target_piece.color != color:
+                                                attackable_count += 1
+                        special_value += attackable_count * 40
                 # 评估尉/衛的跳跃能力
                 elif isinstance(piece, Wei):
                     # 尉在中心区域更有价值
                     if 4 <= piece.row <= 8 and 4 <= piece.col <= 8:
-                        special_value += 15  # 简化价值
+                        special_value += 25  # 提高价值
+                    # 评估尉的跳跃能力在复杂局面中的价值
+                    adjacent_pieces = 0
+                    for dr in [-1, 0, 1]:
+                        for dc in [-1, 0, 1]:
+                            if dr == 0 and dc == 0:
+                                continue
+                            adj_row, adj_col = piece.row + dr, piece.col + dc
+                            if 0 <= adj_row < 13 and 0 <= adj_col < 13:
+                                adj_piece = game_state.get_piece_at(adj_row, adj_col)
+                                if adj_piece:
+                                    adjacent_pieces += 1
+                    special_value += adjacent_pieces * 10
                 # 评估檑/礌的攻击能力
                 elif isinstance(piece, Lei):
                     # 统计可以攻击的孤立敌方棋子数量
@@ -1025,8 +1297,8 @@ class ChessAI:
                                     # 检查目标棋子是否孤立
                                     if self._is_isolated_simple(game_state, target_piece):
                                         attackable_count += 1
-                    # 简化计算
-                    special_value += attackable_count * 50
+                    # 提高檑的攻击价值
+                    special_value += attackable_count * 70
         
         return special_value
 
@@ -1045,6 +1317,48 @@ class ChessAI:
         """简化版：检查棋子是否孤立"""
         from game_rules import GameRules
         return GameRules.is_isolated(piece, game_state.pieces)
+    
+    def _evaluate_piece_coordination_simple(self, game_state, color):
+        """简化版：评估棋子协调性"""
+        coordination_score = 0
+        
+        # 获取所有己方棋子
+        own_pieces = [p for p in game_state.pieces if p.color == color]
+        
+        # 计算棋子间的协同效应
+        for i, piece1 in enumerate(own_pieces):
+            for piece2 in own_pieces[i+1:]:
+                # 计算两棋子间的距离
+                distance = abs(piece1.row - piece2.row) + abs(piece1.col - piece2.col)
+                
+                # 如果距离适中（不是太近也不是太远），增加协同价值
+                if 2 <= distance <= 5:
+                    # 检查是否有协同攻击可能
+                    coordination_score += 8
+        
+        # 评估甲/胄的连线攻击能力
+        jia_pieces = [p for p in own_pieces if isinstance(p, Jia)]
+        for jia in jia_pieces:
+            # 检查是否有形成2己1敌连线的可能
+            # 水平方向检查
+            for col_offset in [-2, -1, 1, 2]:
+                if 0 <= jia.col + col_offset < 13 and 0 <= jia.col + 2*col_offset < 13:
+                    piece1 = game_state.get_piece_at(jia.row, jia.col + col_offset)
+                    piece2 = game_state.get_piece_at(jia.row, jia.col + 2*col_offset)
+                    if piece1 and piece2 and piece1.color != color and piece2.color != color:
+                        # 有潜在的连线攻击可能
+                        coordination_score += 40
+            
+            # 垂直方向检查
+            for row_offset in [-2, -1, 1, 2]:
+                if 0 <= jia.row + row_offset < 13 and 0 <= jia.row + 2*row_offset < 13:
+                    piece1 = game_state.get_piece_at(jia.row + row_offset, jia.col)
+                    piece2 = game_state.get_piece_at(jia.row + 2*row_offset, jia.col)
+                    if piece1 and piece2 and piece1.color != color and piece2.color != color:
+                        # 有潜在的连线攻击可能
+                        coordination_score += 40
+        
+        return coordination_score
     
     def _update_history_move(self, from_pos, to_pos, depth):
         """更新历史表，记录导致剪枝的好走法"""

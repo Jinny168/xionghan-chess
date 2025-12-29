@@ -474,7 +474,14 @@ class ChessGame:
                 self.handle_click(mouse_pos)
 
     def run(self):
-        """游戏主循环"""
+        """游戏主循环 - 根据游戏模式选择适当的循环"""
+        if self.game_mode == MODE_PVP:
+            return self._run_pvp_mode()
+        else:  # MODE_PVC
+            return self._run_pvc_mode()
+
+    def _run_pvp_mode(self):
+        """双人模式游戏循环"""
         while True:
             mouse_pos = pygame.mouse.get_pos()
             current_time = pygame.time.get_ticks()
@@ -489,18 +496,98 @@ class ChessGame:
                     if not self.is_fullscreen:  # 只在窗口模式下处理大小变化
                         self.handle_resize((event.w, event.h))
 
-                # 处理AI移动的计时器事件
-                if event.type == pygame.USEREVENT + 1:
-                    self.process_async_ai_result()
-                    # 不再需要停止计时器，因为我们现在使用线程
+                # 处理键盘事件
+                if event.type == pygame.KEYDOWN:
+                    # F11或Alt+Enter切换全屏
+                    if event.key == pygame.K_F11 or (
+                            event.key == pygame.K_RETURN and
+                            pygame.key.get_mods() & pygame.KMOD_ALT
+                    ):
+                        self.toggle_fullscreen()
+
+                # 如果有确认对话框，优先处理它的事件
+                if self.confirm_dialog:
+                    result = self.confirm_dialog.handle_event(event, mouse_pos)
+                    if result is not None:  # 用户已做出选择
+                        if result:  # 确认
+                            self.confirm_dialog = None
+                            # 检查是返回主菜单还是退出游戏
+                            # 在这里我们可以根据上下文决定行为
+                            # 如果是退出游戏对话框，直接退出程序
+                            if self.confirm_dialog and "退出游戏" in self.confirm_dialog.message:
+                                pygame.quit()
+                                sys.exit()
+                            else:  # 返回主菜单
+                                return "back_to_menu"
+                        else:  # 取消
+                            self.confirm_dialog = None
+
+                # 如果游戏结束，处理弹窗事件
+                elif self.game_state.game_over and self.popup:
+                    if self.popup.handle_event(event, mouse_pos):
+                        self.__init__(self.game_mode, self.player_camp)  # 重置游戏，保持相同模式和阵营
+
+                # 如果游戏未结束，处理鼠标点击
+                elif not self.game_state.game_over:
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        # 检查是否点击了全屏按钮
+                        if self.fullscreen_button.is_clicked(mouse_pos, event):
+                            self.toggle_fullscreen()
+                        # 检查是否点击了返回按钮
+                        elif self.back_button.is_clicked(mouse_pos, event):
+                            # 显示确认对话框而不是直接返回
+                            self.confirm_dialog = ConfirmDialog(
+                                400, 200, "是否要返回主菜单？\n这将丢失您的当前对局信息。"
+                            )
+                        # 检查是否点击了退出游戏按钮
+                        elif self.exit_button.is_clicked(mouse_pos, event):
+                            # 显示确认对话框确认退出游戏
+                            self.confirm_dialog = ConfirmDialog(
+                                400, 200, "是否要退出游戏？\n这将结束当前对局。"
+                            )
+                        # 检查是否点击了重新开始按钮
+                        elif self.restart_button.is_clicked(mouse_pos, event):
+                            self.restart_game()
+                        # 检查是否点击了悔棋按钮
+                        elif self.undo_button.is_clicked(mouse_pos, event):
+                            self.handle_undo()
+                        # 双人模式，处理棋子操作
+                        else:
+                            self.handle_click(mouse_pos)
+
+            # 更新按钮的悬停状态
+            self.undo_button.check_hover(mouse_pos)
+            self.back_button.check_hover(mouse_pos)
+            self.restart_button.check_hover(mouse_pos)
+            self.exit_button.check_hover(mouse_pos)
+            self.fullscreen_button.check_hover(mouse_pos)
+
+            # 绘制画面
+            self.draw(mouse_pos)
+            pygame.display.flip()
+            self.clock.tick(FPS)
+
+    def _run_pvc_mode(self):
+        """人机对战模式游戏循环"""
+        while True:
+            mouse_pos = pygame.mouse.get_pos()
+            current_time = pygame.time.get_ticks()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                # 处理窗口大小变化
+                if event.type == pygame.VIDEORESIZE:
+                    if not self.is_fullscreen:  # 只在窗口模式下处理大小变化
+                        self.handle_resize((event.w, event.h))
+
                 # 处理AI多线程计算完成事件
                 if event.type == pygame.USEREVENT + 2:
                     self.process_async_ai_result()
-
-                # 处理悔棋后解除AI思考状态的延迟事件
-                if event.type == pygame.USEREVENT + 2:
+                    # 清除AI思考状态
                     self.ai_thinking = False
-                    pygame.time.set_timer(pygame.USEREVENT + 2, 0)  # 停止计时器
 
                 # 处理键盘事件
                 if event.type == pygame.KEYDOWN:
@@ -558,8 +645,7 @@ class ChessGame:
                         elif self.undo_button.is_clicked(mouse_pos, event):
                             self.handle_undo()
                         # 处理棋子操作，只有在当前回合是玩家回合时才处理
-                        elif not self.ai_thinking and (self.game_mode == MODE_PVP or
-                                                       self.game_state.player_turn == self.player_camp):
+                        elif not self.ai_thinking and self.game_state.player_turn == self.player_camp:
                             self.handle_click(mouse_pos)
 
             # 检查AI是否思考超时
@@ -567,7 +653,7 @@ class ChessGame:
                 # AI思考超时，强制结束思考
                 print("AI思考超时，执行当前已知最佳走法")
                 self.ai_thinking = False
-                pygame.time.set_timer(pygame.USEREVENT + 1, 0)  # 停止计时器
+                pygame.time.set_timer(pygame.USEREVENT + 2, 0)  # 确保停止所有AI相关计时器
 
                 # 如果是人机模式且轮到AI，执行当前已知最佳走法
                 if self.game_mode == MODE_PVC and self.game_state.player_turn != self.player_camp:
@@ -587,10 +673,19 @@ class ChessGame:
                     not self.ai_thinking):
                 self.schedule_ai_move()
 
-            # 绘制画面
-            self.draw(mouse_pos)
+            # 在AI思考期间，降低刷新率以减少闪烁
+            # 确保AI思考时只绘制稳定的主游戏状态，不显示临时的搜索状态
+            if self.ai_thinking:
+                self.draw_thinking_indicator(mouse_pos)  # 使用优化的思考指示器绘制
+            else:
+                self.draw(mouse_pos)
             pygame.display.flip()
-            self.clock.tick(FPS)
+            
+            # 如果AI正在思考，使用较低的帧率以节省CPU资源并减少闪烁
+            if self.ai_thinking:
+                self.clock.tick(15)  # 降低到15FPS，平衡性能和视觉效果
+            else:
+                self.clock.tick(FPS)
 
     def draw(self, mouse_pos):
         """绘制游戏界面"""
@@ -617,6 +712,7 @@ class ChessGame:
                          (self.left_panel_width, self.window_height), 2)
 
         # 绘制棋盘和棋子 - 先绘制这些
+        # 在AI思考期间，确保使用稳定的游戏状态绘制棋子
         self.board.draw(self.screen, self.game_state.pieces)
 
         # 如果有上一步走法，在棋盘上标记出来
@@ -682,6 +778,102 @@ class ChessGame:
                 thinking_surface = thinking_font.render(thinking_text, True, RED)
                 thinking_rect = thinking_surface.get_rect(center=(self.window_width // 2, 45))
                 self.screen.blit(thinking_surface, thinking_rect)
+
+        # 绘制 captured pieces（阵亡棋子）
+        self.draw_captured_pieces()
+
+        # 绘制棋谱历史记录
+        self.draw_move_history()
+
+        # 如果游戏结束，显示弹窗
+        if self.game_state.game_over and self.popup:
+            self.popup.draw(self.screen)
+
+        # 如果有确认对话框，显示它
+        if self.confirm_dialog:
+            self.confirm_dialog.draw(self.screen)
+
+    def draw_thinking_indicator(self, mouse_pos):
+        """绘制AI思考时的指示器，减少闪烁"""
+        # 绘制稳定的背景
+        draw_background(self.screen)
+
+        # 绘制左侧面板背景
+        left_panel_surface = pygame.Surface((self.left_panel_width, self.window_height))
+        draw_background(left_panel_surface)
+        overlay = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
+        overlay.fill((255, 255, 255, 30))
+        left_panel_surface.blit(overlay, (0, 0))
+        self.screen.blit(left_panel_surface, (0, 0))
+
+        # 添加分隔线
+        pygame.draw.line(self.screen, PANEL_BORDER, (self.left_panel_width, 0),
+                         (self.left_panel_width, self.window_height), 2)
+
+        # 绘制棋盘和棋子（使用稳定的游戏状态）
+        self.board.draw(self.screen, self.game_state.pieces)
+
+        # 如果有上一步走法，在棋盘上标记出来
+        if self.last_move:
+            from_row, from_col, to_row, to_col = self.last_move
+            self.board.highlight_last_move(self.screen, from_row, from_col, to_row, to_col)
+
+        # 检查是否需要显示将军动画
+        if self.game_state.should_show_check_animation():
+            king_pos = self.game_state.get_checked_king_position()
+            if king_pos:
+                self.board.draw_check_animation(self.screen, king_pos)
+
+        # 绘制基本游戏信息
+        self.draw_info_panel()
+
+        # 绘制按钮
+        self.undo_button.draw(self.screen)
+        self.restart_button.draw(self.screen)
+        self.back_button.draw(self.screen)
+        self.exit_button.draw(self.screen)
+        self.fullscreen_button.draw(self.screen)
+
+        # 绘制玩家头像
+        self.red_avatar.draw(self.screen)
+        self.black_avatar.draw(self.screen)
+
+        # 绘制计时器信息
+        self.draw_timers()
+
+        # 在左侧面板中添加VS标志
+        vs_font = load_font(36, bold=True)
+        vs_text = "VS"
+        vs_surface = vs_font.render(vs_text, True, (100, 100, 100))
+        vs_rect = vs_surface.get_rect(center=(self.left_panel_width // 2, self.window_height // 2))
+        self.screen.blit(vs_surface, vs_rect)
+
+        # 如果有上一步走法的记录，显示它
+        if self.last_move_notation:
+            move_font = load_font(18)
+            move_text = f"上一步: {self.last_move_notation}"
+            move_surface = move_font.render(move_text, True, BLACK)
+            move_rect = move_surface.get_rect(center=(self.left_panel_width // 2, self.window_height - 80))
+            self.screen.blit(move_surface, move_rect)
+
+        # 如果是人机模式，显示模式和阵营提示
+        if self.game_mode == MODE_PVC:
+            mode_font = load_font(18)
+            if self.player_camp == CAMP_RED:
+                mode_text = "人机对战模式 - 您执红方"
+            else:
+                mode_text = "人机对战模式 - 您执黑方"
+            mode_surface = mode_font.render(mode_text, True, BLACK)
+            self.screen.blit(mode_surface, (
+            self.left_panel_width + (self.window_width - self.left_panel_width) // 2 - mode_surface.get_width() // 2,
+            15))
+
+            # 显示AI思考提示
+            thinking_font = load_font(24)
+            thinking_text = "电脑思考中..."
+            thinking_surface = thinking_font.render(thinking_text, True, RED)
+            thinking_rect = thinking_surface.get_rect(center=(self.window_width // 2, 45))
+            self.screen.blit(thinking_surface, thinking_rect)
 
         # 绘制 captured pieces（阵亡棋子）
         self.draw_captured_pieces()
@@ -1273,14 +1465,14 @@ class ChessGame:
     def start_async_ai_computation(self):
         """启动异步AI计算"""
         # 使用AI进行多线程计算
+        # 确保传递的是当前游戏状态的副本或直接传递，AI内部会处理克隆
         self.ai.get_move_async(self.game_state)
 
     def _compute_ai_move(self):
         """在单独线程中计算AI移动"""
-        # 执行AI计算
-        self.async_ai_move = self.ai._get_best_move(self.game_state)
-        # 计算完成后，通过pygame事件通知主线程
-        pygame.event.post(pygame.event.Event(pygame.USEREVENT + 1))
+        # AI计算在AI类内部处理，这里不需要实现
+        # AI类会通过get_move_async方法处理计算和事件通知
+        pass
 
     def process_async_ai_result(self):
         """处理异步AI计算结果"""
@@ -1288,16 +1480,8 @@ class ChessGame:
             self.ai_thinking = False
             return
 
-        # 等待线程结束（应该已经结束了）
-        if hasattr(self, 'ai_thread') and self.ai_thread is not None and self.ai_thread.is_alive():
-            self.ai_thread.join(timeout=1)  # 最多等待1秒
-
-        # 使用预先计算好的AI移动，如果未完成则使用当前最佳走法
-        move = self.async_ai_move
-
-        # 如果没有完成的计算结果，尝试获取当前最佳走法
-        if not move:
-            move = self.ai.get_computed_move()
+        # 使用AI计算好的最佳走法
+        move = self.ai.get_computed_move()
 
         if move:
             from_pos, to_pos = move
