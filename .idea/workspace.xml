@@ -6,11 +6,31 @@
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="最新更新">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chess_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/chess_ai.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/Analysis-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/Analysis-00.toc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/EXE-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/EXE-00.toc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/PKG-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/PKG-00.toc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/PYZ-00.pyz" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/PYZ-00.pyz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/PYZ-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/PYZ-00.toc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/XionghanChessGame.pkg" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/XionghanChessGame.pkg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/base_library.zip" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/base_library.zip" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/generated-e04e22813fa684bc7b2fe826f3b5c6f488724513b39fc010c937f569af3859d0.ico" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/generated-e04e22813fa684bc7b2fe826f3b5c6f488724513b39fc010c937f569af3859d0.ico" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/warn-xionghan_chess.txt" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/warn-xionghan_chess.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/xref-xionghan_chess.html" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/xref-xionghan_chess.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build_exe.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/build_exe.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chess_board.py" beforeDir="false" afterPath="$PROJECT_DIR$/chess_board.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/XionghanChessGame.exe" beforeDir="false" afterPath="$PROJECT_DIR$/program/dist/XionghanChessGame.exe" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fonts/fangsong.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/fonts/fangsong.ttf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fonts/kaiti.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/fonts/kaiti.ttf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fonts/msyh.ttc" beforeDir="false" afterPath="$PROJECT_DIR$/program/fonts/msyh.ttc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fonts/simhei.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/fonts/simhei.ttf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fonts/simkai.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/fonts/simkai.ttf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fonts/xingkai.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/fonts/xingkai.ttf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game_logic.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/game_renderer.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/game_resources.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sounds/capture.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/sounds/capture.wav" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sounds/check.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/sounds/check.wav" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sounds/generate_sounds.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/sounds/generate_sounds.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sounds/move.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/sounds/move.wav" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,6 +73,7 @@
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program" />
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess" />
     </key>
   </component>
@@ -71,7 +92,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/build_exe.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\27415\PycharmProjects\xionghan-chess\program\build_exe.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -117,7 +138,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\27415\PycharmProjects\xionghan-chess\program\main.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -140,7 +161,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test_ai_fix.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\27415\PycharmProjects\xionghan-chess\test\test_ai_fix.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -179,7 +200,7 @@
       <workItem from="1766838476508" duration="13893000" />
       <workItem from="1766901552123" duration="7751000" />
       <workItem from="1766937333993" duration="40000" />
-      <workItem from="1766990920471" duration="609000" />
+      <workItem from="1766990920471" duration="799000" />
     </task>
     <task id="LOCAL-00001" summary="最新更新">
       <option name="closed" value="true" />
@@ -285,7 +306,15 @@
       <option name="project" value="LOCAL" />
       <updated>1766851518898</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="最新更新">
+      <option name="closed" value="true" />
+      <created>1767006401841</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1767006401841</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
