@@ -2,7 +2,7 @@
 import time
 import threading
 import pygame
-from chess_pieces import Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia
+from chess_pieces import Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun
 
 
 class ChessAI:
@@ -42,7 +42,9 @@ class ChessAI:
             "尉": 300, "衛": 300,      # 尉/衛（价值调整）
             "射": 300, "䠶": 300,      # 射/䠶
             "檑": 350, "礌": 350,      # 檑/礌（攻击能力强）
-            "甲": 200, "胄": 200       # 甲/胄
+            "甲": 200, "胄": 200,      # 甲/胄
+            "刺": 250, "刺": 250,      # 刺（拖吃者）
+            "盾": 300, "盾": 300       # 盾（保护价值）
         }
         
         # 位置价值表
@@ -916,6 +918,74 @@ class ChessAI:
                     
                     # 檑可以攻击的孤立棋子越多，价值越高
                     special_value += attackable_count * 80
+                
+                # 评估刺的兑子能力
+                elif isinstance(piece, Ci):
+                    # 检查移动前起始位置的反方向一格是否有敌棋（兑子条件）
+                    # 遍历可能的移动方向
+                    for dr in [-1, 1]:
+                        for dc in [-1, 1]:
+                            # 检查直线方向
+                            for dist in range(1, 13):
+                                to_row = piece.row + dr * dist
+                                to_col = piece.col + dc * dist
+                                
+                                # 检查目标位置是否在棋盘范围内
+                                if not (0 <= to_row < 13 and 0 <= to_col < 13):
+                                    break
+                                
+                                # 检查路径上是否有阻挡
+                                blocked = False
+                                for step in range(1, dist + 1):
+                                    check_row = piece.row + dr * step
+                                    check_col = piece.col + dc * step
+                                    if game_state.get_piece_at(check_row, check_col):
+                                        if (check_row, check_col) != (to_row, to_col):  # 路径阻挡
+                                            blocked = True
+                                            break
+                                        else:  # 到达目标位置
+                                            if game_state.get_piece_at(check_row, check_col):  # 目标位置有棋子
+                                                blocked = True  # 刺不能吃子，目标必须为空
+                                                break
+                                            break
+                                
+                                if blocked:
+                                    break
+                                
+                                # 计算起始位置的反方向
+                                reverse_row = piece.row - dr
+                                reverse_col = piece.col - dc
+                                
+                                # 检查反方向是否有敌方棋子（可以兑子）
+                                if 0 <= reverse_row < 13 and 0 <= reverse_col < 13:
+                                    reverse_piece = game_state.get_piece_at(reverse_row, reverse_col)
+                                    if reverse_piece and reverse_piece.color != color:
+                                        # 可以进行兑子，增加价值
+                                        special_value += 200  # 兑子价值很高
+                                
+                                # 刺移动到该位置
+                                break
+                
+                # 评估盾的防守价值
+                elif isinstance(piece, Dun):
+                    # 盾的价值在于其保护作用，与敌方棋子相邻时能提供保护
+                    connected_enemy_count = 0
+                    directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+                    
+                    for dr, dc in directions:
+                        adj_row = piece.row + dr
+                        adj_col = piece.col + dc
+                        
+                        if 0 <= adj_row < 13 and 0 <= adj_col < 13:
+                            adj_piece = game_state.get_piece_at(adj_row, adj_col)
+                            if adj_piece and adj_piece.color != color:
+                                connected_enemy_count += 1
+                    
+                    # 与敌方棋子连接的数量越多，盾的防守价值越高
+                    special_value += connected_enemy_count * 50
+                    
+                    # 盾不可被吃，增加其基础价值
+                    special_value += 100
         
         return special_value
     
@@ -1299,6 +1369,74 @@ class ChessAI:
                                         attackable_count += 1
                     # 提高檑的攻击价值
                     special_value += attackable_count * 70
+                
+                # 评估刺的兑子能力
+                elif isinstance(piece, Ci):
+                    # 检查移动前起始位置的反方向一格是否有敌棋（兑子条件）
+                    # 遍历可能的移动方向
+                    for dr in [-1, 1]:
+                        for dc in [-1, 1]:
+                            # 检查直线方向
+                            for dist in range(1, 13):
+                                to_row = piece.row + dr * dist
+                                to_col = piece.col + dc * dist
+                                
+                                # 检查目标位置是否在棋盘范围内
+                                if not (0 <= to_row < 13 and 0 <= to_col < 13):
+                                    break
+                                
+                                # 检查路径上是否有阻挡
+                                blocked = False
+                                for step in range(1, dist + 1):
+                                    check_row = piece.row + dr * step
+                                    check_col = piece.col + dc * step
+                                    if game_state.get_piece_at(check_row, check_col):
+                                        if (check_row, check_col) != (to_row, to_col):  # 路径阻挡
+                                            blocked = True
+                                            break
+                                        else:  # 到达目标位置
+                                            if game_state.get_piece_at(check_row, check_col):  # 目标位置有棋子
+                                                blocked = True  # 刺不能吃子，目标必须为空
+                                                break
+                                            break
+                                
+                                if blocked:
+                                    break
+                                
+                                # 计算起始位置的反方向
+                                reverse_row = piece.row - dr
+                                reverse_col = piece.col - dc
+                                
+                                # 检查反方向是否有敌方棋子（可以兑子）
+                                if 0 <= reverse_row < 13 and 0 <= reverse_col < 13:
+                                    reverse_piece = game_state.get_piece_at(reverse_row, reverse_col)
+                                    if reverse_piece and reverse_piece.color != color:
+                                        # 可以进行兑子，增加价值
+                                        special_value += 180  # 兑子价值很高
+                                
+                                # 刺移动到该位置
+                                break
+                
+                # 评估盾的防守价值
+                elif isinstance(piece, Dun):
+                    # 盾的价值在于其保护作用，与敌方棋子相邻时能提供保护
+                    connected_enemy_count = 0
+                    directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+                    
+                    for dr, dc in directions:
+                        adj_row = piece.row + dr
+                        adj_col = piece.col + dc
+                        
+                        if 0 <= adj_row < 13 and 0 <= adj_col < 13:
+                            adj_piece = game_state.get_piece_at(adj_row, adj_col)
+                            if adj_piece and adj_piece.color != color:
+                                connected_enemy_count += 1
+                    
+                    # 与敌方棋子连接的数量越多，盾的防守价值越高
+                    special_value += connected_enemy_count * 40
+                    
+                    # 盾不可被吃，增加其基础价值
+                    special_value += 80
         
         return special_value
 

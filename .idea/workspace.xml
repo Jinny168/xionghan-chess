@@ -5,37 +5,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="最新更新">
+      <change afterPath="$PROJECT_DIR$/mcts/mcts_config.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mcts/mcts_game.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/Analysis-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/Analysis-00.toc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/EXE-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/EXE-00.toc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/PKG-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/PKG-00.toc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/PYZ-00.pyz" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/PYZ-00.pyz" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/PYZ-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/PYZ-00.toc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/XionghanChessGame.pkg" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/XionghanChessGame.pkg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/base_library.zip" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/base_library.zip" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/generated-e04e22813fa684bc7b2fe826f3b5c6f488724513b39fc010c937f569af3859d0.ico" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/generated-e04e22813fa684bc7b2fe826f3b5c6f488724513b39fc010c937f569af3859d0.ico" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/warn-xionghan_chess.txt" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/warn-xionghan_chess.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/xionghan_chess/xref-xionghan_chess.html" beforeDir="false" afterPath="$PROJECT_DIR$/program/build/xionghan_chess/xref-xionghan_chess.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build_exe.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/build_exe.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chess_board.py" beforeDir="false" afterPath="$PROJECT_DIR$/chess_board.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/XionghanChessGame.exe" beforeDir="false" afterPath="$PROJECT_DIR$/program/dist/XionghanChessGame.exe" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fonts/fangsong.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/fonts/fangsong.ttf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fonts/kaiti.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/fonts/kaiti.ttf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fonts/msyh.ttc" beforeDir="false" afterPath="$PROJECT_DIR$/program/fonts/msyh.ttc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fonts/simhei.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/fonts/simhei.ttf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fonts/simkai.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/fonts/simkai.ttf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fonts/xingkai.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/fonts/xingkai.ttf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sounds/capture.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/sounds/capture.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sounds/check.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/sounds/check.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sounds/generate_sounds.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/sounds/generate_sounds.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sounds/move.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/sounds/move.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/chess_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/chess_ai.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/chess_pieces.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/chess_pieces.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/game_rules.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game_rules.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/game_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game_state.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/menu_screens.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/menu_screens.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -53,12 +42,15 @@
   &quot;keyToString&quot;: {
     &quot;Python.build_exe.executor&quot;: &quot;Run&quot;,
     &quot;Python.game_logic.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main (1).executor&quot;: &quot;Run&quot;,
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;Python.test_ai_fix.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_ci_piece.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_dun_piece.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/Data/tal_chess&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/27415/PycharmProjects/xionghan-chess/mcts&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -70,37 +62,16 @@
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\mcts" />
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program" />
+      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\test" />
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess" />
     </key>
   </component>
   <component name="RunManager" selected="Python.main">
-    <configuration name="build_exe" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="xionghan-chess" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="C:\Users\27415\PycharmProjects\xionghan-chess\program\build_exe.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <configuration name="game_logic" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="xionghan-chess" />
       <option name="ENV_FILES" value="" />
@@ -124,7 +95,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="xionghan-chess" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -133,12 +104,12 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/program" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="C:\Users\27415\PycharmProjects\xionghan-chess\program\main.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/main.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -170,11 +141,59 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="test_ci_piece" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="xionghan-chess" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/program" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/test_ci_piece.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="test_dun_piece" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="xionghan-chess" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/program" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/test_dun_piece.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.main" />
+        <item itemvalue="Python.test_dun_piece" />
+        <item itemvalue="Python.test_ci_piece" />
         <item itemvalue="Python.test_ai_fix" />
         <item itemvalue="Python.game_logic" />
-        <item itemvalue="Python.build_exe" />
       </list>
     </recent_temporary>
   </component>
@@ -201,6 +220,13 @@
       <workItem from="1766901552123" duration="7751000" />
       <workItem from="1766937333993" duration="40000" />
       <workItem from="1766990920471" duration="799000" />
+      <workItem from="1767006585198" duration="4563000" />
+      <workItem from="1767023913181" duration="1799000" />
+      <workItem from="1767067041086" duration="2010000" />
+      <workItem from="1767784614879" duration="96000" />
+      <workItem from="1767784723057" duration="611000" />
+      <workItem from="1767789970427" duration="9270000" />
+      <workItem from="1767841584731" duration="633000" />
     </task>
     <task id="LOCAL-00001" summary="最新更新">
       <option name="closed" value="true" />
@@ -314,7 +340,15 @@
       <option name="project" value="LOCAL" />
       <updated>1767006401841</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="最新更新">
+      <option name="closed" value="true" />
+      <created>1767006864478</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1767006864478</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -353,24 +387,19 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/game.py</url>
-          <line>1157</line>
-          <option name="timeStamp" value="6" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/dialogs.py</url>
-          <line>111</line>
-          <option name="timeStamp" value="8" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/test_ai_fix.py</url>
+          <url>file://$PROJECT_DIR$/program/test/test_ai_fix.py</url>
           <line>3</line>
           <option name="timeStamp" value="10" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/game.py</url>
-          <line>475</line>
+          <url>file://$PROJECT_DIR$/program/game.py</url>
+          <line>455</line>
           <option name="timeStamp" value="11" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/dialogs.py</url>
+          <line>111</line>
+          <option name="timeStamp" value="12" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
@@ -378,7 +407,10 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/xionghan_chess$build_exe.coverage" NAME="build_exe 覆盖结果" MODIFIED="1766748391935" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_ai_fix.coverage" NAME="test_ai_fix 覆盖结果" MODIFIED="1766936931089" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$test_ci_piece.coverage" NAME="test_ci_piece 覆盖结果" MODIFIED="1767790743910" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$test_dun_piece.coverage" NAME="test_dun_piece 覆盖结果" MODIFIED="1767793549619" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$game_logic.coverage" NAME="game_logic 覆盖结果" MODIFIED="1766850974112" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1766937345799" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$main__1_.coverage" NAME="main (1) 覆盖结果" MODIFIED="1767784741743" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1767799112180" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
   </component>
 </project>

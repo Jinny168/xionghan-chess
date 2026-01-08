@@ -1,6 +1,6 @@
 import time
 
-from chess_pieces import create_initial_pieces, King, Jia
+from chess_pieces import create_initial_pieces, King, Jia, Ci, Dun
 from game_rules import GameRules
 
 
@@ -123,6 +123,67 @@ class GameState:
                         # 切换玩家
                         opponent_color = "black" if self.player_turn == "red" else "red"
                         return True
+        
+        # 处理刺的兑子规则
+        if isinstance(piece, Ci):
+            # 检查移动前起始位置的反方向一格是否有敌棋（兑子条件）
+            row_diff = to_row - from_row
+            col_diff = to_col - from_col
+            
+            # 计算起始位置的反方向
+            reverse_row = from_row - row_diff
+            reverse_col = from_col - col_diff
+            
+            # 检查反方向位置是否在棋盘范围内
+            if 0 <= reverse_row < 13 and 0 <= reverse_col < 13:
+                reverse_piece = GameRules.get_piece_at(self.pieces, reverse_row, reverse_col)
+                # 如果反方向有敌方棋子，则进行兑子（双方都阵亡）
+                if reverse_piece and reverse_piece.color != piece.color:
+                    # 移除刺棋子
+                    if piece in self.pieces:
+                        self.pieces.remove(piece)
+                        self.captured_pieces[piece.color].append(piece)
+                    # 移除反方向的敌方棋子
+                    if reverse_piece in self.pieces:
+                        self.pieces.remove(reverse_piece)
+                        self.captured_pieces[reverse_piece.color].append(reverse_piece)
+                        
+                        # 如果吃掉的是对方将/帅/汉/汗，游戏结束
+                        if isinstance(reverse_piece, King):
+                            self.game_over = True
+                            self.winner = piece.color
+                            # 更新游戏总时长
+                            current_time = time.time()
+                            self.total_time = current_time - self.start_time
+                            # 切换玩家
+                            opponent_color = "black" if self.player_turn == "red" else "red"
+                            return True
+                    
+                    # 由于刺和敌棋都被移除了，无需继续处理
+                    # 切换玩家
+                    opponent_color = "black" if self.player_turn == "red" else "red"
+                    
+                    # 检查是否将军
+                    self.is_check = GameRules.is_check(self.pieces, opponent_color)
+                    if self.is_check:
+                        # 设置将军动画计时器
+                        self.check_animation_time = current_time
+                    
+                    # 检查是否将死或获胜
+                    game_over, winner = GameRules.is_game_over(self.pieces, self.player_turn)
+                    
+                    if game_over:
+                        self.game_over = True
+                        self.winner = winner
+                        # 更新游戏总时长
+                        self.total_time = current_time - self.start_time
+                    else:
+                        # 切换玩家回合
+                        self.player_turn = opponent_color
+                        # 重置当前回合开始时间
+                        self.current_turn_start_time = current_time
+                    
+                    return True
 
         # 切换玩家
         opponent_color = "black" if self.player_turn == "red" else "red"
@@ -245,12 +306,20 @@ class GameState:
         safe_moves = []
         for to_row, to_col in moves:
             if not GameRules.would_be_in_check_after_move(self.pieces, piece, row, col, to_row, to_col):
+                # 如果目标位置有盾，且不是己方的盾，则不能吃（盾不可被吃）
+                target_piece = self.get_piece_at(to_row, to_col)
+                if target_piece and isinstance(target_piece, Dun) and target_piece.color != piece.color:
+                    continue  # 不能吃盾
                 safe_moves.append((to_row, to_col))
         
         # 过滤掉会导致被将军的吃子移动
         safe_capturable = []
         for to_row, to_col in capturable:
             if not GameRules.would_be_in_check_after_move(self.pieces, piece, row, col, to_row, to_col):
+                # 如果目标位置有盾，且不是己方的盾，则不能吃（盾不可被吃）
+                target_piece = self.get_piece_at(to_row, to_col)
+                if target_piece and isinstance(target_piece, Dun) and target_piece.color != piece.color:
+                    continue  # 不能吃盾
                 safe_capturable.append((to_row, to_col))
         
         return safe_moves, safe_capturable

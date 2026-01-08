@@ -1,4 +1,4 @@
-from chess_pieces import ChessPiece, Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia
+from chess_pieces import ChessPiece, Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun
 from config import game_config
 
 class GameRules:
@@ -83,6 +83,59 @@ class GameRules:
         if target_piece and target_piece.color == piece.color:
             return False
         
+        # 检查盾的特殊效果：盾不可被吃
+        if target_piece and isinstance(target_piece, Dun):
+            # 任何棋子都不能吃盾
+            return False
+        
+        # 检查盾的特殊效果：与己方盾横竖斜相连的敌方棋子禁止执行吃子操作
+        # 如果移动的棋子是敌方棋子，并且与己方盾相邻，则不能吃子
+        if target_piece and piece.color != GameRules.get_piece_at(pieces, from_row, from_col).color:
+            # 检查移动的敌方棋子是否与某个己方盾相邻
+            for p in pieces:
+                if isinstance(p, Dun) and p.color == GameRules.get_piece_at(pieces, from_row, from_col).color:
+                    # 检查该己方盾是否与移动的敌方棋子相邻（8邻域）
+                    row_diff = abs(p.row - from_row)
+                    col_diff = abs(p.col - from_col)
+                    if row_diff <= 1 and col_diff <= 1 and (row_diff != 0 or col_diff != 0):  # 相邻8格
+                        # 如果敌方棋子与己方盾相邻，且这次移动是吃子，则不允许
+                        return False
+        
+        # 检查盾的特殊效果：与己方盾横竖斜相连的敌方棋子禁止执行吃子操作
+        # 如果当前移动的棋子是敌方棋子且与己方盾相邻，则不能吃子
+        if target_piece:  # 如果是吃子移动
+            # 检查移动的棋子是否与某个己方盾相邻
+            for p in pieces:
+                if isinstance(p, Dun) and p.color == piece.color:
+                    # 检查该己方盾是否与移动的棋子相邻（8邻域）
+                    row_diff = abs(p.row - from_row)
+                    col_diff = abs(p.col - from_col)
+                    if row_diff <= 1 and col_diff <= 1 and (row_diff != 0 or col_diff != 0):  # 相邻8格
+                        # 如果己方棋子与己方盾相邻，可以正常吃子
+                        # 但是，如果敌方棋子与己方盾相邻，则不能吃子
+                        pass
+                elif isinstance(p, Dun) and p.color != piece.color:
+                    # 检查敌方盾是否与移动的棋子相邻（8邻域）
+                    row_diff = abs(p.row - from_row)
+                    col_diff = abs(p.col - from_col)
+                    if row_diff <= 1 and col_diff <= 1 and (row_diff != 0 or col_diff != 0):  # 相邻8格
+                        # 如果移动的棋子与敌方盾相邻，且这次移动是吃子，则不允许
+                        # 实际上，根据规则，应该是己方棋子与敌方盾相邻时，己方棋子不能吃子
+                        if piece.color != p.color:  # 移动的是己方棋子，盾是敌方的
+                            pass  # 不限制己方棋子与敌方盾相邻
+                        else:  # 移动的是敌方棋子，盾是己方的
+                            pass  # 不限制敌方棋子与己方盾相邻
+        # 正确的逻辑是：如果敌方棋子与己方盾相邻，则该敌方棋子不能吃子
+        if target_piece:  # 如果是吃子移动
+            for p in pieces:
+                if isinstance(p, Dun) and p.color != target_piece.color:  # 找到与目标棋子颜色不同的盾（即己方盾）
+                    # 检查目标棋子（被吃的棋子）是否与己方盾相邻
+                    row_diff = abs(p.row - to_row)
+                    col_diff = abs(p.col - to_col)
+                    if row_diff <= 1 and col_diff <= 1 and (row_diff != 0 or col_diff != 0):  # 相邻8格
+                        # 如果目标棋子与己方盾相邻，则不能吃该棋子
+                        return False
+        
         # 检查是否有被尉/衛照面限制的棋子
         for p in pieces:
             # 检查是否是被尉/衛照面的敌方棋子
@@ -115,6 +168,10 @@ class GameRules:
             return GameRules.is_valid_lei_move(pieces, from_row, from_col, to_row, to_col)
         elif isinstance(piece, Jia):
             return GameRules.is_valid_jia_move(pieces, piece.color, from_row, from_col, to_row, to_col)
+        elif isinstance(piece, Ci):
+            return GameRules.is_valid_ci_move(pieces, piece.color, from_row, from_col, to_row, to_col)
+        elif isinstance(piece, Dun):
+            return GameRules.is_valid_dun_move(pieces, from_row, from_col, to_row, to_col)
         
         return False
     
@@ -1096,6 +1153,12 @@ class GameRules:
                         capturable.append(pos)
                     if pos not in moves:
                         moves.append(pos)
+        
+        # 特殊处理刺的兑子规则
+        if isinstance(piece, Ci):
+            # 刺的移动规则比较特殊，它本身不能吃子，但移动时可能触发兑子
+            # 这里我们暂时不做额外处理，因为兑子在move_piece中处理
+            pass
 
         return moves, capturable
     
@@ -1127,6 +1190,12 @@ class GameRules:
                 pieces_list = [piece1, piece2, piece3]
                 for piece in pieces_list:
                     if piece.color == color:
+                        # 盾不参与甲/胄的连线吃子
+                        if isinstance(piece, Dun):
+                            # 如果连线中有盾，则此连线不能触发甲/胄的吃子规则
+                            ally_count = 0
+                            enemy_count = 0
+                            break
                         ally_count += 1
                         if isinstance(piece, Jia):  # 己方棋子包含甲/胄
                             has_ally_jia = True
@@ -1161,6 +1230,12 @@ class GameRules:
                 pieces_list = [piece1, piece2, piece3]
                 for piece in pieces_list:
                     if piece.color == color:
+                        # 盾不参与甲/胄的连线吃子
+                        if isinstance(piece, Dun):
+                            # 如果连线中有盾，则此连线不能触发甲/胄的吃子规则
+                            ally_count = 0
+                            enemy_count = 0
+                            break
                         ally_count += 1
                         if isinstance(piece, Jia):  # 己方棋子包含甲/胄
                             has_ally_jia = True
@@ -1193,6 +1268,12 @@ class GameRules:
                     pieces_list = [piece1, piece2, piece3]
                     for piece in pieces_list:
                         if piece.color == color:
+                            # 盾不参与甲/胄的连线吃子
+                            if isinstance(piece, Dun):
+                                # 如果连线中有盾，则此连线不能触发甲/胄的吃子规则
+                                ally_count = 0
+                                enemy_count = 0
+                                break
                             ally_count += 1
                             if isinstance(piece, Jia):  # 己方棋子包含甲/胄
                                 has_ally_jia = True
@@ -1224,6 +1305,12 @@ class GameRules:
                     pieces_list = [piece1, piece2, piece3]
                     for piece in pieces_list:
                         if piece.color == color:
+                            # 盾不参与甲/胄的连线吃子
+                            if isinstance(piece, Dun):
+                                # 如果连线中有盾，则此连线不能触发甲/胄的吃子规则
+                                ally_count = 0
+                                enemy_count = 0
+                                break
                             ally_count += 1
                             if isinstance(piece, Jia):  # 己方棋子包含甲/胄
                                 has_ally_jia = True
@@ -1510,3 +1597,202 @@ class GameRules:
                 c += dc
         
         return None
+    
+    @staticmethod
+    def is_valid_ci_move(pieces, color, from_row, from_col, to_row, to_col):
+        """检查刺（拖吃者）的移动是否合法
+        
+        刺棋子的规则：
+        - 只能直走
+        - 移动路径上必须完全无任何棋子阻挡
+        - 只能在无障碍的连续区间内移动
+        - 目标位置必须为空
+        - 移动本身无限制，但只有当移动前起始位置的反方向一格有敌棋时，才能兑掉那个敌棋，敌棋也阵亡，你也阵亡
+        """
+        # 目标位置不能有己方棋子
+        target_piece = GameRules.get_piece_at(pieces, to_row, to_col)
+        if target_piece and target_piece.color == color:
+            return False
+        
+        # 刺只能直线移动（横或竖）
+        if from_row != to_row and from_col != to_col:
+            return False
+        
+        # 检查路径上是否有阻挡
+        if from_row == to_row:  # 横向移动
+            start_col = min(from_col, to_col)
+            end_col = max(from_col, to_col)
+            for col in range(start_col + 1, end_col):
+                if GameRules.get_piece_at(pieces, from_row, col):
+                    return False
+        else:  # 纵向移动
+            start_row = min(from_row, to_row)
+            end_row = max(from_row, to_row)
+            for row in range(start_row + 1, end_row):
+                if GameRules.get_piece_at(pieces, row, from_col):
+                    return False
+        
+        # 目标位置必须为空
+        if target_piece is not None:
+            return False
+        
+        # 检查移动前起始位置的反方向一格是否有敌棋（兑子条件）
+        row_diff = to_row - from_row
+        col_diff = to_col - from_col
+        
+        # 计算起始位置的反方向
+        reverse_row = from_row - row_diff
+        reverse_col = from_col - col_diff
+        
+        # 检查反方向位置是否在棋盘范围内
+        if 0 <= reverse_row < 13 and 0 <= reverse_col < 13:
+            reverse_piece = GameRules.get_piece_at(pieces, reverse_row, reverse_col)
+            # 如果反方向有敌方棋子，那么刺可以移动（但需要后续处理兑子逻辑）
+            if reverse_piece and reverse_piece.color != color:
+                return True
+        
+        # 如果没有满足兑子条件，普通移动也是允许的（只是不触发兑子）
+        return True
+    
+    @staticmethod
+    def is_valid_dun_move(pieces, from_row, from_col, to_row, to_col):
+        """检查盾的移动是否合法
+        
+        盾棋子的规则：
+        - 不可被吃：任何试图移除盾的操作都会被拦截
+        - 不能吃子：盾没有任何攻击/吃子逻辑
+        - 只能直线跨越移动（移动规则同尉）
+        """
+        # 目标位置不能有己方棋子
+        target_piece = GameRules.get_piece_at(pieces, to_row, to_col)
+        if target_piece:
+            return False  # 盾不能吃子，目标位置必须为空
+        
+        # 盾的移动规则同尉（直线跨越移动）
+        # 只能横向或纵向移动
+        if not (from_row == to_row or from_col == to_col):
+            return False
+        
+        # 不能原地不动
+        if from_row == to_row and from_col == to_col:
+            return False
+        
+        # 检查目标位置是否在棋盘范围内
+        if not (0 <= to_row < 13 and 0 <= to_col < 13):
+            return False
+        
+        # 水平移动
+        if from_row == to_row:
+            step = 1 if to_col > from_col else -1
+            
+            # 从起始位置开始，寻找第一个跨越的棋子
+            crossed_piece_pos = None
+            current_col = from_col + step
+            
+            # 寻找第一个被跨越的棋子
+            while 0 <= current_col < 13 and current_col != to_col:
+                if GameRules.get_piece_at(pieces, from_row, current_col):
+                    crossed_piece_pos = current_col
+                    break
+                current_col += step
+            
+            # 如果没有找到被跨越的棋子，无效
+            if crossed_piece_pos is None:
+                return False
+            
+            # 从跨越点的下一个位置开始，检查到目标位置之间是否有棋子
+            current_col = crossed_piece_pos + step
+            while current_col != to_col:
+                if 0 <= current_col < 13:
+                    if GameRules.get_piece_at(pieces, from_row, current_col):
+                        # 在跨越棋子后的路径中遇到棋子，无效
+                        return False
+                else:
+                    # 超出棋盘边界
+                    return False
+                current_col += step
+            
+            # 检查目标位置是否在跨越点之后，且跨越点与目标位置之间没有棋子
+            # 确保目标位置在跨越棋子的另一侧
+            if step > 0:  # 向右移动
+                if to_col <= crossed_piece_pos:
+                    return False
+            else:  # 向左移动
+                if to_col >= crossed_piece_pos:
+                    return False
+            
+            return True
+        
+        # 垂直移动
+        elif from_col == to_col:
+            step = 1 if to_row > from_row else -1
+            
+            # 从起始位置开始，寻找第一个跨越的棋子
+            crossed_piece_pos = None
+            current_row = from_row + step
+            
+            # 寻找第一个被跨越的棋子
+            while 0 <= current_row < 13 and current_row != to_row:
+                if GameRules.get_piece_at(pieces, current_row, from_col):
+                    crossed_piece_pos = current_row
+                    break
+                current_row += step
+            
+            # 如果没有找到被跨越的棋子，无效
+            if crossed_piece_pos is None:
+                return False
+            
+            # 从跨越点的下一个位置开始，检查到目标位置之间是否有棋子
+            current_row = crossed_piece_pos + step
+            while current_row != to_row:
+                if 0 <= current_row < 13:
+                    if GameRules.get_piece_at(pieces, current_row, from_col):
+                        # 在跨越棋子后的路径中遇到棋子，无效
+                        return False
+                else:
+                    # 超出棋盘边界
+                    return False
+                current_row += step
+            
+            # 检查目标位置是否在跨越点之后，且跨越点与目标位置之间没有棋子
+            # 确保目标位置在跨越棋子的另一侧
+            if step > 0:  # 向下移动
+                if to_row <= crossed_piece_pos:
+                    return False
+            else:  # 向上移动
+                if to_row >= crossed_piece_pos:
+                    return False
+            
+            return True
+        
+        return False
+    
+    @staticmethod
+    def get_connected_enemy_pieces(pieces, dun_piece):
+        """获取与盾棋子横竖斜相连（8邻域）的所有敌方棋子
+        
+        Args:
+            pieces (list): 棋子列表
+            dun_piece (Dun): 盾棋子
+            
+        Returns:
+            list: 与盾相邻的敌方棋子列表
+        """
+        connected_enemies = []
+        
+        # 检查8个方向（横竖斜）
+        directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+        
+        for dr, dc in directions:
+            neighbor_row = dun_piece.row + dr
+            neighbor_col = dun_piece.col + dc
+            
+            # 检查是否在棋盘范围内
+            if 0 <= neighbor_row < 13 and 0 <= neighbor_col < 13:
+                neighbor_piece = GameRules.get_piece_at(pieces, neighbor_row, neighbor_col)
+                
+                # 如果邻居是敌方棋子，添加到列表中
+                if neighbor_piece and neighbor_piece.color != dun_piece.color:
+                    connected_enemies.append(neighbor_piece)
+        
+        return connected_enemies

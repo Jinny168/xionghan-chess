@@ -243,6 +243,22 @@ class Jia(ChessPiece):
         super().__init__(color, name, row, col)
 
 
+class Ci(ChessPiece):
+    """刺（拖吃者）"""
+
+    def __init__(self, color, row, col):
+        name = "刺" if color == "black" else "刺"
+        super().__init__(color, name, row, col)
+
+
+class Dun(ChessPiece):
+    """盾"""
+
+    def __init__(self, color, row, col):
+        name = "盾" if color == "black" else "盾"
+        super().__init__(color, name, row, col)
+
+
 def create_initial_pieces():
     """创建匈汉象棋初始布局的所有棋子
     
@@ -260,6 +276,10 @@ def create_initial_pieces():
     pieces.append(Lei("black", 0, 4))
     pieces.append(Lei("black", 0, 8))
     pieces.append(Wei("black", 0, 6))
+    pieces.append(Ci("black", 0, 3))  # 刺
+    pieces.append(Ci("black", 0, 9))  # 刺
+    pieces.append(Dun("black", 0, 1))  # 盾
+    pieces.append(Dun("black", 0, 11))  # 盾
 
     # 第1行
     pieces.append(Ju("black", 1, 2))
@@ -285,13 +305,17 @@ def create_initial_pieces():
 
     # 红方(下方)
     # 第12行 (红方底线)
+    pieces.append(Dun("red", 12, 1))  # 盾
     pieces.append(She("red", 12, 0))  # 射
     pieces.append(Jia("red", 12, 2))  # 甲
     pieces.append(Jia("red", 12, 10))  # 甲
+    pieces.append(Ci("red", 12, 3))  # 刺
+    pieces.append(Ci("red", 12, 9))  # 刺
     pieces.append(Wei("red", 12, 6))  # 尉
     pieces.append(Lei("red", 12, 4))  # 檑
     pieces.append(Lei("red", 12, 8))  # 檑
     pieces.append(She("red", 12, 12))  # 射
+    pieces.append(Dun("red", 12, 11))  # 盾
     # 第11行
     pieces.append(Ju("red", 11, 2))  # 車
     pieces.append(Ma("red", 11, 3))  # 馬
