@@ -1,5 +1,6 @@
 """全局配置管理模块"""
-
+# 棋盘尺寸常量
+BOARD_SIZE = 13
 # 窗口常量
 DEFAULT_WINDOW_WIDTH = 1200
 DEFAULT_WINDOW_HEIGHT = 900

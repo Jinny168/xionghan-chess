@@ -1,3 +1,6 @@
+from config import BOARD_SIZE
+
+
 class ChessPiece:
     """棋子基类"""
 
@@ -10,6 +13,11 @@ class ChessPiece:
             row (int): 行坐标
             col (int): 列坐标
         """
+        if color not in ["red", "black"]:
+            raise ValueError("棋子颜色必须是 'red' 或 'black'")
+        if not (0 <= row < BOARD_SIZE and 0 <= col < BOARD_SIZE):
+            raise ValueError(f"棋子位置必须在棋盘范围内 (0-{BOARD_SIZE - 1}, 0-{BOARD_SIZE - 1})")
+
         self.color = color  # 颜色：red或black
         self.name = name  # 棋子名称
         self.row = row  # 行坐标
@@ -17,6 +25,8 @@ class ChessPiece:
 
     def move_to(self, row, col):
         """移动棋子到新位置"""
+        if not (0 <= row < BOARD_SIZE and 0 <= col < BOARD_SIZE):
+            raise ValueError(f"棋子移动位置必须在棋盘范围内 (0-{BOARD_SIZE - 1}, 0-{BOARD_SIZE - 1})")
         self.row = row
         self.col = col
 
@@ -125,19 +135,18 @@ class Lei(ChessPiece):
             (0, 1)  # 右
         ]
 
+        # 创建一个位置到棋子的映射，提高查找效率
+        pos_to_piece = {(p.row, p.col): p for p in pieces}
+
         for dr, dc in directions:
             adj_row, adj_col = target_piece.row + dr, target_piece.col + dc
 
             # 检查是否在棋盘内
-            if not (0 <= adj_row < 13 and 0 <= adj_col < 13):
+            if not (0 <= adj_row < BOARD_SIZE and 0 <= adj_col < BOARD_SIZE):
                 continue
 
             # 检查是否有敌方的友方棋子
-            piece = None
-            for p in pieces:
-                if p.row == adj_row and p.col == adj_col:
-                    piece = p
-                    break
+            piece = pos_to_piece.get((adj_row, adj_col))
 
             if piece is not None and piece.color == target_piece.color:
                 return False  # 找到友方棋子，不是落单
@@ -154,6 +163,9 @@ class Lei(ChessPiece):
             list: 可移动到的位置列表，每个位置为(row, col)元组
         """
         moves = []
+
+        # 创建一个位置到棋子的映射，提高查找效率
+        pos_to_piece = {(p.row, p.col): p for p in pieces}
 
         # 8个移动方向：上、下、左、右、左上、右上、左下、右下
         directions = [
@@ -176,15 +188,11 @@ class Lei(ChessPiece):
                 current_col += dc
 
                 # 检查是否超出边界
-                if not (0 <= current_row < 13 and 0 <= current_col < 13):
+                if not (0 <= current_row < BOARD_SIZE and 0 <= current_col < BOARD_SIZE):
                     break
 
                 # 检查是否有棋子阻挡
-                target_piece = None
-                for piece in pieces:
-                    if piece.row == current_row and piece.col == current_col:
-                        target_piece = piece
-                        break
+                target_piece = pos_to_piece.get((current_row, current_col))
 
                 if target_piece is not None:
                     # 有棋子阻挡，不能继续移动
@@ -206,6 +214,9 @@ class Lei(ChessPiece):
         """
         attacks = []
 
+        # 创建一个位置到棋子的映射，提高查找效率
+        pos_to_piece = {(p.row, p.col): p for p in pieces}
+
         # 检查周围的8个相邻格子
         for dr in [-1, 0, 1]:
             for dc in [-1, 0, 1]:
@@ -217,15 +228,11 @@ class Lei(ChessPiece):
                 target_col = self.col + dc
 
                 # 检查是否在棋盘内
-                if not (0 <= target_row < 13 and 0 <= target_col < 13):
+                if not (0 <= target_row < BOARD_SIZE and 0 <= target_col < BOARD_SIZE):
                     continue
 
                 # 检查是否有棋子
-                target_piece = None
-                for piece in pieces:
-                    if piece.row == target_row and piece.col == target_col:
-                        target_piece = piece
-                        break
+                target_piece = pos_to_piece.get((target_row, target_col))
 
                 # 如果有敌方棋子且是落单的，则可以攻击
                 if target_piece is not None and target_piece.color != self.color:
@@ -267,76 +274,44 @@ def create_initial_pieces():
     """
     pieces = []
 
-    # 黑方(上方)
-    # 第0行
-    pieces.append(Jia("black", 0, 2))
-    pieces.append(Jia("black", 0, 10))
-    pieces.append(She("black", 0, 0))
-    pieces.append(She("black", 0, 12))
-    pieces.append(Lei("black", 0, 4))
-    pieces.append(Lei("black", 0, 8))
-    pieces.append(Wei("black", 0, 6))
-    pieces.append(Ci("black", 0, 3))  # 刺
-    pieces.append(Ci("black", 0, 9))  # 刺
-    pieces.append(Dun("black", 0, 1))  # 盾
-    pieces.append(Dun("black", 0, 11))  # 盾
+    # 定义初始布局配置
+    black_pieces_config = [
+        # 第0行
+        (Jia, 0, 2), (Jia, 0, 10), (She, 0, 0), (She, 0, 12),
+        (Lei, 0, 4), (Lei, 0, 8), (Wei, 0, 6),
+        (Ci, 0, 3), (Ci, 0, 9),  # 刺
+        (Dun, 0, 1), (Dun, 0, 11),  # 盾
+        # 第1行
+        (Ju, 1, 2), (Ma, 1, 3), (Xiang, 1, 4), (Shi, 1, 5),
+        (King, 1, 6), (Shi, 1, 7), (Xiang, 1, 8), (Ma, 1, 9), (Ju, 1, 10),
+        # 第3行
+        (Pao, 3, 1), (Pao, 3, 11),
+        # 第4行
+        (Pawn, 4, 0), (Pawn, 4, 2), (Pawn, 4, 4), (Pawn, 4, 6),
+        (Pawn, 4, 8), (Pawn, 4, 10), (Pawn, 4, 12)
+    ]
 
-    # 第1行
-    pieces.append(Ju("black", 1, 2))
-    pieces.append(Ma("black", 1, 3))
-    pieces.append(Xiang("black", 1, 4))
-    pieces.append(Shi("black", 1, 5))
-    pieces.append(King("black", 1, 6))  # 汗
-    pieces.append(Shi("black", 1, 7))
-    pieces.append(Xiang("black", 1, 8))
-    pieces.append(Ma("black", 1, 9))
-    pieces.append(Ju("black", 1, 10))
-    # 第3行
-    pieces.append(Pao("black", 3, 1))
-    pieces.append(Pao("black", 3, 11))
-    # 第4行
-    pieces.append(Pawn("black", 4, 0))
-    pieces.append(Pawn("black", 4, 2))
-    pieces.append(Pawn("black", 4, 4))
-    pieces.append(Pawn("black", 4, 6))
-    pieces.append(Pawn("black", 4, 8))
-    pieces.append(Pawn("black", 4, 10))
-    pieces.append(Pawn("black", 4, 12))
+    red_pieces_config = [
+        # 第12行 (红方底线)
+        (Dun, 12, 1), (She, 12, 0), (Jia, 12, 2), (Jia, 12, 10),
+        (Ci, 12, 3), (Ci, 12, 9), (Wei, 12, 6),
+        (Lei, 12, 4), (Lei, 12, 8), (She, 12, 12), (Dun, 12, 11),
+        # 第11行
+        (Ju, 11, 2), (Ma, 11, 3), (Xiang, 11, 4), (Shi, 11, 5),
+        (King, 11, 6), (Shi, 11, 7), (Xiang, 11, 8), (Ma, 11, 9), (Ju, 11, 10),
+        # 第9行
+        (Pao, 9, 1), (Pao, 9, 11),
+        # 第8行
+        (Pawn, 8, 0), (Pawn, 8, 2), (Pawn, 8, 4), (Pawn, 8, 6),
+        (Pawn, 8, 8), (Pawn, 8, 10), (Pawn, 8, 12)
+    ]
 
-    # 红方(下方)
-    # 第12行 (红方底线)
-    pieces.append(Dun("red", 12, 1))  # 盾
-    pieces.append(She("red", 12, 0))  # 射
-    pieces.append(Jia("red", 12, 2))  # 甲
-    pieces.append(Jia("red", 12, 10))  # 甲
-    pieces.append(Ci("red", 12, 3))  # 刺
-    pieces.append(Ci("red", 12, 9))  # 刺
-    pieces.append(Wei("red", 12, 6))  # 尉
-    pieces.append(Lei("red", 12, 4))  # 檑
-    pieces.append(Lei("red", 12, 8))  # 檑
-    pieces.append(She("red", 12, 12))  # 射
-    pieces.append(Dun("red", 12, 11))  # 盾
-    # 第11行
-    pieces.append(Ju("red", 11, 2))  # 車
-    pieces.append(Ma("red", 11, 3))  # 馬
-    pieces.append(Xiang("red", 11, 4))  # 象
-    pieces.append(Shi("red", 11, 5))  # 仕
-    pieces.append(King("red", 11, 6))  # 汉
-    pieces.append(Shi("red", 11, 7))  # 仕
-    pieces.append(Xiang("red", 11, 8))  # 象
-    pieces.append(Ma("red", 11, 9))  # 馬
-    pieces.append(Ju("red", 11, 10))  # 車
+    # 添加黑方棋子
+    for piece_class, row, col in black_pieces_config:
+        pieces.append(piece_class("black", row, col))
 
-    # 第9行
-    pieces.append(Pao("red", 9, 1))  # 炮
-    pieces.append(Pao("red", 9, 11))  # 炮
-    # 第8行
-    pieces.append(Pawn("red", 8, 0))  # 兵
-    pieces.append(Pawn("red", 8, 2))  # 兵
-    pieces.append(Pawn("red", 8, 4))  # 兵
-    pieces.append(Pawn("red", 8, 6))  # 兵
-    pieces.append(Pawn("red", 8, 8))  # 兵
-    pieces.append(Pawn("red", 8, 10))  # 兵
-    pieces.append(Pawn("red", 8, 12))  # 兵
+    # 添加红方棋子
+    for piece_class, row, col in red_pieces_config:
+        pieces.append(piece_class("red", row, col))
 
     return pieces

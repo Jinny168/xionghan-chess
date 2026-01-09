@@ -1608,6 +1608,9 @@ class GameRules:
         - 只能在无障碍的连续区间内移动
         - 目标位置必须为空
         - 移动本身无限制，但只有当移动前起始位置的反方向一格有敌棋时，才能兑掉那个敌棋，敌棋也阵亡，你也阵亡
+        - 无法攻击/移除盾棋子
+        - 刺若被盾（8邻域敌方盾）阻挡，禁止攻击，无法触发拖吃
+        - 被尉照面，禁止移动
         """
         # 目标位置不能有己方棋子
         target_piece = GameRules.get_piece_at(pieces, to_row, to_col)
@@ -1636,6 +1639,17 @@ class GameRules:
         if target_piece is not None:
             return False
         
+        # 检查被尉照面的限制
+        piece = GameRules.get_piece_at(pieces, from_row, from_col)
+        if piece and isinstance(piece, Ci):  # 检查移动的棋子是否是刺
+            # 检查是否有敌方尉与当前刺照面
+            for p in pieces:
+                if isinstance(p, Wei) and p.color != color:  # 敌方尉
+                    if GameRules.is_facing_enemy(p, pieces):  # 如果尉与其他棋子照面
+                        facing_target = GameRules.get_facing_piece(p, pieces)  # 获取被照面的棋子
+                        if facing_target == piece:  # 如果被照面的就是当前刺
+                            return False  # 被尉照面的刺禁止移动
+        
         # 检查移动前起始位置的反方向一格是否有敌棋（兑子条件）
         row_diff = to_row - from_row
         col_diff = to_col - from_col
@@ -1649,11 +1663,24 @@ class GameRules:
             reverse_piece = GameRules.get_piece_at(pieces, reverse_row, reverse_col)
             # 如果反方向有敌方棋子，那么刺可以移动（但需要后续处理兑子逻辑）
             if reverse_piece and reverse_piece.color != color:
+                # 检查是否是盾棋子（不能攻击盾）
+                if isinstance(reverse_piece, Dun):
+                    return False
+                # 检查是否被敌方盾阻挡（8邻域）
+                # 检查移动的刺是否与敌方盾相邻
+                for p in pieces:
+                    if isinstance(p, Dun) and p.color != color:  # 只考虑敌方盾
+                        # 检查该敌方盾是否与移动的刺相邻（8邻域）
+                        row_diff_to_dun = abs(p.row - from_row)
+                        col_diff_to_dun = abs(p.col - from_col)
+                        if row_diff_to_dun <= 1 and col_diff_to_dun <= 1 and (row_diff_to_dun != 0 or col_diff_to_dun != 0):
+                            # 如果刺与敌方盾相邻，则不能触发拖吃
+                            return False
                 return True
         
         # 如果没有满足兑子条件，普通移动也是允许的（只是不触发兑子）
         return True
-    
+
     @staticmethod
     def is_valid_dun_move(pieces, from_row, from_col, to_row, to_col):
         """检查盾的移动是否合法
@@ -1766,33 +1793,3 @@ class GameRules:
             return True
         
         return False
-    
-    @staticmethod
-    def get_connected_enemy_pieces(pieces, dun_piece):
-        """获取与盾棋子横竖斜相连（8邻域）的所有敌方棋子
-        
-        Args:
-            pieces (list): 棋子列表
-            dun_piece (Dun): 盾棋子
-            
-        Returns:
-            list: 与盾相邻的敌方棋子列表
-        """
-        connected_enemies = []
-        
-        # 检查8个方向（横竖斜）
-        directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-        
-        for dr, dc in directions:
-            neighbor_row = dun_piece.row + dr
-            neighbor_col = dun_piece.col + dc
-            
-            # 检查是否在棋盘范围内
-            if 0 <= neighbor_row < 13 and 0 <= neighbor_col < 13:
-                neighbor_piece = GameRules.get_piece_at(pieces, neighbor_row, neighbor_col)
-                
-                # 如果邻居是敌方棋子，添加到列表中
-                if neighbor_piece and neighbor_piece.color != dun_piece.color:
-                    connected_enemies.append(neighbor_piece)
-        
-        return connected_enemies

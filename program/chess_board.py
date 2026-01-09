@@ -1,12 +1,8 @@
 import math
-import os
 
 import pygame
 
 from utils import load_font
-
-
-
 
 
 class ChessBoard:
