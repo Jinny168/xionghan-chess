@@ -1,7 +1,7 @@
 import time
 
-from chess_pieces import create_initial_pieces, King, Jia, Ci, Dun
-from game_rules import GameRules
+from program.core.chess_pieces  import create_initial_pieces, King, Jia, Ci, Dun
+from program.core.game_rules import GameRules
 
 
 class GameState:
@@ -80,7 +80,7 @@ class GameState:
         
         # 更新当前玩家的用时
         current_time = time.time()
-        elapsed = current_time - self.current_turn_start_time
+        elapsed = max(0, current_time - self.current_turn_start_time)  # 确保elapsed不为负数
         if self.player_turn == "red":
             self.red_time += elapsed
         else:
@@ -96,7 +96,7 @@ class GameState:
                 self.game_over = True
                 self.winner = piece.color
                 # 更新游戏总时长
-                self.total_time = current_time - self.start_time
+                self.total_time = max(0, current_time - self.start_time)
                 return True
         
         # 执行移动
@@ -119,7 +119,7 @@ class GameState:
                         self.winner = piece.color
                         # 更新游戏总时长
                         current_time = time.time()
-                        self.total_time = current_time - self.start_time
+                        self.total_time = max(0, current_time - self.start_time)
                         # 切换玩家
                         opponent_color = "black" if self.player_turn == "red" else "red"
                         return True
@@ -154,7 +154,7 @@ class GameState:
                             self.winner = piece.color
                             # 更新游戏总时长
                             current_time = time.time()
-                            self.total_time = current_time - self.start_time
+                            self.total_time = max(0, current_time - self.start_time)
                             # 切换玩家
                             opponent_color = "black" if self.player_turn == "red" else "red"
                             return True
@@ -176,7 +176,7 @@ class GameState:
                         self.game_over = True
                         self.winner = winner
                         # 更新游戏总时长
-                        self.total_time = current_time - self.start_time
+                        self.total_time = max(0, current_time - self.start_time)
                     else:
                         # 切换玩家回合
                         self.player_turn = opponent_color
@@ -201,7 +201,7 @@ class GameState:
             self.game_over = True
             self.winner = winner
             # 更新游戏总时长
-            self.total_time = current_time - self.start_time
+            self.total_time = max(0, current_time - self.start_time)
         else:
             # 切换玩家回合
             self.player_turn = opponent_color
@@ -253,7 +253,7 @@ class GameState:
             current_time = time.time()
             elapsed = current_time - self.current_turn_start_time
             # 更新总游戏时长
-            self.total_time = current_time - self.start_time
+            self.total_time = max(0, current_time - self.start_time)
             
             # 这里我们只计算临时的当前回合时间，不更新累计时间
             # 因为累计时间只在移动棋子时更新

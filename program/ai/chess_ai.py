@@ -2,7 +2,7 @@
 import time
 import threading
 import pygame
-from chess_pieces import Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun
+from program.core.chess_pieces import Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun
 
 
 class ChessAI:
@@ -1130,8 +1130,7 @@ class ChessAI:
     def _clone_game_state(self, game_state):
         """创建游戏状态的高效深拷贝用于模拟"""
         # 使用更高效的克隆方法
-        from copy import deepcopy
-        
+
         # 创建一个新的game_state对象
         cloned_state = type('GameStateClone', (), {})()
         

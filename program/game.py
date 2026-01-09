@@ -4,12 +4,12 @@ import sys
 
 import pygame
 
-from chess_ai import ChessAI
+from program.ai.chess_ai import ChessAI
 from chess_board import ChessBoard
 from config import game_config
 from program.ui.dialogs import PopupDialog, ConfirmDialog
-from game_rules import GameRules
-from game_state import GameState
+from program.core.game_rules import GameRules
+from program.core.game_state import GameState
 from program.ui.avatar import Avatar
 from program.ui.button import Button
 from utils import load_font, draw_background
@@ -1159,7 +1159,7 @@ class ChessGame:
     @staticmethod
     def generate_move_notation(piece, from_row, from_col, to_row, to_col):
         """生成走法的中文表示，如"炮二平五"、"马8进7"等"""
-        from chess_pieces import King, Shi, Xiang, Ma, Ju, Pao, Pawn, Wei, She, Lei, Jia
+        from program.core.chess_pieces import King, Shi, Xiang, Ma, Ju, Pao, Pawn, Wei, She, Lei, Jia
 
         piece_names = {
             "king": "汉" if piece.color == "red" else "汗",

@@ -1,5 +1,5 @@
-from chess_pieces import ChessPiece, Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun
-from config import game_config
+from program.core.chess_pieces import ChessPiece, Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun
+from program.config import game_config
 
 class GameRules:
     """匈汉象棋游戏规则类，负责验证移动的合法性和胜负判定"""
@@ -1121,16 +1121,171 @@ class GameRules:
         moves = []
         capturable = []
         
-        # 遍历所有可能的位置
-        for row in range(13):
-            for col in range(13):
-                # 检查移动是否合法
-                if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, row, col):
-                    # 检查目标位置是否有对方棋子（可吃子）
-                    target = GameRules.get_piece_at(pieces, row, col)
-                    if target and target.color != piece.color:
-                        capturable.append((row, col))
-                    moves.append((row, col))
+        # 根据棋子类型优化可能的移动范围
+        if isinstance(piece, She):  # 射/䠶，斜向移动，限制在3格范围内
+            # 对于射/䠶，限制检查范围
+            for dr in range(-3, 4):  # 限制在3格范围内
+                for dc in range(-3, 4):
+                    # 只有斜向移动
+                    if abs(dr) == abs(dc) and (dr != 0 and dc != 0):
+                        to_row, to_col = piece.row + dr, piece.col + dc
+                        if 0 <= to_row < 13 and 0 <= to_col < 13:  # 在棋盘范围内
+                            if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
+                                # 检查目标位置是否有对方棋子（可吃子）
+                                target = GameRules.get_piece_at(pieces, to_row, to_col)
+                                if target and target.color != piece.color:
+                                    capturable.append((to_row, to_col))
+                                moves.append((to_row, to_col))
+        elif isinstance(piece, Lei):  # 檑/礌，直线和斜线无限移动
+            # 檑/礌可以沿直线和斜线无限移动，需要按方向检查
+            directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]  # 8个方向
+            for dr, dc in directions:
+                # 沿着方向一直移动直到边界或遇到障碍
+                current_row, current_col = piece.row + dr, piece.col + dc
+                while 0 <= current_row < 13 and 0 <= current_col < 13:
+                    if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, current_row, current_col):
+                        target = GameRules.get_piece_at(pieces, current_row, current_col)
+                        if target and target.color != piece.color:
+                            capturable.append((current_row, current_col))
+                        moves.append((current_row, current_col))
+                        
+                        # 如果目标位置有棋子，停止移动
+                        if target is not None:
+                            break  # 檑/礌遇到障碍就停止
+                    current_row += dr
+                    current_col += dc
+        elif isinstance(piece, (Ju, Pao, Ci, Dun, Wei)):  # 车/炮/刺/盾/尉，直线移动
+            # 对于车/炮/刺/盾/尉，只需要沿着4个方向检查
+            directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # 上下左右
+            for dr, dc in directions:
+                # 沿着方向一直移动直到边界或遇到障碍
+                current_row, current_col = piece.row + dr, piece.col + dc
+                while 0 <= current_row < 13 and 0 <= current_col < 13:
+                    if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, current_row, current_col):
+                        target = GameRules.get_piece_at(pieces, current_row, current_col)
+                        if target and target.color != piece.color:
+                            capturable.append((current_row, current_col))
+                        moves.append((current_row, current_col))
+                        
+                        # 如果目标位置有棋子，根据棋子类型决定是否停止
+                        if target is not None:
+                            if isinstance(piece, Pao):  # 炮的特殊规则
+                                # 炮可以越过一个棋子后继续移动，直到遇到第二个棋子
+                                current_row += dr
+                                current_col += dc
+                                while 0 <= current_row < 13 and 0 <= current_col < 13:
+                                    if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, current_row, current_col):
+                                        target2 = GameRules.get_piece_at(pieces, current_row, current_col)
+                                        if target2:
+                                            if target2.color != piece.color:
+                                                capturable.append((current_row, current_col))
+                                            moves.append((current_row, current_col))
+                                            break  # 炮在攻击后停止
+                                        else:
+                                            moves.append((current_row, current_col))
+                                    current_row += dr
+                                    current_col += dc
+                                break  # 炮在越过一个棋子后停止
+                            else:
+                                break  # 车、刺、盾、尉遇到障碍就停止
+                    current_row += dr
+                    current_col += dc
+        elif isinstance(piece, Ma):  # 马，只有8个可能的位置
+            # 马的8个可能移动位置
+            knight_moves = [
+                (-2, -1), (-2, 1), (-1, -2), (-1, 2),
+                (1, -2), (1, 2), (2, -1), (2, 1)
+            ]
+            for dr, dc in knight_moves:
+                to_row, to_col = piece.row + dr, piece.col + dc
+                if 0 <= to_row < 13 and 0 <= to_col < 13:  # 在棋盘范围内
+                    if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
+                        target = GameRules.get_piece_at(pieces, to_row, to_col)
+                        if target and target.color != piece.color:
+                            capturable.append((to_row, to_col))
+                        moves.append((to_row, to_col))
+        elif isinstance(piece, Xiang):  # 相/象，走田字等
+            # 相的可能移动位置
+            elephant_moves = [
+                (-2, -2), (-2, 2), (2, -2), (2, 2),  # 田字
+                (-2, 0), (2, 0), (0, -2), (0, 2)     # 隔一格直线
+            ]
+            for dr, dc in elephant_moves:
+                to_row, to_col = piece.row + dr, piece.col + dc
+                if 0 <= to_row < 13 and 0 <= to_col < 13:  # 在棋盘范围内
+                    if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
+                        target = GameRules.get_piece_at(pieces, to_row, to_col)
+                        if target and target.color != piece.color:
+                            capturable.append((to_row, to_col))
+                        moves.append((to_row, to_col))
+        elif isinstance(piece, Shi):  # 士/仕，只有对角线1格
+            # 士的可能移动位置（对角线1格）
+            advisor_moves = [
+                (-1, -1), (-1, 1), (1, -1), (1, 1)
+            ]
+            for dr, dc in advisor_moves:
+                to_row, to_col = piece.row + dr, piece.col + dc
+                if 0 <= to_row < 13 and 0 <= to_col < 13:  # 在棋盘范围内
+                    if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
+                        target = GameRules.get_piece_at(pieces, to_row, to_col)
+                        if target and target.color != piece.color:
+                            capturable.append((to_row, to_col))
+                        moves.append((to_row, to_col))
+        elif isinstance(piece, King):  # 将/帅/汉/汗
+            # 将/帅的可能移动位置（横竖斜1格）
+            king_moves = [
+                (-1, -1), (-1, 0), (-1, 1),
+                (0, -1),           (0, 1),
+                (1, -1),  (1, 0),  (1, 1)
+            ]
+            for dr, dc in king_moves:
+                to_row, to_col = piece.row + dr, piece.col + dc
+                if 0 <= to_row < 13 and 0 <= to_col < 13:  # 在棋盘范围内
+                    if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
+                        target = GameRules.get_piece_at(pieces, to_row, to_col)
+                        if target and target.color != piece.color:
+                            capturable.append((to_row, to_col))
+                        moves.append((to_row, to_col))
+        elif isinstance(piece, Pawn):  # 兵/卒
+            # 兵/卒的可能移动位置（根据位置和规则）
+            pawn_moves = []
+            # 基础移动：向前
+            if piece.color == "red":
+                # 红方兵移动规则
+                if piece.row >= 6:  # 未过河
+                    pawn_moves.append((-1, 0))  # 向前
+                else:  # 已过河
+                    pawn_moves.extend([(-1, 0), (0, -1), (0, 1)])  # 前左右
+                    if piece.row == 0:  # 到达底线
+                        pawn_moves.append((1, 0))  # 可以后退
+            else:  # 黑方
+                # 黑方卒移动规则
+                if piece.row <= 6:  # 未过河
+                    pawn_moves.append((1, 0))  # 向前
+                else:  # 已过河
+                    pawn_moves.extend([(1, 0), (0, -1), (0, 1)])  # 前左右
+                    if piece.row == 12:  # 到达底线
+                        pawn_moves.append((-1, 0))  # 可以后退
+            
+            for dr, dc in pawn_moves:
+                to_row, to_col = piece.row + dr, piece.col + dc
+                if 0 <= to_row < 13 and 0 <= to_col < 13:  # 在棋盘范围内
+                    if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
+                        target = GameRules.get_piece_at(pieces, to_row, to_col)
+                        if target and target.color != piece.color:
+                            capturable.append((to_row, to_col))
+                        moves.append((to_row, to_col))
+        else:  # 其他情况，遍历所有位置
+            # 遍历所有可能的位置
+            for row in range(13):
+                for col in range(13):
+                    # 检查移动是否合法
+                    if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, row, col):
+                        # 检查目标位置是否有对方棋子（可吃子）
+                        target = GameRules.get_piece_at(pieces, row, col)
+                        if target and target.color != piece.color:
+                            capturable.append((row, col))
+                        moves.append((row, col))
         
         # 特殊处理甲/胄的吃子规则
         if isinstance(piece, Jia):

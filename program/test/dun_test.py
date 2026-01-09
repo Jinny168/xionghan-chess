@@ -5,8 +5,8 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from program.chess_pieces import *
-from program.game_rules import GameRules
+from program.core.chess_pieces import *
+from program.core.game_rules import GameRules
 
 
 def test_shield_immunity_to_capture():
