@@ -1,8 +1,8 @@
 import pygame
 
-from config import BLACK, RED, POPUP_BG
-from ui_elements import Button
-from utils import load_font
+from program.config import BLACK, RED, POPUP_BG
+from program.ui.button import Button
+from program.utils import load_font
 
 
 class PopupDialog:
@@ -23,7 +23,12 @@ class PopupDialog:
         button_height = 50
         self.button_width = button_width
         self.button_height = button_height
-        self.restart_button = None  # 会在绘制时动态创建
+        
+        # 预先创建按钮，避免重复创建
+        self.restart_button = Button(0, 0, button_width, button_height, "重新开始")
+        
+        # 预创建覆盖层表面
+        self.overlay_surface = None
         
     def draw(self, screen):
         # 获取当前窗口尺寸
@@ -36,12 +41,13 @@ class PopupDialog:
         # 更新按钮位置
         button_x = self.x + (self.width - self.button_width) // 2
         button_y = self.y + self.height - self.button_height - 20
-        self.restart_button = Button(button_x, button_y, self.button_width, self.button_height, "重新开始")
+        self.restart_button.update_position(button_x, button_y)
         
         # 绘制半透明背景
-        overlay = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 128))  # 半透明黑色
-        screen.blit(overlay, (0, 0))
+        if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
+            self.overlay_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
+        self.overlay_surface.fill((0, 0, 0, 128))  # 半透明黑色
+        screen.blit(self.overlay_surface, (0, 0))
         
         # 绘制弹窗主体
         pygame.draw.rect(screen, POPUP_BG, (self.x, self.y, self.width, self.height))
@@ -124,12 +130,15 @@ class ConfirmDialog:
         self.button_height = 40
         self.button_spacing = 30
         
-        # 按钮会在绘制时动态创建
-        self.confirm_button = None
-        self.cancel_button = None
+        # 预先创建按钮，避免重复创建
+        self.confirm_button = Button(0, 0, self.button_width, self.button_height, "确认")
+        self.cancel_button = Button(0, 0, self.button_width, self.button_height, "取消")
         
         # 结果
         self.result = None  # None = 未选择, True = 确认, False = 取消
+        
+        # 预创建覆盖层表面
+        self.overlay_surface = None
         
     def draw(self, screen):
         # 获取当前窗口尺寸
@@ -142,16 +151,17 @@ class ConfirmDialog:
         # 更新按钮位置
         confirm_x = self.x + (self.width // 2) - self.button_width - (self.button_spacing // 2)
         confirm_y = self.y + self.height - self.button_height - 20
-        self.confirm_button = Button(confirm_x, confirm_y, self.button_width, self.button_height, "确认")
+        self.confirm_button.update_position(confirm_x, confirm_y)
         
         cancel_x = self.x + (self.width // 2) + (self.button_spacing // 2)
         cancel_y = self.y + self.height - self.button_height - 20
-        self.cancel_button = Button(cancel_x, cancel_y, self.button_width, self.button_height, "取消")
+        self.cancel_button.update_position(cancel_x, cancel_y)
         
         # 绘制半透明背景
-        overlay = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 128))  # 半透明黑色
-        screen.blit(overlay, (0, 0))
+        if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
+            self.overlay_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
+        self.overlay_surface.fill((0, 0, 0, 128))  # 半透明黑色
+        screen.blit(self.overlay_surface, (0, 0))
         
         # 绘制弹窗主体
         pygame.draw.rect(screen, POPUP_BG, (self.x, self.y, self.width, self.height))
@@ -207,4 +217,4 @@ class ConfirmDialog:
                 self.result = False
                 return self.result
         
-        return None
+        return self.result

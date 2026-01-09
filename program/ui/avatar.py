@@ -17,24 +17,12 @@ class Avatar:
         
     def update_font(self):
         """根据当前头像尺寸更新字体"""
-        self.piece_font = None
-        font_options = [
-            'KaiTi', 'STKaiti', '楷体', 'SimKai', 
-            'FangSong', 'STFangsong', '仿宋', 
-            'STXingkai', '华文行楷',
-            'LiSu', '隶书'
-        ]
-        
-        for font_name in font_options:
-            try:
-                self.piece_font = load_font(int(self.radius * 1.2), bold=True)
-                break
-            except:
-                continue
-                
-        # 如果没有找到合适的飘逸字体，使用默认字体
-        if not self.piece_font:
-            self.piece_font = load_font(int(self.radius * 1.2), bold=True)
+        font_size = int(self.radius * 1.2)
+        try:
+            self.piece_font = load_font(font_size, bold=True)
+        except Exception:
+            # 如果加载特定字体失败，使用默认字体
+            self.piece_font = load_font(font_size, bold=True)
         
         # 名称字体使用普通字体
         self.name_font = load_font(18)
@@ -51,9 +39,10 @@ class Avatar:
                 glow_radius = self.radius + 3 + i
                 alpha = 100 - i * 20
                 glow_color = (255, 50, 50, alpha) if self.is_red else (50, 50, 100, alpha)
-                glow_surface = pygame.Surface((glow_radius*2, glow_radius*2), pygame.SRCALPHA)
-                pygame.draw.circle(glow_surface, glow_color, (glow_radius, glow_radius), glow_radius, 2)
-                screen.blit(glow_surface, (self.x - glow_radius, self.y - glow_radius))
+                # 创建临时表面用于光晕效果
+                temp_surface = pygame.Surface((glow_radius*2, glow_radius*2), pygame.SRCALPHA)
+                pygame.draw.circle(temp_surface, glow_color, (glow_radius, glow_radius), glow_radius, 2)
+                screen.blit(temp_surface, (self.x - glow_radius, self.y - glow_radius))
         
         # 绘制头像背景
         pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
@@ -100,29 +89,3 @@ class Avatar:
             self.radius = radius
             self.update_font()  # 如果大小变化，需要更新字体
 
-class Button:
-    def __init__(self, x, y, width, height, text, font_size=24):
-        self.rect = pygame.Rect(x, y, width, height)
-        self.text = text
-        self.font = load_font(font_size)
-        self.is_hovered = False
-        
-    def draw(self, screen):
-        # 绘制按钮（带悬停效果）
-        color = (120, 120, 220) if self.is_hovered else (100, 100, 200)
-        pygame.draw.rect(screen, color, self.rect)
-        pygame.draw.rect(screen, (0, 0, 0), self.rect, 2)  # 边框
-        
-        # 绘制文本
-        text_surface = self.font.render(self.text, True, (240, 240, 255))
-        text_rect = text_surface.get_rect(center=self.rect.center)
-        screen.blit(text_surface, text_rect)
-        
-    def check_hover(self, pos):
-        self.is_hovered = self.rect.collidepoint(pos)
-        return self.is_hovered
-    
-    def is_clicked(self, pos, event):
-        if event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(pos):
-            return True
-        return False

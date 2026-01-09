@@ -7,8 +7,8 @@ from program.config import (
     BLACK, GOLD,
     MODE_PVP, MODE_PVC, CAMP_RED, CAMP_BLACK, FPS
 )
-from ui_elements import Button
-from utils import load_font, draw_background
+from program.ui.button import Button
+from program.utils import load_font, draw_background
 
 
 class ModeSelectionScreen:
@@ -267,6 +267,13 @@ class RulesScreen:
         self.scroll_y = 0
         self.scroll_speed = 20
         
+        # 预渲染规则文本以提高性能
+        self.rendered_lines = []
+        text_font = load_font(24)
+        for line in self.rules_text:
+            text_surface = text_font.render(line, True, BLACK)
+            self.rendered_lines.append(text_surface)
+        
         # 返回按钮
         button_width = 120
         button_height = 40
@@ -356,14 +363,16 @@ class RulesScreen:
         title_rect = title_surface.get_rect(center=(self.window_width//2, 60))
         self.screen.blit(title_surface, title_rect)
         
-        # 绘制规则文本
-        text_font = load_font(24)
+        # 绘制规则文本（使用预渲染的文本）
         y_pos = 120 + self.scroll_y  # 添加滚动偏移
         
-        for line in self.rules_text:
-            text_surface = text_font.render(line, True, BLACK)
-            self.screen.blit(text_surface, (50, y_pos))
-            y_pos += 30  # 行间距
+        # 只绘制可见范围内的文本行，提高性能
+        line_height = 30
+        start_line = max(0, -y_pos // line_height)
+        end_line = min(len(self.rendered_lines), (self.window_height - 120 - y_pos + line_height) // line_height)
+        
+        for i in range(start_line, end_line):
+            self.screen.blit(self.rendered_lines[i], (50, 120 + self.scroll_y + i * line_height))
         
         # 绘制返回按钮
         self.back_button.draw(self.screen)

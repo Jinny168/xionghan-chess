@@ -7,10 +7,11 @@ import pygame
 from chess_ai import ChessAI
 from chess_board import ChessBoard
 from config import game_config
-from dialogs import PopupDialog, ConfirmDialog
+from program.ui.dialogs import PopupDialog, ConfirmDialog
 from game_rules import GameRules
 from game_state import GameState
-from ui_elements import Avatar, Button
+from program.ui.avatar import Avatar
+from program.ui.button import Button
 from utils import load_font, draw_background
 
 # 初始化PyGame

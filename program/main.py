@@ -2,7 +2,7 @@ import pygame
 
 from program.config import MODE_PVC, CAMP_RED
 from program.game import ChessGame
-from menu_screens import ModeSelectionScreen, RulesScreen, CampSelectionScreen
+from program.ui.menu_screens import ModeSelectionScreen, RulesScreen, CampSelectionScreen
 from settings import SettingsScreen
 
 # 初始化PyGame

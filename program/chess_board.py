@@ -22,7 +22,7 @@ class ChessBoard:
         
         # 棋盘尺寸和格子大小 - 改为13x13
         self.board_width = window_width - 2 * 50  # 保持左右各留50px的边距
-        self.board_height = self.board_width * 12 / 12  # 13x13比例
+        self.board_height = self.board_width  # 13x13比例，正方形
         self.grid_size = self.board_width / 12
         
         # 确保棋盘高度不超过窗口高度
@@ -43,6 +43,9 @@ class ChessBoard:
         
         # 加载飘逸字体 - 尝试加载几种可能的字体
         self.update_font()
+        
+        # 预创建用于绘制将军动画的表面
+        self.check_animation_surfaces = {}
         
     def update_font(self):
         """根据当前棋盘尺寸更新字体"""
@@ -302,33 +305,50 @@ class ChessBoard:
         # 增强透明度对比 - 最小值提高，让整体更醒目
         alpha = int(220 + 35 * pulse)  # 透明度在220-255之间变化，更不透明
         
-        # 红色脉动圆圈 - 多层渐变效果，增强视觉冲击
-        for i in range(3):  # 创建3层效果
-            layer_size = current_size * (1 - i * 0.2)  # 每层递减尺寸
-            layer_alpha = alpha * (1 - i * 0.2)  # 每层递减透明度
+        # 使用缓存的表面来提高性能
+        cache_key = (round(current_size * 10), alpha)  # 使用当前大小和透明度作为缓存键
+        if cache_key not in self.check_animation_surfaces:
+            # 创建多层脉动效果的表面
+            total_size = int(current_size * 1.1 * 2)
+            glow_surface = pygame.Surface((total_size, total_size), pygame.SRCALPHA)
             
-            glow_surface = pygame.Surface((int(layer_size*2), int(layer_size*2)), pygame.SRCALPHA)
+            # 红色脉动圆圈 - 多层渐变效果，增强视觉冲击
+            for i in range(3):  # 创建3层效果
+                layer_size = current_size * (1 - i * 0.2)  # 每层递减尺寸
+                layer_alpha = alpha * (1 - i * 0.2)  # 每层递减透明度
+                
+                # 使用更鲜艳的红色
+                red_color = (255, 20 + i*20, 20, int(layer_alpha))
+                
+                # 绘制一个渐变的红色圆形
+                pygame.draw.circle(glow_surface, red_color, 
+                                 (total_size // 2, total_size // 2), 
+                                 int(layer_size))
             
-            # 使用更鲜艳的红色
-            red_color = (255, 20 + i*20, 20, int(layer_alpha))
-            
-            # 绘制一个渐变的红色圆形
-            pygame.draw.circle(glow_surface, red_color, 
-                             (int(layer_size), int(layer_size)), 
-                             int(layer_size))
-            
-            # 绘制到屏幕上
-            screen.blit(glow_surface, (x - int(layer_size), y - int(layer_size)))
+            self.check_animation_surfaces[cache_key] = glow_surface
+        
+        # 绘制到屏幕上
+        cached_surface = self.check_animation_surfaces[cache_key]
+        surface_size = cached_surface.get_width()
+        screen.blit(cached_surface, (x - surface_size // 2, y - surface_size // 2))
         
         # 再绘制一个较亮的边框，增强视觉效果
-        border_size = current_size * 1.1  # 边框略大于内圆
-        border_surface = pygame.Surface((int(border_size*2), int(border_size*2)), pygame.SRCALPHA)
-        border_color = (255, 100, 100, alpha)
-        # 只画边框
-        pygame.draw.circle(border_surface, border_color, 
-                         (int(border_size), int(border_size)), 
-                         int(border_size), 3)
-        screen.blit(border_surface, (x - int(border_size), y - int(border_size)))
+        border_cache_key = (round(current_size * 1.1 * 10), alpha)  # 使用当前大小和透明度作为缓存键
+        if border_cache_key not in self.check_animation_surfaces:
+            border_size = current_size * 1.1  # 边框略大于内圆
+            border_surface = pygame.Surface((int(border_size*2), int(border_size*2)), pygame.SRCALPHA)
+            border_color = (255, 100, 100, alpha)
+            # 只画边框
+            pygame.draw.circle(border_surface, border_color, 
+                             (int(border_size), int(border_size)), 
+                             int(border_size), 3)
+            
+            self.check_animation_surfaces[border_cache_key] = border_surface
+        
+        # 绘制到屏幕上
+        cached_border = self.check_animation_surfaces[border_cache_key]
+        border_size_cached = cached_border.get_width() // 2
+        screen.blit(cached_border, (x - border_size_cached, y - border_size_cached))
         
         # 绘制"将军"文字提示 - 使其更显眼
         font = load_font(40, bold=True)
@@ -389,11 +409,16 @@ class ChessBoard:
         shadow_radius = radius + 1
         # 确保shadow_radius为正数，避免Surface创建错误
         if shadow_radius > 0:
-            shadow_surface = pygame.Surface((shadow_radius*2, shadow_radius*2), pygame.SRCALPHA)
-            pygame.draw.circle(shadow_surface, (20, 20, 20, 100), 
-                              (shadow_radius, shadow_radius), 
-                              shadow_radius)
-            screen.blit(shadow_surface, 
+            # 使用缓存的阴影表面
+            shadow_cache_key = shadow_radius
+            if shadow_cache_key not in self.check_animation_surfaces:
+                shadow_surface = pygame.Surface((shadow_radius*2, shadow_radius*2), pygame.SRCALPHA)
+                pygame.draw.circle(shadow_surface, (20, 20, 20, 100), 
+                                  (shadow_radius, shadow_radius), 
+                                  shadow_radius)
+                self.check_animation_surfaces[shadow_cache_key] = shadow_surface
+            
+            screen.blit(self.check_animation_surfaces[shadow_cache_key], 
                        (center_x - shadow_radius + shadow_offset, 
                         center_y - shadow_radius + shadow_offset))
         
@@ -411,50 +436,57 @@ class ChessBoard:
             text_color = (30, 30, 30)        # 深黑色文字
             text_shadow_color = (10, 10, 10) # 黑字阴影色
         
-        # 绘制主体
-        piece_surface = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
-        
-        # 创建白玉渐变效果 - 从外到内
-        gradient_steps = 15  # 更细腻的渐变步数
-        for i in range(gradient_steps, 0, -1):
-            current_radius = int(radius * (i / gradient_steps))
-            # 计算当前渐变颜色
-            ratio = i / gradient_steps
-            r = int(outer_color[0] * ratio + inner_color[0] * (1-ratio))
-            g = int(outer_color[1] * ratio + inner_color[1] * (1-ratio))
-            b = int(outer_color[2] * ratio + inner_color[2] * (1-ratio))
+        # 使用缓存的棋子表面
+        piece_cache_key = (piece.color, piece.name, radius)
+        if piece_cache_key not in self.check_animation_surfaces:
+            # 绘制主体
+            piece_surface = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
             
-            pygame.draw.circle(piece_surface, (r, g, b), (radius, radius), current_radius)
+            # 创建白玉渐变效果 - 从外到内
+            gradient_steps = 15  # 更细腻的渐变步数
+            for i in range(gradient_steps, 0, -1):
+                current_radius = int(radius * (i / gradient_steps))
+                # 计算当前渐变颜色
+                ratio = i / gradient_steps
+                r = int(outer_color[0] * ratio + inner_color[0] * (1-ratio))
+                g = int(outer_color[1] * ratio + inner_color[1] * (1-ratio))
+                b = int(outer_color[2] * ratio + inner_color[2] * (1-ratio))
+                
+                pygame.draw.circle(piece_surface, (r, g, b), (radius, radius), current_radius)
+            
+            # 绘制边缘 - 稍微更薄一些的边框
+            pygame.draw.circle(piece_surface, edge_color, (radius, radius), radius, 1)
+            
+            # 添加多重高光效果 - 更真实的玉质感
+            
+            # 主高光点 - 左上方
+            highlight_pos1 = (radius - int(radius*0.5), radius - int(radius*0.5))
+            highlight_radius1 = int(radius * 0.2)
+            for i in range(5):
+                h_radius = highlight_radius1 - i
+                if h_radius <= 0:
+                    continue
+                alpha = 180 - i * 35
+                pygame.draw.circle(piece_surface, (*highlight_color, alpha), 
+                                 highlight_pos1, h_radius)
+            
+            # 次高光点 - 右下方较弱
+            highlight_pos2 = (radius + int(radius*0.3), radius + int(radius*0.3))
+            highlight_radius2 = int(radius * 0.1)
+            for i in range(3):
+                h_radius = highlight_radius2 - i
+                if h_radius <= 0:
+                    continue
+                alpha = 100 - i * 30
+                pygame.draw.circle(piece_surface, (*highlight_color, alpha), 
+                                 highlight_pos2, h_radius)
+            
+            self.check_animation_surfaces[piece_cache_key] = piece_surface
         
-        # 绘制边缘 - 稍微更薄一些的边框
-        pygame.draw.circle(piece_surface, edge_color, (radius, radius), radius, 1)
-        
-        # 添加多重高光效果 - 更真实的玉质感
-        
-        # 主高光点 - 左上方
-        highlight_pos1 = (radius - int(radius*0.5), radius - int(radius*0.5))
-        highlight_radius1 = int(radius * 0.2)
-        for i in range(5):
-            h_radius = highlight_radius1 - i
-            if h_radius <= 0:
-                continue
-            alpha = 180 - i * 35
-            pygame.draw.circle(piece_surface, (*highlight_color, alpha), 
-                             highlight_pos1, h_radius)
-        
-        # 次高光点 - 右下方较弱
-        highlight_pos2 = (radius + int(radius*0.3), radius + int(radius*0.3))
-        highlight_radius2 = int(radius * 0.1)
-        for i in range(3):
-            h_radius = highlight_radius2 - i
-            if h_radius <= 0:
-                continue
-            alpha = 100 - i * 30
-            pygame.draw.circle(piece_surface, (*highlight_color, alpha), 
-                             highlight_pos2, h_radius)
-        
+        # 从缓存中获取棋子表面
+        cached_piece_surface = self.check_animation_surfaces[piece_cache_key]
         # 将棋子表面绘制到屏幕上
-        screen.blit(piece_surface, (center_x - radius, center_y - radius))
+        screen.blit(cached_piece_surface, (center_x - radius, center_y - radius))
         
         # 绘制棋子文字 - 使用飘逸字体
         text = self.chess_font.render(piece.name, True, text_color)
@@ -585,28 +617,34 @@ class ChessBoard:
         
         # 设置字体大小
         label_font_size = int(self.grid_size * 0.3)  # 增大字体
-        try:
-            label_font = pygame.font.Font('fonts/simhei.ttf', label_font_size)
-        except:
-            try:
-                label_font = pygame.font.Font('fonts/simkai.ttf', label_font_size)
-            except:
+        
+        # 预先尝试加载字体，避免每次都重复加载
+        if not hasattr(self, 'label_font') or self.label_font_size != label_font_size:
+            fonts_to_try = [
+                'fonts/simhei.ttf',
+                'fonts/simkai.ttf',
+                'fonts/fangsong.ttf',
+                'fonts/xingkai.ttf',
+                'fonts/msyh.ttc',
+                'fonts/kaiti.ttf',
+                'fonts/fangsong.ttf'
+            ]
+            label_font = None
+            
+            for font_path in fonts_to_try:
                 try:
-                    label_font = pygame.font.Font('fonts/fangsong.ttf', label_font_size)
-                except:
-                    try:
-                        label_font = pygame.font.Font('fonts/xingkai.ttf', label_font_size)
-                    except:
-                        try:
-                            label_font = pygame.font.Font('fonts/msyh.ttc', label_font_size)
-                        except:
-                            try:
-                                label_font = pygame.font.Font('fonts/kaiti.ttf', label_font_size)
-                            except:
-                                try:
-                                    label_font = pygame.font.Font('fonts/fangsong.ttf', label_font_size)
-                                except:
-                                    label_font = load_font(label_font_size, bold=True)
+                    label_font = pygame.font.Font(font_path, label_font_size)
+                    break
+                except FileNotFoundError:
+                    continue
+            
+            if label_font is None:
+                label_font = load_font(label_font_size, bold=True)
+            
+            self.label_font = label_font
+            self.label_font_size = label_font_size
+        else:
+            label_font = self.label_font
         
         # 绘制红方（下方）列标识
         for i in range(13):

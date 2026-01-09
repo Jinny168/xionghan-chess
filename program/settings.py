@@ -1,7 +1,7 @@
 import pygame
 
 from program.config import game_config, BLACK, RED, BACKGROUND_COLOR
-from ui_elements import Button
+from program.ui.button import Button
 from utils import load_font
 
 
