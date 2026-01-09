@@ -1253,7 +1253,16 @@ class GameRules:
             if piece.color == "red":
                 # 红方兵移动规则
                 if piece.row >= 6:  # 未过河
-                    pawn_moves.append((-1, 0))  # 向前
+                    pawn_moves.append((-1, 0))  # 向前1格
+                    # 检查是否在初始位置，可以向前2格（需要路径和目标位置都为空）
+                    if piece.row == 8:  # 初始位置
+                        # 检查中间位置和目标位置是否都为空
+                        middle_row = piece.row - 1  # 7
+                        target_row = piece.row - 2   # 6
+                        if (0 <= middle_row < 13 and 0 <= target_row < 13 and
+                            GameRules.get_piece_at(pieces, middle_row, piece.col) is None and
+                            GameRules.get_piece_at(pieces, target_row, piece.col) is None):
+                            pawn_moves.append((-2, 0))  # 向前2格
                 else:  # 已过河
                     pawn_moves.extend([(-1, 0), (0, -1), (0, 1)])  # 前左右
                     if piece.row == 0:  # 到达底线
@@ -1261,7 +1270,16 @@ class GameRules:
             else:  # 黑方
                 # 黑方卒移动规则
                 if piece.row <= 6:  # 未过河
-                    pawn_moves.append((1, 0))  # 向前
+                    pawn_moves.append((1, 0))  # 向前1格
+                    # 检查是否在初始位置，可以向前2格（需要路径和目标位置都为空）
+                    if piece.row == 4:  # 初始位置
+                        # 检查中间位置和目标位置是否都为空
+                        middle_row = piece.row + 1  # 5
+                        target_row = piece.row + 2   # 6
+                        if (0 <= middle_row < 13 and 0 <= target_row < 13 and
+                            GameRules.get_piece_at(pieces, middle_row, piece.col) is None and
+                            GameRules.get_piece_at(pieces, target_row, piece.col) is None):
+                            pawn_moves.append((2, 0))  # 向前2格
                 else:  # 已过河
                     pawn_moves.extend([(1, 0), (0, -1), (0, 1)])  # 前左右
                     if piece.row == 12:  # 到达底线
