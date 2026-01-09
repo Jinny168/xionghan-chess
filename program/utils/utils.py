@@ -21,9 +21,9 @@ def load_font(size, bold=False):
         'fonts/msyh.ttc',        # 微软雅黑
     ]
     
-    # 尝试加载游戏资源中的字体文件
+    # 尝试加载游戏资源中的字体文件，使用统一的资源路径处理
     for font_path in font_paths:
-        full_path = os.path.join(os.path.dirname(__file__), font_path)
+        full_path = resource_path(font_path)  # 使用统一的资源路径处理函数
         if os.path.exists(full_path):
             try:
                 font = pygame.font.Font(full_path, size)
@@ -41,14 +41,15 @@ def load_font(size, bold=False):
     fallback_fonts = ['fonts/simhei.ttf', 'fonts/simkai.ttf', 'fonts/fangsong.ttf']
     for font_path in fallback_fonts:
         try:
-            font = pygame.font.Font(font_path, size)
+            full_path = resource_path(font_path)  # 使用统一的资源路径处理函数
+            font = pygame.font.Font(full_path, size)
             if bold and hasattr(font, 'bold'):
                 font.bold = True
             # 缓存字体对象
             _font_cache[cache_key] = font
             return font
         except Exception as e:
-            print(f"加载备用字体失败 {font_path}: {e}")
+            print(f"加载备用字体失败 {full_path}: {e}")
             continue
     
     # 如果所有本地字体都加载失败，返回None表示失败
