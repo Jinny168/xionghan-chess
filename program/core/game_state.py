@@ -1,6 +1,6 @@
 import time
 
-from program.core.chess_pieces  import create_initial_pieces, King, Jia, Ci, Dun
+from program.core.chess_pieces import create_initial_pieces, King, Jia, Ci, Dun, Pawn
 from program.core.game_rules import GameRules
 
 
@@ -35,6 +35,11 @@ class GameState:
         self.red_time = 0  # 红方已用时间（秒）
         self.black_time = 0  # 黑方已用时间（秒）
         self.current_turn_start_time = time.time()  # 当前回合开始时间
+        
+        # 升变相关属性
+        self.needs_promotion = False  # 是否需要升变
+        self.promotion_pawn = None  # 需要升变的兵/卒
+        self.available_promotion_pieces = []  # 可供升变的阵亡棋子
     
     def get_piece_at(self, row, col):
         """获取指定位置的棋子"""
@@ -212,6 +217,18 @@ class GameState:
                     opponent_color = "black" if self.player_turn == "red" else "red"
                     return True
         
+        # 检查兵/卒是否到达对方底线，触发升变
+        if isinstance(piece, Pawn) and self.is_pawn_at_opponent_base(piece, to_row):
+            # 标记需要进行升变，但实际升变将在游戏主循环中处理
+            self.needs_promotion = True
+            self.promotion_pawn = piece
+            self.available_promotion_pieces = self.get_available_promotion_pieces(piece.color)
+        else:
+            # 重置升变标志
+            self.needs_promotion = False
+            self.promotion_pawn = None
+            self.available_promotion_pieces = []
+        
         # 切换玩家
         opponent_color = "black" if self.player_turn == "red" else "red"
         
@@ -386,7 +403,129 @@ class GameState:
             return ""
         
         return f"{'红方' if self.winner == 'red' else '黑方'}胜利!"
+
+    def get_pawn_count(self, color):
+        """获取指定颜色在局的兵/卒数量
+        
+        Args:
+            color (str): 棋子颜色，"red" 或 "black"
+            
+        Returns:
+            int: 兵/卒数量
+        """
+        count = 0
+        for piece in self.pieces:
+            if isinstance(piece, Pawn) and piece.color == color:
+                count += 1
+        return count
     
+    def can_perform_pawn_resurrection(self, color, position):
+        """检查是否可以执行兵/卒复活
+        
+        Args:
+            color (str): 棋子颜色，"red" 或 "black"
+            position (tuple): 位置(row, col)
+            
+        Returns:
+            bool: 是否可以执行复活
+        """
+        row, col = position
+        
+        # 检查目标位置是否为空
+        target_piece = self.get_piece_at(row, col)
+        if target_piece is not None:
+            return False
+        
+        # 检查是否是兵/卒的初始位置
+        # 黑方兵初始位置：第4行的 (4,0), (4,2), (4,4), (4,6), (4,8), (4,10), (4,12)
+        # 红方兵初始位置：第8行的 (8,0), (8,2), (8,4), (8,6), (8,8), (8,10), (8,12)
+        if color == "red":
+            # 红方兵的初始位置行是8，列必须是偶数
+            if row != 8 or col % 2 != 0:
+                return False
+        else:  # black
+            # 黑方兵的初始位置行是4，列必须是偶数
+            if row != 4 or col % 2 != 0:
+                return False
+        
+        # 检查该玩家在局的兵/卒数量是否小于7
+        alive_pawns = self.get_pawn_count(color)
+        if alive_pawns >= 7:
+            return False
+        
+        # 检查是否有阵亡的兵/卒可以复活
+        has_dead_pawn = any(isinstance(piece, Pawn) and piece.color == color for piece in self.captured_pieces[color])
+        if not has_dead_pawn and alive_pawns >= 6:  # 如果没有阵亡兵卒，且在局数量已经>=6，则无法复活
+            return False
+        
+        return True
+    
+    def perform_pawn_resurrection(self, color, position):
+        """执行兵/卒复活
+        
+        Args:
+            color (str): 棋子颜色，"red" 或 "black"
+            position (tuple): 位置(row, col)
+            
+        Returns:
+            bool: 是否成功执行复活
+        """
+        row, col = position
+        
+        # 检查是否可以执行复活
+        if not self.can_perform_pawn_resurrection(color, position):
+            return False
+        
+        # 从阵亡棋子列表中找到一个兵/卒并移除
+        # 从阵亡列表中移除一个兵/卒
+        pawn_found = False
+        for i, captured_piece in enumerate(self.captured_pieces[color][:]):  # 使用副本遍历
+            if isinstance(captured_piece, Pawn) and captured_piece.color == color:
+                # 从阵亡棋子列表中移除这个兵/卒
+                self.captured_pieces[color].remove(captured_piece)
+                pawn_found = True
+                break
+        
+        # 如果没有找到阵亡的兵/卒，但当前在局兵/卒数量不足7个，仍然可以复活
+        # 创建新的兵/卒并添加到棋盘
+        new_pawn = Pawn(color, row, col)
+        self.pieces.append(new_pawn)
+        
+        return True
+    
+    def is_pawn_at_opponent_base(self, piece, to_row):
+        """检查兵/卒是否移动到对方底线
+        
+        Args:
+            piece: 棋子对象
+            to_row: 目标行
+            
+        Returns:
+            bool: 是否到达对方底线
+        """
+        if not isinstance(piece, Pawn):
+            return False
+        
+        # 红方兵到达第0行（黑方底线），黑方卒到达第12行（红方底线）
+        if piece.color == "red" and to_row == 0:
+            return True
+        elif piece.color == "black" and to_row == 12:
+            return True
+        
+        return False
+
+    def get_available_promotion_pieces(self, color):
+        """获取可升变的阵亡棋子列表
+        
+        Args:
+            color (str): 棋子颜色
+            
+        Returns:
+            list: 可升变的阵亡棋子列表
+        """
+        # 过滤掉兵/卒，因为升变是将兵/卒变成其他阵亡棋子
+        return [piece for piece in self.captured_pieces[color] if not isinstance(piece, Pawn)]
+
     def reset(self):
         """重置游戏状态"""
         self.__init__()
@@ -394,3 +533,40 @@ class GameState:
         # 重置棋谱滚动位置
         if hasattr(self, 'history_scroll_y'):
             self.history_scroll_y = 0
+
+    def perform_promotion(self, selected_piece_index):
+        """执行兵卒升变
+        
+        Args:
+            selected_piece_index (int): 选中的阵亡棋子索引
+            
+        Returns:
+            bool: 是否成功执行升变
+        """
+        if not self.needs_promotion or self.promotion_pawn is None:
+            return False
+        
+        if selected_piece_index < 0 or selected_piece_index >= len(self.available_promotion_pieces):
+            return False
+        
+        # 获取选中的阵亡棋子
+        selected_piece = self.available_promotion_pieces[selected_piece_index]
+        
+        # 从阵亡列表中移除选中的棋子
+        self.captured_pieces[selected_piece.color].remove(selected_piece)
+        
+        # 用选中的棋子替换兵/卒（保持位置不变）
+        pawn_row, pawn_col = self.promotion_pawn.row, self.promotion_pawn.col
+        self.pieces.remove(self.promotion_pawn)
+        
+        # 创建新的棋子（复制选中棋子的类型，但保持原位置和颜色）
+        new_piece = selected_piece.__class__(self.promotion_pawn.color, pawn_row, pawn_col)
+        new_piece.name = selected_piece.name  # 保持棋子名称
+        self.pieces.append(new_piece)
+        
+        # 重置升变标志
+        self.needs_promotion = False
+        self.promotion_pawn = None
+        self.available_promotion_pieces = []
+        
+        return True

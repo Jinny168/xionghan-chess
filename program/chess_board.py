@@ -54,7 +54,7 @@ class ChessBoard:
         # 使用统一的字体加载函数
         self.chess_font = load_font(font_size, bold=True)
         
-    def draw(self, screen, pieces):
+    def draw(self, screen, pieces, game_state=None):
         """绘制棋盘和棋子"""
         # 绘制棋盘背景
         board_rect = pygame.Rect(
@@ -268,6 +268,10 @@ class ChessBoard:
                 (x - cross_size, y + cross_size), 
                 line_width
             )
+        
+        # 绘制兵/卒复活的小星星标记
+        if game_state:
+            self.draw_pawn_resurrection_stars(screen, game_state)
         
         # 绘制高亮位置
         if self.highlighted:
@@ -524,6 +528,51 @@ class ChessBoard:
         # 右下
         pygame.draw.line(screen, (0, 0, 0), (x + offset, y + offset), (x + offset, y + offset + line_length), 2)
         pygame.draw.line(screen, (0, 0, 0), (x + offset, y + offset), (x + offset + line_length, y + offset), 2)
+    
+    def draw_pawn_resurrection_stars(self, screen, game_state):
+        """绘制兵/卒复活的小星星标记"""
+        # 检查红方兵初始行（第8行）
+        for col in range(13):
+            row = 8
+            # 检查是否是兵的初始位置且满足复活条件
+            if game_state.can_perform_pawn_resurrection("red", (row, col)):
+                x = self.margin_left + col * self.grid_size
+                y = self.margin_top + row * self.grid_size
+                self.draw_star_marker(screen, x, y, (255, 215, 0))  # 金色星星
+        
+        # 检查黑方兵初始行（第4行）
+        for col in range(13):
+            row = 4
+            # 检查是否是兵的初始位置且满足复活条件
+            if game_state.can_perform_pawn_resurrection("black", (row, col)):
+                x = self.margin_left + col * self.grid_size
+                y = self.margin_top + row * self.grid_size
+                self.draw_star_marker(screen, x, y, (255, 215, 0))  # 金色星星
+    
+    def draw_star_marker(self, screen, x, y, color):
+        """绘制一个小星星标记"""
+        # 计算星星的五个顶点
+        star_size = self.grid_size * 0.2
+        points = []
+        for i in range(5):
+            # 外圈顶点
+            angle = math.pi/2 + i * 2*math.pi/5
+            points.append((
+                x + star_size * math.cos(angle),
+                y - star_size * math.sin(angle)
+            ))
+            # 内圈顶点
+            inner_angle = math.pi/2 + (i + 0.5) * 2*math.pi/5
+            inner_size = star_size * 0.4
+            points.append((
+                x + inner_size * math.cos(inner_angle),
+                y - inner_size * math.sin(inner_angle)
+            ))
+        
+        # 绘制星星
+        pygame.draw.polygon(screen, color, points)
+        # 添加边框
+        pygame.draw.polygon(screen, (0, 0, 0), points, 2)
     
     def get_grid_position(self, pos):
         """将屏幕坐标转换为棋盘格子坐标"""

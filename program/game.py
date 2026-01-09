@@ -7,7 +7,7 @@ import pygame
 from program.ai.chess_ai import ChessAI
 from chess_board import ChessBoard
 from program.config.config import game_config
-from program.ui.dialogs import PopupDialog, ConfirmDialog
+from program.ui.dialogs import PopupDialog, ConfirmDialog, PawnResurrectionDialog, PromotionDialog
 from program.core.game_rules import GameRules
 from program.core.game_state import GameState
 from program.ui.avatar import Avatar
@@ -83,6 +83,8 @@ class ChessGame:
         # 弹窗和确认对话框
         self.popup = None
         self.confirm_dialog = None
+        self.pawn_resurrection_dialog = None
+        self.promotion_dialog = None
 
         # 音效
         self.load_sounds()
@@ -466,8 +468,63 @@ class ChessGame:
                     ):
                         self.toggle_fullscreen()
 
+                # 如果有升变对话框，优先处理它的事件
+                if self.promotion_dialog:
+                    result = self.promotion_dialog.handle_event(event, mouse_pos)
+                    if result is not None:  # 用户已做出选择
+                        if isinstance(result, tuple) and result[0]:  # 确认升变
+                            # 执行升变逻辑
+                            selected_index = result[1]
+                            self.game_state.perform_promotion(selected_index)
+                            
+                            # 清除升变对话框
+                            self.promotion_dialog = None
+                            
+                            # 切换玩家回合（消耗走子机会）
+                            current_player = self.game_state.player_turn
+                            opponent_color = "black" if current_player == "red" else "red"
+                            self.game_state.player_turn = opponent_color
+                            
+                            # 更新头像状态
+                            self.update_avatars()
+                        elif result is False:  # 取消
+                            # 清除升变对话框
+                            self.promotion_dialog = None
+                            
+                            # 切换玩家回合（即使取消升变，走子机会也已消耗）
+                            current_player = self.game_state.player_turn
+                            opponent_color = "black" if current_player == "red" else "red"
+                            self.game_state.player_turn = opponent_color
+                            
+                            # 更新头像状态
+                            self.update_avatars()
+                # 如果有复活对话框，优先处理它的事件
+                elif self.pawn_resurrection_dialog:
+                    result = self.pawn_resurrection_dialog.handle_event(event, mouse_pos)
+                    if result is not None:  # 用户已做出选择
+                        if result:  # 确认
+                            # 执行复活逻辑
+                            current_player = self.game_state.player_turn
+                            # 获取复活位置
+                            resurrection_pos = self.pawn_resurrection_dialog.position
+                            
+                            # 执行复活
+                            self.game_state.perform_pawn_resurrection(current_player, resurrection_pos)
+                            
+                            # 清除复活对话框
+                            self.pawn_resurrection_dialog = None
+                            
+                            # 切换玩家回合（消耗走子机会）
+                            opponent_color = "black" if current_player == "red" else "red"
+                            self.game_state.player_turn = opponent_color
+                            
+                            # 更新头像状态
+                            self.update_avatars()
+                        else:  # 取消
+                            # 清除复活对话框
+                            self.pawn_resurrection_dialog = None
                 # 如果有确认对话框，优先处理它的事件
-                if self.confirm_dialog:
+                elif self.confirm_dialog:
                     result = self.confirm_dialog.handle_event(event, mouse_pos)
                     if result is not None:  # 用户已做出选择
                         if result:  # 确认
@@ -559,8 +616,63 @@ class ChessGame:
                     ):
                         self.toggle_fullscreen()
 
+                # 如果有升变对话框，优先处理它的事件
+                if self.promotion_dialog:
+                    result = self.promotion_dialog.handle_event(event, mouse_pos)
+                    if result is not None:  # 用户已做出选择
+                        if isinstance(result, tuple) and result[0]:  # 确认升变
+                            # 执行升变逻辑
+                            selected_index = result[1]
+                            self.game_state.perform_promotion(selected_index)
+                            
+                            # 清除升变对话框
+                            self.promotion_dialog = None
+                            
+                            # 切换玩家回合（消耗走子机会）
+                            current_player = self.game_state.player_turn
+                            opponent_color = "black" if current_player == "red" else "red"
+                            self.game_state.player_turn = opponent_color
+                            
+                            # 更新头像状态
+                            self.update_avatars()
+                        elif result is False:  # 取消
+                            # 清除升变对话框
+                            self.promotion_dialog = None
+                            
+                            # 切换玩家回合（即使取消升变，走子机会也已消耗）
+                            current_player = self.game_state.player_turn
+                            opponent_color = "black" if current_player == "red" else "red"
+                            self.game_state.player_turn = opponent_color
+                            
+                            # 更新头像状态
+                            self.update_avatars()
+                # 如果有复活对话框，优先处理它的事件
+                elif self.pawn_resurrection_dialog:
+                    result = self.pawn_resurrection_dialog.handle_event(event, mouse_pos)
+                    if result is not None:  # 用户已做出选择
+                        if result:  # 确认
+                            # 执行复活逻辑
+                            current_player = self.game_state.player_turn
+                            # 获取复活位置
+                            resurrection_pos = self.pawn_resurrection_dialog.position
+                            
+                            # 执行复活
+                            self.game_state.perform_pawn_resurrection(current_player, resurrection_pos)
+                            
+                            # 清除复活对话框
+                            self.pawn_resurrection_dialog = None
+                            
+                            # 切换玩家回合（消耗走子机会）
+                            opponent_color = "black" if current_player == "red" else "red"
+                            self.game_state.player_turn = opponent_color
+                            
+                            # 更新头像状态
+                            self.update_avatars()
+                        else:  # 取消
+                            # 清除复活对话框
+                            self.pawn_resurrection_dialog = None
                 # 如果有确认对话框，优先处理它的事件
-                if self.confirm_dialog:
+                elif self.confirm_dialog:
                     result = self.confirm_dialog.handle_event(event, mouse_pos)
                     if result is not None:  # 用户已做出选择
                         if result:  # 确认
@@ -674,7 +786,7 @@ class ChessGame:
 
         # 绘制棋盘和棋子 - 先绘制这些
         # 在AI思考期间，确保使用稳定的游戏状态绘制棋子
-        self.board.draw(self.screen, self.game_state.pieces)
+        self.board.draw(self.screen, self.game_state.pieces, self.game_state)
 
         # 如果有上一步走法，在棋盘上标记出来
         if self.last_move:
@@ -754,6 +866,14 @@ class ChessGame:
         if self.confirm_dialog:
             self.confirm_dialog.draw(self.screen)
 
+        # 如果有兵/卒复活对话框，显示它
+        if self.pawn_resurrection_dialog:
+            self.pawn_resurrection_dialog.draw(self.screen)
+            
+        # 如果有升变对话框，显示它
+        if self.promotion_dialog:
+            self.promotion_dialog.draw(self.screen)
+
     def draw_thinking_indicator(self, mouse_pos):
         """绘制AI思考时的指示器，减少闪烁"""
         # 绘制稳定的背景
@@ -772,83 +892,7 @@ class ChessGame:
                          (self.left_panel_width, self.window_height), 2)
 
         # 绘制棋盘和棋子（使用稳定的游戏状态）
-        self.board.draw(self.screen, self.game_state.pieces)
-
-        # 如果有上一步走法，在棋盘上标记出来
-        if self.last_move:
-            from_row, from_col, to_row, to_col = self.last_move
-            self.board.highlight_last_move(self.screen, from_row, from_col, to_row, to_col)
-
-        # 检查是否需要显示将军动画
-        if self.game_state.should_show_check_animation():
-            king_pos = self.game_state.get_checked_king_position()
-            if king_pos:
-                self.board.draw_check_animation(self.screen, king_pos)
-
-        # 绘制基本游戏信息
-        self.draw_info_panel()
-
-        # 绘制按钮
-        self.undo_button.draw(self.screen)
-        self.restart_button.draw(self.screen)
-        self.back_button.draw(self.screen)
-        self.exit_button.draw(self.screen)
-        self.fullscreen_button.draw(self.screen)
-
-        # 绘制玩家头像
-        self.red_avatar.draw(self.screen)
-        self.black_avatar.draw(self.screen)
-
-        # 绘制计时器信息
-        self.draw_timers()
-
-        # 在左侧面板中添加VS标志
-        vs_font = load_font(36, bold=True)
-        vs_text = "VS"
-        vs_surface = vs_font.render(vs_text, True, (100, 100, 100))
-        vs_rect = vs_surface.get_rect(center=(self.left_panel_width // 2, self.window_height // 2))
-        self.screen.blit(vs_surface, vs_rect)
-
-        # 如果有上一步走法的记录，显示它
-        if self.last_move_notation:
-            move_font = load_font(18)
-            move_text = f"上一步: {self.last_move_notation}"
-            move_surface = move_font.render(move_text, True, BLACK)
-            move_rect = move_surface.get_rect(center=(self.left_panel_width // 2, self.window_height - 80))
-            self.screen.blit(move_surface, move_rect)
-
-        # 如果是人机模式，显示模式和阵营提示
-        if self.game_mode == MODE_PVC:
-            mode_font = load_font(18)
-            if self.player_camp == CAMP_RED:
-                mode_text = "人机对战模式 - 您执红方"
-            else:
-                mode_text = "人机对战模式 - 您执黑方"
-            mode_surface = mode_font.render(mode_text, True, BLACK)
-            self.screen.blit(mode_surface, (
-            self.left_panel_width + (self.window_width - self.left_panel_width) // 2 - mode_surface.get_width() // 2,
-            15))
-
-            # 显示AI思考提示
-            thinking_font = load_font(24)
-            thinking_text = "电脑思考中..."
-            thinking_surface = thinking_font.render(thinking_text, True, RED)
-            thinking_rect = thinking_surface.get_rect(center=(self.window_width // 2, 45))
-            self.screen.blit(thinking_surface, thinking_rect)
-
-        # 绘制 captured pieces（阵亡棋子）
-        self.draw_captured_pieces()
-
-        # 绘制棋谱历史记录
-        self.draw_move_history()
-
-        # 如果游戏结束，显示弹窗
-        if self.game_state.game_over and self.popup:
-            self.popup.draw(self.screen)
-
-        # 如果有确认对话框，显示它
-        if self.confirm_dialog:
-            self.confirm_dialog.draw(self.screen)
+        self.board.draw(self.screen, self.game_state.pieces, self.game_state)
 
     def draw_timers(self):
         """绘制计时器信息"""
@@ -989,6 +1033,27 @@ class ChessGame:
 
         row, col = grid_pos
 
+        # 如果正在等待升变选择，不处理棋盘点击
+        if self.promotion_dialog:
+            return
+
+        # 检查是否点击了空闲的兵/卒起始位置，触发复活对话框
+        # 首先检查当前玩家是否有兵/卒在局数量不足7个，且点击位置是初始兵/卒位置且为空
+        current_player = self.game_state.player_turn
+        if self.selected_piece is None:  # 如果没有选中任何棋子
+            # 检查是否点击了兵/卒初始位置且该位置为空
+            if ((current_player == "red" and row == 8) or (current_player == "black" and row == 4)) and \
+               self.game_state.get_piece_at(row, col) is None:
+                # 检查当前玩家在局的兵/卒数量是否小于7
+                if self.game_state.get_pawn_count(current_player) < 7:
+                    # 检查是否满足复活条件
+                    if self.game_state.can_perform_pawn_resurrection(current_player, (row, col)):
+                        # 弹出复活确认对话框
+                        self.pawn_resurrection_dialog = PawnResurrectionDialog(
+                            500, 200, current_player, (row, col)
+                        )
+                        return
+
         # 选择棋子或移动棋子
         if self.selected_piece is None:
             # 尝试选择棋子
@@ -1027,6 +1092,14 @@ class ChessGame:
             move_successful = self.game_state.move_piece(sel_row, sel_col, row, col)
 
             if move_successful:
+                # 检查是否需要升变（兵/卒到达对方底线）
+                if self.game_state.needs_promotion:
+                    # 自动弹出升变选择对话框
+                    current_player = self.game_state.player_turn
+                    self.promotion_dialog = PromotionDialog(
+                        500, 400, current_player, (row, col), self.game_state.available_promotion_pieces
+                    )
+
                 # 记录上一步走法
                 self.last_move = (sel_row, sel_col, row, col)
 
