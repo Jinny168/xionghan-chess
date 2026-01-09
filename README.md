@@ -14,6 +14,8 @@
 - **音效系统**: 移动、吃子和将军时的音效反馈
 - **完整的UI**: 包括计时器、悔棋功能、全屏模式等
 - **13x13棋盘**: 显示13x13的匈汉象棋棋盘和标识
+- **MCTS AI支持**: 包含蒙特卡洛树搜索算法的AI实现
+- **可配置设置**: 支持游戏参数调整和个性化设置
 
 ## 安装与运行
 
@@ -32,12 +34,12 @@
 
 2. 安装必要的依赖项
    ```
-   pip install pygame
+   pip install -r requirements.txt
    ```
 
 3. 运行游戏
    ```
-   python main.py
+   python -m program.main
    ```
 
 ## 游戏玩法
@@ -48,6 +50,7 @@
 - **悔棋按钮**: 点击悔棋可以撤销上一步操作
 - **返回按钮**: 返回到主菜单
 - **全屏切换**: 点击全屏按钮或按F11/Alt+Enter切换全屏模式
+- **设置选项**: 可调整游戏参数和AI设置
 
 ### 游戏流程
 
@@ -66,11 +69,12 @@
 
 ### AI系统
 
-项目包含高级AI系统:
+项目包含多种AI系统:
 
-- **高级难度**: 使用Negamax算法、Alpha-Beta剪枝、历史启发和MVV-LVA启发的高级AI
+- **传统AI**: 使用Negamax算法、Alpha-Beta剪枝、历史启发和MVV-LVA启发的高级AI
+- **MCTS AI**: 蒙特卡洛树搜索算法实现的AI
 
-AI使用Negamax算法搭配Alpha-Beta剪枝优化，并引入历史启发和MVV-LVA启发。评估函数考虑了:
+传统AI使用Negamax算法搭配Alpha-Beta剪枝优化，并引入历史启发和MVV-LVA启发。评估函数考虑了:
 - 棋子价值
 - 棋子位置
 - 对中心的控制
@@ -79,6 +83,11 @@ AI使用Negamax算法搭配Alpha-Beta剪枝优化，并引入历史启发和MVV-
 - 棋子威胁与保护关系
 - 特殊棋子能力（相在敌方区域的能力、尉的跳跃能力、檑的攻击能力等）
 - 棋子协调性
+
+MCTS AI使用蒙特卡洛树搜索算法，包括:
+- 动作空间建模
+- 策略网络和价值网络
+- 模拟对局学习
 
 ### 悔棋系统
 
@@ -92,13 +101,53 @@ AI使用Negamax算法搭配Alpha-Beta剪枝优化，并引入历史启发和MVV-
 
 ## 代码结构
 
-- `main.py`: 主游戏入口和界面管理
-- `chess_board.py`: 棋盘渲染与交互
-- `chess_pieces.py`: 棋子类定义
-- `game_rules.py`: 游戏规则实现
-- `game_state.py`: 游戏状态管理
-- `chess_ai.py`: AI实现
-- `sounds/`: 音效文件目录
+```
+program/
+├── ai/                    # AI相关模块
+│   ├── chess_ai.py        # 传统AI实现（Negamax算法）
+│   └── mcts/              # MCTS AI相关模块
+│       ├── mcts_config.py # MCTS配置参数
+│       └── mcts_game.py   # MCTS游戏逻辑
+├── config/                # 配置相关模块
+│   ├── config.py          # 基础配置
+│   └── settings.py        # 游戏设置界面
+├── core/                  # 核心游戏逻辑
+│   ├── chess_pieces.py    # 棋子类定义
+│   ├── game_rules.py      # 游戏规则实现
+│   └── game_state.py      # 游戏状态管理
+├── sounds/                # 音效模块
+│   ├── generate_sounds.py # 音效生成脚本
+│   └── *.wav              # 音效文件
+├── ui/                    # 用户界面模块
+│   ├── avatar.py          # 头像相关
+│   ├── button.py          # 按钮组件
+│   ├── dialogs.py         # 对话框组件
+│   └── menu_screens.py    # 菜单界面
+├── utils/                 # 工具函数
+│   └── utils.py           # 通用工具函数
+├── build_exe.py           # 打包脚本
+├── chess_board.py         # 棋盘渲染与交互
+├── game.py                # 游戏主逻辑
+├── main.py                # 主程序入口
+└── xionghan_chess.spec    # PyInstaller配置文件
+```
+
+## 项目特点
+
+### 模块化设计
+- 代码结构清晰，按功能模块划分
+- 核心逻辑与界面分离
+- AI系统独立实现，支持多种算法
+
+### 可扩展性
+- 支持多种AI算法切换
+- 配置化参数设置
+- 易于添加新功能和规则
+
+### 性能优化
+- AI搜索算法优化（Alpha-Beta剪枝、历史启发等）
+- 音效和图形资源管理
+- 游戏状态高效表示
 
 ## 后续规划
 
@@ -107,6 +156,7 @@ AI使用Negamax算法搭配Alpha-Beta剪枝优化，并引入历史启发和MVV-
 - [ ] 更多AI难度级别
 - [ ] 棋局复盘功能
 - [ ] 自定义棋盘与棋子主题
+- [ ] MCTS AI训练优化
 
 ## 致谢
 
