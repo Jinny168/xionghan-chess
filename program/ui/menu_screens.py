@@ -2,13 +2,13 @@ import sys
 
 import pygame
 
-from program.config import (
+from program.config.config import (
     DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
     BLACK, GOLD,
     MODE_PVP, MODE_PVC, CAMP_RED, CAMP_BLACK, FPS
 )
 from program.ui.button import Button
-from program.utils import load_font, draw_background
+from program.utils.utils import load_font, draw_background
 
 
 class ModeSelectionScreen:

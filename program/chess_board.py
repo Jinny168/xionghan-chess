@@ -2,7 +2,7 @@ import math
 
 import pygame
 
-from utils import load_font
+from program.utils.utils import load_font
 
 
 class ChessBoard:

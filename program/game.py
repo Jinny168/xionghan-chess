@@ -6,62 +6,22 @@ import pygame
 
 from program.ai.chess_ai import ChessAI
 from chess_board import ChessBoard
-from config import game_config
+from program.config.config import game_config
 from program.ui.dialogs import PopupDialog, ConfirmDialog
 from program.core.game_rules import GameRules
 from program.core.game_state import GameState
 from program.ui.avatar import Avatar
 from program.ui.button import Button
-from utils import load_font, draw_background
+from program.utils.utils import load_font, draw_background, load_sound
 
 # 初始化PyGame
 pygame.init()
 pygame.mixer.init()  # 初始化音频模块
 
-from config import (
+from program.config.config import (
     DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO, FPS,
     PANEL_BORDER, BLACK, RED, MODE_PVP, MODE_PVC, CAMP_RED, )
-
-
-def resource_path(relative_path):
-    """获取资源文件的绝对路径，兼容PyInstaller打包后的环境"""
-    try:
-        # PyInstaller创建的临时文件夹存储在sys._MEIPASS中
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath("..")
-
-    return os.path.join(base_path, relative_path)
-
-
-# 加载音效
-try:
-    # 使用完整路径加载音效
-    check_sound_path = resource_path(os.path.join("sounds", "check.wav"))
-    move_sound_path = resource_path(os.path.join("sounds", "move.wav"))
-    capture_sound_path = resource_path(os.path.join("sounds", "capture.wav"))
-
-    CHECK_SOUND = pygame.mixer.Sound(check_sound_path)
-    MOVE_SOUND = pygame.mixer.Sound(move_sound_path)
-    CAPTURE_SOUND = pygame.mixer.Sound(capture_sound_path)
-
-    # 设置音量（值范围0.0到1.0）
-    CHECK_SOUND.set_volume(0.8)  # 将军音效音量设为80%
-    MOVE_SOUND.set_volume(0.6)  # 移动音效音量设为60%
-    CAPTURE_SOUND.set_volume(0.7)  # 吃子音效音量设为70%
-except Exception as e:
-    # 如果找不到音效文件，创建空声音对象
-    CHECK_SOUND = pygame.mixer.Sound(bytes(bytearray(100)))
-    MOVE_SOUND = pygame.mixer.Sound(bytes(bytearray(100)))
-    CAPTURE_SOUND = pygame.mixer.Sound(bytes(bytearray(100)))
-    # 设置音量为0（无声）
-    CHECK_SOUND.set_volume(0)
-    MOVE_SOUND.set_volume(0)
-    CAPTURE_SOUND.set_volume(0)
-    print(f"警告：未能加载音效文件。错误: {e}")
-
-
 
 
 class ChessGame:
@@ -304,9 +264,9 @@ class ChessGame:
 
     def load_sounds(self):
         """加载音效"""
-        self.check_sound = CHECK_SOUND
-        self.move_sound = MOVE_SOUND
-        self.capture_sound = CAPTURE_SOUND
+        self.check_sound = load_sound('check')
+        self.move_sound = load_sound('move')
+        self.capture_sound = load_sound('capture')
 
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
@@ -1106,12 +1066,12 @@ class ChessGame:
                 # 播放移动音效
                 if captured_piece:
                     try:
-                        CAPTURE_SOUND.play()
+                        self.capture_sound.play()
                     except:
                         pass
                 else:
                     try:
-                        MOVE_SOUND.play()
+                        self.move_sound.play()
                     except:
                         pass
 
@@ -1121,7 +1081,7 @@ class ChessGame:
                 # 如果新的状态是将军，播放将军音效
                 if self.game_state.is_check:
                     try:
-                        CHECK_SOUND.play()
+                        self.check_sound.play()
                     except:
                         pass
 
@@ -1401,24 +1361,24 @@ class ChessGame:
             # 播放音效
             if target_piece:
                 try:
-                    CAPTURE_SOUND.play()
+                    self.capture_sound.play()
                 except:
                     pass
             else:
                 try:
-                    MOVE_SOUND.play()
+                    self.move_sound.play()
+                except:
+                    pass
+
+            # 如果新的状态是将军，播放将军音效
+            if self.game_state.is_check:
+                try:
+                    self.check_sound.play()
                 except:
                     pass
 
             # 更新头像状态
             self.update_avatars()
-
-            # 如果新的状态是将军，播放将军音效
-            if self.game_state.is_check:
-                try:
-                    CHECK_SOUND.play()
-                except:
-                    pass
 
             # 检查游戏是否结束
             if self.game_state.game_over:
@@ -1506,19 +1466,19 @@ class ChessGame:
             # 播放音效
             if target_piece:
                 try:
-                    CAPTURE_SOUND.play()
+                    self.capture_sound.play()
                 except:
                     pass
             else:
                 try:
-                    MOVE_SOUND.play()
+                    self.move_sound.play()
                 except:
                     pass
 
             # 如果新的状态是将军，播放将军音效
             if self.game_state.is_check:
                 try:
-                    CHECK_SOUND.play()
+                    self.check_sound.play()
                 except:
                     pass
 

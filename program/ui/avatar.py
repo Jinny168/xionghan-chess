@@ -1,5 +1,5 @@
 import pygame
-from program.utils import load_font
+from program.utils.utils import load_font
 
 class Avatar:
     """玩家头像框类"""

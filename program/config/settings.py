@@ -1,12 +1,30 @@
 import pygame
 
-from program.config import game_config, BLACK, RED, BACKGROUND_COLOR
+from program.config.config import game_config, BLACK, RED, BACKGROUND_COLOR
 from program.ui.button import Button
-from utils import load_font
+from program.utils.utils import load_font
 
 
 class SettingsScreen:
     """自定义设置界面"""
+    # 棋子图标缓存
+    _piece_icon_cache = {}
+    
+    # 常量定义
+    PIECE_RADIUS = 12
+    PIECE_BG_COLOR = (255, 255, 240)
+    PIECE_BORDER_COLOR = (0, 0, 0)
+    PIECE_FONT_SIZE = 16
+    CHECKBOX_SIZE = 20
+    
+    # 界面布局常量
+    Y_START = 120
+    SECTION_SPACING = 40
+    OPTION_SPACING = 60
+    BUTTON_WIDTH = 120
+    BUTTON_HEIGHT = 50
+    BUTTON_SPACING = 20
+    
     def __init__(self):
         self.xiang_jump_checkbox = None
         self.xiang_cross_label = None
@@ -71,67 +89,62 @@ class SettingsScreen:
         self.desc_font = load_font(18)
         
         # 设置选项区域的起始位置
-        y_start = 120
-        section_spacing = 40  # 分类间距
-        option_spacing = 60  # 选项间距
+        y_start = self.Y_START
+        section_spacing = self.SECTION_SPACING  # 分类间距
+        option_spacing = self.OPTION_SPACING  # 选项间距
         
         # 汉/汗设置区域标题
         self.king_section_title = (80, y_start - 10)
         # 汉/汗设置选项
-        self.king_palace_checkbox = pygame.Rect(150, y_start, 20, 20)
+        self.king_palace_checkbox = pygame.Rect(150, y_start, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
         self.king_palace_label = (180, y_start)
         
-        self.king_diagonal_checkbox = pygame.Rect(150, y_start + option_spacing, 20, 20)
+        self.king_diagonal_checkbox = pygame.Rect(150, y_start + option_spacing, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
         self.king_diagonal_label = (180, y_start + option_spacing)
         
-        self.king_diagonal_in_palace_checkbox = pygame.Rect(150, y_start + 2 * option_spacing, 20, 20)
+        self.king_diagonal_in_palace_checkbox = pygame.Rect(150, y_start + 2 * option_spacing, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
         self.king_diagonal_in_palace_label = (180, y_start + 2 * option_spacing)
         
         # 士设置区域标题
         self.shi_section_title = (80, y_start + 3 * option_spacing + section_spacing - 10)
         # 士设置选项
-        self.shi_palace_checkbox = pygame.Rect(150, y_start + 3 * option_spacing + section_spacing, 20, 20)
+        self.shi_palace_checkbox = pygame.Rect(150, y_start + 3 * option_spacing + section_spacing, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
         self.shi_palace_label = (180, y_start + 3 * option_spacing + section_spacing)
         
-        self.shi_straight_checkbox = pygame.Rect(150, y_start + 4 * option_spacing + section_spacing, 20, 20)
+        self.shi_straight_checkbox = pygame.Rect(150, y_start + 4 * option_spacing + section_spacing, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
         self.shi_straight_label = (180, y_start + 4 * option_spacing + section_spacing)
         
         # 相设置区域标题
         self.xiang_section_title = (80, y_start + 5 * option_spacing + 2 * section_spacing - 10)
         # 相设置选项
-        self.xiang_cross_checkbox = pygame.Rect(150, y_start + 5 * option_spacing + 2 * section_spacing, 20, 20)
+        self.xiang_cross_checkbox = pygame.Rect(150, y_start + 5 * option_spacing + 2 * section_spacing, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
         self.xiang_cross_label = (180, y_start + 5 * option_spacing + 2 * section_spacing)
         
-        self.xiang_jump_checkbox = pygame.Rect(150, y_start + 6 * option_spacing + 2 * section_spacing, 20, 20)
+        self.xiang_jump_checkbox = pygame.Rect(150, y_start + 6 * option_spacing + 2 * section_spacing, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
         self.xiang_jump_label = (180, y_start + 6 * option_spacing + 2 * section_spacing)
         
         # 马设置区域标题
         self.ma_section_title = (80, y_start + 7 * option_spacing + 3 * section_spacing - 10)
         # 马设置选项
-        self.ma_straight_checkbox = pygame.Rect(150, y_start + 7 * option_spacing + 3 * section_spacing, 20, 20)
+        self.ma_straight_checkbox = pygame.Rect(150, y_start + 7 * option_spacing + 3 * section_spacing, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
         self.ma_straight_label = (180, y_start + 7 * option_spacing + 3 * section_spacing)
-        
-        # 按钮
-        button_width = 120
-        button_height = 50
-        button_spacing = 20
         
         # 确认按钮
         self.confirm_button = Button(
-            self.window_width // 2 - button_width - button_spacing // 2,
+            self.window_width // 2 - self.BUTTON_WIDTH - self.BUTTON_SPACING // 2,
             y_start + 8 * option_spacing + 3 * section_spacing + 50,
-            button_width,
-            button_height,
+            self.BUTTON_WIDTH,
+            self.BUTTON_HEIGHT,
             "确认",
             24
         )
         
         # 返回按钮
         self.back_button = Button(
-            self.window_width // 2 + button_spacing // 2,
+            self.window_width // 2 + self.BUTTON_SPACING // 2,
             y_start + 8 * option_spacing + 3 * section_spacing + 50,
-            button_width,
-            button_height,
+            self.BUTTON_WIDTH,
+            self.BUTTON_HEIGHT,
             "返回",
             24
         )
@@ -350,22 +363,36 @@ class SettingsScreen:
     
     def draw_piece_icon(self, text, x, y):
         """绘制棋子图标，类似Avatar的实现"""
-        # 创建一个圆形背景
-        radius = 12  # 小圆圈的半径
-        circle_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
-        pygame.draw.circle(circle_surface, (255, 255, 240), (radius, radius), radius)  # 白色背景
-        pygame.draw.circle(circle_surface, (0, 0, 0), (radius, radius), radius, 1)  # 黑色边框
-        
-        # 获取字体
-        piece_font = load_font(16, bold=True)
-        
-        # 渲染文字
-        text_surface = piece_font.render(text, True, RED)
-        text_rect = text_surface.get_rect(center=(radius, radius))
-        circle_surface.blit(text_surface, text_rect)
+        # 使用缓存避免重复创建Surface
+        cache_key = (text, self.PIECE_RADIUS)
+        if cache_key in self._piece_icon_cache:
+            circle_surface = self._piece_icon_cache[cache_key]
+        else:
+            # 创建一个圆形背景
+            radius = self.PIECE_RADIUS  # 小圆圈的半径
+            circle_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+            pygame.draw.circle(circle_surface, self.PIECE_BG_COLOR, (radius, radius), radius)  # 白色背景
+            pygame.draw.circle(circle_surface, self.PIECE_BORDER_COLOR, (radius, radius), radius, 1)  # 黑色边框
+            
+            # 获取字体
+            piece_font = load_font(self.PIECE_FONT_SIZE, bold=True)
+            
+            # 检查字体是否成功加载
+            if piece_font is None:
+                print(f"警告: 无法加载棋子图标字体，文本: {text}")
+                # 创建一个临时的字体对象
+                piece_font = pygame.font.SysFont(None, self.PIECE_FONT_SIZE)
+            
+            # 渲染文字
+            text_surface = piece_font.render(text, True, RED)
+            text_rect = text_surface.get_rect(center=(radius, radius))
+            circle_surface.blit(text_surface, text_rect)
+            
+            # 缓存这个图标
+            self._piece_icon_cache[cache_key] = circle_surface
         
         # 将圆形图标绘制到屏幕上
-        self.screen.blit(circle_surface, (x - radius, y - radius))
+        self.screen.blit(circle_surface, (x - self.PIECE_RADIUS, y - self.PIECE_RADIUS))
     
     def run(self):
         """运行设置界面"""

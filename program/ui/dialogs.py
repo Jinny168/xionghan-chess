@@ -1,8 +1,8 @@
 import pygame
 
-from program.config import BLACK, RED, POPUP_BG
+from program.config.config import BLACK, RED, POPUP_BG
 from program.ui.button import Button
-from program.utils import load_font
+from program.utils.utils import load_font
 
 
 class PopupDialog:

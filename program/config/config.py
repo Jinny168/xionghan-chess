@@ -6,25 +6,25 @@ DEFAULT_WINDOW_WIDTH = 1200
 DEFAULT_WINDOW_HEIGHT = 900
 
 # 布局常量
-LEFT_PANEL_WIDTH_RATIO = 130 / 850
-BOARD_MARGIN_TOP_RATIO = 50 / 850
+LEFT_PANEL_WIDTH_RATIO = 130 / 850  # 左侧面板宽度比例
+BOARD_MARGIN_TOP_RATIO = 50 / 850   # 棋盘顶部边距比例
 FPS = 60
 
 # 颜色常量
-BACKGROUND_COLOR = (240, 217, 181)
-PANEL_COLOR = (230, 210, 185)
-PANEL_BORDER = (160, 140, 110)
-BLACK = (0, 0, 0)
-RED = (180, 30, 30)
-GREEN = (0, 128, 0)
-WHITE = (255, 255, 255)
-POPUP_BG = (250, 240, 230)
-BUTTON_COLOR = (100, 100, 200)
-BUTTON_HOVER = (120, 120, 220)
-BUTTON_TEXT = (240, 240, 255)
-GOLD = (218, 165, 32)
-LAST_MOVE_SOURCE = (0, 200, 80, 100)
-LAST_MOVE_TARGET = (0, 200, 80, 150)
+BACKGROUND_COLOR = (240, 217, 181)  # 背景颜色
+PANEL_COLOR = (230, 210, 185)       # 面板颜色
+PANEL_BORDER = (160, 140, 110)      # 面板边框颜色
+BLACK = (0, 0, 0)                   # 黑色
+RED = (180, 30, 30)                 # 红色
+GREEN = (0, 128, 0)                 # 绿色
+WHITE = (255, 255, 255)             # 白色
+POPUP_BG = (250, 240, 230)          # 弹窗背景色
+BUTTON_COLOR = (100, 100, 200)      # 按钮颜色
+BUTTON_HOVER = (120, 120, 220)      # 按钮悬停颜色
+BUTTON_TEXT = (240, 240, 255)       # 按钮文字颜色
+GOLD = (218, 165, 32)               # 金色
+LAST_MOVE_SOURCE = (0, 200, 80, 100)  # 上一步移动起始位置高亮
+LAST_MOVE_TARGET = (0, 200, 80, 150)  # 上一步移动目标位置高亮
 
 # 游戏模式常量
 MODE_PVP = "pvp"
@@ -56,11 +56,16 @@ class GameConfig:
     
     def get_setting(self, key, default=None):
         """获取设置值"""
+        # 确保只返回已定义的配置键
+        if key not in self.settings:
+            return default
         return self.settings.get(key, default)
     
     def set_setting(self, key, value):
         """设置值"""
-        self.settings[key] = value
+        # 确保只设置已定义的配置键
+        if key in self.settings:
+            self.settings[key] = value
     
     def get_all_settings(self):
         """获取所有设置"""
@@ -70,6 +75,7 @@ class GameConfig:
         """批量更新设置"""
         if isinstance(new_settings, dict):
             for key, value in new_settings.items():
+                # 确保只更新已定义的配置键，防止添加意外的配置项
                 if key in self.settings:
                     self.settings[key] = value
 

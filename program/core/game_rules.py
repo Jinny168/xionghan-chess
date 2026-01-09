@@ -1,5 +1,5 @@
 from program.core.chess_pieces import ChessPiece, Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun
-from program.config import game_config
+from program.config.config import game_config
 
 class GameRules:
     """匈汉象棋游戏规则类，负责验证移动的合法性和胜负判定"""

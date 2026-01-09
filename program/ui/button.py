@@ -1,6 +1,6 @@
 
 import pygame
-from program.utils import load_font
+from program.utils.utils import load_font
 
 class Button:
     def __init__(self, x, y, width, height, text, font_size=24):

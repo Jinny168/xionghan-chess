@@ -1,9 +1,9 @@
 import pygame
 
-from program.config import MODE_PVC, CAMP_RED
+from program.config.config import MODE_PVC, CAMP_RED
 from program.game import ChessGame
 from program.ui.menu_screens import ModeSelectionScreen, RulesScreen, CampSelectionScreen
-from settings import SettingsScreen
+from program.config.settings import SettingsScreen
 
 # 初始化PyGame
 pygame.init()

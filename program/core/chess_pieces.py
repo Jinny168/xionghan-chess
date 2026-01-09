@@ -1,4 +1,4 @@
-from program.config import BOARD_SIZE
+from program.config.config import BOARD_SIZE
 
 
 class ChessPiece:
