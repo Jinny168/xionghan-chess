@@ -940,73 +940,45 @@ class ChessGame:
 
     def draw_move_history(self):
         """绘制棋谱历史记录"""
-        # 绘制标题
-        title_font = load_font(20, bold=True)
-        history_title = title_font.render("棋谱记录:", True, (0, 0, 0))
+        # 只显示最近的棋谱记录
+        if hasattr(self.game_state, 'move_history') and self.game_state.move_history:
+            # 绘制标题
+            title_font = load_font(20, bold=True)
+            history_title = title_font.render("棋谱历史:", True, BLACK)
+            self.screen.blit(history_title, (self.window_width - 250, 300))
 
-        # 将棋谱记录移到右侧
-        right_panel_x = self.window_width - 250  # 右侧边栏起始x坐标
-        self.screen.blit(history_title, (right_panel_x, 300))
+            # 显示最近的10条记录
+            recent_moves = self.game_state.move_history[-10:]
+            start_y = 330  # 起始y坐标
+            line_spacing = 25  # 行间距
 
-        # 绘制历史记录（带滚动功能）
-        history_font = load_font(18)
-        y_start = 330
-        line_height = self.history_line_height
+            for i, move_record in enumerate(recent_moves):
+                # 处理新旧格式的历史记录
+                if len(move_record) == 8:  # 新格式：包含甲/胄吃子信息和刺兑子信息
+                    piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces, ci_captured_pieces = move_record
+                elif len(move_record) == 7:  # 新格式：包含甲/胄吃子信息
+                    piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces = move_record
+                    ci_captured_pieces = []
+                else:  # 旧格式：6个元素
+                    piece, from_row, from_col, to_row, to_col, captured_piece = move_record
+                    jia_captured_pieces = []
+                    ci_captured_pieces = []
 
-        # 计算最大可见行数
-        max_visible_lines = min(self.history_max_visible_lines,
-                                (self.window_height - y_start - 50) // line_height)
-
-        # 计算要显示的历史记录范围
-        total_moves = len(self.game_state.move_history)
-        start_index = max(0, total_moves - max_visible_lines - self.history_scroll_y)
-        end_index = min(total_moves, start_index + max_visible_lines)
-
-        # 显示历史记录
-        y = y_start
-        for i in range(start_index, end_index):
-            move_record = self.game_state.move_history[i]
-            piece, from_row, from_col, to_row, to_col, captured_piece = move_record
-
-            # 生成记谱表示
-            notation = self.generate_move_notation(piece, from_row, from_col, to_row, to_col)
-
-            # 添加回合数
-            move_number = i + 1
-            move_text = f"{move_number:2d}. {notation}"
-
-            # 如果有被吃子，添加标识
-            if captured_piece:
-                move_text += " (吃子)"
-
-            text_surface = history_font.render(move_text, True, BLACK)
-            # 限制文本宽度，避免超出边界
-            max_text_width = 300
-            if text_surface.get_width() > max_text_width:
-                # 如果文本太长，截断并在末尾添加省略号
-                move_text = move_text[:20] + "..."  # 简单截断
-                text_surface = history_font.render(move_text, True, BLACK)
-            self.screen.blit(text_surface, (right_panel_x + 5, y))
-            y += line_height
-
-        # 绘制滚动条（如果需要）
-        if total_moves > max_visible_lines:
-            # 滚动条背景
-            scrollbar_x = self.window_width - 300  # 将滚动条向左移动，远离窗口边缘
-            scrollbar_y = y_start
-            scrollbar_height = max_visible_lines * line_height
-            pygame.draw.rect(self.screen, (200, 200, 200),
-                             (scrollbar_x, scrollbar_y, 15, scrollbar_height))  # 增加宽度到15像素
-
-            # 滚动条滑块
-            thumb_height = max(20, scrollbar_height * max_visible_lines // total_moves)
-            max_scroll = total_moves - max_visible_lines
-            if max_scroll > 0:  # 避免除零错误
-                thumb_y = scrollbar_y + (self.history_scroll_y / max_scroll) * (scrollbar_height - thumb_height)
-            else:
-                thumb_y = scrollbar_y
-            pygame.draw.rect(self.screen, (100, 100, 100),
-                             (scrollbar_x, thumb_y, 15, thumb_height))  # 增加宽度到15像素
+                # 生成棋谱记号
+                notation = self.generate_move_notation(piece, from_row, from_col, to_row, to_col)
+                
+                # 计算正确的编号，避免负数
+                move_index = max(0, len(self.game_state.move_history) - 10) + i + 1
+                
+                # 根据玩家颜色确定文字颜色
+                if piece.color == "red":
+                    move_text = f"{move_index}. {notation}"
+                    text_surface = load_font(16).render(move_text, True, RED)
+                else:
+                    text_surface = load_font(16).render(f"{move_index}. {notation}", True, BLACK)
+                
+                # 绘制文本
+                self.screen.blit(text_surface, (self.window_width - 250, start_y + i * line_spacing))
 
     def handle_click(self, pos):
         """处理鼠标点击事件"""

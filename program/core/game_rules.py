@@ -87,7 +87,7 @@ class GameRules:
         if target_piece and isinstance(target_piece, Dun):
             # 任何棋子都不能吃盾
             return False
-        
+
         # 检查盾的特殊效果：与己方盾横竖斜相连的敌方棋子禁止执行吃子操作
         # 如果移动的棋子是敌方棋子，并且与己方盾相邻，则不能吃子
         if target_piece and piece.color != GameRules.get_piece_at(pieces, from_row, from_col).color:
@@ -100,19 +100,19 @@ class GameRules:
                     if row_diff <= 1 and col_diff <= 1 and (row_diff != 0 or col_diff != 0):  # 相邻8格
                         # 如果敌方棋子与己方盾相邻，且这次移动是吃子，则不允许
                         return False
-        
-        # 检查盾的特殊效果：与己方盾横竖斜相连的敌方棋子禁止执行吃子操作
-        # 如果当前移动的棋子是敌方棋子且与己方盾相邻，则不能吃子
+
+        # 检查盾的特殊效果：与敌方盾横竖斜相连的己方棋子禁止执行吃子操作
+        # 如果移动的棋子与敌方盾相邻，则不能吃子（丧失攻击能力）
         if target_piece:  # 如果是吃子移动
-            # 检查移动的棋子是否与某个己方盾相邻
             for p in pieces:
-                if isinstance(p, Dun) and p.color == piece.color:
-                    # 检查该己方盾是否与移动的棋子相邻（8邻域）
+                if isinstance(p, Dun) and p.color != piece.color:  # 找到敌方盾
+                    # 检查移动的棋子是否与敌方盾相邻（8邻域）
                     row_diff = abs(p.row - from_row)
                     col_diff = abs(p.col - from_col)
                     if row_diff <= 1 and col_diff <= 1 and (row_diff != 0 or col_diff != 0):  # 相邻8格
-                        # 如果己方棋子与己方盾相邻，可以正常吃子
-                        # 但是，如果敌方棋子与己方盾相邻，则不能吃子
+                        # 如果移动的棋子与敌方盾相邻，且这次移动是吃子，则不允许
+                        return False
+
                         pass
                 elif isinstance(p, Dun) and p.color != piece.color:
                     # 检查敌方盾是否与移动的棋子相邻（8邻域）
@@ -1357,6 +1357,27 @@ class GameRules:
                     else:
                         enemy_count += 1
                 
+                # 检查连线中的己方棋子是否与敌方盾8邻域相接
+                if ally_count == 2 and enemy_count == 1 and has_ally_jia:
+                    shield_nearby = False
+                    for piece in pieces_list:
+                        if piece.color == color:  # 检查己方棋子
+                            for shield in pieces:
+                                if isinstance(shield, Dun) and shield.color != color:  # 敌方盾
+                                    # 检查己方棋子是否与敌方盾相邻（8邻域）
+                                    row_diff = abs(shield.row - piece.row)
+                                    col_diff = abs(shield.col - piece.col)
+                                    if row_diff <= 1 and col_diff <= 1 and (row_diff != 0 or col_diff != 0):
+                                        shield_nearby = True
+                                        break
+                            if shield_nearby:
+                                break
+                    
+                    if shield_nearby:
+                        # 如果连线中的己方棋子与敌方盾8邻域相接，则不能触发吃子
+                        ally_count = 0
+                        enemy_count = 0
+                
                 # 校验特殊吃子条件：2己1敌 + 包含至少1个己方甲/胄
                 if ally_count == 2 and enemy_count == 1 and has_ally_jia:
                     # 找到连线中的敌方棋子，加入捕获列表（去重）
@@ -1397,6 +1418,27 @@ class GameRules:
                     else:
                         enemy_count += 1
                 
+                # 检查连线中的己方棋子是否与敌方盾8邻域相接
+                if ally_count == 2 and enemy_count == 1 and has_ally_jia:
+                    shield_nearby = False
+                    for piece in pieces_list:
+                        if piece.color == color:  # 检查己方棋子
+                            for shield in pieces:
+                                if isinstance(shield, Dun) and shield.color != color:  # 敌方盾
+                                    # 检查己方棋子是否与敌方盾相邻（8邻域）
+                                    row_diff = abs(shield.row - piece.row)
+                                    col_diff = abs(shield.col - piece.col)
+                                    if row_diff <= 1 and col_diff <= 1 and (row_diff != 0 or col_diff != 0):
+                                        shield_nearby = True
+                                        break
+                            if shield_nearby:
+                                break
+                    
+                    if shield_nearby:
+                        # 如果连线中的己方棋子与敌方盾8邻域相接，则不能触发吃子
+                        ally_count = 0
+                        enemy_count = 0
+                
                 # 校验特殊吃子条件：2己1敌 + 包含至少1个己方甲/胄
                 if ally_count == 2 and enemy_count == 1 and has_ally_jia:
                     # 找到连线中的敌方棋子，加入捕获列表（去重）
@@ -1435,6 +1477,27 @@ class GameRules:
                         else:
                             enemy_count += 1
                     
+                    # 检查连线中的己方棋子是否与敌方盾8邻域相接
+                    if ally_count == 2 and enemy_count == 1 and has_ally_jia:
+                        shield_nearby = False
+                        for piece in pieces_list:
+                            if piece.color == color:  # 检查己方棋子
+                                for shield in pieces:
+                                    if isinstance(shield, Dun) and shield.color != color:  # 敌方盾
+                                        # 检查己方棋子是否与敌方盾相邻（8邻域）
+                                        row_diff = abs(shield.row - piece.row)
+                                        col_diff = abs(shield.col - piece.col)
+                                        if row_diff <= 1 and col_diff <= 1 and (row_diff != 0 or col_diff != 0):
+                                            shield_nearby = True
+                                            break
+                                if shield_nearby:
+                                    break
+                        
+                        if shield_nearby:
+                            # 如果连线中的己方棋子与敌方盾8邻域相接，则不能触发吃子
+                            ally_count = 0
+                            enemy_count = 0
+                    
                     # 校验特殊吃子条件：2己1敌 + 包含至少1个己方甲/胄
                     if ally_count == 2 and enemy_count == 1 and has_ally_jia:
                         # 找到连线中的敌方棋子，加入捕获列表（去重）
@@ -1471,6 +1534,27 @@ class GameRules:
                                 has_ally_jia = True
                         else:
                             enemy_count += 1
+                    
+                    # 检查连线中的己方棋子是否与敌方盾8邻域相接
+                    if ally_count == 2 and enemy_count == 1 and has_ally_jia:
+                        shield_nearby = False
+                        for piece in pieces_list:
+                            if piece.color == color:  # 检查己方棋子
+                                for shield in pieces:
+                                    if isinstance(shield, Dun) and shield.color != color:  # 敌方盾
+                                        # 检查己方棋子是否与敌方盾相邻（8邻域）
+                                        row_diff = abs(shield.row - piece.row)
+                                        col_diff = abs(shield.col - piece.col)
+                                        if row_diff <= 1 and col_diff <= 1 and (row_diff != 0 or col_diff != 0):
+                                            shield_nearby = True
+                                            break
+                                if shield_nearby:
+                                    break
+                        
+                        if shield_nearby:
+                            # 如果连线中的己方棋子与敌方盾8邻域相接，则不能触发吃子
+                            ally_count = 0
+                            enemy_count = 0
                     
                     # 校验特殊吃子条件：2己1敌 + 包含至少1个己方甲/胄
                     if ally_count == 2 and enemy_count == 1 and has_ally_jia:

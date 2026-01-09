@@ -68,15 +68,16 @@ class GameState:
         # 获取目标位置的棋子（如果有）
         captured_piece = self.get_piece_at(to_row, to_col)
         
-        # 记录移动历史
-        self.move_history.append((
+        # 记录移动历史 - 暂时不包括甲/胄连线吃子和刺兑子（因为需要在移动后检测）
+        # 先创建临时记录
+        temp_move_record = (
             piece,
             from_row,
             from_col,
             to_row,
             to_col,
             captured_piece
-        ))
+        )
         
         # 更新当前玩家的用时
         current_time = time.time()
@@ -86,7 +87,7 @@ class GameState:
         else:
             self.black_time += elapsed
         
-        # 如果有棋子被吃掉，移除它并记录到阵亡列表
+        # 如果有棋子被吃掉（直接移动到目标位置的棋子），移除它并记录到阵亡列表
         if captured_piece:
             self.pieces.remove(captured_piece)
             self.captured_pieces[captured_piece.color].append(captured_piece)
@@ -102,29 +103,14 @@ class GameState:
         # 执行移动
         piece.move_to(to_row, to_col)
 
-        # 处理甲/胄的特殊吃子规则（移动后检查）
+        # 处理甲/胄的特殊吃子规则（移动后检查）- 这是关键步骤
+        jia_captured_pieces = []
         if isinstance(piece, Jia):
-            # 查找所有被吃掉的敌方棋子
-            captured_pieces = GameRules.find_jia_capture_moves(self.pieces, piece)
-            
-            # 实际移除被吃掉的棋子
-            for captured in captured_pieces:
-                if captured in self.pieces:
-                    self.pieces.remove(captured)
-                    self.captured_pieces[captured.color].append(captured)
-                    
-                    # 如果吃掉的是对方将/帅/汉/汗，游戏结束
-                    if isinstance(captured, King):
-                        self.game_over = True
-                        self.winner = piece.color
-                        # 更新游戏总时长
-                        current_time = time.time()
-                        self.total_time = max(0, current_time - self.start_time)
-                        # 切换玩家
-                        opponent_color = "black" if self.player_turn == "red" else "red"
-                        return True
+            # 查找所有被吃掉的敌方棋子 - 在棋子移动到新位置后检查
+            jia_captured_pieces = GameRules.find_jia_capture_moves(self.pieces, piece)
         
         # 处理刺的兑子规则
+        ci_captured_pieces = []  # 记录刺兑子时涉及的棋子
         if isinstance(piece, Ci):
             # 检查移动前起始位置的反方向一格是否有敌棋（兑子条件）
             row_diff = to_row - from_row
@@ -139,52 +125,93 @@ class GameState:
                 reverse_piece = GameRules.get_piece_at(self.pieces, reverse_row, reverse_col)
                 # 如果反方向有敌方棋子，则进行兑子（双方都阵亡）
                 if reverse_piece and reverse_piece.color != piece.color:
-                    # 移除刺棋子
-                    if piece in self.pieces:
-                        self.pieces.remove(piece)
-                        self.captured_pieces[piece.color].append(piece)
-                    # 移除反方向的敌方棋子
-                    if reverse_piece in self.pieces:
-                        self.pieces.remove(reverse_piece)
-                        self.captured_pieces[reverse_piece.color].append(reverse_piece)
+                    # 检查反方向的棋子是否是盾（盾不可被兑子）
+                    if not isinstance(reverse_piece, Dun):
+                        # 检查移动的刺是否与敌方盾相邻（8邻域），如果是则不能触发兑子
+                        shield_nearby = False
+                        for p in self.pieces:
+                            if isinstance(p, Dun) and p.color != piece.color:
+                                # 检查该敌方盾是否与移动的刺相邻（8邻域）
+                                row_diff_to_dun = abs(p.row - to_row)  # 检查移动后的位置
+                                col_diff_to_dun = abs(p.col - to_col)
+                                if row_diff_to_dun <= 1 and col_diff_to_dun <= 1 and (row_diff_to_dun != 0 or col_diff_to_dun != 0):
+                                    shield_nearby = True
+                                    break
                         
-                        # 如果吃掉的是对方将/帅/汉/汗，游戏结束
-                        if isinstance(reverse_piece, King):
-                            self.game_over = True
-                            self.winner = piece.color
-                            # 更新游戏总时长
-                            current_time = time.time()
-                            self.total_time = max(0, current_time - self.start_time)
+                        if not shield_nearby:
+                            # 执行兑子：移除刺和反方向的敌棋
+                            if piece in self.pieces:
+                                self.pieces.remove(piece)
+                                self.captured_pieces[piece.color].append(piece)
+                                ci_captured_pieces.append(piece)  # 记录刺自身（虽然它不是被吃掉的，但参与了兑子）
+                            # 移除反方向的敌方棋子
+                            if reverse_piece in self.pieces:
+                                self.pieces.remove(reverse_piece)
+                                self.captured_pieces[reverse_piece.color].append(reverse_piece)
+                                ci_captured_pieces.append(reverse_piece)  # 记录被兑掉的敌方棋子
+                                
+                                # 如果吃掉的是对方将/帅/汉/汗，游戏结束
+                                if isinstance(reverse_piece, King):
+                                    self.game_over = True
+                                    self.winner = piece.color
+                                    # 更新游戏总时长
+                                    current_time = time.time()
+                                    self.total_time = max(0, current_time - self.start_time)
+                                    # 切换玩家
+                                    opponent_color = "black" if self.player_turn == "red" else "red"
+                                    # 现在将完整的记录添加到历史中，包括甲/胄吃子信息和刺兑子信息
+                                    self.move_history.append(temp_move_record + (jia_captured_pieces[:], ci_captured_pieces[:]))  # 添加甲/胄吃子信息和刺兑子信息
+                                    return True
+                        
+                            # 由于刺和敌棋都被移除了，无需继续处理
                             # 切换玩家
                             opponent_color = "black" if self.player_turn == "red" else "red"
+                            
+                            # 检查是否将军
+                            self.is_check = GameRules.is_check(self.pieces, opponent_color)
+                            if self.is_check:
+                                # 设置将军动画计时器
+                                self.check_animation_time = current_time
+                            
+                            # 检查是否将死或获胜
+                            game_over, winner = GameRules.is_game_over(self.pieces, self.player_turn)
+                            
+                            if game_over:
+                                self.game_over = True
+                                self.winner = winner
+                                # 更新游戏总时长
+                                self.total_time = max(0, current_time - self.start_time)
+                            else:
+                                # 切换玩家回合
+                                self.player_turn = opponent_color
+                                # 重置当前回合开始时间
+                                self.current_turn_start_time = current_time
+                            
+                            # 现在将完整的记录添加到历史中，包括甲/胄吃子信息和刺兑子信息
+                            self.move_history.append(temp_move_record + (jia_captured_pieces[:], ci_captured_pieces[:]))  # 添加甲/胄吃子信息和刺兑子信息
+                            
                             return True
-                    
-                    # 由于刺和敌棋都被移除了，无需继续处理
+
+        # 现在将完整的记录添加到历史中
+        self.move_history.append(temp_move_record + (jia_captured_pieces[:], ci_captured_pieces[:]))  # 添加甲/胄吃子信息和刺兑子信息
+
+        # 实际移除甲/胄连线吃掉的棋子
+        for captured in jia_captured_pieces:
+            if captured in self.pieces:
+                self.pieces.remove(captured)
+                self.captured_pieces[captured.color].append(captured)
+                
+                # 如果吃掉的是对方将/帅/汉/汗，游戏结束
+                if isinstance(captured, King):
+                    self.game_over = True
+                    self.winner = piece.color
+                    # 更新游戏总时长
+                    current_time = time.time()
+                    self.total_time = max(0, current_time - self.start_time)
                     # 切换玩家
                     opponent_color = "black" if self.player_turn == "red" else "red"
-                    
-                    # 检查是否将军
-                    self.is_check = GameRules.is_check(self.pieces, opponent_color)
-                    if self.is_check:
-                        # 设置将军动画计时器
-                        self.check_animation_time = current_time
-                    
-                    # 检查是否将死或获胜
-                    game_over, winner = GameRules.is_game_over(self.pieces, self.player_turn)
-                    
-                    if game_over:
-                        self.game_over = True
-                        self.winner = winner
-                        # 更新游戏总时长
-                        self.total_time = max(0, current_time - self.start_time)
-                    else:
-                        # 切换玩家回合
-                        self.player_turn = opponent_color
-                        # 重置当前回合开始时间
-                        self.current_turn_start_time = current_time
-                    
                     return True
-
+        
         # 切换玩家
         opponent_color = "black" if self.player_turn == "red" else "red"
         
@@ -220,18 +247,43 @@ class GameState:
             return False
         
         # 获取上一步移动记录
-        piece, from_row, from_col, to_row, to_col, captured_piece = self.move_history.pop()
+        # 注意：现在历史记录包含额外的甲/胄吃子信息和刺兑子信息
+        if len(self.move_history[-1]) == 8:  # 包含甲/胄吃子信息和刺兑子信息
+            piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces, ci_captured_pieces = self.move_history.pop()
+        elif len(self.move_history[-1]) == 7:  # 包含甲/胄吃子信息
+            piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces = self.move_history.pop()
+            ci_captured_pieces = []
+        else:  # 旧格式（不包含甲/胄吃子信息和刺兑子信息）
+            piece, from_row, from_col, to_row, to_col, captured_piece = self.move_history.pop()
+            jia_captured_pieces = []
+            ci_captured_pieces = []
         
         # 将棋子移回原位置
         piece.move_to(from_row, from_col)
         
-        # 恢复被吃掉的棋子
+        # 恢复被直接吃掉的棋子
         if captured_piece:
             self.pieces.append(captured_piece)
             # 从阵亡列表中移除
             if captured_piece in self.captured_pieces[captured_piece.color]:
                 self.captured_pieces[captured_piece.color].remove(captured_piece)
         
+        # 恢复甲/胄连线吃掉的棋子
+        for captured in jia_captured_pieces:
+            if captured not in self.pieces:  # 避免重复添加
+                self.pieces.append(captured)
+                # 从阵亡列表中移除
+                if captured in self.captured_pieces[captured.color]:
+                    self.captured_pieces[captured.color].remove(captured)
+        
+        # 恢复刺兑子中失去的棋子
+        for captured in ci_captured_pieces:
+            if captured not in self.pieces:  # 避免重复添加
+                self.pieces.append(captured)
+                # 从阵亡列表中移除
+                if captured in self.captured_pieces[captured.color]:
+                    self.captured_pieces[captured.color].remove(captured)
+
         # 切换玩家回合
         self.player_turn = "black" if self.player_turn == "red" else "red"
         
