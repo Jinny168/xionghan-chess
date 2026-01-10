@@ -7,7 +7,7 @@ import pygame
 from program.ai.chess_ai import ChessAI
 from .chess_board import ChessBoard
 from program.config.config import game_config
-from program.ui.dialogs import PopupDialog, ConfirmDialog, PawnResurrectionDialog, PromotionDialog
+from program.ui.dialogs import PopupDialog, ConfirmDialog, PawnResurrectionDialog, PromotionDialog, AudioSettingsDialog
 from program.core.game_rules import GameRules
 from program.core.game_state import GameState
 from program.ui.avatar import Avatar
@@ -85,6 +85,7 @@ class ChessGame:
         self.confirm_dialog = None
         self.pawn_resurrection_dialog = None
         self.promotion_dialog = None
+        self.audio_settings_dialog = None
 
         # 音效
         self.load_sounds()
@@ -171,6 +172,16 @@ class ChessGame:
             80,
             30,
             "全屏" if not self.is_fullscreen else "窗口",
+            14
+        )
+        
+        # 创建音效设置按钮
+        self.audio_settings_button = Button(
+            self.window_width - 100,
+            50,
+            80,
+            30,
+            "音效设置",
             14
         )
 
@@ -370,6 +381,16 @@ class ChessGame:
             "全屏" if not self.is_fullscreen else "窗口",
             14
         )
+        
+        # 更新音效设置按钮位置
+        self.audio_settings_button = Button(
+            self.window_width - 100,
+            50,
+            80,
+            30,
+            "音效设置",
+            14
+        )
 
         # 更新头像位置
         avatar_radius = 40
@@ -451,6 +472,11 @@ class ChessGame:
             # 检查是否点击了全屏按钮
             if self.fullscreen_button.is_clicked(mouse_pos, event):
                 self.toggle_fullscreen()
+            
+            # 检查是否点击了音效设置按钮
+            elif self.audio_settings_button.is_clicked(mouse_pos, event):
+                # 打开音效设置对话框
+                self.audio_settings_dialog = AudioSettingsDialog(500, 350, self.sound_manager)
 
             # 检查是否点击了悔棋按钮
             elif self.undo_button.is_clicked(mouse_pos, event):
@@ -578,6 +604,21 @@ class ChessGame:
                         else:  # 取消
                             self.confirm_dialog = None
 
+                # 如果有音效设置对话框，优先处理它的事件
+                if self.audio_settings_dialog:
+                    result = self.audio_settings_dialog.handle_event(event, mouse_pos)
+                    if result == "ok":  # 确认设置
+                        self.audio_settings_dialog = None
+                    elif result == "cancel":  # 取消设置
+                        self.audio_settings_dialog = None
+                    elif result == "reset":  # 重置设置
+                        # 对话框保持打开，但重置值
+                        pass
+                    elif result == "volume_changed":  # 音量改变
+                        # 对话框保持打开
+                        pass
+                    # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
+                    continue  # 跳过后续的事件处理，防止同时处理其他操作
                 # 如果游戏结束，处理弹窗事件
                 elif self.game_state.game_over and self.popup:
                     if self.popup.handle_event(event, mouse_pos):
@@ -592,6 +633,10 @@ class ChessGame:
                         # 检查是否点击了全屏按钮
                         if self.fullscreen_button.is_clicked(mouse_pos, event):
                             self.toggle_fullscreen()
+                        # 检查是否点击了音效设置按钮
+                        elif self.audio_settings_button.is_clicked(mouse_pos, event):
+                            # 打开音效设置对话框
+                            self.audio_settings_dialog = AudioSettingsDialog(600, 400, self.sound_manager)
                         # 检查是否点击了返回按钮
                         elif self.back_button.is_clicked(mouse_pos, event):
                             # 显示确认对话框而不是直接返回
@@ -620,6 +665,7 @@ class ChessGame:
             self.restart_button.check_hover(mouse_pos)
             self.exit_button.check_hover(mouse_pos)
             self.fullscreen_button.check_hover(mouse_pos)
+            self.audio_settings_button.check_hover(mouse_pos)
 
             # 绘制画面
             self.draw(mouse_pos)
@@ -712,6 +758,21 @@ class ChessGame:
                         else:  # 取消
                             # 清除复活对话框
                             self.pawn_resurrection_dialog = None
+                # 如果有音效设置对话框，优先处理它的事件
+                if self.audio_settings_dialog:
+                    result = self.audio_settings_dialog.handle_event(event, mouse_pos)
+                    if result == "ok":  # 确认设置
+                        self.audio_settings_dialog = None
+                    elif result == "cancel":  # 取消设置
+                        self.audio_settings_dialog = None
+                    elif result == "reset":  # 重置设置
+                        # 对话框保持打开，但重置值
+                        pass
+                    elif result == "volume_changed":  # 音量改变
+                        # 对话框保持打开
+                        pass
+                    # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
+                    continue  # 跳过后续的事件处理，防止同时处理其他操作
                 # 如果有确认对话框，优先处理它的事件
                 elif self.confirm_dialog:
                     result = self.confirm_dialog.handle_event(event, mouse_pos)
@@ -740,6 +801,10 @@ class ChessGame:
                         # 检查是否点击了全屏按钮
                         if self.fullscreen_button.is_clicked(mouse_pos, event):
                             self.toggle_fullscreen()
+                        # 检查是否点击了音效设置按钮
+                        elif self.audio_settings_button.is_clicked(mouse_pos, event):
+                            # 打开音效设置对话框
+                            self.audio_settings_dialog = AudioSettingsDialog(600, 400, self.sound_manager)
                         # 检查是否点击了返回按钮
                         elif self.back_button.is_clicked(mouse_pos, event):
                             # 显示确认对话框而不是直接返回
@@ -779,6 +844,7 @@ class ChessGame:
             self.restart_button.check_hover(mouse_pos)
             self.exit_button.check_hover(mouse_pos)
             self.fullscreen_button.check_hover(mouse_pos)
+            self.audio_settings_button.check_hover(mouse_pos)
 
             # 检查是否需要触发AI移动（例如游戏开始或重新开始后）
             if (self.game_mode == MODE_PVC and
@@ -843,12 +909,13 @@ class ChessGame:
         # 绘制游戏信息面板
         self.draw_info_panel()
 
-        # 绘制悔棋按钮、重来按钮、返回按钮、退出按钮和全屏按钮
+        # 绘制悔棋按钮、重来按钮、返回按钮、退出按钮、全屏按钮和音效设置按钮
         self.undo_button.draw(self.screen)
         self.restart_button.draw(self.screen)
         self.back_button.draw(self.screen)
         self.exit_button.draw(self.screen)
         self.fullscreen_button.draw(self.screen)
+        self.audio_settings_button.draw(self.screen)
 
         # 绘制玩家头像
         self.red_avatar.draw(self.screen)
@@ -914,6 +981,10 @@ class ChessGame:
         # 如果有升变对话框，显示它
         if self.promotion_dialog:
             self.promotion_dialog.draw(self.screen)
+            
+        # 如果有音效设置对话框，显示它
+        if self.audio_settings_dialog:
+            self.audio_settings_dialog.draw(self.screen)
 
     def draw_thinking_indicator(self, mouse_pos):
         """绘制AI思考时的指示器，减少闪烁"""
