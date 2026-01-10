@@ -1233,12 +1233,19 @@ class GameRules:
                                 break  # 车、刺、盾、尉遇到障碍就停止
                     current_row += dr
                     current_col += dc
-        elif isinstance(piece, Ma):  # 马，只有8个可能的位置
-            # 马的8个可能移动位置
+        elif isinstance(piece, Ma):  # 马，包含传统日字和直走三格
+            # 马的所有可能移动位置
             knight_moves = [
                 (-2, -1), (-2, 1), (-1, -2), (-1, 2),
                 (1, -2), (1, 2), (2, -1), (2, 1)
             ]
+            
+            # 如果设置了马可以直走三格，则添加这些移动
+            if GameRules.ma_can_straight_three:
+                knight_moves.extend([
+                    (-3, 0), (3, 0), (0, -3), (0, 3)  # 直走三格
+                ])
+            
             for dr, dc in knight_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
                 if 0 <= to_row < 13 and 0 <= to_col < 13:  # 在棋盘范围内
@@ -1250,9 +1257,33 @@ class GameRules:
         elif isinstance(piece, Xiang):  # 相/象，走田字等
             # 相的可能移动位置
             elephant_moves = [
-                (-2, -2), (-2, 2), (2, -2), (2, 2),  # 田字
-                (-2, 0), (2, 0), (0, -2), (0, 2)     # 隔一格直线
+                (-2, -2), (-2, 2), (2, -2), (2, 2)  # 田字
             ]
+            
+            # 如果设置了相可以在敌方区域获得隔两格的能力，则添加这些移动
+            if GameRules.xiang_gain_jump_two_outside_river:
+                # 检查相是否在敌方区域
+                is_in_enemy_territory = False
+                if piece.color == "red":
+                    # 红方相在黑方区域（0-6行）
+                    if piece.row <= 6:
+                        is_in_enemy_territory = True
+                else:  # black
+                    # 黑方相在红方区域（6-12行）
+                    if piece.row >= 6:
+                        is_in_enemy_territory = True
+                
+                # 如果在敌方区域，添加隔一格直线移动
+                if is_in_enemy_territory:
+                    elephant_moves.extend([
+                        (-2, 0), (2, 0), (0, -2), (0, 2)     # 隔一格直线
+                    ])
+            else:
+                # 如果没开启特殊能力，仍保留基本的隔一格直线移动
+                elephant_moves.extend([
+                    (-2, 0), (2, 0), (0, -2), (0, 2)     # 隔一格直线
+                ])
+            
             for dr, dc in elephant_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
                 if 0 <= to_row < 13 and 0 <= to_col < 13:  # 在棋盘范围内
@@ -1261,11 +1292,26 @@ class GameRules:
                         if target and target.color != piece.color:
                             capturable.append((to_row, to_col))
                         moves.append((to_row, to_col))
-        elif isinstance(piece, Shi):  # 士/仕，只有对角线1格
+        elif isinstance(piece, Shi):  # 士/仕，包含对角线和直线移动
             # 士的可能移动位置（对角线1格）
             advisor_moves = [
                 (-1, -1), (-1, 1), (1, -1), (1, 1)
             ]
+            
+            # 检查士是否在九宫外
+            in_palace = False
+            if piece.color == "red":
+                in_palace = (9 <= piece.row <= 11 and 5 <= piece.col <= 7)  # 红方九宫
+            else:  # black
+                in_palace = (1 <= piece.row <= 3 and 5 <= piece.col <= 7)   # 黑方九宫
+            
+            # 如果士可以离开九宫且设置了出九宫后获得直走能力，则添加直走移动
+            if GameRules.shi_can_leave_palace and GameRules.shi_gain_straight_outside_palace and not in_palace:
+                # 添加直走移动（横竖各一格）
+                advisor_moves.extend([
+                    (-1, 0), (1, 0), (0, -1), (0, 1)  # 横竖移动
+                ])
+            
             for dr, dc in advisor_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
                 if 0 <= to_row < 13 and 0 <= to_col < 13:  # 在棋盘范围内
@@ -1275,12 +1321,49 @@ class GameRules:
                             capturable.append((to_row, to_col))
                         moves.append((to_row, to_col))
         elif isinstance(piece, King):  # 将/帅/汉/汗
-            # 将/帅的可能移动位置（横竖斜1格）
-            king_moves = [
-                (-1, -1), (-1, 0), (-1, 1),
-                (0, -1),           (0, 1),
-                (1, -1),  (1, 0),  (1, 1)
-            ]
+            # 检查是否在九宫内
+            in_own_palace = False
+            if piece.color == "red":
+                in_own_palace = (9 <= piece.row <= 11 and 5 <= piece.col <= 7)  # 红方九宫
+            else:  # black
+                in_own_palace = (1 <= piece.row <= 3 and 5 <= piece.col <= 7)   # 黑方九宫
+            
+            # 根据位置和设置确定可能的移动
+            king_moves = []
+            
+            if in_own_palace:
+                # 在九宫内，根据设置决定是否可以斜走
+                if GameRules.king_can_diagonal_in_palace:
+                    # 在九宫内，可以横竖斜走一格
+                    king_moves = [
+                        (-1, -1), (-1, 0), (-1, 1),  # 斜向和上
+                        (0, -1),           (0, 1),   # 横向
+                        (1, -1),  (1, 0),  (1, 1)    # 斜向和下
+                    ]
+                else:
+                    # 在九宫内，只能横竖走一格
+                    king_moves = [
+                        (-1, 0),           # 上
+                        (0, -1), (0, 1),   # 横向
+                        (1, 0)             # 下
+                    ]
+            else:
+                # 在九宫外，根据设置决定是否失去斜走能力
+                if GameRules.king_lose_diagonal_outside_palace:
+                    # 在九宫外，失去斜走能力，只能横竖走一格
+                    king_moves = [
+                        (-1, 0),           # 上
+                        (0, -1), (0, 1),   # 横向
+                        (1, 0)             # 下
+                    ]
+                else:
+                    # 在九宫外，仍可斜走一格
+                    king_moves = [
+                        (-1, -1), (-1, 0), (-1, 1),  # 斜向和上
+                        (0, -1),           (0, 1),   # 横向
+                        (1, -1),  (1, 0),  (1, 1)    # 斜向和下
+                    ]
+            
             for dr, dc in king_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
                 if 0 <= to_row < 13 and 0 <= to_col < 13:  # 在棋盘范围内
