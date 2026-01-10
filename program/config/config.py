@@ -52,6 +52,21 @@ class GameConfig:
             
             # 马设置
             "ma_can_straight_three": False,  # 马是否可以获得直走三格的能力
+            
+            # 棋子登场设置
+            "ju_appear": True,      # 車/车登场
+            "ma_appear": True,      # 馬/马登场
+            "xiang_appear": True,   # 相/象登场
+            "shi_appear": True,     # 士/仕登场
+            "king_appear": True,    # 将/帅/汉/汗登场
+            "pao_appear": True,     # 炮/砲登场
+            "pawn_appear": True,    # 兵/卒登场
+            "wei_appear": True,     # 尉/衛登场
+            "she_appear": True,     # 射/䠶登场
+            "lei_appear": True,     # 檑/礌登场
+            "jia_appear": True,     # 甲/胄登场
+            "ci_appear": True,      # 刺登场
+            "dun_appear": True,     # 盾登场
         }
     
     def get_setting(self, key, default=None):

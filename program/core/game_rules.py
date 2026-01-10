@@ -14,6 +14,21 @@ class GameRules:
     xiang_gain_jump_two_outside_river = game_config.get_setting("xiang_gain_jump_two_outside_river", True)  # 相过河后是否获得隔两格吃子能力
     ma_can_straight_three = game_config.get_setting("ma_can_straight_three", True)  # 马是否可以获得直走三格的能力
     
+    # 棋子登场设置
+    ju_appear = game_config.get_setting("ju_appear", True)      # 車/车登场
+    ma_appear = game_config.get_setting("ma_appear", True)      # 馬/马登场
+    xiang_appear = game_config.get_setting("xiang_appear", True)   # 相/象登场
+    shi_appear = game_config.get_setting("shi_appear", True)     # 士/仕登场
+    king_appear = game_config.get_setting("king_appear", True)    # 将/帅/汉/汗登场
+    pao_appear = game_config.get_setting("pao_appear", True)     # 炮/砲登场
+    pawn_appear = game_config.get_setting("pawn_appear", True)    # 兵/卒登场
+    wei_appear = game_config.get_setting("wei_appear", True)     # 尉/衛登场
+    she_appear = game_config.get_setting("she_appear", True)     # 射/䠶登场
+    lei_appear = game_config.get_setting("lei_appear", True)     # 檑/礌登场
+    jia_appear = game_config.get_setting("jia_appear", True)     # 甲/胄登场
+    ci_appear = game_config.get_setting("ci_appear", True)      # 刺登场
+    dun_appear = game_config.get_setting("dun_appear", True)     # 盾登场
+    
     @staticmethod
     def set_game_settings(settings):
         """设置游戏规则参数
@@ -37,6 +52,34 @@ class GameRules:
             GameRules.xiang_gain_jump_two_outside_river = settings["xiang_gain_jump_two_outside_river"]
         if "ma_can_straight_three" in settings:
             GameRules.ma_can_straight_three = settings["ma_can_straight_three"]
+        
+        # 棋子登场设置
+        if "ju_appear" in settings:
+            GameRules.ju_appear = settings["ju_appear"]
+        if "ma_appear" in settings:
+            GameRules.ma_appear = settings["ma_appear"]
+        if "xiang_appear" in settings:
+            GameRules.xiang_appear = settings["xiang_appear"]
+        if "shi_appear" in settings:
+            GameRules.shi_appear = settings["shi_appear"]
+        if "king_appear" in settings:
+            GameRules.king_appear = settings["king_appear"]
+        if "pao_appear" in settings:
+            GameRules.pao_appear = settings["pao_appear"]
+        if "pawn_appear" in settings:
+            GameRules.pawn_appear = settings["pawn_appear"]
+        if "wei_appear" in settings:
+            GameRules.wei_appear = settings["wei_appear"]
+        if "she_appear" in settings:
+            GameRules.she_appear = settings["she_appear"]
+        if "lei_appear" in settings:
+            GameRules.lei_appear = settings["lei_appear"]
+        if "jia_appear" in settings:
+            GameRules.jia_appear = settings["jia_appear"]
+        if "ci_appear" in settings:
+            GameRules.ci_appear = settings["ci_appear"]
+        if "dun_appear" in settings:
+            GameRules.dun_appear = settings["dun_appear"]
     
     @staticmethod
     def get_piece_at(pieces, row, col):

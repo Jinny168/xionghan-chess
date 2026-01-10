@@ -1,4 +1,5 @@
 from program.config.config import BOARD_SIZE
+from program.config.config import game_config
 
 
 class ChessPiece:
@@ -29,6 +30,34 @@ class ChessPiece:
             raise ValueError(f"棋子移动位置必须在棋盘范围内 (0-{BOARD_SIZE - 1}, 0-{BOARD_SIZE - 1})")
         self.row = row
         self.col = col
+
+
+def should_include_piece(piece_class_name):
+    """根据设置决定是否包含特定棋子"""
+    # 将棋子类名转换为配置键名
+    piece_name_map = {
+        'Ju': 'ju_appear',
+        'Ma': 'ma_appear',
+        'Xiang': 'xiang_appear',
+        'Shi': 'shi_appear',
+        'King': 'king_appear',  # 将/帅总是登场
+        'Pao': 'pao_appear',
+        'Pawn': 'pawn_appear',
+        'Wei': 'wei_appear',
+        'She': 'she_appear',
+        'Lei': 'lei_appear',
+        'Jia': 'jia_appear',
+        'Ci': 'ci_appear',
+        'Dun': 'dun_appear'
+    }
+    
+    setting_key = piece_name_map.get(piece_class_name, 'king_appear')  # 默认为将/帅设置
+    
+    # 将/帅必须登场，不接受配置更改
+    if piece_class_name == 'King':
+        return True
+    else:
+        return game_config.get_setting(setting_key, True)
 
 
 # 传统棋子
@@ -306,12 +335,14 @@ def create_initial_pieces():
         (Pawn, 8, 8), (Pawn, 8, 10), (Pawn, 8, 12)
     ]
 
-    # 添加黑方棋子
+    # 添加黑方棋子，根据设置决定是否添加
     for piece_class, row, col in black_pieces_config:
-        pieces.append(piece_class("black", row, col))
+        if should_include_piece(piece_class.__name__):
+            pieces.append(piece_class("black", row, col))
 
-    # 添加红方棋子
+    # 添加红方棋子，根据设置决定是否添加
     for piece_class, row, col in red_pieces_config:
-        pieces.append(piece_class("red", row, col))
+        if should_include_piece(piece_class.__name__):
+            pieces.append(piece_class("red", row, col))
 
     return pieces
