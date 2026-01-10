@@ -4,7 +4,7 @@
 
 import numpy as np
 import copy
-from config import CONFIG
+from mcts_config import CONFIG
 
 def softmax(x):
     probs = np.exp(x - np.max(x))

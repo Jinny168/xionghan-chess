@@ -1,6 +1,6 @@
 # coding=utf-8
 import pickle
-from config import CONFIG
+from mcts_config import CONFIG
 import redis
 
 def get_redis_cli():

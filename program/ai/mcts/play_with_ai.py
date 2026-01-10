@@ -2,7 +2,7 @@
 import random
 from game import move_action2move_id, Game, Board
 from mcts import MCTSPlayer
-from config import CONFIG
+from mcts_config import CONFIG
 
 if CONFIG['use_frame'] == 'paddle':
     from paddle_net import PolicyValueNet

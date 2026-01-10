@@ -10,7 +10,7 @@ import pickle
 import time
 
 import zip_array
-from config import CONFIG
+from mcts_config import CONFIG
 from game import Game, Board
 from mcts import MCTSPlayer
 from mcts_pure import MCTS_Pure

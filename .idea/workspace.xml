@@ -4,7 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="最新更新" />
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="最新更新">
+      <change beforePath="$PROJECT_DIR$/program/ai/chess_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/Negamax/chess_ai.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/UIplay.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/UIplay.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/collect.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/collect.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/config.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/game.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/mcts.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/mcts.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/my_redis.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/my_redis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/play_with_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/play_with_ai.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/pytorch_net.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/pytorch_net.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/train.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -29,35 +41,35 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.build_exe.executor&quot;: &quot;Run&quot;,
-    &quot;Python.combined_sound_generator.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dun_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.game_logic.executor&quot;: &quot;Run&quot;,
-    &quot;Python.gen.executor&quot;: &quot;Run&quot;,
-    &quot;Python.generate_sounds.executor&quot;: &quot;Run&quot;,
-    &quot;Python.generate_voice (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.main (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.shield_interaction_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.sound_manager.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test_ai_fix.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test_ci_piece.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test_dun_piece.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/27415/PycharmProjects/xionghan-chess/program/sounds&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.build_exe.executor": "Run",
+    "Python.combined_sound_generator.executor": "Run",
+    "Python.dun_test.executor": "Run",
+    "Python.game_logic.executor": "Run",
+    "Python.gen.executor": "Run",
+    "Python.generate_sounds.executor": "Run",
+    "Python.generate_voice (1).executor": "Run",
+    "Python.main (1).executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.shield_interaction_test.executor": "Run",
+    "Python.sound_manager.executor": "Run",
+    "Python.test_ai_fix.executor": "Run",
+    "Python.test_ci_piece.executor": "Run",
+    "Python.test_dun_piece.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "C:/Users/27415/PycharmProjects/xionghan-chess/program/ai/mcts",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\sounds" />
@@ -232,6 +244,7 @@
       <workItem from="1767928161580" duration="7953000" />
       <workItem from="1767961759656" duration="38431000" />
       <workItem from="1768040186645" duration="5462000" />
+      <workItem from="1768052673642" duration="304000" />
     </task>
     <task id="LOCAL-00001" summary="最新更新">
       <option name="closed" value="true" />
@@ -497,7 +510,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768047515718</updated>
     </task>
-    <option name="localTasksCounter" value="34" />
+    <task id="LOCAL-00034" summary="最新更新">
+      <option name="closed" value="true" />
+      <created>1768052743218</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1768052743218</updated>
+    </task>
+    <option name="localTasksCounter" value="35" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

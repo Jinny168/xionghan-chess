@@ -5,7 +5,7 @@ import pickle
 import time
 from collections import deque
 
-from config import CONFIG
+from mcts_config import CONFIG
 from game import Board, Game, move_action2move_id, move_id2move_action, flip_map
 from mcts import MCTSPlayer
 
