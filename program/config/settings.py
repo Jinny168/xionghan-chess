@@ -976,13 +976,75 @@ class SettingsScreen:
     def update_max_scroll(self):
         """更新最大滚动值"""
         # 计算内容总高度，包括所有分类
-        # 汉/汗: 4个选项, 士: 3个选项, 相: 3个选项, 马: 2个选项, 車: 1个选项, 炮: 1个选项, 兵: 1个选项, 尉: 1个选项, 射: 1个选项, 檵: 1个选项, 甲: 1个选项, 刺: 1个选项, 盾: 1个选项
-        # 每个选项约60像素高度，每个分类标题约40像素，分类间距20像素
-        total_options = 4 + 3 + 3 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1  # 总共19个选项
-        total_height = 150  # 初始偏移
-        total_height += total_options * 60  # 选项高度
-        total_height += 8 * self.category_title_height  # 分类标题高度（8个分类）
-        total_height += 7 * self.category_spacing  # 分类间间距（7个间距）
+        # 使用与draw方法相同的逻辑来计算总高度
+        y_offset = 150  # 初始Y坐标，与draw方法中的一致
+        
+        # 汉/汗棋子分类
+        king_items = self.create_king_items(y_offset)
+        category_height = len(king_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 士棋子分类
+        shi_items = self.create_shi_items(y_offset)
+        category_height = len(shi_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 相棋子分类
+        xiang_items = self.create_xiang_items(y_offset)
+        category_height = len(xiang_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 马棋子分类
+        ma_items = self.create_ma_items(y_offset)
+        category_height = len(ma_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 車棋子分类
+        ju_items = self.create_ju_items(y_offset)
+        category_height = len(ju_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 炮棋子分类
+        pao_items = self.create_pao_items(y_offset)
+        category_height = len(pao_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 兵/卒棋子分类
+        pawn_items = self.create_pawn_items(y_offset)
+        category_height = len(pawn_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 尉棋子分类
+        wei_items = self.create_wei_items(y_offset)
+        category_height = len(wei_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 射棋子分类
+        she_items = self.create_she_items(y_offset)
+        category_height = len(she_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 檵/檑棋子分类
+        lei_items = self.create_lei_items(y_offset)
+        category_height = len(lei_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 甲棋子分类
+        jia_items = self.create_jia_items(y_offset)
+        category_height = len(jia_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 刺棋子分类
+        ci_items = self.create_ci_items(y_offset)
+        category_height = len(ci_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 盾棋子分类
+        dun_items = self.create_dun_items(y_offset)
+        category_height = len(dun_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        total_height = y_offset  # 总高度就是最后一个分类的底部位置
         
         visible_height = self.window_height - 180  # 可视区域高度
         self.max_scroll = max(0, total_height - visible_height)
