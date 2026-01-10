@@ -347,11 +347,20 @@ class GameState:
         if not self.is_check:
             return None
             
-        # 被将军的是当前player_turn的玩家（因为player_turn在move_piece末尾已经切换）
-        # 例如，如果红方将军了黑方，move_piece后player_turn是"black"，所以要返回黑方的将/帅位置
-        for piece in self.pieces:
-            if isinstance(piece, King) and piece.color == self.player_turn:
-                return (piece.row, piece.col)
+        # 检查是否是将死情况
+        # 在将死情况下，游戏结束，但player_turn没有切换，仍然为当前玩家（将军方）
+        # 因此，被将军的是对手
+        if self.game_over and self.is_checkmate():
+            # 在将死情况下，被将死的是对手
+            opponent_color = "black" if self.player_turn == "red" else "red"
+            for piece in self.pieces:
+                if isinstance(piece, King) and piece.color == opponent_color:
+                    return (piece.row, piece.col)
+        else:
+            # 普通将军情况，player_turn已经是被将军方
+            for piece in self.pieces:
+                if isinstance(piece, King) and piece.color == self.player_turn:
+                    return (piece.row, piece.col)
         
         return None
     
@@ -570,3 +579,11 @@ class GameState:
         self.available_promotion_pieces = []
         
         return True
+
+    def is_checkmate(self):
+        """检查当前玩家是否被将死
+        
+        Returns:
+            bool: 当前玩家是否被将死
+        """
+        return GameRules.is_checkmate(self.pieces, self.player_turn)

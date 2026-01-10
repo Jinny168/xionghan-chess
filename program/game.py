@@ -12,7 +12,7 @@ from program.core.game_rules import GameRules
 from program.core.game_state import GameState
 from program.ui.avatar import Avatar
 from program.ui.button import Button
-from program.utils.utils import load_font, draw_background, load_sound
+from program.utils.utils import load_font, draw_background, load_sound, SoundManager
 
 # 初始化PyGame
 pygame.init()
@@ -88,12 +88,24 @@ class ChessGame:
 
         # 音效
         self.load_sounds()
-
-        # 棋谱滚动相关变量
-        self.history_scroll_y = 0  # 棋谱滚动位置
-        self.history_max_visible_lines = 15  # 最大可见行数
-        self.history_line_height = 22  # 行高
-        self.history_area_height = self.history_max_visible_lines * self.history_line_height  # 滚动区域高度
+        
+        # 音效管理器（包含背景音乐功能）
+        self.sound_manager = SoundManager()
+        # 启动背景音乐
+        self.sound_manager.toggle_music_style()  # 设置为QQ风格
+        # 如果需要FC风格，可以再次调用toggle_music_style()
+    
+    def toggle_background_music(self):
+        """切换背景音乐风格"""
+        return self.sound_manager.toggle_music_style()
+    
+    def set_sound_volume(self, volume):
+        """设置音效音量"""
+        self.sound_manager.set_sound_volume(volume)
+    
+    def set_music_volume(self, volume):
+        """设置背景音乐音量"""
+        self.sound_manager.set_music_volume(volume)
 
     def init_window(self):
         """初始化窗口"""
@@ -212,12 +224,25 @@ class ChessGame:
         self.last_move_notation = self.game_state.get_move_notation(move)
 
         # 播放音效
-        if self.game_state.is_check:
-            self.check_sound.play()
+        # 优先处理绝杀情况，因为绝杀时is_check和is_checkmate都为True
+        if self.game_state.is_checkmate():
+            # 绝杀时播放绝杀音效，而不是将军音效
+            self.sound_manager.play_sound('check')  # 播放基本的将军音效
+            try:
+                self.sound_manager.play_sound('juesha_voice')  # 播放绝杀语音
+            except:
+                pass
+        elif self.game_state.is_check:
+            # 普通将军情况，播放将军音效
+            self.sound_manager.play_sound('check')
+            try:
+                self.sound_manager.play_sound('jiangjun_voice')  # 播放将军语音
+            except:
+                pass
         elif self.game_state.is_capture:
-            self.capture_sound.play()
+            self.sound_manager.play_sound('capture')
         else:
-            self.move_sound.play()
+            self.sound_manager.play_sound('move')
 
         # 检查游戏是否结束
         if self.game_state.is_game_over:
@@ -250,6 +275,14 @@ class ChessGame:
         black_time = self.game_state.black_time
 
         self.popup = PopupDialog(400, 300, message, total_time, red_time, black_time)
+        
+        # 根据胜负播放相应的音效
+        if self.game_mode == MODE_PVC:  # 人机模式
+            if self.player_camp == winner:  # 玩家获胜
+                self.sound_manager.play_victory_sound()
+            elif winner is not None:  # AI获胜
+                self.sound_manager.play_defeat_sound()
+            # 平局时不播放音效
 
     def restart_game(self):
         """重新开始游戏"""
@@ -265,10 +298,9 @@ class ChessGame:
             self.ai_thinking = True
 
     def load_sounds(self):
-        """加载音效"""
-        self.check_sound = load_sound('check')
-        self.move_sound = load_sound('move')
-        self.capture_sound = load_sound('capture')
+        """加载音效 - 现在由SoundManager统一管理"""
+        # 音效现在由self.sound_manager统一管理
+        pass
 
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
@@ -451,6 +483,8 @@ class ChessGame:
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    # 停止背景音乐
+                    self.sound_manager.stop_background_music()
                     pygame.quit()
                     sys.exit()
 
@@ -533,9 +567,13 @@ class ChessGame:
                             # 在这里我们可以根据上下文决定行为
                             # 如果是退出游戏对话框，直接退出程序
                             if self.confirm_dialog and "退出游戏" in self.confirm_dialog.message:
+                                # 停止背景音乐
+                                self.sound_manager.stop_background_music()
                                 pygame.quit()
                                 sys.exit()
                             else:  # 返回主菜单
+                                # 停止背景音乐
+                                self.sound_manager.stop_background_music()
                                 return "back_to_menu"
                         else:  # 取消
                             self.confirm_dialog = None
@@ -543,8 +581,11 @@ class ChessGame:
                 # 如果游戏结束，处理弹窗事件
                 elif self.game_state.game_over and self.popup:
                     if self.popup.handle_event(event, mouse_pos):
+                        # 在重置游戏之前停止背景音乐
+                        self.sound_manager.stop_background_music()
                         self.__init__(self.game_mode, self.player_camp)  # 重置游戏，保持相同模式和阵营
-
+                        # 重新启动背景音乐
+                        self.sound_manager.toggle_music_style()
                 # 如果游戏未结束，处理鼠标点击
                 elif not self.game_state.game_over:
                     if event.type == pygame.MOUSEBUTTONDOWN:
@@ -1108,25 +1149,37 @@ class ChessGame:
                 if piece:
                     self.last_move_notation = self.generate_move_notation(piece, sel_row, sel_col, row, col)
 
+                # 播放选子音效（当选择棋子时）
+                if self.selected_piece and not captured_piece:
+                    try:
+                        self.sound_manager.play_sound('select')
+                    except:
+                        pass
+                
                 # 播放移动音效
                 if captured_piece:
                     try:
-                        self.capture_sound.play()
+                        self.sound_manager.play_sound('capture')
+                        # 如果是绝杀局面，播放绝杀语音
+                        if self.game_state.is_checkmate():
+                            self.sound_manager.play_sound('juesha_voice')
                     except:
                         pass
                 else:
                     try:
-                        self.move_sound.play()
+                        self.sound_manager.play_sound('move')
                     except:
                         pass
 
                 # 更新头像状态
                 self.update_avatars()
 
-                # 如果新的状态是将军，播放将军音效
+                # 如果新的状态是将军，播放将军音效和语音
                 if self.game_state.is_check:
                     try:
-                        self.check_sound.play()
+                        self.sound_manager.play_sound('check')
+                        # 播放将军语音
+                        self.sound_manager.play_sound('jiangjun_voice')
                     except:
                         pass
 
@@ -1146,6 +1199,14 @@ class ChessGame:
                         red_time,
                         black_time
                     )
+                    
+                    # 根据胜负播放相应的音效
+                    if self.game_mode == MODE_PVC:  # 人机模式
+                        if self.player_camp == self.game_state.winner:  # 玩家获胜
+                            self.sound_manager.play_victory_sound()
+                        elif self.game_state.winner is not None:  # AI获胜
+                            self.sound_manager.play_defeat_sound()
+                        # 平局时不播放音效
                 # 如果是人机模式且轮到AI走子，触发AI移动
                 elif self.game_mode == MODE_PVC and self.game_state.player_turn != self.player_camp:
                     self.schedule_ai_move()
@@ -1425,6 +1486,30 @@ class ChessGame:
             # 更新头像状态
             self.update_avatars()
 
+            # 如果新的状态是将军，播放将军音效和语音
+            if self.game_state.is_check:
+                try:
+                    self.check_sound.play()
+                    # 播放将军语音
+                    self.jiangjun_voice.play()
+                except:
+                    pass
+
+            # 更新头像状态
+            self.update_avatars()
+
+            # 如果新的状态是将军，播放将军音效和语音
+            if self.game_state.is_check:
+                try:
+                    self.sound_manager.play_sound('check')
+                    # 播放将军语音
+                    self.sound_manager.play_sound('jiangjun_voice')
+                except:
+                    pass
+
+            # 更新头像状态
+            self.update_avatars()
+
             # 检查游戏是否结束
             if self.game_state.game_over:
                 winner_text = self.game_state.get_winner_text()
@@ -1511,19 +1596,24 @@ class ChessGame:
             # 播放音效
             if target_piece:
                 try:
-                    self.capture_sound.play()
+                    self.sound_manager.play_sound('capture')
+                    # 如果是绝杀局面，播放绝杀语音
+                    if self.game_state.is_checkmate():
+                        self.sound_manager.play_sound('juesha_voice')
                 except:
                     pass
             else:
                 try:
-                    self.move_sound.play()
+                    self.sound_manager.play_sound('move')
                 except:
                     pass
 
-            # 如果新的状态是将军，播放将军音效
+            # 如果新的状态是将军，播放将军音效和语音
             if self.game_state.is_check:
                 try:
-                    self.check_sound.play()
+                    self.sound_manager.play_sound('check')
+                    # 播放将军语音
+                    self.sound_manager.play_sound('jiangjun_voice')
                 except:
                     pass
 
@@ -1546,8 +1636,11 @@ class ChessGame:
                     red_time,
                     black_time
                 )
-
-            # 立即刷新界面，确保AI的移动能立刻显示
-            pygame.display.flip()
-
-        self.ai_thinking = False
+                
+                # 根据胜负播放相应的音效
+                if self.game_mode == MODE_PVC:  # 人机模式
+                    if self.player_camp == self.game_state.winner:  # 玩家获胜
+                        self.sound_manager.play_victory_sound()
+                    elif self.game_state.winner is not None:  # AI获胜
+                        self.sound_manager.play_defeat_sound()
+                    # 平局时不播放音效
