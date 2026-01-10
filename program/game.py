@@ -5,7 +5,7 @@ import sys
 import pygame
 
 from program.ai.chess_ai import ChessAI
-from chess_board import ChessBoard
+from .chess_board import ChessBoard
 from program.config.config import game_config
 from program.ui.dialogs import PopupDialog, ConfirmDialog, PawnResurrectionDialog, PromotionDialog
 from program.core.game_rules import GameRules
@@ -1160,9 +1160,6 @@ class ChessGame:
                 if captured_piece:
                     try:
                         self.sound_manager.play_sound('capture')
-                        # 如果是绝杀局面，播放绝杀语音
-                        if self.game_state.is_checkmate():
-                            self.sound_manager.play_sound('juesha_voice')
                     except:
                         pass
                 else:
@@ -1174,12 +1171,17 @@ class ChessGame:
                 # 更新头像状态
                 self.update_avatars()
 
-                # 如果新的状态是将军，播放将军音效和语音
-                if self.game_state.is_check:
+                # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
+                if self.game_state.is_checkmate():
+                    try:
+                        self.sound_manager.play_sound('check')  # 播放基本的将军音效
+                        self.sound_manager.play_sound('juesha_voice')  # 播放绝杀语音
+                    except:
+                        pass
+                elif self.game_state.is_check:
                     try:
                         self.sound_manager.play_sound('check')
-                        # 播放将军语音
-                        self.sound_manager.play_sound('jiangjun_voice')
+                        self.sound_manager.play_sound('jiangjun_voice')  # 播放将军语音
                     except:
                         pass
 
@@ -1597,9 +1599,6 @@ class ChessGame:
             if target_piece:
                 try:
                     self.sound_manager.play_sound('capture')
-                    # 如果是绝杀局面，播放绝杀语音
-                    if self.game_state.is_checkmate():
-                        self.sound_manager.play_sound('juesha_voice')
                 except:
                     pass
             else:
@@ -1608,12 +1607,17 @@ class ChessGame:
                 except:
                     pass
 
-            # 如果新的状态是将军，播放将军音效和语音
-            if self.game_state.is_check:
+            # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
+            if self.game_state.is_checkmate():
+                try:
+                    self.sound_manager.play_sound('check')  # 播放基本的将军音效
+                    self.sound_manager.play_sound('juesha_voice')  # 播放绝杀语音
+                except:
+                    pass
+            elif self.game_state.is_check:
                 try:
                     self.sound_manager.play_sound('check')
-                    # 播放将军语音
-                    self.sound_manager.play_sound('jiangjun_voice')
+                    self.sound_manager.play_sound('jiangjun_voice')  # 播放将军语音
                 except:
                     pass
 

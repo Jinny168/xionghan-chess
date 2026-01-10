@@ -63,7 +63,17 @@ def resource_path(relative_path):
         # PyInstaller创建的临时文件夹存储在sys._MEIPASS中
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.abspath(".")  # 使用当前目录而非上级目录
+        # 在开发环境下，如果相对路径找不到资源，尝试在program目录下查找
+        base_path = os.path.abspath(".")
+        full_path = os.path.join(base_path, relative_path)
+        if os.path.exists(full_path):
+            return full_path
+        # 如果在根目录找不到，尝试在program子目录下查找
+        program_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), relative_path)
+        if os.path.exists(program_path):
+            return program_path
+        # 默认返回根目录路径
+        return full_path
 
     return os.path.join(base_path, relative_path)
 
@@ -142,7 +152,7 @@ class SoundManager:
     """音效管理器 - 从sound_manager.py迁移的功能"""
     def __init__(self):
         pygame.mixer.init()
-        self.current_music_style = None
+        self.current_music_style = 'fc'
         self.music_volume = 0.5
         self.sound_volume = 0.7
         self.background_music = None
