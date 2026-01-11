@@ -8,7 +8,8 @@ from collections import deque  # 这个队列用来判断长将或长捉
 
 import numpy as np
 
-from program.ai.mcts.mcts_config import CONFIG
+import mcts_config
+CONFIG = mcts_config.CONFIG
 
 
 
@@ -24,7 +25,7 @@ def check_bounds(toY, toX):
 # 列表来表示棋盘，红方在上，黑方在下。使用时需要使用深拷贝
 state_list_init = [
     # 0行
-    ['黑射', '一一', '黑車', '一一', '黑礌', '一一', '一一', '一一', '黑礌', '一一', '黑車', '一一', '黑射'],
+    ['黑䠶', '一一', '黑車', '一一', '黑礌', '一一', '一一', '一一', '黑礌', '一一', '黑車', '一一', '黑䠶'],
     # 1行
     ['一一', '一一', '一一', '黑馬', '黑象', '黑士', '黑汗', '黑士', '黑象', '黑馬', '一一', '一一', '一一'],
     # 2行
@@ -46,9 +47,9 @@ state_list_init = [
     # 10行
     ['一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一'],
     # 11行
-    ['一一', '一一', '一一', '红馬', '红象', '红仕', '红汉', '红仕', '红象', '红馬', '一一', '一一', '一一'],
+    ['一一', '一一', '一一', '红傌', '红相', '红仕', '红汉', '红仕', '红相', '红傌', '一一', '一一', '一一'],
     # 12行
-    ['红射', '一一', '红車', '一一', '红檑', '一一', '一一', '一一', '红檑', '一一', '红車', '一一', '红射']
+    ['红射', '一一', '红俥', '一一', '红檑', '一一', '一一', '一一', '红檑', '一一', '红俥', '一一', '红射']
 ]
 
 # deque来存储棋盘状态，长度为4
@@ -57,9 +58,9 @@ for _ in range(4):
     state_deque_init.append(copy.deepcopy(state_list_init))
 
 # 构建一个字典：字符串到数组的映射，函数：数组到字符串的映射
-string2array = dict(红車=np.array([1, 0, 0, 0, 0, 0, 0, 0, 0]),
-                    红馬=np.array([0, 1, 0, 0, 0, 0, 0, 0, 0]),
-                    红象=np.array([0, 0, 1, 0, 0, 0, 0, 0, 0]),
+string2array = dict(红俥=np.array([1, 0, 0, 0, 0, 0, 0, 0, 0]),
+                    红傌=np.array([0, 1, 0, 0, 0, 0, 0, 0, 0]),
+                    红相=np.array([0, 0, 1, 0, 0, 0, 0, 0, 0]),
                     红仕=np.array([0, 0, 0, 1, 0, 0, 0, 0, 0]),
                     红汉=np.array([0, 0, 0, 0, 1, 0, 0, 0, 0]),
                     红炮=np.array([0, 0, 0, 0, 0, 1, 0, 0, 0]),
@@ -74,7 +75,7 @@ string2array = dict(红車=np.array([1, 0, 0, 0, 0, 0, 0, 0, 0]),
                     黑砲=np.array([0, 0, 0, 0, 0, -1, 0, 0, 0]),
                     黑卒=np.array([0, 0, 0, 0, 0, 0, -1, 0, 0]),
                     黑礌=np.array([0, 0, 0, 0, 0, 0, 0, -1, 0]),
-                    黑射=np.array([0, 0, 0, 0, 0, 0, 0, 0, -1]),
+                    黑䠶=np.array([0, 0, 0, 0, 0, 0, 0, 0, -1]),
                     一一=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]))
 
 
@@ -247,7 +248,7 @@ def get_legal_moves(state_deque, current_player_color):
             # 根据棋子类型获取合法走法
             piece_type = piece[1:]  # 去掉颜色，获取棋子类型，如"車", "馬"等
 
-            if piece_type in ['車', '车']:  # 车的走法
+            if piece_type in ['車', '车','俥']:  # 车的走法
                 # 横向移动
                 for tox in range(13):
                     if tox == x:
@@ -266,7 +267,7 @@ def get_legal_moves(state_deque, current_player_color):
                         if change_state(state_list, m) != old_state_list:
                             moves.append(m)
 
-            elif piece_type in ['馬', '马']:  # 马的走法
+            elif piece_type in ['馬', '马','傌']:  # 马的走法
                 # 马走日字
                 horse_moves = [
                     (y - 2, x - 1), (y - 2, x + 1),  # 上
@@ -956,9 +957,10 @@ class Game(object):
 
 
 if __name__ == '__main__':
+
     # 测试array2string
-    # _array = np.array([0, 0, 0, 0, 0, 0, 0, 0, -1])
-    # print(array2string(_array))
+    _array = np.array([0, 0, 0, 0, 0, 0, 0, 0, 1])
+    print(array2string(_array))
 
 
     # 测试change_state
@@ -982,34 +984,34 @@ if __name__ == '__main__':
 
 
     # 测试Board中的start_play
-    class Human1:
-        def get_action(self, board):
-            # print('当前是player1在操作')
-            # print(board.current_player_color)
-            # move = move_action2move_id[input('请输入')]
-            move = random.choice(board.availables)
-            return move
-
-        def set_player_ind(self, p):
-            self.player = p
-
-
-    class Human2:
-        def get_action(self, board):
-            # print('当前是player2在操作')
-            # print(board.current_player_color)
-            # move = move_action2move_id[input('请输入')]
-            move = random.choice(board.availables)
-            return move
-
-        def set_player_ind(self, p):
-            self.player = p
-
-
-    human1 = Human1()
-    human2 = Human2()
-    game = Game(board=Board())
-    for i in range(20):
-        game.start_play(human1, human2, start_player=2, is_shown=0)
+    # class Human1:
+    #     def get_action(self, board):
+    #         # print('当前是player1在操作')
+    #         # print(board.current_player_color)
+    #         # move = move_action2move_id[input('请输入')]
+    #         move = random.choice(board.availables)
+    #         return move
+    #
+    #     def set_player_ind(self, p):
+    #         self.player = p
+    #
+    #
+    # class Human2:
+    #     def get_action(self, board):
+    #         # print('当前是player2在操作')
+    #         # print(board.current_player_color)
+    #         # move = move_action2move_id[input('请输入')]
+    #         move = random.choice(board.availables)
+    #         return move
+    #
+    #     def set_player_ind(self, p):
+    #         self.player = p
+    #
+    #
+    # human1 = Human1()
+    # human2 = Human2()
+    # game = Game(board=Board())
+    # for i in range(20):
+    #     game.start_play(human1, human2, start_player=2, is_shown=0)
     # board = Board()
     # board.init_board()

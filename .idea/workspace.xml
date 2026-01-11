@@ -5,34 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="最新更新">
-      <change afterPath="$PROJECT_DIR$/program/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/ai/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/ai/mcts/imgs/hongshe.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/ai/mcts/test/simple_view_data.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/ai/mcts/test/test_paddle.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/ai/mcts/test/view_redis_data.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/program/ai/mcts/imgs/heilei.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/program/ai/mcts/imgs/heishe.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/program/ai/mcts/imgs/honglei.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/ai/mcts/UIplay.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/UIplay.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/collect.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/collect.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/current_policy.pkl" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/load_pkl.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/load_pkl.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/mcts.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/mcts.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/mcts_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/mcts_config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/imgs/heishuai.png" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/imgs/heihan.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/imgs/hongshuai.png" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/imgs/honghan.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/ai/mcts/mcts_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/mcts_game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/my_redis.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/my_redis.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/paddle_net.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/paddle_net.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/play_with_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/play_with_ai.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/pytorch_net.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/pytorch_net.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/test_py.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/test/test_py.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/test_torch.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/test/test_torch.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/train.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/zip_array.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/zip_array.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/core/chess_pieces.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/chess_pieces.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/core/game_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_state.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,6 +40,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Python.UIplay.executor": "Run",
     "Python.build_exe.executor": "Run",
     "Python.check_data_status.executor": "Run",
     "Python.collect.executor": "Run",
@@ -87,6 +68,7 @@
     "Python.test_redis_collection.executor": "Run",
     "Python.test_single_collector.executor": "Run",
     "Python.test_torch.executor": "Run",
+    "Python.test_uiplay.executor": "Run",
     "Python.train.executor": "Run",
     "Python.validate_moves.executor": "Run",
     "Python.view_redis_data.executor": "Run",
@@ -120,7 +102,30 @@
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\core" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.train">
+  <component name="RunManager" selected="Python.mcts_game">
+    <configuration name="UIplay" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="xionghan-chess" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/program/ai/mcts" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/ai/mcts/UIplay.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="check_data_status" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="xionghan-chess" />
       <option name="ENV_FILES" value="" />
@@ -144,7 +149,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="start_multiple_collectors" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="mcts_game" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="xionghan-chess" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -158,7 +163,30 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/ai/mcts/start_multiple_collectors.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/ai/mcts/mcts_game.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="test_uiplay" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="xionghan-chess" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/program/ai/mcts/test" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/ai/mcts/test/test_uiplay.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -190,59 +218,13 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="view_redis_data" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="xionghan-chess" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/program/ai/mcts/test" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/ai/mcts/test/view_redis_data.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="view_training_data" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="xionghan-chess" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/program/ai/mcts" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/ai/mcts/view_training_data.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.train" />
+        <item itemvalue="Python.mcts_game" />
+        <item itemvalue="Python.UIplay" />
         <item itemvalue="Python.check_data_status" />
-        <item itemvalue="Python.view_training_data" />
-        <item itemvalue="Python.view_redis_data" />
-        <item itemvalue="Python.start_multiple_collectors" />
+        <item itemvalue="Python.test_uiplay" />
+        <item itemvalue="Python.train" />
       </list>
     </recent_temporary>
   </component>
@@ -281,7 +263,7 @@
       <workItem from="1767961759656" duration="38431000" />
       <workItem from="1768040186645" duration="5462000" />
       <workItem from="1768052673642" duration="14179000" />
-      <workItem from="1768096266847" duration="5123000" />
+      <workItem from="1768096266847" duration="14897000" />
     </task>
     <task id="LOCAL-00001" summary="最新更新">
       <option name="closed" value="true" />
@@ -563,7 +545,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768052988653</updated>
     </task>
-    <option name="localTasksCounter" value="36" />
+    <task id="LOCAL-00036" summary="最新更新">
+      <option name="closed" value="true" />
+      <created>1768101413333</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1768101413333</updated>
+    </task>
+    <option name="localTasksCounter" value="37" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -629,11 +619,30 @@
           <url>file://$PROJECT_DIR$/program/ai/mcts/load_pkl.py</url>
           <option name="timeStamp" value="29" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/ai/mcts/test/test_uiplay.py</url>
+          <option name="timeStamp" value="31" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/ai/mcts/test/test_uiplay.py</url>
+          <line>8</line>
+          <option name="timeStamp" value="32" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/ai/mcts/test/test_uiplay.py</url>
+          <line>355</line>
+          <option name="timeStamp" value="33" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/ai/mcts/test/test_uiplay.py</url>
+          <line>346</line>
+          <option name="timeStamp" value="34" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/xionghan_chess$check_data_status.coverage" NAME="check_data_status 覆盖结果" MODIFIED="1768100821886" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$check_data_status.coverage" NAME="check_data_status 覆盖结果" MODIFIED="1768111988724" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$combined_sound_generator.coverage" NAME="combined_sound_generator 覆盖结果" MODIFIED="1768035316286" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_move_format.coverage" NAME="test_move_format 覆盖结果" MODIFIED="1768096512414" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$view_redis_data.coverage" NAME="view_redis_data 覆盖结果" MODIFIED="1768099660762" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts/test" />
@@ -641,6 +650,7 @@
     <SUITE FILE_PATH="coverage/xionghan_chess$my_redis.coverage" NAME="my_redis 覆盖结果" MODIFIED="1768054367883" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$main__1_.coverage" NAME="main (1) 覆盖结果" MODIFIED="1767784741743" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$collect.coverage" NAME="collect 覆盖结果" MODIFIED="1768097363820" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$UIplay.coverage" NAME="UIplay 覆盖结果" MODIFIED="1768112434761" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_ai_fix.coverage" NAME="test_ai_fix 覆盖结果" MODIFIED="1766936931089" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$generate_sounds.coverage" NAME="generate_sounds 覆盖结果" MODIFIED="1768039645391" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_flip_map.coverage" NAME="test_flip_map 覆盖结果" MODIFIED="1768098002744" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
@@ -656,13 +666,14 @@
     <SUITE FILE_PATH="coverage/xionghan_chess$test_dun_piece.coverage" NAME="test_dun_piece 覆盖结果" MODIFIED="1767793549619" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$simple_view_data.coverage" NAME="simple_view_data 覆盖结果" MODIFIED="1768097764211" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_redis_collection.coverage" NAME="test_redis_collection 覆盖结果" MODIFIED="1768098223812" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$test_uiplay.coverage" NAME="test_uiplay 覆盖结果" MODIFIED="1768109621282" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$validate_moves.coverage" NAME="validate_moves 覆盖结果" MODIFIED="1768060437308" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$start_multiple_collectors.coverage" NAME="start_multiple_collectors 覆盖结果" MODIFIED="1768099132107" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$build_exe.coverage" NAME="build_exe 覆盖结果" MODIFIED="1766748391935" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_paddle.coverage" NAME="test_paddle 覆盖结果" MODIFIED="1768061779565" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$generate_voice__1_.coverage" NAME="generate_voice (1) 覆盖结果" MODIFIED="1768037026142" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_torch.coverage" NAME="test_torch 覆盖结果" MODIFIED="1768061637898" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$mcts_game.coverage" NAME="mcts_game 覆盖结果" MODIFIED="1768063112374" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_single_collector.coverage" NAME="test_single_collector 覆盖结果" MODIFIED="1768097188791" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$mcts_game.coverage" NAME="mcts_game 覆盖结果" MODIFIED="1768113370889" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
   </component>
 </project>
