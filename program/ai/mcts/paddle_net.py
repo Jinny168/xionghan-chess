@@ -30,32 +30,32 @@ class ResBlock(nn.Layer):
         return self.conv2_act(y)
 
 
-# 搭建骨干网络，输入：N, 9, 10, 9 --> N, C, H, W
+# 搭建骨干网络，输入：N, 9, 13, 13 --> N, C, H, W
 class Net(nn.Layer):
 
     def __init__(self, num_channels=256, num_res_blocks=13):
         super().__init__()
         # 初始化特征
-        self.conv_block = nn.Conv2D(in_channels=9, out_channels=num_channels, kernel_size=3, stride=1, padding=1)
+        self.conv_block = nn.Conv2D(in_channels=11, out_channels=num_channels, kernel_size=3, stride=1, padding=1)
         self.conv_block_bn = nn.BatchNorm2D(num_features=256)
         self.conv_block_act = nn.ReLU()
         # 全局特征
-        self.global_conv = nn.Conv2D(in_channels=9, out_channels=512, kernel_size=(10, 9))
+        self.global_conv = nn.Conv2D(in_channels=11, out_channels=512, kernel_size=(13, 13))  # 适配[11,13,13]棋盘
         self.global_bn = nn.BatchNorm1D(512)
         # 残差块抽取特征
         self.res_blocks = nn.LayerList([ResBlock(num_filters=num_channels) for _ in range(num_res_blocks)])
         # 策略头
-        self.global_policy_fc = nn.Linear(512, 2086)
+        self.global_policy_fc = nn.Linear(512, 7712)  # 适配13x13棋盘的动作空间大小
         self.policy_conv = nn.Conv2D(in_channels=num_channels, out_channels=16, kernel_size=1, stride=1)
         self.policy_bn = nn.BatchNorm2D(16)
         self.policy_act = nn.ReLU()
-        self.policy_fc = nn.Linear(16 * 9 * 10, 2086)
+        self.policy_fc = nn.Linear(16 * 13 * 13, 7712)  # 适配13x13棋盘的动作空间大小
         # 价值头
         self.global_value_fc = nn.Linear(512, 256)
         self.value_conv = nn.Conv2D(in_channels=num_channels, out_channels=8, kernel_size=1, stride=1)
         self.value_bn = nn.BatchNorm2D(8)
         self.value_act1 = nn.ReLU()
-        self.value_fc1 = nn.Linear(8 * 9 * 10, 256)
+        self.value_fc1 = nn.Linear(8 * 13 * 13, 256)  # 适配13x13棋盘
         self.value_act2 = nn.ReLU()
         self.value_fc2 = nn.Linear(256, 1)
 
@@ -74,7 +74,7 @@ class Net(nn.Layer):
         policy = self.policy_conv(x)
         policy = self.policy_bn(policy)
         policy = self.policy_act(policy)
-        policy = paddle.reshape(policy, [-1, 16 * 10 * 9])
+        policy = paddle.reshape(policy, [-1, 16 * 13 * 13])  # 适配13x13棋盘
         policy = self.policy_fc(policy)
         global_policy = self.policy_act(self.global_policy_fc(global_x))
         policy = F.log_softmax(policy + global_policy)
@@ -82,7 +82,7 @@ class Net(nn.Layer):
         value = self.value_conv(x)
         value = self.value_bn(value)
         value = self.value_act1(value)
-        value = paddle.reshape(value, [-1, 8 * 10 * 9])
+        value = paddle.reshape(value, [-1, 8 * 13 * 13])  # 适配13x13棋盘
         global_value = self.value_act1(self.global_value_fc(global_x))
         value = self.value_fc1(value)
         value = self.value_act1(value)
@@ -103,8 +103,12 @@ class PolicyValueNet:
                                                parameters=self.policy_value_net.parameters(),
                                                weight_decay=self.l2_const)
         if model_file:
-            net_params = paddle.load(model_file)
-            self.policy_value_net.set_state_dict(net_params)
+            try:
+                net_params = paddle.load(model_file)
+                self.policy_value_net.set_state_dict(net_params)
+            except Exception as e:
+                print(f'模型加载失败: {e}')
+                print('从零开始训练')
 
     # 输入一个批次的状态，输出一个批次的动作概率和状态价值
     def policy_value(self, state_batch):
@@ -119,7 +123,7 @@ class PolicyValueNet:
         self.policy_value_net.eval()
         # 获取合法动作列表
         legal_positions = board.availables
-        current_state = np.ascontiguousarray(board.current_state().reshape(-1, 9, 10, 9)).astype('float32')
+        current_state = np.ascontiguousarray(board.current_state().reshape(-1, 11, 13, 13)).astype('float32')  # 适配[11,13,13]棋盘
         current_state = paddle.to_tensor(current_state)
         # 使用神经网络进行预测
         log_act_probs, value = self.policy_value_net(current_state)
@@ -171,7 +175,7 @@ class PolicyValueNet:
 
 if __name__ == '__main__':
     net = Net()
-    test_data = paddle.ones([8, 9, 10, 9])
+    test_data = paddle.ones([8, 11, 13, 13])  # 适配[11,13,13]棋盘
     x_act, x_val = net(test_data)
-    print(x_act.shape)  # 8, 2086
+    print(x_act.shape)  # 8, 7712
     print(x_val.shape)  # 8, 1

@@ -296,6 +296,7 @@ class ChessGame:
 
     def restart_game(self):
         """重新开始游戏"""
+        # 重新初始化游戏状态，确保使用当前设置
         self.game_state = GameState()
         self.selected_piece = None
         self.last_move = None

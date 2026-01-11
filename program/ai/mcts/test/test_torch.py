@@ -14,3 +14,4 @@ if torch.cuda.is_available():
     # 验证张量加载到 GPU
     test_tensor = torch.tensor([1, 2, 3]).cuda()
     print("GPU 张量设备：", test_tensor.device)
+

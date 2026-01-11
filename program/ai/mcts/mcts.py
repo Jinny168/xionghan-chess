@@ -173,7 +173,7 @@ class MCTSPlayer(object):
     # 得到行动
     def get_action(self, board, temp=1e-3, return_prob=0):
         # 像alphaGo_Zero论文一样使用MCTS算法返回的pi向量
-        move_probs = np.zeros(2086)
+        move_probs = np.zeros(7712)  # 适配13x13棋盘的动作空间大小
 
         acts, probs = self.mcts.get_move_probs(board, temp)
         move_probs[list(acts)] = probs

@@ -32,16 +32,13 @@ class ResBlock(nn.Module):
         return self.conv2_act(y)
 
 
-# 搭建骨干网络，输入：N, 9, 10, 9 --> N, C, H, W
+# 搭建骨干网络，输入：N, 11, 13, 13 --> N, C, H, W
 class Net(nn.Module):
 
     def __init__(self, num_channels=256, num_res_blocks=7):
         super().__init__()
-        # 全局特征
-        # self.global_conv = nn.Conv2D(in_channels=9, out_channels=512, kernel_size=(10, 9))
-        # self.global_bn = nn.BatchNorm2D(512)
         # 初始化特征
-        self.conv_block = nn.Conv2d(in_channels=9, out_channels=num_channels, kernel_size=(3, 3), stride=(1, 1), padding=1)
+        self.conv_block = nn.Conv2d(in_channels=11, out_channels=num_channels, kernel_size=(3, 3), stride=(1, 1), padding=1)
         self.conv_block_bn = nn.BatchNorm2d(256)
         self.conv_block_act = nn.ReLU()
         # 残差块抽取特征
@@ -50,12 +47,12 @@ class Net(nn.Module):
         self.policy_conv = nn.Conv2d(in_channels=num_channels, out_channels=16, kernel_size=(1, 1), stride=(1, 1))
         self.policy_bn = nn.BatchNorm2d(16)
         self.policy_act = nn.ReLU()
-        self.policy_fc = nn.Linear(16 * 9 * 10, 2086)
+        self.policy_fc = nn.Linear(16 * 13 * 13, 7712)  # 适配13x13棋盘的动作空间大小
         # 价值头
         self.value_conv = nn.Conv2d(in_channels=num_channels, out_channels=8, kernel_size=(1, 1), stride=(1, 1))
         self.value_bn = nn.BatchNorm2d(8)
         self.value_act1 = nn.ReLU()
-        self.value_fc1 = nn.Linear(8 * 9 * 10, 256)
+        self.value_fc1 = nn.Linear(8 * 13 * 13, 256)  # 适配13x13棋盘
         self.value_act2 = nn.ReLU()
         self.value_fc2 = nn.Linear(256, 1)
         self.identity = nn.Identity()
@@ -72,14 +69,14 @@ class Net(nn.Module):
         policy = self.policy_conv(x)
         policy = self.policy_bn(policy)
         policy = self.policy_act(policy)
-        policy = torch.reshape(policy, [-1, 16 * 10 * 9])
+        policy = torch.reshape(policy, [-1, 16 * 13 * 13])  # 适配13x13棋盘
         policy = self.policy_fc(policy)
-        policy = F.log_softmax(policy)
+        policy = F.log_softmax(policy, dim=1)  # 修复警告，明确指定dim参数
         # 价值头
         value = self.value_conv(x)
         value = self.value_bn(value)
         value = self.value_act1(value)
-        value = torch.reshape(value, [-1, 8 * 10 * 9])
+        value = torch.reshape(value, [-1, 8 * 13 * 13])  # 适配13x13棋盘
         value = self.value_fc1(value)
         value = self.value_act1(value)
         value = self.value_fc2(value)
@@ -108,7 +105,7 @@ class PolicyValueNet:
         self.policy_value_net = Net().to(self.device)
         self.optimizer = torch.optim.Adam(params=self.policy_value_net.parameters(), lr=1e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=self.l2_const)
         if model_file:
-            self.policy_value_net.load_state_dict(torch.load(model_file))  # 加载模型参数
+            self.policy_value_net.load_state_dict(torch.load(model_file, weights_only=True))  # 加载模型参数
 
     # 输入一个批次的状态，输出一个批次的动作概率和状态价值
     def policy_value(self, state_batch):
@@ -124,7 +121,7 @@ class PolicyValueNet:
         self.policy_value_net.eval()
         # 获取合法动作列表
         legal_positions = board.availables
-        current_state = np.ascontiguousarray(board.current_state().reshape(-1, 9, 10, 9)).astype('float32')
+        current_state = np.ascontiguousarray(board.current_state().reshape(-1, 11, 13, 13)).astype('float32')  # 适配[11,13,13]棋盘
         current_state = torch.as_tensor(current_state).to(self.device)
         # 使用神经网络进行预测
         #with autocast(): #半精度fp16
@@ -177,7 +174,7 @@ class PolicyValueNet:
 
 if __name__ == '__main__':
     net = Net().to('cuda')
-    test_data = torch.ones([8, 9, 10, 9]).to('cuda')
+    test_data = torch.ones([8, 11, 13, 13]).to('cuda')  # 适配[11,13,13]棋盘
     x_act, x_val = net(test_data)
-    print(x_act.shape)  # 8, 2086
+    print(x_act.shape)  # 8, 7712
     print(x_val.shape)  # 8, 1

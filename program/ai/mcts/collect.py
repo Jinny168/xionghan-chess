@@ -6,7 +6,7 @@ import time
 from collections import deque
 
 from mcts_config import CONFIG
-from game import Board, Game, move_action2move_id, move_id2move_action, flip_map
+from mcts_game import Board, Game, move_action2move_id, move_id2move_action, flip_map
 from mcts import MCTSPlayer
 
 if CONFIG['use_redis']:
@@ -61,20 +61,39 @@ class CollectPipeline:
     def get_equi_data(self, play_data):
         """左右对称变换，扩充数据集一倍，加速一倍训练速度"""
         extend_data = []
-        # 棋盘状态shape is [9, 10, 9], 走子概率，赢家
+        # 棋盘状态shape is [11, 13, 13], 走子概率，赢家
         for state, mcts_prob, winner in play_data:
             # 原始数据
             extend_data.append(zip_array.zip_state_mcts_prob((state, mcts_prob, winner)))
             # 水平翻转后的数据
-            state_flip = state.transpose([1, 2, 0])
-            state = state.transpose([1, 2, 0])
-            for i in range(10):
-                for j in range(9):
-                    state_flip[i][j] = state[i][8 - j]
-            state_flip = state_flip.transpose([2, 0, 1])
+            state_flip = state.transpose([0, 2, 1])  # 交换宽和高的维度，保持通道维度不变
+            for i in range(11):  # 遍历通道维度
+                for j in range(13):  # 适配13x13棋盘
+                    state_flip[i][j] = state[i][12 - j]  # 水平翻转
             mcts_prob_flip = copy.deepcopy(mcts_prob)
             for i in range(len(mcts_prob_flip)):
-                mcts_prob_flip[i] = mcts_prob[move_action2move_id[flip_map(move_id2move_action[i])]]
+                try:
+                    # 检查索引是否在move_id2move_action范围内
+                    if i < len(move_id2move_action):
+                        original_action = move_id2move_action[i]
+                        flipped_action = flip_map(original_action)
+                        # 检查翻转后的动作是否在合法动作字典中
+                        if flipped_action in move_action2move_id:
+                            flipped_id = move_action2move_id[flipped_action]
+                            # 确保翻转后的ID在mcts_prob范围内
+                            if flipped_id < len(mcts_prob):
+                                mcts_prob_flip[i] = mcts_prob[flipped_id]
+                            else:
+                                mcts_prob_flip[i] = 0.0  # 如果翻转后的ID超出范围，设置为0
+                        else:
+                            # 如果翻转后的动作无效，设置为0
+                            mcts_prob_flip[i] = 0.0
+                    else:
+                        # 如果索引超出范围，设置为0
+                        mcts_prob_flip[i] = 0.0
+                except (KeyError, IndexError):
+                    # 如果出现任何错误，设置为0
+                    mcts_prob_flip[i] = 0.0
             extend_data.append(zip_array.zip_state_mcts_prob((state_flip, mcts_prob_flip, winner)))
         return extend_data
 
@@ -129,7 +148,9 @@ class CollectPipeline:
                             print('载入数据失败')
                         time.sleep(30)
                 else:
+                    print(f"训练数据文件不存在，将在 {CONFIG['train_data_buffer_path']} 创建新的数据文件")
                     self.data_buffer.extend(play_data)
+                    self.iters = 0  # 初始化迭代计数
                     self.iters += 1
             data_dict = {'data_buffer': self.data_buffer, 'iters': self.iters}
             with open(CONFIG['train_data_buffer_path'], 'wb') as data_file:
@@ -147,15 +168,13 @@ class CollectPipeline:
             print('\n\rquit')
 
 
-collecting_pipeline = CollectPipeline(init_model='current_policy.model')
-collecting_pipeline.run()
-
-if CONFIG['use_frame'] == 'paddle':
-    collecting_pipeline = CollectPipeline(init_model='current_policy.model')
+# 根据框架选择正确的初始化
+if __name__ == '__main__':
+    if CONFIG['use_frame'] == 'paddle':
+        collecting_pipeline = CollectPipeline(init_model=CONFIG['paddle_model_path'])
+    elif CONFIG['use_frame'] == 'pytorch':
+        collecting_pipeline = CollectPipeline(init_model=CONFIG['pytorch_model_path'])
+    else:
+        print('暂不支持您选择的框架')
+        exit()
     collecting_pipeline.run()
-elif CONFIG['use_frame'] == 'pytorch':
-    collecting_pipeline = CollectPipeline(init_model='current_policy.pkl')
-    collecting_pipeline.run()
-else:
-    print('暂不支持您选择的框架')
-    print('训练结束')

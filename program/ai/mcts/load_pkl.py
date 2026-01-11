@@ -1,4 +1,3 @@
-import pickle
 import pickletools
 
 with open("train_data_buffer.pkl", "rb") as file:

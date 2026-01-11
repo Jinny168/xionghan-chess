@@ -537,6 +537,7 @@ class GameState:
 
     def reset(self):
         """重置游戏状态"""
+        # 重新创建棋子，以便根据当前设置使用正确的布局
         self.__init__()
         
         # 重置棋谱滚动位置

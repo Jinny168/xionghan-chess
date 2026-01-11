@@ -141,6 +141,13 @@ class SettingsScreen:
                 "section_title": None,
                 "appear_checkbox": None,
                 "appear_label": None,
+            },
+            # 游戏模式设置
+            "game_mode": {
+                "classic_mode": None,               # 经典模式设置
+                "section_title": None,
+                "classic_checkbox": None,
+                "classic_label": None,
             }
         }
 
@@ -212,6 +219,9 @@ class SettingsScreen:
         self.piece_settings["jia"]["appear"] = game_config.get_setting("jia_appear", True)
         self.piece_settings["ci"]["appear"] = game_config.get_setting("ci_appear", True)
         self.piece_settings["dun"]["appear"] = game_config.get_setting("dun_appear", True)
+        
+        # 游戏模式设置
+        self.piece_settings["game_mode"]["classic_mode"] = game_config.get_setting("classic_mode", False)
 
     def create_ui_elements(self):
         """创建界面元素，按棋子类型进行分类"""
@@ -353,6 +363,13 @@ class SettingsScreen:
         y_pos += 30  # 为标题留出空间
         self.piece_settings["dun"]["appear_checkbox"] = pygame.Rect(checkbox_x, y_pos, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
         self.piece_settings["dun"]["appear_label"] = (label_x, y_pos)
+        y_pos += option_spacing + section_spacing
+        
+        # 游戏模式设置
+        self.piece_settings["game_mode"]["section_title"] = (left_col_x, y_pos - 10)
+        y_pos += 30  # 为标题留出空间
+        self.piece_settings["game_mode"]["classic_checkbox"] = pygame.Rect(checkbox_x, y_pos, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
+        self.piece_settings["game_mode"]["classic_label"] = (label_x, y_pos)
         y_pos += option_spacing + section_spacing
 
         # 确认按钮 & 返回按钮（位于界面底部，不受滚动影响）
@@ -535,6 +552,17 @@ class SettingsScreen:
             self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
             self.option_font, self.desc_font, self.draw_piece_icon,
             "盾", "盾", dun_items, y_offset
+        )
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 游戏模式分类
+        game_mode_items = self.create_game_mode_items(y_offset)
+        category_height = draw_category(
+            self.screen, self.category_background_color, self.category_border_color,
+            self.category_padding, self.category_title_height, self.category_title_font,
+            self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
+            self.option_font, self.desc_font, self.draw_piece_icon,
+            "模", "游戏模式", game_mode_items, y_offset
         )
         y_offset = y_offset + category_height + self.category_spacing
 
@@ -743,6 +771,19 @@ class SettingsScreen:
             category_height = len(dun_items) * 60 + self.category_title_height + 2 * self.category_padding
             y_offset = y_offset + category_height + self.category_spacing
             
+            # 游戏模式分类
+            game_mode_items = self.create_game_mode_items(y_offset)
+            clicked_item = self.check_category_click(game_mode_items, adjusted_mouse_pos, y_offset)
+            if clicked_item is not None:
+                checkbox, label, value, text, desc, is_disabled = clicked_item
+                if text == "经典模式":
+                    self.piece_settings["game_mode"]["classic_mode"] = not self.piece_settings["game_mode"]["classic_mode"]
+                return  # 处理完后直接返回，避免其他检测
+            
+            # 更新y_offset
+            category_height = len(game_mode_items) * 60 + self.category_title_height + 2 * self.category_padding
+            y_offset = y_offset + category_height + self.category_spacing
+            
             # 检查按钮点击（按钮不受滚动影响）
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.confirm_button.is_clicked(mouse_pos, event):
@@ -819,6 +860,9 @@ class SettingsScreen:
             "ci_appear": self.piece_settings["ci"]["appear"],
             "dun_appear": self.piece_settings["dun"]["appear"]
         }
+
+        # 添加游戏模式设置
+        settings["classic_mode"] = self.piece_settings["game_mode"]["classic_mode"]
 
         # 保存设置到全局配置
         game_config.update_settings(settings)
@@ -1301,5 +1345,16 @@ class SettingsScreen:
              self.piece_settings["dun"]["appear"], 
              "盾登场", 
              "盾登场", 
+             False)
+        ]
+
+    def create_game_mode_items(self, y_offset):
+        """创建游戏模式相关的设置项"""
+        return [
+            (self.piece_settings["game_mode"]["classic_checkbox"], 
+             self.piece_settings["game_mode"]["classic_label"], 
+             self.piece_settings["game_mode"]["classic_mode"], 
+             "经典模式", 
+             "采用传统布局，只包含车、马、相、士、将/帅、炮、兵/卒，以及新增的射和檑", 
              False)
         ]

@@ -1,4 +1,6 @@
 """全局配置管理模块"""
+from sympy import false
+
 # 棋盘尺寸常量
 BOARD_SIZE = 13
 # 窗口常量
@@ -67,6 +69,8 @@ class GameConfig:
             "jia_appear": True,     # 甲/胄登场
             "ci_appear": True,      # 刺登场
             "dun_appear": True,     # 盾登场
+            # 游戏模式设置
+            "classic_mode": True,  # 经典模式
         }
     
     def get_setting(self, key, default=None):

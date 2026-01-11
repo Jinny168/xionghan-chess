@@ -8,20 +8,29 @@ from collections import deque  # 这个队列用来判断长将或长捉
 
 import numpy as np
 
-from mcts_config import CONFIG
+from program.ai.mcts.mcts_config import CONFIG
+
+
+
+# 边界检查
+def check_bounds(toY, toX):
+    if toY in range(13) and toX in range(13):
+        return True
+    return False
+
 
 # 匈汉象棋使用13x13棋盘
 # 初始棋盘状态 - 使用匈汉象棋的初始布局
 # 列表来表示棋盘，红方在上，黑方在下。使用时需要使用深拷贝
 state_list_init = [
     # 0行
-    ['黑射', '一一', '黑甲', '一一', '黑礌', '一一', '黑衛', '一一', '黑礌', '一一', '黑甲', '一一', '黑射'],
+    ['黑射', '一一', '黑車', '一一', '黑礌', '一一', '一一', '一一', '黑礌', '一一', '黑車', '一一', '黑射'],
     # 1行
-    ['一一', '一一', '黑車', '黑馬', '黑象', '黑士', '黑汗', '黑士', '黑象', '黑馬', '黑車', '一一', '一一'],
+    ['一一', '一一', '一一', '黑馬', '黑象', '黑士', '黑汗', '黑士', '黑象', '黑馬', '一一', '一一', '一一'],
     # 2行
     ['一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一'],
     # 3行
-    ['一一','黑砲' , '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '黑砲', '一一'],
+    ['一一', '黑砲', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '黑砲', '一一'],
     # 4行
     ['黑卒', '一一', '黑卒', '一一', '黑卒', '一一', '黑卒', '一一', '黑卒', '一一', '黑卒', '一一', '黑卒'],
     # 5行
@@ -37,9 +46,9 @@ state_list_init = [
     # 10行
     ['一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一'],
     # 11行
-    ['一一', '一一', '红車', '红馬', '红象', '红仕', '红汉', '红仕', '红象', '红馬', '红車', '一一', '一一'],
+    ['一一', '一一', '一一', '红馬', '红象', '红仕', '红汉', '红仕', '红象', '红馬', '一一', '一一', '一一'],
     # 12行
-    ['红射', '一一', '红甲', '一一', '红檑', '一一', '红尉', '一一', '红檑', '一一', '红甲', '一一', '红射']
+    ['红射', '一一', '红車', '一一', '红檑', '一一', '一一', '一一', '红檑', '一一', '红車', '一一', '红射']
 ]
 
 # deque来存储棋盘状态，长度为4
@@ -48,29 +57,25 @@ for _ in range(4):
     state_deque_init.append(copy.deepcopy(state_list_init))
 
 # 构建一个字典：字符串到数组的映射，函数：数组到字符串的映射
-string2array = dict(红車=np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
-                    红馬=np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
-                    红象=np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]),
-                    红仕=np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]),
-                    红汉=np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]),
-                    红炮=np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]),
-                    红兵=np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]),
-                    红甲=np.array([0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]),
-                    红檑=np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]),
-                    红尉=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]),
-                    红射=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]),
-                    黑車=np.array([-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
-                    黑馬=np.array([0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
-                    黑象=np.array([0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0]),
-                    黑士=np.array([0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0]),
-                    黑汗=np.array([0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0]),
-                    黑砲=np.array([0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0]),
-                    黑卒=np.array([0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0]),
-                    黑甲=np.array([0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0]),
-                    黑礌=np.array([0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0]),
-                    黑衛=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0]),
-                    黑射=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1]),
-                    一一=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+string2array = dict(红車=np.array([1, 0, 0, 0, 0, 0, 0, 0, 0]),
+                    红馬=np.array([0, 1, 0, 0, 0, 0, 0, 0, 0]),
+                    红象=np.array([0, 0, 1, 0, 0, 0, 0, 0, 0]),
+                    红仕=np.array([0, 0, 0, 1, 0, 0, 0, 0, 0]),
+                    红汉=np.array([0, 0, 0, 0, 1, 0, 0, 0, 0]),
+                    红炮=np.array([0, 0, 0, 0, 0, 1, 0, 0, 0]),
+                    红兵=np.array([0, 0, 0, 0, 0, 0, 1, 0, 0]),
+                    红檑=np.array([0, 0, 0, 0, 0, 0, 0, 1, 0]),
+                    红射=np.array([0, 0, 0, 0, 0, 0, 0, 0, 1]),
+                    黑車=np.array([-1, 0, 0, 0, 0, 0, 0, 0, 0]),
+                    黑馬=np.array([0, -1, 0, 0, 0, 0, 0, 0, 0]),
+                    黑象=np.array([0, 0, -1, 0, 0, 0, 0, 0, 0]),
+                    黑士=np.array([0, 0, 0, -1, 0, 0, 0, 0, 0]),
+                    黑汗=np.array([0, 0, 0, 0, -1, 0, 0, 0, 0]),
+                    黑砲=np.array([0, 0, 0, 0, 0, -1, 0, 0, 0]),
+                    黑卒=np.array([0, 0, 0, 0, 0, 0, -1, 0, 0]),
+                    黑礌=np.array([0, 0, 0, 0, 0, 0, 0, -1, 0]),
+                    黑射=np.array([0, 0, 0, 0, 0, 0, 0, 0, -1]),
+                    一一=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]))
 
 
 def array2string(array):
@@ -92,18 +97,18 @@ def change_state(state_list, move):
 
 # 打印盘面，可视化用到
 def print_board(_state_array):
-    # _state_array: [11, 13, 13], CHW
+    # _state_array: [13, 13, 9], HWC
     board_line = []
     for i in range(13):
         for j in range(13):
-            board_line.append(array2string(_state_array[:, i, j]))  # 从CHW格式中提取棋子
+            board_line.append(array2string(_state_array[i, j, :]))  # 从HWC格式中提取棋子
         print(board_line)
         board_line.clear()
 
 
 # 列表棋盘状态到数组棋盘状态
 def state_list2state_array(state_list):
-    _state_array = np.zeros([13, 13, 11])  # [高度, 宽度, 特征平面数]
+    _state_array = np.zeros([13, 13, 9])  # [高度, 宽度, 特征平面数]，9种棋子
     for i in range(13):
         for j in range(13):
             _state_array[i][j] = string2array[state_list[i][j]]
@@ -121,19 +126,19 @@ def get_all_legal_moves():
     idx = 0
     # 预计算马走日的偏移量
     knight_moves = [(-2, -1), (-1, -2), (-2, 1), (1, -2), (2, -1), (-1, 2), (2, 1), (1, 2)]
-    
+
     for l1 in range(13):
         for n1 in range(13):
             # 车的移动：同一行或同一列
             destinations = []
-            # 直线移动（涵盖车/俥、甲/胄、兵/卒、尉/衛、炮/砲）
+            # 直线移动（涵盖车/俥、兵/卒、炮/砲）
             for t in range(13):
                 if t != n1:  # 排除原位置
                     destinations.append((l1, t))
             for t in range(13):
                 if t != l1:  # 排除原位置
                     destinations.append((t, n1))
-            
+
             # 斜向移动（涵盖相/象、射/射、士/仕）
             for (a, b) in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
                 # 沿着斜线方向移动
@@ -145,22 +150,22 @@ def get_all_legal_moves():
                         distance += 1
                     else:
                         break
-            
+
             # 马走日移动（L形）
             for (a, b) in knight_moves:
                 l2, n2 = l1 + a, n1 + b
                 # 检查边界
                 if check_bounds(l2, n2):
                     destinations.append((l2, n2))
-            
+
             # 处理所有目标位置
             for (l2, n2) in destinations:
-                if (l1, n1) != (l2, n2) and check_bounds( ):
+                if (l1, n1) != (l2, n2) and check_bounds(l2, n2):
                     action = f"{l1:02d}{n1:02d}{l2:02d}{n2:02d}"
                     _move_id2move_action[idx] = action
                     _move_action2move_id[action] = idx
                     idx += 1
-                    
+
     return _move_id2move_action, _move_action2move_id
 
 
@@ -169,13 +174,22 @@ move_id2move_action, move_action2move_id = get_all_legal_moves()
 
 # 走子翻转的函数，用来扩充我们的数据
 def flip_map(string):
-    new_str = ''
-    for index in range(4):
-        if index == 0 or index == 2:
-            new_str += (str(string[index]))
-        else:
-            new_str += (str(8 - int(string[index])))
-    return new_str
+    # 确保输入是8位字符串 (y1,y2,x1,x2 格式，每位都是两位数)
+    if len(string) != 8:
+        return string  # 如果格式不正确，返回原字符串
+    
+    # 解析字符串：前两位是from_y，中间两位是from_x，后四位分别是to_y和to_x
+    from_y = string[0:2]   # 前两位是起始y坐标
+    from_x = string[2:4]   # 第3-4位是起始x坐标
+    to_y = string[4:6]     # 第5-6位是目标y坐标
+    to_x = string[6:8]     # 第7-8位是目标x坐标
+    
+    # 水平翻转：y坐标不变，x坐标翻转（12 - x）
+    new_from_x = f"{12 - int(from_x):02d}"  # 确保两位数格式
+    new_to_x = f"{12 - int(to_x):02d}"      # 确保两位数格式
+    
+    # 返回翻转后的字符串
+    return from_y + new_from_x + to_y + new_to_x
 
 
 # 边界检查
@@ -297,17 +311,10 @@ def get_legal_moves(state_deque, current_player_color):
                                 moves.append(m)
 
             elif piece_type in ['汉', '汗']:  # 将/帅的走法
-                # 将/帅移动
+                # 将/帅只能在九宫内横向移动一格
                 king_moves = [
-                    (y - 1, x), (y + 1, x),  # 上下
                     (y, x - 1), (y, x + 1)  # 左右
                 ]
-
-                # 添加斜向移动（匈汉象棋规则）
-                king_moves.extend([
-                    (y - 1, x - 1), (y - 1, x + 1),  # 斜上
-                    (y + 1, x - 1), (y + 1, x + 1)  # 斜下
-                ])
 
                 for toy, tox in king_moves:
                     if 0 <= toy < 13 and 0 <= tox < 13:
@@ -358,27 +365,6 @@ def get_legal_moves(state_deque, current_player_color):
                         if change_state(state_list, m) != old_state_list:
                             moves.append(m)
 
-            # 匈汉象棋特有棋子
-            elif piece_type in ['甲', '胄']:  # 甲/胄的走法
-                # 甲/胄移动类似炮，但不能吃子，只能移动到空位
-                # 横向移动
-                for tox in range(13):
-                    if tox == x:
-                        continue
-                    m = f"{y:02d}{x:02d}{y:02d}{tox:02d}"
-                    if is_valid_jia_move(state_list, y, x, y, tox):
-                        if change_state(state_list, m) != old_state_list:
-                            moves.append(m)
-
-                # 纵向移动
-                for toy in range(13):
-                    if toy == y:
-                        continue
-                    m = f"{y:02d}{x:02d}{toy:02d}{x:02d}"
-                    if is_valid_jia_move(state_list, y, x, toy, x):
-                        if change_state(state_list, m) != old_state_list:
-                            moves.append(m)
-
             elif piece_type in ['檑', '礌']:  # 檑/礌的走法
                 # 檑/礌可以沿直线和斜线移动
                 # 横向、纵向、斜向移动
@@ -392,43 +378,25 @@ def get_legal_moves(state_deque, current_player_color):
                                 if change_state(state_list, m) != old_state_list:
                                     moves.append(m)
                             # 如果遇到棋子，根据规则决定是否继续
+                            # 对于檑来说，如果目标位置有敌方棋子且是孤立的（8邻域内），则可以吃子，但不再继续移动
+                            # 如果目标位置有棋子但不能吃，则停止移动
                             if state_list[toy][tox] != '一一':
                                 break
                         else:
                             break
 
-            elif piece_type in ['尉', '衛']:  # 尉/衛的走法
-                # 尉/衛跳跃移动规则
-                # 横向跳跃
-                for tox in range(13):
-                    if tox == x:
-                        continue
-                    m = f"{y:02d}{x:02d}{y:02d}{tox:02d}"
-                    if is_valid_wei_move(state_list, y, x, y, tox):
-                        if change_state(state_list, m) != old_state_list:
-                            moves.append(m)
-
-                # 纵向跳跃
-                for toy in range(13):
-                    if toy == y:
-                        continue
-                    m = f"{y:02d}{x:02d}{toy:02d}{x:02d}"
-                    if is_valid_wei_move(state_list, y, x, toy, x):
-                        if change_state(state_list, m) != old_state_list:
-                            moves.append(m)
-
             elif piece_type in ['射', '䠶']:  # 射/䠶的走法
-                # 射/䠶斜向移动
+                # 射/䠶斜向移动，最多3格
                 directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # 四个斜向方向
                 for dy, dx in directions:
-                    for dist in range(1, 13):  # 最多移动12格
+                    for dist in range(1, 4):  # 最多移动3格
                         toy, tox = y + dy * dist, x + dx * dist
                         if 0 <= toy < 13 and 0 <= tox < 13:
                             m = f"{y:02d}{x:02d}{toy:02d}{tox:02d}"
                             if is_valid_she_move(state_list, y, x, toy, tox):
                                 if change_state(state_list, m) != old_state_list:
                                     moves.append(m)
-                            # 如果遇到棋子，根据规则决定是否继续
+                            # 如果遇到棋子，停止移动
                             if state_list[toy][tox] != '一一':
                                 break
                         else:
@@ -516,6 +484,20 @@ def is_valid_elephant_move(state_list, from_y, from_x, to_y, to_x):
     if target_piece != '一一' and same_color(from_piece, target_piece):
         return False
 
+    # 检查象是否在己方区域内
+    from_piece = state_list[from_y][from_x]
+    piece_color = '红' if '红' in from_piece else '黑'
+    
+    # 检查起始位置和目标位置是否在己方区域内
+    if piece_color == '红':
+        # 红方相只能在7-12行活动
+        if from_y < 7 or to_y < 7:
+            return False
+    else:  # 黑方
+        # 黑方相只能在0-5行活动
+        if from_y > 5 or to_y > 5:
+            return False
+
     return True
 
 
@@ -534,25 +516,76 @@ def is_valid_advisor_move(state_list, from_y, from_x, to_y, to_x):
     if target_piece != '一一' and same_color(from_piece, target_piece):
         return False
 
-    return True
+    # 确定棋子颜色以判断九宫位置
+    piece_color = '红' if '红' in from_piece else '黑'
+    
+    # 定义九宫格的范围
+    if piece_color == '红':
+        # 红方九宫：行9-11，列5-7 (索引从0开始，即行9-11对应索引9-11，列5-7对应索引5-7)
+        palace_rows = [9, 10, 11]
+        palace_cols = [5, 6, 7]
+    else:  # 黑方
+        # 黑方九宫：行1-3，列5-7 (索引从0开始，即行1-3对应索引1-3，列5-7对应索引5-7)
+        palace_rows = [1, 2, 3]
+        palace_cols = [5, 6, 7]
+    
+    # 检查起始位置是否在九宫内
+    if from_y not in palace_rows or from_x not in palace_cols:
+        return False
+    
+    # 检查目标位置是否在九宫内
+    if to_y not in palace_rows or to_x not in palace_cols:
+        return False
+    
+    # 士只能斜走一格
+    row_diff = abs(to_y - from_y)
+    col_diff = abs(to_x - from_x)
+    
+    if row_diff == 1 and col_diff == 1:
+        return True
+    
+    return False
 
 
 # 辅助函数：检查将/帅的移动是否合法
 def is_valid_king_move(state_list, from_y, from_x, to_y, to_x):
-    row_diff = abs(to_y - from_y)
-    col_diff = abs(to_x - from_x)
-
-    # 将/帅只能移动一格（包括斜向）
-    if row_diff > 1 or col_diff > 1 or (row_diff == 0 and col_diff == 0):
-        return False
-
     # 检查目标位置是否有己方棋子
     from_piece = state_list[from_y][from_x]
     target_piece = state_list[to_y][to_x]
     if target_piece != '一一' and same_color(from_piece, target_piece):
         return False
 
-    return True
+    # 确定棋子颜色以判断九宫位置
+    piece_color = '红' if '红' in from_piece else '黑'
+    
+    # 定义九宫格的范围
+    if piece_color == '红':
+        # 红方九宫：行9-11，列5-7 (索引从0开始，即行9-11对应索引9-11，列5-7对应索引5-7)
+        palace_rows = [9, 10, 11]
+        palace_cols = [5, 6, 7]
+    else:  # 黑方
+        # 黑方九宫：行1-3，列5-7 (索引从0开始，即行1-3对应索引1-3，列5-7对应索引5-7)
+        palace_rows = [1, 2, 3]
+        palace_cols = [5, 6, 7]
+    
+    # 检查起始位置是否在九宫内
+    if from_y not in palace_rows or from_x not in palace_cols:
+        return False
+    
+    # 检查目标位置是否在九宫内
+    if to_y not in palace_rows or to_x not in palace_cols:
+        return False
+    
+    # 将/帅只能在九宫内横向移动一格
+    row_diff = abs(to_y - from_y)
+    col_diff = abs(to_x - from_x)
+
+    if row_diff == 0 and col_diff == 1:
+        return True
+    if row_diff == 1 and col_diff == 0:
+        return True
+    # 斜向移动不允许
+    return False
 
 
 # 辅助函数：检查炮的移动是否合法
@@ -585,32 +618,6 @@ def is_valid_cannon_move(state_list, from_y, from_x, to_y, to_x):
         return pieces_in_path == 0
 
 
-# 辅助函数：检查甲/胄的移动是否合法
-def is_valid_jia_move(state_list, from_y, from_x, to_y, to_x):
-    if from_y != to_y and from_x != to_x:
-        return False  # 甲/胄只能横或竖移动
-
-    # 目标位置必须为空
-    if state_list[to_y][to_x] != '一一':
-        return False
-
-    # 检查路径上是否有棋子阻挡
-    pieces_in_path = 0
-    if from_y == to_y:  # 横向移动
-        start, end = min(from_x, to_x), max(from_x, to_x)
-        for x in range(start + 1, end):
-            if state_list[from_y][x] != '一一':
-                pieces_in_path += 1
-    else:  # 纵向移动
-        start, end = min(from_y, to_y), max(from_y, to_y)
-        for y in range(start + 1, end):
-            if state_list[y][from_x] != '一一':
-                pieces_in_path += 1
-
-    # 移动时不能有棋子阻隔
-    return pieces_in_path == 0
-
-
 # 辅助函数：检查檑/礌的移动是否合法
 def is_valid_lei_move(state_list, from_y, from_x, to_y, to_x):
     row_diff = to_y - from_y
@@ -620,7 +627,29 @@ def is_valid_lei_move(state_list, from_y, from_x, to_y, to_x):
     if not (row_diff == 0 or col_diff == 0 or abs(row_diff) == abs(col_diff)):
         return False
 
-    # 检查路径上是否有棋子
+    # 检查目标位置是否有棋子（吃子）
+    from_piece = state_list[from_y][from_x]
+    target_piece = state_list[to_y][to_x]
+    
+    # 如果目标位置有棋子，需要判断是否在8邻域内且棋子是孤立的
+    if target_piece != '一一':
+        # 不能吃己方棋子
+        if same_color(from_piece, target_piece):
+            return False
+        
+        # 檑只能攻击8邻域内的孤立棋子
+        dist_y = abs(to_y - from_y)
+        dist_x = abs(to_x - from_x)
+        
+        # 如果距离超过1格，则不能吃子
+        if dist_y > 1 or dist_x > 1:
+            return False
+        
+        # 检查目标棋子是否孤立（周围没有同色棋子）
+        if not is_isolated(state_list, to_y, to_x):
+            return False
+    
+    # 检查路径上是否有棋子（对于非邻接移动）
     if row_diff == 0:  # 横向移动
         step = 1 if col_diff > 0 else -1
         for x in range(from_x + step, to_x, step):
@@ -641,39 +670,8 @@ def is_valid_lei_move(state_list, from_y, from_x, to_y, to_x):
             y += y_step
             x += x_step
 
-    # 检查目标位置是否有己方棋子
-    from_piece = state_list[from_y][from_x]
-    target_piece = state_list[to_y][to_x]
-    if target_piece != '一一' and same_color(from_piece, target_piece):
-        return False
-
     return True
 
-
-# 辅助函数：检查尉/衛的移动是否合法
-def is_valid_wei_move(state_list, from_y, from_x, to_y, to_x):
-    if from_y != to_y and from_x != to_x:
-        return False  # 尉/衛暂时按直线移动
-
-    # 检查目标位置是否有己方棋子
-    from_piece = state_list[from_y][from_x]
-    target_piece = state_list[to_y][to_x]
-    if target_piece != '一一' and same_color(from_piece, target_piece):
-        return False
-
-    # 检查路径上是否有棋子（根据具体规则实现）
-    if from_y == to_y:  # 横向移动
-        start, end = min(from_x, to_x), max(from_x, to_x)
-        for x in range(start + 1, end):
-            if state_list[from_y][x] != '一一':
-                return False
-    else:  # 纵向移动
-        start, end = min(from_y, to_y), max(from_y, to_y)
-        for y in range(start + 1, end):
-            if state_list[y][from_x] != '一一':
-                return False
-
-    return True
 
 
 # 辅助函数：检查射/䠶的移动是否合法
@@ -683,6 +681,10 @@ def is_valid_she_move(state_list, from_y, from_x, to_y, to_x):
 
     # 射/䠶只能斜向移动
     if row_diff != col_diff or row_diff == 0:
+        return False
+    
+    # 移动距离限制：至多斜向移动3格
+    if row_diff > 3:
         return False
 
     # 检查目标位置是否有己方棋子
@@ -708,6 +710,39 @@ def is_valid_she_move(state_list, from_y, from_x, to_y, to_x):
 # 辅助函数：判断两个棋子是否同色
 def same_color(piece1, piece2):
     return ('红' in piece1 and '红' in piece2) or ('黑' in piece1 and '黑' in piece2)
+
+
+def is_isolated(state_list, row, col):
+    """检查指定位置的棋子是否孤立（周围8个方向没有同色棋子）
+    
+    Args:
+        state_list: 棋盘状态列表
+        row, col: 棋子位置
+        
+    Returns:
+        bool: 如果棋子孤立返回True，否则返回False
+    """
+    if state_list[row][col] == '一一':
+        return False
+        
+    target_piece = state_list[row][col]
+    color = '红' if '红' in target_piece else '黑'
+    
+    # 检查四个方向：上、下、左、右
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    
+    for dr, dc in directions:
+        adjacent_row, adjacent_col = row + dr, col + dc
+        
+        # 检查相邻位置是否在棋盘范围内
+        if 0 <= adjacent_row < 13 and 0 <= adjacent_col < 13:
+            adjacent_piece = state_list[adjacent_row][adjacent_col]
+            # 如果相邻位置有棋子且颜色相同，则目标棋子不是孤立的
+            if adjacent_piece != '一一' and (('红' in adjacent_piece and color == '红') or ('黑' in adjacent_piece and color == '黑')):
+                return False  # 发现相邻的同色棋子，不是孤立的
+    
+    # 四个方向都没有同色棋子，说明是孤立的
+    return True
 
 
 # 棋盘逻辑控制
@@ -752,32 +787,31 @@ class Board(object):
     def availables(self):
         return get_legal_moves(self.state_deque, self.current_player_color)
 
-    # 从当前玩家的视角返回棋盘状态，current_state_array: [15, 13, 13]  CHW
+    # 从当前玩家的视角返回棋盘状态，current_state_array: [11, 13, 13]  CHW
     def current_state(self):
-        _current_state = np.zeros([15, 13, 13])
-        # 使用15个平面来表示棋盘状态
-        # 0-10个平面表示棋子位置，1代表红方棋子，-1代表黑方棋子, 队列最后一个盘面
-        # 第11个平面表示对手player最近一步的落子位置，走子之前的位置为-1，走子之后的位置为1，其余全部是0
-        # 第12个平面表示的是当前player是不是先手player，如果是先手player则整个平面全部为1，否则全部为0
-        # 第13-14个平面（共3个）作为额外特征
+        _current_state = np.zeros([11, 13, 13])
+        # 使用13个平面来表示棋盘状态
+        # 0-8个平面表示棋子位置，1代表红方棋子，-1代表黑方棋子, 队列最后一个盘面
+        # 第9个平面表示对手player最近一步的落子位置，走子之前的位置为-1，走子之后的位置为1，其余全部是0
+        # 第10个平面表示的是当前player是不是先手player，如果是先手player则整个平面全部为1，否则全部为0
         _state_array = state_list2state_array(self.state_deque[-1])
-        _current_state[:11] = _state_array.transpose([2, 0, 1])  # [11, 13, 13]
+        _current_state[:9] = _state_array.transpose([2, 0, 1])  # [9, 13, 13]
 
         if self.game_start:
             # 解构self.last_move
-            if self.last_move >= 0 and self.last_move < len(move_id2move_action):
+            if self.last_move >= 0 and self.last_move in move_id2move_action:
                 move = move_id2move_action[self.last_move]
                 start_y = int(move[0:2])
                 start_x = int(move[2:4])
                 end_y = int(move[4:6])
                 end_x = int(move[6:8])
-                _current_state[11][start_y][start_x] = -1
-                _current_state[11][end_y][end_x] = 1
+                _current_state[9][start_y][start_x] = -1
+                _current_state[9][end_y][end_x] = 1
         # 指出当前是哪个玩家走子
         if self.action_count % 2 == 0:
-            _current_state[12][:, :] = 1.0
+            _current_state[10][:, :] = 1.0
         else:
-            _current_state[12][:, :] = -1.0
+            _current_state[10][:, :] = -1.0
 
         return _current_state
 
@@ -785,6 +819,8 @@ class Board(object):
     def do_move(self, move):
         self.game_start = True  # 游戏开始
         self.action_count += 1  # 移动次数加1
+        if move not in move_id2move_action:
+            raise ValueError(f"Invalid move id: {move}")
         move_action = move_id2move_action[move]
         start_y = int(move_action[0:2])
         start_x = int(move_action[2:4])
@@ -921,25 +957,28 @@ class Game(object):
 
 if __name__ == '__main__':
     # 测试array2string
-    # _array = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    # _array = np.array([0, 0, 0, 0, 0, 0, 0, 0, -1])
     # print(array2string(_array))
 
-    """# 测试change_state
-    new_state = change_state(state_list_init, move='00000101')
-    for row in range(13):
-        print(new_state[row])"""
 
-    """# 测试print_board
-    _state_list = copy.deepcopy(state_list_init)
-    print_board(state_list2state_array(_state_list))"""
+    # 测试change_state
+    # new_state = change_state(state_list_init, move='03010306')
+    # for row in range(13):
+    #     print(new_state[row])
 
-    """# 测试get_legal_moves
-    moves = get_legal_moves(state_deque_init, current_player_color='黑')
-    move_actions = []
-    for item in moves:
-        if item in move_id2move_action:
-            move_actions.append(move_id2move_action[item])
-    print(move_actions)"""
+
+    # 测试print_board
+    # _state_list = copy.deepcopy(state_list_init)
+    # print_board(state_list2state_array(_state_list))
+
+
+    # 测试get_legal_moves
+    # moves = get_legal_moves(state_deque_init, current_player_color='黑')
+    # move_actions = []
+    # for item in moves:
+    #     if item in move_id2move_action:
+    #         move_actions.append(move_id2move_action[item])
+    # print(move_actions)
 
 
     # 测试Board中的start_play

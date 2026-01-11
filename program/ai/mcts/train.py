@@ -2,21 +2,21 @@
 """使用收集到数据进行训练"""
 
 
+import pickle
 import random
+import time
+import os
 from collections import defaultdict, deque
 
 import numpy as np
-import pickle
-import time
 
-import zip_array
-from mcts_config import CONFIG
-from game import Game, Board
 from mcts import MCTSPlayer
+from mcts_config import CONFIG
+from mcts_game import Game, Board
 from mcts_pure import MCTS_Pure
 
 if CONFIG['use_redis']:
-    import my_redis, redis
+    import my_redis
     import zip_array
 
 if CONFIG['use_frame'] == 'paddle':
@@ -48,19 +48,31 @@ class TrainPipeline:
         self.pure_mcts_playout_num = 500
         if CONFIG['use_redis']:
             self.redis_cli = my_redis.get_redis_cli()
-        self.buffer_size = maxlen=CONFIG['buffer_size']
+        self.buffer_size = CONFIG['buffer_size']
         self.data_buffer = deque(maxlen=self.buffer_size)
+        # 检查是否为模型迁移，如果是从中国象棋迁移到匈汉象棋，需要特别注意
         if init_model:
             try:
                 self.policy_value_net = PolicyValueNet(model_file=init_model)
                 print('已加载上次最终模型')
-            except:
+                
+                # 检查模型是否适合当前棋盘大小（匈汉象棋与传统象棋不同）
+                print('警告: 正在加载预训练模型，请注意模型可能需要适应匈汉象棋的特殊规则')
+                print('建议在训练初期使用较小的学习率以减少迁移影响')
+                
+            except Exception as e:
                 # 从零开始训练
-                print('模型路径不存在，从零开始训练')
+                print(f'模型路径不存在或模型格式不兼容: {e}')
+                print('从零开始训练')
                 self.policy_value_net = PolicyValueNet()
         else:
             print('从零开始训练')
             self.policy_value_net = PolicyValueNet()
+        
+        # 记录训练进度信息
+        self.training_start_time = time.time()
+        self.last_update_time = time.time()
+        self.total_updates = 0
 
 
     def policy_evaluate(self, n_games=10):
@@ -181,8 +193,19 @@ class TrainPipeline:
     def run(self):
         """开始训练"""
         try:
+            print(f"开始训练 - 总批次数: {self.game_batch_num}")
+            print(f"训练起始时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"使用数据源: {'Redis' if CONFIG['use_redis'] else '本地文件'}")
+            print(f"使用框架: {CONFIG['use_frame']}")
+            
             for i in range(self.game_batch_num):
                 if not CONFIG['use_redis']:
+                    # 检查数据文件是否存在
+                    if not os.path.exists(CONFIG['train_data_buffer_path']):
+                        print(f"等待训练数据文件创建... ({CONFIG['train_data_buffer_path']})")
+                        time.sleep(30)  # 等待30秒后重试
+                        continue
+                    
                     while True:
                         try:
                             with open(CONFIG['train_data_buffer_path'], 'rb') as data_dict:
@@ -190,17 +213,17 @@ class TrainPipeline:
                                 self.data_buffer = data_file['data_buffer']
                                 self.iters = data_file['iters']
                                 del data_file
-                            print('已载入数据')
+                            print(f'已载入数据，当前数据量: {len(self.data_buffer)}')
                             break
                         except FileNotFoundError:
                             print("载入数据失败，文件未找到")
+                            time.sleep(30)
                         except IOError:
                             print("载入数据失败，文件读取错误")
+                            time.sleep(30)
                         except Exception as e:
                             print("载入数据失败，其他异常:", str(e))
-                        except:
-                            print('载入数据失败')
-                        time.sleep(30)
+                            time.sleep(30)
                 else:
                     while True:
                         try:
@@ -224,19 +247,34 @@ class TrainPipeline:
                             print('载入数据失败')
                         time.sleep(30)
 
-                print('step i {} , data_buffer len {}'.format(self.iters, len(self.data_buffer)))
+                # 计算训练进度
+                progress_percent = (i + 1) / self.game_batch_num * 100
+                elapsed_time = time.time() - self.training_start_time
+                avg_time_per_iter = elapsed_time / (i + 1) if i + 1 > 0 else 0
+                estimated_total_time = avg_time_per_iter * self.game_batch_num
+                remaining_time = estimated_total_time - elapsed_time
+                
+                print(f'[进度: {progress_percent:.2f}%] step i {self.iters} , data_buffer len {len(self.data_buffer)}')
+                print(f'已用时间: {elapsed_time/3600:.2f}小时, 预估剩余时间: {remaining_time/3600:.2f}小时')
+                
                 if len(self.data_buffer) > self.batch_size:
+                    print(f"开始训练更新 #{i+1}, 数据批量大小: {self.batch_size}")
                     loss, entropy = self.policy_updata()
+                    self.total_updates += 1
+                    
                     # 保存模型
                     if CONFIG['use_frame'] == 'paddle':
                         self.policy_value_net.save_model(CONFIG['paddle_model_path'])
+                        print(f'已保存Paddle模型到 {CONFIG["paddle_model_path"]}')
                     elif CONFIG['use_frame'] == 'pytorch':
-                        #if (i + 1) % 10 == 0:
-                            #print("【save model】")
-                            self.policy_value_net.save_model(CONFIG['pytorch_model_path'])
+                        self.policy_value_net.save_model(CONFIG['pytorch_model_path'])
+                        print(f'已保存PyTorch模型到 {CONFIG["pytorch_model_path"]}')
                     else:
                         print('不支持所选框架')
+                else:
+                    print(f"数据量不足，当前数据量: {len(self.data_buffer)}, 需要至少: {self.batch_size}")
 
+                print(f"等待下次更新... ({CONFIG['train_update_interval']}秒)")
                 time.sleep(CONFIG['train_update_interval'])  # 每x分钟更新一次模型
 
                 if (i + 1) % self.check_freq == 0:
@@ -254,9 +292,18 @@ class TrainPipeline:
                     #         self.best_win_ratio = 0.0
                     print("current self-play batch: {}".format(i + 1))
                     self.policy_value_net.save_model('models/current_policy_batch{}.model'.format(i + 1))
+                    print(f'已保存检查点模型到 models/current_policy_batch{i+1}.model')
+            
+            print(f"训练完成 - 总更新次数: {self.total_updates}")
+            print(f"训练结束时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            
         except KeyboardInterrupt:
             print('\n\rquit')
+            print(f"训练被中断 - 总更新次数: {self.total_updates}")
+            print(f"实际训练时间: {(time.time() - self.training_start_time)/3600:.2f}小时")
 
+
+import os
 
 if CONFIG['use_frame'] == 'paddle':
     training_pipeline = TrainPipeline(init_model='current_policy.model')

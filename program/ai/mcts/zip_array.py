@@ -1,29 +1,31 @@
 # coding=utf-8
 import numpy as np
 
-num2array = dict({1 : np.array([1, 0, 0, 0, 0, 0, 0]), 2: np.array([0, 1, 0, 0, 0, 0, 0]),
-                  3: np.array([0, 0, 1, 0, 0, 0, 0]), 4: np.array([0, 0, 0, 1, 0, 0, 0]),
-                  5: np.array([0, 0, 0, 0, 1, 0, 0]), 6: np.array([0, 0, 0, 0, 0, 1, 0]),
-                  7: np.array([0, 0, 0, 0, 0, 0, 1]), 8: np.array([-1, 0, 0, 0, 0, 0, 0]),
-                  9: np.array([0, -1, 0, 0, 0, 0, 0]), 10: np.array([0, 0, -1, 0, 0, 0, 0]),
-                  11: np.array([0, 0, 0, -1, 0, 0, 0]), 12: np.array([0, 0, 0, 0, -1, 0, 0]),
-                  13: np.array([0, 0, 0, 0, 0, -1, 0]), 14: np.array([0, 0, 0, 0, 0, 0, -1]),
-                  15: np.array([0, 0, 0, 0, 0, 0, 0])})
+num2array = dict({1 : np.array([1, 0, 0, 0, 0, 0, 0, 0, 0]), 2: np.array([0, 1, 0, 0, 0, 0, 0, 0, 0]),
+                  3: np.array([0, 0, 1, 0, 0, 0, 0, 0, 0]), 4: np.array([0, 0, 0, 1, 0, 0, 0, 0, 0]),
+                  5: np.array([0, 0, 0, 0, 1, 0, 0, 0, 0]), 6: np.array([0, 0, 0, 0, 0, 1, 0, 0, 0]),
+                  7: np.array([0, 0, 0, 0, 0, 0, 1, 0, 0]), 8: np.array([0, 0, 0, 0, 0, 0, 0, 1, 0]),
+                  9: np.array([0, 0, 0, 0, 0, 0, 0, 0, 1]), 10: np.array([-1, 0, 0, 0, 0, 0, 0, 0, 0]),
+                  11: np.array([0, -1, 0, 0, 0, 0, 0, 0, 0]), 12: np.array([0, 0, -1, 0, 0, 0, 0, 0, 0]),
+                  13: np.array([0, 0, 0, -1, 0, 0, 0, 0, 0]), 14: np.array([0, 0, 0, 0, -1, 0, 0, 0, 0]),
+                  15: np.array([0, 0, 0, 0, 0, -1, 0, 0, 0]), 16: np.array([0, 0, 0, 0, 0, 0, -1, 0, 0]),
+                  17: np.array([0, 0, 0, 0, 0, 0, 0, -1, 0]), 18: np.array([0, 0, 0, 0, 0, 0, 0, 0, -1]),
+                  19: np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])})
 def array2num(array):
     return list(filter(lambda string: (num2array[string] == array).all(), num2array))[0]
 
 # 压缩存储
 def state_list2state_num_array(state_list):
-    _state_array = np.zeros([10, 9, 7])
-    for i in range(10):
-        for j in range(9):
+    _state_array = np.zeros([13, 13, 9])  # 适配13x13棋盘，9种棋子
+    for i in range(13):
+        for j in range(13):
             _state_array[i][j] = num2array[state_list[i][j]]
     return _state_array
 
-#(state, mcts_prob, winner) ((9,10,9),2086,1) => ((9,90),(2,1043),1)
+#(state, mcts_prob, winner) ((11,13,13),7712,1) => ((11,169),(2,3856),1)
 def zip_state_mcts_prob(tuple):
     state, mcts_prob, winner = tuple
-    state = state.reshape((9,-1))
+    state = state.reshape((11,-1))  # 适配[11,13,13]棋盘
     mcts_prob = mcts_prob.reshape((2,-1))
     state = zip_array(state)
     mcts_prob = zip_array(mcts_prob)
@@ -33,8 +35,8 @@ def recovery_state_mcts_prob(tuple):
     state, mcts_prob, winner = tuple
     state = recovery_array(state)
     mcts_prob = recovery_array(mcts_prob)
-    state = state.reshape((9,10,9))
-    mcts_prob = mcts_prob.reshape(2086)
+    state = state.reshape((11,13,13))  # 适配[11,13,13]棋盘
+    mcts_prob = mcts_prob.reshape(7712)  # 适配13x13棋盘的动作空间大小
     return state,mcts_prob,winner
 
 def zip_array(array, data=0.):  # 压缩成稀疏数组

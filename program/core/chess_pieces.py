@@ -303,46 +303,94 @@ def create_initial_pieces():
     """
     pieces = []
 
-    # 定义初始布局配置
-    black_pieces_config = [
-        # 第0行
-        (Jia, 0, 2), (Jia, 0, 10), (She, 0, 0), (She, 0, 12),
-        (Lei, 0, 4), (Lei, 0, 8), (Wei, 0, 6),
-        (Ci, 0, 3), (Ci, 0, 9),  # 刺
-        (Dun, 0, 1), (Dun, 0, 11),  # 盾
-        # 第1行
-        (Ju, 1, 2), (Ma, 1, 3), (Xiang, 1, 4), (Shi, 1, 5),
-        (King, 1, 6), (Shi, 1, 7), (Xiang, 1, 8), (Ma, 1, 9), (Ju, 1, 10),
-        # 第3行
-        (Pao, 3, 1), (Pao, 3, 11),
-        # 第4行
-        (Pawn, 4, 0), (Pawn, 4, 2), (Pawn, 4, 4), (Pawn, 4, 6),
-        (Pawn, 4, 8), (Pawn, 4, 10), (Pawn, 4, 12)
-    ]
+    # 检查是否启用经典模式
+    classic_mode = game_config.get_setting("classic_mode", False)
+    
+    if classic_mode:
+        # 经典模式布局 - 只包含传统象棋棋子及新增的射和檑
+        # 类似于传统中国象棋布局，但利用13x13棋盘的特性
+        black_pieces_config = [
+            # 第0行 - 黑方底线
+            (She, 0, 0), (She, 0, 12), (Ju, 0, 10),(Ju, 0, 2),(Lei, 0, 4), (Lei, 0, 8),
+            # 第1行
+             (Ma, 1, 3), (Xiang, 1, 4), (Shi, 1, 5), (King, 1, 6), (Shi, 1, 7), (Xiang, 1, 8), (Ma, 1, 9),
+            # 第3行
+            (Pao, 3, 1), (Pao, 3, 11),  # 炮在第三行两侧
+            # 第4行
+            (Pawn, 4, 0), (Pawn, 4, 2), (Pawn, 4, 4), (Pawn, 4, 6),
+            (Pawn, 4, 8), (Pawn, 4, 10), (Pawn, 4, 12)  # 兵在第四行间隔排列
+        ]
 
-    red_pieces_config = [
-        # 第12行 (红方底线)
-        (Dun, 12, 1), (She, 12, 0), (Jia, 12, 2), (Jia, 12, 10),
-        (Ci, 12, 3), (Ci, 12, 9), (Wei, 12, 6),
-        (Lei, 12, 4), (Lei, 12, 8), (She, 12, 12), (Dun, 12, 11),
-        # 第11行
-        (Ju, 11, 2), (Ma, 11, 3), (Xiang, 11, 4), (Shi, 11, 5),
-        (King, 11, 6), (Shi, 11, 7), (Xiang, 11, 8), (Ma, 11, 9), (Ju, 11, 10),
-        # 第9行
-        (Pao, 9, 1), (Pao, 9, 11),
-        # 第8行
-        (Pawn, 8, 0), (Pawn, 8, 2), (Pawn, 8, 4), (Pawn, 8, 6),
-        (Pawn, 8, 8), (Pawn, 8, 10), (Pawn, 8, 12)
-    ]
+        red_pieces_config = [
+            # 第12行 - 红方底线
+            (She, 12, 0), (She, 12, 12),
+            (Lei, 12, 4), (Lei, 12, 8),
+             (Ju, 12, 10),(Ju, 12, 2),
+            # 第11行
+            (Ma, 11, 3), (Xiang, 11, 4), (Shi, 11, 5),
+            (King, 11, 6), (Shi, 11, 7), (Xiang, 11, 8), (Ma, 11, 9),
+
+            # 第9行
+            (Pao, 9, 1), (Pao, 9, 11),  # 炮在第九行两侧
+            # 第8行
+            (Pawn, 8, 0), (Pawn, 8, 2), (Pawn, 8, 4), (Pawn, 8, 6),
+            (Pawn, 8, 8), (Pawn, 8, 10), (Pawn, 8, 12)  # 兵在第八行间隔排列
+        ]
+    else:
+        # 原始布局配置
+        black_pieces_config = [
+            # 第0行
+            (Jia, 0, 2), (Jia, 0, 10), (She, 0, 0), (She, 0, 12),
+            (Lei, 0, 4), (Lei, 0, 8), (Wei, 0, 6),
+            (Ci, 0, 3), (Ci, 0, 9),  # 刺
+            (Dun, 0, 1), (Dun, 0, 11),  # 盾
+            # 第1行
+            (Ju, 1, 2), (Ma, 1, 3), (Xiang, 1, 4), (Shi, 1, 5),
+            (King, 1, 6), (Shi, 1, 7), (Xiang, 1, 8), (Ma, 1, 9), (Ju, 1, 10),
+            # 第3行
+            (Pao, 3, 1), (Pao, 3, 11),
+            # 第4行
+            (Pawn, 4, 0), (Pawn, 4, 2), (Pawn, 4, 4), (Pawn, 4, 6),
+            (Pawn, 4, 8), (Pawn, 4, 10), (Pawn, 4, 12)
+        ]
+
+        red_pieces_config = [
+            # 第12行 (红方底线)
+            (Dun, 12, 1), (She, 12, 0), (Jia, 12, 2), (Jia, 12, 10),
+            (Ci, 12, 3), (Ci, 12, 9), (Wei, 12, 6),
+            (Lei, 12, 4), (Lei, 12, 8), (She, 12, 12), (Dun, 12, 11),
+            # 第11行
+            (Ju, 11, 2), (Ma, 11, 3), (Xiang, 11, 4), (Shi, 11, 5),
+            (King, 11, 6), (Shi, 11, 7), (Xiang, 11, 8), (Ma, 11, 9), (Ju, 11, 10),
+            # 第9行
+            (Pao, 9, 1), (Pao, 9, 11),
+            # 第8行
+            (Pawn, 8, 0), (Pawn, 8, 2), (Pawn, 8, 4), (Pawn, 8, 6),
+            (Pawn, 8, 8), (Pawn, 8, 10), (Pawn, 8, 12)
+        ]
 
     # 添加黑方棋子，根据设置决定是否添加
     for piece_class, row, col in black_pieces_config:
-        if should_include_piece(piece_class.__name__):
-            pieces.append(piece_class("black", row, col))
+        # 在经典模式下，只包含特定棋子
+        if classic_mode:
+            # 经典模式只包含车、马、相、士、将/帅、炮、兵/卒，以及新增的射和檑
+            if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei]:
+                pieces.append(piece_class("black", row, col))
+        else:
+            # 原始模式根据设置决定是否包含棋子
+            if should_include_piece(piece_class.__name__):
+                pieces.append(piece_class("black", row, col))
 
     # 添加红方棋子，根据设置决定是否添加
     for piece_class, row, col in red_pieces_config:
-        if should_include_piece(piece_class.__name__):
-            pieces.append(piece_class("red", row, col))
+        # 在经典模式下，只包含特定棋子
+        if classic_mode:
+            # 经典模式只包含车、马、相、士、将/帅、炮、兵/卒，以及新增的射和檑
+            if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei]:
+                pieces.append(piece_class("red", row, col))
+        else:
+            # 原始模式根据设置决定是否包含棋子
+            if should_include_piece(piece_class.__name__):
+                pieces.append(piece_class("red", row, col))
 
     return pieces

@@ -1,14 +1,13 @@
 # coding=utf-8
-import pygame
-import sys
 import copy
-import random
-from game import move_action2move_id, Game, Board
-from mcts import MCTSPlayer
+import sys
 import time
+
+import pygame
+
+from mcts import MCTSPlayer
 from mcts_config import CONFIG
-
-
+from mcts_game import move_action2move_id, Board
 
 if CONFIG['use_frame'] == 'paddle':
     from paddle_net import PolicyValueNet
