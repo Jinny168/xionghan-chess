@@ -7,7 +7,7 @@ import pygame
 
 from mcts import MCTSPlayer
 from mcts_config import CONFIG
-from mcts_game import move_action2move_id, Board
+from mcts_game import move_action2move_id, Board, move_id2move_action
 
 if CONFIG['use_frame'] == 'paddle':
     from paddle_net import PolicyValueNet
@@ -26,7 +26,7 @@ class Human:
         # move从鼠标点击事件触发
         # print('当前是player2在操作')
         # print(board.current_player_color)
-        if  move_action2move_id.__contains__(move):
+        if move in move_action2move_id:
             move = move_action2move_id[move]
         else:
             move = -1
@@ -37,12 +37,20 @@ class Human:
         self.player = p
 
 
-if CONFIG['use_frame'] == 'paddle':
-    policy_value_net = PolicyValueNet(model_file='current_policy.model')
-elif CONFIG['use_frame'] == 'pytorch':
-    policy_value_net = PolicyValueNet(model_file='current_policy.pkl')
-else:
-    print('暂不支持您选择的框架')
+try:
+    if CONFIG['use_frame'] == 'paddle':
+        policy_value_net = PolicyValueNet(model_file='current_policy.model')
+    elif CONFIG['use_frame'] == 'pytorch':
+        policy_value_net = PolicyValueNet(model_file='current_policy.pkl')
+    else:
+        print('暂不支持您选择的框架')
+        sys.exit()
+except FileNotFoundError:
+    print('警告: 找不到模型文件，只能进行人人对战模式')
+    policy_value_net = None
+except Exception as e:
+    print(f'加载模型时发生错误: {e}')
+    sys.exit()
 
 # 初始化pygame
 pygame.init()
@@ -114,12 +122,12 @@ except pygame.error:
 try:
     str2image = {
         '红俥': pygame.transform.smoothscale(pygame.image.load("imgs/hongche.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
-        '红傌': pygame.transform.smoothscale(pygame.image.load("imgs/hongma.png").convert_alpha(), (width // 10 - 10, height // 10 - 10)),
-        '红相': pygame.transform.smoothscale(pygame.image.load("imgs/hongxiang.png").convert_alpha(), (width // 10 - 10, height // 10 - 10)),
-        '红仕': pygame.transform.smoothscale(pygame.image.load("imgs/hongshi.png").convert_alpha(), (width // 10 - 10, height // 10 - 10)),
-        '红汉': pygame.transform.smoothscale(pygame.image.load("imgs/honghan.png").convert_alpha(), (width // 10 - 10, height // 10 - 10)),
-        '红炮': pygame.transform.smoothscale(pygame.image.load("imgs/hongpao.png").convert_alpha(), (width // 10 - 10, height // 10 - 10)),
-        '红兵': pygame.transform.smoothscale(pygame.image.load("imgs/hongbing.png").convert_alpha(), (width // 10 - 10, height // 10 - 10)),
+        '红傌': pygame.transform.smoothscale(pygame.image.load("imgs/hongma.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
+        '红相': pygame.transform.smoothscale(pygame.image.load("imgs/hongxiang.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
+        '红仕': pygame.transform.smoothscale(pygame.image.load("imgs/hongshi.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
+        '红汉': pygame.transform.smoothscale(pygame.image.load("imgs/honghan.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
+        '红炮': pygame.transform.smoothscale(pygame.image.load("imgs/hongpao.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
+        '红兵': pygame.transform.smoothscale(pygame.image.load("imgs/hongbing.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
         '红檑': pygame.transform.smoothscale(pygame.image.load("imgs/honglei.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
         '红射': pygame.transform.smoothscale(pygame.image.load("imgs/hongshe.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
         '黑車': pygame.transform.smoothscale(pygame.image.load("imgs/heiche.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
@@ -255,11 +263,14 @@ def main(game_mode=None):
         print("请选择游戏模式:")
         print("1. 人人游戏")
         print("2. 人机游戏")
-        choice = input("请输入您的选择 (1 或 2): ")
+        print("3. AI对战AI")
+        choice = input("请输入您的选择 (1, 2 或 3): ")
         if choice == '1':
             game_mode = "human_vs_human"
         elif choice == '2':
             game_mode = "human_vs_ai"
+        elif choice == '3':
+            game_mode = "ai_vs_ai"
         else:
             print("无效的选择，默认进入人人游戏模式")
             game_mode = "human_vs_human"
@@ -271,19 +282,36 @@ def main(game_mode=None):
 
     if game_mode == "human_vs_ai" or game_mode == "2":
         # 人机模式：玩家1是AI，玩家2是人类
+        if policy_value_net is None:
+            print("模型文件不可用，无法启动人机对战模式，请选择人人对战模式")
+            return
         player1 = MCTSPlayer(policy_value_net.policy_value_fn,
                              c_puct=5,
                              n_playout=1000,
                              is_selfplay=0)
         player2 = Human()
         print("人机模式：玩家1(AI) vs 玩家2(人类)")
+    elif game_mode == "ai_vs_ai" or game_mode == "3":
+        # AI对战AI模式
+        if policy_value_net is None:
+            print("模型文件不可用，无法启动AI对战AI模式，请选择其他模式")
+            return
+        player1 = MCTSPlayer(policy_value_net.policy_value_fn,
+                             c_puct=5,
+                             n_playout=1000,
+                             is_selfplay=0)
+        player2 = MCTSPlayer(policy_value_net.policy_value_fn,
+                             c_puct=5,
+                             n_playout=1000,
+                             is_selfplay=0)
+        print("AI对战AI模式：玩家1(AI) vs 玩家2(AI)")
     elif game_mode == "human_vs_human" or game_mode == "1":
         # 人人模式：两个都是人类玩家
         player1 = Human()
         player2 = Human()
         print("人人模式：玩家1(人类) vs 玩家2(人类)")
     else:
-        print("无效的游戏模式，请输入1(人人对战)或2(人机对战)")
+        print("无效的游戏模式，请输入1(人人对战)、2(人机对战)或3(AI对战AI)")
         return
 
     board.init_board(start_player)
@@ -292,6 +320,8 @@ def main(game_mode=None):
     player2.set_player_ind(2)
     players = {p1: player1, p2: player2}
 
+    # 初始化棋谱记录
+    game_records = []
 
     # 切换玩家
     swicth_player = True
@@ -333,28 +363,91 @@ def main(game_mode=None):
                             if abs(60 * j + 40 - mouse_x) < 30 and abs(60 * i + 40 - mouse_y) < 30:
                                 first_button = False
                                 end_i_j = j, i
-                                move_action = str(start_i_j[1]) + str(start_i_j[0]) + str(end_i_j[1]) + str(end_i_j[0])
+                                move_action = f"{start_i_j[1]:02d}{start_i_j[0]:02d}{end_i_j[1]:02d}{end_i_j[0]:02d}"  # 格式化为8位数字
                                 # screen.blit(fire_image, fire_rect)
 
-        if swicth_player:
-            current_player = board.get_current_player_id()  # 红子对应的玩家id
-            player_in_turn = players[current_player]  # 决定当前玩家的代理
+        # 总是获取当前玩家，而不是只在swicth_player为True时获取
+        current_player = board.get_current_player_id()  # 红子对应的玩家id
+        player_in_turn = players[current_player]  # 决定当前玩家的代理
 
         # 根据游戏模式处理不同的玩家类型
         if hasattr(player_in_turn, 'agent') and player_in_turn.agent == 'AI':
+            if policy_value_net is None:
+                print("AI模型不可用，请选择人人对战模式")
+                continue
             pygame.display.update()
             start_time = time.time()
             move = player_in_turn.get_action(board)  # 当前玩家代理拿到动作
             print('AI耗时：', time.time() - start_time)
+            
+            # 检查AI的走子是否合规
+            if move in move_id2move_action:
+                move_str = move_id2move_action[move]
+                current_color = board.get_current_player_color()
+                
+                # 记录棋谱
+                from_pos = (int(move_str[0:2]), int(move_str[2:4]))
+                to_pos = (int(move_str[4:6]), int(move_str[6:8]))
+                from_piece = board.state_deque[-1][from_pos[0]][from_pos[1]]
+                
+                game_records.append({
+                    'move_number': len(game_records) + 1,
+                    'player': current_color,
+                    'piece': from_piece,
+                    'from': from_pos,
+                    'to': to_pos,
+                    'move_str': move_str
+                })
+                
+                print(f"第{len(game_records)}步: {from_piece} {from_pos} -> {to_pos}")
+                
+                # 检查走子是否合规
+                legal_moves = board.availables
+                if move not in legal_moves:
+                    print(f"错误: AI尝试了非法走子 {move_str} (ID: {move})")
+                    print(f"当前玩家: {current_color}, 当前棋子: {from_piece}")
+                    print("警告：检测到违规走子，继续游戏")
+                    # 不终止游戏，而是继续
+                    
             board.do_move(move)  # 棋盘做出改变
             swicth_player = True
             draw_fire = False
         elif hasattr(player_in_turn, 'agent') and player_in_turn.agent == 'HUMAN':
             draw_fire = True
             swicth_player = False
-            if len(move_action) == 4:
+            if len(move_action) == 8:  # 修正：应该是8位数字
                 move = player_in_turn.get_action(move_action)  # 当前玩家代理拿到动作
                 if move != -1:
+                    # 检查人类玩家的走子是否合规
+                    current_color = board.get_current_player_color()
+                    
+                    # 记录棋谱
+                    from_pos = (int(move_action[0:2]), int(move_action[2:4]))
+                    to_pos = (int(move_action[4:6]), int(move_action[6:8]))
+                    from_piece = board.state_deque[-1][from_pos[0]][from_pos[1]]
+                    
+                    game_records.append({
+                        'move_number': len(game_records) + 1,
+                        'player': current_color,
+                        'piece': from_piece,
+                        'from': from_pos,
+                        'to': to_pos,
+                        'move_str': move_action
+                    })
+                    
+                    print(f"第{len(game_records)}步: {from_piece} {from_pos} -> {to_pos}")
+                    
+                    # 检查走子是否合规
+                    legal_moves = board.availables
+                    if move not in legal_moves:
+                        print(f"错误: 玩家尝试了非法走子 {move_action} (ID: {move})")
+                        print(f"当前玩家: {current_color}, 当前棋子: {from_piece}")
+                        print("警告：检测到违规走子，继续游戏")
+                        # 不终止游戏，而是继续
+                        move_action = ''  # 清除非法移动，继续等待
+                        draw_fire = False  # 取消高亮
+                        continue  # 跳过本次循环，继续游戏
+                    
                     board.do_move(move)  # 棋盘做出改变
                     swicth_player = True
                     move_action = ''
@@ -363,9 +456,39 @@ def main(game_mode=None):
             # 如果玩家不是AI也不是HUMAN（比如在人人模式中），处理移动
             draw_fire = True
             swicth_player = False
-            if len(move_action) == 4:
+            if len(move_action) == 8:  # 修正：应该是8位数字
                 move = player_in_turn.get_action(move_action)  # 当前玩家代理拿到动作
                 if move != -1:
+                    # 检查人类玩家的走子是否合规
+                    current_color = board.get_current_player_color()
+                    
+                    # 记录棋谱
+                    from_pos = (int(move_action[0:2]), int(move_action[2:4]))
+                    to_pos = (int(move_action[4:6]), int(move_action[6:8]))
+                    from_piece = board.state_deque[-1][from_pos[0]][from_pos[1]]
+                    
+                    game_records.append({
+                        'move_number': len(game_records) + 1,
+                        'player': current_color,
+                        'piece': from_piece,
+                        'from': from_pos,
+                        'to': to_pos,
+                        'move_str': move_action
+                    })
+                    
+                    print(f"第{len(game_records)}步: {from_piece} {from_pos} -> {to_pos}")
+                    
+                    # 检查走子是否合规
+                    legal_moves = board.availables
+                    if move not in legal_moves:
+                        print(f"错误: 玩家尝试了非法走子 {move_action} (ID: {move})")
+                        print(f"当前玩家: {current_color}, 当前棋子: {from_piece}")
+                        print("警告：检测到违规走子，继续游戏")
+                        # 不终止游戏，而是继续
+                        move_action = ''  # 清除非法移动，继续等待
+                        draw_fire = False  # 取消高亮
+                        continue  # 跳过本次循环，继续游戏
+                    
                     board.do_move(move)  # 棋盘做出改变
                     swicth_player = True
                     move_action = ''
@@ -377,6 +500,10 @@ def main(game_mode=None):
                 print("Game end. Winner is", players[winner])
             else:
                 print("Game end. Tie")
+            # 输出棋谱总结
+            print(f"\n棋谱总览 ({len(game_records)} 步):")
+            for record in game_records:
+                print(f"{record['move_number']:2d}. {record['piece']} {record['from']} -> {record['to']}")
             sys.exit()
 
 
@@ -390,8 +517,10 @@ if __name__ == '__main__':
             main("human_vs_human")
         elif arg == '2':
             main("human_vs_ai")
+        elif arg == '3':
+            main("ai_vs_ai")
         else:
-            print("无效参数，请输入1(人人对战)或2(人机对战)")
+            print("无效参数，请输入1(人人对战)、2(人机对战)或3(AI对战AI)")
             sys.exit(1)
     else:
         # 没有命令行参数时在命令行提示用户输入

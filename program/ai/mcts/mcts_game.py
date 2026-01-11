@@ -2,13 +2,13 @@
 """匈汉象棋棋盘游戏控制 - 用于MCTS和神经网络训练"""
 
 import copy
-import random
 import time
 from collections import deque  # 这个队列用来判断长将或长捉
 
 import numpy as np
 
 import mcts_config
+
 CONFIG = mcts_config.CONFIG
 
 
