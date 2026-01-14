@@ -5,19 +5,19 @@ import pickle
 import time
 from collections import deque
 
-from mcts_config import CONFIG
-from mcts_game import Board, Game, move_action2move_id, move_id2move_action, flip_map
-from mcts import MCTSPlayer
+from program.ai.mcts.mcts_config import CONFIG
+from program.ai.mcts.mcts_game import Board, Game, move_action2move_id, move_id2move_action, flip_map
+from program.ai.mcts.mcts import MCTSPlayer
 
 if CONFIG['use_redis']:
-    import my_redis
+    import program.ai.mcts.my_redis as my_redis
 
-import zip_array
+import program.ai.mcts.zip_array as zip_array
 
 if CONFIG['use_frame'] == 'paddle':
-    from paddle_net import PolicyValueNet
+    from program.ai.mcts.paddle_net import PolicyValueNet
 elif CONFIG['use_frame'] == 'pytorch':
-    from pytorch_net import PolicyValueNet
+    from  program.ai.mcts.pytorch_net import PolicyValueNet
 else:
     print('暂不支持您选择的框架')
 

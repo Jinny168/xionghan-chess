@@ -62,18 +62,18 @@ def should_include_piece(piece_class_name):
 
 # 传统棋子
 class Ju(ChessPiece):
-    """車/车"""
+    """車/俥"""
 
     def __init__(self, color, row, col):
-        name = "车" if color == "black" else "車"
+        name = "車" if color == "black" else "俥"
         super().__init__(color, name, row, col)
 
 
 class Ma(ChessPiece):
-    """馬/马"""
+    """馬/傌"""
 
     def __init__(self, color, row, col):
-        name = "马" if color == "black" else "馬"
+        name = "馬" if color == "black" else "傌"
         super().__init__(color, name, row, col)
 
 

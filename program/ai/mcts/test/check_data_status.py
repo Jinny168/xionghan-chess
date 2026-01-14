@@ -4,11 +4,11 @@
 检查训练数据生成状态
 """
 
-import pickle
 import os
-from collections import deque
-from mcts_config import CONFIG
-import my_redis
+import pickle
+
+import program.ai.mcts.my_redis as my_redis
+from program.ai.mcts.mcts_config import CONFIG
 
 
 def check_data_status():

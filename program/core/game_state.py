@@ -219,6 +219,8 @@ class GameState:
         
         # 检查兵/卒是否到达对方底线，触发升变
         if isinstance(piece, Pawn) and self.is_pawn_at_opponent_base(piece, to_row):
+
+            print(f"[DEBUG] 兵到达对方底线: {piece.color}兵从({from_row},{from_col})移动到({to_row},{to_col})")
             # 标记需要进行升变，但实际升变将在游戏主循环中处理
             self.needs_promotion = True
             self.promotion_pawn = piece

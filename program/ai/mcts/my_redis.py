@@ -1,10 +1,19 @@
 # coding=utf-8
 import pickle
-from mcts_config import CONFIG
+import sys
+import os
+# 添加上级目录到Python路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from program.ai.mcts.mcts_config import CONFIG
 import redis
 
 def get_redis_cli():
+
     r = redis.StrictRedis(host=CONFIG['redis_host'], port=CONFIG['redis_port'], db=CONFIG['redis_db'])
+    if r.ping():
+        print("Redis连接成功！")
+    else:
+        print("Redis连接失败！")
     return r
 def get_list_range(redis_cli,name,l,r=-1):
     assert isinstance(redis_cli,redis.Redis)
@@ -66,15 +75,15 @@ if __name__ == '__main__':
 
     # 连接到Redis数据库
     r = get_redis_cli()
-    # 清空Redis数据库中的现有数据
-    emptyRedis(r)
-    # 从本地文件加载训练数据缓冲区
-    with open(CONFIG['train_data_buffer_path'], 'rb') as data_dict:
-        data_file = pickle.load(data_dict)
-        data_buffer = data_file['data_buffer']
-    # 将训练数据逐条存入Redis的train_data_buffer列表中
-    for d in data_buffer:
-        r.rpush('train_data_buffer',pickle.dumps(d))
+    # # 清空Redis数据库中的现有数据
+    # emptyRedis(r)
+    # # 从本地文件加载训练数据缓冲区
+    # with open(CONFIG['train_data_buffer_path'], 'rb') as data_dict:
+    #     data_file = pickle.load(data_dict)
+    #     data_buffer = data_file['data_buffer']
+    # # 将训练数据逐条存入Redis的train_data_buffer列表中
+    # for d in data_buffer:
+    #     r.rpush('train_data_buffer',pickle.dumps(d))
     r.rpush('test',pickle.dumps(([8,2],[2,4],5)))
-    # p = get_list_range(r,'test',0,-1)
-    # print(p)
+    p = get_list_range(r,'test',0,-1)
+    print(p)

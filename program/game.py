@@ -533,6 +533,7 @@ class ChessGame:
                     result = self.promotion_dialog.handle_event(event, mouse_pos)
                     if result is not None:  # 用户已做出选择
                         if isinstance(result, tuple) and result[0]:  # 确认升变
+                            print(f"[DEBUG] 兵升变确认: 当前玩家 {self.game_state.player_turn}")
                             # 执行升变逻辑
                             selected_index = result[1]
                             self.game_state.perform_promotion(selected_index)
@@ -544,10 +545,11 @@ class ChessGame:
                             current_player = self.game_state.player_turn
                             opponent_color = "black" if current_player == "red" else "red"
                             self.game_state.player_turn = opponent_color
-                            
+                            print(f"[DEBUG] 兵升变后切换玩家: {current_player} -> {opponent_color}")
                             # 更新头像状态
                             self.update_avatars()
                         elif result is False:  # 取消
+                            print(f"[DEBUG] 兵升变取消: 当前玩家 {self.game_state.player_turn}")
                             # 清除升变对话框
                             self.promotion_dialog = None
                             
@@ -555,7 +557,8 @@ class ChessGame:
                             current_player = self.game_state.player_turn
                             opponent_color = "black" if current_player == "red" else "red"
                             self.game_state.player_turn = opponent_color
-                            
+                            print(f"[DEBUG] 兵升变取消后切换玩家: {current_player} -> {opponent_color}")
+
                             # 更新头像状态
                             self.update_avatars()
                 # 如果有复活对话框，优先处理它的事件
@@ -708,21 +711,24 @@ class ChessGame:
                     result = self.promotion_dialog.handle_event(event, mouse_pos)
                     if result is not None:  # 用户已做出选择
                         if isinstance(result, tuple) and result[0]:  # 确认升变
+                            print(f"[DEBUG] 兵升变确认: 当前玩家 {self.game_state.player_turn}")
                             # 执行升变逻辑
                             selected_index = result[1]
                             self.game_state.perform_promotion(selected_index)
                             
                             # 清除升变对话框
                             self.promotion_dialog = None
-                            
+                        
                             # 切换玩家回合（消耗走子机会）
                             current_player = self.game_state.player_turn
                             opponent_color = "black" if current_player == "red" else "red"
                             self.game_state.player_turn = opponent_color
+                            print(f"[DEBUG] 兵升变后切换玩家: {current_player} -> {opponent_color}")
                             
                             # 更新头像状态
                             self.update_avatars()
                         elif result is False:  # 取消
+                            print(f"[DEBUG] 兵升变取消: 当前玩家 {self.game_state.player_turn}")
                             # 清除升变对话框
                             self.promotion_dialog = None
                             
@@ -730,6 +736,7 @@ class ChessGame:
                             current_player = self.game_state.player_turn
                             opponent_color = "black" if current_player == "red" else "red"
                             self.game_state.player_turn = opponent_color
+                            print(f"[DEBUG] 兵升变取消后切换玩家: {current_player} -> {opponent_color}")
                             
                             # 更新头像状态
                             self.update_avatars()
@@ -1204,8 +1211,10 @@ class ChessGame:
             move_successful = self.game_state.move_piece(sel_row, sel_col, row, col)
 
             if move_successful:
+                print(f"[DEBUG] 移动成功: {sel_row},{sel_col} -> {row},{col}")
                 # 检查是否需要升变（兵/卒到达对方底线）
                 if self.game_state.needs_promotion:
+                    print(f"[DEBUG] 需要升变: {self.game_state.player_turn}方兵到达底线")
                     # 自动弹出升变选择对话框
                     current_player = self.game_state.player_turn
                     self.promotion_dialog = PromotionDialog(

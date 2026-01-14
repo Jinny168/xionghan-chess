@@ -14,7 +14,7 @@ CONFIG = {
     'use_frame': 'pytorch',  # paddle or pytorch根据自己的环境进行切换
     'train_update_interval': 360,  #模型更新间隔时间
     'use_redis': True, # 数据存储方式，改为False使用本地文件
-    'redis_host': '192.168.240.137',#Redis服务
+    'redis_host': '192.168.240.136',#Redis服务
     'redis_port': 6379,
     'redis_db': 1,#存储在哪个数据库,0为iter=1000的tanh数据库，1为identity&clamp数据库
 }

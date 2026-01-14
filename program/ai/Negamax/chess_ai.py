@@ -1442,17 +1442,17 @@ class ChessAI:
     def _can_capture_simple(self, game_state, attacker, target):
         """简化版：检查攻击棋子是否可以吃掉目标棋子"""
         # 使用游戏规则检查移动是否合法
-        from game_rules import GameRules
+        from  program.core.game_rules import GameRules
         return GameRules.is_valid_move(game_state.pieces, attacker, attacker.row, attacker.col, target.row, target.col)
 
     def _can_protect_simple(self, game_state, protector, protected_piece):
         """简化版：检查保护棋子是否可以保护被保护棋子"""
-        from game_rules import GameRules
+        from program.core.game_rules import GameRules
         return GameRules.is_valid_move(game_state.pieces, protector, protector.row, protector.col, protected_piece.row, protected_piece.col)
 
     def _is_isolated_simple(self, game_state, piece):
         """简化版：检查棋子是否孤立"""
-        from game_rules import GameRules
+        from program.core.game_rules import GameRules
         return GameRules.is_isolated(piece, game_state.pieces)
     
     def _evaluate_piece_coordination_simple(self, game_state, color):

@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from mcts_config import CONFIG
+from  program.ai.mcts.mcts_config import CONFIG
 
 
 # 搭建残差块

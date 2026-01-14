@@ -7,7 +7,7 @@ from collections import deque  # 这个队列用来判断长将或长捉
 
 import numpy as np
 
-import mcts_config
+import  program.ai.mcts.mcts_config as mcts_config
 
 CONFIG = mcts_config.CONFIG
 
