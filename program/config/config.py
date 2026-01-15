@@ -63,6 +63,10 @@ class GameConfig:
             "king_appear": True,    # 将/帅/汉/汗登场
             "pao_appear": True,     # 炮/砲登场
             "pawn_appear": True,    # 兵/卒登场
+            "pawn_resurrection_enabled": True,  # 兵/卒复活机制启用
+            "pawn_promotion_enabled": True,     # 兵/卒升变机制启用
+            "pawn_backward_at_base_enabled": False,  # 兵/卒底线后退能力
+            "pawn_full_movement_at_base_enabled": False,  # 兵/卒底线完整移动能力
             "wei_appear": True,     # 尉/衛登场
             "she_appear": True,     # 射/䠶登场
             "lei_appear": True,     # 檑/礌登场

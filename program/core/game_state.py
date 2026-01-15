@@ -2,6 +2,7 @@ import time
 
 from program.core.chess_pieces import create_initial_pieces, King, Jia, Ci, Dun, Pawn
 from program.core.game_rules import GameRules
+from program.config.config import game_config
 
 
 class GameState:
@@ -40,6 +41,9 @@ class GameState:
         self.needs_promotion = False  # 是否需要升变
         self.promotion_pawn = None  # 需要升变的兵/卒
         self.available_promotion_pieces = []  # 可供升变的阵亡棋子
+        
+        # 升变完成标志
+        self.just_completed_promotion = False  # 记录是否刚刚完成升变
     
     def get_piece_at(self, row, col):
         """获取指定位置的棋子"""
@@ -218,41 +222,44 @@ class GameState:
                     return True
         
         # 检查兵/卒是否到达对方底线，触发升变
-        if isinstance(piece, Pawn) and self.is_pawn_at_opponent_base(piece, to_row):
-
+        if (isinstance(piece, Pawn) and self.is_pawn_at_opponent_base(piece, to_row) and 
+            game_config.get_setting("pawn_promotion_enabled", True)):
             print(f"[DEBUG] 兵到达对方底线: {piece.color}兵从({from_row},{from_col})移动到({to_row},{to_col})")
             # 标记需要进行升变，但实际升变将在游戏主循环中处理
             self.needs_promotion = True
             self.promotion_pawn = piece
             self.available_promotion_pieces = self.get_available_promotion_pieces(piece.color)
+            
+            # 不立即切换玩家回合，等待升变完成后再切换
         else:
             # 重置升变标志
             self.needs_promotion = False
             self.promotion_pawn = None
             self.available_promotion_pieces = []
-        
-        # 切换玩家
-        opponent_color = "black" if self.player_turn == "red" else "red"
-        
-        # 检查是否将军
-        self.is_check = GameRules.is_check(self.pieces, opponent_color)
-        if self.is_check:
-            # 设置将军动画计时器
-            self.check_animation_time = current_time
-        
-        # 检查是否将死或获胜
-        game_over, winner = GameRules.is_game_over(self.pieces, self.player_turn)
-        
-        if game_over:
-            self.game_over = True
-            self.winner = winner
-            # 更新游戏总时长
-            self.total_time = max(0, current_time - self.start_time)
-        else:
-            # 切换玩家回合
-            self.player_turn = opponent_color
-            # 重置当前回合开始时间
-            self.current_turn_start_time = current_time
+            
+            # 切换玩家
+            opponent_color = "black" if self.player_turn == "red" else "red"
+            
+            # 检查是否将军
+            self.is_check = GameRules.is_check(self.pieces, opponent_color)
+            if self.is_check:
+                # 设置将军动画计时器
+                self.check_animation_time = current_time
+            
+            # 检查是否将死或获胜
+            game_over, winner = GameRules.is_game_over(self.pieces, self.player_turn)
+            
+            if game_over:
+                self.game_over = True
+                self.winner = winner
+                # 更新游戏总时长
+                self.total_time = max(0, current_time - self.start_time)
+            else:
+                # 切换玩家回合
+                self.player_turn = opponent_color
+                # 重置当前回合开始时间
+                self.current_turn_start_time = current_time
+                print(f"[DEBUG] 移动后切换玩家: {opponent_color}")
         
         return True
     
@@ -440,6 +447,10 @@ class GameState:
         Returns:
             bool: 是否可以执行复活
         """
+        # 检查复活机制是否启用
+        if not game_config.get_setting("pawn_resurrection_enabled", True):
+            return False
+        
         row, col = position
         
         # 检查目标位置是否为空
@@ -580,6 +591,9 @@ class GameState:
         self.needs_promotion = False
         self.promotion_pawn = None
         self.available_promotion_pieces = []
+        
+        # 标记刚刚完成升变
+        self.just_completed_promotion = True
         
         return True
 

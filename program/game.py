@@ -1214,11 +1214,12 @@ class ChessGame:
                 print(f"[DEBUG] 移动成功: {sel_row},{sel_col} -> {row},{col}")
                 # 检查是否需要升变（兵/卒到达对方底线）
                 if self.game_state.needs_promotion:
-                    print(f"[DEBUG] 需要升变: {self.game_state.player_turn}方兵到达底线")
+                    # 获取兵的颜色
+                    pawn_color = self.game_state.promotion_pawn.color if self.game_state.promotion_pawn else self.game_state.player_turn
+                    print(f"[DEBUG] 需要升变: {pawn_color}方兵到达底线")
                     # 自动弹出升变选择对话框
-                    current_player = self.game_state.player_turn
                     self.promotion_dialog = PromotionDialog(
-                        500, 400, current_player, (row, col), self.game_state.available_promotion_pieces
+                        500, 400, pawn_color, (row, col), self.game_state.available_promotion_pieces
                     )
 
                 # 记录上一步走法

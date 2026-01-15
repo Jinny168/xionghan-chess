@@ -97,8 +97,21 @@ class SettingsScreen:
             # 兵/卒设置
             "pawn": {
                 "appear": None,                     # 兵/卒登场设置
+                "resurrection_enabled": None,       # 兵/卒复活机制启用
+                "promotion_enabled": None,        # 兵/卒升变机制启用
+                "backward_at_base_enabled": None,   # 兵/卒到底线后可后退能力
+                "full_movement_at_base_enabled": None,  # 兵/卒到底线后获得完整移动能力
+                "section_title": None,
                 "appear_checkbox": None,
                 "appear_label": None,
+                "resurrection_checkbox": None,
+                "resurrection_label": None,
+                "promotion_checkbox": None,
+                "promotion_label": None,
+                "backward_checkbox": None,
+                "backward_label": None,
+                "full_movement_checkbox": None,
+                "full_movement_label": None,
             },
             # 尉设置
             "wei": {
@@ -213,6 +226,10 @@ class SettingsScreen:
         self.piece_settings["ju"]["appear"] = game_config.get_setting("ju_appear", True)
         self.piece_settings["pao"]["appear"] = game_config.get_setting("pao_appear", True)
         self.piece_settings["pawn"]["appear"] = game_config.get_setting("pawn_appear", True)
+        self.piece_settings["pawn"]["resurrection_enabled"] = game_config.get_setting("pawn_resurrection_enabled", True)
+        self.piece_settings["pawn"]["promotion_enabled"] = game_config.get_setting("pawn_promotion_enabled", True)
+        self.piece_settings["pawn"]["backward_at_base_enabled"] = game_config.get_setting("pawn_backward_at_base_enabled", False)
+        self.piece_settings["pawn"]["full_movement_at_base_enabled"] = game_config.get_setting("pawn_full_movement_at_base_enabled", False)
         self.piece_settings["wei"]["appear"] = game_config.get_setting("wei_appear", True)
         self.piece_settings["she"]["appear"] = game_config.get_setting("she_appear", True)
         self.piece_settings["lei"]["appear"] = game_config.get_setting("lei_appear", True)
@@ -687,6 +704,14 @@ class SettingsScreen:
                 checkbox, label, value, text, desc, is_disabled = clicked_item
                 if text == "兵/卒登场":
                     self.piece_settings["pawn"]["appear"] = not self.piece_settings["pawn"]["appear"]
+                elif text == "兵/卒复活机制":
+                    self.piece_settings["pawn"]["resurrection_enabled"] = not self.piece_settings["pawn"]["resurrection_enabled"]
+                elif text == "兵/卒升变机制":
+                    self.piece_settings["pawn"]["promotion_enabled"] = not self.piece_settings["pawn"]["promotion_enabled"]
+                elif text == "兵/卒底线后退能力":
+                    self.piece_settings["pawn"]["backward_at_base_enabled"] = not self.piece_settings["pawn"]["backward_at_base_enabled"]
+                elif text == "兵/卒底线完整移动":
+                    self.piece_settings["pawn"]["full_movement_at_base_enabled"] = not self.piece_settings["pawn"]["full_movement_at_base_enabled"]
                 return  # 处理完后直接返回，避免其他检测
             
             # 更新y_offset
@@ -853,6 +878,10 @@ class SettingsScreen:
             "king_appear": True,  # 将/帅必须登场
             "pao_appear": self.piece_settings["pao"]["appear"],
             "pawn_appear": self.piece_settings["pawn"]["appear"],
+            "pawn_resurrection_enabled": self.piece_settings["pawn"]["resurrection_enabled"],
+            "pawn_promotion_enabled": self.piece_settings["pawn"]["promotion_enabled"],
+            "pawn_backward_at_base_enabled": self.piece_settings["pawn"]["backward_at_base_enabled"],
+            "pawn_full_movement_at_base_enabled": self.piece_settings["pawn"]["full_movement_at_base_enabled"],
             "wei_appear": self.piece_settings["wei"]["appear"],
             "she_appear": self.piece_settings["she"]["appear"],
             "lei_appear": self.piece_settings["lei"]["appear"],
@@ -1278,7 +1307,31 @@ class SettingsScreen:
              self.piece_settings["pawn"]["appear_label"], 
              self.piece_settings["pawn"]["appear"], 
              "兵/卒登场", 
-             "兵/卒登场", 
+             "控制兵/卒是否出现在初始布局中", 
+             False),
+            (self.piece_settings["pawn"]["resurrection_checkbox"], 
+             self.piece_settings["pawn"]["resurrection_label"], 
+             self.piece_settings["pawn"]["resurrection_enabled"], 
+             "兵/卒复活机制", 
+             "允许已阵亡的兵/卒在特定条件下重新上场", 
+             False),
+            (self.piece_settings["pawn"]["promotion_checkbox"], 
+             self.piece_settings["pawn"]["promotion_label"], 
+             self.piece_settings["pawn"]["promotion_enabled"], 
+             "兵/卒升变机制", 
+             "兵/卒到达对方底线时可以升变为其他阵亡棋子", 
+             False),
+            (self.piece_settings["pawn"]["backward_checkbox"], 
+             self.piece_settings["pawn"]["backward_label"], 
+             self.piece_settings["pawn"]["backward_at_base_enabled"], 
+             "兵/卒底线后退能力", 
+             "兵/卒到达底线后可向后退一格", 
+             False),
+            (self.piece_settings["pawn"]["full_movement_checkbox"], 
+             self.piece_settings["pawn"]["full_movement_label"], 
+             self.piece_settings["pawn"]["full_movement_at_base_enabled"], 
+             "兵/卒底线完整移动", 
+             "兵/卒到达底线后获得前后左右完整移动能力", 
              False)
         ]
 

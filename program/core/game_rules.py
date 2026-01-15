@@ -29,6 +29,10 @@ class GameRules:
     ci_appear = game_config.get_setting("ci_appear", True)      # 刺登场
     dun_appear = game_config.get_setting("dun_appear", True)     # 盾登场
     
+    # 兵/卒特殊规则设置
+    pawn_backward_at_base_enabled = game_config.get_setting("pawn_backward_at_base_enabled", False)  # 兵/卒底线后退能力
+    pawn_full_movement_at_base_enabled = game_config.get_setting("pawn_full_movement_at_base_enabled", False)  # 兵/卒底线完整移动能力
+    
     @staticmethod
     def set_game_settings(settings):
         """设置游戏规则参数
@@ -80,6 +84,12 @@ class GameRules:
             GameRules.ci_appear = settings["ci_appear"]
         if "dun_appear" in settings:
             GameRules.dun_appear = settings["dun_appear"]
+        
+        # 兵/卒特殊规则设置
+        if "pawn_backward_at_base_enabled" in settings:
+            GameRules.pawn_backward_at_base_enabled = settings["pawn_backward_at_base_enabled"]
+        if "pawn_full_movement_at_base_enabled" in settings:
+            GameRules.pawn_full_movement_at_base_enabled = settings["pawn_full_movement_at_base_enabled"]
     
     @staticmethod
     def get_piece_at(pieces, row, col):
@@ -778,10 +788,23 @@ class GameRules:
                 
             # 3. 进入底线阶段（对方最后一行）
             elif from_row == 0:
-                # 移动方向：前/左/右/后走1格
-                if not (abs(row_diff) <= 1 and abs(col_diff) <= 1 and abs(row_diff) + abs(col_diff) == 1):
-                    return False
-                    
+                # 检查是否启用完整移动能力
+                if GameRules.pawn_full_movement_at_base_enabled:
+                    # 启用完整移动能力，可以前后左右移动
+                    if not (abs(row_diff) <= 1 and abs(col_diff) <= 1 and abs(row_diff) + abs(col_diff) == 1):
+                        return False
+                elif GameRules.pawn_backward_at_base_enabled:
+                    # 启用后退能力，可以前后左右移动
+                    if not (abs(row_diff) <= 1 and abs(col_diff) <= 1 and abs(row_diff) + abs(col_diff) == 1):
+                        return False
+                else:
+                    # 不启用特殊能力，只能前左右移动
+                    if not (abs(row_diff) <= 1 and abs(col_diff) <= 1 and abs(row_diff) + abs(col_diff) == 1):
+                        return False
+                    # 不能后退
+                    if row_diff > 0:
+                        return False
+                
                 return True
                 
         else:  # black
@@ -1390,9 +1413,14 @@ class GameRules:
                             GameRules.get_piece_at(pieces, target_row, piece.col) is None):
                             pawn_moves.append((-2, 0))  # 向前2格
                 else:  # 已过河
-                    pawn_moves.extend([(-1, 0), (0, -1), (0, 1)])  # 前左右
-                    if piece.row == 0:  # 到达底线
-                        pawn_moves.append((1, 0))  # 可以后退
+                    if piece.row == 0 and GameRules.pawn_full_movement_at_base_enabled:  # 到达底线且启用完整移动
+                        # 底线兵获得前后左右完整移动能力
+                        pawn_moves.extend([(-1, 0), (1, 0), (0, -1), (0, 1)])  # 前后左右
+                    elif piece.row == 0 and GameRules.pawn_backward_at_base_enabled:  # 到达底线且启用后退能力
+                        # 底线兵可后退一格
+                        pawn_moves.extend([(-1, 0), (0, -1), (0, 1), (1, 0)])  # 前左右和后退
+                    else:  # 过河后但未到底线
+                        pawn_moves.extend([(-1, 0), (0, -1), (0, 1)])  # 前左右
             else:  # 黑方
                 # 黑方卒移动规则
                 if piece.row <= 6:  # 未过河
@@ -1407,9 +1435,14 @@ class GameRules:
                             GameRules.get_piece_at(pieces, target_row, piece.col) is None):
                             pawn_moves.append((2, 0))  # 向前2格
                 else:  # 已过河
-                    pawn_moves.extend([(1, 0), (0, -1), (0, 1)])  # 前左右
-                    if piece.row == 12:  # 到达底线
-                        pawn_moves.append((-1, 0))  # 可以后退
+                    if piece.row == 12 and GameRules.pawn_full_movement_at_base_enabled:  # 到达底线且启用完整移动
+                        # 底线卒获得前后左右完整移动能力
+                        pawn_moves.extend([(1, 0), (-1, 0), (0, -1), (0, 1)])  # 前后左右
+                    elif piece.row == 12 and GameRules.pawn_backward_at_base_enabled:  # 到达底线且启用后退能力
+                        # 底线卒可后退一格
+                        pawn_moves.extend([(1, 0), (0, -1), (0, 1), (-1, 0)])  # 前左右和后退
+                    else:  # 过河后但未到底线
+                        pawn_moves.extend([(1, 0), (0, -1), (0, 1)])  # 前左右
             
             for dr, dc in pawn_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
