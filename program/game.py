@@ -4,7 +4,7 @@ import sys
 import pygame
 
 from program.ai.Negamax.chess_ai import ChessAI
-from .chess_board import ChessBoard
+from program.ui.chess_board import ChessBoard
 from program.config.config import game_config
 from program.ui.dialogs import PopupDialog, ConfirmDialog, PawnResurrectionDialog, PromotionDialog, AudioSettingsDialog
 from program.core.game_rules import GameRules
@@ -191,7 +191,7 @@ class ChessGame:
 
     def handle_board_click(self, mouse_pos):
         """处理棋盘点击事件"""
-        if self.game_state.is_game_over:
+        if self.game_state.game_over:
             return
 
         # 如果AI正在思考，忽略玩家点击
@@ -199,7 +199,7 @@ class ChessGame:
             return
 
         # 获取点击位置对应的棋盘坐标
-        row, col = self.chess_board.get_board_position(mouse_pos)
+        row, col = self.board.get_grid_position(mouse_pos)
 
         # 如果没有选中棋子，尝试选中棋子
         if not self.selected_piece:
@@ -211,7 +211,9 @@ class ChessGame:
         # 如果已经选中棋子，尝试移动棋子
         if self.selected_piece:
             move = (self.selected_piece.row, self.selected_piece.col, row, col)
-            if self.game_state.is_valid_move(move):
+            # 使用GameRules来检查移动是否合法
+            piece = self.game_state.get_piece_at(self.selected_piece.row, self.selected_piece.col)
+            if piece and GameRules.is_valid_move(self.game_state.pieces, piece, self.selected_piece.row, self.selected_piece.col, row, col):
                 self.make_move(move)
                 self.selected_piece = None
                 return
@@ -224,38 +226,48 @@ class ChessGame:
         from_row, from_col, to_row, to_col = move
 
         # 执行走法
-        self.game_state.make_move(move)
+        from_row, from_col, to_row, to_col = move
+        
+        # 检查目标位置是否有棋子（吃子）
+        captured_piece = self.game_state.get_piece_at(to_row, to_col)
+        
+        self.game_state.move_piece(from_row, from_col, to_row, to_col)
 
         # 更新棋盘上的棋子位置
-        self.chess_board.update_pieces(self.game_state.pieces)
+        # 棋子位置已在game_state中更新，无需单独更新棋盘
 
         # 更新上一步走法记录
         self.last_move = move
-        self.last_move_notation = self.game_state.get_move_notation(move)
+        # 生成走法的中文表示
+        from_row, from_col, to_row, to_col = move
+        piece = self.game_state.get_piece_at(to_row, to_col)
+        if piece:
+            self.last_move_notation = self.generate_move_notation(piece, from_row, from_col, to_row, to_col)
 
         # 播放音效
         # 优先处理绝杀情况，因为绝杀时is_check和is_checkmate都为True
         if self.game_state.is_checkmate():
             # 绝杀时播放绝杀音效，而不是将军音效
-            self.sound_manager.play_sound('check')  # 播放基本的将军音效
+            self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
             try:
                 self.sound_manager.play_sound('juesha_voice')  # 播放绝杀语音
             except:
                 pass
         elif self.game_state.is_check:
             # 普通将军情况，播放将军音效
-            self.sound_manager.play_sound('check')
+            self.sound_manager.play_sound('warn')
             try:
                 self.sound_manager.play_sound('jiangjun_voice')  # 播放将军语音
             except:
                 pass
-        elif self.game_state.is_capture:
-            self.sound_manager.play_sound('capture')
+        # 检查是否有棋子被吃掉
+        elif captured_piece:
+            self.sound_manager.play_sound('eat')
         else:
-            self.sound_manager.play_sound('move')
+            self.sound_manager.play_sound('drop')
 
         # 检查游戏是否结束
-        if self.game_state.is_game_over:
+        if self.game_state.game_over:
             self.show_game_over_popup()
             return
 
@@ -1166,7 +1178,8 @@ class ChessGame:
                 # 检查当前玩家在局的兵/卒数量是否小于7
                 if self.game_state.get_pawn_count(current_player) < 7:
                     # 检查是否满足复活条件
-                    if self.game_state.can_perform_pawn_resurrection(current_player, (row, col)):
+                    resurrection_positions = self.game_state.get_resurrection_positions()
+                    if (row, col) in resurrection_positions[current_player]:
                         # 弹出复活确认对话框
                         self.pawn_resurrection_dialog = PawnResurrectionDialog(
                             500, 200, current_player, (row, col)
@@ -1233,19 +1246,19 @@ class ChessGame:
                 # 播放选子音效（当选择棋子时）
                 if self.selected_piece and not captured_piece:
                     try:
-                        self.sound_manager.play_sound('select')
+                        self.sound_manager.play_sound('choose')  # 使用chess-master的选子音效
                     except:
                         pass
                 
                 # 播放移动音效
                 if captured_piece:
                     try:
-                        self.sound_manager.play_sound('capture')
+                        self.sound_manager.play_sound('eat')  # 使用chess-master的吃子音效
                     except:
                         pass
                 else:
                     try:
-                        self.sound_manager.play_sound('move')
+                        self.sound_manager.play_sound('drop')  # 使用chess-master的落子音效
                     except:
                         pass
 
@@ -1255,13 +1268,13 @@ class ChessGame:
                 # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
                 if self.game_state.is_checkmate():
                     try:
-                        self.sound_manager.play_sound('check')  # 播放基本的将军音效
+                        self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
                         self.sound_manager.play_sound('juesha_voice')  # 播放绝杀语音
                     except:
                         pass
                 elif self.game_state.is_check:
                     try:
-                        self.sound_manager.play_sound('check')
+                        self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
                         self.sound_manager.play_sound('jiangjun_voice')  # 播放将军语音
                     except:
                         pass
@@ -1550,47 +1563,30 @@ class ChessGame:
             # 播放音效
             if target_piece:
                 try:
-                    self.capture_sound.play()
+                    self.sound_manager.play_sound('eat')
                 except:
                     pass
             else:
                 try:
-                    self.move_sound.play()
+                    self.sound_manager.play_sound('drop')
                 except:
                     pass
 
-            # 如果新的状态是将军，播放将军音效
-            if self.game_state.is_check:
+            # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
+            if self.game_state.is_checkmate():
                 try:
-                    self.check_sound.play()
+                    self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
+                    self.sound_manager.play_sound('juesha_voice')  # 播放绝杀语音
                 except:
                     pass
-
-            # 更新头像状态
-            self.update_avatars()
-
-            # 如果新的状态是将军，播放将军音效和语音
-            if self.game_state.is_check:
+            elif self.game_state.is_check:
                 try:
-                    self.check_sound.play()
-                    # 播放将军语音
-                    self.jiangjun_voice.play()
+                    self.sound_manager.play_sound('warn')
+                    self.sound_manager.play_sound('jiangjun_voice')  # 播放将军语音
                 except:
                     pass
 
-            # 更新头像状态
-            self.update_avatars()
-
-            # 如果新的状态是将军，播放将军音效和语音
-            if self.game_state.is_check:
-                try:
-                    self.sound_manager.play_sound('check')
-                    # 播放将军语音
-                    self.sound_manager.play_sound('jiangjun_voice')
-                except:
-                    pass
-
-            # 更新头像状态
+            # 更新头像状态 - 只需更新一次
             self.update_avatars()
 
             # 检查游戏是否结束
@@ -1679,25 +1675,25 @@ class ChessGame:
             # 播放音效
             if target_piece:
                 try:
-                    self.sound_manager.play_sound('capture')
+                    self.sound_manager.play_sound('eat')
                 except:
                     pass
             else:
                 try:
-                    self.sound_manager.play_sound('move')
+                    self.sound_manager.play_sound('drop')
                 except:
                     pass
 
             # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
             if self.game_state.is_checkmate():
                 try:
-                    self.sound_manager.play_sound('check')  # 播放基本的将军音效
+                    self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
                     self.sound_manager.play_sound('juesha_voice')  # 播放绝杀语音
                 except:
                     pass
             elif self.game_state.is_check:
                 try:
-                    self.sound_manager.play_sound('check')
+                    self.sound_manager.play_sound('warn')
                     self.sound_manager.play_sound('jiangjun_voice')  # 播放将军语音
                 except:
                     pass

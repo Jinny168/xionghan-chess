@@ -604,3 +604,29 @@ class GameState:
             bool: 当前玩家是否被将死
         """
         return GameRules.is_checkmate(self.pieces, self.player_turn)
+
+    def get_resurrection_positions(self):
+        """获取可以执行兵/卒复活的位置列表
+        
+        Returns:
+            dict: 包含红方和黑方可复活位置的字典
+        """
+        resurrection_positions = {"red": [], "black": []}
+        
+        # 检查复活机制是否启用
+        if not game_config.get_setting("pawn_resurrection_enabled", True):
+            return resurrection_positions
+        
+        # 检查红方兵初始行（第8行）
+        for col in range(13):
+            row = 8
+            if self.can_perform_pawn_resurrection("red", (row, col)):
+                resurrection_positions["red"].append((row, col))
+        
+        # 检查黑方兵初始行（第4行）
+        for col in range(13):
+            row = 4
+            if self.can_perform_pawn_resurrection("black", (row, col)):
+                resurrection_positions["black"].append((row, col))
+        
+        return resurrection_positions
