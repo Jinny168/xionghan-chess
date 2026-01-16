@@ -15,7 +15,7 @@ from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
 from program.ui.dialogs import PopupDialog, ConfirmDialog
 from program.utils.utils import load_font, draw_background
-from program.xhlan import XiangqiNetworkGame, SimpleAPI
+from program.lan.xhlan import XiangqiNetworkGame, SimpleAPI
 
 
 class NetworkChessGame(ChessGame):

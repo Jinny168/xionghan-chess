@@ -3,11 +3,11 @@ import time
 
 from program.config.config import MODE_PVC, CAMP_RED
 from program.game import ChessGame
-from program.network_game import NetworkChessGame
-from program.network_connect import NetworkConnectScreen
+from program.lan.network_game import NetworkChessGame
+from program.ui.network_connect import NetworkConnectScreen
 from program.ui.menu_screens import ModeSelectionScreen, RulesScreen, CampSelectionScreen
 from program.config.settings import SettingsScreen
-from program.xhlan import SimpleAPI
+from program.lan.xhlan import SimpleAPI
 
 # 初始化PyGame
 pygame.init()

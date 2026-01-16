@@ -1,13 +1,11 @@
 """
 匈汉象棋网络对战同步功能测试
 """
-import pygame
 import threading
 import time
-import sys
 
-from program.network_game import NetworkChessGame
-from program.xhlan import SimpleAPI
+from program.lan.network_game import NetworkChessGame
+from program.lan.xhlan import SimpleAPI
 
 def run_server():
     """运行服务器端（主机）"""

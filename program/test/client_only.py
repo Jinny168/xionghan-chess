@@ -2,8 +2,9 @@
 仅客户端模式 - 用于单机测试联机功能
 """
 import time
-from program.network_game import NetworkChessGame
-from program.xhlan import SimpleAPI, XiangqiNetworkGame
+from program.lan.network_game import NetworkChessGame
+from program.lan.xhlan import SimpleAPI
+
 
 def run_client():
     print("正在连接到服务器...")
