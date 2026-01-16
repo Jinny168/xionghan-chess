@@ -7,8 +7,7 @@ import time
 from socket import socket
 from threading import Thread
 
-# import tkintertools as tkt  # 移除tkintertools依赖
-from program.network_constants import ADDRESS, PORT, BUFFER_SIZE
+from program.config.config import ADDRESS, PORT, BUFFER_SIZE
 
 
 class _Base:

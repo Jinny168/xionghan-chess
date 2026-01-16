@@ -2,26 +2,20 @@
 匈汉象棋局域网对战游戏类
 """
 import pygame
-import sys
-import threading
-import time
-
-from program.game import ChessGame
-from program.xhlan import XiangqiNetworkGame, SimpleAPI
-from program.core.game_state import GameState
-from program.core.game_rules import GameRules
-from program.ui.chess_board import ChessBoard
-from program.config.config import game_config
-from program.ui.dialogs import PopupDialog, ConfirmDialog
-from program.ui.avatar import Avatar
-from program.ui.button import Button
-from program.utils.utils import load_font, draw_background, SoundManager
 
 from program.config.config import (
-    DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO, FPS,
-    PANEL_BORDER, BLACK, RED, MODE_PVP, MODE_PVC, CAMP_RED
+    PANEL_BORDER, BLACK, CAMP_RED
 )
+from program.config.config import game_config
+from program.core.game_state import GameState
+from program.game import ChessGame
+from program.ui.avatar import Avatar
+from program.ui.button import Button
+from program.ui.chess_board import ChessBoard
+from program.ui.dialogs import PopupDialog, ConfirmDialog
+from program.utils.utils import load_font, draw_background
+from program.xhlan import XiangqiNetworkGame, SimpleAPI
 
 
 class NetworkChessGame(ChessGame):
