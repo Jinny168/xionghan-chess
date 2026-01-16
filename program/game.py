@@ -248,16 +248,16 @@ class ChessGame:
         # 优先处理绝杀情况，因为绝杀时is_check和is_checkmate都为True
         if self.game_state.is_checkmate():
             # 绝杀时播放绝杀音效，而不是将军音效
-            self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
+            self.sound_manager.play_sound('warn')  # 使用将军语音
             try:
-                self.sound_manager.play_sound('juesha_voice')  # 播放绝杀语音
+                self.sound_manager.play_sound('check')  # 播放旧版音效
             except:
                 pass
         elif self.game_state.is_check:
             # 普通将军情况，播放将军音效
-            self.sound_manager.play_sound('warn')
+            self.sound_manager.play_sound('warn')# 使用将军语音
             try:
-                self.sound_manager.play_sound('jiangjun_voice')  # 播放将军语音
+                self.sound_manager.play_sound('capture')  # 播放旧版音效
             except:
                 pass
         # 检查是否有棋子被吃掉
@@ -1268,14 +1268,14 @@ class ChessGame:
                 # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
                 if self.game_state.is_checkmate():
                     try:
-                        self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
-                        self.sound_manager.play_sound('juesha_voice')  # 播放绝杀语音
+                        self.sound_manager.play_sound('warn')  # 使用将军语音
+                        self.sound_manager.play_sound('check')  # 播放旧版音效
                     except:
                         pass
                 elif self.game_state.is_check:
                     try:
-                        self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
-                        self.sound_manager.play_sound('jiangjun_voice')  # 播放将军语音
+                        self.sound_manager.play_sound('warn')  # 使用将军语音
+                        self.sound_manager.play_sound('capture')  # 播放旧版音效
                     except:
                         pass
 
@@ -1576,13 +1576,13 @@ class ChessGame:
             if self.game_state.is_checkmate():
                 try:
                     self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
-                    self.sound_manager.play_sound('juesha_voice')  # 播放绝杀语音
+                    self.sound_manager.play_sound('check')  # 播放绝杀语音
                 except:
                     pass
             elif self.game_state.is_check:
                 try:
                     self.sound_manager.play_sound('warn')
-                    self.sound_manager.play_sound('jiangjun_voice')  # 播放将军语音
+                    self.sound_manager.play_sound('capture')  # 播放将军语音
                 except:
                     pass
 
@@ -1687,14 +1687,14 @@ class ChessGame:
             # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
             if self.game_state.is_checkmate():
                 try:
-                    self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
-                    self.sound_manager.play_sound('juesha_voice')  # 播放绝杀语音
+                    self.sound_manager.play_sound('warn')  # 使用将军语音
+                    self.sound_manager.play_sound('check')  # 播放旧版音效
                 except:
                     pass
             elif self.game_state.is_check:
                 try:
                     self.sound_manager.play_sound('warn')
-                    self.sound_manager.play_sound('jiangjun_voice')  # 播放将军语音
+                    self.sound_manager.play_sound('capture')  # 播放旧版音效
                 except:
                     pass
 
