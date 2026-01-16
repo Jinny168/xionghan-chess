@@ -716,8 +716,7 @@ class NetworkChessGame(ChessGame):
                     except:
                         pass
                     self.sound_manager.stop_background_music()
-                    pygame.quit()
-                    sys.exit()
+                    return "back_to_menu"
 
                 # 处理各种事件
                 if hasattr(self, 'promotion_dialog') and self.promotion_dialog:
@@ -831,10 +830,9 @@ class NetworkChessGame(ChessGame):
                                 self.confirm_dialog = None
                 elif self.game_state.game_over and self.popup:
                     if self.popup.handle_event(event, mouse_pos):
-                        # 网络对局结束后不能重新开始，直接退出
+                        # 网络对局结束后返回主菜单
                         self.sound_manager.stop_background_music()
-                        pygame.quit()
-                        sys.exit()
+                        return "back_to_menu"
                 elif self.audio_settings_dialog:
                     result = self.audio_settings_dialog.handle_event(event, mouse_pos)
                     if result == "ok":  # 确认设置
