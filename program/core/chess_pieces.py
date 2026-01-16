@@ -48,7 +48,8 @@ def should_include_piece(piece_class_name):
         'Lei': 'lei_appear',
         'Jia': 'jia_appear',
         'Ci': 'ci_appear',
-        'Dun': 'dun_appear'
+        'Dun': 'dun_appear',
+        'Xun': 'xun_appear'
     }
     
     setting_key = piece_name_map.get(piece_class_name, 'king_appear')  # 默认为将/帅设置
@@ -295,6 +296,14 @@ class Dun(ChessPiece):
         super().__init__(color, name, row, col)
 
 
+class Xun(ChessPiece):
+    """巡/廵 - 河界专属控场棋子"""
+
+    def __init__(self, color, row, col):
+        name = "廵" if color == "black" else "巡"
+        super().__init__(color, name, row, col)
+
+
 def create_initial_pieces():
     """创建匈汉象棋初始布局的所有棋子
     
@@ -320,6 +329,9 @@ def create_initial_pieces():
             (Pawn, 4, 0), (Pawn, 4, 2), (Pawn, 4, 4), (Pawn, 4, 6),
             (Pawn, 4, 8), (Pawn, 4, 10), (Pawn, 4, 12)  # 兵在第四行间隔排列
         ]
+        
+        # 添加巡/廵棋子到经典模式配置 - 放置在河界（第5行和第7行）的最边缘位置
+        black_xun_config = [(Xun, 5, 0), (Xun, 5, 12)]  # 黑方巡在第5行最边缘
 
         red_pieces_config = [
             # 第12行 - 红方底线
@@ -336,6 +348,13 @@ def create_initial_pieces():
             (Pawn, 8, 0), (Pawn, 8, 2), (Pawn, 8, 4), (Pawn, 8, 6),
             (Pawn, 8, 8), (Pawn, 8, 10), (Pawn, 8, 12)  # 兵在第八行间隔排列
         ]
+        
+        # 添加巡/廵棋子到经典模式配置 - 放置在河界（第5行和第7行）的最边缘位置
+        red_xun_config = [(Xun, 7, 0), (Xun, 7, 12)]    # 红方廵在第7行最边缘
+        
+        # 将巡/廵棋子添加到经典模式配置中
+        black_pieces_config.extend(black_xun_config)
+        red_pieces_config.extend(red_xun_config)
     else:
         # 原始布局配置
         black_pieces_config = [
@@ -369,13 +388,26 @@ def create_initial_pieces():
             (Pawn, 8, 8), (Pawn, 8, 10), (Pawn, 8, 12)
         ]
 
+        # 添加巡/廵棋子 - 放置在河界（第5行和第7行）的最边缘位置
+        black_xun_config = [(Xun, 5, 0), (Xun, 5, 12)]  # 黑方巡在第5行最边缘
+        red_xun_config = [(Xun, 7, 0), (Xun, 7, 12)]    # 红方廵在第7行最边缘
+        
+        # 添加巡/廵棋子到配置中
+        black_pieces_config.extend(black_xun_config)
+        red_pieces_config.extend(red_xun_config)
+
     # 添加黑方棋子，根据设置决定是否添加
     for piece_class, row, col in black_pieces_config:
         # 在经典模式下，只包含特定棋子
         if classic_mode:
-            # 经典模式只包含车、马、相、士、将/帅、炮、兵/卒，以及新增的射和檑
-            if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei]:
-                pieces.append(piece_class("black", row, col))
+            # 经典模式只包含车、马、相、士、将/帅、炮、兵/卒，以及新增的射和檑，还有巡/廵
+            if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei, Xun]:
+                # 即使在经典模式下，也要检查巡/廵是否启用（如果棋子是巡/廵的话）
+                if piece_class == Xun:
+                    if should_include_piece(piece_class.__name__):
+                        pieces.append(piece_class("black", row, col))
+                else:
+                    pieces.append(piece_class("black", row, col))
         else:
             # 原始模式根据设置决定是否包含棋子
             if should_include_piece(piece_class.__name__):
@@ -385,9 +417,14 @@ def create_initial_pieces():
     for piece_class, row, col in red_pieces_config:
         # 在经典模式下，只包含特定棋子
         if classic_mode:
-            # 经典模式只包含车、马、相、士、将/帅、炮、兵/卒，以及新增的射和檑
-            if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei]:
-                pieces.append(piece_class("red", row, col))
+            # 经典模式只包含车、马、相、士、将/帅、炮、兵/卒，以及新增的射和檑，还有巡/廵
+            if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei, Xun]:
+                # 即使在经典模式下，也要检查巡/廵是否启用（如果棋子是巡/廵的话）
+                if piece_class == Xun:
+                    if should_include_piece(piece_class.__name__):
+                        pieces.append(piece_class("red", row, col))
+                else:
+                    pieces.append(piece_class("red", row, col))
         else:
             # 原始模式根据设置决定是否包含棋子
             if should_include_piece(piece_class.__name__):

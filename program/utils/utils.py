@@ -206,8 +206,29 @@ class SoundManager:
         else:
             music_type = 'fc_background'
 
-        # 使用全局音效路径
-        global sound_paths
+        # 获取音效路径
+        sound_paths = {
+            'check': os.path.join("sounds", "check.wav"),  # 旧将军音效，纯音乐
+            'move': os.path.join("sounds", "move.wav"),  # 旧走子音效
+            'capture': os.path.join("sounds", "capture.wav"),  # 旧吃子音效
+            'select': os.path.join("sounds", "select.wav"),  # 旧选子音效
+            'jiangjun_voice': os.path.join("sounds", "jiangjun.wav"),  # 旧将军音效，女声版
+            'juesha_voice': os.path.join("sounds", "juesha.wav"),  # 旧绝杀音效，女声版
+            'victory': os.path.join("sounds", "fc_victory_sound.wav"),  # 默认使用fc风格的胜利音效
+            'defeat': os.path.join("sounds", "fc_defeat_sound.wav"),  # 默认使用fc风格的失败音效
+            'qq_victory': os.path.join("sounds", "qq_victory_sound.wav"),  # QQ风格的胜利音效
+            'qq_defeat': os.path.join("sounds", "qq_defeat_sound.wav"),  # QQ风格的失败音效
+            'fc_victory': os.path.join("sounds", "fc_victory_sound.wav"),  # 默认使用fc风格的胜利音效
+            'fc_defeat': os.path.join("sounds", "fc_defeat_sound.wav"),  # 默认使用fc风格的失败音效
+            'button': os.path.join("sounds", "button.wav"),  # 点击按钮的音效，暂未使用
+            'choose': os.path.join("sounds", "choose.wav"),  # 新选子音效
+            'drop': os.path.join("sounds", "drop.wav"),  # 新走子音效
+            'eat': os.path.join("sounds", "eat.wav"),  # 新吃子音效
+            'warn': os.path.join("sounds", "warn.wav"),  # 新将军音效
+            'qq_background': os.path.join("sounds", "qq_background_sound.wav"),  # QQ风格背景音乐
+            'fc_background': os.path.join("sounds", "fc_background_sound.wav")  # FC风格背景音乐
+        }
+        
         music_filepath = resource_path(sound_paths[music_type])
 
         # 检查背景音乐文件是否存在

@@ -278,9 +278,18 @@ class PopupDialog:
         
         # 绘制结果文本
         font = load_font(32)
-        text_surface = font.render(self.message, True, RED)
+        text_surface = font.render(self.message, True, RED if "胜利" in self.message else (0, 0, 0))
         text_rect = text_surface.get_rect(center=(window_width//2, self.y + 110))
         screen.blit(text_surface, text_rect)
+        
+        # 如果是和棋，显示和棋原因
+        if "平局" in self.message or "和" in self.message:
+            # 尝试获取和棋原因（如果game_state可用）
+            try:
+                # 这里需要在调用处传递game_state或和棋原因
+                pass
+            except:
+                pass
         
         # 绘制时间信息
         time_font = load_font(20)
@@ -305,6 +314,12 @@ class PopupDialog:
         black_time_surface = time_font.render(black_time_text, True, BLACK)
         black_time_rect = black_time_surface.get_rect(center=(window_width//2, self.y + 220))
         screen.blit(black_time_surface, black_time_rect)
+        
+        # 如果是和棋，添加和棋说明
+        if "平局" in self.message:
+            draw_y = 250
+            draw_explanation = time_font.render("和棋原因: 双方均无可能取胜的简单局势", True, (0, 0, 0))
+            screen.blit(draw_explanation, (window_width//2 - draw_explanation.get_width()//2, self.y + draw_y))
         
         # 绘制按钮
         self.restart_button.draw(screen)

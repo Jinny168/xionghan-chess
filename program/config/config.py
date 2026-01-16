@@ -73,8 +73,11 @@ class GameConfig:
             "jia_appear": True,     # 甲/胄登场
             "ci_appear": True,      # 刺登场
             "dun_appear": True,     # 盾登场
+            "xun_appear": True,     # 巡/廵登场
             # 游戏模式设置
             "classic_mode": True,  # 经典模式
+            # AI设置
+            "ai_algorithm": "negamax",  # AI算法类型: negamax, minimax, alpha-beta
         }
     
     def get_setting(self, key, default=None):

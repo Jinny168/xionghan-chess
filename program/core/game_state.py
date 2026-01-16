@@ -44,6 +44,10 @@ class GameState:
         
         # 升变完成标志
         self.just_completed_promotion = False  # 记录是否刚刚完成升变
+        
+        # 添加局面历史记录，用于检测重复局面
+        self.board_position_history = []  # 记录局面哈希值的历史
+        self.repetition_count = {}  # 记录每个局面出现的次数
     
     def get_piece_at(self, row, col):
         """获取指定位置的棋子"""
@@ -255,6 +259,11 @@ class GameState:
                 # 更新游戏总时长
                 self.total_time = max(0, current_time - self.start_time)
             else:
+                # 检查是否和棋
+                if self.is_draw():
+                    self.game_over = True
+                    self.winner = None  # 和棋没有获胜方
+                
                 # 切换玩家回合
                 self.player_turn = opponent_color
                 # 重置当前回合开始时间
@@ -262,7 +271,67 @@ class GameState:
                 print(f"[DEBUG] 移动后切换玩家: {opponent_color}")
         
         return True
-    
+
+    def is_draw(self):
+        """检查是否和棋
+        
+        Returns:
+            bool: 是否和棋
+        """
+        # 检查是否为不可能取胜的简单局势
+        if GameRules.has_insufficient_material(self.pieces):
+            return True
+        
+        # 检查是否出现困毙
+        if GameRules.is_stalemate(self.pieces, self.player_turn):
+            return True
+        
+        # 检查是否出现循环反复的局面（重复三次）
+        # 这里需要先更新局面历史
+        board_hash = GameRules.get_board_hash(self.pieces)
+        
+        # 更新局面历史记录
+        self.board_position_history.append(board_hash)
+        
+        # 更新重复计数
+        if board_hash in self.repetition_count:
+            self.repetition_count[board_hash] += 1
+        else:
+            self.repetition_count[board_hash] = 1
+        
+        # 如果某个局面出现了3次或以上，视为和棋
+        if self.repetition_count[board_hash] >= 3:
+            return True
+        
+        # 使用GameRules中的方法检测重复局面
+        if GameRules.is_repeated_move(self.move_history, self.board_position_history, 3):
+            return True
+        
+        return False
+
+    def reset_draw_tracking(self):
+        """重置和棋追踪数据"""
+        self.board_position_history = []
+        self.repetition_count = {}
+
+    def get_draw_reason(self):
+        """获取和棋原因
+        
+        Returns:
+            str: 和棋原因描述
+        """
+        if GameRules.has_insufficient_material(self.pieces):
+            return "双方均无可能取胜的简单局势"
+        if GameRules.is_stalemate(self.pieces, self.player_turn):
+            return "困毙（无子可走）"
+        
+        # 检查重复局面
+        board_hash = GameRules.get_board_hash(self.pieces)
+        if board_hash in self.repetition_count and self.repetition_count[board_hash] >= 3:
+            return "循环反复三次局面"
+        
+        return "未知原因"
+
     def undo_move(self):
         """撤销上一步移动
         
@@ -309,6 +378,18 @@ class GameState:
                 # 从阵亡列表中移除
                 if captured in self.captured_pieces[captured.color]:
                     self.captured_pieces[captured.color].remove(captured)
+
+        # 悔棋时也需要回退局面历史记录
+        if self.board_position_history:
+            self.board_position_history.pop()
+        
+        # 重新计算重复计数（重新统计当前局面历史）
+        self.repetition_count = {}
+        for board_hash in self.board_position_history:
+            if board_hash in self.repetition_count:
+                self.repetition_count[board_hash] += 1
+            else:
+                self.repetition_count[board_hash] = 1
 
         # 切换玩家回合
         self.player_turn = "black" if self.player_turn == "red" else "red"

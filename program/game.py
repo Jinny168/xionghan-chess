@@ -3,7 +3,7 @@ import sys
 
 import pygame
 
-from program.ai.Negamax.chess_ai import ChessAI
+from program.ai.chess_ai import ChessAI
 from program.ui.chess_board import ChessBoard
 from program.config.config import game_config
 from program.ui.dialogs import PopupDialog, ConfirmDialog, PawnResurrectionDialog, PromotionDialog, AudioSettingsDialog
@@ -58,7 +58,9 @@ class ChessGame:
         self.game_state = GameState()
 
         # 初始化AI（如果需要）
-        self.ai = ChessAI("hard", "black") if game_mode == MODE_PVC else None
+        # 从游戏设置中获取AI算法类型，默认为negamax
+        ai_algorithm = game_settings.get('ai_algorithm', 'negamax') if game_settings else 'negamax'
+        self.ai = ChessAI(ai_algorithm, "hard", "black") if game_mode == MODE_PVC else None
         self.ai_thinking = False  # AI是否正在思考
         self.ai_think_start_time = 0  # AI开始思考的时间
         self.async_ai_move = None  # 异步AI计算结果
@@ -289,14 +291,14 @@ class ChessGame:
             message = "红方胜利！"
         elif winner == "black":
             message = "黑方胜利！"
-        else:
+        else:  # winner is None, indicating a draw
             message = "平局！"
 
         total_time = self.game_state.total_time
         red_time = self.game_state.red_time
         black_time = self.game_state.black_time
 
-        self.popup = PopupDialog(400, 300, message, total_time, red_time, black_time)
+        self.popup = PopupDialog(400, 320, message, total_time, red_time, black_time)  # 增加高度以适应更多信息
         
         # 根据胜负播放相应的音效
         if self.game_mode == MODE_PVC:  # 人机模式

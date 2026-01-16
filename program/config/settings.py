@@ -155,6 +155,13 @@ class SettingsScreen:
                 "appear_checkbox": None,
                 "appear_label": None,
             },
+            # 巡设置
+            "xun": {
+                "appear": None,                     # 巡登场设置
+                "section_title": None,
+                "appear_checkbox": None,
+                "appear_label": None,
+            },
             # 游戏模式设置
             "game_mode": {
                 "classic_mode": None,               # 经典模式设置
@@ -236,6 +243,7 @@ class SettingsScreen:
         self.piece_settings["jia"]["appear"] = game_config.get_setting("jia_appear", True)
         self.piece_settings["ci"]["appear"] = game_config.get_setting("ci_appear", True)
         self.piece_settings["dun"]["appear"] = game_config.get_setting("dun_appear", True)
+        self.piece_settings["xun"]["appear"] = game_config.get_setting("xun_appear", True)
         
         # 游戏模式设置
         self.piece_settings["game_mode"]["classic_mode"] = game_config.get_setting("classic_mode", False)
@@ -380,6 +388,13 @@ class SettingsScreen:
         y_pos += 30  # 为标题留出空间
         self.piece_settings["dun"]["appear_checkbox"] = pygame.Rect(checkbox_x, y_pos, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
         self.piece_settings["dun"]["appear_label"] = (label_x, y_pos)
+        y_pos += option_spacing + section_spacing
+        
+        # 巡棋子设置
+        self.piece_settings["xun"]["section_title"] = (left_col_x, y_pos - 10)
+        y_pos += 30  # 为标题留出空间
+        self.piece_settings["xun"]["appear_checkbox"] = pygame.Rect(checkbox_x, y_pos, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
+        self.piece_settings["xun"]["appear_label"] = (label_x, y_pos)
         y_pos += option_spacing + section_spacing
         
         # 游戏模式设置
@@ -569,6 +584,17 @@ class SettingsScreen:
             self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
             self.option_font, self.desc_font, self.draw_piece_icon,
             "盾", "盾", dun_items, y_offset
+        )
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 巡棋子分类
+        xun_items = self.create_xun_items(y_offset)
+        category_height = draw_category(
+            self.screen, self.category_background_color, self.category_border_color,
+            self.category_padding, self.category_title_height, self.category_title_font,
+            self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
+            self.option_font, self.desc_font, self.draw_piece_icon,
+            "巡", "巡", xun_items, y_offset
         )
         y_offset = y_offset + category_height + self.category_spacing
         
@@ -794,6 +820,19 @@ class SettingsScreen:
             
             # 更新y_offset
             category_height = len(dun_items) * 60 + self.category_title_height + 2 * self.category_padding
+            y_offset = y_offset + category_height + self.category_spacing
+            
+            # 巡棋子分类
+            xun_items = self.create_xun_items(y_offset)
+            clicked_item = self.check_category_click(xun_items, adjusted_mouse_pos, y_offset)
+            if clicked_item is not None:
+                checkbox, label, value, text, desc, is_disabled = clicked_item
+                if text == "巡登场":
+                    self.piece_settings["xun"]["appear"] = not self.piece_settings["xun"]["appear"]
+                return  # 处理完后直接返回，避免其他检测
+            
+            # 更新y_offset
+            category_height = len(xun_items) * 60 + self.category_title_height + 2 * self.category_padding
             y_offset = y_offset + category_height + self.category_spacing
             
             # 游戏模式分类
@@ -1117,6 +1156,11 @@ class SettingsScreen:
         category_height = len(dun_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
+        # 巡棋子分类
+        xun_items = self.create_xun_items(y_offset)
+        category_height = len(xun_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
         total_height = y_offset  # 总高度就是最后一个分类的底部位置
         
         visible_height = self.window_height - 180  # 可视区域高度
@@ -1398,6 +1442,22 @@ class SettingsScreen:
              self.piece_settings["dun"]["appear"], 
              "盾登场", 
              "盾登场", 
+             False)
+        ]
+
+        self.appear_settings = {
+            "dun_appear": self.piece_settings["dun"]["appear"],
+            "xun_appear": self.piece_settings["xun"]["appear"]
+        }
+
+    def create_xun_items(self, y_offset):
+        """创建巡相关的设置项"""
+        return [
+            (self.piece_settings["xun"]["appear_checkbox"], 
+             self.piece_settings["xun"]["appear_label"], 
+             self.piece_settings["xun"]["appear"], 
+             "巡登场", 
+             "巡/廵登场（河界专属控场棋子）", 
              False)
         ]
 

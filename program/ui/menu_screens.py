@@ -25,38 +25,47 @@ class ModeSelectionScreen:
         
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
-        button_width = 300
-        button_height = 80
-        button_spacing = 40
+        button_width = 250  # 缩小按钮宽度
+        button_height = 60  # 缩小按钮高度
+        button_spacing = 25  # 缩小间距
         center_x = self.window_width // 2
-        center_y = self.window_height // 2
+        center_y = self.window_height // 2 - 50  # 调整中心位置
         
         # 创建按钮
         self.pvp_button = Button(
             center_x - button_width // 2,
-            center_y - button_height - button_spacing,
+            center_y - 2*(button_height + button_spacing),
             button_width,
             button_height,
             "双人对战",
-            32
+            28
         )
         
         self.pvc_button = Button(
             center_x - button_width // 2,
-            center_y,
+            center_y - (button_height + button_spacing),
             button_width,
             button_height,
             "人机对战",
-            32
+            28
+        )
+        
+        self.network_button = Button(
+            center_x - button_width // 2,
+            center_y,
+            button_width,
+            button_height,
+            "网络对战",
+            28
         )
         
         self.settings_button = Button(
             center_x - button_width // 2,
-            center_y + button_height + button_spacing,
+            center_y + (button_height + button_spacing),
             button_width,
             button_height,
             "自定义设置",
-            32
+            28
         )
         
         self.rules_button = Button(
@@ -65,7 +74,7 @@ class ModeSelectionScreen:
             button_width,
             button_height,
             "游戏规则",
-            32
+            28
         )
 
     
@@ -127,6 +136,8 @@ class ModeSelectionScreen:
                         self.selected_mode = MODE_PVP
                     elif self.pvc_button.is_clicked(mouse_pos, event):
                         self.selected_mode = MODE_PVC
+                    elif self.network_button.is_clicked(mouse_pos, event):
+                        self.selected_mode = "network"
                     elif self.settings_button.is_clicked(mouse_pos, event):
                         self.selected_mode = "settings"
                     elif self.rules_button.is_clicked(mouse_pos, event):
@@ -136,6 +147,7 @@ class ModeSelectionScreen:
             # 更新按钮悬停状态
             self.pvp_button.check_hover(mouse_pos)
             self.pvc_button.check_hover(mouse_pos)
+            self.network_button.check_hover(mouse_pos)
             self.settings_button.check_hover(mouse_pos)
             self.rules_button.check_hover(mouse_pos)
 
@@ -178,48 +190,163 @@ class ModeSelectionScreen:
         # 绘制按钮
         self.pvp_button.draw(self.screen)
         self.pvc_button.draw(self.screen)
+        self.network_button.draw(self.screen)
         self.settings_button.draw(self.screen)
         self.rules_button.draw(self.screen)
 
-        
-        # 绘制按钮说明文字
-        desc_font = load_font(18)
-        pvp_desc = "两位玩家轮流对弈"
-        pvc_desc = "与电脑AI对弈"
-        settings_desc = "自定义游戏规则"
-        rules_desc = "查看游戏规则和玩法说明"
-        
-        pvp_desc_surface = desc_font.render(pvp_desc, True, BLACK)
-        pvc_desc_surface = desc_font.render(pvc_desc, True, BLACK)
-        settings_desc_surface = desc_font.render(settings_desc, True, BLACK)
-        rules_desc_surface = desc_font.render(rules_desc, True, BLACK)
-        
-        pvp_desc_rect = pvp_desc_surface.get_rect(
-            center=(self.window_width//2, self.pvp_button.rect.bottom + 25)
-        )
-        pvc_desc_rect = pvc_desc_surface.get_rect(
-            center=(self.window_width//2, self.pvc_button.rect.bottom + 25)
-        )
-        settings_desc_rect = settings_desc_surface.get_rect(
-            center=(self.window_width//2, self.settings_button.rect.bottom + 25)
-        )
-        rules_desc_rect = rules_desc_surface.get_rect(
-            center=(self.window_width//2, self.rules_button.rect.bottom + 25)
-        )
-        
-        self.screen.blit(pvp_desc_surface, pvp_desc_rect)
-        self.screen.blit(pvc_desc_surface, pvc_desc_rect)
-        self.screen.blit(settings_desc_surface, settings_desc_rect)
-        self.screen.blit(rules_desc_surface, rules_desc_rect)
-
+        # 移除说明文字，减少界面拥挤
         
         # 绘制版权信息
         copyright_text = "© 2025 靳中原"
-        copyright_surface = desc_font.render(copyright_text, True, (128, 0, 128))
+        copyright_surface = load_font(18).render(copyright_text, True, (128, 0, 128))
         copyright_rect = copyright_surface.get_rect(
             center=(self.window_width//2, self.window_height - 30)
         )
         self.screen.blit(copyright_surface, copyright_rect)
+
+class NetworkModeScreen:
+    """网络对战模式选择界面"""
+    
+    def __init__(self):
+        self.window_width = DEFAULT_WINDOW_WIDTH
+        self.window_height = DEFAULT_WINDOW_HEIGHT
+        self.is_fullscreen = False
+        self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        pygame.display.set_caption("匈汉象棋 - 网络对战")
+        
+        self.update_layout()
+        self.selected_option = None
+        
+    def update_layout(self):
+        """更新布局"""
+        button_width = 250  # 缩小按钮
+        button_height = 60
+        button_spacing = 35
+        center_x = self.window_width // 2
+        center_y = self.window_height // 2
+        
+        # 创建按钮
+        self.host_button = Button(
+            center_x - button_width // 2,
+            center_y - button_height - button_spacing,
+            button_width,
+            button_height,
+            "创建房间",
+            28
+        )
+        
+        self.join_button = Button(
+            center_x - button_width // 2,
+            center_y,
+            button_width,
+            button_height,
+            "加入房间",
+            28
+        )
+        
+        self.back_button = Button(
+            center_x - button_width // 2,
+            center_y + button_height + button_spacing,
+            button_width,
+            button_height,
+            "返回",
+            28
+        )
+    
+    def run(self):
+        """运行网络模式选择界面"""
+        clock = pygame.time.Clock()
+        
+        while self.selected_option is None:
+            mouse_pos = pygame.mouse.get_pos()
+            
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                
+                # 处理窗口大小变化
+                if event.type == pygame.VIDEORESIZE:
+                    if not self.is_fullscreen:  # 只在窗口模式下处理大小变化
+                        self.window_width, self.window_height = event.w, event.h
+                        self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+                        self.update_layout()
+                
+                # 处理键盘事件
+                if event.type == pygame.KEYDOWN:
+                    # F11或Alt+Enter切换全屏
+                    if event.key == pygame.K_F11 or (
+                        event.key == pygame.K_RETURN and 
+                        pygame.key.get_mods() & pygame.KMOD_ALT
+                    ):
+                        self.toggle_fullscreen()
+                
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.host_button.is_clicked(mouse_pos, event):
+                        self.selected_option = "host"
+                    elif self.join_button.is_clicked(mouse_pos, event):
+                        self.selected_option = "join"
+                    elif self.back_button.is_clicked(mouse_pos, event):
+                        self.selected_option = "back"
+            
+            # 更新按钮悬停状态
+            self.host_button.check_hover(mouse_pos)
+            self.join_button.check_hover(mouse_pos)
+            self.back_button.check_hover(mouse_pos)
+            
+            # 绘制界面
+            self.draw()
+            pygame.display.flip()
+            clock.tick(FPS)
+        
+        return self.selected_option
+    
+    def draw(self):
+        """绘制界面"""
+        # 使用统一的背景绘制函数
+        draw_background(self.screen)
+        
+        # 绘制标题
+        title_font = load_font(48)
+        title_text = "网络对战"
+        title_surface = title_font.render(title_text, True, BLACK)
+        title_rect = title_surface.get_rect(center=(self.window_width//2, 150))
+        self.screen.blit(title_surface, title_rect)
+        
+        # 绘制副标题
+        subtitle_font = load_font(24)
+        subtitle_text = "请选择网络对战方式"
+        subtitle_surface = subtitle_font.render(subtitle_text, True, BLACK)
+        subtitle_rect = subtitle_surface.get_rect(center=(self.window_width//2, 200))
+        self.screen.blit(subtitle_surface, subtitle_rect)
+        
+        # 绘制按钮
+        self.host_button.draw(self.screen)
+        self.join_button.draw(self.screen)
+        self.back_button.draw(self.screen)
+        
+        # 移除说明文字，减少界面拥挤
+    
+    def toggle_fullscreen(self):
+        """切换全屏模式"""
+        self.is_fullscreen = not self.is_fullscreen
+        
+        if self.is_fullscreen:
+            # 获取显示器信息
+            info = pygame.display.Info()
+            # 保存窗口模式的尺寸
+            self.windowed_size = (self.window_width, self.window_height)
+            # 切换到全屏模式
+            self.screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
+            self.window_width = info.current_w
+            self.window_height = info.current_h
+        else:
+            # 恢复窗口模式
+            self.window_width, self.window_height = self.windowed_size
+            self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        
+        # 更新布局
+        self.update_layout()
 
 class RulesScreen:
     def __init__(self):
@@ -423,9 +550,9 @@ class CampSelectionScreen:
         
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
-        button_width = 300
-        button_height = 80
-        button_spacing = 40
+        button_width = 250  # 缩小按钮
+        button_height = 60
+        button_spacing = 35
         center_x = self.window_width // 2
         center_y = self.window_height // 2
         
@@ -436,7 +563,7 @@ class CampSelectionScreen:
             button_width,
             button_height,
             "执红先行",
-            32
+            28
         )
         
         self.black_button = Button(
@@ -445,7 +572,7 @@ class CampSelectionScreen:
             button_width,
             button_height,
             "执黑后行",
-            32
+            28
         )
     
     def toggle_fullscreen(self):

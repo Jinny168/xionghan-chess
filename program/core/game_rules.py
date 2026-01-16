@@ -1,4 +1,4 @@
-from program.core.chess_pieces import ChessPiece, Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun
+from program.core.chess_pieces import ChessPiece, Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun
 from program.config.config import game_config
 
 class GameRules:
@@ -84,6 +84,8 @@ class GameRules:
             GameRules.ci_appear = settings["ci_appear"]
         if "dun_appear" in settings:
             GameRules.dun_appear = settings["dun_appear"]
+        if "xun_appear" in settings:
+            GameRules.xun_appear = settings["xun_appear"]
         
         # 兵/卒特殊规则设置
         if "pawn_backward_at_base_enabled" in settings:
@@ -225,6 +227,8 @@ class GameRules:
             return GameRules.is_valid_ci_move(pieces, piece.color, from_row, from_col, to_row, to_col)
         elif isinstance(piece, Dun):
             return GameRules.is_valid_dun_move(pieces, from_row, from_col, to_row, to_col)
+        elif isinstance(piece, Xun):
+            return GameRules.is_valid_xun_move(pieces, from_row, from_col, to_row, to_col)
         
         return False
     
@@ -1452,6 +1456,28 @@ class GameRules:
                         if target and target.color != piece.color:
                             capturable.append((to_row, to_col))
                         moves.append((to_row, to_col))
+        elif isinstance(piece, Xun):  # 巡/廵，河界专属控场棋子
+            # 巡/廵只能在河界（第5行和第7行）横向移动，移动偶数格（2, 4, 6等）
+            if piece.row == 5 or piece.row == 7:  # 确保在河界
+                # 尝试左右方向移动偶数格
+                for step in [2, 4, 6, 8, 10, 12]:  # 移动2, 4, 6, 8, 10, 12格
+                    # 向右移动
+                    to_col_right = piece.col + step
+                    if to_col_right < 13:
+                        if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, piece.row, to_col_right):
+                            target = GameRules.get_piece_at(pieces, piece.row, to_col_right)
+                            if target and target.color != piece.color:
+                                capturable.append((piece.row, to_col_right))
+                            moves.append((piece.row, to_col_right))
+                    
+                    # 向左移动
+                    to_col_left = piece.col - step
+                    if to_col_left >= 0:
+                        if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, piece.row, to_col_left):
+                            target = GameRules.get_piece_at(pieces, piece.row, to_col_left)
+                            if target and target.color != piece.color:
+                                capturable.append((piece.row, to_col_left))
+                            moves.append((piece.row, to_col_left))
         else:  # 其他情况，遍历所有位置
             # 遍历所有可能的位置
             for row in range(13):
@@ -2209,3 +2235,197 @@ class GameRules:
             return True
         
         return False
+
+    @staticmethod
+    def has_insufficient_material(pieces):
+        """检查是否为不可能取胜的简单局势（简单残局）
+        
+        Args:
+            pieces (list): 棋子列表
+            
+        Returns:
+            bool: 是否为不可能取胜的简单局势
+        """
+        # 统计双方棋子数量
+        red_pieces = [p for p in pieces if p.color == "red"]
+        black_pieces = [p for p in pieces if p.color == "black"]
+        
+        # 统计各方棋子类型
+        red_types = {}
+        black_types = {}
+        
+        for piece in red_pieces:
+            piece_type = type(piece).__name__
+            red_types[piece_type] = red_types.get(piece_type, 0) + 1
+        
+        for piece in black_pieces:
+            piece_type = type(piece).__name__
+            black_types[piece_type] = black_types.get(piece_type, 0) + 1
+        
+        # 如果某一方只剩下将/帅，而对方只有将/帅+1个棋子，或者将/帅+2个棋子但都是不能杀王的棋子（如相/象、士/仕等）
+        # 简单判断：如果一方只剩下将/帅，而对方棋子数量不足以形成杀局，则为和棋
+        if len(red_pieces) == 1 and isinstance(red_pieces[0], King):  # 红方只剩将/帅
+            if len(black_pieces) <= 2:
+                # 黑方只有1-2个棋子，检查是否无法形成杀局
+                if len(black_pieces) == 1 and isinstance(black_pieces[0], King):
+                    return True  # 双王残局
+                elif len(black_pieces) == 2:
+                    # 检查黑方第二个棋子是否无法杀王（如相、士等）
+                    other_piece = black_pieces[1] if not isinstance(black_pieces[0], King) else black_pieces[0]
+                    if isinstance(other_piece, (Shi, Xiang)):
+                        return True
+        
+        if len(black_pieces) == 1 and isinstance(black_pieces[0], King):  # 黑方只剩将/帅
+            if len(red_pieces) <= 2:
+                # 红方只有1-2个棋子，检查是否无法形成杀局
+                if len(red_pieces) == 1 and isinstance(red_pieces[0], King):
+                    return True  # 双王残局
+                elif len(red_pieces) == 2:
+                    # 检查红方第二个棋子是否无法杀王（如相、士等）
+                    other_piece = red_pieces[1] if not isinstance(red_pieces[0], King) else red_pieces[0]
+                    if isinstance(other_piece, (Shi, Xiang)):
+                        return True
+        
+        return False
+    
+    @staticmethod
+    def is_stalemate(pieces, player_color):
+        """检查是否为困毙（无子可走）
+        
+        Args:
+            pieces (list): 棋子列表
+            player_color (str): 当前玩家颜色
+            
+        Returns:
+            bool: 是否为困毙
+        """
+        # 检查当前玩家是否有任何合法移动
+        for piece in pieces:
+            if piece.color == player_color:
+                # 尝试所有可能的移动
+                for row in range(13):
+                    for col in range(13):
+                        if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, row, col):
+                            # 检查这个移动是否会送将
+                            if not GameRules.would_be_in_check_after_move(pieces, piece, piece.row, piece.col, row, col):
+                                return False  # 找到了一个合法移动，不是困毙
+        
+        # 没有任何合法移动，是困毙
+        return True
+    
+    @staticmethod
+    def is_repeated_move(move_history, board_position_history, repetition_count=3):
+        """检查是否出现循环反复的局面（重复局面）
+        
+        Args:
+            move_history (list): 移动历史记录
+            board_position_history (list): 局面历史记录
+            repetition_count (int): 重复次数阈值
+            
+        Returns:
+            bool: 是否出现循环反复的局面
+        """
+        if len(board_position_history) < repetition_count:
+            return False
+        
+        # 获取最新的局面
+        latest_board_hash = board_position_history[-1]
+        
+        # 计算该局面在历史上出现的次数
+        count = 0
+        for board_hash in board_position_history:
+            if board_hash == latest_board_hash:
+                count += 1
+                if count >= repetition_count:
+                    return True
+        
+        return False
+    
+    @staticmethod
+    def get_board_hash(pieces):
+        """获取棋盘局面的哈希值
+        
+        Args:
+            pieces (list): 棋子列表
+            
+        Returns:
+            str: 棋盘局面的哈希表示
+        """
+        # 按照位置和棋子类型排序，生成局面字符串
+        sorted_pieces = sorted(pieces, key=lambda p: (p.row, p.col, p.name))
+        board_str = ""
+        for piece in sorted_pieces:
+            board_str += f"{piece.row},{piece.col},{piece.name},{piece.color};"
+        
+        import hashlib
+        return hashlib.md5(board_str.encode()).hexdigest()
+
+    @staticmethod
+    def is_valid_xun_move(pieces, from_row, from_col, to_row, to_col):
+        """检查巡/廵的移动是否合法
+        
+        巡/廵规则：
+        1. 初始位置：分别置于河界左右两侧最边缘，即第5行和第7行的第0列和第12列
+        2. 走法规则：仅能横向移动，不可纵向、斜向移动，也不可越子
+        3. 移动格数为任意偶数（2格、4格、6格等），需符合河界的限制
+        4. 河界为专属活动区域，不可离开第5行和第7行
+        5. 吃子范围限定为自身左右紧邻的第二格，仅2个目标点（左二格、右二格）
+        6. 吃子需满足两个条件：一是目标格有敌方棋子，二是移动路径无任何棋子阻挡
+        """
+        # 获取巡/廵棋子
+        xun_piece = GameRules.get_piece_at(pieces, from_row, from_col)
+        if not xun_piece or not isinstance(xun_piece, Xun):
+            return False
+        
+        # 检查目标位置是否在棋盘范围内
+        if not (0 <= to_row < 13 and 0 <= to_col < 13):
+            return False
+        
+        # 巡/廵只能在河界（第5行和第7行）活动，检查是否在河界
+        if from_row != 5 and from_row != 7:
+            return False
+        
+        # 巡/廵只能在河界（第5行和第7行）活动，检查目标位置是否仍在河界
+        if to_row != 5 and to_row != 7:
+            return False
+        
+        # 巡/廵只能横向移动，检查是否改变了行
+        if from_row != to_row:
+            return False
+        
+        # 计算移动的距离
+        col_diff = abs(to_col - from_col)
+        
+        # 检查是否移动了偶数格（2, 4, 6, 8, 10, 12等）
+        if col_diff == 0 or col_diff % 2 != 0:
+            return False
+        
+        # 检查路径上是否有阻挡
+        start_col = min(from_col, to_col)
+        end_col = max(from_col, to_col)
+        
+        for col in range(start_col + 1, end_col):
+            if GameRules.get_piece_at(pieces, from_row, col):
+                return False  # 路径上有棋子阻挡
+        
+        # 检查目标位置是否有己方棋子
+        target_piece = GameRules.get_piece_at(pieces, to_row, to_col)
+        if target_piece and target_piece.color == xun_piece.color:
+            return False
+        
+        # 检查是否是吃子移动
+        if target_piece:
+            # 巡/廵只能吃左右紧邻的第二格的棋子（即移动2格到达的位置）
+            if col_diff == 2:
+                # 检查是否是吃子（目标位置有敌方棋子）
+                if target_piece.color != xun_piece.color:
+                    return True  # 符合吃子规则
+                else:
+                    return False  # 目标位置是己方棋子，不能移动
+            else:
+                # 如果不是移动2格，但目标位置有棋子，则不符合规则
+                return False
+        
+        # 如果目标位置为空，只要符合移动规则即可
+        return True
+
