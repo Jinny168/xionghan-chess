@@ -13,6 +13,7 @@ def run_client():
     time.sleep(3)
     
     # 初始化网络API作为客户端
+    # 在这里初始化SimpleAPI，但注意不要与游戏实例中的初始化冲突
     SimpleAPI.init('CLIENT', server_addr="127.0.0.1")
     print("客户端模式初始化")
     
@@ -31,6 +32,7 @@ def run_client():
     print("成功连接到服务器，启动游戏...")
     
     # 创建客户端游戏实例
+    # 在创建游戏实例之前，XiangqiNetworkGame.game_instance应该已经被设置
     game = NetworkChessGame(is_host=False)
     game.run()
 

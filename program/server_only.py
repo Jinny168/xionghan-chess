@@ -27,15 +27,29 @@ def run_server():
     
     running = True
     conn_attempts = 0
-    while running and not (hasattr(SimpleAPI.instance, 'connection') and SimpleAPI.instance.connection is not None):
+    connected = False
+    
+    # 等待客户端连接
+    while running and not connected:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
         
+        # 检查连接状态 - 使用SimpleAPI的is_connected方法
+        # 对于服务器端，检查是否有客户端连接
+        if (SimpleAPI.instance and 
+            hasattr(SimpleAPI.instance, 'connection') and 
+            SimpleAPI.instance.connection is not None):
+            connected = True
+            print("客户端已连接，启动游戏...")
+        else:
+            # 继续等待连接
+            pass
+        
         screen.fill((240, 240, 240))
         
         # 显示连接状态
-        if hasattr(SimpleAPI.instance, 'connection') and SimpleAPI.instance.connection is not None:
+        if connected:
             text = font.render("客户端已连接！", True, (0, 128, 0))
         else:
             text = font.render("等待客户端连接...", True, (0, 0, 0))
@@ -62,8 +76,14 @@ def run_server():
         pygame.quit()
         return
     
+    if not connected:
+        print("等待客户端连接超时")
+        pygame.quit()
+        return
+    
+    # 连接成功后，启动游戏
     print("客户端已连接，启动游戏...")
-    # 这里可以启动游戏，但现在我们只显示连接状态
+    # 显示连接成功的消息
     game_text = font.render("客户端已连接，游戏即将开始...", True, (0, 128, 0))
     screen.blit(game_text, (50, 260))
     pygame.display.flip()
@@ -71,14 +91,15 @@ def run_server():
     # 等待一小段时间让客户端准备好
     time.sleep(2)
     
+    # 关闭临时的连接等待窗口
+    pygame.quit()
+    
     # 启动游戏
     try:
         game = NetworkChessGame(is_host=True)
         game.run()
     except Exception as e:
         print(f"游戏运行出错: {e}")
-    
-    pygame.quit()
 
 if __name__ == "__main__":
     run_server()

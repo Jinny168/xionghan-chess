@@ -28,9 +28,6 @@ class NetworkChessGame(ChessGame):
     """网络对战模式的匈汉象棋游戏"""
     
     def __init__(self, is_host=True):
-        # 先调用父类的初始化方法
-        super().__init__(game_mode="NETWORK", player_camp=(CAMP_RED if is_host else "black"), game_settings=game_config.get_all_settings())
-        
         # 设置网络模式
         self.is_host = is_host
         self.network_enabled = True
@@ -38,27 +35,29 @@ class NetworkChessGame(ChessGame):
         
         # 根据是否为主机设置阵营
         self.player_camp = CAMP_RED if is_host else "black"
-        self.game_mode = "NETWORK"  # 网络对战模式
         
-        # 重新设置游戏状态（因为父类构造函数会创建GameState）
-        self.game_state = GameState()
+        # 先调用父类的初始化方法
+        super().__init__(game_mode="NETWORK", player_camp=self.player_camp, game_settings=game_config.get_all_settings())
+        
+        self.game_mode = "NETWORK"  # 网络对战模式
         
         # 确保所有必要的对话框属性都被初始化
         self.pawn_resurrection_dialog = None
         self.promotion_dialog = None
         self.audio_settings_dialog = None
         
-        # 初始化网络功能
-        self.network_game = XiangqiNetworkGame(self)
+        # 初始化网络功能 - 在这里我们不初始化SimpleAPI，因为已在外部完成
+        # 我们直接设置XiangqiNetworkGame的game_instance
+        XiangqiNetworkGame.game_instance = self
+        self.network_game = XiangqiNetworkGame(self)  # 传递当前实例给网络类
         self.setup_network()
 
     def setup_network(self):
         """设置网络连接"""
-        # 在实际实现中，我们会在这里初始化网络连接
-        # 这里只是占位符
-        print(f"{'主机' if self.is_host else '客户端'}模式初始化")
-        # 设置网络模式
-        XiangqiNetworkGame.set_network_mode('SERVER' if self.is_host else 'CLIENT', None)
+        # 设置网络模式，使用已存在的SimpleAPI实例
+        role = 'SERVER' if self.is_host else 'CLIENT'
+        XiangqiNetworkGame.set_network_mode(role, SimpleAPI.instance)
+        print(f"{'主机' if self.is_host else '客户端'}模式初始化完成")
 
     def handle_click(self, pos):
         """处理鼠标点击事件 - 网络对战专用"""
@@ -179,6 +178,13 @@ class NetworkChessGame(ChessGame):
                     except:
                         pass
 
+                # 切换玩家回合（本地玩家移动后，轮到对手）
+                # 在网络游戏中，本地玩家移动后，应该将回合交给对手
+                # 注意：这里要确保切换到非本地玩家的阵营
+                opponent_color = "black" if self.player_camp == "red" else "red"
+                self.game_state.player_turn = opponent_color
+                print(f"[DEBUG] 移动后切换玩家: {opponent_color} (当前玩家阵营: {self.player_camp})")
+                
                 # 更新头像状态
                 self.update_avatars()
 
@@ -223,18 +229,22 @@ class NetworkChessGame(ChessGame):
 
     def send_network_move(self, from_row, from_col, to_row, to_col):
         """发送移动到网络对手"""
+        print(f"发送本地移动: {from_row},{from_col} -> {to_row},{to_col}")
         # 调用网络接口发送移动
         try:
             XiangqiNetworkGame.send_move(from_row, from_col, to_row, to_col)
-        except:
-            print("发送网络移动失败")
+        except Exception as e:
+            print(f"发送网络移动失败: {e}")
 
     def receive_network_move(self, from_row, from_col, to_row, to_col):
         """接收来自网络对手的移动"""
+        print(f"[DEBUG] 接收对手移动: {from_row},{from_col} -> {to_row},{to_col}")
+        print(f"[DEBUG] 接收前玩家回合: {self.game_state.player_turn}, 本地玩家阵营: {self.player_camp}")
+        
         # 执行对手的移动
         success = self.game_state.move_piece(from_row, from_col, to_row, to_col)
         if success:
-            print(f"[DEBUG] 接收对手移动: {from_row},{from_col} -> {to_row},{to_col}")
+            print(f"[DEBUG] 对手移动成功执行: {from_row},{from_col} -> {to_row},{to_col}")
             
             # 记录上一步走法
             self.last_move = (from_row, from_col, to_row, to_col)
@@ -273,6 +283,18 @@ class NetworkChessGame(ChessGame):
                     self.sound_manager.play_sound('capture')
                 except:
                     pass
+
+            # 切换玩家回合（这是对手的移动，所以现在轮到本地玩家走棋）
+            # 关键：接收到对手的移动后，应该切换到本地玩家的回合
+            self.game_state.player_turn = self.player_camp
+            print(f"[DEBUG] 收到对手移动后切换到本地玩家: {self.player_camp}")
+            self.update_avatars()
+        else:
+            print(f"[DEBUG] 对手移动执行失败: {from_row},{from_col} -> {to_row},{to_col}")
+            # 即使移动失败，也要确保状态正确
+            # 如果移动失败，仍应轮到本地玩家走棋（因为对手的移动无效）
+            self.game_state.player_turn = self.player_camp
+            print(f"[DEBUG] 移动失败，但仍切换到本地玩家: {self.player_camp}")
 
     def handle_opponent_win(self):
         """处理对手胜利的情况"""
@@ -338,8 +360,34 @@ class NetworkChessGame(ChessGame):
 
             # 检查是否点击了悔棋按钮
             elif self.undo_button.is_clicked(mouse_pos, event):
-                # 网络模式下通常不允许悔棋
-                print("网络对战模式下不允许悔棋")
+                # 网络模式下需要请求对手同意悔棋
+                print("请求对手同意悔棋...")
+                # 发送悔棋请求到对手
+                try:
+                    XiangqiNetworkGame.send_undo_request()
+                except:
+                    print("发送悔棋请求失败")
+            
+            # 检查是否点击了重新开始按钮
+            elif self.restart_button.is_clicked(mouse_pos, event):
+                # 网络模式下需要请求对手同意重新开始
+                print("请求对手同意重新开始...")
+                # 发送重新开始请求到对手
+                try:
+                    XiangqiNetworkGame.send_restart_request()
+                except:
+                    print("发送重新开始请求失败")
+            
+            # 检查是否点击了返回主菜单按钮
+            elif self.back_button.is_clicked(mouse_pos, event):
+                # 发送离开游戏信号并返回主菜单
+                try:
+                    XiangqiNetworkGame.send_leave_game()
+                except:
+                    pass
+                # 返回主菜单而不是退出游戏
+                self.sound_manager.stop_background_music()
+                return "back_to_menu"
             
             # 检查是否点击了退出游戏按钮
             elif self.exit_button.is_clicked(mouse_pos, event):
@@ -347,6 +395,7 @@ class NetworkChessGame(ChessGame):
                 self.confirm_dialog = ConfirmDialog(
                     400, 200, "是否要退出网络对局？\n这将视为认输。"
                 )
+                self.confirm_dialog.type = "exit_game"  # 标记为退出游戏对话框
 
             # 处理棋盘点击
             elif not self.game_state.game_over:
@@ -380,38 +429,101 @@ class NetworkChessGame(ChessGame):
                             
                             # 清除升变对话框
                             self.promotion_dialog = None
-                            
-                            # 切换玩家回合
-                            current_player = self.game_state.player_turn
-                            opponent_color = "black" if current_player == "red" else "red"
+            
+                            # 切换玩家回合 - 升变完成后，轮到对手走棋
+                            # 在网络游戏中，升变后同样需要切换到对手
+                            opponent_color = "black" if self.player_camp == "red" else "red"
                             self.game_state.player_turn = opponent_color
-                            print(f"[DEBUG] 兵升变后切换玩家: {current_player} -> {opponent_color}")
+                            print(f"[DEBUG] 兵升变后切换玩家: {self.player_camp} -> {opponent_color}")
                             self.update_avatars()
                         elif result is False:
                             # 取消升变
                             self.promotion_dialog = None
-                            
-                            # 切换玩家回合
-                            current_player = self.game_state.player_turn
-                            opponent_color = "black" if current_player == "red" else "red"
+            
+                            # 切换玩家回合 - 即使取消升变，走子机会也已消耗，轮到对手
+                            opponent_color = "black" if self.player_camp == "red" else "red"
                             self.game_state.player_turn = opponent_color
-                            print(f"[DEBUG] 兵升变取消后切换玩家: {current_player} -> {opponent_color}")
+                            print(f"[DEBUG] 兵升变取消后切换玩家: {self.player_camp} -> {opponent_color}")
+                            self.update_avatars()
+                elif hasattr(self, 'pawn_resurrection_dialog') and self.pawn_resurrection_dialog:
+                    result = self.pawn_resurrection_dialog.handle_event(event, mouse_pos)
+                    if result is not None:  # 用户已做出选择
+                        if result:  # 确认复活
+                            # 执行复活逻辑
+                            current_player = self.game_state.player_turn
+                            # 获取复活位置
+                            resurrection_pos = self.pawn_resurrection_dialog.position
+                            
+                            # 执行复活
+                            self.game_state.perform_pawn_resurrection(current_player, resurrection_pos)
+                            
+                            # 清除复活对话框
+                            self.pawn_resurrection_dialog = None
+                            
+                            # 切换玩家回合 - 复活棋子后，轮到对手走棋
+                            opponent_color = "black" if self.player_camp == "red" else "red"
+                            self.game_state.player_turn = opponent_color
+                            print(f"[DEBUG] 兵复活后切换玩家: {self.player_camp} -> {opponent_color}")
+                            self.update_avatars()
+                        else:  # 取消
+                            # 清除复活对话框
+                            self.pawn_resurrection_dialog = None
+                            
+                            # 即使取消复活，也应切换回合（因为点击了复活位置）
+                            opponent_color = "black" if self.player_camp == "red" else "red"
+                            self.game_state.player_turn = opponent_color
+                            print(f"[DEBUG] 兵复活取消后切换玩家: {self.player_camp} -> {opponent_color}")
                             self.update_avatars()
                 elif hasattr(self, 'confirm_dialog') and self.confirm_dialog:
                     result = self.confirm_dialog.handle_event(event, mouse_pos)
                     if result is not None:
                         if result:
-                            self.confirm_dialog = None
-                            # 发送认输信号并退出
-                            try:
-                                XiangqiNetworkGame.send_resign()
-                            except:
-                                pass
-                            self.sound_manager.stop_background_music()
-                            pygame.quit()
-                            sys.exit()
+                            # 检查确认对话框的类型
+                            dialog_type = getattr(self.confirm_dialog, 'type', None)
+                            
+                            if dialog_type == "undo_request":
+                                # 同意悔棋请求
+                                XiangqiNetworkGame.send_undo_response(True)
+                                self.perform_undo()
+                            elif dialog_type == "restart_request":
+                                # 同意重新开始请求
+                                XiangqiNetworkGame.send_restart_response(True)
+                                self.perform_restart()
+                            elif dialog_type == "exit_game":
+                                # 退出游戏确认
+                                self.confirm_dialog = None
+                                # 发送认输信号并退出
+                                try:
+                                    XiangqiNetworkGame.send_resign()
+                                except:
+                                    pass
+                                self.sound_manager.stop_background_music()
+                                return "back_to_menu"
+                            else:
+                                # 普通确认对话框（如退出游戏）
+                                self.confirm_dialog = None
+                                # 发送认输信号并退出
+                                try:
+                                    XiangqiNetworkGame.send_resign()
+                                except:
+                                    pass
+                                self.sound_manager.stop_background_music()
+                                return "back_to_menu"
                         else:
-                            self.confirm_dialog = None
+                            # 用户点击了"否"或取消
+                            dialog_type = getattr(self.confirm_dialog, 'type', None)
+                            
+                            if dialog_type == "undo_request":
+                                # 拒绝悔棋请求
+                                XiangqiNetworkGame.send_undo_response(False)
+                            elif dialog_type == "restart_request":
+                                # 拒绝重新开始请求
+                                XiangqiNetworkGame.send_restart_response(False)
+                            elif dialog_type == "exit_game":
+                                # 取消退出游戏
+                                self.confirm_dialog = None
+                            else:
+                                self.confirm_dialog = None
                 elif self.game_state.game_over and self.popup:
                     if self.popup.handle_event(event, mouse_pos):
                         # 网络对局结束后不能重新开始，直接退出
@@ -434,3 +546,83 @@ class NetworkChessGame(ChessGame):
             self.draw(mouse_pos)
             pygame.display.flip()
             self.clock.tick(FPS)
+    
+    def request_undo_confirmation(self):
+        """请求本地玩家确认是否同意悔棋"""
+        # 显示一个确认对话框
+        self.confirm_dialog = ConfirmDialog(
+            400, 200, "对手请求悔棋，\n是否同意？"
+        )
+        # 特殊标记这个对话框是悔棋请求
+        self.confirm_dialog.type = "undo_request"
+    
+    def handle_undo_response(self, accepted):
+        """处理对手对悔棋请求的回复"""
+        if accepted:
+            print("对手同意悔棋，执行悔棋操作")
+            # 执行悔棋操作
+            self.perform_undo()
+        else:
+            print("对手拒绝悔棋请求")
+            # 可以显示提示信息
+            pass
+    
+    def request_restart_confirmation(self):
+        """请求本地玩家确认是否同意重新开始"""
+        # 显示一个确认对话框
+        self.confirm_dialog = ConfirmDialog(
+            400, 200, "对手请求重新开始，\n是否同意？"
+        )
+        # 特殊标记这个对话框是重新开始请求
+        self.confirm_dialog.type = "restart_request"
+    
+    def handle_restart_response(self, accepted):
+        """处理对手对重新开始请求的回复"""
+        if accepted:
+            print("对手同意重新开始，执行重新开始操作")
+            # 执行重新开始操作
+            self.perform_restart()
+        else:
+            print("对手拒绝重新开始请求")
+            # 可以显示提示信息
+            pass
+    
+    def perform_undo(self):
+        """执行悔棋操作"""
+        # 在网络对战中，悔棋需要双方同意
+        # 这里需要实现具体的悔棋逻辑
+        if self.game_state.undo_move():
+            print("悔棋成功")
+            # 悔棋成功后，切换当前玩家回合
+            current_player = self.game_state.player_turn
+            opponent_color = "black" if current_player == "red" else "red"
+            self.game_state.player_turn = opponent_color
+            self.update_avatars()
+        else:
+            print("悔棋失败")
+    
+    def perform_restart(self):
+        """执行重新开始操作"""
+        # 重新开始游戏
+        self.game_state = GameState()
+        self.selected_piece = None
+        self.last_move = None
+        self.last_move_notation = ""
+        self.popup = None
+        self.pawn_resurrection_dialog = None
+        self.promotion_dialog = None
+        self.audio_settings_dialog = None
+        self.confirm_dialog = None
+        self.ai_thinking = False
+        print("游戏已重新开始")
+    
+    def handle_opponent_leave(self):
+        """处理对手离开游戏"""
+        # 显示提示信息
+        self.popup = PopupDialog(
+            400, 320,
+            "对手离开了游戏",
+            0,
+            0,
+            0
+        )

@@ -2,6 +2,7 @@
 匈汉象棋局域网功能
 """
 
+import json
 import time
 from socket import socket
 from threading import Thread
@@ -21,9 +22,11 @@ class _Base:
     def send(self, **kw) -> int:
         """ 发送消息 """
         try:
+            # 使用JSON序列化确保数据格式一致
+            message = json.dumps(kw)
             if self.connection:
-                return self.connection.send(kw.__repr__().encode('utf-8'))
-            return self.socket.send(kw.__repr__().encode('utf-8'))
+                return self.connection.send(message.encode('utf-8'))
+            return self.socket.send(message.encode('utf-8'))
         except ConnectionResetError:
             pass
         except Exception:
@@ -33,12 +36,15 @@ class _Base:
         """ 接收消息 """
         try:
             if self.connection:
-                return eval(self.connection.recv(__bufsize).decode('utf-8'))
-            return eval(self.socket.recv(__bufsize).decode('utf-8'))
+                data = self.connection.recv(__bufsize).decode('utf-8')
+                return json.loads(data)
+            data = self.socket.recv(__bufsize).decode('utf-8')
+            return json.loads(data)
         except ConnectionResetError:
             pass
         except Exception:
             pass
+        return {}
 
     def close(self) -> None:
         """ 关闭联机功能 """
@@ -186,8 +192,12 @@ class SimpleAPI:
 class XiangqiNetworkGame:
     """ 匈汉象棋网络对战功能 """
     
+    # 添加类级别的静态变量
+    game_instance = None
+    
     def __init__(self, game_instance):
-        self.game_instance = game_instance
+        # 设置静态变量，让类方法可以访问游戏实例
+        XiangqiNetworkGame.game_instance = game_instance
         self.is_host = False  # 是否为主机（服务器端）
         self.network_enabled = False
         self.opponent_ready = False
@@ -221,6 +231,7 @@ class XiangqiNetworkGame:
     @classmethod
     def _listen_for_moves(cls):
         """ 监听来自对手的移动信息 """
+        print(f"开始监听对手移动，角色: {'服务器' if cls.is_host else '客户端'}")
         while cls.network_enabled:
             try:
                 if cls.api_instance:
@@ -228,6 +239,7 @@ class XiangqiNetworkGame:
                     if data and 'move' in data:
                         # 接收到对手的移动信息
                         from_row, from_col, to_row, to_col = data['move']
+                        print(f"收到对手移动: {from_row},{from_col} -> {to_row},{to_col}")
                         cls.execute_remote_move(from_row, from_col, to_row, to_col)
                     elif data and 'ready' in data:
                         cls.opponent_ready = True
@@ -240,8 +252,26 @@ class XiangqiNetworkGame:
                     elif data and 'chat' in data:
                         # 聊天消息
                         cls.handle_chat_message(data['chat'])
+                    elif data and 'undo_request' in data:
+                        # 对手请求悔棋
+                        cls.handle_undo_request()
+                    elif data and 'undo_response' in data:
+                        # 对手对悔棋请求的回复
+                        accepted = data['undo_response']
+                        cls.handle_undo_response(accepted)
+                    elif data and 'restart_request' in data:
+                        # 对手请求重新开始
+                        cls.handle_restart_request()
+                    elif data and 'restart_response' in data:
+                        # 对手对重新开始请求的回复
+                        accepted = data['restart_response']
+                        cls.handle_restart_response(accepted)
+                    elif data and 'leave_game' in data:
+                        # 对手离开游戏
+                        cls.handle_opponent_leave()
             except Exception as e:
                 # 添加短暂延时以避免过于频繁的异常处理
+                print(f"监听移动时出错: {e}")
                 time.sleep(0.1)
                 continue
 
@@ -249,26 +279,19 @@ class XiangqiNetworkGame:
     def execute_remote_move(cls, from_row, from_col, to_row, to_col):
         """ 执行远程玩家的移动 """
         # 这里需要更新游戏状态，模拟对手的移动
-        if hasattr(cls, 'game_instance') and cls.game_instance:
-            game_state = cls.game_instance.game_state
+        if cls.game_instance:
+            # 直接调用游戏实例的方法来处理对手的移动
+            print(f"执行远程移动: {from_row},{from_col} -> {to_row},{to_col}")
+            cls.game_instance.receive_network_move(from_row, from_col, to_row, to_col)
         else:
-            from program.core.game_state import GameState
-            game_state = GameState()
-        
-        # 模拟移动棋子
-        success = game_state.move_piece(from_row, from_col, to_row, to_col)
-        if success:
-            print(f"[DEBUG] 远程移动成功: {from_row},{from_col} -> {to_row},{to_col}")
-            # 更新游戏界面
-            if hasattr(cls, 'game_instance') and cls.game_instance:
-                # 更新棋盘显示
-                cls.game_instance.receive_network_move(from_row, from_col, to_row, to_col)
+            print("[DEBUG] 网络游戏实例未设置")
 
     @classmethod
     def send_move(cls, from_row, from_col, to_row, to_col):
         """ 发送本地玩家的移动到对手 """
         if cls.network_enabled and cls.api_instance:
             try:
+                print(f"发送本地移动: {from_row},{from_col} -> {to_row},{to_col}")
                 cls.api_instance.send(move=(from_row, from_col, to_row, to_col))
             except Exception as e:
                 print(f"发送移动信息失败: {e}")
@@ -278,7 +301,7 @@ class XiangqiNetworkGame:
         """ 处理对手认输 """
         print("对手认输，您获得胜利！")
         # 在实际游戏中，这里会更新游戏状态为胜利
-        if hasattr(cls, 'game_instance') and cls.game_instance:
+        if cls.game_instance:
             cls.game_instance.handle_opponent_win()
 
     @classmethod
@@ -299,11 +322,81 @@ class XiangqiNetworkGame:
         """ 发送游戏开始信号 """
         if cls.network_enabled and cls.api_instance:
             cls.api_instance.send(game_start=True)
+    
+    @classmethod
+    def send_undo_request(cls):
+        """ 发送悔棋请求 """
+        if cls.network_enabled and cls.api_instance:
+            cls.api_instance.send(undo_request=True)
+    
+    @classmethod
+    def send_undo_response(cls, accepted):
+        """ 发送悔棋请求的回复 """
+        if cls.network_enabled and cls.api_instance:
+            cls.api_instance.send(undo_response=accepted)
+    
+    @classmethod
+    def handle_undo_request(cls):
+        """ 处理对手的悔棋请求 """
+        print("收到对手的悔棋请求")
+        # 在实际游戏中，这里会询问本地玩家是否同意悔棋
+        if cls.game_instance:
+            # 显示一个确认对话框询问本地玩家是否同意悔棋
+            cls.game_instance.request_undo_confirmation()
+    
+    @classmethod
+    def handle_undo_response(cls, accepted):
+        """ 处理对手对悔棋请求的回复 """
+        print(f"对手对悔棋请求的回复: {'同意' if accepted else '拒绝'}")
+        if cls.game_instance:
+            cls.game_instance.handle_undo_response(accepted)
+    
+    @classmethod
+    def send_restart_request(cls):
+        """ 发送重新开始请求 """
+        if cls.network_enabled and cls.api_instance:
+            cls.api_instance.send(restart_request=True)
+    
+    @classmethod
+    def send_restart_response(cls, accepted):
+        """ 发送重新开始请求的回复 """
+        if cls.network_enabled and cls.api_instance:
+            cls.api_instance.send(restart_response=accepted)
+    
+    @classmethod
+    def handle_restart_request(cls):
+        """ 处理对手的重新开始请求 """
+        print("收到对手的重新开始请求")
+        # 在实际游戏中，这里会询问本地玩家是否同意重新开始
+        if cls.game_instance:
+            # 显示一个确认对话框询问本地玩家是否同意重新开始
+            cls.game_instance.request_restart_confirmation()
+    
+    @classmethod
+    def handle_restart_response(cls, accepted):
+        """ 处理对手对重新开始请求的回复 """
+        print(f"对手对重新开始请求的回复: {'同意' if accepted else '拒绝'}")
+        if cls.game_instance:
+            cls.game_instance.handle_restart_response(accepted)
+    
+    @classmethod
+    def send_leave_game(cls):
+        """ 发送离开游戏信号 """
+        if cls.network_enabled and cls.api_instance:
+            cls.api_instance.send(leave_game=True)
+            cls.network_enabled = False
+    
+    @classmethod
+    def handle_opponent_leave(cls):
+        """ 处理对手离开游戏 """
+        print("对手离开了游戏")
+        if cls.game_instance:
+            cls.game_instance.handle_opponent_leave()
 
     @classmethod
     def handle_chat_message(cls, message):
         """ 处理聊天消息 """
         print(f"收到聊天消息: {message}")
         # 在游戏中显示聊天消息
-        if hasattr(cls, 'game_instance') and cls.game_instance:
+        if cls.game_instance:
             cls.game_instance.display_chat_message(message)
