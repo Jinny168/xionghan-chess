@@ -203,6 +203,9 @@ class XiangqiNetworkGame:
         self.opponent_ready = False
         self.api_instance = None
         self.game_started = False
+        # 添加状态跟踪，避免重复处理
+        self.has_processed_undo_request = False
+        self.has_processed_restart_request = False
 
     @classmethod
     def set_network_mode(cls, role: str, api_instance):
@@ -257,18 +260,19 @@ class XiangqiNetworkGame:
                         cls.handle_undo_request()
                     elif data and 'undo_response' in data:
                         # 对手对悔棋请求的回复
-                        accepted = data['undo_response']
-                        cls.handle_undo_response(accepted)
+                        cls.handle_undo_response(data['undo_response'])
                     elif data and 'restart_request' in data:
                         # 对手请求重新开始
                         cls.handle_restart_request()
                     elif data and 'restart_response' in data:
                         # 对手对重新开始请求的回复
-                        accepted = data['restart_response']
-                        cls.handle_restart_response(accepted)
+                        cls.handle_restart_response(data['restart_response'])
                     elif data and 'leave_game' in data:
                         # 对手离开游戏
                         cls.handle_opponent_leave()
+                    elif data and 'game_restart_confirmed' in data:
+                        # 游戏重新开始确认
+                        cls.handle_game_restart_confirmation()
             except Exception as e:
                 # 添加短暂延时以避免过于频繁的异常处理
                 print(f"监听移动时出错: {e}")
@@ -336,6 +340,18 @@ class XiangqiNetworkGame:
             cls.api_instance.send(undo_response=accepted)
     
     @classmethod
+    def send_restart_request(cls):
+        """ 发送重新开始请求 """
+        if cls.network_enabled and cls.api_instance:
+            cls.api_instance.send(restart_request=True)
+    
+    @classmethod
+    def send_restart_response(cls, accepted):
+        """ 发送重新开始请求的回复 """
+        if cls.network_enabled and cls.api_instance:
+            cls.api_instance.send(restart_response=accepted)
+    
+    @classmethod
     def handle_undo_request(cls):
         """ 处理对手的悔棋请求 """
         print("收到对手的悔棋请求")
@@ -352,18 +368,6 @@ class XiangqiNetworkGame:
             cls.game_instance.handle_undo_response(accepted)
     
     @classmethod
-    def send_restart_request(cls):
-        """ 发送重新开始请求 """
-        if cls.network_enabled and cls.api_instance:
-            cls.api_instance.send(restart_request=True)
-    
-    @classmethod
-    def send_restart_response(cls, accepted):
-        """ 发送重新开始请求的回复 """
-        if cls.network_enabled and cls.api_instance:
-            cls.api_instance.send(restart_response=accepted)
-    
-    @classmethod
     def handle_restart_request(cls):
         """ 处理对手的重新开始请求 """
         print("收到对手的重新开始请求")
@@ -376,8 +380,25 @@ class XiangqiNetworkGame:
     def handle_restart_response(cls, accepted):
         """ 处理对手对重新开始请求的回复 """
         print(f"对手对重新开始请求的回复: {'同意' if accepted else '拒绝'}")
+        if accepted:
+            # 如果对手同意重新开始，发送确认信号，确保双方状态同步
+            cls.send_game_restart_confirmation()
         if cls.game_instance:
             cls.game_instance.handle_restart_response(accepted)
+    
+    @classmethod
+    def send_game_restart_confirmation(cls):
+        """ 发送游戏重新开始确认信号，确保双方状态同步 """
+        if cls.network_enabled and cls.api_instance:
+            cls.api_instance.send(game_restart_confirmed=True)
+    
+    @classmethod
+    def handle_game_restart_confirmation(cls):
+        """ 处理游戏重新开始确认信号 """
+        print("收到游戏重新开始确认，确保状态同步")
+        if cls.game_instance:
+            # 确保游戏状态完全同步
+            cls.game_instance.on_game_restarted()
     
     @classmethod
     def send_leave_game(cls):

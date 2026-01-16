@@ -154,7 +154,7 @@ class AudioSettingsDialog:
         
         # 检查按钮点击
         if event.type == pygame.MOUSEBUTTONDOWN:
-            # 首先检查按钮点击，优先级高于音量条
+            # 检查按钮点击，优先级高于音量条
             if self.ok_button.is_clicked(mouse_pos, event):
                 # 应用设置并关闭对话框
                 self.sound_manager.set_music_volume(self.music_volume)
@@ -182,33 +182,39 @@ class AudioSettingsDialog:
             if checkbox_rect.collidepoint(mouse_pos):
                 # 切换音乐风格
                 self.current_music_style = 'qq' if self.current_music_style == 'fc' else 'fc'
+                # 立即应用音乐风格切换
+                if self.current_music_style != self.sound_manager.current_music_style:
+                    self.sound_manager.toggle_music_style()
                 return "style_changed"
 
-    # 处理音量条拖动和点击 - 这里处理鼠标按下并移动的情况
-    # 检查是否是鼠标按下事件或鼠标移动事件（在鼠标按键状态下）
+        # 检查是否是鼠标按下事件或鼠标移动事件（在鼠标按键状态下）来处理音量条
         if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.MOUSEMOTION and pygame.mouse.get_pressed()[0]):
             bar_width = 250  # 与绘制时的长度一致
             bar_x = self.x + 200  # 与绘制时的位置一致
 
             # 检查是否点击/拖动音乐音量条
             music_bar_y = self.y + 105
-            # 即使鼠标在对话框外部，只要在音量条的Y范围内，就更新音量（允许拖动溢出）
-            if (music_bar_y <= mouse_pos[1] <= music_bar_y + 20):
-                # 计算音量，限制在条形范围内
-                raw_volume = (mouse_pos[0] - bar_x) / bar_width
-                self.music_volume = max(0.0, min(1.0, raw_volume))
-                self.sound_manager.set_music_volume(self.music_volume)
-                return "volume_changed"
+            # 检查是否在音量条的Y范围内，允许一定的容错
+            if (music_bar_y - 10 <= mouse_pos[1] <= music_bar_y + 20 + 10):
+                # 检查是否在音量条的X范围内或鼠标按键被按下（允许拖动超出边界）
+                if (bar_x - 10 <= mouse_pos[0] <= bar_x + bar_width + 10) or pygame.mouse.get_pressed()[0]:
+                    # 计算音量，限制在条形范围内
+                    raw_volume = (mouse_pos[0] - bar_x) / bar_width
+                    self.music_volume = max(0.0, min(1.0, raw_volume))
+                    self.sound_manager.set_music_volume(self.music_volume)
+                    return "volume_changed"
 
             # 检查是否点击/拖动音效音量条
             sound_bar_y = self.y + 185
-            # 即使鼠标在对话框外部，只要在音量条的Y范围内，就更新音量（允许拖动溢出）
-            if (sound_bar_y <= mouse_pos[1] <= sound_bar_y + 20):
-                # 计算音量，限制在条形范围内
-                raw_volume = (mouse_pos[0] - bar_x) / bar_width
-                self.sound_volume = max(0.0, min(1.0, raw_volume))
-                self.sound_manager.set_sound_volume(self.sound_volume)
-                return "volume_changed"
+            # 检查是否在音量条的Y范围内，允许一定的容错
+            if (sound_bar_y - 10 <= mouse_pos[1] <= sound_bar_y + 20 + 10):
+                # 检查是否在音量条的X范围内或鼠标按键被按下（允许拖动超出边界）
+                if (bar_x - 10 <= mouse_pos[0] <= bar_x + bar_width + 10) or pygame.mouse.get_pressed()[0]:
+                    # 计算音量，限制在条形范围内
+                    raw_volume = (mouse_pos[0] - bar_x) / bar_width
+                    self.sound_volume = max(0.0, min(1.0, raw_volume))
+                    self.sound_manager.set_sound_volume(self.sound_volume)
+                    return "volume_changed"
 
         return None  # 对话框保持打开状态
 

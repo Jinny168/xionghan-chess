@@ -15,7 +15,7 @@ def run_server():
 
 def run_client():
     """运行客户端进程"""
-    time.sleep(5)  # 等待服务器启动
+    time.sleep(3)  # 等待服务器启动
     cmd = [sys.executable, "client_only.py"]
     subprocess.run(cmd, cwd=os.path.dirname(os.path.abspath(__file__)))
 
