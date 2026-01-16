@@ -1,4 +1,5 @@
-pygame==2.6.1 
+# 匈汉象棋 (XiongHan Chess) 项目依赖
+pygame==2.6.1
 sh~=2.2.2
 pip~=25.3
 docutils~=0.22.4
@@ -33,18 +34,16 @@ distlib~=0.4.0
 pywin32-ctypes~=0.2.3
 appdirs~=1.4.4
 pyinstaller-hooks-contrib~=2025.10
-
-# 深度学习框架
+# 游戏引擎
+pygame>=2.5.0
+# 深度学习框架 (支持MCTS AI)
 torch>=1.9.0
 torchvision>=0.10.0
 torchaudio>=0.9.0
-
 # 科学计算库
 numpy>=1.21.0
 scipy>=1.7.0
-
-# 数据库连接
+# 数据库连接 (用于MCTS训练数据存储)
 redis>=4.0.0
-
-# 其他工具库
+# 工具库
 pickle-mixin>=1.0.0
