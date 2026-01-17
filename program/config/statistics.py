@@ -158,5 +158,7 @@ class StatisticsManager:
         self.save_statistics()
 
 
+
+
 # 全局统计数据实例
 statistics_manager = StatisticsManager()

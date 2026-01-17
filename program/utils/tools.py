@@ -1,11 +1,64 @@
 """工具函数模块，包含导入导出棋局和复盘等功能"""
-import json
-import pygame
 import copy
 from tkinter import filedialog
 
-from program.ui.button import Button
+from program.core.chess_pieces import (
+    King, Ju, Ma, Xiang, Shi, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun
+)
 
+
+
+
+def is_pawn_at_opponent_base(piece, to_row):
+    """检查兵/卒是否移动到对方底线
+
+    Args:
+        piece: 棋子对象
+        to_row: 目标行
+
+    Returns:
+        bool: 是否到达对方底线
+    """
+    if not isinstance(piece, Pawn):
+        return False
+
+    # 红方兵到达第0行（黑方底线），黑方卒到达第12行（红方底线）
+    if piece.color == "red" and to_row == 0:
+        return True
+    elif piece.color == "black" and to_row == 12:
+        return True
+
+    return False
+
+def get_piece_class_by_name(name):
+    """根据棋子名称获取对应的棋子类
+
+    Args:
+        name (str): 棋子名称
+
+    Returns:
+        class: 棋子类
+    """
+
+
+    name_to_class = {
+        '汉': King, '汗': King, '帅': King, '将': King,  # 将/帅
+        '車': Ju, '俥': Ju,  # 车
+        '馬': Ma, '傌': Ma,  # 马
+        '象': Xiang, '相': Xiang,  # 相/象
+        '士': Shi, '仕': Shi,  # 士/仕
+        '砲': Pao, '炮': Pao,  # 炮
+        '卒': Pawn, '兵': Pawn,  # 兵/卒
+        '衛': Wei, '尉': Wei,  # 卫/尉
+        '䠶': She, '射': She,  # 射
+        '礌': Lei, '檑': Lei,  # 檑
+        '胄': Jia, '甲': Jia,  # 甲/胄
+        '刺': Ci,  # 刺
+        '盾': Dun,  # 盾
+        '廵': Xun, '巡': Xun,  # 巡/廵
+    }
+
+    return name_to_class.get(name)
 
 def save_game_to_file(game_state, filename=None):
     """保存当前游戏到文件
@@ -131,10 +184,7 @@ class ReplayController:
         """恢复原始游戏状态"""
         if self.original_state:
             # 从备份恢复游戏状态
-            from program.core.chess_pieces import (
-                King, Ju, Ma, Xiang, Shi, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun
-            )
-            
+
             # 重建棋子
             self.game_state.pieces.clear()
             for piece_class, color, name, row, col in self.original_state['pieces']:
@@ -258,10 +308,7 @@ class ReplayController:
     
     def restore_state_from_snapshot(self, snapshot):
         """从快照恢复状态"""
-        from program.core.chess_pieces import (
-            King, Ju, Ma, Xiang, Shi, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun
-        )
-        
+
         # 重建棋子
         self.game_state.pieces.clear()
         for piece_class, color, name, row, col in snapshot['pieces']:

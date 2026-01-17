@@ -5,8 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="最新更新">
-      <change beforePath="$PROJECT_DIR$/program/core/game_rules.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_rules.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/config/statistics.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/statistics.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/core/game_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_state.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/utils/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/tools.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -283,15 +284,7 @@
       <workItem from="1768567952079" duration="13314000" />
       <workItem from="1768612138954" duration="8546000" />
       <workItem from="1768620788622" duration="167000" />
-      <workItem from="1768648835846" duration="4442000" />
-    </task>
-    <task id="LOCAL-00009" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1766839128713</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1766839128713</updated>
+      <workItem from="1768648835846" duration="7162000" />
     </task>
     <task id="LOCAL-00010" summary="最新更新">
       <option name="closed" value="true" />
@@ -677,7 +670,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768651827194</updated>
     </task>
-    <option name="localTasksCounter" value="58" />
+    <task id="LOCAL-00058" summary="最新更新">
+      <option name="closed" value="true" />
+      <created>1768653459977</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1768653459977</updated>
+    </task>
+    <option name="localTasksCounter" value="59" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -727,7 +728,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
-          <line>2128</line>
+          <line>2124</line>
           <option name="timeStamp" value="13" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -801,6 +802,10 @@
           <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
           <line>231</line>
           <option name="timeStamp" value="52" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
+          <option name="timeStamp" value="53" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
