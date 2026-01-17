@@ -3,6 +3,7 @@ import time
 from program.core.chess_pieces import create_initial_pieces, King, Jia, Ci, Dun, Pawn
 from program.core.game_rules import GameRules
 from program.config.config import game_config
+from program.config.statistics import statistics_manager
 
 
 class GameState:
@@ -48,6 +49,9 @@ class GameState:
         # 添加局面历史记录，用于检测重复局面
         self.board_position_history = []  # 记录局面哈希值的历史
         self.repetition_count = {}  # 记录每个局面出现的次数
+        
+        # 统计数据跟踪
+        self.moves_count = 0  # 当前对局走子数
     
     def get_piece_at(self, row, col):
         """获取指定位置的棋子"""
@@ -104,6 +108,74 @@ class GameState:
         if captured_piece:
             self.pieces.remove(captured_piece)
             self.captured_pieces[captured_piece.color].append(captured_piece)
+            
+            # 更新统计数据 - 记录被吃棋子类型
+            piece_type = captured_piece.__class__.__name__.lower()
+            # 将类名转换为更友好的名称
+            if piece_type == 'king':
+                piece_type = 'king'
+            elif piece_type == 'pawn':
+                piece_type = 'pawn'
+            elif piece_type == 'chesspiece':
+                # 根据名字进一步细分
+                name = captured_piece.name.lower()
+                if '车' in name or '車' in name:
+                    piece_type = 'ju'
+                elif '马' in name or '馬' in name:
+                    piece_type = 'ma'
+                elif '相' in name or '象' in name:
+                    piece_type = 'xiang'
+                elif '士' in name or '仕' in name:
+                    piece_type = 'shi'
+                elif '炮' in name or '砲' in name:
+                    piece_type = 'pao'
+                elif '卫' in name or '衛' in name:
+                    piece_type = 'wei'
+                elif '射' in name or '䠶' in name:
+                    piece_type = 'she'
+                elif '檑' in name or '檑' in name:
+                    piece_type = 'lei'
+                elif '甲' in name or '胄' in name:
+                    piece_type = 'jia'
+                elif '刺' in name:
+                    piece_type = 'ci'
+                elif '盾' in name:
+                    piece_type = 'dun'
+                elif '巡' in name or '廵' in name:
+                    piece_type = 'xun'
+                else:
+                    piece_type = 'pawn'  # 默认为兵
+            else:
+                # 默认处理
+                name = captured_piece.name.lower()
+                if '车' in name or '車' in name:
+                    piece_type = 'ju'
+                elif '马' in name or '馬' in name:
+                    piece_type = 'ma'
+                elif '相' in name or '象' in name:
+                    piece_type = 'xiang'
+                elif '士' in name or '仕' in name:
+                    piece_type = 'shi'
+                elif '炮' in name or '砲' in name:
+                    piece_type = 'pao'
+                elif '卫' in name or '衛' in name:
+                    piece_type = 'wei'
+                elif '射' in name or '䠶' in name:
+                    piece_type = 'she'
+                elif '檑' in name or '檑' in name:
+                    piece_type = 'lei'
+                elif '甲' in name or '胄' in name:
+                    piece_type = 'jia'
+                elif '刺' in name:
+                    piece_type = 'ci'
+                elif '盾' in name:
+                    piece_type = 'dun'
+                elif '巡' in name or '廵' in name:
+                    piece_type = 'xun'
+                else:
+                    piece_type = piece_type  # 使用类名
+            
+            statistics_manager.update_pieces_captured(piece_type, 1)
             
             # 如果吃掉的是对方将/帅/汉/汗，游戏结束
             if isinstance(captured_piece, King):
@@ -207,12 +279,84 @@ class GameState:
 
         # 现在将完整的记录添加到历史中
         self.move_history.append(temp_move_record + (jia_captured_pieces[:], ci_captured_pieces[:]))  # 添加甲/胄吃子信息和刺兑子信息
+        
+        # 更新走子计数
+        self.moves_count += 1
+        statistics_manager.update_total_moves(1)
 
         # 实际移除甲/胄连线吃掉的棋子
         for captured in jia_captured_pieces:
             if captured in self.pieces:
                 self.pieces.remove(captured)
                 self.captured_pieces[captured.color].append(captured)
+                
+                # 更新统计数据 - 记录被吃棋子类型
+                piece_type = captured.__class__.__name__.lower()
+                # 将类名转换为更友好的名称
+                if piece_type == 'king':
+                    piece_type = 'king'
+                elif piece_type == 'pawn':
+                    piece_type = 'pawn'
+                elif piece_type == 'chesspiece':
+                    # 根据名字进一步细分
+                    name = captured.name.lower()
+                    if '车' in name or '車' in name:
+                        piece_type = 'ju'
+                    elif '马' in name or '馬' in name:
+                        piece_type = 'ma'
+                    elif '相' in name or '象' in name:
+                        piece_type = 'xiang'
+                    elif '士' in name or '仕' in name:
+                        piece_type = 'shi'
+                    elif '炮' in name or '砲' in name:
+                        piece_type = 'pao'
+                    elif '卫' in name or '衛' in name:
+                        piece_type = 'wei'
+                    elif '射' in name or '䠶' in name:
+                        piece_type = 'she'
+                    elif '檑' in name or '檑' in name:
+                        piece_type = 'lei'
+                    elif '甲' in name or '胄' in name:
+                        piece_type = 'jia'
+                    elif '刺' in name:
+                        piece_type = 'ci'
+                    elif '盾' in name:
+                        piece_type = 'dun'
+                    elif '巡' in name or '廵' in name:
+                        piece_type = 'xun'
+                    else:
+                        piece_type = 'pawn'  # 默认为兵
+                else:
+                    # 默认处理
+                    name = captured.name.lower()
+                    if '车' in name or '車' in name:
+                        piece_type = 'ju'
+                    elif '马' in name or '馬' in name:
+                        piece_type = 'ma'
+                    elif '相' in name or '象' in name:
+                        piece_type = 'xiang'
+                    elif '士' in name or '仕' in name:
+                        piece_type = 'shi'
+                    elif '炮' in name or '砲' in name:
+                        piece_type = 'pao'
+                    elif '卫' in name or '衛' in name:
+                        piece_type = 'wei'
+                    elif '射' in name or '䠶' in name:
+                        piece_type = 'she'
+                    elif '檑' in name or '檑' in name:
+                        piece_type = 'lei'
+                    elif '甲' in name or '胄' in name:
+                        piece_type = 'jia'
+                    elif '刺' in name:
+                        piece_type = 'ci'
+                    elif '盾' in name:
+                        piece_type = 'dun'
+                    elif '巡' in name or '廵' in name:
+                        piece_type = 'xun'
+                    else:
+                        piece_type = piece_type  # 使用类名
+                
+                statistics_manager.update_pieces_captured(piece_type, 1)
                 
                 # 如果吃掉的是对方将/帅/汉/汗，游戏结束
                 if isinstance(captured, King):
@@ -258,6 +402,9 @@ class GameState:
                 self.winner = winner
                 # 更新游戏总时长
                 self.total_time = max(0, current_time - self.start_time)
+                # 更新统计数据
+                statistics_manager.update_games_played(1)
+                statistics_manager.update_game_result(winner, self.total_time)
             else:
                 # 检查是否和棋
                 if self.is_draw():

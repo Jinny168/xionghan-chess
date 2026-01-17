@@ -5,8 +5,10 @@ from program.config.config import MODE_PVC, CAMP_RED
 from program.game import ChessGame
 from program.lan.network_game import NetworkChessGame
 from program.ui.network_connect import NetworkConnectScreen
-from program.ui.menu_screens import ModeSelectionScreen, RulesScreen, CampSelectionScreen
+from program.ui.menu_screens import ModeSelectionScreen, CampSelectionScreen
+from program.ui.rules_viewer import RulesViewer
 from program.config.settings import SettingsScreen
+from program.ui.statistics_dialog import StatisticsDialog
 from program.lan.xhlan import SimpleAPI
 
 # 初始化PyGame
@@ -41,8 +43,48 @@ def main():
                 continue
         
         if game_mode == "rules":  # 如果选择了规则界面
-            rules_screen = RulesScreen()
-            rules_screen.run()
+            rules_viewer = RulesViewer()
+            rules_viewer.run()
+            # 返回到模式选择界面
+            mode_screen = ModeSelectionScreen()
+            game_mode = mode_screen.run()
+            continue
+        
+        if game_mode == "stats":  # 如果选择了统计界面
+            # 创建并显示统计对话框
+            stats_dialog = StatisticsDialog()
+            
+            # 获取当前显示表面以获取屏幕尺寸
+            current_screen = pygame.display.get_surface()
+            if current_screen is None:
+                # 如果没有当前表面，创建一个
+                current_screen = pygame.display.set_mode((1200, 900), pygame.RESIZABLE)
+            
+            clock = pygame.time.Clock()
+            
+            running = True
+            while running:
+                mouse_pos = pygame.mouse.get_pos()
+                
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        running = False
+                    
+                    result = stats_dialog.handle_event(event, mouse_pos)
+                    if result == "close":
+                        running = False
+                    elif result == "reset":
+                        # 重置统计数据
+                        from program.config.statistics import statistics_manager
+                        statistics_manager.reset_statistics()
+                        # 重新创建对话框以更新显示
+                        stats_dialog = StatisticsDialog()
+                
+                # 绘制统计对话框
+                stats_dialog.draw(current_screen)
+                pygame.display.flip()
+                clock.tick(60)
+            
             # 返回到模式选择界面
             mode_screen = ModeSelectionScreen()
             game_mode = mode_screen.run()

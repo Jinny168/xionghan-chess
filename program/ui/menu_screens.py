@@ -76,6 +76,15 @@ class ModeSelectionScreen:
             "游戏规则",
             28
         )
+        
+        self.stats_button = Button(
+            center_x - button_width // 2,
+            center_y + 3 * (button_height + button_spacing),
+            button_width,
+            button_height,
+            "游戏统计",
+            28
+        )
 
     
     def toggle_fullscreen(self):
@@ -142,6 +151,8 @@ class ModeSelectionScreen:
                         self.selected_mode = "settings"
                     elif self.rules_button.is_clicked(mouse_pos, event):
                         self.selected_mode = "rules"
+                    elif self.stats_button.is_clicked(mouse_pos, event):
+                        self.selected_mode = "stats"
 
             
             # 更新按钮悬停状态
@@ -150,6 +161,7 @@ class ModeSelectionScreen:
             self.network_button.check_hover(mouse_pos)
             self.settings_button.check_hover(mouse_pos)
             self.rules_button.check_hover(mouse_pos)
+            self.stats_button.check_hover(mouse_pos)
 
             # 绘制界面
             self.draw()
@@ -193,6 +205,7 @@ class ModeSelectionScreen:
         self.network_button.draw(self.screen)
         self.settings_button.draw(self.screen)
         self.rules_button.draw(self.screen)
+        self.stats_button.draw(self.screen)
 
         # 移除说明文字，减少界面拥挤
         
