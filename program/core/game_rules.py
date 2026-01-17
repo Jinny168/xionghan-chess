@@ -1837,28 +1837,9 @@ class GameRules:
         Returns:
             bool: 移动后是否会被将军
         """
-        # 备份原始位置和目标位置的棋子
-        original_row, original_col = piece.row, piece.col
-        target_piece = GameRules.get_piece_at(pieces, to_row, to_col)
-        
-        # 模拟移动
-        piece.row, piece.col = to_row, to_col
-        
-        # 如果目标位置有棋子，先移除它
-        if target_piece:
-            pieces.remove(target_piece)
-        
-        # 检查移动后是否被将军
-        is_in_check = GameRules.is_check(pieces, piece.color)
-        
-        # 恢复棋子位置
-        piece.row, piece.col = original_row, original_col
-        
-        # 如果目标位置有棋子，恢复它
-        if target_piece:
-            pieces.append(target_piece)
-        
-        return is_in_check
+        # 使用虚拟移动工具函数
+        from program.utils.utils import virtual_move
+        return virtual_move(pieces, piece, to_row, to_col, GameRules.is_check, piece.color)
     
     @staticmethod
     def is_checkmate(pieces, color):

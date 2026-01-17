@@ -318,3 +318,77 @@ def draw_background(surface, background_color=None):
 
         # 将缓存的背景绘制到目标表面上
         surface.blit(bg_surface, (0, 0))
+
+
+def virtual_move(pieces, piece, to_row, to_col, check_function, *args):
+    """ 虚拟移动棋子并执行检查函数
+    
+    Args:
+        pieces: 棋子列表
+        piece: 要移动的棋子
+        to_row: 目标行
+        to_col: 目标列
+        check_function: 检查函数
+        *args: 传递给检查函数的额外参数
+        
+    Returns:
+        检查函数的返回值
+    """
+    # 保存原始位置和目标位置的棋子
+    original_row, original_col = piece.row, piece.col
+    target_piece = None
+    
+    # 查找并移除目标位置的棋子（如果存在）
+    for p in pieces[:]:  # 使用切片副本以安全地修改列表
+        if p.row == to_row and p.col == to_col:
+            target_piece = p
+            pieces.remove(p)
+            break
+    
+    # 移动棋子到目标位置
+    piece.row, piece.col = to_row, to_col
+    
+    # 执行检查函数
+    result = check_function(pieces, *args)
+    
+    # 恢复棋子到原始位置
+    piece.row, piece.col = original_row, original_col
+    
+    # 如果目标位置原本有棋子，将其放回
+    if target_piece:
+        target_piece.row, target_piece.col = to_row, to_col
+        pieces.append(target_piece)
+    
+    return result
+
+
+def print_board(pieces, step=[0]):
+    """ 打印当前棋盘状态
+    
+    Args:
+        pieces: 棋子列表
+        step: 步数计数器，默认为[0]
+    """
+    step[0] += 1
+    print('\033[36mSTEP\033[0m:', step[0])
+    
+    # 创建棋盘表示
+    board = [[None for _ in range(13)] for _ in range(13)]
+    
+    # 将棋子放置到棋盘上
+    for piece in pieces:
+        board[piece.row][piece.col] = piece
+    
+    # 打印棋盘
+    for row in board:
+        for cell in row:
+            if cell is None:
+                print('〇', end='')
+            else:
+                # 根据棋子名称判断颜色
+                if cell.name in '将士象马车炮卒':
+                    print(f'\033[32m{cell.name}\033[0m', end='')
+                else:
+                    print(f'\033[31m{cell.name}\033[0m', end='')
+        print()
+    print()
