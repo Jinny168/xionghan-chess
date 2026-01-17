@@ -13,14 +13,14 @@
         "shi": 1,
         "king": 0,
         "pao": 1,
-        "pawn": 15,
+        "pawn": 22,
         "wei": 0,
         "she": 1,
         "lei": 1,
         "jia": 0,
         "ci": 0,
         "dun": 0,
-        "xun": 1
+        "xun": 2
     },
     "fastest_win": {
         "red": 80.92053031921387,
@@ -40,5 +40,5 @@
         }
     },
     "last_played": "2026-01-17 11:06:19",
-    "total_moves_made": 136
+    "total_moves_made": 173
 }
