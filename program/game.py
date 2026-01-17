@@ -26,6 +26,7 @@ from program.config.config import (
 class ChessGame:
     def __init__(self, game_mode=MODE_PVP, player_camp=CAMP_RED, game_settings=None):
         """初始化游戏"""
+        self.history_max_visible_lines = 15
         self.board = None
         self.history_scroll_y = None
         self.timer_font = None
@@ -419,7 +420,7 @@ class ChessGame:
             # 检查鼠标是否在棋谱区域
             right_panel_x = self.window_width - 350  # 与绘制位置保持一致
             # 检查鼠标是否在右侧信息面板区域内
-            if mouse_pos[0] >= right_panel_x and mouse_pos[1] >= 300 and mouse_pos[0] <= self.window_width - 10:
+            if right_panel_x <= mouse_pos[0] <= self.window_width - 10 and mouse_pos[1] >= 300:
                 # 滚动棋谱
                 self.history_scroll_y = max(0, self.history_scroll_y - event.y)
                 # 确保不会滚动过多
@@ -465,7 +466,6 @@ class ChessGame:
         """双人模式游戏循环"""
         while True:
             mouse_pos = pygame.mouse.get_pos()
-            current_time = pygame.time.get_ticks()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -555,7 +555,7 @@ class ChessGame:
                             # 检查是返回主菜单还是退出游戏
                             # 在这里我们可以根据上下文决定行为
                             # 如果是退出游戏对话框，直接退出程序
-                            if self.confirm_dialog and "退出游戏" in self.confirm_dialog.message:
+                            if self.confirm_dialog and "退出游戏" in getattr(self.confirm_dialog, 'message', ''):
                                 # 停止背景音乐
                                 self.sound_manager.stop_background_music()
                                 pygame.quit()
@@ -749,7 +749,7 @@ class ChessGame:
                             # 检查是返回主菜单还是退出游戏
                             # 在这里我们可以根据上下文决定行为
                             # 如果是退出游戏对话框，直接退出程序
-                            if self.confirm_dialog and "退出游戏" in self.confirm_dialog.message:
+                            if self.confirm_dialog and "退出游戏" in getattr(self.confirm_dialog, 'message', ''):
                                 pygame.quit()
                                 sys.exit()
                             else:  # 返回主菜单
@@ -823,7 +823,7 @@ class ChessGame:
             # 在AI思考期间，降低刷新率以减少闪烁
             # 确保AI思考时只绘制稳定的主游戏状态，不显示临时的搜索状态
             if self.ai_thinking:
-                self.draw_thinking_indicator(mouse_pos)  # 使用优化的思考指示器绘制
+                self.draw_thinking_indicator()  # 使用优化的思考指示器绘制
             else:
                 self.draw(mouse_pos)
             pygame.display.flip()
@@ -839,8 +839,6 @@ class ChessGame:
         # 使用统一的背景绘制函数
         draw_background(self.screen)
 
-        # 绘制左侧面板背景 - 使用与主界面一致的纹理
-        left_panel_rect = pygame.Rect(0, 0, self.left_panel_width, self.window_height)
 
         # 先绘制与主背景一致的纹理
         left_panel_surface = pygame.Surface((self.left_panel_width, self.window_height))
@@ -953,7 +951,7 @@ class ChessGame:
         if self.audio_settings_dialog:
             self.audio_settings_dialog.draw(self.screen)
 
-    def draw_thinking_indicator(self, mouse_pos):
+    def draw_thinking_indicator(self):
         """绘制AI思考时的指示器，减少闪烁"""
         # 绘制稳定的背景
         draw_background(self.screen)
@@ -1212,18 +1210,7 @@ class ChessGame:
                 self.update_avatars()
 
                 # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
-                if self.game_state.is_checkmate():
-                    try:
-                        self.sound_manager.play_sound('warn')  # 使用将军语音
-                        self.sound_manager.play_sound('check')  # 播放旧版音效
-                    except:
-                        pass
-                elif self.game_state.is_check:
-                    try:
-                        self.sound_manager.play_sound('warn')  # 使用将军语音
-                        self.sound_manager.play_sound('capture')  # 播放旧版音效
-                    except:
-                        pass
+                self.check_sound_play()
 
                 # 检查游戏是否结束
                 if self.game_state.game_over:
@@ -1511,6 +1498,11 @@ class ChessGame:
             except:
                 pass
         # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
+        self.check_sound_play()
+        # 更新头像状态 - 只需更新一次
+        self.update_avatars()
+
+    def check_sound_play(self):
         if self.game_state.is_checkmate():
             try:
                 self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
@@ -1523,8 +1515,6 @@ class ChessGame:
                 self.sound_manager.play_sound('capture')  # 播放将军语音
             except:
                 pass
-        # 更新头像状态 - 只需更新一次
-        self.update_avatars()
 
     def update_avatars(self):
         """更新头像状态"""

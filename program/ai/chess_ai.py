@@ -2,6 +2,7 @@ import time
 import threading
 import pygame
 from program.core.chess_pieces import Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun
+from program.utils import tools
 
 
 class ChessAI:
@@ -54,8 +55,8 @@ class ChessAI:
             "射": 300, "䠶": 300,      # 射/䠶
             "檑": 350, "礌": 350,      # 檑/礌（攻击能力强）
             "甲": 200, "胄": 200,      # 甲/胄
-            "刺": 250, "刺": 250,      # 刺（拖吃者）
-            "盾": 300, "盾": 300       # 盾（保护价值）
+            "刺": 250,      # 刺（兑子）
+            "盾": 300,      # 盾（保护价值）
         }
         
         # 位置价值表
@@ -262,7 +263,7 @@ class ChessAI:
         self.best_value_so_far = float('-inf')
         
         # 获取所有可能的走法
-        valid_moves = self._get_valid_moves(game_state, self.ai_color)
+        valid_moves = tools.get_valid_moves(game_state, self.ai_color)
         
         if not valid_moves:
             return None  # 无有效走法
@@ -396,22 +397,12 @@ class ChessAI:
             best_move = random.choice(valid_moves)
         
         return best_move
-    
-    def _get_valid_moves(self, game_state, color):
-        """获取指定颜色棋子的所有有效走法"""
-        valid_moves = []
-        
-        for piece in game_state.pieces:
-            if piece.color == color:
-                # 获取该棋子所有可能的移动位置
-                possible_moves, _ = game_state.calculate_possible_moves(piece.row, piece.col)
-                
-                # 添加到有效走法列表
-                for to_row, to_col in possible_moves:
-                    valid_moves.append(((piece.row, piece.col), (to_row, to_col)))
-        
-        return valid_moves
-    
+
+    def get_best_move(self, game_state):
+        """获取AI的最佳走法（同步方法，用于兼容性）"""
+        # 使用同步方式获取最佳走法
+        return self._get_best_move(game_state)
+
     def _sort_moves(self, game_state, moves):
         """改进的走法排序，提高剪枝效率
         
@@ -499,7 +490,7 @@ class ChessAI:
             player_color = "red" if self.ai_color == "black" else "black"
         
         # 获取并排序走法
-        moves = self._get_valid_moves(game_state, player_color)
+        moves = tools.get_valid_moves(game_state, player_color)
         
         # 如果没有可走的棋子，返回极大负值（表示被将死）
         if not moves:
@@ -594,7 +585,7 @@ class ChessAI:
             player_color = "red" if self.ai_color == "black" else "black"
         
         # 获取并排序走法
-        moves = self._get_valid_moves(game_state, player_color)
+        moves = tools.get_valid_moves(game_state, player_color)
         
         # 如果没有可走的棋子，返回极大负值（表示被将死）
         if not moves:
@@ -724,7 +715,7 @@ class ChessAI:
                 return beta
         
         # 获取并排序走法
-        moves = self._get_valid_moves(game_state, self.ai_color if is_maximizing else 
+        moves = tools.get_valid_moves(game_state, self.ai_color if is_maximizing else
                                      ("red" if self.ai_color == "black" else "black"))
         moves = self._sort_moves(game_state, moves)
         

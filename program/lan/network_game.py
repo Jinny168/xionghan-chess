@@ -22,6 +22,7 @@ class NetworkChessGame(ChessGame):
     
     def __init__(self, is_host=True):
         # 设置网络模式
+        self.history_max_visible_lines = 15
         self.black_avatar = None
         self.is_host = is_host
         self.network_enabled = True
@@ -289,21 +290,7 @@ class NetworkChessGame(ChessGame):
             move_rect = move_surface.get_rect(center=(self.left_panel_width // 2, self.window_height - 80))
             self.screen.blit(move_surface, move_rect)
 
-        # 如果是人机模式，显示模式和阵营提示
-        # 网络对战模式下不显示这些提示
-        # if self.game_mode == MODE_PVC:
-        #     mode_font = load_font(18)
-        #     if self.player_camp == CAMP_RED:
-        #         mode_text = "人机对战模式 - 您执红方"
-        #     else:
-        #         mode_text = "人机对战模式 - 您执黑方"
-        #     mode_surface = mode_font.render(mode_text, True, BLACK)
-        #     self.screen.blit(mode_surface, (
-        #     self.left_panel_width + (self.window_width - self.left_panel_width) // 2 - mode_surface.get_width() // 2,
-        #     15))
 
-        # 如果AI正在思考，显示提示
-        # 网络对战模式下不需要显示AI思考提示
 
         # 绘制 captured pieces（阵亡棋子）
         self.draw_captured_pieces()
@@ -691,7 +678,7 @@ class NetworkChessGame(ChessGame):
                     return "back_to_menu"
 
                 # 处理各种事件
-                if hasattr(self, 'promotion_dialog') and self.promotion_dialog:
+                if hasattr(self, 'promotion_dialog') and self.promotion_dialog is not None:
                     result = self.promotion_dialog.handle_event(event, mouse_pos)
                     if result is not None:
                         if isinstance(result, tuple) and result[0]:
@@ -717,7 +704,7 @@ class NetworkChessGame(ChessGame):
                             self.game_state.player_turn = opponent_color
                             print(f"[DEBUG] 兵升变取消后切换玩家: {self.player_camp} -> {opponent_color}")
                             self.update_avatars()
-                elif hasattr(self, 'pawn_resurrection_dialog') and self.pawn_resurrection_dialog:
+                elif hasattr(self, 'pawn_resurrection_dialog') and self.pawn_resurrection_dialog is not None:
                     result = self.pawn_resurrection_dialog.handle_event(event, mouse_pos)
                     if result is not None:  # 用户已做出选择
                         if result:  # 确认复活

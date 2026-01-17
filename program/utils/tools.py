@@ -8,6 +8,20 @@ from program.core.chess_pieces import (
 
 
 
+def get_valid_moves(game_state, color):
+    """获取指定颜色棋子的所有有效走法"""
+    valid_moves = []
+
+    for piece in game_state.pieces:
+        if piece.color == color:
+            # 获取该棋子所有可能的移动位置
+            possible_moves, _ = game_state.calculate_possible_moves(piece.row, piece.col)
+
+            # 添加到有效走法列表
+            for to_row, to_col in possible_moves:
+                valid_moves.append(((piece.row, piece.col), (to_row, to_col)))
+
+    return valid_moves
 
 def is_pawn_at_opponent_base(piece, to_row):
     """检查兵/卒是否移动到对方底线

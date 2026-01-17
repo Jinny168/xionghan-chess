@@ -5,22 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="最新更新">
-      <change afterPath="$PROJECT_DIR$/qodana.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/test/validate_moves.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/test/validate_moves.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/general_drawers.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/general_drawers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/chess_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/chess_ai.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/config/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/statistics.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/lan/network_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/lan/network_game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_rules_viewer.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/test_rules_viewer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/chess_board.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/chess_board.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/menu_screens.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/menu_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/network_connect.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/network_connect_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/rules_viewer.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/rules_screen.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/utils/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/tools.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -138,7 +128,7 @@
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\ai" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main">
+  <component name="RunManager" selected="Python.test_local_network (1)">
     <configuration name="main (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="xionghan-chess" />
       <option name="ENV_FILES" value="" />
@@ -256,8 +246,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.main" />
         <item itemvalue="Python.test_local_network (1)" />
+        <item itemvalue="Python.main" />
         <item itemvalue="Python.server_only" />
         <item itemvalue="Python.test_local_network" />
         <item itemvalue="Python.main (1)" />
@@ -317,23 +307,7 @@
       <workItem from="1768612138954" duration="8546000" />
       <workItem from="1768620788622" duration="167000" />
       <workItem from="1768648835846" duration="8055000" />
-      <workItem from="1768656927816" duration="2922000" />
-    </task>
-    <task id="LOCAL-00012" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1766850935163</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1766850935163</updated>
-    </task>
-    <task id="LOCAL-00013" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1766851518898</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1766851518898</updated>
+      <workItem from="1768656927816" duration="4680000" />
     </task>
     <task id="LOCAL-00014" summary="最新更新">
       <option name="closed" value="true" />
@@ -711,7 +685,23 @@
       <option name="project" value="LOCAL" />
       <updated>1768656596369</updated>
     </task>
-    <option name="localTasksCounter" value="61" />
+    <task id="LOCAL-00061" summary="最新更新">
+      <option name="closed" value="true" />
+      <created>1768659867926</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1768659867927</updated>
+    </task>
+    <task id="LOCAL-00062" summary="最新更新">
+      <option name="closed" value="true" />
+      <created>1768660325748</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1768660325748</updated>
+    </task>
+    <option name="localTasksCounter" value="63" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -813,12 +803,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/game.py</url>
-          <line>1566</line>
+          <line>1556</line>
           <option name="timeStamp" value="41" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/game.py</url>
-          <line>975</line>
+          <line>973</line>
           <option name="timeStamp" value="45" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -847,7 +837,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/game.py</url>
-          <line>1442</line>
+          <line>1429</line>
           <option name="timeStamp" value="55" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -875,11 +865,11 @@
     <SUITE FILE_PATH="coverage/xionghan_chess$train.coverage" NAME="train 覆盖结果" MODIFIED="1768101358528" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_ci_piece.coverage" NAME="test_ci_piece 覆盖结果" MODIFIED="1767790743910" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$game_rules.coverage" NAME="game_rules 覆盖结果" MODIFIED="1768491391284" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/core" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$test_local_network__1_.coverage" NAME="test_local_network (1) 覆盖结果" MODIFIED="1768620853535" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$test_local_network__1_.coverage" NAME="test_local_network (1) 覆盖结果" MODIFIED="1768660077519" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$dun_test.coverage" NAME="dun_test 覆盖结果" MODIFIED="1767952707887" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$game_logic.coverage" NAME="game_logic 覆盖结果" MODIFIED="1766850974112" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$gen.coverage" NAME="gen 覆盖结果" MODIFIED="1768033508731" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1768658673400" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1768659870759" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_py.coverage" NAME="test_py 覆盖结果" MODIFIED="1768096345997" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$sound_manager.coverage" NAME="sound_manager 覆盖结果" MODIFIED="1768035454859" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
     <SUITE FILE_PATH="coverage/xionghan_chess$view_training_data.coverage" NAME="view_training_data 覆盖结果" MODIFIED="1768100204598" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
