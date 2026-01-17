@@ -4,19 +4,18 @@
 import pygame
 
 from program.config.config import (
-    LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO, FPS,
+    FPS,
     PANEL_BORDER, BLACK, CAMP_RED
 )
 from program.config.config import game_config
 from program.core.game_state import GameState
 from program.game import ChessGame
-from program.ui.avatar import Avatar
+from program.lan.xhlan import XiangqiNetworkGame, SimpleAPI
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
 from program.ui.dialogs import PopupDialog, ConfirmDialog
 from program.utils.utils import load_font, draw_background
-from program.lan.xhlan import XiangqiNetworkGame, SimpleAPI
-
+from program.ui.dialogs import PromotionDialog
 
 class NetworkChessGame(ChessGame):
     """网络对战模式的匈汉象棋游戏"""
@@ -419,7 +418,6 @@ class NetworkChessGame(ChessGame):
                     pawn_color = self.game_state.promotion_pawn.color if self.game_state.promotion_pawn else self.game_state.player_turn
                     print(f"[DEBUG] 需要升变: {pawn_color}方兵到达底线")
                     # 自动弹出升变选择对话框
-                    from program.ui.dialogs import PromotionDialog
                     self.promotion_dialog = PromotionDialog(
                         500, 400, pawn_color, (row, col), self.game_state.available_promotion_pieces
                     )
@@ -665,18 +663,6 @@ class NetworkChessGame(ChessGame):
                     print(f"发送重新开始请求失败: {e}")
                     self.restart_requested = False  # 重置标志，以便可以重试
             
-            # 检查是否点击了返回主菜单按钮
-            # 在网络对战模式中，我们使用退出按钮代替返回按钮
-            # elif self.back_button.is_clicked(mouse_pos, event):
-            #     # 发送离开游戏信号并返回主菜单
-            #     try:
-            #         XiangqiNetworkGame.send_leave_game()
-            #     except:
-            #         pass
-            #     # 返回主菜单而不是退出游戏
-            #     self.sound_manager.stop_background_music()
-            #     return "back_to_menu"
-            
             # 检查是否点击了退出游戏按钮
             elif hasattr(self, 'exit_button') and self.exit_button.is_clicked(mouse_pos, event):
                 # 显示确认对话框确认退出游戏
@@ -693,7 +679,6 @@ class NetworkChessGame(ChessGame):
         """网络对战游戏主循环"""
         while True:
             mouse_pos = pygame.mouse.get_pos()
-            current_time = pygame.time.get_ticks()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
