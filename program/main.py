@@ -8,7 +8,7 @@ from program.ui.network_connect_screen import NetworkConnectScreen
 from program.ui.menu_screen import ModeSelectionScreen, CampSelectionScreen
 from program.ui.rules_screen import RulesScreen
 from program.config.settings import SettingsScreen
-from program.ui.statistics_dialog import StatisticsDialog
+from program.ui.dialogs import StatisticsDialog
 from program.lan.xhlan import SimpleAPI
 
 # 初始化PyGame
