@@ -14,6 +14,14 @@ from program.utils.utils import load_font, draw_background
 class ModeSelectionScreen:
     def __init__(self):
         # 初始化窗口尺寸和模式
+        self.windowed_size = None
+        self.load_game_button = None
+        self.stats_button = None
+        self.rules_button = None
+        self.settings_button = None
+        self.network_button = None
+        self.pvc_button = None
+        self.pvp_button = None
         self.window_width = DEFAULT_WINDOW_WIDTH
         self.window_height = DEFAULT_WINDOW_HEIGHT
         self.is_fullscreen = False
@@ -255,6 +263,10 @@ class NetworkModeScreen:
     """网络对战模式选择界面"""
     
     def __init__(self):
+        self.windowed_size = None
+        self.back_button = None
+        self.join_button = None
+        self.host_button = None
         self.window_width = DEFAULT_WINDOW_WIDTH
         self.window_height = DEFAULT_WINDOW_HEIGHT
         self.is_fullscreen = False
@@ -397,6 +409,7 @@ class NetworkModeScreen:
 
 class RulesScreen:
     def __init__(self):
+        self.windowed_size = None
         self.window_width = DEFAULT_WINDOW_WIDTH
         self.window_height = DEFAULT_WINDOW_HEIGHT
         self.is_fullscreen = False

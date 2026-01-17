@@ -3,10 +3,10 @@
 import pygame
 
 
-def draw_category(screen, category_background_color, category_border_color, category_padding, 
-                 category_title_height, category_title_font, CHECKBOX_SIZE, scroll_y, 
-                 window_width, option_font, desc_font, draw_piece_icon, 
-                 piece_display_char, piece_display_name, items, y_position=0):
+def draw_category(screen, category_background_color, category_border_color, category_padding,
+                  category_title_height, category_title_font, checkbox_size, scroll_y,
+                  window_width, option_font, desc_font, draw_piece_icon,
+                  piece_display_char, piece_display_name, items, y_position=0):
     """
     通用的棋子分类绘制函数
     
@@ -17,7 +17,7 @@ def draw_category(screen, category_background_color, category_border_color, cate
         category_padding: 分类内边距
         category_title_height: 分类标题高度
         category_title_font: 分类标题字体
-        CHECKBOX_SIZE: 复选框大小
+        checkbox_size: 复选框大小
         scroll_y: 当前滚动位置
         window_width: 窗口宽度
         option_font: 选项字体
@@ -70,12 +70,12 @@ def draw_category(screen, category_background_color, category_border_color, cate
         
         # 计算复选框位置 - 确保复选框在背景框内
         checkbox_x = item_rect.left + 10  # 在背景框内留出一些边距
-        checkbox_y = item_rect.top + (item_rect.height - CHECKBOX_SIZE) // 2  # 垂直居中
+        checkbox_y = item_rect.top + (item_rect.height - checkbox_size) // 2  # 垂直居中
         adjusted_checkbox = pygame.Rect(
             checkbox_x,
             checkbox_y,
-            CHECKBOX_SIZE, 
-            CHECKBOX_SIZE
+            checkbox_size,
+            checkbox_size
         )
         
         if is_disabled:

@@ -5,7 +5,7 @@ from program.utils.utils import load_font, draw_background
 from program.ui.button import Button
 
 
-class RulesViewer:
+class RulesScreen:
     """游戏规则查看器，支持分页显示和翻页功能"""
     
     def __init__(self):

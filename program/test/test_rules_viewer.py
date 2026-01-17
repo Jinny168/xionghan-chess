@@ -1,7 +1,7 @@
 """测试规则查看器功能"""
 
 import pygame
-from program.ui.rules_viewer import RulesViewer
+from program.ui.rules_screen import RulesScreen
 
 def test_rules_viewer():
     """测试规则查看器是否能正确读取help.md文件"""
@@ -11,7 +11,7 @@ def test_rules_viewer():
         pygame.display.set_mode((800, 600))  # 创建一个虚拟显示
         
         # 创建规则查看器实例（不运行界面）
-        viewer = RulesViewer()
+        viewer = RulesScreen()
         
         print(f"成功读取到 {len(viewer.pages)} 个页面")
         

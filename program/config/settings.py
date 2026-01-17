@@ -1445,11 +1445,6 @@ class SettingsScreen:
              False)
         ]
 
-        self.appear_settings = {
-            "dun_appear": self.piece_settings["dun"]["appear"],
-            "xun_appear": self.piece_settings["xun"]["appear"]
-        }
-
     def create_xun_items(self, y_offset):
         """创建巡相关的设置项"""
         return [

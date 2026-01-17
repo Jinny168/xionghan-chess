@@ -300,8 +300,6 @@ def validate_cannon_move(state_list, from_y, from_x, to_y, to_x):
             return True, "炮移动合法"
         else:
             return False, f"炮移动路径上不能有棋子，实际{pieces_in_path}个"
-    
-    return True, "炮移动合法"
 
 
 def validate_pawn_move(state_list, from_y, from_x, to_y, to_x, current_player_color):
@@ -506,7 +504,7 @@ def run_validation_test():
             move_actions.append(globals().get('move_id2move_action')[item])
         else:
             # 如果全局变量不可用，我们从mcts_game模块导入
-            from mcts_game import move_id2move_action
+            from program.ai.mcts.mcts_game import move_id2move_action
             if item in move_id2move_action:
                 move_actions.append(move_id2move_action[item])
     

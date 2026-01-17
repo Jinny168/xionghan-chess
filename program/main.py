@@ -4,9 +4,9 @@ import time
 from program.config.config import MODE_PVC, CAMP_RED
 from program.game import ChessGame
 from program.lan.network_game import NetworkChessGame
-from program.ui.network_connect import NetworkConnectScreen
-from program.ui.menu_screens import ModeSelectionScreen, CampSelectionScreen
-from program.ui.rules_viewer import RulesViewer
+from program.ui.network_connect_screen import NetworkConnectScreen
+from program.ui.menu_screen import ModeSelectionScreen, CampSelectionScreen
+from program.ui.rules_screen import RulesScreen
 from program.config.settings import SettingsScreen
 from program.ui.statistics_dialog import StatisticsDialog
 from program.lan.xhlan import SimpleAPI
@@ -43,7 +43,7 @@ def main():
                 continue
         
         if game_mode == "rules":  # 如果选择了规则界面
-            rules_viewer = RulesViewer()
+            rules_viewer = RulesScreen()
             rules_viewer.run()
             # 返回到模式选择界面
             mode_screen = ModeSelectionScreen()
@@ -106,7 +106,7 @@ def main():
                 print("服务器模式：等待客户端连接...")
                 # 创建网络对战游戏，作为主机
                 game = NetworkChessGame(is_host=True)
-                result = game.run()
+                game.run()
             elif network_choice == "join":
                 # 初始化网络API
                 SimpleAPI.init('CLIENT', server_addr=ip_address if ip_address else "127.0.0.1")
@@ -127,7 +127,7 @@ def main():
                     continue
                 # 加入网络对战游戏
                 game = NetworkChessGame(is_host=False)
-                result = game.run()
+                game.run()
             
             # 如果网络对战结束，返回模式选择
             mode_screen = ModeSelectionScreen()

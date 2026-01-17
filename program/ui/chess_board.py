@@ -164,14 +164,7 @@ class ChessBoard:
             2
         )
         
-        # 绘制&点标记（射/䠶棋子移动点）
-        # 注释掉之前的特定点位标记，因为现在射/䠶可以在任何斜向无阻挡位置移动
-        # she_points = [(3, 3), (3, 6), (3, 9), (6, 3), (6, 6), (6, 9), (9, 3), (9, 6), (9, 9)]
-        # for row, col in she_points:
-        #     x = self.margin_left + col * self.grid_size
-        #     y = self.margin_top + row * self.grid_size
-        #     pygame.draw.circle(screen, (255, 0, 0), (x, y), self.grid_size * 0.1)
-        
+
         # 绘制"长城阴山"
         font = load_font(36)
         chu_text = font.render("长 城", True, (0, 0, 0))
@@ -179,27 +172,7 @@ class ChessBoard:
         
         # 绘制分隔线（只在两端绘制短线）
         separator_y = self.margin_top + 6 * self.grid_size
-        # # 左侧短线 - 调整长度和位置
-        # line_length = self.board_width // 8  # 缩短线条长度
-        # left_start_x = self.margin_left + 10  # 增加起始位置偏移
-        # left_end_x = left_start_x + line_length
-        # pygame.draw.line(
-        #     screen,
-        #     (0, 0, 0),
-        #     (left_start_x, separator_y),
-        #     (left_end_x, separator_y),
-        #     2
-        # )
-        # # 右侧短线 - 调整长度和位置
-        # right_start_x = self.margin_left + self.board_width - line_length - 10  # 增加结束位置偏移
-        # right_end_x = right_start_x + line_length
-        # pygame.draw.line(
-        #     screen,
-        #     (0, 0, 0),
-        #     (right_start_x, separator_y),
-        #     (right_end_x, separator_y),
-        #     2
-        # )
+
 
         # 绘制文字
         chu_rect = chu_text.get_rect(center=(self.margin_left + self.board_width/4, separator_y))

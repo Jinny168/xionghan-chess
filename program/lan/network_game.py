@@ -23,6 +23,7 @@ class NetworkChessGame(ChessGame):
     
     def __init__(self, is_host=True):
         # 设置网络模式
+        self.black_avatar = None
         self.is_host = is_host
         self.network_enabled = True
         self.opponent_connected = False
@@ -128,92 +129,92 @@ class NetworkChessGame(ChessGame):
             14
         )
 
-    def update_layout(self):
-        """根据当前窗口尺寸更新布局 - 网络对战模式特化版本"""
-        # 计算左侧面板宽度和棋盘边距
-        self.left_panel_width = int(LEFT_PANEL_WIDTH_RATIO * self.window_width)
-        self.board_margin_top = int(BOARD_MARGIN_TOP_RATIO * self.window_height)
-
-        # 更新棋盘
-        self.board = ChessBoard(
-            self.window_width - self.left_panel_width,
-            self.window_height,
-            self.left_panel_width,
-            self.board_margin_top
-        )
-
-        button_width = 120
-        button_height = 40
-        button_y = self.window_height - 60
-
-        # 更新重新开始按钮位置
-        self.restart_button = Button(
-            self.left_panel_width + 80,  # 调整位置
-            button_y,
-            button_width,
-            button_height,
-            "重来",
-            22
-        )
-        
-        # 更新悔棋按钮位置
-        self.undo_button = Button(
-            self.left_panel_width + 80 + button_width + 10,  # 紧挨着重来按钮
-            button_y,
-            button_width,
-            button_height,
-            "悔棋",
-            22
-        )
-        
-        # 更新退出游戏按钮位置
-        self.exit_button = Button(
-            self.window_width - button_width - 80 - button_width - 10,
-            button_y,
-            button_width,
-            button_height,
-            "退出游戏",
-            22
-        )
-
-        # 更新全屏按钮位置
-        self.fullscreen_button = Button(
-            self.window_width - 100,
-            10,
-            80,
-            30,
-            "全屏" if not self.is_fullscreen else "窗口",
-            14
-        )
-        
-        # 更新音效设置按钮位置
-        self.audio_settings_button = Button(
-            self.window_width - 100,
-            50,
-            80,
-            30,
-            "音效设置",
-            14
-        )
-
-        # 更新头像位置
-        avatar_radius = 40
-        panel_center_x = self.left_panel_width // 2
-        black_y = self.window_height // 3 - 50
-        red_y = self.window_height * 2 // 3
-
-        # 创建头像
-        self.black_avatar = Avatar(panel_center_x, black_y, avatar_radius, (245, 245, 235), "黑方", False)
-        self.red_avatar = Avatar(panel_center_x, red_y, avatar_radius, (255, 255, 240), "红方", True)
-
-        # 设置当前玩家的头像为活跃状态
-        if hasattr(self, 'game_state'):
-            is_red_turn = self.game_state.player_turn == "red"
-            self.red_avatar.set_active(is_red_turn)
-            self.black_avatar.set_active(not is_red_turn)
-
-        # 计时器的字体
-        self.timer_font = load_font(18)
+    # def update_layout(self):
+    #     """根据当前窗口尺寸更新布局 - 网络对战模式特化版本"""
+    #     # 计算左侧面板宽度和棋盘边距
+    #     self.left_panel_width = int(LEFT_PANEL_WIDTH_RATIO * self.window_width)
+    #     self.board_margin_top = int(BOARD_MARGIN_TOP_RATIO * self.window_height)
+    #
+    #     # 更新棋盘
+    #     self.board = ChessBoard(
+    #         self.window_width - self.left_panel_width,
+    #         self.window_height,
+    #         self.left_panel_width,
+    #         self.board_margin_top
+    #     )
+    #
+    #     button_width = 120
+    #     button_height = 40
+    #     button_y = self.window_height - 60
+    #
+    #     # 更新重新开始按钮位置
+    #     self.restart_button = Button(
+    #         self.left_panel_width + 80,  # 调整位置
+    #         button_y,
+    #         button_width,
+    #         button_height,
+    #         "重来",
+    #         22
+    #     )
+    #
+    #     # 更新悔棋按钮位置
+    #     self.undo_button = Button(
+    #         self.left_panel_width + 80 + button_width + 10,  # 紧挨着重来按钮
+    #         button_y,
+    #         button_width,
+    #         button_height,
+    #         "悔棋",
+    #         22
+    #     )
+    #
+    #     # 更新退出游戏按钮位置
+    #     self.exit_button = Button(
+    #         self.window_width - button_width - 80 - button_width - 10,
+    #         button_y,
+    #         button_width,
+    #         button_height,
+    #         "退出游戏",
+    #         22
+    #     )
+    #
+    #     # 更新全屏按钮位置
+    #     self.fullscreen_button = Button(
+    #         self.window_width - 100,
+    #         10,
+    #         80,
+    #         30,
+    #         "全屏" if not self.is_fullscreen else "窗口",
+    #         14
+    #     )
+    #
+    #     # 更新音效设置按钮位置
+    #     self.audio_settings_button = Button(
+    #         self.window_width - 100,
+    #         50,
+    #         80,
+    #         30,
+    #         "音效设置",
+    #         14
+    #     )
+    #
+    #     # 更新头像位置
+    #     avatar_radius = 40
+    #     panel_center_x = self.left_panel_width // 2
+    #     black_y = self.window_height // 3 - 50
+    #     red_y = self.window_height * 2 // 3
+    #
+    #     # 创建头像
+    #     self.black_avatar = Avatar(panel_center_x, black_y, avatar_radius, (245, 245, 235), "黑方", False)
+    #     self.red_avatar = Avatar(panel_center_x, red_y, avatar_radius, (255, 255, 240), "红方", True)
+    #
+    #     # 设置当前玩家的头像为活跃状态
+    #     if hasattr(self, 'game_state'):
+    #         is_red_turn = self.game_state.player_turn == "red"
+    #         self.red_avatar.set_active(is_red_turn)
+    #         self.black_avatar.set_active(not is_red_turn)
+    #
+    #     # 计时器的字体
+    #     self.timer_font = load_font(18)
 
     def draw(self, mouse_pos):
         """绘制游戏界面 - 网络对战模式特化版本"""
@@ -461,18 +462,7 @@ class NetworkChessGame(ChessGame):
                 self.update_avatars()
 
                 # 播放将军/绝杀音效
-                if self.game_state.is_checkmate():
-                    try:
-                        self.sound_manager.play_sound('warn')
-                        self.sound_manager.play_sound('check')
-                    except:
-                        pass
-                elif self.game_state.is_check:
-                    try:
-                        self.sound_manager.play_sound('warn')
-                        self.sound_manager.play_sound('capture')
-                    except:
-                        pass
+                self.check_sound_play()
 
                 # 检查游戏是否结束
                 if self.game_state.game_over:
@@ -498,6 +488,20 @@ class NetworkChessGame(ChessGame):
             # 无论如何都取消选择状态
             self.selected_piece = None
             self.board.clear_highlights()
+
+    def check_sound_play(self):
+        if self.game_state.is_checkmate():
+            try:
+                self.sound_manager.play_sound('warn')
+                self.sound_manager.play_sound('check')
+            except:
+                pass
+        elif self.game_state.is_check:
+            try:
+                self.sound_manager.play_sound('warn')
+                self.sound_manager.play_sound('capture')
+            except:
+                pass
 
     def send_network_move(self, from_row, from_col, to_row, to_col):
         """发送移动到网络对手"""
@@ -543,18 +547,7 @@ class NetworkChessGame(ChessGame):
             self.update_avatars()
 
             # 播放将军/绝杀音效
-            if self.game_state.is_checkmate():
-                try:
-                    self.sound_manager.play_sound('warn')
-                    self.sound_manager.play_sound('check')
-                except:
-                    pass
-            elif self.game_state.is_check:
-                try:
-                    self.sound_manager.play_sound('warn')
-                    self.sound_manager.play_sound('capture')
-                except:
-                    pass
+            self.check_sound_play()
 
             # 切换玩家回合（这是对手的移动，所以现在轮到本地玩家走棋）
             # 关键：接收到对手的移动后，应该切换到本地玩家的回合

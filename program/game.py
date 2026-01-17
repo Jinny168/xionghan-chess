@@ -26,6 +26,13 @@ from program.config.config import (
 class ChessGame:
     def __init__(self, game_mode=MODE_PVP, player_camp=CAMP_RED, game_settings=None):
         """初始化游戏"""
+        self.board = None
+        self.history_scroll_y = None
+        self.timer_font = None
+        self.red_avatar = None
+        self.board_margin_top = None
+        self.black_avatar = None
+        self.audio_settings_button = None
         self.undo_button = None
         self.exit_button = None
         self.restart_button = None
@@ -119,15 +126,23 @@ class ChessGame:
         self.clock = pygame.time.Clock()
 
     def init_board_and_ui(self):
+
         button_width=120
         button_height = 40
         button_y = self.window_height - 60
 
-
         """初始化棋盘和界面元素"""
         self.update_layout()  # 初始化布局
+        
 
+        self.create_button(button_height, button_width, button_y)
 
+        # 如果是人机对战且AI先行，设置延迟启动AI
+        if self.game_mode == MODE_PVC and self.game_state.player_turn != self.player_camp:
+            self.ai_thinking = True
+            pygame.time.set_timer(pygame.USEREVENT, 500)  # 0.5秒后启动AI，更快响应
+
+    def create_button(self, button_height, button_width, button_y):
         # 创建返回按钮
         self.back_button = Button(
             self.left_panel_width + 80,
@@ -137,7 +152,6 @@ class ChessGame:
             "返回",
             22
         )
-
         # 创建重新开始按钮
         self.restart_button = Button(
             self.left_panel_width + 80 + button_width + 10,  # 紧挨着返回按钮
@@ -158,14 +172,13 @@ class ChessGame:
         )
         # 创建悔棋按钮
         self.undo_button = Button(
-            self.window_width  - button_width - 80,
+            self.window_width - button_width - 80,
             button_y,
             button_width,
             button_height,
             "悔棋",
             22
         )
-
         # 创建全屏切换按钮
         self.fullscreen_button = Button(
             self.window_width - 100,
@@ -175,8 +188,6 @@ class ChessGame:
             "全屏" if not self.is_fullscreen else "窗口",
             14
         )
-        
-        # 创建音效设置按钮
         self.audio_settings_button = Button(
             self.window_width - 100,
             50,
@@ -185,11 +196,6 @@ class ChessGame:
             "音效设置",
             14
         )
-
-        # 如果是人机对战且AI先行，设置延迟启动AI
-        if self.game_mode == MODE_PVC and self.game_state.player_turn != self.player_camp:
-            self.ai_thinking = True
-            pygame.time.set_timer(pygame.USEREVENT, 500)  # 0.5秒后启动AI，更快响应
 
     def handle_board_click(self, mouse_pos):
         """处理棋盘点击事件"""
@@ -225,9 +231,6 @@ class ChessGame:
 
     def make_move(self, move):
         """执行走法"""
-        from_row, from_col, to_row, to_col = move
-
-        # 执行走法
         from_row, from_col, to_row, to_col = move
         
         # 检查目标位置是否有棋子（吃子）
@@ -346,65 +349,8 @@ class ChessGame:
         button_height = 40
         button_y = self.window_height - 60
 
-        # 更新返回按钮位置
-        self.back_button = Button(
-            self.left_panel_width + 80,
-            button_y,
-            button_width,
-            button_height,
-            "返回",
-            22
-        )
-
-        # 更新重新开始按钮位置
-        self.restart_button = Button(
-            self.left_panel_width + 80 + button_width + 10,  # 紧挨着返回按钮
-            button_y,
-            button_width,
-            button_height,
-            "重来",
-            22
-        )
-
-        #更新退出游戏按钮位置
-        self.exit_button = Button(
-            self.window_width - button_width - 80 - button_width - 10,
-            button_y,
-            button_width,
-            button_height,
-            "退出游戏",
-            22
-        )
-
-        # 更新悔棋按钮位置
-        self.undo_button = Button(
-            self.window_width  - button_width - 80,
-            button_y,
-            button_width,
-            button_height,
-            "悔棋",
-            22
-        )
-
-        # 更新全屏按钮位置
-        self.fullscreen_button = Button(
-            self.window_width - 100,
-            10,
-            80,
-            30,
-            "全屏" if not self.is_fullscreen else "窗口",
-            14
-        )
-        
-        # 更新音效设置按钮位置
-        self.audio_settings_button = Button(
-            self.window_width - 100,
-            50,
-            80,
-            30,
-            "音效设置",
-            14
-        )
+        # 创建按钮
+        self.create_button(button_height, button_width, button_y)
 
         # 更新头像位置
         avatar_radius = 40
@@ -1135,11 +1081,9 @@ class ChessGame:
                     piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces, ci_captured_pieces = move_record
                 elif len(move_record) == 7:  # 新格式：包含甲/胄吃子信息
                     piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces = move_record
-                    ci_captured_pieces = []
+                   
                 else:  # 旧格式：6个元素
                     piece, from_row, from_col, to_row, to_col, captured_piece = move_record
-                    jia_captured_pieces = []
-                    ci_captured_pieces = []
 
                 # 生成棋谱记号
                 notation = self.generate_move_notation(piece, from_row, from_col, to_row, to_col)
@@ -1283,28 +1227,7 @@ class ChessGame:
 
                 # 检查游戏是否结束
                 if self.game_state.game_over:
-                    winner_text = self.game_state.get_winner_text()
-
-                    # 更新时间数据，确保获取最终值
-                    red_time, black_time = self.game_state.update_times()
-                    total_time = self.game_state.total_time
-
-                    # 创建弹窗并传入时间信息
-                    self.popup = PopupDialog(
-                        400, 320,  # 增加高度以适应更多内容
-                        winner_text,
-                        total_time,
-                        red_time,
-                        black_time
-                    )
-                    
-                    # 根据胜负播放相应的音效
-                    if self.game_mode == MODE_PVC:  # 人机模式
-                        if self.player_camp == self.game_state.winner:  # 玩家获胜
-                            self.sound_manager.play_victory_sound()
-                        elif self.game_state.winner is not None:  # AI获胜
-                            self.sound_manager.play_defeat_sound()
-                        # 平局时不播放音效
+                    self.game_over_after()
                 # 如果是人机模式且轮到AI走子，触发AI移动
                 elif self.game_mode == MODE_PVC and self.game_state.player_turn != self.player_camp:
                     self.schedule_ai_move()
@@ -1378,7 +1301,6 @@ class ChessGame:
         from_col_name = col_names[col_index]
 
         # 判断移动方向
-        direction = ""
         if to_row < from_row:  # 向上移动
             direction = "进" if piece.color == "red" else "退"
         elif to_row > from_row:  # 向下移动
@@ -1544,52 +1466,7 @@ class ChessGame:
                 best_move = random.choice(valid_moves)
 
         if best_move:
-            from_pos, to_pos = best_move
-            from_row, from_col = from_pos
-            to_row, to_col = to_pos
-
-            # 检查目标位置是否有棋子（吃子）
-            target_piece = self.game_state.get_piece_at(to_row, to_col)
-
-            # 执行移动
-            self.game_state.move_piece(from_row, from_col, to_row, to_col)
-
-            # 记录上一步走法
-            self.last_move = (from_row, from_col, to_row, to_col)
-
-            # 生成上一步走法的中文表示
-            piece = self.game_state.get_piece_at(to_row, to_col)
-            if piece:
-                self.last_move_notation = self.generate_move_notation(piece, from_row, from_col, to_row, to_col)
-
-            # 播放音效
-            if target_piece:
-                try:
-                    self.sound_manager.play_sound('eat')
-                except:
-                    pass
-            else:
-                try:
-                    self.sound_manager.play_sound('drop')
-                except:
-                    pass
-
-            # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
-            if self.game_state.is_checkmate():
-                try:
-                    self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
-                    self.sound_manager.play_sound('check')  # 播放绝杀语音
-                except:
-                    pass
-            elif self.game_state.is_check:
-                try:
-                    self.sound_manager.play_sound('warn')
-                    self.sound_manager.play_sound('capture')  # 播放将军语音
-                except:
-                    pass
-
-            # 更新头像状态 - 只需更新一次
-            self.update_avatars()
+            self.move_after(best_move)
 
             # 检查游戏是否结束
             if self.game_state.game_over:
@@ -1607,6 +1484,47 @@ class ChessGame:
                     red_time,
                     black_time
                 )
+
+    def move_after(self, best_move):
+        from_pos, to_pos = best_move
+        from_row, from_col = from_pos
+        to_row, to_col = to_pos
+        # 检查目标位置是否有棋子（吃子）
+        target_piece = self.game_state.get_piece_at(to_row, to_col)
+        # 执行移动
+        self.game_state.move_piece(from_row, from_col, to_row, to_col)
+        # 记录上一步走法
+        self.last_move = (from_row, from_col, to_row, to_col)
+        # 生成上一步走法的中文表示
+        piece = self.game_state.get_piece_at(to_row, to_col)
+        if piece:
+            self.last_move_notation = self.generate_move_notation(piece, from_row, from_col, to_row, to_col)
+        # 播放音效
+        if target_piece:
+            try:
+                self.sound_manager.play_sound('eat')
+            except:
+                pass
+        else:
+            try:
+                self.sound_manager.play_sound('drop')
+            except:
+                pass
+        # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
+        if self.game_state.is_checkmate():
+            try:
+                self.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
+                self.sound_manager.play_sound('check')  # 播放绝杀语音
+            except:
+                pass
+        elif self.game_state.is_check:
+            try:
+                self.sound_manager.play_sound('warn')
+                self.sound_manager.play_sound('capture')  # 播放将军语音
+            except:
+                pass
+        # 更新头像状态 - 只需更新一次
+        self.update_avatars()
 
     def update_avatars(self):
         """更新头像状态"""
@@ -1656,74 +1574,75 @@ class ChessGame:
         move = self.ai.get_computed_move()
 
         if move:
-            from_pos, to_pos = move
-            from_row, from_col = from_pos
-            to_row, to_col = to_pos
-
-            # 检查目标位置是否有棋子（吃子）
-            target_piece = self.game_state.get_piece_at(to_row, to_col)
-
-            # 执行移动
-            self.game_state.move_piece(from_row, from_col, to_row, to_col)
-
-            # 记录上一步走法
-            self.last_move = (from_row, from_col, to_row, to_col)
-
-            # 生成上一步走法的中文表示
-            piece = self.game_state.get_piece_at(to_row, to_col)
-            if piece:
-                self.last_move_notation = self.generate_move_notation(piece, from_row, from_col, to_row, to_col)
-
-            # 播放音效
-            if target_piece:
-                try:
-                    self.sound_manager.play_sound('eat')
-                except:
-                    pass
-            else:
-                try:
-                    self.sound_manager.play_sound('drop')
-                except:
-                    pass
-
-            # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
-            if self.game_state.is_checkmate():
-                try:
-                    self.sound_manager.play_sound('warn')  # 使用将军语音
-                    self.sound_manager.play_sound('check')  # 播放旧版音效
-                except:
-                    pass
-            elif self.game_state.is_check:
-                try:
-                    self.sound_manager.play_sound('warn')
-                    self.sound_manager.play_sound('capture')  # 播放旧版音效
-                except:
-                    pass
-
-            # 更新头像状态
-            self.update_avatars()
+            self.move_after(move)
+            # from_pos, to_pos = move
+            # from_row, from_col = from_pos
+            # to_row, to_col = to_pos
+            #
+            # # 检查目标位置是否有棋子（吃子）
+            # target_piece = self.game_state.get_piece_at(to_row, to_col)
+            #
+            # # 执行移动
+            # self.game_state.move_piece(from_row, from_col, to_row, to_col)
+            #
+            # # 记录上一步走法
+            # self.last_move = (from_row, from_col, to_row, to_col)
+            #
+            # # 生成上一步走法的中文表示
+            # piece = self.game_state.get_piece_at(to_row, to_col)
+            # if piece:
+            #     self.last_move_notation = self.generate_move_notation(piece, from_row, from_col, to_row, to_col)
+            #
+            # # 播放音效
+            # if target_piece:
+            #     try:
+            #         self.sound_manager.play_sound('eat')
+            #     except:
+            #         pass
+            # else:
+            #     try:
+            #         self.sound_manager.play_sound('drop')
+            #     except:
+            #         pass
+            #
+            # # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
+            # if self.game_state.is_checkmate():
+            #     try:
+            #         self.sound_manager.play_sound('warn')  # 使用将军语音
+            #         self.sound_manager.play_sound('check')  # 播放旧版音效
+            #     except:
+            #         pass
+            # elif self.game_state.is_check:
+            #     try:
+            #         self.sound_manager.play_sound('warn')
+            #         self.sound_manager.play_sound('capture')  # 播放旧版音效
+            #     except:
+            #         pass
+            #
+            # # 更新头像状态
+            # self.update_avatars()
 
             # 检查游戏是否结束
             if self.game_state.game_over:
-                winner_text = self.game_state.get_winner_text()
+                self.game_over_after()
 
-                # 更新时间数据，确保获取最终值
-                red_time, black_time = self.game_state.update_times()
-                total_time = self.game_state.total_time
-
-                # 创建弹窗并传入时间信息
-                self.popup = PopupDialog(
-                    400, 320,  # 增加高度以适应更多内容
-                    winner_text,
-                    total_time,
-                    red_time,
-                    black_time
-                )
-                
-                # 根据胜负播放相应的音效
-                if self.game_mode == MODE_PVC:  # 人机模式
-                    if self.player_camp == self.game_state.winner:  # 玩家获胜
-                        self.sound_manager.play_victory_sound()
-                    elif self.game_state.winner is not None:  # AI获胜
-                        self.sound_manager.play_defeat_sound()
-                    # 平局时不播放音效
+    def game_over_after(self):
+        winner_text = self.game_state.get_winner_text()
+        # 更新时间数据，确保获取最终值
+        red_time, black_time = self.game_state.update_times()
+        total_time = self.game_state.total_time
+        # 创建弹窗并传入时间信息
+        self.popup = PopupDialog(
+            400, 320,  # 增加高度以适应更多内容
+            winner_text,
+            total_time,
+            red_time,
+            black_time
+        )
+        # 根据胜负播放相应的音效
+        if self.game_mode == MODE_PVC:  # 人机模式
+            if self.player_camp == self.game_state.winner:  # 玩家获胜
+                self.sound_manager.play_victory_sound()
+            elif self.game_state.winner is not None:  # AI获胜
+                self.sound_manager.play_defeat_sound()
+            # 平局时不播放音效
