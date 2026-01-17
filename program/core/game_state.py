@@ -85,7 +85,7 @@ class GameState:
             return False
         
         # 检查移动后是否会导致自己被将军（送将）
-        if GameRules.would_be_in_check_after_move(self.pieces, piece, from_row, from_col, to_row, to_col):
+        if GameRules.would_be_in_check_after_move(self.pieces, piece, to_row, to_col):
             return False
         
         # 获取目标位置的棋子（如果有）
@@ -466,7 +466,7 @@ class GameState:
             return True
         
         # 使用GameRules中的方法检测重复局面
-        if GameRules.is_repeated_move(self.move_history, self.board_position_history, 3):
+        if GameRules.is_repeated_move(self.board_position_history, 3):
             return True
         
         return False
@@ -635,7 +635,7 @@ class GameState:
         # 过滤掉会导致被将军的移动（送将）
         safe_moves = []
         for to_row, to_col in moves:
-            if not GameRules.would_be_in_check_after_move(self.pieces, piece, row, col, to_row, to_col):
+            if not GameRules.would_be_in_check_after_move(self.pieces, piece, to_row, to_col):
                 # 如果目标位置有盾，且不是己方的盾，则不能吃（盾不可被吃）
                 target_piece = self.get_piece_at(to_row, to_col)
                 if target_piece and isinstance(target_piece, Dun) and target_piece.color != piece.color:
@@ -645,7 +645,7 @@ class GameState:
         # 过滤掉会导致被将军的吃子移动
         safe_capturable = []
         for to_row, to_col in capturable:
-            if not GameRules.would_be_in_check_after_move(self.pieces, piece, row, col, to_row, to_col):
+            if not GameRules.would_be_in_check_after_move(self.pieces, piece, to_row, to_col):
                 # 如果目标位置有盾，且不是己方的盾，则不能吃（盾不可被吃）
                 target_piece = self.get_piece_at(to_row, to_col)
                 if target_piece and isinstance(target_piece, Dun) and target_piece.color != piece.color:
