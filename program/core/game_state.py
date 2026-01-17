@@ -6,6 +6,7 @@ from program.core.chess_pieces import create_initial_pieces, King, Jia, Ci, Dun,
 from program.core.game_rules import GameRules
 from program.utils.tools import save_game_to_file, load_game_from_file
 import program.utils.tools as tools
+from program.utils.utils import step_counter, print_board
 
 class GameState:
     """游戏状态管理类，负责维护当前棋局、历史记录和状态判断"""
@@ -53,8 +54,8 @@ class GameState:
         
         # 统计数据跟踪
         self.moves_count = 0  # 当前对局走子数
-        
-        # 初始化步数计数器
+
+        self.history_scroll_y = 0
 
     def get_piece_at(self, row, col):
         """获取指定位置的棋子"""
@@ -128,8 +129,7 @@ class GameState:
         # 执行移动
         piece.move_to(to_row, to_col)
 
-        # 导入步数计数器和打印棋盘函数
-        from program.utils.utils import step_counter, print_board
+
         
         # 打印当前棋局状态
         print_board(self.pieces, [step_counter.get_step()], show_step=True)
@@ -191,8 +191,6 @@ class GameState:
                                     # 更新游戏总时长
                                     current_time = time.time()
                                     self.total_time = max(0.0, current_time - self.start_time)
-                                    # 切换玩家
-                                    opponent_color = "black" if self.player_turn == "red" else "red"
                                     # 现在将完整的记录添加到历史中，包括甲/胄吃子信息和刺兑子信息
                                     self.move_history.append(temp_move_record + (jia_captured_pieces[:], ci_captured_pieces[:]))  # 添加甲/胄吃子信息和刺兑子信息
                                     return True
@@ -252,8 +250,6 @@ class GameState:
                     # 更新游戏总时长
                     current_time = time.time()
                     self.total_time = max(0.0, current_time - self.start_time)
-                    # 切换玩家
-                    opponent_color = "black" if self.player_turn == "red" else "red"
                     return True
         
         # 检查兵/卒是否到达对方底线，触发升变
@@ -533,16 +529,14 @@ class GameState:
         moves, capturable = GameRules.calculate_possible_moves(self.pieces, piece)
         
         # 过滤掉会导致被将军的移动（送将）
-        safe_moves = []
-        for to_row, to_col in moves:
-            if not GameRules.would_be_in_check_after_move(self.pieces, piece, to_row, to_col):
-                # 如果目标位置有盾，且不是己方的盾，则不能吃（盾不可被吃）
-                target_piece = self.get_piece_at(to_row, to_col)
-                if target_piece and isinstance(target_piece, Dun) and target_piece.color != piece.color:
-                    continue  # 不能吃盾
-                safe_moves.append((to_row, to_col))
-        
+        safe_moves = self.filter_safe_moves(moves, piece)
+
         # 过滤掉会导致被将军的吃子移动
+        safe_capturable = self.filter_safe_moves(capturable, piece)
+
+        return safe_moves, safe_capturable
+
+    def filter_safe_moves(self, capturable, piece):
         safe_capturable = []
         for to_row, to_col in capturable:
             if not GameRules.would_be_in_check_after_move(self.pieces, piece, to_row, to_col):
@@ -551,9 +545,8 @@ class GameState:
                 if target_piece and isinstance(target_piece, Dun) and target_piece.color != piece.color:
                     continue  # 不能吃盾
                 safe_capturable.append((to_row, to_col))
-        
-        return safe_moves, safe_capturable
-    
+        return safe_capturable
+
     def get_winner_text(self):
         """获取胜利方文本
         
@@ -673,13 +666,7 @@ class GameState:
         """重置游戏状态"""
         # 重新创建棋子，以便根据当前设置使用正确的布局
         self.__init__()
-        
-        # 重置棋谱滚动位置
-        if hasattr(self, 'history_scroll_y'):
-            self.history_scroll_y = 0
-        
-        # 重置步数计数器
-        from program.utils.utils import step_counter
+
         step_counter.reset()
 
     def perform_promotion(self, selected_piece_index):
@@ -908,7 +895,7 @@ class GameState:
             
             # 重置步数计数器
             self.moves_count = 0
-            from program.utils.utils import step_counter
+
             step_counter.reset()
             
             print("棋局导入成功")
