@@ -137,140 +137,11 @@ class She(ChessPiece):
 
 
 class Lei(ChessPiece):
-    """檑/礌棋子类
-    
-    特性：移动规则类似国际象棋的皇后（直线和斜线，步数无限），
-         但攻击规则特殊，只能攻击"落单"的敌方棋子
-    """
+    """檑/礌"""
 
     def __init__(self, color, row, col):
         name = "礌" if color == "black" else "檑"
         super().__init__(color, name, row, col)
-
-    def is_isolated(self, target_piece, pieces):
-        """检查敌方棋子是否"落单"
-        
-        Args:
-            target_piece: 目标棋子
-            pieces: 棋盘上所有棋子
-            
-        Returns:
-            bool: 如果目标棋子周围上下左右没有友方棋子，返回True
-        """
-        # 检查四个方向：上、下、左、右
-        directions = [
-            (-1, 0),  # 上
-            (1, 0),  # 下
-            (0, -1),  # 左
-            (0, 1)  # 右
-        ]
-
-        # 创建一个位置到棋子的映射，提高查找效率
-        pos_to_piece = {(p.row, p.col): p for p in pieces}
-
-        for dr, dc in directions:
-            adj_row, adj_col = target_piece.row + dr, target_piece.col + dc
-
-            # 检查是否在棋盘内
-            if not (0 <= adj_row < BOARD_SIZE and 0 <= adj_col < BOARD_SIZE):
-                continue
-
-            # 检查是否有敌方的友方棋子
-            piece = pos_to_piece.get((adj_row, adj_col))
-
-            if piece is not None and piece.color == target_piece.color:
-                return False  # 找到友方棋子，不是落单
-
-        return True  # 周围没有友方棋子，是落单
-
-    def get_all_moves(self, pieces):
-        """获取所有可能的移动位置（非攻击移动）
-        
-        Args:
-            pieces (list): 棋盘上所有棋子
-            
-        Returns:
-            list: 可移动到的位置列表，每个位置为(row, col)元组
-        """
-        moves = []
-
-        # 创建一个位置到棋子的映射，提高查找效率
-        pos_to_piece = {(p.row, p.col): p for p in pieces}
-
-        # 8个移动方向：上、下、左、右、左上、右上、左下、右下
-        directions = [
-            (-1, 0),  # 上
-            (1, 0),  # 下
-            (0, -1),  # 左
-            (0, 1),  # 右
-            (-1, -1),  # 左上
-            (-1, 1),  # 右上
-            (1, -1),  # 左下
-            (1, 1)  # 右下
-        ]
-
-        for dr, dc in directions:
-            current_row, current_col = self.row, self.col
-
-            # 沿该方向移动直到被阻挡或超出边界
-            while True:
-                current_row += dr
-                current_col += dc
-
-                # 检查是否超出边界
-                if not (0 <= current_row < BOARD_SIZE and 0 <= current_col < BOARD_SIZE):
-                    break
-
-                # 检查是否有棋子阻挡
-                target_piece = pos_to_piece.get((current_row, current_col))
-
-                if target_piece is not None:
-                    # 有棋子阻挡，不能继续移动
-                    break
-
-                # 可以移动到这个位置
-                moves.append((current_row, current_col))
-
-        return moves
-
-    def get_all_attacks(self, pieces):
-        """获取所有可能的攻击位置
-        
-        Args:
-            pieces (list): 棋盘上所有棋子
-            
-        Returns:
-            list: 可攻击的位置列表，每个位置为(row, col, piece)元组
-        """
-        attacks = []
-
-        # 创建一个位置到棋子的映射，提高查找效率
-        pos_to_piece = {(p.row, p.col): p for p in pieces}
-
-        # 检查周围的8个相邻格子
-        for dr in [-1, 0, 1]:
-            for dc in [-1, 0, 1]:
-                # 跳过当前位置
-                if dr == 0 and dc == 0:
-                    continue
-
-                target_row = self.row + dr
-                target_col = self.col + dc
-
-                # 检查是否在棋盘内
-                if not (0 <= target_row < BOARD_SIZE and 0 <= target_col < BOARD_SIZE):
-                    continue
-
-                # 检查是否有棋子
-                target_piece = pos_to_piece.get((target_row, target_col))
-
-                # 如果有敌方棋子且是落单的，则可以攻击
-                if target_piece is not None and target_piece.color != self.color:
-                    if self.is_isolated(target_piece, pieces):
-                        attacks.append((target_row, target_col, target_piece))
-
-        return attacks
-
 
 class Jia(ChessPiece):
     """甲/胄"""
@@ -281,7 +152,7 @@ class Jia(ChessPiece):
 
 
 class Ci(ChessPiece):
-    """刺（拖吃者）"""
+    """刺"""
 
     def __init__(self, color, row, col):
         name = "刺" if color == "black" else "刺"
@@ -297,7 +168,7 @@ class Dun(ChessPiece):
 
 
 class Xun(ChessPiece):
-    """巡/廵 - 河界专属控场棋子"""
+    """巡/廵"""
 
     def __init__(self, color, row, col):
         name = "廵" if color == "black" else "巡"

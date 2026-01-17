@@ -5,12 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="最新更新">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/statistics.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/core/chess_pieces.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/chess_pieces.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/help.md" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/help.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -287,15 +282,7 @@
       <workItem from="1768567952079" duration="13314000" />
       <workItem from="1768612138954" duration="8546000" />
       <workItem from="1768620788622" duration="167000" />
-      <workItem from="1768648835846" duration="2375000" />
-    </task>
-    <task id="LOCAL-00007" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1766762547856</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
-      <option name="project" value="LOCAL" />
-      <updated>1766762547856</updated>
+      <workItem from="1768648835846" duration="2693000" />
     </task>
     <task id="LOCAL-00008" summary="最新更新">
       <option name="closed" value="true" />
@@ -681,7 +668,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768619707980</updated>
     </task>
-    <option name="localTasksCounter" value="56" />
+    <task id="LOCAL-00056" summary="最新更新">
+      <option name="closed" value="true" />
+      <created>1768651266253</created>
+      <option name="number" value="00056" />
+      <option name="presentableId" value="LOCAL-00056" />
+      <option name="project" value="LOCAL" />
+      <updated>1768651266254</updated>
+    </task>
+    <option name="localTasksCounter" value="57" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -792,9 +787,9 @@
           <option name="timeStamp" value="45" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/core/chess_pieces.py</url>
-          <line>317</line>
-          <option name="timeStamp" value="46" />
+          <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
+          <line>3</line>
+          <option name="timeStamp" value="47" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -12,11 +12,11 @@
         "xiang": 0,
         "shi": 1,
         "king": 0,
-        "pao": 1,
-        "pawn": 22,
+        "pao": 2,
+        "pawn": 23,
         "wei": 0,
         "she": 1,
-        "lei": 1,
+        "lei": 2,
         "jia": 0,
         "ci": 0,
         "dun": 0,
@@ -40,5 +40,5 @@
         }
     },
     "last_played": "2026-01-17 11:06:19",
-    "total_moves_made": 173
+    "total_moves_made": 187
 }
