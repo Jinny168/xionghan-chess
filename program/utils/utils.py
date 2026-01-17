@@ -362,15 +362,17 @@ def virtual_move(pieces, piece, to_row, to_col, check_function, *args):
     return result
 
 
-def print_board(pieces, step=[0]):
+def print_board(pieces, step=[0], show_step=True):
     """ 打印当前棋盘状态
     
     Args:
         pieces: 棋子列表
         step: 步数计数器，默认为[0]
+        show_step: 是否显示步数，默认为True
     """
-    step[0] += 1
-    print('\033[36mSTEP\033[0m:', step[0])
+    if show_step:
+        step[0] += 1
+        print('\033[36mSTEP\033[0m:', step[0])
     
     # 创建棋盘表示
     board = [[None for _ in range(13)] for _ in range(13)]
@@ -386,9 +388,32 @@ def print_board(pieces, step=[0]):
                 print('〇', end='')
             else:
                 # 根据棋子名称判断颜色
-                if cell.name in '将士象马车炮卒':
+                if cell.name in '汉仕相傌俥炮兵巡射檑甲盾射刺':
                     print(f'\033[32m{cell.name}\033[0m', end='')
                 else:
                     print(f'\033[31m{cell.name}\033[0m', end='')
         print()
     print()
+
+
+class StepCounter:
+    """步数计数器类，用于跟踪游戏步数"""
+    def __init__(self):
+        self.step_count = 0
+        
+    def increment(self):
+        """增加步数"""
+        self.step_count += 1
+        return self.step_count
+        
+    def reset(self):
+        """重置步数"""
+        self.step_count = 0
+        
+    def get_step(self):
+        """获取当前步数"""
+        return self.step_count
+
+
+# 全局步数计数器实例
+step_counter = StepCounter()

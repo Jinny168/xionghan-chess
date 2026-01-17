@@ -1,0 +1,44 @@
+{
+    "games_played": 5,
+    "games_won": {
+        "red": 4,
+        "black": 1,
+        "draw": 0
+    },
+    "total_time_played": 705.3902885913849,
+    "pieces_captured": {
+        "ju": 7,
+        "ma": 2,
+        "xiang": 0,
+        "shi": 1,
+        "king": 0,
+        "pao": 1,
+        "pawn": 15,
+        "wei": 0,
+        "she": 1,
+        "lei": 1,
+        "jia": 0,
+        "ci": 0,
+        "dun": 0,
+        "xun": 1
+    },
+    "fastest_win": {
+        "red": 80.92053031921387,
+        "black": 152.03311347961426
+    },
+    "longest_game": 231.43664479255676,
+    "favorite_piece": {
+        "red": "",
+        "black": ""
+    },
+    "win_streak": {
+        "red": 3,
+        "black": 1,
+        "current_streak": {
+            "red": 1,
+            "black": 0
+        }
+    },
+    "last_played": "2026-01-17 11:06:19",
+    "total_moves_made": 136
+}

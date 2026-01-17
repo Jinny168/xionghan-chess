@@ -85,6 +85,15 @@ class ModeSelectionScreen:
             "游戏统计",
             28
         )
+        
+        self.load_game_button = Button(
+            center_x - button_width // 2,
+            center_y + 4 * (button_height + button_spacing),
+            button_width,
+            button_height,
+            "导入棋局",
+            28
+        )
 
     
     def toggle_fullscreen(self):
@@ -153,6 +162,29 @@ class ModeSelectionScreen:
                         self.selected_mode = "rules"
                     elif self.stats_button.is_clicked(mouse_pos, event):
                         self.selected_mode = "stats"
+                    elif self.load_game_button.is_clicked(mouse_pos, event):
+                        # 导入棋局并进入复盘模式
+                        from program.core.game_state import GameState
+                        from program.utils.tools import load_game_from_file
+                        from program.ui.replay_screen import ReplayScreen
+                        
+                        # 创建游戏状态
+                        game_state = GameState()
+                        
+                        # 从文件加载游戏
+                        success = load_game_from_file(game_state)
+                        
+                        if success:
+                            # 进入复盘模式
+                            from program.utils.tools import enter_replay_mode
+                            replay_controller = enter_replay_mode(game_state)
+                            
+                            # 创建并运行复盘界面
+                            replay_screen = ReplayScreen(game_state, replay_controller)
+                            replay_screen.run()
+                        
+                        # 重新进入模式选择界面
+                        self.selected_mode = None
 
             
             # 更新按钮悬停状态
@@ -162,6 +194,7 @@ class ModeSelectionScreen:
             self.settings_button.check_hover(mouse_pos)
             self.rules_button.check_hover(mouse_pos)
             self.stats_button.check_hover(mouse_pos)
+            self.load_game_button.check_hover(mouse_pos)
 
             # 绘制界面
             self.draw()
@@ -206,6 +239,7 @@ class ModeSelectionScreen:
         self.settings_button.draw(self.screen)
         self.rules_button.draw(self.screen)
         self.stats_button.draw(self.screen)
+        self.load_game_button.draw(self.screen)
 
         # 移除说明文字，减少界面拥挤
         

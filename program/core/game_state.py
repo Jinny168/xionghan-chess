@@ -1,9 +1,12 @@
 import time
+import json
+from tkinter import filedialog
 
 from program.core.chess_pieces import create_initial_pieces, King, Jia, Ci, Dun, Pawn
 from program.core.game_rules import GameRules
 from program.config.config import game_config
 from program.config.statistics import statistics_manager
+from program.utils.tools import save_game_to_file, load_game_from_file
 
 
 class GameState:
@@ -52,6 +55,9 @@ class GameState:
         
         # 统计数据跟踪
         self.moves_count = 0  # 当前对局走子数
+        
+        # 初始化步数计数器
+        from program.utils.utils import step_counter
     
     def get_piece_at(self, row, col):
         """获取指定位置的棋子"""
@@ -187,6 +193,15 @@ class GameState:
         
         # 执行移动
         piece.move_to(to_row, to_col)
+
+        # 导入步数计数器和打印棋盘函数
+        from program.utils.utils import step_counter, print_board
+        
+        # 打印当前棋局状态
+        print_board(self.pieces, [step_counter.get_step()], show_step=True)
+        
+        # 增加步数计数器
+        step_counter.increment()
 
         # 处理甲/胄的特殊吃子规则（移动后检查）- 这是关键步骤
         jia_captured_pieces = []
@@ -776,6 +791,11 @@ class GameState:
         # 过滤掉兵/卒，因为升变是将兵/卒变成其他阵亡棋子
         return [piece for piece in self.captured_pieces[color] if not isinstance(piece, Pawn)]
 
+    def reset_step_counter(self):
+        """重置步数计数器"""
+        from program.utils.utils import step_counter
+        step_counter.reset()
+        
     def reset(self):
         """重置游戏状态"""
         # 重新创建棋子，以便根据当前设置使用正确的布局
@@ -784,6 +804,9 @@ class GameState:
         # 重置棋谱滚动位置
         if hasattr(self, 'history_scroll_y'):
             self.history_scroll_y = 0
+        
+        # 重置步数计数器
+        self.reset_step_counter()
 
     def perform_promotion(self, selected_piece_index):
         """执行兵卒升变
@@ -858,3 +881,218 @@ class GameState:
                 resurrection_positions["black"].append((row, col))
         
         return resurrection_positions
+
+    def export_position(self):
+        """导出当前棋局位置
+        
+        Returns:
+            str: FEN格式的棋盘表示
+        """
+        # 建立棋子名称到FEN字符的映射
+        piece_fen_map = {
+            # 黑方棋子（小写）
+            '汗': 'k',  # 黑方将/帅
+            '車': 'r', '馬': 'n', '象': 'b', '士': 'a', '砲': 'c', '卒': 'p',
+            '衛': 'w', '䠶': 's', '礌': 'l', '胄': 'j', '刺': 'i', '盾': 'u', '廵': 'x',
+            # 红方棋子（大写）
+            '汉': 'K',  # 红方将/帅
+            '俥': 'R', '傌': 'N', '相': 'B', '仕': 'A', '炮': 'C', '兵': 'P',
+            '尉': 'W', '射': 'S', '檑': 'L', '甲': 'J', '巡': 'X',
+        }
+        
+        # 创建棋盘表示
+        board = [['.' for _ in range(13)] for _ in range(13)]
+        
+        # 将棋子放置到棋盘上
+        for piece in self.pieces:
+            board[piece.row][piece.col] = piece.name
+        
+        # 将棋盘转换为FEN格式
+        fen_parts = []
+        for row in board:
+            empty_count = 0
+            fen_row = ""
+            for cell in row:
+                if cell == '.':
+                    empty_count += 1
+                else:
+                    if empty_count > 0:
+                        fen_row += str(empty_count)
+                        empty_count = 0
+                    # 根据颜色和名称映射到FEN字符
+                    fen_char = piece_fen_map.get(cell, '?')  # 未知棋子用问号
+                    fen_row += fen_char
+            if empty_count > 0:
+                fen_row += str(empty_count)
+            fen_parts.append(fen_row)
+        
+        fen_code = '/'.join(fen_parts)
+        
+        # 添加当前玩家信息
+        current_player = 'r' if self.player_turn == 'red' else 'b'
+        
+        # 组合完整的FEN字符串
+        fen_string = f"{fen_code} {current_player}"
+        
+        return fen_string
+
+    def import_position(self, fen_string):
+        """导入棋局位置
+        
+        Args:
+            fen_string (str): FEN格式的棋盘表示
+            
+        Returns:
+            bool: 是否成功导入
+        """
+        try:
+            # 解析FEN字符串
+            parts = fen_string.strip().split()
+            if len(parts) < 2:
+                print("FEN格式错误：缺少必要参数")
+                return False
+            
+            fen_board = parts[0]
+            fen_player = parts[1]
+            
+            # 建立FEN字符到棋子类的映射
+            fen_piece_map = {
+                # 小写为黑方，大写为红方
+                'k': ('black', '汗'),  # 黑方将/帅
+                'r': ('black', '車'), 'n': ('black', '馬'), 'b': ('black', '象'), 
+                'a': ('black', '士'), 'c': ('black', '砲'), 'p': ('black', '卒'),
+                'w': ('black', '衛'), 's': ('black', '䠶'), 'l': ('black', '礌'),
+                'j': ('black', '胄'), 'i': ('black', '刺'), 'u': ('black', '盾'),
+                'x': ('black', '廵'),
+                # 红方棋子（大写）
+                'K': ('red', '汉'),  # 红方将/帅
+                'R': ('red', '俥'), 'N': ('red', '傌'), 'B': ('red', '相'), 
+                'A': ('red', '仕'), 'C': ('red', '炮'), 'P': ('red', '兵'),
+                'W': ('red', '尉'), 'S': ('red', '射'), 'L': ('red', '檑'),
+                'J': ('red', '甲'), 'I': ('red', '刺'), 'U': ('red', '盾'),
+                'X': ('red', '巡'),
+            }
+            
+            # 从FEN解析棋盘
+            rows = fen_board.split('/')
+            if len(rows) != 13:
+                print("FEN格式错误：棋盘行数不正确")
+                return False
+            
+            # 清空当前棋子
+            self.pieces.clear()
+            
+            # 逐行解析
+            for row_idx, row_str in enumerate(rows):
+                col_idx = 0
+                i = 0
+                while i < len(row_str):
+                    char = row_str[i]
+                    if char.isdigit():
+                        # 数字表示连续的空位
+                        empty_spaces = int(char)
+                        col_idx += empty_spaces
+                    else:
+                        # 字符表示棋子
+                        if char in fen_piece_map:
+                            color, name = fen_piece_map[char]
+                            # 根据颜色和名称创建对应的棋子类
+                            piece_class = self._get_piece_class_by_name(name)
+                            if piece_class:
+                                piece = piece_class(color, row_idx, col_idx)
+                                self.pieces.append(piece)
+                        col_idx += 1
+                    i += 1
+                if col_idx != 13:
+                    print(f"FEN格式错误：第{row_idx}行列数不正确")
+                    return False
+            
+            # 设置当前玩家
+            self.player_turn = 'red' if fen_player.lower() in ['r', 'red'] else 'black'
+            
+            # 重置游戏状态
+            self.game_over = False
+            self.winner = None
+            self.is_check = False
+            
+            # 重置将军状态
+            self.check_animation_time = 0
+            
+            # 重置历史记录
+            self.move_history = []
+            self.captured_pieces = {"red": [], "black": []}
+            
+            # 重置升变相关
+            self.needs_promotion = False
+            self.promotion_pawn = None
+            self.available_promotion_pieces = []
+            self.just_completed_promotion = False
+            
+            # 重置局面历史
+            self.board_position_history = []
+            self.repetition_count = {}
+            
+            # 重置步数计数器
+            self.moves_count = 0
+            from program.utils.utils import step_counter
+            step_counter.reset()
+            
+            print("棋局导入成功")
+            return True
+        except Exception as e:
+            print(f"导入棋局失败: {str(e)}")
+            return False
+
+    def _get_piece_class_by_name(self, name):
+        """根据棋子名称获取对应的棋子类
+        
+        Args:
+            name (str): 棋子名称
+            
+        Returns:
+            class: 棋子类
+        """
+        from program.core.chess_pieces import (
+            King, Ju, Ma, Xiang, Shi, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun
+        )
+        
+        name_to_class = {
+            '汉': King, '汗': King, '帅': King, '将': King,  # 将/帅
+            '車': Ju, '俥': Ju,  # 车
+            '馬': Ma, '傌': Ma,  # 马
+            '象': Xiang, '相': Xiang,  # 相/象
+            '士': Shi, '仕': Shi,  # 士/仕
+            '砲': Pao, '炮': Pao,  # 炮
+            '卒': Pawn, '兵': Pawn,  # 兵/卒
+            '衛': Wei, '尉': Wei,  # 卫/尉
+            '䠶': She, '射': She,  # 射
+            '礌': Lei, '檑': Lei,  # 檑
+            '胄': Jia, '甲': Jia,  # 甲/胄
+            '刺': Ci,  # 刺
+            '盾': Dun,  # 盾
+            '廵': Xun, '巡': Xun,  # 巡/廵
+        }
+        
+        return name_to_class.get(name)
+
+    def save_game(self, filename=None):
+        """保存当前游戏到文件
+        
+        Args:
+            filename (str, optional): 保存的文件名
+            
+        Returns:
+            bool: 是否成功保存
+        """
+        return save_game_to_file(self, filename)
+
+    def load_game_from_file(self, filename=None):
+        """从文件加载游戏
+        
+        Args:
+            filename (str, optional): 要加载的文件名
+            
+        Returns:
+            bool: 是否成功加载
+        """
+        return load_game_from_file(self, filename)

@@ -231,14 +231,15 @@ class PopupDialog:
         self.x = 0
         self.y = 0
         
-        # 创建"重新开始"按钮
-        button_width = 160
-        button_height = 50
+        # 创建按钮
+        button_width = 120
+        button_height = 40
         self.button_width = button_width
         self.button_height = button_height
         
-        # 预先创建按钮，避免重复创建
+        # 创建多个按钮
         self.restart_button = Button(0, 0, button_width, button_height, "重新开始")
+        self.replay_button = Button(0, 0, button_width, button_height, "复盘")
         
         # 预创建覆盖层表面
         self.overlay_surface = None
@@ -251,10 +252,13 @@ class PopupDialog:
         self.x = (window_width - self.width) // 2
         self.y = (window_height - self.height) // 2
         
-        # 更新按钮位置
-        button_x = self.x + (self.width - self.button_width) // 2
+        # 计算按钮位置（两个按钮水平排列）
+        total_button_width = 2 * self.button_width + 20  # 20是按钮间的间距
+        start_x = self.x + (self.width - total_button_width) // 2
         button_y = self.y + self.height - self.button_height - 20
-        self.restart_button.update_position(button_x, button_y)
+        
+        self.restart_button.update_position(start_x, button_y)
+        self.replay_button.update_position(start_x + self.button_width + 20, button_y)
         
         # 绘制半透明背景
         if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
@@ -329,18 +333,23 @@ class PopupDialog:
         
         # 绘制按钮
         self.restart_button.draw(screen)
+        self.replay_button.draw(screen)
     
     def handle_event(self, event, mouse_pos):
         # 如果按钮尚未创建，返回False
-        if not self.restart_button:
+        if not self.restart_button or not self.replay_button:
             return False
             
         # 处理鼠标悬停
         self.restart_button.check_hover(mouse_pos)
+        self.replay_button.check_hover(mouse_pos)
         
         # 检查按钮点击
-        if self.restart_button.is_clicked(mouse_pos, event):
-            return True
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.restart_button.is_clicked(mouse_pos, event):
+                return "restart"
+            elif self.replay_button.is_clicked(mouse_pos, event):
+                return "replay"
         return False
 
 class ConfirmDialog:

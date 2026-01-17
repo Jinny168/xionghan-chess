@@ -4,14 +4,13 @@ import sys
 import pygame
 
 from program.ai.chess_ai import ChessAI
-from program.ui.chess_board import ChessBoard
 from program.config.config import game_config
-from program.config.statistics import statistics_manager
-from program.ui.dialogs import PopupDialog, ConfirmDialog, PawnResurrectionDialog, PromotionDialog, AudioSettingsDialog
 from program.core.game_rules import GameRules
 from program.core.game_state import GameState
 from program.ui.avatar import Avatar
 from program.ui.button import Button
+from program.ui.chess_board import ChessBoard
+from program.ui.dialogs import PopupDialog, ConfirmDialog, PawnResurrectionDialog, PromotionDialog, AudioSettingsDialog
 from program.utils.utils import load_font, draw_background, SoundManager
 
 # 初始化PyGame
