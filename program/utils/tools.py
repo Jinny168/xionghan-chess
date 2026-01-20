@@ -7,6 +7,117 @@ from program.core.chess_pieces import (
 )
 
 
+def generate_move_notation(piece, from_row, from_col, to_row, to_col):
+    """生成走法的中文表示，如"炮二平五"、"马8进7"等"""
+    from program.core.chess_pieces import King, Shi, Xiang, Ma, Ju, Pao, Pawn, Wei, She, Lei, Jia
+
+    piece_names = {
+        "king": "漢" if piece.color == "red" else "汗",
+        "advisor": "仕" if piece.color == "red" else "士",
+        "elephant": "相" if piece.color == "red" else "象",
+        "horse": "傌" if piece.color == "red" else "马",
+        "rook": "俥" if piece.color == "red" else "车",
+        "cannon": "炮" if piece.color == "red" else "砲",
+        "pawn": "兵" if piece.color == "red" else "卒",
+        "wei": "尉" if piece.color == "red" else "衛",
+        "she": "射" if piece.color == "red" else "䠶",
+        "lei": "檑" if piece.color == "red" else "礌",
+        "jia": "甲" if piece.color == "red" else "胄"
+    }
+
+    # 获取棋子名称
+    if isinstance(piece, King):
+        piece_name = piece_names["king"]
+    elif isinstance(piece, Shi):
+        piece_name = piece_names["advisor"]
+    elif isinstance(piece, Xiang):
+        piece_name = piece_names["elephant"]
+    elif isinstance(piece, Ma):
+        piece_name = piece_names["horse"]
+    elif isinstance(piece, Ju):
+        piece_name = piece_names["rook"]
+    elif isinstance(piece, Pao):
+        piece_name = piece_names["cannon"]
+    elif isinstance(piece, Pawn):
+        piece_name = piece_names["pawn"]
+    elif isinstance(piece, Wei):
+        piece_name = piece_names["wei"]
+    elif isinstance(piece, She):
+        piece_name = piece_names["she"]
+    elif isinstance(piece, Lei):
+        piece_name = piece_names["lei"]
+    elif isinstance(piece, Jia):
+        piece_name = piece_names["jia"]
+    else:
+        piece_name = piece.name  # 直接使用棋子名称
+
+    # 转换列数为中文数字或数字 - 从右至左标识
+    # 红方用一至十三标识，黑方用1-13标识
+    col_names_red = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三"]
+    col_names_black = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]
+
+    # 根据棋子颜色选择合适的列名表示
+    col_names = col_names_red if piece.color == "red" else col_names_black
+
+    # 计算棋盘坐标到列标识的映射（从右到左）
+    col_index = 12 - from_col  # 从右到左映射 (0-12 -> 12-0)
+    from_col_name = col_names[col_index]
+
+    # 判断移动方向
+    if to_row < from_row:  # 向上移动
+        direction = "进" if piece.color == "red" else "退"
+    elif to_row > from_row:  # 向下移动
+        direction = "退" if piece.color == "red" else "进"
+    else:  # 水平移动
+        direction = "平"
+
+    # 获取目标位置
+    if direction == "平":
+        # 平移表示目标列
+        to_col_index = 12 - to_col  # 从右到左映射
+        to_col_name = col_names[to_col_index]
+        notation = f"{piece_name}{from_col_name}{direction}{to_col_name}"
+    else:
+        # 进退表示移动的距离或目标列
+        # 检查是否是马、象、士或新增的对角线移动棋子
+        is_diagonal_piece = (isinstance(piece, Ma) or isinstance(piece, Xiang) or
+                             isinstance(piece, Shi) or isinstance(piece, She) or
+                             isinstance(piece, Wei))
+
+        if is_diagonal_piece:
+            # 马、象、士、射、尉用目标列表示
+            to_col_index = 12 - to_col  # 从右到左映射
+            to_col_name = col_names[to_col_index]
+            notation = f"{piece_name}{from_col_name}{direction}{to_col_name}"
+        else:
+            # 其他棋子用移动距离表示
+            distance = abs(from_row - to_row)
+            # 确保距离在有效范围内
+            if distance < 1:
+                distance = 1
+            elif distance > 12:  # 最大可能距离是12格（从第0行到第12行）
+                distance = 12
+
+            if piece.color == "black" and direction == "进":
+                # 黑方前进和红方后退是增加行号
+                # 确保索引在有效范围内
+                index = min(distance - 1, len(col_names_black) - 1)
+                distance_str = col_names_black[index]
+            elif piece.color == "black" and direction == "退":
+                # 黑方后退和红方前进是减少行号
+                # 确保索引在有效范围内
+                index = min(distance - 1, len(col_names_black) - 1)
+                distance_str = col_names_black[index]
+            else:
+                # 红方使用汉字数字表示距离
+                # 确保索引在有效范围内
+                # 扩展红方距离表示以适应13x13棋盘
+                red_distance_names = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"]
+                index = min(distance - 1, len(red_distance_names) - 1)
+                distance_str = red_distance_names[index]
+            notation = f"{piece_name}{from_col_name}{direction}{distance_str}"
+
+    return notation
 
 def get_valid_moves(game_state, color):
     """获取指定颜色棋子的所有有效走法"""
