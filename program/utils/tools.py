@@ -9,47 +9,8 @@ from program.core.chess_pieces import (
 
 def generate_move_notation(piece, from_row, from_col, to_row, to_col):
     """生成走法的中文表示，如"炮二平五"、"马8进7"等"""
-    from program.core.chess_pieces import King, Shi, Xiang, Ma, Ju, Pao, Pawn, Wei, She, Lei, Jia
 
-    piece_names = {
-        "king": "漢" if piece.color == "red" else "汗",
-        "advisor": "仕" if piece.color == "red" else "士",
-        "elephant": "相" if piece.color == "red" else "象",
-        "horse": "傌" if piece.color == "red" else "马",
-        "rook": "俥" if piece.color == "red" else "车",
-        "cannon": "炮" if piece.color == "red" else "砲",
-        "pawn": "兵" if piece.color == "red" else "卒",
-        "wei": "尉" if piece.color == "red" else "衛",
-        "she": "射" if piece.color == "red" else "䠶",
-        "lei": "檑" if piece.color == "red" else "礌",
-        "jia": "甲" if piece.color == "red" else "胄"
-    }
-
-    # 获取棋子名称
-    if isinstance(piece, King):
-        piece_name = piece_names["king"]
-    elif isinstance(piece, Shi):
-        piece_name = piece_names["advisor"]
-    elif isinstance(piece, Xiang):
-        piece_name = piece_names["elephant"]
-    elif isinstance(piece, Ma):
-        piece_name = piece_names["horse"]
-    elif isinstance(piece, Ju):
-        piece_name = piece_names["rook"]
-    elif isinstance(piece, Pao):
-        piece_name = piece_names["cannon"]
-    elif isinstance(piece, Pawn):
-        piece_name = piece_names["pawn"]
-    elif isinstance(piece, Wei):
-        piece_name = piece_names["wei"]
-    elif isinstance(piece, She):
-        piece_name = piece_names["she"]
-    elif isinstance(piece, Lei):
-        piece_name = piece_names["lei"]
-    elif isinstance(piece, Jia):
-        piece_name = piece_names["jia"]
-    else:
-        piece_name = piece.name  # 直接使用棋子名称
+    piece_name = piece.name  # 直接使用棋子名称
 
     # 转换列数为中文数字或数字 - 从右至左标识
     # 红方用一至十三标识，黑方用1-13标识
@@ -167,14 +128,14 @@ def get_piece_class_by_name(name):
 
 
     name_to_class = {
-        '汉': King, '汗': King, '帅': King, '将': King,  # 将/帅
-        '車': Ju, '俥': Ju,  # 车
-        '馬': Ma, '傌': Ma,  # 马
+        '汉': King, '汗': King, '漢': King,'帅': King, '将': King,  # 将/帅
+        '車': Ju, '俥': Ju,'车': Ju,  # 车
+        '馬': Ma, '傌': Ma, '马': Ma, # 马
         '象': Xiang, '相': Xiang,  # 相/象
         '士': Shi, '仕': Shi,  # 士/仕
         '砲': Pao, '炮': Pao,  # 炮
         '卒': Pawn, '兵': Pawn,  # 兵/卒
-        '衛': Wei, '尉': Wei,  # 卫/尉
+        '衛': Wei, '尉': Wei, '卫': Wei, # 卫/尉
         '䠶': She, '射': She,  # 射
         '礌': Lei, '檑': Lei,  # 檑
         '胄': Jia, '甲': Jia,  # 甲/胄
