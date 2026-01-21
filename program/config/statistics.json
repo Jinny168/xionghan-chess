@@ -13,7 +13,7 @@
         "shi": 1,
         "king": 0,
         "pao": 10,
-        "pawn": 42,
+        "pawn": 43,
         "wei": 0,
         "she": 4,
         "lei": 5,
@@ -40,5 +40,5 @@
         }
     },
     "last_played": "2026-01-19 23:02:13",
-    "total_moves_made": 352
+    "total_moves_made": 356
 }
