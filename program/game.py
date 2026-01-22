@@ -11,9 +11,10 @@ from program.core.game_state import GameState
 from program.ui.avatar import Avatar
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
-from program.ui.dialogs import PopupDialog, ConfirmDialog, PawnResurrectionDialog, PromotionDialog, AudioSettingsDialog
+from program.ui.dialogs import PopupDialog, ConfirmDialog, AudioSettingsDialog
 from program.utils import tools
-from program.utils.utils import load_font, draw_background, SoundManager
+from program.controllers.sound_manager import SoundManager
+from program.utils.utils import load_font, draw_background
 
 # 初始化PyGame
 pygame.init()
@@ -98,8 +99,7 @@ class ChessGame:
         self.promotion_dialog = None
         self.audio_settings_dialog = None
 
-        # 音效
-        self.load_sounds()
+
         
         # 音效管理器（包含背景音乐功能）
         self.sound_manager = SoundManager()
@@ -283,11 +283,6 @@ class ChessGame:
         if self.game_mode == MODE_PVC and self.game_state.player_turn != self.player_camp:
             pygame.time.set_timer(pygame.USEREVENT + 1, 800)  # 延迟800毫秒后AI行动
             self.ai_thinking = True
-
-    def load_sounds(self):
-        """加载音效 - 现在由SoundManager统一管理"""
-        # 音效现在由self.sound_manager统一管理
-        pass
 
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
