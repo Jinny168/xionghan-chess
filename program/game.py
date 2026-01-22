@@ -1,18 +1,14 @@
-import random
 import sys
 
 import pygame
 
-from program.ai.chess_ai import ChessAI
 from program.config.config import game_config
 from program.controllers.input_handler import input_handler
 from program.core.game_rules import GameRules
 from program.core.game_state import GameState
+from program.ui.dialogs import PopupDialog, ConfirmDialog, AudioSettingsDialog, StatisticsDialog
 from program.ui.game_screen import GameScreen
-from program.ui.dialogs import PopupDialog, ConfirmDialog, AudioSettingsDialog
 from program.utils import tools
-from program.controllers.sound_manager import SoundManager
-from program.utils.utils import load_font, draw_background
 
 # 初始化PyGame
 pygame.init()
@@ -20,8 +16,8 @@ pygame.mixer.init()  # 初始化音频模块
 
 from program.config.config import (
     DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
-    LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO, FPS,
-    PANEL_BORDER, BLACK, RED, MODE_PVP, MODE_PVC, CAMP_RED, )
+    FPS,
+    MODE_PVP, MODE_PVC, CAMP_RED, )
 from program.controllers.ai_manager import AIManager
 
 
@@ -76,6 +72,8 @@ class ChessGame:
         self.pawn_resurrection_dialog = None
         self.promotion_dialog = None
         self.audio_settings_dialog = None
+        self.stats_dialog = None
+        self.about_screen = None
 
         
         # 音效管理器（包含背景音乐功能）
@@ -184,6 +182,7 @@ class ChessGame:
         self.last_move_notation = ""
         self.popup = None
         self.confirm_dialog = None
+        self.stats_dialog = None  # 重置统计数据对话框
         self.ai_manager.reset_ai_state()
         if self.ai_manager.is_ai_turn(self.game_state.player_turn):
             pygame.time.set_timer(pygame.USEREVENT + 1, 800)  # 延迟800毫秒后AI行动
@@ -237,6 +236,9 @@ class ChessGame:
                 if event.type == pygame.VIDEORESIZE:
                     if not self.is_fullscreen:  # 只在窗口模式下处理大小变化
                         self.handle_resize((event.w, event.h))
+                        # 如果当前显示关于界面，也需要更新其尺寸
+                        if self.about_screen:
+                            self.about_screen.update_size(event.w, event.h)
 
                 # 处理AI多线程计算完成事件（仅PVC模式需要）
                 if event.type == pygame.USEREVENT + 2 and self.game_mode == MODE_PVC:
@@ -324,11 +326,19 @@ class ChessGame:
                             if self.confirm_dialog and "退出游戏" in getattr(self.confirm_dialog, 'message', ''):
                                 # 停止背景音乐
                                 self.sound_manager.stop_background_music()
+                                # 关闭所有对话框
+                                self.popup = None
+                                self.confirm_dialog = None
+                                self.stats_dialog = None
                                 pygame.quit()
                                 sys.exit()
                             else:  # 返回主菜单
                                 # 停止背景音乐
                                 self.sound_manager.stop_background_music()
+                                # 关闭所有对话框
+                                self.popup = None
+                                self.confirm_dialog = None
+                                self.stats_dialog = None
                                 return "back_to_menu"
                         else:  # 取消
                             self.confirm_dialog = None
@@ -348,12 +358,36 @@ class ChessGame:
                         pass
                     # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
                     continue  # 跳过后续的事件处理，防止同时处理其他操作
+                # 如果有统计数据对话框，处理它的事件
+                elif self.stats_dialog:
+                    result = self.stats_dialog.handle_event(event, mouse_pos)
+                    if result == "close":
+                        self.stats_dialog = None
+                    elif result == "reset":
+                        # 重置统计数据
+                        from program.config.statistics import statistics_manager
+                        statistics_manager.reset_statistics()
+                        # 重新创建对话框以更新显示
+                        self.stats_dialog = StatisticsDialog()
+                    # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
+                    continue  # 跳过后续的事件处理，防止同时处理其他操作
+                # 如果有关于界面，处理它的事件
+                elif self.about_screen:
+                    result = self.about_screen.handle_event(event, mouse_pos)
+                    if result == "back":
+                        self.about_screen = None
+                    # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
+                    continue  # 跳过后续的事件处理，防止同时处理其他操作
                 # 如果游戏结束，处理弹窗事件
                 elif self.game_state.game_over and self.popup:
                     result = self.popup.handle_event(event, mouse_pos)
                     if result == "restart":
                         # 在重置游戏之前停止背景音乐
                         self.sound_manager.stop_background_music()
+                        # 重置所有对话框
+                        self.popup = None
+                        self.confirm_dialog = None
+                        self.stats_dialog = None
                         self.__init__(self.game_mode, self.player_camp)  # 重置游戏，保持相同模式和阵营
                         # 重新启动背景音乐
                         self.sound_manager.toggle_music_style()
@@ -381,51 +415,29 @@ class ChessGame:
                 # 如果游戏未结束，处理鼠标点击
                 elif not self.game_state.game_over:
                     if event.type == pygame.MOUSEBUTTONDOWN:
+                        # 检查是否点击了菜单
+                        menu_result = self.game_screen.handle_menu_events(event, mouse_pos, self, self.game_state)
+                        if menu_result == "handled":
+                            continue  # 菜单事件已处理，跳过后续处理
+
+                        # 检查是否点击了操作面板
+                        op_result = self.game_screen.handle_operation_panel_events(event, mouse_pos, self, self.game_state)
+                        if op_result == "handled":
+                            continue  # 操作面板事件已处理，跳过后续处理
+
                         # 检查是否点击了全屏按钮
-                        if self.game_screen.fullscreen_button.is_clicked(mouse_pos, event):
+                        if self.game_screen.fullscreen_button and self.game_screen.fullscreen_button.is_clicked(mouse_pos, event):
                             self.toggle_fullscreen()
                         # 检查是否点击了音效设置按钮
-                        elif self.game_screen.audio_settings_button.is_clicked(mouse_pos, event):
+                        elif self.game_screen.audio_settings_button and self.game_screen.audio_settings_button.is_clicked(mouse_pos, event):
                             # 打开音效设置对话框
                             self.audio_settings_dialog = AudioSettingsDialog(600, 400, self.sound_manager)
-                        # 检查是否点击了返回按钮
-                        elif self.game_screen.back_button.is_clicked(mouse_pos, event):
-                            # 显示确认对话框而不是直接返回
-                            self.confirm_dialog = ConfirmDialog(
-                                400, 200, "是否要返回主菜单？\n这将丢失您的当前对局信息。"
-                            )
-                        # 检查是否点击了退出游戏按钮
-                        elif self.game_screen.exit_button.is_clicked(mouse_pos, event):
-                            # 显示确认对话框确认退出游戏
-                            self.confirm_dialog = ConfirmDialog(
-                                400, 200, "是否要退出游戏？\n这将结束当前对局。"
-                            )
-                        # 检查是否点击了重新开始按钮
-                        elif self.game_screen.restart_button.is_clicked(mouse_pos, event):
-                            self.restart_game()
-                        # 检查是否点击了悔棋按钮
-                        elif self.game_screen.undo_button.is_clicked(mouse_pos, event):
-                            input_handler.handle_undo(self)
-                        # 检查是否点击了导入棋局按钮
-                        elif self.game_screen.import_button.is_clicked(mouse_pos, event):
-                            # 导入棋局功能
-                            from program.controllers.game_io_controller import game_io_controller
-                            success = game_io_controller.import_game(self.game_state)
-                            if success:
-                                # 进入复盘模式
-                                from program.controllers.replay_controller import ReplayController
-                                from program.ui.replay_screen import ReplayScreen
-                                
-                                replay_controller = ReplayController(self.game_state)
-                                replay_controller.start_replay()
-                                
-                                replay_screen = ReplayScreen(self.game_state, replay_controller)
-                                replay_screen.run()
-                        # 检查是否点击了导出棋局按钮
-                        elif self.game_screen.export_button.is_clicked(mouse_pos, event):
-                            # 导出当前棋局
-                            from program.controllers.game_io_controller import game_io_controller
-                            success = game_io_controller.export_game(self.game_state)
+                        # 检查是否点击了返回按钮 - 从菜单中调用，不再使用独立按钮
+                        # 检查是否点击了退出游戏按钮 - 从菜单中调用，不再使用独立按钮
+                        # 检查是否点击了重新开始按钮 - 从菜单中调用，不再使用独立按钮
+                        # 检查是否点击了悔棋按钮 - 从菜单中调用，不再使用独立按钮
+                        # 检查是否点击了导入棋局按钮 - 从菜单中调用，不再使用独立按钮
+                        # 检查是否点击了导出棋局按钮 - 从菜单中调用，不再使用独立按钮
                         # 处理棋子操作
                         elif self._should_handle_player_input():  # 统一判断是否应该处理玩家输入
                             input_handler.handle_click(self,mouse_pos)
@@ -461,11 +473,22 @@ class ChessGame:
                 self.game_screen.draw(self.screen, self.game_state, self.last_move, self.last_move_notation, 
                                      self.popup, self.confirm_dialog, self.pawn_resurrection_dialog, 
                                      self.promotion_dialog, self.audio_settings_dialog, self.ai_manager.ai_thinking)
+            
+            # 如果有统计数据对话框，绘制它
+            if self.stats_dialog:
+                self.stats_dialog.draw(self.screen)
+            # 如果有关于界面，绘制它
+            elif self.about_screen:
+                self.about_screen.draw(self.screen)
+                
             pygame.display.flip()
 
             # 如果AI正在思考，使用较低的帧率以节省CPU资源并减少闪烁
             if self.game_mode == MODE_PVC and self.ai_manager.ai_thinking:
                 self.clock.tick(15)  # 降低到15FPS，平衡性能和视觉效果
+            # 如果显示关于界面，也使用较低的帧率
+            elif self.about_screen:
+                self.clock.tick(30)  # 适中的帧率
             else:
                 self.clock.tick(FPS)
 
@@ -579,3 +602,4 @@ class ChessGame:
         """检查AI是否正在思考"""
         return self.ai_manager.ai_thinking
 
+from program.controllers.sound_manager import SoundManager
