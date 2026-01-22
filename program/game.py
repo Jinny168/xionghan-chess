@@ -429,6 +429,7 @@ class ChessGame:
 
                 # 如果有升变对话框，优先处理它的事件
                 if self.promotion_dialog:
+
                     result = self.promotion_dialog.handle_event(event, mouse_pos)
                     if result is not None:  # 用户已做出选择
                         if isinstance(result, tuple) and result[0]:  # 确认升变
@@ -601,7 +602,7 @@ class ChessGame:
                             success = game_io_controller.export_game(self.game_state)
                         # 处理棋子操作
                         elif self._should_handle_player_input():  # 统一判断是否应该处理玩家输入
-                            self.handle_click(mouse_pos)
+                            input_handler.handle_click(self,mouse_pos)
 
             # 检查AI是否思考超时（仅PVC模式需要）
             if (self.game_mode == MODE_PVC and self.ai_thinking and
@@ -913,16 +914,6 @@ class ChessGame:
 
                 # 绘制文本
                 self.screen.blit(text_surface, (self.window_width - 250, start_y + i * line_spacing))
-
-    def handle_click(self, pos):
-        """处理鼠标点击事件"""
-        # 使用input_handler来处理点击事件
-        input_handler.handle_click(self, pos)
-
-    def handle_undo(self):
-        """处理悔棋操作"""
-        # 使用input_handler来处理悔棋操作
-        return input_handler.handle_undo(self)
 
     def make_random_ai_move(self):
         """当AI思考超时时，执行当前已知的最优移动"""
