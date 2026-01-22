@@ -4,6 +4,7 @@ from program.config.config import BLACK, RED, POPUP_BG
 from program.ui.button import Button
 from program.utils.utils import load_font
 from program.config.statistics import statistics_manager
+from program.controllers.game_io_controller import game_io_controller
 class AudioSettingsDialog:
     """音效设置对话框"""
     def __init__(self, width, height, sound_manager):
@@ -342,6 +343,27 @@ class PopupDialog:
         self.restart_button.draw(screen)
         self.replay_button.draw(screen)
         self.export_button.draw(screen)
+    
+    def handle_event(self, event, mouse_pos):
+        # 如果按钮尚未创建，返回None
+        if not self.restart_button or not self.replay_button or not self.export_button:
+            return None
+
+        # 处理鼠标悬停
+        self.restart_button.check_hover(mouse_pos)
+        self.replay_button.check_hover(mouse_pos)
+        self.export_button.check_hover(mouse_pos)
+        
+        # 检查按钮点击
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.restart_button.is_clicked(mouse_pos, event):
+                return "restart"  # 重新开始
+            elif self.replay_button.is_clicked(mouse_pos, event):
+                return "replay"  # 复盘
+            elif self.export_button.is_clicked(mouse_pos, event):
+                return "export"  # 导出对局
+        
+        return None  # 无操作
 
 
 class NotificationDialog:

@@ -42,6 +42,8 @@ class ChessGame:
         self.restart_button = None
         self.back_button = None
         self.fullscreen_button = None
+        self.import_button = None
+        self.export_button = None
         self.left_panel_width = None
         self.clock = None
         self.screen = None
@@ -186,6 +188,42 @@ class ChessGame:
             30,
             "音效设置",
             14
+        )
+        # 创建导入棋局按钮
+        self.import_button = Button(
+            self.left_panel_width + 80 + 2 * (button_width + 10),  # 紧挨着重来按钮
+            button_y,
+            button_width,
+            button_height,
+            "导入棋局",
+            22
+        )
+        # 创建导出棋局按钮
+        self.export_button = Button(
+            self.left_panel_width + 80 + 3 * (button_width + 10),  # 紧挨着导入按钮
+            button_y,
+            button_width,
+            button_height,
+            "导出棋局",
+            22
+        )
+        # 创建导入棋局按钮
+        self.import_button = Button(
+            self.left_panel_width + 80 + 2 * (button_width + 10),  # 紧挨着重来按钮
+            button_y,
+            button_width,
+            button_height,
+            "导入棋局",
+            22
+        )
+        # 创建导出棋局按钮
+        self.export_button = Button(
+            self.left_panel_width + 80 + 3 * (button_width + 10),  # 紧挨着导入按钮
+            button_y,
+            button_width,
+            button_height,
+            "导出棋局",
+            22
         )
 
     def make_move(self, move):
@@ -485,12 +523,34 @@ class ChessGame:
                     continue  # 跳过后续的事件处理，防止同时处理其他操作
                 # 如果游戏结束，处理弹窗事件
                 elif self.game_state.game_over and self.popup:
-                    if self.popup.handle_event(event, mouse_pos):
+                    result = self.popup.handle_event(event, mouse_pos)
+                    if result == "restart":
                         # 在重置游戏之前停止背景音乐
                         self.sound_manager.stop_background_music()
                         self.__init__(self.game_mode, self.player_camp)  # 重置游戏，保持相同模式和阵营
                         # 重新启动背景音乐
                         self.sound_manager.toggle_music_style()
+                    elif result == "export":
+                        # 导出当前对局
+                        from program.controllers.game_io_controller import game_io_controller
+                        success = game_io_controller.export_game(self.game_state)
+                        # 显示通知
+                        if success:
+                            # 可以添加成功通知
+                            pass
+                        else:
+                            # 可以添加失败通知
+                            pass
+                    elif result == "replay":
+                        # 进入复盘模式
+                        from program.controllers.replay_controller import ReplayController
+                        from program.ui.replay_screen import ReplayScreen
+                        
+                        replay_controller = ReplayController(self.game_state)
+                        replay_controller.start_replay()
+                        
+                        replay_screen = ReplayScreen(self.game_state, replay_controller)
+                        replay_screen.run()
                 # 如果游戏未结束，处理鼠标点击
                 elif not self.game_state.game_over:
                     if event.type == pygame.MOUSEBUTTONDOWN:
@@ -519,6 +579,26 @@ class ChessGame:
                         # 检查是否点击了悔棋按钮
                         elif self.undo_button.is_clicked(mouse_pos, event):
                             input_handler.handle_undo(self)
+                        # 检查是否点击了导入棋局按钮
+                        elif self.import_button.is_clicked(mouse_pos, event):
+                            # 导入棋局功能
+                            from program.controllers.game_io_controller import game_io_controller
+                            success = game_io_controller.import_game(self.game_state)
+                            if success:
+                                # 进入复盘模式
+                                from program.controllers.replay_controller import ReplayController
+                                from program.ui.replay_screen import ReplayScreen
+                                
+                                replay_controller = ReplayController(self.game_state)
+                                replay_controller.start_replay()
+                                
+                                replay_screen = ReplayScreen(self.game_state, replay_controller)
+                                replay_screen.run()
+                        # 检查是否点击了导出棋局按钮
+                        elif self.export_button.is_clicked(mouse_pos, event):
+                            # 导出当前棋局
+                            from program.controllers.game_io_controller import game_io_controller
+                            success = game_io_controller.export_game(self.game_state)
                         # 处理棋子操作
                         elif self._should_handle_player_input():  # 统一判断是否应该处理玩家输入
                             self.handle_click(mouse_pos)
@@ -542,6 +622,8 @@ class ChessGame:
             self.exit_button.check_hover(mouse_pos)
             self.fullscreen_button.check_hover(mouse_pos)
             self.audio_settings_button.check_hover(mouse_pos)
+            self.import_button.check_hover(mouse_pos)
+            self.export_button.check_hover(mouse_pos)
 
             # 检查是否需要触发AI移动（仅PVC模式需要）
             if (self.game_mode == MODE_PVC and
@@ -611,6 +693,9 @@ class ChessGame:
         self.exit_button.draw(self.screen)
         self.fullscreen_button.draw(self.screen)
         self.audio_settings_button.draw(self.screen)
+        # 绘制导入和导出按钮
+        self.import_button.draw(self.screen)
+        self.export_button.draw(self.screen)
 
         # 绘制玩家头像
         self.red_avatar.draw(self.screen)
