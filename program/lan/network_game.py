@@ -449,6 +449,10 @@ class NetworkChessGame(ChessGame):
                 # 播放将军/绝杀音效
                 self.check_sound_play()
 
+                # 移动完成后清除所有高亮显示
+                self.board.clear_highlights()
+                self.selected_piece = None
+
                 # 检查游戏是否结束
                 if self.game_state.game_over:
                     winner_text = self.game_state.get_winner_text()

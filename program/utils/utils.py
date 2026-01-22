@@ -57,7 +57,6 @@ def load_font(size, bold=False):
     print(f"所有字体加载失败，大小: {size}, 粗体: {bold}")
     return None
 
-
 def resource_path(relative_path):
     """获取资源文件的绝对路径，兼容PyInstaller打包后的环境"""
     try:
@@ -77,8 +76,6 @@ def resource_path(relative_path):
         return full_path
 
     return os.path.join(base_path, relative_path)
-
-
 
 # 背景纹理缓存
 _background_texture_cache = {}

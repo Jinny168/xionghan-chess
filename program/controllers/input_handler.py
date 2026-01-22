@@ -193,6 +193,10 @@ class InputHandler:
                 # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
                 check_sound_play(game_instance)
 
+                # 移动完成后清除所有高亮显示
+                game_instance.board.clear_highlights()
+                game_instance.selected_piece = None
+
     @staticmethod
     def handle_undo(game_instance):
         """处理悔棋操作"""

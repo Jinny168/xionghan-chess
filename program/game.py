@@ -354,20 +354,13 @@ class ChessGame:
 
     def handle_event(self, event, mouse_pos):
         """处理游戏事件"""
-        # 使用input_handler来处理事件
         input_handler.handle_event(self, event, mouse_pos)
 
     def run(self):
-        """游戏主循环 - 根据游戏模式选择适当的循环"""
-        if self.game_mode == MODE_PVP:
-            return self._run_pvp_mode()
-        else:  # MODE_PVC
-            return self._run_pvc_mode()
-
-    def _run_pvp_mode(self):
-        """双人模式游戏循环"""
+        """游戏主循环 - 统一的游戏循环处理PVP和PVC模式"""
         while True:
             mouse_pos = pygame.mouse.get_pos()
+            current_time = pygame.time.get_ticks()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -380,6 +373,12 @@ class ChessGame:
                 if event.type == pygame.VIDEORESIZE:
                     if not self.is_fullscreen:  # 只在窗口模式下处理大小变化
                         self.handle_resize((event.w, event.h))
+
+                # 处理AI多线程计算完成事件（仅PVC模式需要）
+                if event.type == pygame.USEREVENT + 2 and self.game_mode == MODE_PVC:
+                    self.process_async_ai_result()
+                    # 清除AI思考状态
+                    self.ai_thinking = False
 
                 # 处理键盘事件
                 if event.type == pygame.KEYDOWN:
@@ -399,10 +398,10 @@ class ChessGame:
                             # 执行升变逻辑
                             selected_index = result[1]
                             self.game_state.perform_promotion(selected_index)
-                            
+
                             # 清除升变对话框
                             self.promotion_dialog = None
-                            
+
                             # 切换玩家回合（消耗走子机会）
                             current_player = self.game_state.player_turn
                             opponent_color = "black" if current_player == "red" else "red"
@@ -414,7 +413,7 @@ class ChessGame:
                             print(f"[DEBUG] 兵升变取消: 当前玩家 {self.game_state.player_turn}")
                             # 清除升变对话框
                             self.promotion_dialog = None
-                            
+
                             # 切换玩家回合（即使取消升变，走子机会也已消耗）
                             current_player = self.game_state.player_turn
                             opponent_color = "black" if current_player == "red" else "red"
@@ -432,17 +431,17 @@ class ChessGame:
                             current_player = self.game_state.player_turn
                             # 获取复活位置
                             resurrection_pos = self.pawn_resurrection_dialog.position
-                            
+
                             # 执行复活
                             self.game_state.perform_pawn_resurrection(current_player, resurrection_pos)
-                            
+
                             # 清除复活对话框
                             self.pawn_resurrection_dialog = None
-                            
+
                             # 切换玩家回合（消耗走子机会）
                             opponent_color = "black" if current_player == "red" else "red"
                             self.game_state.player_turn = opponent_color
-                            
+
                             # 更新头像状态
                             self.update_avatars()
                         else:  # 取消
@@ -520,184 +519,13 @@ class ChessGame:
                         # 检查是否点击了悔棋按钮
                         elif self.undo_button.is_clicked(mouse_pos, event):
                             input_handler.handle_undo(self)
-                        # 双人模式，处理棋子操作
-                        else:
+                        # 处理棋子操作
+                        elif self._should_handle_player_input():  # 统一判断是否应该处理玩家输入
                             self.handle_click(mouse_pos)
 
-            # 更新按钮的悬停状态
-            self.undo_button.check_hover(mouse_pos)
-            self.back_button.check_hover(mouse_pos)
-            self.restart_button.check_hover(mouse_pos)
-            self.exit_button.check_hover(mouse_pos)
-            self.fullscreen_button.check_hover(mouse_pos)
-            self.audio_settings_button.check_hover(mouse_pos)
-
-            # 绘制画面
-            self.draw(mouse_pos)
-            pygame.display.flip()
-            self.clock.tick(FPS)
-
-    def _run_pvc_mode(self):
-        """人机对战模式游戏循环"""
-        while True:
-            mouse_pos = pygame.mouse.get_pos()
-            current_time = pygame.time.get_ticks()
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-
-                # 处理窗口大小变化
-                if event.type == pygame.VIDEORESIZE:
-                    if not self.is_fullscreen:  # 只在窗口模式下处理大小变化
-                        self.handle_resize((event.w, event.h))
-
-                # 处理AI多线程计算完成事件
-                if event.type == pygame.USEREVENT + 2:
-                    self.process_async_ai_result()
-                    # 清除AI思考状态
-                    self.ai_thinking = False
-
-                # 处理键盘事件
-                if event.type == pygame.KEYDOWN:
-                    # F11或Alt+Enter切换全屏
-                    if event.key == pygame.K_F11 or (
-                            event.key == pygame.K_RETURN and
-                            pygame.key.get_mods() & pygame.KMOD_ALT
-                    ):
-                        self.toggle_fullscreen()
-
-                # 如果有升变对话框，优先处理它的事件
-                if self.promotion_dialog:
-                    result = self.promotion_dialog.handle_event(event, mouse_pos)
-                    if result is not None:  # 用户已做出选择
-                        if isinstance(result, tuple) and result[0]:  # 确认升变
-                            print(f"[DEBUG] 兵升变确认: 当前玩家 {self.game_state.player_turn}")
-                            # 执行升变逻辑
-                            selected_index = result[1]
-                            self.game_state.perform_promotion(selected_index)
-                            
-                            # 清除升变对话框
-                            self.promotion_dialog = None
-                        
-                            # 切换玩家回合（消耗走子机会）
-                            current_player = self.game_state.player_turn
-                            opponent_color = "black" if current_player == "red" else "red"
-                            self.game_state.player_turn = opponent_color
-                            print(f"[DEBUG] 兵升变后切换玩家: {current_player} -> {opponent_color}")
-                            
-                            # 更新头像状态
-                            self.update_avatars()
-                        elif result is False:  # 取消
-                            print(f"[DEBUG] 兵升变取消: 当前玩家 {self.game_state.player_turn}")
-                            # 清除升变对话框
-                            self.promotion_dialog = None
-                            
-                            # 切换玩家回合（即使取消升变，走子机会也已消耗）
-                            current_player = self.game_state.player_turn
-                            opponent_color = "black" if current_player == "red" else "red"
-                            self.game_state.player_turn = opponent_color
-                            print(f"[DEBUG] 兵升变取消后切换玩家: {current_player} -> {opponent_color}")
-                            
-                            # 更新头像状态
-                            self.update_avatars()
-                # 如果有复活对话框，优先处理它的事件
-                elif self.pawn_resurrection_dialog:
-                    result = self.pawn_resurrection_dialog.handle_event(event, mouse_pos)
-                    if result is not None:  # 用户已做出选择
-                        if result:  # 确认
-                            # 执行复活逻辑
-                            current_player = self.game_state.player_turn
-                            # 获取复活位置
-                            resurrection_pos = self.pawn_resurrection_dialog.position
-                            
-                            # 执行复活
-                            self.game_state.perform_pawn_resurrection(current_player, resurrection_pos)
-                            
-                            # 清除复活对话框
-                            self.pawn_resurrection_dialog = None
-                            
-                            # 切换玩家回合（消耗走子机会）
-                            opponent_color = "black" if current_player == "red" else "red"
-                            self.game_state.player_turn = opponent_color
-                            
-                            # 更新头像状态
-                            self.update_avatars()
-                        else:  # 取消
-                            # 清除复活对话框
-                            self.pawn_resurrection_dialog = None
-                # 如果有音效设置对话框，优先处理它的事件
-                if self.audio_settings_dialog:
-                    result = self.audio_settings_dialog.handle_event(event, mouse_pos)
-                    if result == "ok":  # 确认设置
-                        self.audio_settings_dialog = None
-                    elif result == "cancel":  # 取消设置
-                        self.audio_settings_dialog = None
-                    elif result == "reset":  # 重置设置
-                        # 对话框保持打开，但重置值
-                        pass
-                    elif result == "volume_changed":  # 音量改变
-                        # 对话框保持打开
-                        pass
-                    # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
-                    continue  # 跳过后续的事件处理，防止同时处理其他操作
-                # 如果有确认对话框，优先处理它的事件
-                elif self.confirm_dialog:
-                    result = self.confirm_dialog.handle_event(event, mouse_pos)
-                    if result is not None:  # 用户已做出选择
-                        if result:  # 确认
-                            self.confirm_dialog = None
-                            # 检查是返回主菜单还是退出游戏
-                            # 在这里我们可以根据上下文决定行为
-                            # 如果是退出游戏对话框，直接退出程序
-                            if self.confirm_dialog and "退出游戏" in getattr(self.confirm_dialog, 'message', ''):
-                                pygame.quit()
-                                sys.exit()
-                            else:  # 返回主菜单
-                                return "back_to_menu"
-                        else:  # 取消
-                            self.confirm_dialog = None
-
-                # 如果游戏结束，处理弹窗事件
-                elif self.game_state.game_over and self.popup:
-                    if self.popup.handle_event(event, mouse_pos):
-                        self.__init__(self.game_mode, self.player_camp)  # 重置游戏，保持相同模式和阵营
-
-                # 如果游戏未结束，处理鼠标点击
-                elif not self.game_state.game_over:
-                    if event.type == pygame.MOUSEBUTTONDOWN:
-                        # 检查是否点击了全屏按钮
-                        if self.fullscreen_button.is_clicked(mouse_pos, event):
-                            self.toggle_fullscreen()
-                        # 检查是否点击了音效设置按钮
-                        elif self.audio_settings_button.is_clicked(mouse_pos, event):
-                            # 打开音效设置对话框
-                            self.audio_settings_dialog = AudioSettingsDialog(600, 400, self.sound_manager)
-                        # 检查是否点击了返回按钮
-                        elif self.back_button.is_clicked(mouse_pos, event):
-                            # 显示确认对话框而不是直接返回
-                            self.confirm_dialog = ConfirmDialog(
-                                400, 200, "是否要返回主菜单？\n这将丢失您的当前对局信息。"
-                            )
-                        # 检查是否点击了退出游戏按钮
-                        elif self.exit_button.is_clicked(mouse_pos, event):
-                            # 显示确认对话框确认退出游戏
-                            self.confirm_dialog = ConfirmDialog(
-                                400, 200, "是否要退出游戏？\n这将结束当前对局。"
-                            )
-                        # 检查是否点击了重新开始按钮
-                        elif self.restart_button.is_clicked(mouse_pos, event):
-                            self.restart_game()
-                        # 检查是否点击了悔棋按钮
-                        elif self.undo_button.is_clicked(mouse_pos, event):
-                           input_handler.handle_undo(self)
-                        # 处理棋子操作，只有在当前回合是玩家回合时才处理
-                        elif not self.ai_thinking and self.game_state.player_turn == self.player_camp:
-                            self.handle_click(mouse_pos)
-
-            # 检查AI是否思考超时
-            if self.ai_thinking and current_time - self.ai_think_start_time > self.ai_timeout:
+            # 检查AI是否思考超时（仅PVC模式需要）
+            if (self.game_mode == MODE_PVC and self.ai_thinking and
+                    current_time - self.ai_think_start_time > self.ai_timeout):
                 # AI思考超时，强制结束思考
                 print("AI思考超时，执行当前已知最佳走法")
                 self.ai_thinking = False
@@ -715,7 +543,7 @@ class ChessGame:
             self.fullscreen_button.check_hover(mouse_pos)
             self.audio_settings_button.check_hover(mouse_pos)
 
-            # 检查是否需要触发AI移动（例如游戏开始或重新开始后）
+            # 检查是否需要触发AI移动（仅PVC模式需要）
             if (self.game_mode == MODE_PVC and
                     not self.game_state.game_over and
                     self.game_state.player_turn != self.player_camp and
@@ -729,9 +557,9 @@ class ChessGame:
             else:
                 self.draw(mouse_pos)
             pygame.display.flip()
-            
+
             # 如果AI正在思考，使用较低的帧率以节省CPU资源并减少闪烁
-            if self.ai_thinking:
+            if self.game_mode == MODE_PVC and self.ai_thinking:
                 self.clock.tick(15)  # 降低到15FPS，平衡性能和视觉效果
             else:
                 self.clock.tick(FPS)
@@ -844,11 +672,11 @@ class ChessGame:
         # 如果有兵/卒复活对话框，显示它
         if self.pawn_resurrection_dialog:
             self.pawn_resurrection_dialog.draw(self.screen)
-            
+
         # 如果有升变对话框，显示它
         if self.promotion_dialog:
             self.promotion_dialog.draw(self.screen)
-            
+
         # 如果有音效设置对话框，显示它
         if self.audio_settings_dialog:
             self.audio_settings_dialog.draw(self.screen)
@@ -981,23 +809,23 @@ class ChessGame:
                     piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces, ci_captured_pieces = move_record
                 elif len(move_record) == 7:  # 新格式：包含甲/胄吃子信息
                     piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces = move_record
-                   
+
                 else:  # 旧格式：6个元素
                     piece, from_row, from_col, to_row, to_col, captured_piece = move_record
 
                 # 生成棋谱记号
                 notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
-                
+
                 # 计算正确的编号，避免负数
                 move_index = max(0, len(self.game_state.move_history) - 10) + i + 1
-                
+
                 # 根据玩家颜色确定文字颜色
                 if piece.color == "red":
                     move_text = f"{move_index}. {notation}"
                     text_surface = load_font(16).render(move_text, True, RED)
                 else:
                     text_surface = load_font(16).render(f"{move_index}. {notation}", True, BLACK)
-                
+
                 # 绘制文本
                 self.screen.blit(text_surface, (self.window_width - 250, start_y + i * line_spacing))
 
@@ -1154,3 +982,15 @@ class ChessGame:
             elif self.game_state.winner is not None:  # AI获胜
                 self.sound_manager.play_defeat_sound()
             # 平局时不播放音效
+
+    def _should_handle_player_input(self):
+        """判断当前是否应该处理玩家输入"""
+        if self.game_mode == MODE_PVP:
+            # PVP模式：总是处理玩家输入
+            return True
+        elif self.game_mode == MODE_PVC:
+            # PVC模式：只有在玩家回合且AI未在思考时处理输入
+            return (not self.ai_thinking and
+                    self.game_state.player_turn == self.player_camp)
+        return False
+
