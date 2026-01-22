@@ -4,7 +4,7 @@ from program.config.config import game_config
 from program.config.statistics import statistics_manager
 from program.core.chess_pieces import create_initial_pieces, King, Jia, Ci, Dun, Pawn
 from program.core.game_rules import GameRules
-from program.utils.tools import save_game_to_file, load_game_from_file
+from program.utils.tools import generate_move_notation, get_valid_moves, is_pawn_at_opponent_base, get_piece_class_by_name
 import program.utils.tools as tools
 from program.utils.utils import step_counter, print_board
 
@@ -761,7 +761,7 @@ class GameState:
             '尉': 'W', '射': 'S', '檑': 'L', '甲': 'J', '巡': 'X',
         }
         
-        # 创建棋盘表示
+        # 创建棋盘表示 - 使用13x13的棋盘
         board = [['.' for _ in range(13)] for _ in range(13)]
         
         # 将棋子放置到棋盘上
@@ -778,12 +778,14 @@ class GameState:
                     empty_count += 1
                 else:
                     if empty_count > 0:
+                        # 正确处理多位数字
                         fen_row += str(empty_count)
                         empty_count = 0
                     # 根据颜色和名称映射到FEN字符
                     fen_char = piece_fen_map.get(cell, '?')  # 未知棋子用问号
                     fen_row += fen_char
             if empty_count > 0:
+                # 正确处理行尾的多位数字
                 fen_row += str(empty_count)
             fen_parts.append(fen_row)
         
@@ -848,24 +850,28 @@ class GameState:
                 col_idx = 0
                 i = 0
                 while i < len(row_str):
-                    char = row_str[i]
-                    if char.isdigit():
-                        # 数字表示连续的空位
-                        empty_spaces = int(char)
+                    # 检查连续的数字（可能多位）
+                    if row_str[i].isdigit():
+                        # 提取整个数字（可能有多位）
+                        num_str = ""
+                        while i < len(row_str) and row_str[i].isdigit():
+                            num_str += row_str[i]
+                            i += 1
+                        empty_spaces = int(num_str)
                         col_idx += empty_spaces
                     else:
                         # 字符表示棋子
-                        if char in fen_piece_map:
-                            color, name = fen_piece_map[char]
+                        if row_str[i] in fen_piece_map:
+                            color, name = fen_piece_map[row_str[i]]
                             # 根据颜色和名称创建对应的棋子类
                             piece_class = tools.get_piece_class_by_name(name)
                             if piece_class:
                                 piece = piece_class(color, row_idx, col_idx)
                                 self.pieces.append(piece)
                         col_idx += 1
-                    i += 1
+                        i += 1
                 if col_idx != 13:
-                    print(f"FEN格式错误：第{row_idx}行列数不正确")
+                    print(f"FEN格式错误：第{row_idx}行列数不正确，实际为{col_idx}，期望为13")
                     return False
             
             # 设置当前玩家
@@ -915,7 +921,9 @@ class GameState:
         Returns:
             bool: 是否成功保存
         """
-        return save_game_to_file(self, filename)
+        from program.controllers.game_io_controller import GameIOController
+        io_controller = GameIOController()
+        return io_controller.export_game(self, filename)
 
     def load_game_from_file(self, filename=None):
         """从文件加载游戏
@@ -926,4 +934,6 @@ class GameState:
         Returns:
             bool: 是否成功加载
         """
-        return load_game_from_file(self, filename)
+        from program.controllers.game_io_controller import GameIOController
+        io_controller = GameIOController()
+        return io_controller.import_game(self, filename)

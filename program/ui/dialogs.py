@@ -240,6 +240,7 @@ class PopupDialog:
         # 创建多个按钮
         self.restart_button = Button(0, 0, button_width, button_height, "重新开始")
         self.replay_button = Button(0, 0, button_width, button_height, "复盘")
+        self.export_button = Button(0, 0, button_width, button_height, "导出对局")
         
         # 预创建覆盖层表面
         self.overlay_surface = None
@@ -253,12 +254,13 @@ class PopupDialog:
         self.y = (window_height - self.height) // 2
         
         # 计算按钮位置（两个按钮水平排列）
-        total_button_width = 2 * self.button_width + 20  # 20是按钮间的间距
+        total_button_width = 3 * self.button_width + 20  # 增加了一个按钮
         start_x = self.x + (self.width - total_button_width) // 2
         button_y = self.y + self.height - self.button_height - 20
         
         self.restart_button.update_position(start_x, button_y)
         self.replay_button.update_position(start_x + self.button_width + 20, button_y)
+        self.export_button.update_position(start_x + 2 * (self.button_width + 20), button_y)  # 新增导出按钮
         
         # 绘制半透明背景
         if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
@@ -334,23 +336,116 @@ class PopupDialog:
         # 绘制按钮
         self.restart_button.draw(screen)
         self.replay_button.draw(screen)
+        self.export_button.draw(screen)  # 新增导出按钮
+        
+        # 绘制按钮
+        self.restart_button.draw(screen)
+        self.replay_button.draw(screen)
+        self.export_button.draw(screen)
+
+
+class NotificationDialog:
+    """通知对话框，用于显示操作结果"""
+    
+    def __init__(self, width, height, message, duration=2000):  # duration单位为毫秒
+        self.width = width
+        self.height = height
+        self.message = message
+        self.duration = duration  # 显示时长
+        self.start_time = pygame.time.get_ticks()  # 开始显示的时间
+        
+        # 计算弹窗位置 - 会在绘制时动态计算
+        self.x = 0
+        self.y = 0
+        
+        # 按钮尺寸
+        button_width = 100
+        button_height = 40
+        
+        # 确认按钮
+        self.ok_button = Button(0, 0, button_width, button_height, "确定")
+        
+        # 预创建覆盖层表面
+        self.overlay_surface = None
+    
+    def draw(self, screen):
+        # 获取当前窗口尺寸
+        window_width, window_height = screen.get_size()
+        
+        # 重新计算弹窗位置
+        self.x = (window_width - self.width) // 2
+        self.y = (window_height - self.height) // 2
+        
+        # 更新按钮位置
+        button_y = self.y + self.height - self.button_height - 20
+        button_x = self.x + (self.width - self.button_width) // 2
+        self.ok_button.update_position(button_x, button_y)
+        
+        # 绘制半透明背景
+        if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
+            self.overlay_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
+        self.overlay_surface.fill((0, 0, 0, 128))  # 半透明黑色
+        screen.blit(self.overlay_surface, (0, 0))
+        
+        # 绘制弹窗主体
+        pygame.draw.rect(screen, POPUP_BG, (self.x, self.y, self.width, self.height))
+        pygame.draw.rect(screen, BLACK, (self.x, self.y, self.width, self.height), 3)
+        
+        # 添加装饰边框
+        inner_margin = 10
+        pygame.draw.rect(
+            screen, 
+            (180, 180, 180), 
+            (self.x + inner_margin, self.y + inner_margin, 
+             self.width - 2*inner_margin, self.height - 2*inner_margin), 
+            2
+        )
+        
+        # 绘制标题文本
+        font_big = load_font(36)
+        text_surface = font_big.render("提示", True, BLACK)
+        text_rect = text_surface.get_rect(center=(window_width//2, self.y + 40))
+        screen.blit(text_surface, text_rect)
+        
+        # 绘制消息文本
+        font = load_font(24)
+        # 处理消息换行显示
+        lines = self.message.split('\n')
+        line_height = 30
+        start_y = self.y + 90
+        
+        for i, line in enumerate(lines):
+            text_surface = font.render(line, True, BLACK)
+            text_rect = text_surface.get_rect(center=(window_width//2, start_y + i * line_height))
+            screen.blit(text_surface, text_rect)
+        
+        # 绘制按钮
+        self.ok_button.draw(screen)
     
     def handle_event(self, event, mouse_pos):
-        # 如果按钮尚未创建，返回False
-        if not self.restart_button or not self.replay_button:
-            return False
+        # 如果按钮尚未创建，返回None
+        if not self.ok_button:
+            return None
             
         # 处理鼠标悬停
-        self.restart_button.check_hover(mouse_pos)
-        self.replay_button.check_hover(mouse_pos)
+        self.ok_button.check_hover(mouse_pos)
         
         # 检查按钮点击
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.restart_button.is_clicked(mouse_pos, event):
-                return "restart"
-            elif self.replay_button.is_clicked(mouse_pos, event):
-                return "replay"
-        return False
+            if self.ok_button.rect.collidepoint(mouse_pos):
+                return True  # 确认关闭对话框
+        
+        # 检查是否超过显示时长
+        current_time = pygame.time.get_ticks()
+        if current_time - self.start_time > self.duration:
+            return True  # 自动关闭
+        
+        return False  # 保持对话框开启
+    
+    def is_expired(self):
+        """检查对话框是否已过期"""
+        current_time = pygame.time.get_ticks()
+        return current_time - self.start_time > self.duration
 
 class ConfirmDialog:
     def __init__(self, width, height, message):

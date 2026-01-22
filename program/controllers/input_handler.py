@@ -7,57 +7,27 @@ import pygame
 from program.utils import tools
 from program.ui.dialogs import AudioSettingsDialog, PawnResurrectionDialog, PromotionDialog
 from program.config.config import CAMP_RED, MODE_PVP, MODE_PVC
+from program.utils.tools import check_sound_play
+
+
 
 
 class InputHandler:
     """输入事件处理器类"""
-
     @staticmethod
-    def handle_board_click(game_instance, mouse_pos):
-        """处理棋盘点击事件"""
-        if game_instance.game_state.game_over:
-            return
-
-        # 如果AI正在思考，忽略玩家点击
-        if game_instance.ai_thinking:
-            return
-
-        # 获取点击位置对应的棋盘坐标
-        row, col = game_instance.board.get_grid_position(mouse_pos)
-
-        # 如果没有选中棋子，尝试选中棋子
-        if not game_instance.selected_piece:
-            piece = game_instance.game_state.get_piece_at(row, col)
-            if piece and piece.camp == game_instance.game_state.player_turn:
-                game_instance.selected_piece = piece
-                return
-
-        # 如果已经选中棋子，尝试移动棋子
-        if game_instance.selected_piece:
-            move = (game_instance.selected_piece.row, game_instance.selected_piece.col, row, col)
-            # 使用GameRules来检查移动是否合法
-            piece = game_instance.game_state.get_piece_at(game_instance.selected_piece.row, game_instance.selected_piece.col)
-            if piece and game_instance.game_state.is_valid_move(piece, game_instance.selected_piece.row, game_instance.selected_piece.col, row, col):
-                game_instance.make_move(move)
-                game_instance.selected_piece = None
-                return
-
-        # 如果点击位置无效，取消选中
-        game_instance.selected_piece = None
-
-
-    def handle_resize(self, game_instance, new_size):
+    def handle_resize(game_instance, new_size):
         """处理窗口大小变化"""
         game_instance.window_width, game_instance.window_height = new_size
         # 更新布局
         game_instance.update_layout()
 
-    def handle_event(self, game_instance, event, mouse_pos):
+    @staticmethod
+    def handle_event(game_instance, event, mouse_pos):
         """处理游戏事件"""
         # 处理窗口大小变化
         if event.type == pygame.VIDEORESIZE:
             if not game_instance.is_fullscreen:  # 只在窗口模式下处理大小变化
-                self.handle_resize(game_instance, (event.w, event.h))
+                InputHandler.handle_resize(game_instance, (event.w, event.h))
 
         # 处理键盘事件
         if event.type == pygame.KEYDOWN:
@@ -109,7 +79,8 @@ class InputHandler:
                                            game_instance.game_state.player_turn == game_instance.player_camp):
                 game_instance.handle_click(mouse_pos)
 
-    def handle_click(self, game_instance, pos):
+    @staticmethod
+    def handle_click(game_instance, pos):
         """处理鼠标点击事件"""
         # 获取点击的棋盘位置
         grid_pos = game_instance.board.get_grid_position(pos)
@@ -220,25 +191,10 @@ class InputHandler:
                 game_instance.update_avatars()
 
                 # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
-                self.check_sound_play(game_instance)
+                check_sound_play(game_instance)
 
-    def check_sound_play(self, game_instance):
-        """检查并播放将军/绝杀音效"""
-        # 检查游戏状态是否为将军或绝杀
-        if game_instance.game_state.is_checkmate():
-            # 绝杀时播放绝杀音效
-            try:
-                game_instance.sound_manager.play_sound('defeat')  # 播放失败音效
-            except:
-                pass
-        elif game_instance.game_state.is_check:
-            # 将军时播放将军音效
-            try:
-                game_instance.sound_manager.play_sound('check')  # 播放将军音效
-            except:
-                pass
-
-    def handle_undo(self, game_instance):
+    @staticmethod
+    def handle_undo(game_instance):
         """处理悔棋操作"""
         # 如果AI正在思考，不允许悔棋
         if game_instance.ai_thinking:
@@ -321,7 +277,6 @@ class InputHandler:
         game_instance.history_scroll_y = 0
 
         return False
-
 
 # 创建 InputHandler 实例供外部使用
 input_handler = InputHandler()
