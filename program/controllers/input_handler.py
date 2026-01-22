@@ -4,12 +4,11 @@
 """
 
 import pygame
-from program.utils import tools
+
+from program.config.config import MODE_PVP
 from program.ui.dialogs import AudioSettingsDialog, PawnResurrectionDialog, PromotionDialog
-from program.config.config import CAMP_RED, MODE_PVP, MODE_PVC
+from program.utils import tools
 from program.utils.tools import check_sound_play
-
-
 
 
 class InputHandler:
