@@ -24,6 +24,7 @@ from program.config.config import (
     DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO, FPS,
     PANEL_BORDER, BLACK, RED, MODE_PVP, MODE_PVC, CAMP_RED, )
+from program.controllers.ai_manager import AIManager
 
 
 class ChessGame:
@@ -70,17 +71,8 @@ class ChessGame:
         # 初始化游戏状态
         self.game_state = GameState()
 
-        # 初始化AI（如果需要）
-        # 从游戏设置中获取AI算法类型，默认为negamax
-        ai_algorithm = game_settings.get('ai_algorithm', 'negamax') if game_settings else 'negamax'
-        self.ai = ChessAI(ai_algorithm, "hard", "black") if game_mode == MODE_PVC else None
-        self.ai_thinking = False  # AI是否正在思考
-        self.ai_think_start_time = 0  # AI开始思考的时间
-        self.async_ai_move = None  # 异步AI计算结果
-
-        # AI超时设置（毫秒）- 设置更长的时间以匹配AI的思考时间
-        self.ai_timeout = 10000  # 3秒超时，与AI内部限制一致
-        self.ai_thread = None  # AI计算线程
+        # 初始化AI管理器（如果需要）
+        self.ai_manager = AIManager(game_mode, player_camp, game_settings)
 
         # 初始化棋盘和界面元素
         self.init_board_and_ui()
@@ -131,8 +123,8 @@ class ChessGame:
         self.create_button(button_height, button_width, button_y)
 
         # 如果是人机对战且AI先行，设置延迟启动AI
-        if self.game_mode == MODE_PVC and self.game_state.player_turn != self.player_camp:
-            self.ai_thinking = True
+        if self.ai_manager.is_ai_turn(self.game_state.player_turn):
+            self.ai_manager.start_ai_thinking()
             pygame.time.set_timer(pygame.USEREVENT, 500)  # 0.5秒后启动AI，更快响应
 
     def create_button(self, button_height, button_width, button_y):
@@ -274,13 +266,13 @@ class ChessGame:
             return
 
         # 如果是人机对战，启动AI
-        if self.game_mode == MODE_PVC and self.game_state.player_turn != self.player_camp:
-            self.ai_thinking = True
+        if self.ai_manager.is_ai_turn(self.game_state.player_turn):
+            self.ai_manager.start_ai_thinking()
             pygame.time.set_timer(pygame.USEREVENT, 1000)  # 1秒后启动AI
 
     def ai_move(self):
         """AI执行走法"""
-        move = self.ai.get_best_move(self.game_state)
+        move = self.ai_manager.get_ai_move(self.game_state)
         if move:
             self.make_move(move)
 
@@ -317,10 +309,10 @@ class ChessGame:
         self.last_move_notation = ""
         self.popup = None
         self.confirm_dialog = None
-        self.ai_thinking = False
-        if self.game_mode == MODE_PVC and self.game_state.player_turn != self.player_camp:
+        self.ai_manager.reset_ai_state()
+        if self.ai_manager.is_ai_turn(self.game_state.player_turn):
             pygame.time.set_timer(pygame.USEREVENT + 1, 800)  # 延迟800毫秒后AI行动
-            self.ai_thinking = True
+            self.ai_manager.start_ai_thinking()
 
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
@@ -416,7 +408,7 @@ class ChessGame:
                 if event.type == pygame.USEREVENT + 2 and self.game_mode == MODE_PVC:
                     self.process_async_ai_result()
                     # 清除AI思考状态
-                    self.ai_thinking = False
+                    self.ai_manager.ai_thinking = False
 
                 # 处理键盘事件
                 if event.type == pygame.KEYDOWN:
@@ -605,15 +597,15 @@ class ChessGame:
                             input_handler.handle_click(self,mouse_pos)
 
             # 检查AI是否思考超时（仅PVC模式需要）
-            if (self.game_mode == MODE_PVC and self.ai_thinking and
-                    current_time - self.ai_think_start_time > self.ai_timeout):
+            if (self.game_mode == MODE_PVC and self.ai_manager.ai_thinking and
+                    self.ai_manager.check_ai_timeout(current_time)):
                 # AI思考超时，强制结束思考
                 print("AI思考超时，执行当前已知最佳走法")
-                self.ai_thinking = False
+                self.ai_manager.reset_ai_state()
                 pygame.time.set_timer(pygame.USEREVENT + 2, 0)  # 确保停止所有AI相关计时器
 
                 # 如果是人机模式且轮到AI，执行当前已知最佳走法
-                if self.game_mode == MODE_PVC and self.game_state.player_turn != self.player_camp:
+                if self.ai_manager.is_ai_turn(self.game_state.player_turn):
                     self.make_random_ai_move()
 
             # 更新按钮的悬停状态
@@ -629,20 +621,21 @@ class ChessGame:
             # 检查是否需要触发AI移动（仅PVC模式需要）
             if (self.game_mode == MODE_PVC and
                     not self.game_state.game_over and
-                    self.game_state.player_turn != self.player_camp and
-                    not self.ai_thinking):
-                self.schedule_ai_move()
+                    self.ai_manager.is_ai_turn(self.game_state.player_turn) and
+                    not self.ai_manager.ai_thinking):
+                self.ai_manager.start_ai_thinking()
+                self.ai_manager.start_async_ai_computation(self.game_state)
 
             # 在AI思考期间，降低刷新率以减少闪烁
             # 确保AI思考时只绘制稳定的主游戏状态，不显示临时的搜索状态
-            if self.ai_thinking:
+            if self.ai_manager.ai_thinking:
                 self.draw_thinking_indicator()  # 使用优化的思考指示器绘制
             else:
                 self.draw(mouse_pos)
             pygame.display.flip()
 
             # 如果AI正在思考，使用较低的帧率以节省CPU资源并减少闪烁
-            if self.game_mode == MODE_PVC and self.ai_thinking:
+            if self.game_mode == MODE_PVC and self.ai_manager.ai_thinking:
                 self.clock.tick(15)  # 降低到15FPS，平衡性能和视觉效果
             else:
                 self.clock.tick(FPS)
@@ -734,7 +727,7 @@ class ChessGame:
             15))
 
             # 如果AI正在思考，显示提示
-            if self.ai_thinking:
+            if self.ai_manager.ai_thinking:
                 thinking_font = load_font(24)
                 thinking_text = "电脑思考中..."
                 thinking_surface = thinking_font.render(thinking_text, True, RED)
@@ -917,28 +910,11 @@ class ChessGame:
 
     def make_random_ai_move(self):
         """当AI思考超时时，执行当前已知的最优移动"""
-        if not self.ai or self.game_mode != MODE_PVC:
+        if not self.ai_manager.ai or self.game_mode != MODE_PVC:
             return
 
-        # 首先尝试获取AI已计算出的最佳走法
-        best_move = self.ai.get_computed_move()
-        if best_move is None:
-            # 如果没有计算出的走法，则使用AI内部保存的最佳走法
-            best_move = self.ai.best_move_so_far
-
-        if best_move is None:
-            # 如果仍然没有最佳走法，则随机选择一个移动
-            ai_color = "black" if self.player_camp == CAMP_RED else "red"
-            valid_moves = []
-
-            for piece in self.game_state.pieces:
-                if piece.color == ai_color:
-                    possible_moves, _ = self.game_state.calculate_possible_moves(piece.row, piece.col)
-                    for to_row, to_col in possible_moves:
-                        valid_moves.append(((piece.row, piece.col), (to_row, to_col)))
-
-            if valid_moves:
-                best_move = random.choice(valid_moves)
+        # 使用AI管理器处理超时情况
+        best_move = self.ai_manager.handle_ai_timeout(self.game_state)
 
         if best_move:
             self.move_after(best_move)
@@ -1009,28 +985,10 @@ class ChessGame:
             self.red_avatar.player_name = "红方"
             self.black_avatar.player_name = "黑方"
 
-    def schedule_ai_move(self):
-        """安排AI移动"""
-        # 设置AI思考开始时间
-        self.ai_think_start_time = pygame.time.get_ticks()
-        # 立即启动异步AI计算
-        self.start_async_ai_computation()
-        self.ai_thinking = True
-
-    def start_async_ai_computation(self):
-        """启动异步AI计算"""
-        # 使用AI进行多线程计算
-        # 确保传递的是当前游戏状态的副本或直接传递，AI内部会处理克隆
-        self.ai.get_move_async(self.game_state)
-
     def process_async_ai_result(self):
         """处理异步AI计算结果"""
-        if not self.ai:
-            self.ai_thinking = False
-            return
-
-        # 使用AI计算好的最佳走法
-        move = self.ai.get_computed_move()
+        # 使用AI管理器处理异步结果
+        move = self.ai_manager.process_async_ai_result()
 
         if move:
             self.move_after(move)
@@ -1066,7 +1024,11 @@ class ChessGame:
             return True
         elif self.game_mode == MODE_PVC:
             # PVC模式：只有在玩家回合且AI未在思考时处理输入
-            return (not self.ai_thinking and
+            return (not self.ai_manager.ai_thinking and
                     self.game_state.player_turn == self.player_camp)
         return False
+
+    def is_ai_thinking(self):
+        """检查AI是否正在思考"""
+        return self.ai_manager.ai_thinking
 

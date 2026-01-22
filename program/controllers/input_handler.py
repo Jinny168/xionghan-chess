@@ -75,7 +75,7 @@ class InputHandler:
                 )
 
             # 处理棋子操作，只有在当前回合是玩家回合时才处理
-            elif not game_instance.ai_thinking and (game_instance.game_mode == MODE_PVP or
+            elif not game_instance.is_ai_thinking() and (game_instance.game_mode == MODE_PVP or
                                            game_instance.game_state.player_turn == game_instance.player_camp):
                 game_instance.handle_click(mouse_pos)
 
@@ -201,7 +201,7 @@ class InputHandler:
     def handle_undo(game_instance):
         """处理悔棋操作"""
         # 如果AI正在思考，不允许悔棋
-        if game_instance.ai_thinking:
+        if game_instance.is_ai_thinking():
             return False
 
         # 如果游戏已经结束，先清除状态
@@ -239,7 +239,7 @@ class InputHandler:
             # 首先停止任何AI计时器
             pygame.time.set_timer(pygame.USEREVENT + 1, 0)
             pygame.time.set_timer(pygame.USEREVENT + 2, 0)
-            game_instance.ai_thinking = False
+            game_instance.ai_manager.reset_ai_state()
 
             # 移动历史为空，没有步骤可以悔棋
             if not hasattr(game_instance.game_state, 'move_history') or len(game_instance.game_state.move_history) == 0:
@@ -272,7 +272,7 @@ class InputHandler:
 
                     # 如果悔棋后轮到AI行动，延迟1秒
                     if game_instance.game_state.player_turn != game_instance.player_camp:
-                        game_instance.ai_thinking = True
+                        game_instance.ai_manager.start_ai_thinking()
                         pygame.time.set_timer(pygame.USEREVENT + 2, 1000)
 
                     return True

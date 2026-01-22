@@ -7,20 +7,20 @@
     },
     "total_time_played": 1012.8891937732697,
     "pieces_captured": {
-        "ju": 18,
+        "ju": 19,
         "ma": 7,
         "xiang": 2,
         "shi": 3,
         "king": 0,
-        "pao": 12,
-        "pawn": 67,
+        "pao": 13,
+        "pawn": 69,
         "wei": 0,
         "she": 5,
         "lei": 6,
         "jia": 0,
         "ci": 0,
         "dun": 0,
-        "xun": 6
+        "xun": 7
     },
     "fastest_win": {
         "red": 80.92053031921387,
@@ -40,5 +40,5 @@
         }
     },
     "last_played": "2026-01-19 23:02:13",
-    "total_moves_made": 511
+    "total_moves_made": 525
 }
