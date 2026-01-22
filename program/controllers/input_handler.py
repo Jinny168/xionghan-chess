@@ -82,7 +82,7 @@ class InputHandler:
     def handle_click(game_instance, pos):
         """处理鼠标点击事件"""
         # 获取点击的棋盘位置
-        grid_pos = game_instance.board.get_grid_position(pos)
+        grid_pos = game_instance.game_screen.board.get_grid_position(pos)
         if not grid_pos:
             return
 
@@ -116,12 +116,12 @@ class InputHandler:
             piece = game_instance.game_state.get_piece_at(row, col)
             if piece and piece.color == game_instance.game_state.player_turn:
                 game_instance.selected_piece = (row, col)
-                game_instance.board.highlight_position(row, col)
+                game_instance.game_screen.board.highlight_position(row, col)
 
                 # 计算可能的移动位置
                 possible_moves, capturable = game_instance.game_state.calculate_possible_moves(row, col)
-                game_instance.board.set_possible_moves(possible_moves)
-                game_instance.board.set_capturable_positions(capturable)
+                game_instance.game_screen.board.set_possible_moves(possible_moves)
+                game_instance.game_screen.board.set_capturable_positions(capturable)
         else:
             sel_row, sel_col = game_instance.selected_piece
 
@@ -135,12 +135,12 @@ class InputHandler:
             new_piece = game_instance.game_state.get_piece_at(row, col)
             if new_piece and new_piece.color == game_instance.game_state.player_turn:
                 game_instance.selected_piece = (row, col)
-                game_instance.board.highlight_position(row, col)
+                game_instance.game_screen.board.highlight_position(row, col)
 
                 # 计算新选择棋子的可能移动
                 possible_moves, capturable = game_instance.game_state.calculate_possible_moves(row, col)
-                game_instance.board.set_possible_moves(possible_moves)
-                game_instance.board.set_capturable_positions(capturable)
+                game_instance.game_screen.board.set_possible_moves(possible_moves)
+                game_instance.game_screen.board.set_capturable_positions(capturable)
                 return
 
             # 已选择棋子，尝试移动
@@ -193,7 +193,7 @@ class InputHandler:
                 check_sound_play(game_instance)
 
                 # 移动完成后清除所有高亮显示
-                game_instance.board.clear_highlights()
+                game_instance.game_screen.board.clear_highlights()
                 game_instance.selected_piece = None
 
     @staticmethod
@@ -213,7 +213,7 @@ class InputHandler:
             if game_instance.game_state.undo_move():
                 # 悔棋成功
                 game_instance.selected_piece = None
-                game_instance.board.clear_highlights()
+                game_instance.game_screen.board.clear_highlights()
                 game_instance.update_avatars()
 
                 # 清除上一步记录
@@ -258,7 +258,7 @@ class InputHandler:
                         game_instance.game_state.undo_move()  # 悔掉AI上一步
 
                     game_instance.selected_piece = None
-                    game_instance.board.clear_highlights()
+                    game_instance.game_screen.board.clear_highlights()
                     game_instance.update_avatars()
                     return True
             else:
@@ -266,7 +266,7 @@ class InputHandler:
                 if len(game_instance.game_state.move_history) >= 1:
                     game_instance.game_state.undo_move()
                     game_instance.selected_piece = None
-                    game_instance.board.clear_highlights()
+                    game_instance.game_screen.board.clear_highlights()
                     game_instance.update_avatars()
 
                     # 如果悔棋后轮到AI行动，延迟1秒

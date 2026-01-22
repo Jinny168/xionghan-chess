@@ -8,9 +8,7 @@ from program.config.config import game_config
 from program.controllers.input_handler import input_handler
 from program.core.game_rules import GameRules
 from program.core.game_state import GameState
-from program.ui.avatar import Avatar
-from program.ui.button import Button
-from program.ui.chess_board import ChessBoard
+from program.ui.game_screen import GameScreen
 from program.ui.dialogs import PopupDialog, ConfirmDialog, AudioSettingsDialog
 from program.utils import tools
 from program.controllers.sound_manager import SoundManager
@@ -31,21 +29,7 @@ class ChessGame:
     def __init__(self, game_mode=MODE_PVP, player_camp=CAMP_RED, game_settings=None):
         """初始化游戏"""
         self.history_max_visible_lines = 15
-        self.board = None
         self.history_scroll_y = None
-        self.timer_font = None
-        self.red_avatar = None
-        self.board_margin_top = None
-        self.black_avatar = None
-        self.audio_settings_button = None
-        self.undo_button = None
-        self.exit_button = None
-        self.restart_button = None
-        self.back_button = None
-        self.fullscreen_button = None
-        self.import_button = None
-        self.export_button = None
-        self.left_panel_width = None
         self.clock = None
         self.screen = None
         self.is_fullscreen = None
@@ -74,8 +58,8 @@ class ChessGame:
         # 初始化AI管理器（如果需要）
         self.ai_manager = AIManager(game_mode, player_camp, game_settings)
 
-        # 初始化棋盘和界面元素
-        self.init_board_and_ui()
+        # 初始化界面元素
+        self.game_screen = GameScreen(self.window_width, self.window_height, game_mode, player_camp)
 
         # 选中的棋子
         self.selected_piece = None
@@ -93,7 +77,6 @@ class ChessGame:
         self.promotion_dialog = None
         self.audio_settings_dialog = None
 
-
         
         # 音效管理器（包含背景音乐功能）
         self.sound_manager = SoundManager()
@@ -109,114 +92,6 @@ class ChessGame:
         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
         pygame.display.set_caption("匈汉象棋")
         self.clock = pygame.time.Clock()
-
-    def init_board_and_ui(self):
-
-        button_width=120
-        button_height = 40
-        button_y = self.window_height - 60
-
-        """初始化棋盘和界面元素"""
-        self.update_layout()  # 初始化布局
-        
-
-        self.create_button(button_height, button_width, button_y)
-
-        # 如果是人机对战且AI先行，设置延迟启动AI
-        if self.ai_manager.is_ai_turn(self.game_state.player_turn):
-            self.ai_manager.start_ai_thinking()
-            pygame.time.set_timer(pygame.USEREVENT, 500)  # 0.5秒后启动AI，更快响应
-
-    def create_button(self, button_height, button_width, button_y):
-        # 创建返回按钮
-        self.back_button = Button(
-            self.left_panel_width + 80,
-            button_y,
-            button_width,
-            button_height,
-            "返回",
-            22
-        )
-        # 创建重新开始按钮
-        self.restart_button = Button(
-            self.left_panel_width + 80 + button_width + 10,  # 紧挨着返回按钮
-            button_y,
-            button_width,
-            button_height,
-            "重来",
-            22
-        )
-        # 创建退出游戏按钮
-        self.exit_button = Button(
-            self.window_width - button_width - 80 - button_width - 10,
-            button_y,
-            button_width,
-            button_height,
-            "退出游戏",
-            22
-        )
-        # 创建悔棋按钮
-        self.undo_button = Button(
-            self.window_width - button_width - 80,
-            button_y,
-            button_width,
-            button_height,
-            "悔棋",
-            22
-        )
-        # 创建全屏切换按钮
-        self.fullscreen_button = Button(
-            self.window_width - 100,
-            10,
-            80,
-            30,
-            "全屏" if not self.is_fullscreen else "窗口",
-            14
-        )
-        self.audio_settings_button = Button(
-            self.window_width - 100,
-            50,
-            80,
-            30,
-            "音效设置",
-            14
-        )
-        # 创建导入棋局按钮
-        self.import_button = Button(
-            self.left_panel_width + 80 + 2 * (button_width + 10),  # 紧挨着重来按钮
-            button_y,
-            button_width,
-            button_height,
-            "导入棋局",
-            22
-        )
-        # 创建导出棋局按钮
-        self.export_button = Button(
-            self.left_panel_width + 80 + 3 * (button_width + 10),  # 紧挨着导入按钮
-            button_y,
-            button_width,
-            button_height,
-            "导出棋局",
-            22
-        )
-        # 创建导入棋局按钮
-        self.import_button = Button(
-            self.left_panel_width + 80 + 2 * (button_width + 10),  # 紧挨着重来按钮
-            button_y,
-            button_width,
-            button_height,
-            "导入棋局",
-            22
-        )
-        # 创建导出棋局按钮
-        self.export_button = Button(
-            self.left_panel_width + 80 + 3 * (button_width + 10),  # 紧挨着导入按钮
-            button_y,
-            button_width,
-            button_height,
-            "导出棋局",
-            22
-        )
 
     def make_move(self, move):
         """执行走法"""
@@ -314,47 +189,6 @@ class ChessGame:
             pygame.time.set_timer(pygame.USEREVENT + 1, 800)  # 延迟800毫秒后AI行动
             self.ai_manager.start_ai_thinking()
 
-    def update_layout(self):
-        """根据当前窗口尺寸更新布局"""
-        # 计算左侧面板宽度和棋盘边距
-        self.left_panel_width = int(LEFT_PANEL_WIDTH_RATIO * self.window_width)
-        self.board_margin_top = int(BOARD_MARGIN_TOP_RATIO * self.window_height)
-
-        # 更新棋盘
-        self.board = ChessBoard(
-            self.window_width - self.left_panel_width,
-            self.window_height,
-            self.left_panel_width,
-            self.board_margin_top
-        )
-
-        # 更新按钮位置
-        button_width = 120
-        button_height = 40
-        button_y = self.window_height - 60
-
-        # 创建按钮
-        self.create_button(button_height, button_width, button_y)
-
-        # 更新头像位置
-        avatar_radius = 40
-        panel_center_x = self.left_panel_width // 2
-        black_y = self.window_height // 3 - 50
-        red_y = self.window_height * 2 // 3
-
-        # 创建头像
-        self.black_avatar = Avatar(panel_center_x, black_y, avatar_radius, (245, 245, 235), "黑方", False)
-        self.red_avatar = Avatar(panel_center_x, red_y, avatar_radius, (255, 255, 240), "红方", True)
-
-        # 设置当前玩家的头像为活跃状态
-        if hasattr(self, 'game_state'):
-            is_red_turn = self.game_state.player_turn == "red"
-            self.red_avatar.set_active(is_red_turn)
-            self.black_avatar.set_active(not is_red_turn)
-
-        # 计时器的字体
-        self.timer_font = load_font(18)
-
     def toggle_fullscreen(self):
         """切换全屏模式"""
         self.is_fullscreen = not self.is_fullscreen
@@ -373,14 +207,14 @@ class ChessGame:
             self.window_width, self.window_height = self.windowed_size
             self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
 
-        # 更新布局
-        self.update_layout()
+        # 更新界面布局
+        self.game_screen.update_layout()
 
     def handle_resize(self, new_size):
         """处理窗口大小变化"""
         self.window_width, self.window_height = new_size
-        # 更新布局
-        self.update_layout()
+        # 更新界面布局
+        self.game_screen.update_layout()
 
     def handle_event(self, event, mouse_pos):
         """处理游戏事件"""
@@ -548,32 +382,32 @@ class ChessGame:
                 elif not self.game_state.game_over:
                     if event.type == pygame.MOUSEBUTTONDOWN:
                         # 检查是否点击了全屏按钮
-                        if self.fullscreen_button.is_clicked(mouse_pos, event):
+                        if self.game_screen.fullscreen_button.is_clicked(mouse_pos, event):
                             self.toggle_fullscreen()
                         # 检查是否点击了音效设置按钮
-                        elif self.audio_settings_button.is_clicked(mouse_pos, event):
+                        elif self.game_screen.audio_settings_button.is_clicked(mouse_pos, event):
                             # 打开音效设置对话框
                             self.audio_settings_dialog = AudioSettingsDialog(600, 400, self.sound_manager)
                         # 检查是否点击了返回按钮
-                        elif self.back_button.is_clicked(mouse_pos, event):
+                        elif self.game_screen.back_button.is_clicked(mouse_pos, event):
                             # 显示确认对话框而不是直接返回
                             self.confirm_dialog = ConfirmDialog(
                                 400, 200, "是否要返回主菜单？\n这将丢失您的当前对局信息。"
                             )
                         # 检查是否点击了退出游戏按钮
-                        elif self.exit_button.is_clicked(mouse_pos, event):
+                        elif self.game_screen.exit_button.is_clicked(mouse_pos, event):
                             # 显示确认对话框确认退出游戏
                             self.confirm_dialog = ConfirmDialog(
                                 400, 200, "是否要退出游戏？\n这将结束当前对局。"
                             )
                         # 检查是否点击了重新开始按钮
-                        elif self.restart_button.is_clicked(mouse_pos, event):
+                        elif self.game_screen.restart_button.is_clicked(mouse_pos, event):
                             self.restart_game()
                         # 检查是否点击了悔棋按钮
-                        elif self.undo_button.is_clicked(mouse_pos, event):
+                        elif self.game_screen.undo_button.is_clicked(mouse_pos, event):
                             input_handler.handle_undo(self)
                         # 检查是否点击了导入棋局按钮
-                        elif self.import_button.is_clicked(mouse_pos, event):
+                        elif self.game_screen.import_button.is_clicked(mouse_pos, event):
                             # 导入棋局功能
                             from program.controllers.game_io_controller import game_io_controller
                             success = game_io_controller.import_game(self.game_state)
@@ -588,7 +422,7 @@ class ChessGame:
                                 replay_screen = ReplayScreen(self.game_state, replay_controller)
                                 replay_screen.run()
                         # 检查是否点击了导出棋局按钮
-                        elif self.export_button.is_clicked(mouse_pos, event):
+                        elif self.game_screen.export_button.is_clicked(mouse_pos, event):
                             # 导出当前棋局
                             from program.controllers.game_io_controller import game_io_controller
                             success = game_io_controller.export_game(self.game_state)
@@ -609,14 +443,7 @@ class ChessGame:
                     self.make_random_ai_move()
 
             # 更新按钮的悬停状态
-            self.undo_button.check_hover(mouse_pos)
-            self.back_button.check_hover(mouse_pos)
-            self.restart_button.check_hover(mouse_pos)
-            self.exit_button.check_hover(mouse_pos)
-            self.fullscreen_button.check_hover(mouse_pos)
-            self.audio_settings_button.check_hover(mouse_pos)
-            self.import_button.check_hover(mouse_pos)
-            self.export_button.check_hover(mouse_pos)
+            self.game_screen.update_button_states(mouse_pos)
 
             # 检查是否需要触发AI移动（仅PVC模式需要）
             if (self.game_mode == MODE_PVC and
@@ -629,9 +456,11 @@ class ChessGame:
             # 在AI思考期间，降低刷新率以减少闪烁
             # 确保AI思考时只绘制稳定的主游戏状态，不显示临时的搜索状态
             if self.ai_manager.ai_thinking:
-                self.draw_thinking_indicator()  # 使用优化的思考指示器绘制
+                self.game_screen.draw_thinking_indicator(self.screen, self.game_state)
             else:
-                self.draw(mouse_pos)
+                self.game_screen.draw(self.screen, self.game_state, self.last_move, self.last_move_notation, 
+                                     self.popup, self.confirm_dialog, self.pawn_resurrection_dialog, 
+                                     self.promotion_dialog, self.audio_settings_dialog, self.ai_manager.ai_thinking)
             pygame.display.flip()
 
             # 如果AI正在思考，使用较低的帧率以节省CPU资源并减少闪烁
@@ -639,274 +468,6 @@ class ChessGame:
                 self.clock.tick(15)  # 降低到15FPS，平衡性能和视觉效果
             else:
                 self.clock.tick(FPS)
-
-    def draw(self, mouse_pos):
-        """绘制游戏界面"""
-        # 使用统一的背景绘制函数
-        draw_background(self.screen)
-
-
-        # 先绘制与主背景一致的纹理
-        left_panel_surface = pygame.Surface((self.left_panel_width, self.window_height))
-        draw_background(left_panel_surface)  # 使用相同的背景绘制函数
-
-        # 稍微调亮左侧面板使其有区分度
-        overlay = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
-        overlay.fill((255, 255, 255, 30))  # 半透明白色覆盖，轻微增亮
-        left_panel_surface.blit(overlay, (0, 0))
-
-        # 应用到主界面
-        self.screen.blit(left_panel_surface, (0, 0))
-
-        # 添加分隔线
-        pygame.draw.line(self.screen, PANEL_BORDER, (self.left_panel_width, 0),
-                         (self.left_panel_width, self.window_height), 2)
-
-        # 绘制棋盘和棋子 - 先绘制这些
-        # 在AI思考期间，确保使用稳定的游戏状态绘制棋子
-        self.board.draw(self.screen, self.game_state.pieces, self.game_state)
-
-        # 如果有上一步走法，在棋盘上标记出来
-        if self.last_move:
-            from_row, from_col, to_row, to_col = self.last_move
-            self.board.highlight_last_move(self.screen, from_row, from_col, to_row, to_col)
-
-        # 检查是否需要显示将军动画 - 在棋子之上显示动画
-        if self.game_state.should_show_check_animation():
-            king_pos = self.game_state.get_checked_king_position()
-            if king_pos:
-                self.board.draw_check_animation(self.screen, king_pos)
-
-        # 绘制游戏信息面板
-        self.draw_info_panel()
-
-        # 绘制悔棋按钮、重来按钮、返回按钮、退出按钮、全屏按钮和音效设置按钮
-        self.undo_button.draw(self.screen)
-        self.restart_button.draw(self.screen)
-        self.back_button.draw(self.screen)
-        self.exit_button.draw(self.screen)
-        self.fullscreen_button.draw(self.screen)
-        self.audio_settings_button.draw(self.screen)
-        # 绘制导入和导出按钮
-        self.import_button.draw(self.screen)
-        self.export_button.draw(self.screen)
-
-        # 绘制玩家头像
-        self.red_avatar.draw(self.screen)
-        self.black_avatar.draw(self.screen)
-
-        # 绘制计时器信息
-        self.draw_timers()
-
-        # 在左侧面板中添加VS标志
-        vs_font = load_font(36, bold=True)
-        vs_text = "VS"
-        vs_surface = vs_font.render(vs_text, True, (100, 100, 100))
-        vs_rect = vs_surface.get_rect(center=(self.left_panel_width // 2, self.window_height // 2))
-        self.screen.blit(vs_surface, vs_rect)
-
-        # 如果有上一步走法的记录，显示它
-        if self.last_move_notation:
-            move_font = load_font(18)
-            move_text = f"上一步: {self.last_move_notation}"
-            move_surface = move_font.render(move_text, True, BLACK)
-            # 显示在左侧面板底部
-            move_rect = move_surface.get_rect(center=(self.left_panel_width // 2, self.window_height - 80))
-            self.screen.blit(move_surface, move_rect)
-
-        # 如果是人机模式，显示模式和阵营提示
-        if self.game_mode == MODE_PVC:
-            mode_font = load_font(18)
-            if self.player_camp == CAMP_RED:
-                mode_text = "人机对战模式 - 您执红方"
-            else:
-                mode_text = "人机对战模式 - 您执黑方"
-            mode_surface = mode_font.render(mode_text, True, BLACK)
-            self.screen.blit(mode_surface, (
-            self.left_panel_width + (self.window_width - self.left_panel_width) // 2 - mode_surface.get_width() // 2,
-            15))
-
-            # 如果AI正在思考，显示提示
-            if self.ai_manager.ai_thinking:
-                thinking_font = load_font(24)
-                thinking_text = "电脑思考中..."
-                thinking_surface = thinking_font.render(thinking_text, True, RED)
-                thinking_rect = thinking_surface.get_rect(center=(self.window_width // 2, 45))
-                self.screen.blit(thinking_surface, thinking_rect)
-
-        # 绘制 captured pieces（阵亡棋子）
-        self.draw_captured_pieces()
-
-        # 绘制棋谱历史记录
-        self.draw_move_history()
-
-        # 如果游戏结束，显示弹窗
-        if self.game_state.game_over and self.popup:
-            self.popup.draw(self.screen)
-
-        # 如果有确认对话框，显示它
-        if self.confirm_dialog:
-            self.confirm_dialog.draw(self.screen)
-
-        # 如果有兵/卒复活对话框，显示它
-        if self.pawn_resurrection_dialog:
-            self.pawn_resurrection_dialog.draw(self.screen)
-
-        # 如果有升变对话框，显示它
-        if self.promotion_dialog:
-            self.promotion_dialog.draw(self.screen)
-
-        # 如果有音效设置对话框，显示它
-        if self.audio_settings_dialog:
-            self.audio_settings_dialog.draw(self.screen)
-
-    def draw_thinking_indicator(self):
-        """绘制AI思考时的指示器，减少闪烁"""
-        # 绘制稳定的背景
-        draw_background(self.screen)
-
-        # 绘制左侧面板背景
-        left_panel_surface = pygame.Surface((self.left_panel_width, self.window_height))
-        draw_background(left_panel_surface)
-        overlay = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
-        overlay.fill((255, 255, 255, 30))
-        left_panel_surface.blit(overlay, (0, 0))
-        self.screen.blit(left_panel_surface, (0, 0))
-
-        # 添加分隔线
-        pygame.draw.line(self.screen, PANEL_BORDER, (self.left_panel_width, 0),
-                         (self.left_panel_width, self.window_height), 2)
-
-        # 绘制棋盘和棋子（使用稳定的游戏状态）
-        self.board.draw(self.screen, self.game_state.pieces, self.game_state)
-
-    def draw_timers(self):
-        """绘制计时器信息"""
-        # 获取当前的时间状态
-        red_time, black_time = self.game_state.update_times()
-        total_time = self.game_state.total_time
-
-        # 转换为分钟:秒格式
-        red_time_str = f"{int(red_time // 60):02}:{int(red_time % 60):02}"
-        black_time_str = f"{int(black_time // 60):02}:{int(black_time % 60):02}"
-        total_time_str = f"{int(total_time // 60):02}:{int(total_time % 60):02}"
-
-        # 绘制红方时间 - 在红方头像下方
-        red_time_surface = self.timer_font.render(f"用时: {red_time_str}", True, RED)
-        red_time_rect = red_time_surface.get_rect(
-            center=(self.left_panel_width // 2, self.red_avatar.y + self.red_avatar.radius + 50)
-        )
-        self.screen.blit(red_time_surface, red_time_rect)
-
-        # 绘制黑方时间 - 在黑方头像下方
-        black_time_surface = self.timer_font.render(f"用时: {black_time_str}", True, BLACK)
-        black_time_rect = black_time_surface.get_rect(
-            center=(self.left_panel_width // 2, self.black_avatar.y + self.black_avatar.radius + 50)
-        )
-        self.screen.blit(black_time_surface, black_time_rect)
-
-        # 绘制总时间 - 在左侧面板顶部
-        total_time_surface = self.timer_font.render(f"对局时长: {total_time_str}", True, BLACK)
-        self.screen.blit(total_time_surface, (10, 10))
-
-    def draw_info_panel(self):
-        """绘制游戏信息面板"""
-        # 当游戏进行中，在左上角显示当前回合
-        if not self.game_state.game_over:
-            # 创建回合信息文本
-            turn_color = RED if self.game_state.player_turn == "red" else BLACK
-            turn_text = f"当前回合: {'红方' if self.game_state.player_turn == 'red' else '黑方'}"
-
-            # 计算位置 - 在左上角，对局时长下方
-            font = load_font(20)
-            text_surface = font.render(turn_text, True, turn_color)
-            # 位于对局时长信息的下方
-            text_rect = text_surface.get_rect(
-                topleft=(10, 40)  # 在左上角，对局时长下方
-            )
-            self.screen.blit(text_surface, text_rect)
-
-        # 绘制 captured pieces（阵亡棋子）
-        self.draw_captured_pieces()
-
-        # 绘制棋谱历史记录
-        self.draw_move_history()
-
-    def draw_captured_pieces(self):
-        """绘制双方阵亡棋子"""
-        # 绘制标题
-        title_font = load_font(20, bold=True)
-        red_title = title_font.render("红方阵亡:", True, RED)
-        black_title = title_font.render("黑方阵亡:", True, BLACK)
-
-        # 将阵亡棋子信息移到右侧
-        right_panel_x = self.window_width - 250  # 右侧边栏起始x坐标
-        self.screen.blit(red_title, (right_panel_x, 60))
-        self.screen.blit(black_title, (right_panel_x, 180))
-
-        # 绘制红方阵亡棋子
-        x_start, y_start = right_panel_x, 90
-        x, y = x_start, y_start
-        for piece in self.game_state.captured_pieces["red"]:
-            piece_text = title_font.render(piece.name, True, RED)
-            # 减小右边距，提供更多空间给棋子显示
-            if x + piece_text.get_width() > self.window_width - 40:
-                x = x_start
-                y += 25
-            self.screen.blit(piece_text, (x, y))
-            x += piece_text.get_width() + 5
-
-        # 绘制黑方阵亡棋子
-        x_start, y_start = right_panel_x, 210
-        x, y = x_start, y_start
-        for piece in self.game_state.captured_pieces["black"]:
-            piece_text = title_font.render(piece.name, True, BLACK)
-            # 减小右边距，提供更多空间给棋子显示
-            if x + piece_text.get_width() > self.window_width - 40:
-                x = x_start
-                y += 25
-            self.screen.blit(piece_text, (x, y))
-            x += piece_text.get_width() + 5
-
-    def draw_move_history(self):
-        """绘制棋谱历史记录"""
-        # 只显示最近的棋谱记录
-        if hasattr(self.game_state, 'move_history') and self.game_state.move_history:
-            # 绘制标题
-            title_font = load_font(20, bold=True)
-            history_title = title_font.render("棋谱历史:", True, BLACK)
-            self.screen.blit(history_title, (self.window_width - 250, 300))
-
-            # 显示最近的10条记录
-            recent_moves = self.game_state.move_history[-10:]
-            start_y = 330  # 起始y坐标
-            line_spacing = 25  # 行间距
-
-            for i, move_record in enumerate(recent_moves):
-                # 处理新旧格式的历史记录
-                if len(move_record) == 8:  # 新格式：包含甲/胄吃子信息和刺兑子信息
-                    piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces, ci_captured_pieces = move_record
-                elif len(move_record) == 7:  # 新格式：包含甲/胄吃子信息
-                    piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces = move_record
-
-                else:  # 旧格式：6个元素
-                    piece, from_row, from_col, to_row, to_col, captured_piece = move_record
-
-                # 生成棋谱记号
-                notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
-
-                # 计算正确的编号，避免负数
-                move_index = max(0, len(self.game_state.move_history) - 10) + i + 1
-
-                # 根据玩家颜色确定文字颜色
-                if piece.color == "red":
-                    move_text = f"{move_index}. {notation}"
-                    text_surface = load_font(16).render(move_text, True, RED)
-                else:
-                    text_surface = load_font(16).render(f"{move_index}. {notation}", True, BLACK)
-
-                # 绘制文本
-                self.screen.blit(text_surface, (self.window_width - 250, start_y + i * line_spacing))
 
     def make_random_ai_move(self):
         """当AI思考超时时，执行当前已知的最优移动"""
@@ -969,21 +530,7 @@ class ChessGame:
 
     def update_avatars(self):
         """更新头像状态"""
-        is_red_turn = self.game_state.player_turn == "red"
-        self.red_avatar.set_active(is_red_turn)
-        self.black_avatar.set_active(not is_red_turn)
-
-        # 更新玩家标识
-        if self.game_mode == MODE_PVC:
-            if self.player_camp == CAMP_RED:
-                self.red_avatar.player_name = "玩家"
-                self.black_avatar.player_name = "电脑"
-            else:
-                self.red_avatar.player_name = "电脑"
-                self.black_avatar.player_name = "玩家"
-        else:
-            self.red_avatar.player_name = "红方"
-            self.black_avatar.player_name = "黑方"
+        self.game_screen.update_avatars(self.game_state)
 
     def process_async_ai_result(self):
         """处理异步AI计算结果"""

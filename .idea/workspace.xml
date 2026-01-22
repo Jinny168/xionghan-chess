@@ -4,8 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="小变动，修复game.py中嵌套调用的问题">
-      <change beforePath="$PROJECT_DIR$/program/controllers/input_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/input_handler.py" afterDir="false" />
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="提取ai_manager">
       <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -297,23 +296,7 @@
       <workItem from="1768814540330" duration="402000" />
       <workItem from="1768904643592" duration="3057000" />
       <workItem from="1769078384230" duration="2498000" />
-      <workItem from="1769084956089" duration="6858000" />
-    </task>
-    <task id="LOCAL-00024" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1767965897947</created>
-      <option name="number" value="00024" />
-      <option name="presentableId" value="LOCAL-00024" />
-      <option name="project" value="LOCAL" />
-      <updated>1767965897947</updated>
-    </task>
-    <task id="LOCAL-00025" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1767972477794</created>
-      <option name="number" value="00025" />
-      <option name="presentableId" value="LOCAL-00025" />
-      <option name="project" value="LOCAL" />
-      <updated>1767972477794</updated>
+      <workItem from="1769084956089" duration="7566000" />
     </task>
     <task id="LOCAL-00026" summary="最新更新">
       <option name="closed" value="true" />
@@ -691,7 +674,23 @@
       <option name="project" value="LOCAL" />
       <updated>1769091287072</updated>
     </task>
-    <option name="localTasksCounter" value="73" />
+    <task id="LOCAL-00073" summary="提取ai_manager">
+      <option name="closed" value="true" />
+      <created>1769092023056</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1769092023056</updated>
+    </task>
+    <task id="LOCAL-00074" summary="提取ai_manager">
+      <option name="closed" value="true" />
+      <created>1769092077366</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
+      <option name="project" value="LOCAL" />
+      <updated>1769092077366</updated>
+    </task>
+    <option name="localTasksCounter" value="75" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -739,7 +738,8 @@
     <MESSAGE value="提取step_counter" />
     <MESSAGE value="基本跑通了replay_controller和复盘功能，但是功能未实现" />
     <MESSAGE value="小变动，修复game.py中嵌套调用的问题" />
-    <option name="LAST_COMMIT_MESSAGE" value="小变动，修复game.py中嵌套调用的问题" />
+    <MESSAGE value="提取ai_manager" />
+    <option name="LAST_COMMIT_MESSAGE" value="提取ai_manager" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -828,7 +828,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/controllers/input_handler.py</url>
-          <line>17</line>
+          <line>16</line>
           <option name="timeStamp" value="67" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -842,19 +842,14 @@
           <option name="timeStamp" value="70" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/game.py</url>
-          <line>910</line>
-          <option name="timeStamp" value="72" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/utils/utils.py</url>
           <line>8</line>
           <option name="timeStamp" value="73" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/game.py</url>
-          <line>782</line>
-          <option name="timeStamp" value="75" />
+          <url>file://$PROJECT_DIR$/program/ui/game_screen.py</url>
+          <line>1</line>
+          <option name="timeStamp" value="76" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
