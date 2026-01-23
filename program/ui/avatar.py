@@ -4,6 +4,8 @@ from program.utils.utils import load_font
 class Avatar:
     """玩家头像框类"""
     def __init__(self, x, y, radius, color, player_name, is_red=True):
+        self.piece_font = None
+        self.name_font = None
         self.x = x
         self.y = y
         self.radius = radius
@@ -20,7 +22,7 @@ class Avatar:
         font_size = int(self.radius * 1.2)
         try:
             self.piece_font = load_font(font_size, bold=True)
-        except Exception:
+        except (OSError, FileNotFoundError, RuntimeError):
             # 如果加载特定字体失败，使用默认字体
             self.piece_font = load_font(font_size, bold=True)
         
