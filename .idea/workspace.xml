@@ -4,11 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="修复了tools中的小error">
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="继续修复error">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/config/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/statistics.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/menu_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/menu_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/utils/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/game_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/game_screen.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -313,15 +313,8 @@
       <workItem from="1769078384230" duration="2498000" />
       <workItem from="1769084956089" duration="13075000" />
       <workItem from="1769136069581" duration="8206000" />
-      <workItem from="1769154175303" duration="2734000" />
-    </task>
-    <task id="LOCAL-00039" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768389214887</created>
-      <option name="number" value="00039" />
-      <option name="presentableId" value="LOCAL-00039" />
-      <option name="project" value="LOCAL" />
-      <updated>1768389214887</updated>
+      <workItem from="1769154175303" duration="2858000" />
+      <workItem from="1769159579240" duration="907000" />
     </task>
     <task id="LOCAL-00040" summary="最新更新">
       <option name="closed" value="true" />
@@ -707,7 +700,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769156429302</updated>
     </task>
-    <option name="localTasksCounter" value="88" />
+    <task id="LOCAL-00088" summary="继续修复error">
+      <option name="closed" value="true" />
+      <created>1769157792370</created>
+      <option name="number" value="00088" />
+      <option name="presentableId" value="LOCAL-00088" />
+      <option name="project" value="LOCAL" />
+      <updated>1769157792370</updated>
+    </task>
+    <option name="localTasksCounter" value="89" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -766,7 +767,8 @@
     <MESSAGE value="修复了utils中的小error" />
     <MESSAGE value="修复了ai_manager中的小error" />
     <MESSAGE value="修复了tools中的小error" />
-    <option name="LAST_COMMIT_MESSAGE" value="修复了tools中的小error" />
+    <MESSAGE value="继续修复error" />
+    <option name="LAST_COMMIT_MESSAGE" value="继续修复error" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

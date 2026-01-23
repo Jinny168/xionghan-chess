@@ -409,7 +409,7 @@ class ChessGame:
                             continue  # 菜单事件已处理，跳过后续处理
 
                         # 检查是否点击了操作面板
-                        op_result = self.game_screen.handle_operation_panel_events(event, mouse_pos, self, self.game_state)
+                        op_result = self.game_screen.handle_operation_panel_events(event, mouse_pos, self)
                         if op_result == "handled":
                             continue  # 操作面板事件已处理，跳过后续处理
 
@@ -460,7 +460,7 @@ class ChessGame:
             else:
                 self.game_screen.draw(self.screen, self.game_state, self.last_move, self.last_move_notation, 
                                      self.popup, self.confirm_dialog, self.pawn_resurrection_dialog, 
-                                     self.promotion_dialog, self.audio_settings_dialog, self.ai_manager.ai_thinking)
+                                     self.promotion_dialog, self.audio_settings_dialog)
             
             # 如果有统计数据对话框，绘制它
             if self.stats_dialog:
