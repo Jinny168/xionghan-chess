@@ -108,7 +108,7 @@ def create_spec_file():
     # 收集所有数据文件
     datas = sounds_datas + fonts_datas + images_datas + doc_datas + json_datas + ai_datas
 
-    # 定义游戏模块列表
+    # 定义游戏模块列表（不包含深度学习框架相关模块）
     program_modules = [
         'program.game',
         'program.main',
@@ -142,7 +142,7 @@ def create_spec_file():
         'program.lan.network_game',
         'program.lan.xhlan',
         'program.ai.chess_ai',
-        # MCTS模块
+        # MCTS模块（只保留纯Python/MCTS相关，不含深度学习框架）
         'program.ai.mcts.mcts',
         'program.ai.mcts.mcts_config',
         'program.ai.mcts.mcts_game',
@@ -151,15 +151,13 @@ def create_spec_file():
         'program.ai.mcts.play_with_ai',
         'program.ai.mcts.UIplay',
         'program.ai.mcts.collect',
-        'program.ai.mcts.paddle_net',
-        'program.ai.mcts.pytorch_net',
         'program.ai.mcts.my_redis',
         'program.ai.mcts.test_state_conversion',
         'program.ai.mcts.zip_array',
     ]
 
-    # 常用库模块列表
-    common_modules = [
+    # 基础库模块列表（移除了深度学习相关库）
+    basic_modules = [
         'pygame',
         'pygame.locals',
         'json',
@@ -258,19 +256,14 @@ def create_spec_file():
         'imaplib',
         'nntplib',
         'smtplib',
-        'smtpd',
-        'telnetlib',
         'uuid',
         'socketserver',
         'http',
         'selectors',
-        'asyncore',
-        'asynchat',
         'signal',
         'multiprocessing',
         'concurrent',
         'subprocess',
-        'sched',
         'dummy_threading',
         'dummy_thread',
         'asyncio',
@@ -301,7 +294,7 @@ def create_spec_file():
     ]
 
     # 合并所有隐藏导入模块
-    hiddenimports = program_modules + common_modules
+    hiddenimports = program_modules + basic_modules
 
     # 生成spec文件内容
     spec_content = f'''# -*- mode: python ; coding: utf-8 -*-
