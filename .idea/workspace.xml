@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="修复了打包exe">
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="继续修复打包exe">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/build_exe.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/build_exe.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/xionghan_chess.spec" beforeDir="false" afterPath="$PROJECT_DIR$/program/xionghan_chess.spec" afterDir="false" />
@@ -336,15 +336,7 @@
       <workItem from="1769084956089" duration="13075000" />
       <workItem from="1769136069581" duration="8206000" />
       <workItem from="1769154175303" duration="2858000" />
-      <workItem from="1769159579240" duration="12423000" />
-    </task>
-    <task id="LOCAL-00046" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768577109514</created>
-      <option name="number" value="00046" />
-      <option name="presentableId" value="LOCAL-00046" />
-      <option name="project" value="LOCAL" />
-      <updated>1768577109514</updated>
+      <workItem from="1769159579240" duration="14143000" />
     </task>
     <task id="LOCAL-00047" summary="最新更新">
       <option name="closed" value="true" />
@@ -730,7 +722,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769174479906</updated>
     </task>
-    <option name="localTasksCounter" value="95" />
+    <task id="LOCAL-00095" summary="继续修复打包exe">
+      <option name="closed" value="true" />
+      <created>1769175258338</created>
+      <option name="number" value="00095" />
+      <option name="presentableId" value="LOCAL-00095" />
+      <option name="project" value="LOCAL" />
+      <updated>1769175258338</updated>
+    </task>
+    <option name="localTasksCounter" value="96" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -794,7 +794,8 @@
     <MESSAGE value="修复一系列bug" />
     <MESSAGE value="美化了主界面" />
     <MESSAGE value="修复了打包exe" />
-    <option name="LAST_COMMIT_MESSAGE" value="修复了打包exe" />
+    <MESSAGE value="继续修复打包exe" />
+    <option name="LAST_COMMIT_MESSAGE" value="继续修复打包exe" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -991,7 +992,7 @@
     <SUITE FILE_PATH="coverage/xionghan_chess$test_uiplay.coverage" NAME="test_uiplay 覆盖结果" MODIFIED="1768109621282" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$validate_moves.coverage" NAME="validate_moves 覆盖结果" MODIFIED="1768060437308" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$start_multiple_collectors.coverage" NAME="start_multiple_collectors 覆盖结果" MODIFIED="1768099132107" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$build_exe.coverage" NAME="build_exe 覆盖结果" MODIFIED="1769174633929" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$build_exe.coverage" NAME="build_exe 覆盖结果" MODIFIED="1769175358840" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_paddle.coverage" NAME="test_paddle 覆盖结果" MODIFIED="1768061779565" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$generate_voice__1_.coverage" NAME="generate_voice (1) 覆盖结果" MODIFIED="1768037026142" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_torch.coverage" NAME="test_torch 覆盖结果" MODIFIED="1768061637898" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />

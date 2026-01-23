@@ -307,6 +307,25 @@ datas = {datas}
 # 隐藏导入模块列表
 hiddenimports = {hiddenimports}
 
+# 排除列表
+excludes = [
+    'paddle',
+    'torch',
+    'tensorflow',
+    'keras',
+    'mxnet',
+    'caffe',
+    'theano',
+    'chainer',
+    'paddle.fluid',
+    'paddle.nn',
+    'paddle.optimizer',
+    'torch.nn',
+    'torch.optim',
+    'torch.utils',
+    'torchvision',
+]
+
 block_cipher = None
 
 a = Analysis(
@@ -318,7 +337,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={{}},
     runtime_hooks=[],
-    excludes=[],
+    excludes=excludes,
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

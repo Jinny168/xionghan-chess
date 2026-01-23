@@ -8,6 +8,25 @@ datas = [('sounds\\button.wav', 'sounds'), ('sounds\\capture.wav', 'sounds'), ('
 # 隐藏导入模块列表
 hiddenimports = ['program.game', 'program.main', 'program.config.config', 'program.config.settings', 'program.config.statistics', 'program.config.taunts_manager', 'program.config.ai_settings', 'program.controllers.game_io_controller', 'program.controllers.sound_manager', 'program.controllers.input_handler', 'program.controllers.replay_controller', 'program.controllers.ai_manager', 'program.controllers.step_counter', 'program.core.chess_pieces', 'program.core.game_rules', 'program.core.game_state', 'program.ui.chess_board', 'program.ui.game_screen', 'program.ui.menu_screen', 'program.ui.about_screen', 'program.ui.rules_screen', 'program.ui.replay_screen', 'program.ui.network_connect_screen', 'program.ui.dialogs', 'program.ui.button', 'program.ui.scrollbar', 'program.ui.avatar', 'program.utils.utils', 'program.utils.tools', 'program.lan.network_game', 'program.lan.xhlan', 'program.ai.chess_ai', 'program.ai.mcts.mcts', 'program.ai.mcts.mcts_config', 'program.ai.mcts.mcts_game', 'program.ai.mcts.mcts_pure', 'program.ai.mcts.train', 'program.ai.mcts.play_with_ai', 'program.ai.mcts.UIplay', 'program.ai.mcts.collect', 'program.ai.mcts.my_redis', 'program.ai.mcts.test_state_conversion', 'program.ai.mcts.zip_array', 'pygame', 'pygame.locals', 'json', 'copy', 'math', 'random', 'sys', 'os', 'time', 'threading', 'logging', 'pickle', 'collections', 'functools', 'itertools', 'operator', 'typing', 'dataclasses', 'configparser', 'argparse', 'pathlib', 're', 'datetime', 'zlib', 'base64', 'hashlib', 'urllib.parse', 'urllib.error', 'urllib.request', 'socket', 'select', 'ssl', 'queue', 'contextlib', 'abc', 'enum', 'numbers', 'warnings', 'weakref', 'reprlib', 'pprint', 'heapq', 'bisect', 'array', 'struct', 'codecs', 'encodings', 'stringprep', 'string', 'textwrap', 'unicodedata', 'locale', 'calendar', 'gettext', 'copyreg', 'types', 'inspect', 'dis', 'opcode', 'keyword', 'tokenize', 'token', 'ast', 'symtable', 'optparse', 'getopt', 'pdb', 'bdb', 'cmd', 'shlex', 'importlib', 'pkgutil', 'modulefinder', 'zipimport', 'zipfile', 'tarfile', 'gzip', 'bz2', 'lzma', 'shutil', 'tempfile', 'fnmatch', 'glob', 'email', 'xml', 'plistlib', 'csv', 'logging.handlers', 'logging.config', 'io', 'mimetypes', 'rfc822', 'netrc', 'ftplib', 'poplib', 'imaplib', 'nntplib', 'smtplib', 'uuid', 'socketserver', 'http', 'selectors', 'signal', 'multiprocessing', 'concurrent', 'subprocess', 'dummy_threading', 'dummy_thread', 'asyncio', 'pipes', 'fcntl', 'termios', 'tty', 'pty', 'resource', 'platform', 'errno', 'ctypes', 'ctypes.util', 'ctypes.wintypes', 'msvcrt', '_winapi', 'winsound', 'winreg', 'msilib', 'tkinter', 'tkinter.constants', 'tkinter.filedialog', 'tkinter.messagebox', 'tkinter.scrolledtext', 'tkinter.simpledialog', 'tkinter.tix', 'tkinter.ttk']
 
+# 排除列表
+excludes = [
+    'paddle',
+    'torch',
+    'tensorflow',
+    'keras',
+    'mxnet',
+    'caffe',
+    'theano',
+    'chainer',
+    'paddle.fluid',
+    'paddle.nn',
+    'paddle.optimizer',
+    'torch.nn',
+    'torch.optim',
+    'torch.utils',
+    'torchvision',
+]
+
 block_cipher = None
 
 a = Analysis(
@@ -19,7 +38,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=excludes,
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
