@@ -1,19 +1,29 @@
 import os
-
+import sys
 import pygame
 
-from program.utils.tools import resource_path
+
+def resource_path(relative_path):
+    """获取资源文件的绝对路径"""
+    try:
+        # PyInstaller创建临时文件夹，并将路径存储在_MEIPASS中
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath("../program")
+    return os.path.join(base_path, relative_path)
+
 
 # 音效缓存
 _sound_cache = {}
 
+
 def load_sound(sound_name):
     """加载音效文件，支持缓存机制
-
+    
     Args:
-        sound_name: 音效名称 ('check', 'move', 'capture', 'select', 'jiangjun_voice', 'juesha_voice',
+        sound_name: 音效名称 ('check', 'move', 'capture', 'select', 'jiangjun_voice', 'juesha_voice', 
                      'victory', 'defeat', 'qq_victory', 'qq_defeat', 'fc_victory', 'fc_defeat')
-
+    
     Returns:
         pygame.mixer.Sound对象，如果加载失败则返回静音音效
     """
@@ -81,8 +91,9 @@ def load_sound(sound_name):
     _sound_cache[sound_name] = empty_sound
     return empty_sound
 
+
 class SoundManager:
-    """音效管理器 - 从sound_manager.py迁移的功能"""
+    """音效管理器"""
 
     def __init__(self):
         pygame.mixer.init()
@@ -151,7 +162,7 @@ class SoundManager:
             'qq_background': os.path.join("sounds", "qq_background_sound.wav"),  # QQ风格背景音乐
             'fc_background': os.path.join("sounds", "fc_background_sound.wav")  # FC风格背景音乐
         }
-
+        
         music_filepath = resource_path(sound_paths[music_type])
 
         # 检查背景音乐文件是否存在

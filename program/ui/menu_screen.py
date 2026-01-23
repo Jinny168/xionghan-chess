@@ -173,19 +173,21 @@ class ModeSelectionScreen:
                     elif self.load_game_button.is_clicked(mouse_pos, event):
                         # 导入棋局并进入复盘模式
                         from program.core.game_state import GameState
-                        from program.utils.tools import load_game_from_file
+                        from program.controllers.game_io_controller import GameIOController
                         from program.ui.replay_screen import ReplayScreen
                         
                         # 创建游戏状态
                         game_state = GameState()
                         
                         # 从文件加载游戏
-                        success = load_game_from_file(game_state)
+                        io_controller = GameIOController()
+                        success = io_controller.import_game(game_state)
                         
                         if success:
                             # 进入复盘模式
-                            from program.utils.tools import enter_replay_mode
-                            replay_controller = enter_replay_mode(game_state)
+                            from program.controllers.replay_controller import ReplayController
+                            replay_controller = ReplayController(game_state)
+                            replay_controller.start_replay()
                             
                             # 创建并运行复盘界面
                             replay_screen = ReplayScreen(game_state, replay_controller)

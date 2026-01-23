@@ -1,5 +1,6 @@
 """复盘界面，用于控制棋局复盘过程"""
 import pygame
+
 from program.ui.button import Button
 from program.utils.utils import load_font, draw_background
 
@@ -35,7 +36,7 @@ class ReplayScreen:
         button_spacing = 10
         
         # 计算按钮区域总宽度
-        total_buttons_width = 4 * button_width + 3 * button_spacing
+        total_buttons_width = 5 * button_width + 4 * button_spacing  # 增加了一个按钮
         start_x = (screen_width - total_buttons_width) // 2
         button_y = screen_height - 120  # 距离底部一定距离
         
@@ -51,6 +52,10 @@ class ReplayScreen:
         )
         self.end_button = Button(
             start_x + 3 * (button_width + button_spacing), button_y, button_width, button_height, "终局", 20
+        )
+        # 返回按钮
+        self.return_button = Button(
+            start_x + 4 * (button_width + button_spacing), button_y, button_width, button_height, "返回", 20
         )
         
         # 进度条相关参数
@@ -95,6 +100,8 @@ class ReplayScreen:
                         self.controller.go_to_next()
                     elif self.end_button.is_clicked(mouse_pos, event):
                         self.controller.go_to_end()
+                    elif self.return_button.is_clicked(mouse_pos, event):
+                        self.exit_replay()
             
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
@@ -126,6 +133,7 @@ class ReplayScreen:
         self.previous_button.draw(screen)
         self.next_button.draw(screen)
         self.end_button.draw(screen)
+        self.return_button.draw(screen)  # 绘制返回按钮
         
         # 绘制进度条
         self.draw_progress_bar(screen)

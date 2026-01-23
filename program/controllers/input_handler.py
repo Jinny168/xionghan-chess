@@ -4,58 +4,29 @@
 """
 
 import pygame
-from program.utils import tools
+
+from program.config.config import MODE_PVP
 from program.ui.dialogs import AudioSettingsDialog, PawnResurrectionDialog, PromotionDialog
-from program.config.config import CAMP_RED, MODE_PVP, MODE_PVC
+from program.utils import tools
+from program.utils.tools import check_sound_play
 
 
 class InputHandler:
     """输入事件处理器类"""
-
-    def handle_board_click(self, game_instance, mouse_pos):
-        """处理棋盘点击事件"""
-        if game_instance.game_state.game_over:
-            return
-
-        # 如果AI正在思考，忽略玩家点击
-        if game_instance.ai_thinking:
-            return
-
-        # 获取点击位置对应的棋盘坐标
-        row, col = game_instance.board.get_grid_position(mouse_pos)
-
-        # 如果没有选中棋子，尝试选中棋子
-        if not game_instance.selected_piece:
-            piece = game_instance.game_state.get_piece_at(row, col)
-            if piece and piece.camp == game_instance.game_state.player_turn:
-                game_instance.selected_piece = piece
-                return
-
-        # 如果已经选中棋子，尝试移动棋子
-        if game_instance.selected_piece:
-            move = (game_instance.selected_piece.row, game_instance.selected_piece.col, row, col)
-            # 使用GameRules来检查移动是否合法
-            piece = game_instance.game_state.get_piece_at(game_instance.selected_piece.row, game_instance.selected_piece.col)
-            if piece and game_instance.game_state.is_valid_move(piece, game_instance.selected_piece.row, game_instance.selected_piece.col, row, col):
-                game_instance.make_move(move)
-                game_instance.selected_piece = None
-                return
-
-        # 如果点击位置无效，取消选中
-        game_instance.selected_piece = None
-
-    def handle_resize(self, game_instance, new_size):
+    @staticmethod
+    def handle_resize(game_instance, new_size):
         """处理窗口大小变化"""
         game_instance.window_width, game_instance.window_height = new_size
         # 更新布局
         game_instance.update_layout()
 
-    def handle_event(self, game_instance, event, mouse_pos):
+    @staticmethod
+    def handle_event(game_instance, event, mouse_pos):
         """处理游戏事件"""
         # 处理窗口大小变化
         if event.type == pygame.VIDEORESIZE:
             if not game_instance.is_fullscreen:  # 只在窗口模式下处理大小变化
-                self.handle_resize(game_instance, (event.w, event.h))
+                InputHandler.handle_resize(game_instance, (event.w, event.h))
 
         # 处理键盘事件
         if event.type == pygame.KEYDOWN:
@@ -103,14 +74,15 @@ class InputHandler:
                 )
 
             # 处理棋子操作，只有在当前回合是玩家回合时才处理
-            elif not game_instance.ai_thinking and (game_instance.game_mode == MODE_PVP or
+            elif not game_instance.is_ai_thinking() and (game_instance.game_mode == MODE_PVP or
                                            game_instance.game_state.player_turn == game_instance.player_camp):
                 game_instance.handle_click(mouse_pos)
 
-    def handle_click(self, game_instance, pos):
+    @staticmethod
+    def handle_click(game_instance, pos):
         """处理鼠标点击事件"""
         # 获取点击的棋盘位置
-        grid_pos = game_instance.board.get_grid_position(pos)
+        grid_pos = game_instance.game_screen.board.get_grid_position(pos)
         if not grid_pos:
             return
 
@@ -144,12 +116,12 @@ class InputHandler:
             piece = game_instance.game_state.get_piece_at(row, col)
             if piece and piece.color == game_instance.game_state.player_turn:
                 game_instance.selected_piece = (row, col)
-                game_instance.board.highlight_position(row, col)
+                game_instance.game_screen.board.highlight_position(row, col)
 
                 # 计算可能的移动位置
                 possible_moves, capturable = game_instance.game_state.calculate_possible_moves(row, col)
-                game_instance.board.set_possible_moves(possible_moves)
-                game_instance.board.set_capturable_positions(capturable)
+                game_instance.game_screen.board.set_possible_moves(possible_moves)
+                game_instance.game_screen.board.set_capturable_positions(capturable)
         else:
             sel_row, sel_col = game_instance.selected_piece
 
@@ -163,12 +135,12 @@ class InputHandler:
             new_piece = game_instance.game_state.get_piece_at(row, col)
             if new_piece and new_piece.color == game_instance.game_state.player_turn:
                 game_instance.selected_piece = (row, col)
-                game_instance.board.highlight_position(row, col)
+                game_instance.game_screen.board.highlight_position(row, col)
 
                 # 计算新选择棋子的可能移动
                 possible_moves, capturable = game_instance.game_state.calculate_possible_moves(row, col)
-                game_instance.board.set_possible_moves(possible_moves)
-                game_instance.board.set_capturable_positions(capturable)
+                game_instance.game_screen.board.set_possible_moves(possible_moves)
+                game_instance.game_screen.board.set_capturable_positions(capturable)
                 return
 
             # 已选择棋子，尝试移动
@@ -218,30 +190,17 @@ class InputHandler:
                 game_instance.update_avatars()
 
                 # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
-                self.check_sound_play(game_instance)
+                check_sound_play(game_instance)
 
-                # 检查游戏是否结束
-                if game_instance.game_state.game_over:
-                    game_instance.game_over_after()
-                # 如果是人机模式且轮到AI走子，触发AI移动
-                elif game_instance.game_mode == MODE_PVC and game_instance.game_state.player_turn != game_instance.player_camp:
-                    game_instance.schedule_ai_move()
-                else:
-                    # 立即刷新界面，确保玩家的移动能立刻显示
-                    pygame.display.flip()
-            else:
-                # 移动失败，可能是由于会导致送将，取消选择但不执行移动
+                # 移动完成后清除所有高亮显示
+                game_instance.game_screen.board.clear_highlights()
                 game_instance.selected_piece = None
-                game_instance.board.clear_highlights()
 
-            # 无论如何都取消选择状态
-            game_instance.selected_piece = None
-            game_instance.board.clear_highlights()
-
-    def handle_undo(self, game_instance):
+    @staticmethod
+    def handle_undo(game_instance):
         """处理悔棋操作"""
         # 如果AI正在思考，不允许悔棋
-        if game_instance.ai_thinking:
+        if game_instance.is_ai_thinking():
             return False
 
         # 如果游戏已经结束，先清除状态
@@ -254,7 +213,7 @@ class InputHandler:
             if game_instance.game_state.undo_move():
                 # 悔棋成功
                 game_instance.selected_piece = None
-                game_instance.board.clear_highlights()
+                game_instance.game_screen.board.clear_highlights()
                 game_instance.update_avatars()
 
                 # 清除上一步记录
@@ -279,7 +238,7 @@ class InputHandler:
             # 首先停止任何AI计时器
             pygame.time.set_timer(pygame.USEREVENT + 1, 0)
             pygame.time.set_timer(pygame.USEREVENT + 2, 0)
-            game_instance.ai_thinking = False
+            game_instance.ai_manager.reset_ai_state()
 
             # 移动历史为空，没有步骤可以悔棋
             if not hasattr(game_instance.game_state, 'move_history') or len(game_instance.game_state.move_history) == 0:
@@ -299,7 +258,7 @@ class InputHandler:
                         game_instance.game_state.undo_move()  # 悔掉AI上一步
 
                     game_instance.selected_piece = None
-                    game_instance.board.clear_highlights()
+                    game_instance.game_screen.board.clear_highlights()
                     game_instance.update_avatars()
                     return True
             else:
@@ -307,12 +266,12 @@ class InputHandler:
                 if len(game_instance.game_state.move_history) >= 1:
                     game_instance.game_state.undo_move()
                     game_instance.selected_piece = None
-                    game_instance.board.clear_highlights()
+                    game_instance.game_screen.board.clear_highlights()
                     game_instance.update_avatars()
 
                     # 如果悔棋后轮到AI行动，延迟1秒
                     if game_instance.game_state.player_turn != game_instance.player_camp:
-                        game_instance.ai_thinking = True
+                        game_instance.ai_manager.start_ai_thinking()
                         pygame.time.set_timer(pygame.USEREVENT + 2, 1000)
 
                     return True
@@ -322,16 +281,5 @@ class InputHandler:
 
         return False
 
-    def check_sound_play(self, game_instance):
-        if game_instance.game_state.is_checkmate():
-            try:
-                game_instance.sound_manager.play_sound('warn')  # 使用chess-master的将军音效
-                game_instance.sound_manager.play_sound('check')  # 播放绝杀语音
-            except:
-                pass
-        elif game_instance.game_state.is_check:
-            try:
-                game_instance.sound_manager.play_sound('warn')
-                game_instance.sound_manager.play_sound('capture')  # 播放将军语音
-            except:
-                pass
+# 创建 InputHandler 实例供外部使用
+input_handler = InputHandler()
