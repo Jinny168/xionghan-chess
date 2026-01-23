@@ -25,7 +25,7 @@ class AboutScreen:
         self.text_font = load_font(18)
         self.small_font = load_font(16)
         
-        # 从README.md读取关于内容
+        # 从about.md读取关于内容
         self.content = self._load_about_content()
         
         # 返回按钮
@@ -42,53 +42,34 @@ class AboutScreen:
         )
     
     def _load_about_content(self):
-        """从README.md加载关于内容"""
+        """从about.md加载关于内容"""
         try:
             import os
-            readme_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "README.md")
-            with open(readme_path, "r", encoding="utf-8") as f:
-                readme_content = f.read()
+            about_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "about.md")
+            with open(about_path, "r", encoding="utf-8") as f:
+                content = f.read()
             
-            # 提取README.md中项目概述部分的内容
-            lines = readme_content.split('\n')
+            # 解析about.md内容
+            lines = content.split('\n')
             about_content = []
-            started = False
             
             for line in lines:
-                if "## 项目概述" in line:
-                    started = True
-                    about_content.append(("subtitle", "项目概述"))
-                    continue
-                elif started:
-                    if line.startswith('## ') and "项目概述" not in line:  # 遇到下一个二级标题时停止
-                        break
-                    elif line.strip() and not line.startswith('#'):  # 忽略空行和标题行
-                        # 去除markdown格式符号
-                        clean_line = line.replace('*', '').replace('_', '').strip()
-                        if clean_line:  # 只添加非空行
-                            about_content.append(("text", clean_line))
-            
-            # 如果没找到项目概述部分，则使用项目名称和基本描述
-            if len(about_content) <= 1:
-                lines = readme_content.split('\n')
-                about_content = [("title", "匈汉象棋 (XiongHan Chess)")]
-                for i, line in enumerate(lines[2:12]):  # 取前几行内容
-                    if line.strip() and not line.startswith('#'):
-                        clean_line = line.replace('*', '').replace('_', '').strip()
-                        if clean_line:
-                            about_content.append(("text", clean_line))
-            
-            # 添加作者信息
-            about_content.extend([
-                ("subtitle", "开发者信息"),
-                ("text", "开发者: 靳中原"),
-                ("text", ""),
-                ("subtitle", "游戏特色"),
-                ("text", "• 融合中国传统象棋与匈牙利文化元素"),
-                ("text", "• 支持双人对战和人机对战"),
-                ("text", "• 拥有美观的界面和智能AI"),
-                ("text", "• 包含多种特色棋子和创新规则")
-            ])
+                line = line.strip()
+                if line.startswith('# '):  # 主标题
+                    about_content.append(("title", line[2:]))  # 去掉 '# ' 前缀
+                elif line.startswith('## '):  # 副标题
+                    about_content.append(("subtitle", line[3:]))  # 去掉 '## ' 前缀
+                elif line.startswith('- '):  # 列表项
+                    # 去掉 '- ' 前缀并去除markdown格式符号
+                    clean_line = line[2:].replace('*', '').replace('_', '').strip()
+                    about_content.append(("text", clean_line))
+                elif line.startswith('• '):  # 特色列表
+                    about_content.append(("text", line))
+                elif line and not line.startswith('#'):  # 普通文本行
+                    # 去除markdown格式符号
+                    clean_line = line.replace('*', '').replace('_', '').strip()
+                    if clean_line:  # 只添加非空行
+                        about_content.append(("text", clean_line))
             
             return about_content
         except Exception as e:
