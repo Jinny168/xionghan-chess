@@ -47,7 +47,7 @@ state_list_init = [
     # 10行
     ['一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一'],
     # 11行
-    ['一一', '一一', '一一', '红傌', '红相', '红仕', '红汉', '红仕', '红相', '红傌', '一一', '一一', '一一'],
+    ['一一', '一一', '一一', '红傌', '红相', '红仕', '红漢', '红仕', '红相', '红傌', '一一', '一一', '一一'],
     # 12行
     ['红射', '一一', '红俥', '一一', '红檑', '一一', '一一', '一一', '红檑', '一一', '红俥', '一一', '红射']
 ]
@@ -62,11 +62,14 @@ string2array = dict(红俥=np.array([1, 0, 0, 0, 0, 0, 0, 0, 0]),
                     红傌=np.array([0, 1, 0, 0, 0, 0, 0, 0, 0]),
                     红相=np.array([0, 0, 1, 0, 0, 0, 0, 0, 0]),
                     红仕=np.array([0, 0, 0, 1, 0, 0, 0, 0, 0]),
-                    红汉=np.array([0, 0, 0, 0, 1, 0, 0, 0, 0]),
+                    红漢=np.array([0, 0, 0, 0, 1, 0, 0, 0, 0]),
                     红炮=np.array([0, 0, 0, 0, 0, 1, 0, 0, 0]),
                     红兵=np.array([0, 0, 0, 0, 0, 0, 1, 0, 0]),
                     红檑=np.array([0, 0, 0, 0, 0, 0, 0, 1, 0]),
                     红射=np.array([0, 0, 0, 0, 0, 0, 0, 0, 1]),
+                    红馬=np.array([0, 0, 0, 0, 0, 0, 0, 0, 1]),  # 红馬，设置为与红傌相同但不同值
+                    红马=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]),  # 红马，暂时设为零向量
+                    红巡=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]),  # 红巡，暂时设为零向量
                     黑車=np.array([-1, 0, 0, 0, 0, 0, 0, 0, 0]),
                     黑馬=np.array([0, -1, 0, 0, 0, 0, 0, 0, 0]),
                     黑象=np.array([0, 0, -1, 0, 0, 0, 0, 0, 0]),
@@ -76,6 +79,8 @@ string2array = dict(红俥=np.array([1, 0, 0, 0, 0, 0, 0, 0, 0]),
                     黑卒=np.array([0, 0, 0, 0, 0, 0, -1, 0, 0]),
                     黑礌=np.array([0, 0, 0, 0, 0, 0, 0, -1, 0]),
                     黑䠶=np.array([0, 0, 0, 0, 0, 0, 0, 0, -1]),
+                    黑马=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]),  # 黑马，暂时设为零向量
+                    黑廵=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]),  # 黑廵，暂时设为零向量
                     一一=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]))
 
 
@@ -311,7 +316,7 @@ def get_legal_moves(state_deque, current_player_color):
                             if change_state(state_list, m) != old_state_list:
                                 moves.append(m)
 
-            elif piece_type in ['汉', '汗']:  # 将/帅的走法
+            elif piece_type in ['漢', '汗']:  # 将/帅的走法
                 # 将/帅只能在九宫内横向移动一格
                 king_moves = [
                     (y, x - 1), (y, x + 1)  # 左右
@@ -674,7 +679,6 @@ def is_valid_lei_move(state_list, from_y, from_x, to_y, to_x):
     return True
 
 
-
 # 辅助函数：检查射/䠶的移动是否合法
 def is_valid_she_move(state_list, from_y, from_x, to_y, to_x):
     row_diff = abs(to_y - from_y)
@@ -754,6 +758,8 @@ class Board(object):
         self.game_start = False
         self.winner = None
         self.state_deque = copy.deepcopy(state_deque_init)
+        self.last_move = -1  # 添加缺失的属性
+        self.kill_action = 0  # 添加缺失的属性
 
     # 初始化棋盘的方法
     def init_board(self, start_player=1):  # 传入先手玩家的id
@@ -832,7 +838,7 @@ class Board(object):
         if state_list[end_y][end_x] != '一一':
             # 如果吃掉对方的帅，则返回当前的current_player胜利
             self.kill_action = 0
-            if self.current_player_color == '黑' and '红汉' in state_list[end_y][end_x]:
+            if self.current_player_color == '黑' and '红漢' in state_list[end_y][end_x]:
                 self.winner = self.color2id['黑']
             elif self.current_player_color == '红' and '黑汗' in state_list[end_y][end_x]:
                 self.winner = self.color2id['红']
@@ -956,6 +962,169 @@ class Game(object):
                 return winner, zip(states, mcts_probs, winner_z)
 
 
+# 匈汉象棋规则适配器 - 适配MCTS与游戏本体的规则
+class XiangHanChessRuleAdapter:
+    """匈汉象棋规则适配器，用于将游戏本体的规则适配到MCTS中"""
+    
+    def __init__(self):
+        """初始化规则适配器"""
+        # 特殊规则设置，从游戏配置中获取
+        from program.config.config import game_config
+        self.king_can_leave_palace = game_config.get_setting("king_can_leave_palace", True)  # 汉/汗是否可以出九宫
+        self.king_lose_diagonal_outside_palace = game_config.get_setting("king_lose_diagonal_outside_palace", True)  # 汉/汗出九宫后是否失去斜走能力
+        self.king_can_diagonal_in_palace = game_config.get_setting("king_can_diagonal_in_palace", True)  # 汉/汗在九宫内是否可以斜走
+        self.shi_can_leave_palace = game_config.get_setting("shi_can_leave_palace", True)  # 士是否可以出九宫
+        self.shi_gain_straight_outside_palace = game_config.get_setting("shi_gain_straight_outside_palace", True)  # 士出九宫后是否获得直走能力
+        self.xiang_can_cross_river = game_config.get_setting("xiang_can_cross_river", True)  # 相是否可以过河
+        self.xiang_gain_jump_two_outside_river = game_config.get_setting("xiang_gain_jump_two_outside_river", True)  # 相过河后是否获得隔两格吃子能力
+        self.ma_can_straight_three = game_config.get_setting("ma_can_straight_three", True)  # 马是否可以获得直走三格的能力
+
+    def adapt_state_to_mcts(self, game_state):
+        """将游戏本体的GameState适配为MCTS的Board状态
+        
+        Args:
+            game_state: 游戏本体的GameState对象
+            
+        Returns:
+            Board: MCTS的Board对象
+        """
+        # 创建MCTS Board实例
+        mcts_board = Board()
+        
+        # 将游戏状态复制到MCTS Board
+        # 首先清空MCTS Board的初始状态
+        mcts_board.state_list = [['一一' for _ in range(13)] for _ in range(13)]
+        
+        # 将游戏本体的棋子复制到MCTS棋盘
+        for piece in game_state.pieces:
+            # 转换棋子名称
+            mcts_name = self._convert_piece_name(piece.name, piece.color)
+            mcts_board.state_list[piece.row][piece.col] = mcts_name
+        
+        # 设置当前玩家颜色
+        mcts_board.current_player_color = '红' if game_state.player_turn == 'red' else '黑'
+        
+        # 设置玩家ID
+        mcts_board.current_player_id = 1 if game_state.player_turn == 'red' else 2
+        
+        # 设置游戏状态
+        mcts_board.game_start = True
+        mcts_board.winner = None
+        mcts_board.action_count = getattr(game_state, 'moves_count', 0)
+        
+        # 更新state_deque
+        from collections import deque
+        mcts_board.state_deque = deque(maxlen=4)
+        for _ in range(4):
+            # 添加当前状态的副本
+            current_state_copy = [['一一' for _ in range(13)] for _ in range(13)]
+            for piece in game_state.pieces:
+                mcts_name = self._convert_piece_name(piece.name, piece.color)
+                current_state_copy[piece.row][piece.col] = mcts_name
+            mcts_board.state_deque.append(current_state_copy)
+        
+        return mcts_board
+
+    def adapt_move_to_game_format(self, mcts_move, game_state):
+        """将MCTS的移动适配为游戏本体的格式
+        
+        Args:
+            mcts_move: MCTS返回的移动ID
+            game_state: 当前游戏状态用于验证
+            
+        Returns:
+            tuple: ((from_row, from_col), (to_row, to_col))
+        """
+        if mcts_move not in move_id2move_action:
+            print(f"Invalid MCTS move ID: {mcts_move}")
+            return self._get_random_valid_move(game_state)
+        
+        move_str = move_id2move_action[mcts_move]
+        
+        # 解析移动字符串 '00000101' -> (from_y, from_x, to_y, to_x)
+        from_y = int(move_str[0:2])
+        from_x = int(move_str[2:4])
+        to_y = int(move_str[4:6])
+        to_x = int(move_str[6:8])
+        
+        return ((from_y, from_x), (to_y, to_x))
+    
+    def _convert_piece_name(self, game_piece_name, color):
+        """将游戏本体的棋子名称转换为MCTS格式"""
+        # 创建从游戏本体棋子名称到MCTS棋子名称的映射
+        game_to_mcts_name_map = {
+            # 红方棋子
+            "漢": "红漢", "仕": "红仕", "相": "红相", "俥": "红俥",
+            "傌": "红傌", "炮": "红炮", "兵": "红兵", "射": "红射", 
+            "檑": "红檑", "巡": "红巡",
+            # 黑方棋子
+            "汗": "黑汗", "士": "黑士", "象": "黑象", "車": "黑車", 
+            "砲": "黑砲", "卒": "黑卒", "䠶": "黑䠶", 
+            "礌": "黑礌", "廵": "黑廵",
+        }
+        
+        # 首先尝试直接映射
+        if game_piece_name in game_to_mcts_name_map:
+            return game_to_mcts_name_map[game_piece_name]
+        
+        # 如果是红方，添加"红"前缀
+        if color == "red":
+            return f"红{game_piece_name}"
+        # 如果是黑方，添加"黑"前缀
+        elif color == "black":
+            return f"黑{game_piece_name}"
+        
+        return f"红{game_piece_name}"  # 默认为红方
+
+    def _get_random_valid_move(self, game_state):
+        """获取一个随机的有效移动
+        
+        Args:
+            game_state: GameState对象，表示当前棋盘状态
+            
+        Returns:
+            tuple: ((from_row, from_col), (to_row, to_col)) 表示移动的起点和终点
+        """
+        import random
+        from program.utils import tools
+        # 获取所有有效移动
+        valid_moves = tools.get_valid_moves(game_state, game_state.player_turn)
+        if valid_moves:
+            return random.choice(valid_moves)
+        return None
+
+    def validate_move(self, game_state, from_pos, to_pos):
+        """验证移动是否符合匈汉象棋的规则
+        
+        Args:
+            game_state: 游戏状态
+            from_pos: 起始位置 (row, col)
+            to_pos: 目标位置 (row, col)
+            
+        Returns:
+            bool: 移动是否合法
+        """
+        from_row, from_col = from_pos
+        to_row, to_col = to_pos
+        
+        # 检查边界
+        if not (0 <= from_row < 13 and 0 <= from_col < 13 and 0 <= to_row < 13 and 0 <= to_col < 13):
+            return False
+        
+        # 获取棋子
+        piece = game_state.get_piece_at(from_row, from_col)
+        if not piece:
+            return False
+        
+        # 检查是否是当前玩家的棋子
+        if piece.color != game_state.player_turn:
+            return False
+        
+        # 使用游戏规则验证移动
+        from program.core.game_rules import GameRules
+        return GameRules.is_valid_move(game_state.pieces, piece, from_row, from_col, to_row, to_col)
+
+
 if __name__ == '__main__':
 
     # 测试array2string
@@ -998,20 +1167,3 @@ if __name__ == '__main__':
     #
     # class Human2:
     #     def get_action(self, board):
-    #         # print('当前是player2在操作')
-    #         # print(board.current_player_color)
-    #         # move = move_action2move_id[input('请输入')]
-    #         move = random.choice(board.availables)
-    #         return move
-    #
-    #     def set_player_ind(self, p):
-    #         self.player = p
-    #
-    #
-    # human1 = Human1()
-    # human2 = Human2()
-    # game = Game(board=Board())
-    # for i in range(20):
-    #     game.start_play(human1, human2, start_player=2, is_shown=0)
-    # board = Board()
-    # board.init_board()

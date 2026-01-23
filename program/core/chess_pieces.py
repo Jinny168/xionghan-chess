@@ -95,11 +95,11 @@ class Shi(ChessPiece):
 
 
 class King(ChessPiece):
-    """将/帅/汉/汗"""
+    """漢/汗"""
 
     def __init__(self, color, row, col):
-        # 匈汉象棋中黑方为"汗"，红方为"汉"
-        name = "汗" if color == "black" else "汉"
+        # 匈汉象棋中黑方为"汗"，红方为"漢"
+        name = "汗" if color == "black" else "漢"
         super().__init__(color, name, row, col)
 
 
@@ -152,18 +152,18 @@ class Jia(ChessPiece):
 
 
 class Ci(ChessPiece):
-    """刺"""
+    """刺/伺"""
 
     def __init__(self, color, row, col):
-        name = "刺" if color == "black" else "刺"
+        name = "伺" if color == "black" else "刺"
         super().__init__(color, name, row, col)
 
 
 class Dun(ChessPiece):
-    """盾"""
+    """楯/碷"""
 
     def __init__(self, color, row, col):
-        name = "盾" if color == "black" else "盾"
+        name = "碷" if color == "black" else "楯"
         super().__init__(color, name, row, col)
 
 
@@ -260,7 +260,7 @@ def create_initial_pieces():
     for piece_class, row, col in black_pieces_config:
         # 在经典模式下，只包含特定棋子
         if classic_mode:
-            # 经典模式只包含车、马、相、士、汉、炮、兵，以及新增的射、檑、巡
+            # 经典模式只包含车、马、相、士、漢、炮、兵，以及新增的射、檑、巡
             if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei, Xun]:
                 pieces.append(piece_class("black", row, col))
         else:

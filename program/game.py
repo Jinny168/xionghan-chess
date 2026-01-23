@@ -6,10 +6,10 @@ from program.config.config import game_config
 from program.controllers.input_handler import input_handler
 from program.core.game_rules import GameRules
 from program.core.game_state import GameState
-from program.ui.dialogs import PopupDialog, ConfirmDialog, AudioSettingsDialog, StatisticsDialog
+from program.ui.dialogs import PopupDialog, AudioSettingsDialog, StatisticsDialog
 from program.ui.game_screen import GameScreen
 from program.utils import tools
-
+from program.controllers.sound_manager import SoundManager
 # 初始化PyGame
 pygame.init()
 pygame.mixer.init()  # 初始化音频模块
@@ -118,14 +118,14 @@ class ChessGame:
             self.sound_manager.play_sound('warn')  # 使用将军语音
             try:
                 self.sound_manager.play_sound('check')  # 播放旧版音效
-            except:
+            except (AttributeError, Exception):
                 pass
         elif self.game_state.is_check:
             # 普通将军情况，播放将军音效
             self.sound_manager.play_sound('warn')# 使用将军语音
             try:
                 self.sound_manager.play_sound('capture')  # 播放旧版音效
-            except:
+            except (AttributeError, Exception):
                 pass
         # 检查是否有棋子被吃掉
         elif captured_piece:
@@ -190,21 +190,9 @@ class ChessGame:
 
     def toggle_fullscreen(self):
         """切换全屏模式"""
-        self.is_fullscreen = not self.is_fullscreen
-
-        if self.is_fullscreen:
-            # 获取显示器信息
-            info = pygame.display.Info()
-            # 保存窗口模式的尺寸
-            self.windowed_size = (self.window_width, self.window_height)
-            # 切换到全屏模式
-            self.screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-            self.window_width = info.current_w
-            self.window_height = info.current_h
-        else:
-            # 恢复窗口模式
-            self.window_width, self.window_height = self.windowed_size
-            self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        # 使用通用的全屏切换函数
+        self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
+            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
 
         # 更新界面布局
         self.game_screen.update_layout()
@@ -379,7 +367,7 @@ class ChessGame:
                     # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
                     continue  # 跳过后续的事件处理，防止同时处理其他操作
                 # 如果游戏结束，处理弹窗事件
-                elif self.game_state.game_over and self.popup:
+                elif self.game_state.game_over and self.popup is not None:
                     result = self.popup.handle_event(event, mouse_pos)
                     if result == "restart":
                         # 在重置游戏之前停止背景音乐
@@ -421,7 +409,7 @@ class ChessGame:
                             continue  # 菜单事件已处理，跳过后续处理
 
                         # 检查是否点击了操作面板
-                        op_result = self.game_screen.handle_operation_panel_events(event, mouse_pos, self, self.game_state)
+                        op_result = self.game_screen.handle_operation_panel_events(event, mouse_pos, self)
                         if op_result == "handled":
                             continue  # 操作面板事件已处理，跳过后续处理
 
@@ -432,12 +420,6 @@ class ChessGame:
                         elif self.game_screen.audio_settings_button and self.game_screen.audio_settings_button.is_clicked(mouse_pos, event):
                             # 打开音效设置对话框
                             self.audio_settings_dialog = AudioSettingsDialog(600, 400, self.sound_manager)
-                        # 检查是否点击了返回按钮 - 从菜单中调用，不再使用独立按钮
-                        # 检查是否点击了退出游戏按钮 - 从菜单中调用，不再使用独立按钮
-                        # 检查是否点击了重新开始按钮 - 从菜单中调用，不再使用独立按钮
-                        # 检查是否点击了悔棋按钮 - 从菜单中调用，不再使用独立按钮
-                        # 检查是否点击了导入棋局按钮 - 从菜单中调用，不再使用独立按钮
-                        # 检查是否点击了导出棋局按钮 - 从菜单中调用，不再使用独立按钮
                         # 处理棋子操作
                         elif self._should_handle_player_input():  # 统一判断是否应该处理玩家输入
                             input_handler.handle_click(self,mouse_pos)
@@ -472,7 +454,7 @@ class ChessGame:
             else:
                 self.game_screen.draw(self.screen, self.game_state, self.last_move, self.last_move_notation, 
                                      self.popup, self.confirm_dialog, self.pawn_resurrection_dialog, 
-                                     self.promotion_dialog, self.audio_settings_dialog, self.ai_manager.ai_thinking)
+                                     self.promotion_dialog, self.audio_settings_dialog)
             
             # 如果有统计数据对话框，绘制它
             if self.stats_dialog:
@@ -536,15 +518,9 @@ class ChessGame:
             self.last_move_notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
         # 播放音效
         if target_piece:
-            try:
-                self.sound_manager.play_sound('eat')
-            except:
-                pass
+            self.sound_manager.play_sound('eat')
         else:
-            try:
-                self.sound_manager.play_sound('drop')
-            except:
-                pass
+            self.sound_manager.play_sound('drop')
         # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
 
         tools.check_sound_play(self)
@@ -602,4 +578,3 @@ class ChessGame:
         """检查AI是否正在思考"""
         return self.ai_manager.ai_thinking
 
-from program.controllers.sound_manager import SoundManager

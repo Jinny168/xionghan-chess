@@ -1,7 +1,13 @@
 """复盘界面，用于控制棋局复盘过程"""
 import pygame
 
+from program.config.config import (
+    LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO,
+    PANEL_BORDER, BLACK, RED, BACKGROUND_COLOR, PANEL_COLOR
+)
+from program.ui.avatar import Avatar
 from program.ui.button import Button
+from program.ui.chess_board import ChessBoard
 from program.utils.utils import load_font, draw_background
 
 
@@ -18,27 +24,34 @@ class ReplayScreen:
         self.game_state = game_state
         self.controller = replay_controller
         
+        # 获取屏幕尺寸
+        info = pygame.display.Info()
+        self.screen_width = info.current_w
+        self.screen_height = info.current_h
+        
+        # 左侧面板宽度
+        self.left_panel_width = int(LEFT_PANEL_WIDTH_RATIO * self.screen_width)
+        self.board_margin_top = int(BOARD_MARGIN_TOP_RATIO * self.screen_height)
+        
         # 初始化界面元素
         self.init_ui_elements()
+        self.create_avatars()
         
         # 标志位
         self.running = True
     
     def init_ui_elements(self):
         """初始化界面元素"""
-        # 获取屏幕尺寸
-        info = pygame.display.Info()
-        screen_width, screen_height = info.current_w, info.current_h
-        
         # 按钮尺寸和间距
         button_width = 100
         button_height = 40
         button_spacing = 10
         
         # 计算按钮区域总宽度
-        total_buttons_width = 5 * button_width + 4 * button_spacing  # 增加了一个按钮
-        start_x = (screen_width - total_buttons_width) // 2
-        button_y = screen_height - 120  # 距离底部一定距离
+        total_buttons_width = 5 * button_width + 4 * button_spacing
+        # 将按钮放在屏幕底部中央，但要避开左侧面板
+        start_x = self.left_panel_width + (self.screen_width - self.left_panel_width - total_buttons_width) // 2
+        button_y = self.screen_height - 100  # 距离底部一定距离
         
         # 创建控制按钮
         self.beginning_button = Button(
@@ -64,6 +77,17 @@ class ReplayScreen:
         self.progress_bar_width = total_buttons_width
         self.progress_bar_height = 15
         self.dragging_progress = False  # 是否正在拖拽进度条
+    
+    def create_avatars(self):
+        """创建玩家头像"""
+        avatar_radius = 40
+        panel_center_x = self.left_panel_width // 2
+        black_y = self.screen_height // 3 - 50
+        red_y = self.screen_height * 2 // 3
+
+        # 创建头像
+        self.black_avatar = Avatar(panel_center_x, black_y, avatar_radius, (245, 245, 235), "黑方", False)
+        self.red_avatar = Avatar(panel_center_x, red_y, avatar_radius, (255, 255, 240), "红方", True)
     
     def handle_events(self, events):
         """处理事件
@@ -122,11 +146,22 @@ class ReplayScreen:
         Args:
             screen: pygame屏幕对象
         """
-        # 绘制背景
-        draw_background(screen)
+        # 绘制背景和左侧边栏
+        self._draw_background_and_side_panel(screen)
         
-        # 绘制棋盘（使用游戏状态）
+        # 绘制棋盘（使用游戏主界面的棋盘绘制方式）
         self.draw_board(screen)
+        
+        # 绘制玩家头像
+        self.red_avatar.draw(screen)
+        self.black_avatar.draw(screen)
+        
+        # 在左侧面板中添加VS标志
+        vs_font = load_font(36, bold=True)
+        vs_text = "VS"
+        vs_surface = vs_font.render(vs_text, True, (100, 100, 100))
+        vs_rect = vs_surface.get_rect(center=(self.left_panel_width // 2, self.screen_height // 2))
+        screen.blit(vs_surface, vs_rect)
         
         # 绘制控制按钮
         self.beginning_button.draw(screen)
@@ -141,66 +176,36 @@ class ReplayScreen:
         # 绘制步骤信息
         self.draw_step_info(screen)
     
+    def _draw_background_and_side_panel(self, screen):
+        """绘制背景和左侧边栏"""
+        # 使用统一的背景绘制函数
+        draw_background(screen)
+        
+        # 绘制左侧面板背景
+        left_panel_surface = pygame.Surface((self.left_panel_width, self.screen_height))
+        left_panel_surface.fill(PANEL_COLOR)
+        screen.blit(left_panel_surface, (0, 0))
+        
+        # 添加分隔线
+        pygame.draw.line(screen, PANEL_BORDER, (self.left_panel_width, 0),
+                         (self.left_panel_width, self.screen_height), 2)
+    
     def draw_board(self, screen):
-        """绘制棋盘（使用现有的棋盘绘制逻辑）"""
-        # 获取屏幕尺寸
-        screen_width, screen_height = screen.get_size()
-        
-        # 计算棋盘尺寸和位置
-        board_size = min(screen_width * 0.8, screen_height * 0.8)
-        board_x = (screen_width - board_size) // 2
-        board_y = 100  # 距离顶部一定距离
-        
-        # 计算每个格子的尺寸
-        grid_size = board_size / 12  # 12个间隔，因为是13x13的棋盘
-        
-        # 绘制棋盘网格
-        line_color = (0, 0, 0)  # 黑色线条
-        
-        # 绘制垂直线
-        for i in range(13):
-            start_pos = (int(board_x + i * grid_size), int(board_y))
-            end_pos = (int(board_x + i * grid_size), int(board_y + 12 * grid_size))
-            pygame.draw.line(screen, line_color, start_pos, end_pos, 1)
-        
-        # 绘制水平线
-        for i in range(13):
-            start_pos = (int(board_x), int(board_y + i * grid_size))
-            end_pos = (int(board_x + 12 * grid_size), int(board_y + i * grid_size))
-            pygame.draw.line(screen, line_color, start_pos, end_pos, 1)
-        
-        # 绘制特殊标记线（如楚河汉界等）
-        # 绘制"楚河汉界"区域
-        mid_x = board_x + 6 * grid_size
-        pygame.draw.line(screen, line_color, (int(mid_x), int(board_y)), 
-                         (int(mid_x), int(board_y + 12 * grid_size)), 1)
-        
-        # 在楚河汉界中间添加文字
-        font = load_font(int(grid_size * 0.4))
-        if font:
-            river_text = font.render("楚 河 汉 界", True, (0, 0, 0))
-            river_rect = river_text.get_rect(center=(int(mid_x), int(board_y + 6 * grid_size)))
-            screen.blit(river_text, river_rect)
-        
-        # 绘制棋子
-        for piece in self.game_state.pieces:
-            row, col = piece.row, piece.col
-            center_x = int(board_x + col * grid_size)
-            center_y = int(board_y + row * grid_size)
-            
-            # 根据棋子颜色设置颜色
-            color = (255, 0, 0) if piece.color == "red" else (0, 0, 0)  # 红色或黑色
-            
-            # 绘制棋子圆形
-            pygame.draw.circle(screen, (240, 240, 240), (center_x, center_y), int(grid_size * 0.4))
-            pygame.draw.circle(screen, color, (center_x, center_y), int(grid_size * 0.4), 2)
-            
-            # 绘制棋子文字
-            font = load_font(int(grid_size * 0.3))
-            if font:
-                text_surface = font.render(piece.name, True, color if piece.color == "red" else (255, 255, 255))
-                text_rect = text_surface.get_rect(center=(center_x, center_y))
-                screen.blit(text_surface, text_rect)
+        """绘制棋盘（使用游戏主界面的棋盘绘制逻辑）"""
+        # 计算棋盘尺寸和位置 - 适应复盘界面
+        board_width = self.screen_width - self.left_panel_width - 100  # 减去左边距和右边距
+        board_height = min(board_width, self.screen_height - 100)  # 限制高度，避免超出屏幕
+        board_x = self.left_panel_width + 50  # 从左侧面板右侧开始
+        board_y = 50  # 顶部边距
+
+        # 创建ChessBoard实例并绘制
+        temp_board = ChessBoard(board_width, self.screen_height, board_x, board_y)
+        # 安全地传递game_state，如果它有必要的方法则传递，否则只传递pieces
+        if hasattr(self.game_state, 'get_resurrection_positions'):
+            temp_board.draw(screen, self.game_state.pieces, self.game_state)
+        else:
+            # 如果game_state不包含所需方法，只传递pieces，不绘制复活标记
+            temp_board.draw(screen, self.game_state.pieces)
     
     def draw_progress_bar(self, screen):
         """绘制进度条"""
@@ -233,7 +238,7 @@ class ReplayScreen:
             # 显示当前步骤和总步骤
             step_text = f"步骤: {self.controller.current_step} / {self.controller.max_steps}"
             text_surface = font.render(step_text, True, (0, 0, 0))
-            screen.blit(text_surface, (screen.get_width() // 2 - text_surface.get_width() // 2, 
+            screen.blit(text_surface, (self.screen_width // 2 - text_surface.get_width() // 2, 
                                       self.progress_bar_y - 30))
     
     def run(self):

@@ -29,6 +29,38 @@ class SettingsScreen:
 
     def __init__(self):
         # 棋子设置配置 - 按棋子类型组织
+        self.ma_straight_checkbox = None
+        self.xiang_jump_checkbox = None
+        self.king_palace_checkbox = None
+        self.shi_straight_checkbox = None
+        self.xiang_cross_checkbox = None
+        self.ci_appear_checkbox = None
+        self.shi_palace_checkbox = None
+        self.king_diagonal_in_palace_checkbox = None
+        self.king_diagonal_checkbox = None
+        self.dun_appear_checkbox = None
+        self.lei_appear_checkbox = None
+        self.jia_appear_checkbox = None
+        self.she_appear_checkbox = None
+        self.wei_appear_checkbox = None
+        self.pawn_appear_checkbox = None
+        self.pao_appear_checkbox = None
+        self.ju_appear_checkbox = None
+        self.ma_appear_checkbox = None
+        self.xiang_appear_checkbox = None
+        self.shi_appear_checkbox = None
+        self.king_appear_checkbox = None
+        
+        # 字体设置
+        self.option_font = None
+        self.desc_font = None
+        
+        # 分类布局相关属性
+        self.category_padding = None
+        self.category_bg_color = None
+        self.category_border_color = None
+        self.category_title_height = None
+        self.category_icon_size = None
         self.piece_settings = {
             # 汗/汗设置
             "king": {
@@ -171,6 +203,14 @@ class SettingsScreen:
             }
         }
 
+        # AI算法设置
+        self.ai_settings = {
+            "ai_algorithm": game_config.get_setting("ai_algorithm", "negamax"),          # AI算法选择，从全局配置加载
+            "section_title": (0.0, 0),  # 初始化为默认坐标
+            "algorithm_radio_buttons": {},  # 存储算法选择的单选按钮
+            "algorithm_labels": {},       # 存储算法标签
+        }
+
         # 按钮
         self.confirm_button = None
         self.back_button = None
@@ -184,7 +224,7 @@ class SettingsScreen:
         self.category_background_color = (230, 230, 230)  # 分类背景色
         self.category_border_color = (180, 180, 180)  # 分类边框色
         self.category_padding = 15  # 分类内边距
-        self.category_spacing = 20  # 分类间间距
+        self.category_spacing = 20  # 分类间距
         self.category_title_height = 40  # 分类标题高度
         self.category_title_font = load_font(20, bold=True)  # 分类标题字体
         self.category_icon_radius = 15  # 分类图标半径
@@ -199,6 +239,14 @@ class SettingsScreen:
         self.scroll_bar = ScrollBar(self.window_width - 20, 100, 15, self.window_height - 200, 1200)
 
         # 从全局配置中加载设置
+        self.load_settings()
+
+        # 创建界面元素
+        self.create_ui_elements()
+        
+        # 初始化滚动
+        self.update_max_scroll()
+
         self.load_settings()
 
         # 创建界面元素
@@ -251,7 +299,6 @@ class SettingsScreen:
     def create_ui_elements(self):
         """创建界面元素，按棋子类型进行分类"""
         # 标题字体
-        self.title_font = load_font(48)
         self.option_font = load_font(18)  # 减小字体
         self.desc_font = load_font(14)  # 减小描述字体
 
@@ -403,6 +450,19 @@ class SettingsScreen:
         self.piece_settings["game_mode"]["classic_checkbox"] = pygame.Rect(checkbox_x, y_pos, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
         self.piece_settings["game_mode"]["classic_label"] = (label_x, y_pos)
         y_pos += option_spacing + section_spacing
+        
+        # AI算法设置区域
+        # AI算法分类标题
+        self.ai_settings["section_title"] = (left_col_x, y_pos - 10)
+        y_pos += 30  # 为标题留出空间
+        
+        # 创建AI算法选择单选按钮
+        available_algorithms = ["negamax", "minimax", "alpha-beta", "mcts"]  # 包含MCTS选项
+        for i, alg in enumerate(available_algorithms):
+            checkbox_y = y_pos + i * option_spacing
+            self.ai_settings["algorithm_radio_buttons"][alg] = pygame.Rect(checkbox_x, checkbox_y, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
+            self.ai_settings["algorithm_labels"][alg] = (label_x, checkbox_y)
+        y_pos += len(available_algorithms) * option_spacing + section_spacing
 
         # 确认按钮 & 返回按钮（位于界面底部，不受滚动影响）
         confirm_y = self.window_height - 80
@@ -428,35 +488,25 @@ class SettingsScreen:
         )
 
     def draw(self):
-        """绘制设置界面（按棋子类型分类）"""
-        # 绘制背景
+        """绘制界面"""
         self.screen.fill(BACKGROUND_COLOR)
 
-        # 绘制标题
-        title_surface = self.title_font.render("自定义设置", True, BLACK)
-        title_rect = title_surface.get_rect(center=(self.window_width // 2, 80))
-        self.screen.blit(title_surface, title_rect)
+        # 设置裁剪区域
+        self.screen.set_clip(pygame.Rect(0, 0, self.window_width, self.window_height - 100))
 
-        # 设置可视区域裁剪，实现滚动效果
-        scroll_area_rect = pygame.Rect(30, 100, self.window_width - 50, self.window_height - 180)
-        self.screen.set_clip(scroll_area_rect)
-        
-        # 使用模块化方式绘制各个棋子分类
-        y_offset = 150  # 初始Y坐标
-        
         # 汉/汗棋子分类
-        king_items = self.create_king_items(y_offset)
+        king_items = self.create_king_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
             self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
             self.option_font, self.desc_font, self.draw_piece_icon,
-            "将", "汉/汗", king_items, y_offset
+            "将", "汉/汗", king_items, 150
         )
-        y_offset = y_offset + category_height + self.category_spacing
+        y_offset = 150 + category_height + self.category_spacing
         
         # 士棋子分类
-        shi_items = self.create_shi_items(y_offset)
+        shi_items = self.create_shi_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -467,7 +517,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 相棋子分类
-        xiang_items = self.create_xiang_items(y_offset)
+        xiang_items = self.create_xiang_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -478,7 +528,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 马棋子分类
-        ma_items = self.create_ma_items(y_offset)
+        ma_items = self.create_ma_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -489,7 +539,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 車棋子分类
-        ju_items = self.create_ju_items(y_offset)
+        ju_items = self.create_ju_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -500,7 +550,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 炮棋子分类
-        pao_items = self.create_pao_items(y_offset)
+        pao_items = self.create_pao_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -511,7 +561,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 兵/卒棋子分类
-        pawn_items = self.create_pawn_items(y_offset)
+        pawn_items = self.create_pawn_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -522,7 +572,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 尉棋子分类
-        wei_items = self.create_wei_items(y_offset)
+        wei_items = self.create_wei_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -533,7 +583,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 射棋子分类
-        she_items = self.create_she_items(y_offset)
+        she_items = self.create_she_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -544,7 +594,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 檵/檑棋子分类
-        lei_items = self.create_lei_items(y_offset)
+        lei_items = self.create_lei_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -555,7 +605,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 甲棋子分类
-        jia_items = self.create_jia_items(y_offset)
+        jia_items = self.create_jia_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -566,7 +616,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 刺棋子分类
-        ci_items = self.create_ci_items(y_offset)
+        ci_items = self.create_ci_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -577,7 +627,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 盾棋子分类
-        dun_items = self.create_dun_items(y_offset)
+        dun_items = self.create_dun_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -588,7 +638,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 巡棋子分类
-        xun_items = self.create_xun_items(y_offset)
+        xun_items = self.create_xun_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -599,7 +649,7 @@ class SettingsScreen:
         y_offset = y_offset + category_height + self.category_spacing
         
         # 游戏模式分类
-        game_mode_items = self.create_game_mode_items(y_offset)
+        game_mode_items = self.create_game_mode_items()
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
@@ -608,6 +658,17 @@ class SettingsScreen:
             "模", "游戏模式", game_mode_items, y_offset
         )
         y_offset = y_offset + category_height + self.category_spacing
+
+        # AI算法分类
+        ai_items = self.create_ai_items()
+        draw_category(
+            self.screen, self.category_background_color, self.category_border_color,
+            self.category_padding, self.category_title_height, self.category_title_font,
+            self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
+            self.option_font, self.desc_font, self.draw_piece_icon,
+            "A", "AI算法", ai_items, y_offset
+        )
+        # y_offset = y_offset + category_height + self.category_spacing  # 最终值未被使用
 
         # 取消裁剪区域
         self.screen.set_clip(None)
@@ -619,20 +680,27 @@ class SettingsScreen:
         self.confirm_button.draw(self.screen)
         self.back_button.draw(self.screen)
 
-    def handle_event(self, event, mouse_pos):
-        """处理事件（考虑滚动位置）"""
+    def handle_event(self, event):
+        """处理事件"""
         if event.type == pygame.MOUSEBUTTONDOWN:
-            # 考虑滚动位置调整鼠标坐标用于检测
+            # 检查滚动条点击 - 使用正确的事件处理方式
+            mouse_pos = event.pos
+            if (self.scroll_bar.x <= mouse_pos[0] <= self.scroll_bar.x + self.scroll_bar.width and 
+                self.scroll_bar.y <= mouse_pos[1] <= self.scroll_bar.y + self.scroll_bar.height):
+                self.dragging_scroll = True
+                # 让滚动条自己处理事件
+                self.scroll_bar.handle_event(event, mouse_pos)
+                return
+
+            # 检查分类中的点击事件
+            mouse_pos = event.pos
             adjusted_mouse_pos = (mouse_pos[0], mouse_pos[1] + self.scroll_y)
-            
-            # 检查复选框点击 - 使用实际绘制位置
-            y_offset = 150  # 初始Y坐标，与draw方法中的一致
-            
+
             # 汉/汗棋子分类
-            king_items = self.create_king_items(y_offset)
-            clicked_item = self.check_category_click(king_items, adjusted_mouse_pos, y_offset)
+            king_items = self.create_king_items()
+            clicked_item = self.check_category_click(king_items, adjusted_mouse_pos, 150)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "汉/汗可以出九宫":
                     self.piece_settings["king"]["can_leave_palace"] = not self.piece_settings["king"]["can_leave_palace"]
                 elif text == "汉/汗出九宫后失去斜走能力":
@@ -644,15 +712,14 @@ class SettingsScreen:
                     pass
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(king_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = 150 + len(king_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 士棋子分类
-            shi_items = self.create_shi_items(y_offset)
-            clicked_item = self.check_category_click(shi_items, adjusted_mouse_pos, y_offset)
+            shi_items = self.create_shi_items()
+            clicked_item = self.check_category_click(shi_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "士可以出九宫":
                     self.piece_settings["shi"]["can_leave_palace"] = not self.piece_settings["shi"]["can_leave_palace"]
                 elif text == "士出九宫后获得直走能力":
@@ -661,15 +728,14 @@ class SettingsScreen:
                     self.piece_settings["shi"]["appear"] = not self.piece_settings["shi"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(shi_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(shi_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 相棋子分类
-            xiang_items = self.create_xiang_items(y_offset)
-            clicked_item = self.check_category_click(xiang_items, adjusted_mouse_pos, y_offset)
+            xiang_items = self.create_xiang_items()
+            clicked_item = self.check_category_click(xiang_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "相可以过河":
                     self.piece_settings["xiang"]["can_cross_river"] = not self.piece_settings["xiang"]["can_cross_river"]
                 elif text == "相过河后获得隔两格吃子能力":
@@ -678,56 +744,52 @@ class SettingsScreen:
                     self.piece_settings["xiang"]["appear"] = not self.piece_settings["xiang"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(xiang_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(xiang_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 马棋子分类
-            ma_items = self.create_ma_items(y_offset)
-            clicked_item = self.check_category_click(ma_items, adjusted_mouse_pos, y_offset)
+            ma_items = self.create_ma_items()
+            clicked_item = self.check_category_click(ma_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "马可以获得直走三格的能力":
                     self.piece_settings["ma"]["can_straight_three"] = not self.piece_settings["ma"]["can_straight_three"]
                 elif text == "馬登场":
                     self.piece_settings["ma"]["appear"] = not self.piece_settings["ma"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(ma_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(ma_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 車棋子分类
-            ju_items = self.create_ju_items(y_offset)
-            clicked_item = self.check_category_click(ju_items, adjusted_mouse_pos, y_offset)
+            ju_items = self.create_ju_items()
+            clicked_item = self.check_category_click(ju_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "車登场":
                     self.piece_settings["ju"]["appear"] = not self.piece_settings["ju"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(ju_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(ju_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 炮棋子分类
-            pao_items = self.create_pao_items(y_offset)
-            clicked_item = self.check_category_click(pao_items, adjusted_mouse_pos, y_offset)
+            pao_items = self.create_pao_items()
+            clicked_item = self.check_category_click(pao_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "炮登场":
                     self.piece_settings["pao"]["appear"] = not self.piece_settings["pao"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(pao_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(pao_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 兵/卒棋子分类
-            pawn_items = self.create_pawn_items(y_offset)
-            clicked_item = self.check_category_click(pawn_items, adjusted_mouse_pos, y_offset)
+            pawn_items = self.create_pawn_items()
+            clicked_item = self.check_category_click(pawn_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "兵/卒登场":
                     self.piece_settings["pawn"]["appear"] = not self.piece_settings["pawn"]["appear"]
                 elif text == "兵/卒复活机制":
@@ -740,143 +802,149 @@ class SettingsScreen:
                     self.piece_settings["pawn"]["full_movement_at_base_enabled"] = not self.piece_settings["pawn"]["full_movement_at_base_enabled"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(pawn_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(pawn_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 尉棋子分类
-            wei_items = self.create_wei_items(y_offset)
-            clicked_item = self.check_category_click(wei_items, adjusted_mouse_pos, y_offset)
+            wei_items = self.create_wei_items()
+            clicked_item = self.check_category_click(wei_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "尉登场":
                     self.piece_settings["wei"]["appear"] = not self.piece_settings["wei"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(wei_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(wei_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 射棋子分类
-            she_items = self.create_she_items(y_offset)
-            clicked_item = self.check_category_click(she_items, adjusted_mouse_pos, y_offset)
+            she_items = self.create_she_items()
+            clicked_item = self.check_category_click(she_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "射登场":
                     self.piece_settings["she"]["appear"] = not self.piece_settings["she"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(she_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(she_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 檵/檑棋子分类
-            lei_items = self.create_lei_items(y_offset)
-            clicked_item = self.check_category_click(lei_items, adjusted_mouse_pos, y_offset)
+            lei_items = self.create_lei_items()
+            clicked_item = self.check_category_click(lei_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "檑登场":
                     self.piece_settings["lei"]["appear"] = not self.piece_settings["lei"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(lei_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(lei_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 甲棋子分类
-            jia_items = self.create_jia_items(y_offset)
-            clicked_item = self.check_category_click(jia_items, adjusted_mouse_pos, y_offset)
+            jia_items = self.create_jia_items()
+            clicked_item = self.check_category_click(jia_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "甲登场":
                     self.piece_settings["jia"]["appear"] = not self.piece_settings["jia"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(jia_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(jia_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 刺棋子分类
-            ci_items = self.create_ci_items(y_offset)
-            clicked_item = self.check_category_click(ci_items, adjusted_mouse_pos, y_offset)
+            ci_items = self.create_ci_items()
+            clicked_item = self.check_category_click(ci_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "刺登场":
                     self.piece_settings["ci"]["appear"] = not self.piece_settings["ci"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(ci_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(ci_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 盾棋子分类
-            dun_items = self.create_dun_items(y_offset)
-            clicked_item = self.check_category_click(dun_items, adjusted_mouse_pos, y_offset)
+            dun_items = self.create_dun_items()
+            clicked_item = self.check_category_click(dun_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "盾登场":
                     self.piece_settings["dun"]["appear"] = not self.piece_settings["dun"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(dun_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(dun_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 巡棋子分类
-            xun_items = self.create_xun_items(y_offset)
-            clicked_item = self.check_category_click(xun_items, adjusted_mouse_pos, y_offset)
+            xun_items = self.create_xun_items()
+            clicked_item = self.check_category_click(xun_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "巡登场":
                     self.piece_settings["xun"]["appear"] = not self.piece_settings["xun"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(xun_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(xun_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 游戏模式分类
-            game_mode_items = self.create_game_mode_items(y_offset)
-            clicked_item = self.check_category_click(game_mode_items, adjusted_mouse_pos, y_offset)
+            game_mode_items = self.create_game_mode_items()
+            clicked_item = self.check_category_click(game_mode_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "经典模式":
                     self.piece_settings["game_mode"]["classic_mode"] = not self.piece_settings["game_mode"]["classic_mode"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(game_mode_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(game_mode_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
+
+            # AI算法分类
+            ai_items = self.create_ai_items()
+            clicked_item = self.check_category_click(ai_items, adjusted_mouse_pos, next_y_pos)
+            if clicked_item is not None:
+                _, _, value, text, _, _ = clicked_item
+                # 根据文本内容识别是哪个算法选项
+                if "Negamax搜索算法" in text or "negamax" in text.lower():
+                    self.ai_settings["ai_algorithm"] = "negamax"
+                elif "Minimax搜索算法" in text or "minimax" in text.lower():
+                    self.ai_settings["ai_algorithm"] = "minimax"
+                elif "Alpha-Beta剪枝算法" in text or "alpha-beta" in text.lower():
+                    self.ai_settings["ai_algorithm"] = "alpha-beta"
+                elif "MCTS+神经网络算法" in text or "mcts" in text.lower():
+                    self.ai_settings["ai_algorithm"] = "mcts"
+                return  # 处理完后直接返回，避免其他检测
             
             # 检查按钮点击（按钮不受滚动影响）
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.confirm_button.is_clicked(mouse_pos, event):
+            if self.confirm_button.is_clicked(event.pos, event):
                 return "confirm"
-            elif self.back_button.is_clicked(mouse_pos, event):
+            elif self.back_button.is_clicked(event.pos, event):
                 return "back"
 
         # 更新按钮悬停状态（按钮不受滚动影响）
+        mouse_pos = pygame.mouse.get_pos()
         self.confirm_button.check_hover(mouse_pos)
         self.back_button.check_hover(mouse_pos)
 
         return None
 
     def check_category_click(self, items, mouse_pos, y_position):
-        """检查分类中的点击事件，与draw_category中的绘制逻辑保持一致"""
-        # 计算分类区域的尺寸
-        category_width = self.window_width - 100  # 留出边距
-        items_count = len(items)  # 该分类下的设置项数量
-        category_height = items_count * 60 + self.category_title_height + 2 * self.category_padding  # 包含标题高度和内边距
+        """检查分类中的点击事件"""
+        # 计算分类区域
+        category_width = self.window_width - 100  # 与draw_category中一致
+        category_rect = pygame.Rect(50, y_position, category_width, len(items) * 60 + self.category_title_height + 2 * self.category_padding)
         
-        # 分类区域矩形
-        category_rect = pygame.Rect(50, y_position - self.category_padding, category_width, category_height)
+        # 检查点击是否在分类区域内
+        if not category_rect.collidepoint(mouse_pos[0], mouse_pos[1]):
+            return None
         
         # 分类标题下方开始绘制内容
         item_y = y_position + self.category_title_height + self.category_padding
         
         for index, item in enumerate(items):
-            checkbox, label, value, text, desc, is_disabled = item
-            
+            # checkbox, label, value, text, desc, is_disabled = item
             # 计算每项的背景框
             item_rect = pygame.Rect(category_rect.left + 10, item_y - 5, category_rect.width - 20, 55)
             
@@ -926,26 +994,29 @@ class SettingsScreen:
             "lei_appear": self.piece_settings["lei"]["appear"],
             "jia_appear": self.piece_settings["jia"]["appear"],
             "ci_appear": self.piece_settings["ci"]["appear"],
-            "dun_appear": self.piece_settings["dun"]["appear"]
+            "dun_appear": self.piece_settings["dun"]["appear"],
+            # 添加游戏模式设置
+            "classic_mode": self.piece_settings["game_mode"]["classic_mode"],
+            # 添加AI算法设置
+            "ai_algorithm": self.ai_settings["ai_algorithm"]
         }
-
-        # 添加游戏模式设置
-        settings["classic_mode"] = self.piece_settings["game_mode"]["classic_mode"]
 
         # 保存设置到全局配置
         game_config.update_settings(settings)
 
         return settings
 
-    def draw_piece_icon(self, text, x, y, size=None):
-        """绘制棋子图标，类似Avatar的实现（修复问题5：完善字体兜底逻辑）"""
-        # 使用缓存避免重复创建Surface
-        icon_size = size or self.PIECE_RADIUS
-        cache_key = (text, icon_size)
+    def draw_piece_icon(self, text, x, y, size=None, icon_size=None):
+        """绘制棋子图标"""
+        # 设置默认图标大小
+        if icon_size is None:
+            icon_size = self.PIECE_RADIUS
+            
+        # 检查缓存中是否有此图标
+        cache_key = (text, size, icon_size)
         if cache_key in self._piece_icon_cache:
             circle_surface = self._piece_icon_cache[cache_key]
         else:
-            # 创建一个圆形背景
             radius = icon_size  # 小圆圈的半径
             circle_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
             pygame.draw.circle(circle_surface, self.PIECE_BG_COLOR, (radius, radius), radius)  # 白色背景
@@ -972,7 +1043,7 @@ class SettingsScreen:
         self.screen.blit(circle_surface, (x - icon_size, y - icon_size))
 
     def _draw_category(self, title, icon_text, items, y_pos):
-        """绘制棋子分类区域"""
+        """绘制棋子分类区域 - 这个方法已不再使用，保留是为了防止其他地方调用"""
         # 计算分类区域的尺寸
         category_width = self.window_width - 100  # 留出边距
         category_height = len(items) * 60 + self.category_title_height + 2 * self.category_padding  # 包含标题高度和内边距
@@ -1092,73 +1163,83 @@ class SettingsScreen:
         y_offset = 150  # 初始Y坐标，与draw方法中的一致
         
         # 汉/汗棋子分类
-        king_items = self.create_king_items(y_offset)
+        king_items = self.create_king_items()
         category_height = len(king_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 士棋子分类
-        shi_items = self.create_shi_items(y_offset)
+        shi_items = self.create_shi_items()
         category_height = len(shi_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 相棋子分类
-        xiang_items = self.create_xiang_items(y_offset)
+        xiang_items = self.create_xiang_items()
         category_height = len(xiang_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 马棋子分类
-        ma_items = self.create_ma_items(y_offset)
+        ma_items = self.create_ma_items()
         category_height = len(ma_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 車棋子分类
-        ju_items = self.create_ju_items(y_offset)
+        ju_items = self.create_ju_items()
         category_height = len(ju_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 炮棋子分类
-        pao_items = self.create_pao_items(y_offset)
+        pao_items = self.create_pao_items()
         category_height = len(pao_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 兵/卒棋子分类
-        pawn_items = self.create_pawn_items(y_offset)
+        pawn_items = self.create_pawn_items()
         category_height = len(pawn_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 尉棋子分类
-        wei_items = self.create_wei_items(y_offset)
+        wei_items = self.create_wei_items()
         category_height = len(wei_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 射棋子分类
-        she_items = self.create_she_items(y_offset)
+        she_items = self.create_she_items()
         category_height = len(she_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 檵/檑棋子分类
-        lei_items = self.create_lei_items(y_offset)
+        lei_items = self.create_lei_items()
         category_height = len(lei_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 甲棋子分类
-        jia_items = self.create_jia_items(y_offset)
+        jia_items = self.create_jia_items()
         category_height = len(jia_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 刺棋子分类
-        ci_items = self.create_ci_items(y_offset)
+        ci_items = self.create_ci_items()
         category_height = len(ci_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 盾棋子分类
-        dun_items = self.create_dun_items(y_offset)
+        dun_items = self.create_dun_items()
         category_height = len(dun_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         # 巡棋子分类
-        xun_items = self.create_xun_items(y_offset)
+        xun_items = self.create_xun_items()
         category_height = len(xun_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
+        # 游戏模式分类
+        game_mode_items = self.create_game_mode_items()
+        category_height = len(game_mode_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+
+        # AI算法分类
+        ai_items = self.create_ai_items()
+        category_height = len(ai_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
         total_height = y_offset  # 总高度就是最后一个分类的底部位置
@@ -1168,12 +1249,6 @@ class SettingsScreen:
         
         # 更新滚动条
         self.scroll_bar = ScrollBar(self.window_width - 20, 100, 15, self.window_height - 180, total_height)
-
-    def handle_scroll_event(self, event, mouse_pos):
-        """处理滚动事件"""
-        # 传递事件给滚动条
-        self.scroll_bar.handle_event(event, mouse_pos)
-        # 更新滚动位置
         self.scroll_y = self.scroll_bar.get_scroll_offset()
         
         # 限制滚动范围
@@ -1198,23 +1273,16 @@ class SettingsScreen:
                     # 重新计算滚动条
                     self.update_max_scroll()
 
-                # 处理滚动事件
-                if event.type == pygame.MOUSEWHEEL:
-                    # 处理鼠标滚轮
-                    self.scroll_y -= event.y * 30  # 滚动距离
-                    self.scroll_y = max(0, min(self.scroll_y, max(0, self.max_scroll)))
-                    # 同步更新滚动条位置
-                    self.scroll_bar.scroll_pos = self.scroll_y
-                    self.scroll_bar._update_slider_position()
-                elif event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION):
-                    self.handle_scroll_event(event, mouse_pos)
-                    # 更新滚动位置
-                    self.scroll_y = self.scroll_bar.get_scroll_offset()
-                    # 限制滚动范围
-                    self.scroll_y = max(0, min(self.scroll_y, max(0, self.max_scroll)))
+                # 处理滚动条事件
+                self.scroll_bar.handle_event(event, mouse_pos)
+                
+                # 更新滚动位置
+                self.scroll_y = self.scroll_bar.get_scroll_offset()
+                # 限制滚动范围
+                self.scroll_y = max(0, min(self.scroll_y, max(0, self.max_scroll)))
 
                 # 处理其他事件
-                result = self.handle_event(event, mouse_pos)
+                result = self.handle_event(event)
                 if result == "confirm":
                     # 保存设置并退出
                     self.get_settings()
@@ -1230,7 +1298,7 @@ class SettingsScreen:
 
         pygame.quit()
 
-    def create_king_items(self, y_offset):
+    def create_king_items(self):
         """创建汉/汗相关的设置项"""
         return [
             (self.piece_settings["king"]["palace_checkbox"], 
@@ -1259,7 +1327,7 @@ class SettingsScreen:
              True)  # 永远禁用
         ]
 
-    def create_shi_items(self, y_offset):
+    def create_shi_items(self):
         """创建士相关的设置项"""
         return [
             (self.piece_settings["shi"]["palace_checkbox"], 
@@ -1282,7 +1350,7 @@ class SettingsScreen:
              False)
         ]
 
-    def create_xiang_items(self, y_offset):
+    def create_xiang_items(self):
         """创建相相关的设置项"""
         return [
             (self.piece_settings["xiang"]["cross_checkbox"], 
@@ -1305,7 +1373,7 @@ class SettingsScreen:
              False)
         ]
 
-    def create_ma_items(self, y_offset):
+    def create_ma_items(self):
         """创建马相关的设置项"""
         return [
             (self.piece_settings["ma"]["straight_checkbox"], 
@@ -1322,7 +1390,7 @@ class SettingsScreen:
              False)
         ]
 
-    def create_ju_items(self, y_offset):
+    def create_ju_items(self):
         """创建車相关的设置项"""
         return [
             (self.piece_settings["ju"]["appear_checkbox"], 
@@ -1333,7 +1401,7 @@ class SettingsScreen:
              False)
         ]
 
-    def create_pao_items(self, y_offset):
+    def create_pao_items(self):
         """创建炮相关的设置项"""
         return [
             (self.piece_settings["pao"]["appear_checkbox"], 
@@ -1344,7 +1412,7 @@ class SettingsScreen:
              False)
         ]
 
-    def create_pawn_items(self, y_offset):
+    def create_pawn_items(self):
         """创建兵/卒相关的设置项"""
         return [
             (self.piece_settings["pawn"]["appear_checkbox"], 
@@ -1379,7 +1447,7 @@ class SettingsScreen:
              False)
         ]
 
-    def create_wei_items(self, y_offset):
+    def create_wei_items(self):
         """创建尉相关的设置项"""
         return [
             (self.piece_settings["wei"]["appear_checkbox"], 
@@ -1390,7 +1458,7 @@ class SettingsScreen:
              False)
         ]
 
-    def create_she_items(self, y_offset):
+    def create_she_items(self):
         """创建射相关的设置项"""
         return [
             (self.piece_settings["she"]["appear_checkbox"], 
@@ -1401,7 +1469,7 @@ class SettingsScreen:
              False)
         ]
 
-    def create_lei_items(self, y_offset):
+    def create_lei_items(self):
         """创建檑相关的设置项"""
         return [
             (self.piece_settings["lei"]["appear_checkbox"], 
@@ -1412,7 +1480,7 @@ class SettingsScreen:
              False)
         ]
 
-    def create_jia_items(self, y_offset):
+    def create_jia_items(self):
         """创建甲相关的设置项"""
         return [
             (self.piece_settings["jia"]["appear_checkbox"], 
@@ -1423,7 +1491,7 @@ class SettingsScreen:
              False)
         ]
 
-    def create_ci_items(self, y_offset):
+    def create_ci_items(self):
         """创建刺相关的设置项"""
         return [
             (self.piece_settings["ci"]["appear_checkbox"], 
@@ -1434,7 +1502,7 @@ class SettingsScreen:
              False)
         ]
 
-    def create_dun_items(self, y_offset):
+    def create_dun_items(self):
         """创建盾相关的设置项"""
         return [
             (self.piece_settings["dun"]["appear_checkbox"], 
@@ -1445,7 +1513,7 @@ class SettingsScreen:
              False)
         ]
 
-    def create_xun_items(self, y_offset):
+    def create_xun_items(self):
         """创建巡相关的设置项"""
         return [
             (self.piece_settings["xun"]["appear_checkbox"], 
@@ -1456,7 +1524,42 @@ class SettingsScreen:
              False)
         ]
 
-    def create_game_mode_items(self, y_offset):
+    def create_ai_items(self):
+        """创建AI算法相关的设置项"""
+        available_algorithms = ["negamax", "minimax", "alpha-beta", "mcts"]
+        items = []
+        
+        for i, alg in enumerate(available_algorithms):
+            checkbox = self.ai_settings["algorithm_radio_buttons"][alg]
+            label = self.ai_settings["algorithm_labels"][alg]
+            value = (self.ai_settings["ai_algorithm"] == alg)
+            
+            alg_names = {
+                "negamax": "Negamax搜索算法", 
+                "minimax": "Minimax搜索算法",
+                "alpha-beta": "Alpha-Beta剪枝算法",
+                "mcts": "MCTS+神经网络算法"
+            }
+            
+            alg_descriptions = {
+                "negamax": "传统搜索算法，使用Negamax算法进行决策",
+                "minimax": "传统搜索算法，使用Minimax算法进行决策",
+                "alpha-beta": "传统搜索算法，使用Alpha-Beta剪枝优化",
+                "mcts": "现代AI算法，结合蒙特卡洛树搜索和神经网络"
+            }
+            
+            items.append((
+                checkbox,
+                label,
+                value,
+                alg_names.get(alg, f"使用{alg.upper()}算法"),
+                alg_descriptions.get(alg, f"选择{alg}算法进行AI对战"),
+                False  # 不是禁用状态
+            ))
+        
+        return items
+
+    def create_game_mode_items(self):
         """创建游戏模式相关的设置项"""
         return [
             (self.piece_settings["game_mode"]["classic_checkbox"], 
@@ -1466,3 +1569,4 @@ class SettingsScreen:
              "采用传统布局，只包含车、马、相、士、将/帅、炮、兵/卒，以及新增的射和檑", 
              False)
         ]
+

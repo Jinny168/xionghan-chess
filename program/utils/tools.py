@@ -1,5 +1,45 @@
 """工具函数模块，包含导入导出棋局和复盘等功能"""
 from tkinter import filedialog
+import pygame
+
+
+def toggle_fullscreen(screen, window_width, window_height, is_fullscreen, windowed_size=None):
+    """
+    切换全屏模式的通用函数
+    
+    Args:
+        screen: pygame屏幕对象
+        window_width: 当前窗口宽度
+        window_height: 当前窗口高度
+        is_fullscreen: 是否为全屏模式
+        windowed_size: 存储窗口模式尺寸的元组，格式为(width, height)，如果为None则创建新元组
+    
+    Returns:
+        tuple: (new_screen, new_window_width, new_window_height, new_is_fullscreen, new_windowed_size)
+               返回更新后的屏幕对象、窗口宽高、全屏状态和窗口尺寸
+    """
+    if windowed_size is None:
+        windowed_size = (window_width, window_height)
+    
+    new_is_fullscreen = not is_fullscreen
+    
+    if new_is_fullscreen:
+        # 获取显示器信息
+        info = pygame.display.Info()
+        # 保存窗口模式的尺寸
+        new_windowed_size = (window_width, window_height)
+        # 切换到全屏模式
+        new_screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
+        new_window_width = info.current_w
+        new_window_height = info.current_h
+    else:
+        # 恢复窗口模式
+        new_window_width, new_window_height = windowed_size
+        new_screen = pygame.display.set_mode((new_window_width, new_window_height), pygame.RESIZABLE)
+        new_windowed_size = windowed_size
+    
+    return new_screen, new_window_width, new_window_height, new_is_fullscreen, new_windowed_size
+
 
 from program.core.chess_pieces import (
     King, Ju, Ma, Xiang, Shi, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun
@@ -12,11 +52,11 @@ def generate_move_notation(piece, from_row, from_col, to_row, to_col):
     piece_name = piece.name  # 直接使用棋子名称
 
     # 转换列数为中文数字或数字 - 从右至左标识
-    # 红方用一至十三标识，黑方用1-13标识
+    # 红方用汉字“一”至“十三”标识，黑方用数字“1”-“13”标识
     col_names_red = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三"]
     col_names_black = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]
 
-    # 根据棋子颜色选择合适的列名表示
+    # 根据棋子颜色选择合适列名表示
     col_names = col_names_red if piece.color == "red" else col_names_black
 
     # 计算棋盘坐标到列标识的映射（从右到左）
@@ -127,19 +167,19 @@ def get_piece_class_by_name(name):
 
 
     name_to_class = {
-        '汉': King, '汗': King, '漢': King,'帅': King, '将': King,  # 将/帅
-        '車': Ju, '俥': Ju,'车': Ju,  # 车
-        '馬': Ma, '傌': Ma, '马': Ma, # 马
+         '汗': King, '漢': King, # 漢/汗
+        '車': Ju, '俥': Ju, # 俥/車
+        '馬': Ma, '傌': Ma, # 馬/傌
         '象': Xiang, '相': Xiang,  # 相/象
         '士': Shi, '仕': Shi,  # 士/仕
-        '砲': Pao, '炮': Pao,  # 炮
+        '砲': Pao, '炮': Pao,  # 炮/砲
         '卒': Pawn, '兵': Pawn,  # 兵/卒
-        '衛': Wei, '尉': Wei, '卫': Wei, # 卫/尉
-        '䠶': She, '射': She,  # 射
-        '礌': Lei, '檑': Lei,  # 檑
+        '衛': Wei, '尉': Wei, # 卫/尉
+        '䠶': She, '射': She,  # 射/䠶
+        '礌': Lei, '檑': Lei,  # 檑/礌
         '胄': Jia, '甲': Jia,  # 甲/胄
-        '刺': Ci,  # 刺
-        '盾': Dun,  # 盾
+        '刺': Ci,  '伺': Ci, # 刺/伺
+        '楯': Dun, '碷': Dun,# 楯/碷
         '廵': Xun, '巡': Xun,  # 巡/廵
     }
 
@@ -220,13 +260,13 @@ def check_sound_play(game_instance):
         # 绝杀时播放绝杀音效
         try:
             game_instance.sound_manager.play_sound('defeat')  # 播放失败音效
-        except:
+        except (AttributeError, Exception):
             pass
     elif game_instance.game_state.is_check:
         # 将军时播放将军音效
         try:
             game_instance.sound_manager.play_sound('warn')  # 播放将军音效
-        except:
+        except (AttributeError, Exception):
             pass
 
 def enter_replay_mode(game_state):

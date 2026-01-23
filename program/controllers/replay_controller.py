@@ -39,10 +39,46 @@ class ReplayController:
         # 保存原始游戏状态
         self.original_state = copy.deepcopy(self.game_state)
         
-        # 从当前状态开始构建历史记录
-        self.history_states = [copy.deepcopy(self.game_state)]
-        self.current_step = 0
-        self.max_steps = 0
+        # 如果游戏状态中已经有move_history，我们应该从初始状态逐步重建整个复盘历史
+        # 创建一个临时游戏状态来从初始位置开始重现每一步
+        temp_game_state = copy.deepcopy(self.game_state)
+        
+        # 重置临时状态的历史，以便从初始状态开始
+        initial_pieces = temp_game_state.pieces[:]  # 保存当前棋子
+        temp_game_state.pieces = []  # 清空棋子
+        # 重新初始化初始棋子
+        from program.core.chess_pieces import create_initial_pieces
+        temp_game_state.pieces = create_initial_pieces()
+        temp_game_state.player_turn = "red"  # 从红方开始
+        temp_game_state.move_history = []  # 清空历史
+        
+        # 重建历史状态列表
+        self.history_states = [copy.deepcopy(temp_game_state)]
+        
+        # 逐步执行历史中的每一步
+        for move_record in self.game_state.move_history:
+            # 执行移动
+            if len(move_record) >= 8:  # 包含甲/胄吃子信息和刺兑子信息
+                piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces, ci_captured_pieces = move_record
+                temp_game_state.move_piece(from_row, from_col, to_row, to_col)
+                # 由于move_piece会自动添加到历史，我们需要确保历史状态正确
+                # 我们只需要继续执行下一步
+            elif len(move_record) >= 7:  # 包含甲/胄吃子信息
+                piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces = move_record
+                temp_game_state.move_piece(from_row, from_col, to_row, to_col)
+            else:  # 旧格式
+                piece, from_row, from_col, to_row, to_col, captured_piece = move_record
+                temp_game_state.move_piece(from_row, from_col, to_row, to_col)
+            
+            # 将执行完这步后的状态添加到历史
+            self.history_states.append(copy.deepcopy(temp_game_state))
+        
+        # 如果没有历史记录，至少保存初始状态
+        if not self.history_states:
+            self.history_states = [copy.deepcopy(temp_game_state)]
+        
+        self.current_step = len(self.history_states) - 1  # 默认跳转到最后一步
+        self.max_steps = len(self.history_states) - 1
         
         self.is_replay_mode = True
     

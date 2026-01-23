@@ -1,16 +1,15 @@
 """游戏主界面UI管理模块"""
 import pygame
-import pygame_gui
 
 from program.config.config import (
-    DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO,
     PANEL_BORDER, BLACK, RED
 )
+from program.config.taunts_manager import taunt_manager
 from program.ui.avatar import Avatar
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
-from program.ui.dialogs import PopupDialog, ConfirmDialog, AudioSettingsDialog, StatisticsDialog, NotificationDialog
+from program.ui.dialogs import AudioSettingsDialog
 from program.utils.utils import load_font, draw_background
 
 
@@ -281,7 +280,7 @@ class TauntAnimation:
     def __init__(self, window_width, window_height):
         self.window_width = window_width
         self.window_height = window_height
-        self.text = "是我天下无敌啦！"
+        self.text = taunt_manager.get_random_taunt()
         self.font = load_font(36, bold=True)
         self.text_surface = self.font.render(self.text, True, (255, 0, 0))  # 红色文字
         self.text_width = self.text_surface.get_width()
@@ -295,6 +294,12 @@ class TauntAnimation:
         
     def start(self):
         """开始动画"""
+        # 随机选择一个新的嘲讽语句
+        self.text = taunt_manager.get_random_taunt()
+        # 重新渲染文本表面
+        self.text_surface = self.font.render(self.text, True, (255, 0, 0))
+        self.text_width = self.text_surface.get_width()
+        
         self.current_x = self.start_x
         self.active = True
         
@@ -312,6 +317,24 @@ class TauntAnimation:
         if self.active:
             y_pos = self.window_height // 2 - 50  # 在屏幕中央上方显示
             screen.blit(self.text_surface, (self.current_x, y_pos))
+
+
+def draw_info_panel(screen, game_state):
+    """绘制游戏信息面板"""
+    # 当游戏进行中，在左上角显示当前回合
+    if not game_state.game_over:
+        # 创建回合信息文本
+        turn_color = RED if game_state.player_turn == "red" else BLACK
+        turn_text = f"当前回合: {'红方' if game_state.player_turn == 'red' else '黑方'}"
+
+        # 计算位置 - 在左上角，对局时长下方
+        font = load_font(20)
+        text_surface = font.render(turn_text, True, turn_color)
+        # 位于对局时长信息的下方
+        text_rect = text_surface.get_rect(
+            topleft=(10, 40)  # 在左上角，对局时长下方
+        )
+        screen.blit(text_surface, text_rect)
 
 
 class GameScreen:
@@ -349,6 +372,10 @@ class GameScreen:
         self.help_menu = None
         self.operation_panel = None
         self.taunt_animation = None
+        
+        # 预创建左侧面板背景Surface
+        self.left_panel_surface_cache = None
+        self.left_panel_overlay_cache = None
         
         # 初始化所有UI组件
         self.init_ui_components()
@@ -395,8 +422,15 @@ class GameScreen:
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
         # 计算左侧面板宽度和棋盘边距
+        old_width, old_height = getattr(self, 'left_panel_width', 0), getattr(self, 'window_height', 0)
+        
         self.left_panel_width = int(LEFT_PANEL_WIDTH_RATIO * self.window_width)
         self.board_margin_top = int(BOARD_MARGIN_TOP_RATIO * self.window_height)
+        
+        # 如果窗口尺寸发生变化，清除缓存的Surface
+        if old_width != self.left_panel_width or old_height != self.window_height:
+            self.left_panel_surface_cache = None
+            self.left_panel_overlay_cache = None
 
         # 更新棋盘 - 整体右移，确保不被菜单遮挡
         self.board = ChessBoard(
@@ -418,6 +452,36 @@ class GameScreen:
 
         # 计时器的字体
         self.timer_font = load_font(18)
+        
+        # 初始化缓存Surface
+        self.left_panel_surface_cache = None
+        self.left_panel_overlay_cache = None
+        
+    def _draw_background_and_side_panel(self, screen):
+        """绘制背景和左侧边栏"""
+        # 使用统一的背景绘制函数
+        draw_background(screen)
+        
+        # 绘制左侧面板背景
+        # 检查缓存的Surface是否仍然有效（大小匹配）
+        if (self.left_panel_surface_cache is None or 
+            self.left_panel_surface_cache.get_size() != (self.left_panel_width, self.window_height)):
+            # 创建新的缓存Surface
+            self.left_panel_surface_cache = pygame.Surface((self.left_panel_width, self.window_height))
+            self.left_panel_overlay_cache = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
+            self.left_panel_overlay_cache.fill((255, 255, 255, 30))  # 半透明白色覆盖，轻微增亮
+            
+            # 绘制背景到缓存Surface
+            draw_background(self.left_panel_surface_cache)
+            # 应用半透明覆盖
+            self.left_panel_surface_cache.blit(self.left_panel_overlay_cache, (0, 0))
+        
+        # 应用到主界面
+        screen.blit(self.left_panel_surface_cache, (0, 0))
+        
+        # 添加分隔线
+        pygame.draw.line(screen, PANEL_BORDER, (self.left_panel_width, 0),
+                         (self.left_panel_width, self.window_height), 2)
         
     def create_buttons(self):
         """创建所有按钮"""
@@ -491,29 +555,12 @@ class GameScreen:
         if self.operation_panel:
             self.operation_panel.update_hover(mouse_pos)
 
-    def draw(self, screen, game_state, last_move=None, last_move_notation="", 
-             popup=None, confirm_dialog=None, pawn_resurrection_dialog=None, 
-             promotion_dialog=None, audio_settings_dialog=None, 
-             ai_thinking=False):
+    def draw(self, screen, game_state, last_move=None, last_move_notation="",
+             popup=None, confirm_dialog=None, pawn_resurrection_dialog=None,
+             promotion_dialog=None, audio_settings_dialog=None):
         """绘制整个游戏界面"""
-        # 使用统一的背景绘制函数
-        draw_background(screen)
-
-        # 绘制左侧面板背景
-        left_panel_surface = pygame.Surface((self.left_panel_width, self.window_height))
-        draw_background(left_panel_surface)  # 使用相同的背景绘制函数
-
-        # 稍微调亮左侧面板使其有区分度
-        overlay = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
-        overlay.fill((255, 255, 255, 30))  # 半透明白色覆盖，轻微增亮
-        left_panel_surface.blit(overlay, (0, 0))
-
-        # 应用到主界面
-        screen.blit(left_panel_surface, (0, 0))
-
-        # 添加分隔线
-        pygame.draw.line(screen, PANEL_BORDER, (self.left_panel_width, 0),
-                         (self.left_panel_width, self.window_height), 2)
+        # 绘制完整的界面背景
+        self._draw_background_and_side_panel(screen)
 
         # 绘制棋盘和棋子 - 已经右移以避免被菜单遮挡
         self.board.draw(screen, game_state.pieces, game_state)
@@ -530,7 +577,7 @@ class GameScreen:
                 self.board.draw_check_animation(screen, king_pos)
 
         # 绘制游戏信息面板
-        self.draw_info_panel(screen, game_state)
+        draw_info_panel(screen, game_state)
 
         # 绘制按钮 - 只绘制必要的按钮
         self.draw_buttons(screen)
@@ -611,40 +658,11 @@ class GameScreen:
 
     def draw_thinking_indicator(self, screen, game_state):
         """绘制AI思考时的指示器，减少闪烁"""
-        # 绘制稳定的背景
-        draw_background(screen)
-
-        # 绘制左侧面板背景
-        left_panel_surface = pygame.Surface((self.left_panel_width, self.window_height))
-        draw_background(left_panel_surface)
-        overlay = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
-        overlay.fill((255, 255, 255, 30))
-        left_panel_surface.blit(overlay, (0, 0))
-        screen.blit(left_panel_surface, (0, 0))
-
-        # 添加分隔线
-        pygame.draw.line(screen, PANEL_BORDER, (self.left_panel_width, 0),
-                         (self.left_panel_width, self.window_height), 2)
+        # 绘制完整的界面背景
+        self._draw_background_and_side_panel(screen)
 
         # 绘制棋盘和棋子（使用稳定的游戏状态）
         self.board.draw(screen, game_state.pieces, game_state)
-
-    def draw_info_panel(self, screen, game_state):
-        """绘制游戏信息面板"""
-        # 当游戏进行中，在左上角显示当前回合
-        if not game_state.game_over:
-            # 创建回合信息文本
-            turn_color = RED if game_state.player_turn == "red" else BLACK
-            turn_text = f"当前回合: {'红方' if game_state.player_turn == 'red' else '黑方'}"
-
-            # 计算位置 - 在左上角，对局时长下方
-            font = load_font(20)
-            text_surface = font.render(turn_text, True, turn_color)
-            # 位于对局时长信息的下方
-            text_rect = text_surface.get_rect(
-                topleft=(10, 40)  # 在左上角，对局时长下方
-            )
-            screen.blit(text_surface, text_rect)
 
     def draw_timers(self, screen, game_state):
         """绘制计时器信息"""
@@ -684,8 +702,7 @@ class GameScreen:
             pass
         elif option_result == "导入棋局":
             from program.controllers.game_io_controller import game_io_controller
-            success = game_io_controller.import_game(game_state)
-            if success:
+            if game_io_controller.import_game(game_state):
                 # 进入复盘模式
                 from program.controllers.replay_controller import ReplayController
                 from program.ui.replay_screen import ReplayScreen
@@ -698,7 +715,7 @@ class GameScreen:
             return "handled"
         elif option_result == "导出棋局":
             from program.controllers.game_io_controller import game_io_controller
-            success = game_io_controller.export_game(game_state)
+            game_io_controller.export_game(game_state)
             return "handled"
         elif option_result == "音效设置":
             game.audio_settings_dialog = AudioSettingsDialog(600, 400, game.sound_manager)
@@ -732,7 +749,7 @@ class GameScreen:
         
         return None
 
-    def handle_operation_panel_events(self, event, mouse_pos, game, game_state):
+    def handle_operation_panel_events(self, event, mouse_pos, game):
         """处理操作面板事件"""
         if not self.operation_panel:
             return None
@@ -781,29 +798,23 @@ class GameScreen:
         screen.blit(red_title, (right_panel_x, 60))
         screen.blit(black_title, (right_panel_x, 180))
 
-        # 绘制红方阵亡棋子
-        x_start, y_start = right_panel_x, 90
-        x, y = x_start, y_start
-        for piece in game_state.captured_pieces["red"]:
-            piece_text = title_font.render(piece.name, True, RED)
-            # 减小右边距，提供更多空间给棋子显示
-            if x + piece_text.get_width() > self.window_width - 40:
-                x = x_start
-                y += 25
-            screen.blit(piece_text, (x, y))
-            x += piece_text.get_width() + 5
+        # 定义颜色和位置配置
+        configurations = [
+            {"color": "red", "x_start": right_panel_x, "y_start": 90, "text_color": RED},
+            {"color": "black", "x_start": right_panel_x, "y_start": 210, "text_color": BLACK}
+        ]
 
-        # 绘制黑方阵亡棋子
-        x_start, y_start = right_panel_x, 210
-        x, y = x_start, y_start
-        for piece in game_state.captured_pieces["black"]:
-            piece_text = title_font.render(piece.name, True, BLACK)
-            # 减小右边距，提供更多空间给棋子显示
-            if x + piece_text.get_width() > self.window_width - 40:
-                x = x_start
-                y += 25
-            screen.blit(piece_text, (x, y))
-            x += piece_text.get_width() + 5
+        # 绘制阵亡棋子
+        for config in configurations:
+            x, y = config["x_start"], config["y_start"]
+            for piece in game_state.captured_pieces[config["color"]]:
+                piece_text = title_font.render(piece.name, True, config["text_color"])
+                # 减小右边距，提供更多空间给棋子显示
+                if x + piece_text.get_width() > self.window_width - 40:
+                    x = config["x_start"]
+                    y += 25
+                screen.blit(piece_text, (x, y))
+                x += piece_text.get_width() + 5
 
     def draw_move_history(self, screen, game_state):
         """绘制棋谱历史记录"""
@@ -832,7 +843,7 @@ class GameScreen:
                 from program.utils import tools
                 notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
 
-                # 计算正确的编号，避免负数
+                # 计算正确编号，避免负数
                 move_index = max(0, len(game_state.move_history) - 10) + i + 1
 
                 # 根据玩家颜色确定文字颜色

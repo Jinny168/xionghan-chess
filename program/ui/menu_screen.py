@@ -1,126 +1,277 @@
+import os
 import sys
-
+import math
 import pygame
 
 from program.config.config import (
     DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
-    BLACK, GOLD,
+    BLACK, GOLD, RED, BACKGROUND_COLOR,
     MODE_PVP, MODE_PVC, CAMP_RED, CAMP_BLACK, FPS
 )
 from program.ui.button import Button
 from program.utils.utils import load_font, draw_background
+from program.utils import tools, utils
+
+
+class StyledButton:
+    """美化版按钮，带有渐变效果和圆角"""
+    def __init__(self, x, y, width, height, text, font_size=24, corner_radius=8):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.text = text
+        self.font = load_font(font_size)
+        self.is_hovered = False
+        self.corner_radius = corner_radius  # 圆角半径
+        
+    def draw(self, screen):
+        # 定义颜色
+        if self.is_hovered:
+            # 悬停时使用较亮的颜色
+            color1 = (150, 150, 255)
+            color2 = (100, 100, 220)
+            border_color = (80, 80, 180)
+        else:
+            # 默认颜色
+            color1 = (120, 120, 220)
+            color2 = (80, 80, 180)
+            border_color = (60, 60, 140)
+        
+        # 绘制带圆角的按钮背景（带渐变效果）
+        # 首先绘制圆角矩形背景
+        pygame.draw.rect(screen, color1, self.rect, border_radius=self.corner_radius)
+        
+        # 绘制渐变效果（垂直渐变）
+        for i in range(self.rect.height):
+            # 计算垂直渐变
+            ratio = i / self.rect.height
+            r = int(color1[0] * (1 - ratio) + color2[0] * ratio)
+            g = int(color1[1] * (1 - ratio) + color2[1] * ratio)
+            b = int(color1[2] * (1 - ratio) + color2[2] * ratio)
+            pygame.draw.line(screen, (r, g, b), 
+                           (self.rect.left, self.rect.top + i), 
+                           (self.rect.right, self.rect.top + i), 
+                           1)
+        
+        # 绘制圆角边框
+        pygame.draw.rect(screen, border_color, self.rect, 2, border_radius=self.corner_radius)
+        
+        # 添加轻微阴影效果
+        shadow_rect = pygame.Rect(self.rect.x + 2, self.rect.y + 2, self.rect.width, self.rect.height)
+        pygame.draw.rect(screen, (40, 40, 80, 100), shadow_rect, 2, border_radius=self.corner_radius)
+        
+        # 绘制带描边的文字
+        # 先绘制描边（黑色）
+        outline_offsets = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+        for offset_x, offset_y in outline_offsets:
+            outline_text = self.font.render(self.text, True, (0, 0, 0))  # 黑色描边
+            outline_rect = outline_text.get_rect(center=(self.rect.centerx + offset_x, self.rect.centery + offset_y))
+            screen.blit(outline_text, outline_rect)
+        
+        # 再绘制主体文字（白色）
+        text_surface = self.font.render(self.text, True, (255, 255, 255))  # 白色文本
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        screen.blit(text_surface, text_rect)
+
+    def check_hover(self, pos):
+        self.is_hovered = self.rect.collidepoint(pos)
+        return self.is_hovered
+
+    def is_clicked(self, pos, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(pos):
+            return True
+        return False
+
+    def update_position(self, x, y):
+        """更新按钮位置"""
+        self.rect.x = x
+        self.rect.y = y
 
 
 class ModeSelectionScreen:
     def __init__(self):
         # 初始化窗口尺寸和模式
         self.windowed_size = None
-        self.load_game_button = None
-        self.stats_button = None
-        self.rules_button = None
-        self.settings_button = None
-        self.network_button = None
-        self.pvc_button = None
-        self.pvp_button = None
         self.window_width = DEFAULT_WINDOW_WIDTH
         self.window_height = DEFAULT_WINDOW_HEIGHT
         self.is_fullscreen = False
         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
         pygame.display.set_caption("匈汉象棋 - 模式选择")
         
+        # 背景相关
+        self.background_image = None
+        self.background_surface = None
+        self.load_background()
+        
+        # 设置菜单状态
+        self.show_settings_menu = False
+        self.settings_menu_opening = False
+        self.settings_menu_closing = False
+        self.settings_menu_animation_progress = 0.0  # 0.0 to 1.0
+        self.animation_direction = 0  # 0=idle, 1=opening, -1=closing
+        self.gear_rotation = 0  # 齿轮图标旋转角度
+        
+        # 初始化布局
         self.update_layout()
         self.selected_mode = None
-        
+
+    def load_background(self):
+        """加载背景图片，如果没有则使用默认背景"""
+        try:
+            # 尝试加载背景图片
+            bg_path = utils.resource_path("assets/4.jpg")
+            if os.path.exists(bg_path):
+                self.background_image = pygame.image.load(bg_path).convert()
+            else:
+                # 尝试其他常见背景图片路径
+                alt_paths = [
+                    utils.resource_path("assets/3.jpg"),
+                    utils.resource_path("assets/2.jpg"),
+                    utils.resource_path("assets/1.jpg")
+                ]
+                for path in alt_paths:
+                    if os.path.exists(path):
+                        self.background_image = pygame.image.load(path).convert()
+                        break
+        except Exception as e:
+            print(f"无法加载背景图片: {e}")
+            self.background_image = None
+
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
-        button_width = 250  # 缩小按钮宽度
-        button_height = 60  # 缩小按钮高度
-        button_spacing = 25  # 缩小间距
+        # 计算基准尺寸（以360px宽度为基准）
+        base_width = 360
+        scale_factor = self.window_width / base_width
+
+        # 按钮尺寸 - 缩小按钮尺寸
+        button_width = max(int(80 * scale_factor), 80)  # 基准80px (原100px)
+        button_height = max(int(35 * scale_factor), 35)  # 基准35px (原40px)
+        button_spacing = max(int(12 * scale_factor), 12)  # 基准12px (原15px)
         center_x = self.window_width // 2
-        center_y = self.window_height // 2 - 50  # 调整中心位置
+        center_y = self.window_height // 2 - 30  # 调整中心位置
+
+        # 创建核心对战模式按钮
+        # 三个按钮水平排列，间距均匀
+        # 缩小按钮尺寸
+        button_width = max(int(70 * scale_factor), 70)  # 进一步缩小按钮宽度
+        button_height = max(int(30 * scale_factor), 30)  # 进一步缩小按钮高度
         
-        # 创建按钮
-        self.pvp_button = Button(
-            center_x - button_width // 2,
-            center_y - 2*(button_height + button_spacing),
+        total_width = 3 * button_width + 2 * button_spacing
+        start_x = center_x - total_width // 2
+
+        self.pvp_button = StyledButton(
+            start_x,
+            center_y - button_height ,
             button_width,
             button_height,
             "双人对战",
-            28
+            int(10 * scale_factor),  # 进一步缩小字体
+            15  # 增加圆角半径
         )
-        
-        self.pvc_button = Button(
-            center_x - button_width // 2,
-            center_y - (button_height + button_spacing),
+
+        self.pvc_button = StyledButton(
+            start_x + button_width + button_spacing,
+            center_y - button_height ,
             button_width,
             button_height,
             "人机对战",
-            28
+            int(10 * scale_factor),  # 进一步缩小字体
+            15  # 增加圆角半径
         )
-        
-        self.network_button = Button(
-            center_x - button_width // 2,
-            center_y,
+
+        self.network_button = StyledButton(
+            start_x + 2 * (button_width + button_spacing),
+            center_y - button_height ,
             button_width,
             button_height,
             "网络对战",
-            28
-        )
-        
-        self.settings_button = Button(
-            center_x - button_width // 2,
-            center_y + (button_height + button_spacing),
-            button_width,
-            button_height,
-            "自定义设置",
-            28
-        )
-        
-        self.rules_button = Button(
-            center_x - button_width // 2,
-            center_y + 2 * (button_height + button_spacing),
-            button_width,
-            button_height,
-            "游戏规则",
-            28
-        )
-        
-        self.stats_button = Button(
-            center_x - button_width // 2,
-            center_y + 3 * (button_height + button_spacing),
-            button_width,
-            button_height,
-            "游戏统计",
-            28
-        )
-        
-        self.load_game_button = Button(
-            center_x - button_width // 2,
-            center_y + 4 * (button_height + button_spacing),
-            button_width,
-            button_height,
-            "导入棋局",
-            28
+            int(10 * scale_factor),  # 进一步缩小字体
+            15  # 增加圆角半径
         )
 
-    
+        # 设置按钮（右下角，圆形按钮）
+        settings_button_size = max(int(30 * scale_factor), 30)  # 进一步缩小
+        self.settings_button = StyledButton(
+            self.window_width - settings_button_size - 15,  # 距离右边15px (原20px)
+            self.window_height - settings_button_size - 15,  # 距离底部15px (原20px)
+            settings_button_size,
+            settings_button_size,
+            "⚙️",  # 齿轮图标
+            int(14 * scale_factor),  # 进一步缩小
+            15  # 圆角，近似圆形
+        )
+
+        # 设置菜单项（隐藏状态）
+        menu_item_width = max(int(60 * scale_factor), 60)  # 进一步缩小
+        menu_item_height = max(int(20 * scale_factor), 20)  # 进一步缩小
+        menu_spacing = 2  # 菜单项间距 (进一步缩小)
+
+        # 计算菜单位置（在设置按钮上方）
+        menu_x = self.window_width - menu_item_width - 15
+        menu_y = self.window_height - settings_button_size - 15 - (4 * menu_item_height + 3 * menu_spacing)
+
+        self.settings_menu_items = []
+        settings_options = [
+            ("自定义设置", "settings"),
+            ("游戏规则", "rules"),
+            ("游戏统计", "stats"),
+            ("导入棋局", "load_game")
+        ]
+
+        for i, (text, mode) in enumerate(settings_options):
+            item = StyledButton(
+                menu_x,
+                menu_y + i * (menu_item_height + menu_spacing),
+                menu_item_width,
+                menu_item_height,
+                text,
+                int(10 * scale_factor),  # 进一步缩小
+                8  # 增加圆角
+            )
+            self.settings_menu_items.append((item, mode))
+
+    def toggle_settings_menu(self):
+        """切换设置菜单显示状态"""
+        if self.show_settings_menu:
+            # 关闭菜单
+            self.settings_menu_closing = True
+            self.animation_direction = -1
+            self.settings_menu_opening = False
+        else:
+            # 打开菜单
+            self.settings_menu_opening = True
+            self.animation_direction = 1
+            self.settings_menu_closing = False
+        self.show_settings_menu = not self.show_settings_menu
+
+    def update_settings_menu_animation(self, dt):
+        """更新设置菜单动画"""
+        if self.animation_direction != 0:
+            # 动画速度：每秒1单位
+            animation_speed = dt * 2.0  # 2秒完成整个动画
+            
+            if self.animation_direction == 1:  # 打开
+                self.settings_menu_animation_progress += animation_speed
+                if self.settings_menu_animation_progress >= 1.0:
+                    self.settings_menu_animation_progress = 1.0
+                    self.settings_menu_opening = False
+                    self.animation_direction = 0
+            else:  # 关闭
+                self.settings_menu_animation_progress -= animation_speed
+                if self.settings_menu_animation_progress <= 0.0:
+                    self.settings_menu_animation_progress = 0.0
+                    self.settings_menu_closing = False
+                    self.animation_direction = 0
+
+        # 更新齿轮旋转动画
+        if self.show_settings_menu:
+            self.gear_rotation = (self.gear_rotation + dt * 180) % 360  # 每秒180度
+        else:
+            self.gear_rotation = (self.gear_rotation - dt * 180) % 360  # 每秒180度
+
     def toggle_fullscreen(self):
         """切换全屏模式"""
-        self.is_fullscreen = not self.is_fullscreen
-        
-        if self.is_fullscreen:
-            # 获取显示器信息
-            info = pygame.display.Info()
-            # 保存窗口模式的尺寸
-            self.windowed_size = (self.window_width, self.window_height)
-            # 切换到全屏模式
-            self.screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-            self.window_width = info.current_w
-            self.window_height = info.current_h
-        else:
-            # 恢复窗口模式
-            self.window_width, self.window_height = self.windowed_size
-            self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        # 使用通用的全屏切换函数
+        self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
+            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
         
         # 更新布局
         self.update_layout()
@@ -134,8 +285,13 @@ class ModeSelectionScreen:
     def run(self):
         """运行模式选择界面"""
         clock = pygame.time.Clock()
+        last_time = pygame.time.get_ticks()
         
         while self.selected_mode is None:
+            current_time = pygame.time.get_ticks()
+            dt = (current_time - last_time) / 1000.0  # 时间差（秒）
+            last_time = current_time
+            
             mouse_pos = pygame.mouse.get_pos()
             
             for event in pygame.event.get():
@@ -158,6 +314,7 @@ class ModeSelectionScreen:
                         self.toggle_fullscreen()
                 
                 if event.type == pygame.MOUSEBUTTONDOWN:
+                    # 检查是否点击了核心模式按钮
                     if self.pvp_button.is_clicked(mouse_pos, event):
                         self.selected_mode = MODE_PVP
                     elif self.pvc_button.is_clicked(mouse_pos, event):
@@ -165,46 +322,60 @@ class ModeSelectionScreen:
                     elif self.network_button.is_clicked(mouse_pos, event):
                         self.selected_mode = "network"
                     elif self.settings_button.is_clicked(mouse_pos, event):
-                        self.selected_mode = "settings"
-                    elif self.rules_button.is_clicked(mouse_pos, event):
-                        self.selected_mode = "rules"
-                    elif self.stats_button.is_clicked(mouse_pos, event):
-                        self.selected_mode = "stats"
-                    elif self.load_game_button.is_clicked(mouse_pos, event):
-                        # 导入棋局并进入复盘模式
-                        from program.core.game_state import GameState
-                        from program.controllers.game_io_controller import GameIOController
-                        from program.ui.replay_screen import ReplayScreen
-                        
-                        # 创建游戏状态
-                        game_state = GameState()
-                        
-                        # 从文件加载游戏
-                        io_controller = GameIOController()
-                        success = io_controller.import_game(game_state)
-                        
-                        if success:
-                            # 进入复盘模式
-                            from program.controllers.replay_controller import ReplayController
-                            replay_controller = ReplayController(game_state)
-                            replay_controller.start_replay()
-                            
-                            # 创建并运行复盘界面
-                            replay_screen = ReplayScreen(game_state, replay_controller)
-                            replay_screen.run()
-                        
-                        # 重新进入模式选择界面
-                        self.selected_mode = None
-
+                        self.toggle_settings_menu()
+                    elif self.show_settings_menu:
+                        # 检查是否点击了设置菜单项
+                        for button, mode in self.settings_menu_items:
+                            if button.is_clicked(mouse_pos, event):
+                                if mode == "load_game":
+                                    # 特殊处理：导入棋局
+                                    from program.core.game_state import GameState
+                                    from program.controllers.game_io_controller import GameIOController
+                                    from program.ui.replay_screen import ReplayScreen
+                                    
+                                    # 创建游戏状态
+                                    game_state = GameState()
+                                    
+                                    # 从文件加载游戏
+                                    io_controller = GameIOController()
+                                    success = io_controller.import_game(game_state)
+                                    
+                                    if success:
+                                        # 进入复盘模式
+                                        from program.controllers.replay_controller import ReplayController
+                                        replay_controller = ReplayController(game_state)
+                                        replay_controller.start_replay()
+                                        
+                                        # 创建并运行复盘界面
+                                        replay_screen = ReplayScreen(game_state, replay_controller)
+                                        replay_screen.run()
+                                    
+                                    # 重新进入模式选择界面
+                                    self.selected_mode = None
+                                    # 关闭设置菜单
+                                    if self.show_settings_menu:
+                                        self.toggle_settings_menu()
+                                else:
+                                    self.selected_mode = mode
+                                break
+                        else:
+                            # 点击了菜单外部区域，关闭菜单
+                            if self.show_settings_menu:
+                                self.toggle_settings_menu()
             
             # 更新按钮悬停状态
             self.pvp_button.check_hover(mouse_pos)
             self.pvc_button.check_hover(mouse_pos)
             self.network_button.check_hover(mouse_pos)
             self.settings_button.check_hover(mouse_pos)
-            self.rules_button.check_hover(mouse_pos)
-            self.stats_button.check_hover(mouse_pos)
-            self.load_game_button.check_hover(mouse_pos)
+            
+            # 更新设置菜单项的悬停状态
+            if self.show_settings_menu:
+                for button, _ in self.settings_menu_items:
+                    button.check_hover(mouse_pos)
+
+            # 更新动画
+            self.update_settings_menu_animation(dt)
 
             # 绘制界面
             self.draw()
@@ -215,47 +386,148 @@ class ModeSelectionScreen:
     
     def draw(self):
         """绘制选择界面"""
-        # 使用统一的背景绘制函数
-        draw_background(self.screen)
-        
-        # 绘制标题
-        title_font = load_font(64)
-        title_text = "匈汉象棋"
-        title_surface = title_font.render(title_text, True, BLACK)
-        title_rect = title_surface.get_rect(center=(self.window_width//2, 150))
-        self.screen.blit(title_surface, title_rect)
-        
-        # 绘制金色装饰线
-        line_y = title_rect.bottom + 20
-        pygame.draw.line(
-            self.screen, 
-            GOLD, 
-            (self.window_width//4, line_y), 
-            (self.window_width*3//4, line_y), 
-            3
-        )
-        
-        # 绘制副标题
-        subtitle_font = load_font(36)
-        subtitle_text = "请选择游戏模式"
-        subtitle_surface = subtitle_font.render(subtitle_text, True, BLACK)
-        subtitle_rect = subtitle_surface.get_rect(center=(self.window_width//2, line_y + 60))
-        self.screen.blit(subtitle_surface, subtitle_rect)
-        
-        # 绘制按钮
+        # 绘制背景
+        if self.background_image:
+            # 缩放背景图片以适应窗口
+            scaled_bg = pygame.transform.smoothscale(self.background_image, (self.window_width, self.window_height))
+            self.screen.blit(scaled_bg, (0, 0))
+            # 添加半透明遮罩
+            overlay = pygame.Surface((self.window_width, self.window_height))
+            overlay.set_alpha(100)  # 40% 透明度
+            overlay.fill((44, 30, 22))  # 棕褐色遮罩
+            self.screen.blit(overlay, (0, 0))
+        else:
+            # 使用默认背景
+            draw_background(self.screen)
+
+        # 绘制带火焰特效的标题
+        title_font = load_font(max(40, int(40 * self.window_width / 360)), bold=True)  # 缩小标题字体
+        if title_font:
+            title_text = "匈汉象棋"
+            
+            # 绘制火焰光晕效果（橙红色到黄色的渐变效果）
+            glow_offsets = [(i, j) for i in range(-4, 5) for j in range(-4, 5) if abs(i) + abs(j) <= 4 and (i, j) != (0, 0)]
+            for idx, (offset_x, offset_y) in enumerate(glow_offsets):
+                # 创建随时间变化的动态火焰效果
+                distance = abs(offset_x) + abs(offset_y)
+                if distance <= 2:
+                    color = (255, min(165, 100 + idx % 20), 0)  # 橙红色
+                elif distance <= 4:
+                    color = (255, min(140, 80 + idx % 15), 0)  # 较淡的橙色
+                else:
+                    color = (255, min(100, 60 + idx % 10), 0)  # 更淡的橙色
+                
+                alpha = 150 if distance <= 2 else 100 if distance <= 3 else 50
+                
+                glow_surface = title_font.render(title_text, True, color)
+                glow_surface.set_alpha(alpha)
+                glow_rect = glow_surface.get_rect(center=(self.window_width//2 + offset_x, 100 + offset_y))
+                self.screen.blit(glow_surface, glow_rect)
+            
+            # 绘制描边（深红色）
+            outline_offsets = [(-2, -2), (-2, -1), (-2, 0), (-2, 1), (-2, 2),
+                              (-1, -2), (-1, -1), (-1, 0), (-1, 1), (-1, 2),
+                              (0, -2), (0, -1), (0, 1), (0, 2),
+                              (1, -2), (1, -1), (1, 0), (1, 1), (1, 2),
+                              (2, -2), (2, -1), (2, 0), (2, 1), (2, 2)]
+            for offset_x, offset_y in outline_offsets:
+                outline_surface = title_font.render(title_text, True, (139, 0, 0))  # 深红色描边
+                outline_rect = outline_surface.get_rect(center=(self.window_width//2 + offset_x, 100 + offset_y))
+                self.screen.blit(outline_surface, outline_rect)
+            
+            # 绘制主体文字（金色）
+            title_surface = title_font.render(title_text, True, (255, 215, 0))  # 金色主体文字
+            title_rect = title_surface.get_rect(center=(self.window_width//2, 100))  # 标题位置
+            self.screen.blit(title_surface, title_rect)
+            
+            # 绘制金色装饰线
+            line_y = title_rect.bottom + 10
+            pygame.draw.line(
+                self.screen, 
+                GOLD, 
+                (self.window_width//4, line_y), 
+                (self.window_width*3//4, line_y), 
+                3
+            )
+
+        # 绘制带描边的核心提示文字
+        prompt_font = load_font(max(12, int(12 * self.window_width / 360)), bold=False)  # 进一步缩小提示文字
+        if prompt_font:
+            prompt_text = "请选择游戏模式"
+            # 绘制描边（黑色）
+            outline_offsets = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+            for offset_x, offset_y in outline_offsets:
+                outline_surface = prompt_font.render(prompt_text, True, (0, 0, 0))  # 黑色描边
+                outline_rect = outline_surface.get_rect(center=(self.window_width//2 + offset_x, 280 + offset_y))  # 调整回适当位置
+                self.screen.blit(outline_surface, outline_rect)
+            
+            # 绘制主体文字（象棋红）
+            prompt_surface = prompt_font.render(prompt_text, True, (183, 36, 36))  # 象棋红
+            prompt_rect = prompt_surface.get_rect(center=(self.window_width//2, 280))  # 提示文字位置
+            self.screen.blit(prompt_surface, prompt_rect)
+
+        # 绘制核心模式按钮
         self.pvp_button.draw(self.screen)
         self.pvc_button.draw(self.screen)
         self.network_button.draw(self.screen)
-        self.settings_button.draw(self.screen)
-        self.rules_button.draw(self.screen)
-        self.stats_button.draw(self.screen)
-        self.load_game_button.draw(self.screen)
 
-        # 移除说明文字，减少界面拥挤
-        
+        # 绘制设置按钮
+        # 创建一个临时表面用于绘制旋转的图标
+        if self.gear_rotation != 0:
+            # 先绘制按钮
+            self.settings_button.draw(self.screen)
+            
+            # 获取按钮字体大小（通过字体对象估算）
+            # 使用按钮字体大小创建旋转文本
+            button_font_size = self.settings_button.font.size('A')[1]  # 获取字符高度作为字体大小的近似值
+            button_font = load_font(button_font_size)
+            if button_font:
+                text_surface = button_font.render(self.settings_button.text, True, 
+                                                (240, 240, 255))  # 使用固定的颜色而不是悬停状态
+                # 旋转文本
+                rotated_text = pygame.transform.rotate(text_surface, self.gear_rotation)
+                # 居中放置旋转后的文本
+                text_rect = rotated_text.get_rect(center=self.settings_button.rect.center)
+                self.screen.blit(rotated_text, text_rect)
+        else:
+            self.settings_button.draw(self.screen)
+
+        # 绘制设置菜单
+        if self.show_settings_menu or self.settings_menu_opening or self.settings_menu_closing:
+            # 计算菜单透明度和位置动画
+            alpha = min(255, int(200 * self.settings_menu_animation_progress))
+            vertical_offset = int(10 * (1 - self.settings_menu_animation_progress)) if self.animation_direction == 1 else 0
+
+            for i, (button, _) in enumerate(self.settings_menu_items):
+                # 计算每个菜单项的显示进度
+                item_progress = max(0, min(1, self.settings_menu_animation_progress * 4 - i * 0.25))
+                if item_progress > 0:
+                    # 绘制半透明背景
+                    menu_surface = pygame.Surface((button.rect.width, button.rect.height))
+                    menu_surface.set_alpha(int(200 * item_progress))  # 80% 透明度
+                    menu_surface.fill((68, 68, 68))  # 深灰色
+                    self.screen.blit(menu_surface, (button.rect.x, button.rect.y + vertical_offset))
+                    
+                    # 由于Button类没有alpha参数的draw方法，我们创建一个临时按钮
+                    temp_button = Button(button.rect.x, button.rect.y + vertical_offset, 
+                                       button.rect.width, button.rect.height, button.text)
+                    # 手动绘制具有透明度的按钮
+                    temp_color = (120, 120, 220) if temp_button.is_hovered else (100, 100, 200)
+                    temp_surface = pygame.Surface((temp_button.rect.width, temp_button.rect.height))
+                    temp_surface.set_alpha(int(255 * item_progress))
+                    temp_surface.fill(temp_color)
+                    pygame.draw.rect(temp_surface, (0, 0, 0), temp_surface.get_rect(), 2)  # 边框
+                    
+                    # 绘制文本
+                    text_surf = temp_button.font.render(temp_button.text, True, (240, 240, 255))
+                    text_rect = text_surf.get_rect(center=temp_surface.get_rect().center)
+                    temp_surface.blit(text_surf, text_rect)
+                    
+                    self.screen.blit(temp_surface, (temp_button.rect.x, temp_button.rect.y))
+
         # 绘制版权信息
-        copyright_text = "© 2025 靳中原"
-        copyright_surface = load_font(18).render(copyright_text, True, (128, 0, 128))
+        copyright_text = "© 2026 靳中原"
+        copyright_surface = load_font(28).render(copyright_text, True, (255, 255, 255))
         copyright_rect = copyright_surface.get_rect(
             center=(self.window_width//2, self.window_height - 30)
         )
@@ -280,38 +552,41 @@ class NetworkModeScreen:
         
     def update_layout(self):
         """更新布局"""
-        button_width = 250  # 缩小按钮
-        button_height = 60
-        button_spacing = 35
+        button_width = 200  # 进一步缩小按钮
+        button_height = 50
+        button_spacing = 25
         center_x = self.window_width // 2
         center_y = self.window_height // 2
         
         # 创建按钮
-        self.host_button = Button(
+        self.host_button = StyledButton(  # 使用StyledButton替代Button
             center_x - button_width // 2,
             center_y - button_height - button_spacing,
             button_width,
             button_height,
             "创建房间",
-            28
+            24,
+            10  # 圆角
         )
         
-        self.join_button = Button(
+        self.join_button = StyledButton(  # 使用StyledButton替代Button
             center_x - button_width // 2,
             center_y,
             button_width,
             button_height,
             "加入房间",
-            28
+            24,
+            10  # 圆角
         )
         
-        self.back_button = Button(
+        self.back_button = StyledButton(  # 使用StyledButton替代Button
             center_x - button_width // 2,
             center_y + button_height + button_spacing,
             button_width,
             button_height,
             "返回",
-            28
+            24,
+            10  # 圆角
         )
     
     def run(self):
@@ -390,21 +665,9 @@ class NetworkModeScreen:
     
     def toggle_fullscreen(self):
         """切换全屏模式"""
-        self.is_fullscreen = not self.is_fullscreen
-        
-        if self.is_fullscreen:
-            # 获取显示器信息
-            info = pygame.display.Info()
-            # 保存窗口模式的尺寸
-            self.windowed_size = (self.window_width, self.window_height)
-            # 切换到全屏模式
-            self.screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-            self.window_width = info.current_w
-            self.window_height = info.current_h
-        else:
-            # 恢复窗口模式
-            self.window_width, self.window_height = self.windowed_size
-            self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        # 使用通用的全屏切换函数
+        self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
+            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
         
         # 更新布局
         self.update_layout()
@@ -464,15 +727,16 @@ class RulesScreen:
             self.rendered_lines.append(text_surface)
         
         # 返回按钮
-        button_width = 120
-        button_height = 40
-        self.back_button = Button(
+        button_width = 100
+        button_height = 35
+        self.back_button = StyledButton(  # 使用StyledButton替代Button
             self.window_width - button_width - 20, 
             20, 
             button_width, 
             button_height, 
             "返回", 
-            20
+            18,
+            8  # 圆角
         )
     
     def run(self):
@@ -494,13 +758,14 @@ class RulesScreen:
                         self.window_width, self.window_height = event.w, event.h
                         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
                         # 更新返回按钮位置
-                        self.back_button = Button(
-                            self.window_width - 120 - 20, 
+                        self.back_button = StyledButton(
+                            self.window_width - 100 - 20, 
                             20, 
-                            120, 
-                            40, 
+                            100, 
+                            35, 
                             "返回", 
-                            20
+                            18,
+                            8  # 圆角
                         )
                 
                 # 处理键盘事件
@@ -568,32 +833,21 @@ class RulesScreen:
     
     def toggle_fullscreen(self):
         """切换全屏模式"""
-        self.is_fullscreen = not self.is_fullscreen
-        
-        if self.is_fullscreen:
-            # 获取显示器信息
-            info = pygame.display.Info()
-            # 保存窗口模式的尺寸
-            self.windowed_size = (self.window_width, self.window_height)
-            # 切换到全屏模式
-            self.screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-            self.window_width = info.current_w
-            self.window_height = info.current_h
-        else:
-            # 恢复窗口模式
-            self.window_width, self.window_height = self.windowed_size
-            self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        # 使用通用的全屏切换函数
+        self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
+            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
         
         # 更新返回按钮位置
-        button_width = 120
-        button_height = 40
-        self.back_button = Button(
+        button_width = 100
+        button_height = 35
+        self.back_button = StyledButton(
             self.window_width - button_width - 20, 
             20, 
             button_width, 
             button_height, 
             "返回", 
-            20
+            18,
+            8  # 圆角
         )
 
 class CampSelectionScreen:
@@ -612,48 +866,51 @@ class CampSelectionScreen:
         
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
-        button_width = 250  # 缩小按钮
-        button_height = 60
-        button_spacing = 35
+        button_width = 160  # 进一步缩小按钮
+        button_height = 40
+        button_spacing = 20
         center_x = self.window_width // 2
         center_y = self.window_height // 2
         
         # 创建按钮
-        self.red_button = Button(
+        self.red_button = StyledButton(
             center_x - button_width // 2,
             center_y - button_height - button_spacing // 2,
             button_width,
             button_height,
             "执红先行",
-            28
+            20,  # 进一步缩小字体
+            12   # 增加圆角
         )
         
-        self.black_button = Button(
+        self.black_button = StyledButton(
             center_x - button_width // 2,
             center_y + button_spacing // 2,
             button_width,
             button_height,
             "执黑后行",
-            28
+            20,  # 进一步缩小字体
+            12   # 增加圆角
+        )
+        
+        # 添加返回按钮
+        back_button_width = 80
+        back_button_height = 35
+        self.back_button = StyledButton(
+            20,  # 左上角位置
+            20,  # 左上角位置
+            back_button_width,
+            back_button_height,
+            "返回",
+            16,   # 字体大小
+            10     # 增加圆角
         )
     
     def toggle_fullscreen(self):
         """切换全屏模式"""
-        self.is_fullscreen = not self.is_fullscreen
-        
-        if self.is_fullscreen:
-            # 获取显示器信息
-            info = pygame.display.Info()
-            # 保存窗口模式的尺寸
-            self.windowed_size = (self.window_width, self.window_height)
-            # 切换到全屏模式
-            self.screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-            self.window_width = info.current_w
-            self.window_height = info.current_h
-        else:
-            # 恢复窗口模式
-            self.window_width, self.window_height = self.windowed_size
-            self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        # 使用通用的全屏切换函数
+        self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
+            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
         
         # 更新布局
         self.update_layout()
@@ -695,10 +952,14 @@ class CampSelectionScreen:
                         self.selected_camp = CAMP_RED
                     elif self.black_button.is_clicked(mouse_pos, event):
                         self.selected_camp = CAMP_BLACK
+                    elif self.back_button.is_clicked(mouse_pos, event):
+                        # 返回到上一级界面（模式选择界面）
+                        return None  # 返回None表示返回上级界面
             
             # 更新按钮悬停状态
             self.red_button.check_hover(mouse_pos)
             self.black_button.check_hover(mouse_pos)
+            self.back_button.check_hover(mouse_pos)
             
             # 绘制界面
             self.draw()
@@ -713,21 +974,21 @@ class CampSelectionScreen:
         draw_background(self.screen)
         
         # 绘制标题
-        title_font = load_font(48)
+        title_font = load_font(40)  # 缩小标题字体
         title_text = "选择您的阵营"
         title_surface = title_font.render(title_text, True, BLACK)
-        title_rect = title_surface.get_rect(center=(self.window_width//2, 150))
+        title_rect = title_surface.get_rect(center=(self.window_width//2, 100))  # 上移标题
         self.screen.blit(title_surface, title_rect)
 
         # 绘制提示文字
-        hint_font = load_font(24)
+        hint_font = load_font(18)  # 缩小提示文字
         hint_text = "在匈汉象棋中，红方先行"
         hint_surface = hint_font.render(hint_text, True, BLACK)
-        hint_rect = hint_surface.get_rect(center=(self.window_width//2, 200))
+        hint_rect = hint_surface.get_rect(center=(self.window_width//2, 140))  # 调整位置
         self.screen.blit(hint_surface, hint_rect)
         
         # 绘制金色装饰线
-        line_y = title_rect.bottom + 40
+        line_y = title_rect.bottom + 20  # 调整线条位置
         pygame.draw.line(
             self.screen, 
             GOLD, 
@@ -739,3 +1000,4 @@ class CampSelectionScreen:
         # 绘制按钮
         self.red_button.draw(self.screen)
         self.black_button.draw(self.screen)
+        self.back_button.draw(self.screen)  # 绘制返回按钮
