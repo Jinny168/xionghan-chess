@@ -159,7 +159,7 @@ class ModeSelectionScreen:
 
         self.pvp_button = StyledButton(
             start_x,
-            center_y - button_height - 20,
+            center_y - button_height ,
             button_width,
             button_height,
             "双人对战",
@@ -169,7 +169,7 @@ class ModeSelectionScreen:
 
         self.pvc_button = StyledButton(
             start_x + button_width + button_spacing,
-            center_y - button_height - 20,
+            center_y - button_height ,
             button_width,
             button_height,
             "人机对战",
@@ -179,7 +179,7 @@ class ModeSelectionScreen:
 
         self.network_button = StyledButton(
             start_x + 2 * (button_width + button_spacing),
-            center_y - button_height - 20,
+            center_y - button_height ,
             button_width,
             button_height,
             "网络对战",
@@ -458,12 +458,12 @@ class ModeSelectionScreen:
             outline_offsets = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
             for offset_x, offset_y in outline_offsets:
                 outline_surface = prompt_font.render(prompt_text, True, (0, 0, 0))  # 黑色描边
-                outline_rect = outline_surface.get_rect(center=(self.window_width//2 + offset_x, 240 + offset_y))  # 调整回适当位置
+                outline_rect = outline_surface.get_rect(center=(self.window_width//2 + offset_x, 280 + offset_y))  # 调整回适当位置
                 self.screen.blit(outline_surface, outline_rect)
             
             # 绘制主体文字（象棋红）
             prompt_surface = prompt_font.render(prompt_text, True, (183, 36, 36))  # 象棋红
-            prompt_rect = prompt_surface.get_rect(center=(self.window_width//2, 240))  # 提示文字位置
+            prompt_rect = prompt_surface.get_rect(center=(self.window_width//2, 280))  # 提示文字位置
             self.screen.blit(prompt_surface, prompt_rect)
 
         # 绘制核心模式按钮
@@ -526,7 +526,7 @@ class ModeSelectionScreen:
                     self.screen.blit(temp_surface, (temp_button.rect.x, temp_button.rect.y))
 
         # 绘制版权信息
-        copyright_text = "© 2025 靳中原"
+        copyright_text = "© 2026 靳中原"
         copyright_surface = load_font(28).render(copyright_text, True, (255, 255, 255))
         copyright_rect = copyright_surface.get_rect(
             center=(self.window_width//2, self.window_height - 30)
