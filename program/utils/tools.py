@@ -220,13 +220,13 @@ def check_sound_play(game_instance):
         # 绝杀时播放绝杀音效
         try:
             game_instance.sound_manager.play_sound('defeat')  # 播放失败音效
-        except:
+        except (AttributeError, Exception):
             pass
     elif game_instance.game_state.is_check:
         # 将军时播放将军音效
         try:
             game_instance.sound_manager.play_sound('warn')  # 播放将军音效
-        except:
+        except (AttributeError, Exception):
             pass
 
 def enter_replay_mode(game_state):
