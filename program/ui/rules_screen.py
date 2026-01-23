@@ -38,10 +38,10 @@ class RulesScreen:
         
     def _parse_help_file(self):
         """解析help.md文件，按章节分割成页面"""
+        # 使用绝对路径从当前文件所在的目录开始查找
+        import os
+        help_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "help.md")
         try:
-            # 使用绝对路径从当前文件所在的目录开始查找
-            import os
-            help_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "help.md")
             with open(help_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
         except FileNotFoundError:
