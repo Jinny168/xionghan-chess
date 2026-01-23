@@ -118,14 +118,14 @@ class ChessGame:
             self.sound_manager.play_sound('warn')  # 使用将军语音
             try:
                 self.sound_manager.play_sound('check')  # 播放旧版音效
-            except:
+            except (AttributeError, Exception):
                 pass
         elif self.game_state.is_check:
             # 普通将军情况，播放将军音效
             self.sound_manager.play_sound('warn')# 使用将军语音
             try:
                 self.sound_manager.play_sound('capture')  # 播放旧版音效
-            except:
+            except (AttributeError, Exception):
                 pass
         # 检查是否有棋子被吃掉
         elif captured_piece:
@@ -190,21 +190,9 @@ class ChessGame:
 
     def toggle_fullscreen(self):
         """切换全屏模式"""
-        self.is_fullscreen = not self.is_fullscreen
-
-        if self.is_fullscreen:
-            # 获取显示器信息
-            info = pygame.display.Info()
-            # 保存窗口模式的尺寸
-            self.windowed_size = (self.window_width, self.window_height)
-            # 切换到全屏模式
-            self.screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-            self.window_width = info.current_w
-            self.window_height = info.current_h
-        else:
-            # 恢复窗口模式
-            self.window_width, self.window_height = self.windowed_size
-            self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        # 使用通用的全屏切换函数
+        self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
+            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
 
         # 更新界面布局
         self.game_screen.update_layout()
@@ -536,15 +524,9 @@ class ChessGame:
             self.last_move_notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
         # 播放音效
         if target_piece:
-            try:
-                self.sound_manager.play_sound('eat')
-            except:
-                pass
+            self.sound_manager.play_sound('eat')
         else:
-            try:
-                self.sound_manager.play_sound('drop')
-            except:
-                pass
+            self.sound_manager.play_sound('drop')
         # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
 
         tools.check_sound_play(self)

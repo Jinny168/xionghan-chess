@@ -1,5 +1,45 @@
 """工具函数模块，包含导入导出棋局和复盘等功能"""
 from tkinter import filedialog
+import pygame
+
+
+def toggle_fullscreen(screen, window_width, window_height, is_fullscreen, windowed_size=None):
+    """
+    切换全屏模式的通用函数
+    
+    Args:
+        screen: pygame屏幕对象
+        window_width: 当前窗口宽度
+        window_height: 当前窗口高度
+        is_fullscreen: 是否为全屏模式
+        windowed_size: 存储窗口模式尺寸的元组，格式为(width, height)，如果为None则创建新元组
+    
+    Returns:
+        tuple: (new_screen, new_window_width, new_window_height, new_is_fullscreen, new_windowed_size)
+               返回更新后的屏幕对象、窗口宽高、全屏状态和窗口尺寸
+    """
+    if windowed_size is None:
+        windowed_size = (window_width, window_height)
+    
+    new_is_fullscreen = not is_fullscreen
+    
+    if new_is_fullscreen:
+        # 获取显示器信息
+        info = pygame.display.Info()
+        # 保存窗口模式的尺寸
+        new_windowed_size = (window_width, window_height)
+        # 切换到全屏模式
+        new_screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
+        new_window_width = info.current_w
+        new_window_height = info.current_h
+    else:
+        # 恢复窗口模式
+        new_window_width, new_window_height = windowed_size
+        new_screen = pygame.display.set_mode((new_window_width, new_window_height), pygame.RESIZABLE)
+        new_windowed_size = windowed_size
+    
+    return new_screen, new_window_width, new_window_height, new_is_fullscreen, new_windowed_size
+
 
 from program.core.chess_pieces import (
     King, Ju, Ma, Xiang, Shi, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun

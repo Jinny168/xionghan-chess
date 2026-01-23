@@ -9,6 +9,7 @@ from program.config.config import (
 )
 from program.ui.button import Button
 from program.utils.utils import load_font, draw_background
+from program.utils import tools
 
 
 class ModeSelectionScreen:
@@ -106,21 +107,9 @@ class ModeSelectionScreen:
     
     def toggle_fullscreen(self):
         """切换全屏模式"""
-        self.is_fullscreen = not self.is_fullscreen
-        
-        if self.is_fullscreen:
-            # 获取显示器信息
-            info = pygame.display.Info()
-            # 保存窗口模式的尺寸
-            self.windowed_size = (self.window_width, self.window_height)
-            # 切换到全屏模式
-            self.screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-            self.window_width = info.current_w
-            self.window_height = info.current_h
-        else:
-            # 恢复窗口模式
-            self.window_width, self.window_height = self.windowed_size
-            self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        # 使用通用的全屏切换函数
+        self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
+            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
         
         # 更新布局
         self.update_layout()
@@ -390,21 +379,9 @@ class NetworkModeScreen:
     
     def toggle_fullscreen(self):
         """切换全屏模式"""
-        self.is_fullscreen = not self.is_fullscreen
-        
-        if self.is_fullscreen:
-            # 获取显示器信息
-            info = pygame.display.Info()
-            # 保存窗口模式的尺寸
-            self.windowed_size = (self.window_width, self.window_height)
-            # 切换到全屏模式
-            self.screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-            self.window_width = info.current_w
-            self.window_height = info.current_h
-        else:
-            # 恢复窗口模式
-            self.window_width, self.window_height = self.windowed_size
-            self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        # 使用通用的全屏切换函数
+        self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
+            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
         
         # 更新布局
         self.update_layout()
@@ -568,21 +545,9 @@ class RulesScreen:
     
     def toggle_fullscreen(self):
         """切换全屏模式"""
-        self.is_fullscreen = not self.is_fullscreen
-        
-        if self.is_fullscreen:
-            # 获取显示器信息
-            info = pygame.display.Info()
-            # 保存窗口模式的尺寸
-            self.windowed_size = (self.window_width, self.window_height)
-            # 切换到全屏模式
-            self.screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-            self.window_width = info.current_w
-            self.window_height = info.current_h
-        else:
-            # 恢复窗口模式
-            self.window_width, self.window_height = self.windowed_size
-            self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        # 使用通用的全屏切换函数
+        self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
+            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
         
         # 更新返回按钮位置
         button_width = 120
@@ -639,21 +604,9 @@ class CampSelectionScreen:
     
     def toggle_fullscreen(self):
         """切换全屏模式"""
-        self.is_fullscreen = not self.is_fullscreen
-        
-        if self.is_fullscreen:
-            # 获取显示器信息
-            info = pygame.display.Info()
-            # 保存窗口模式的尺寸
-            self.windowed_size = (self.window_width, self.window_height)
-            # 切换到全屏模式
-            self.screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-            self.window_width = info.current_w
-            self.window_height = info.current_h
-        else:
-            # 恢复窗口模式
-            self.window_width, self.window_height = self.windowed_size
-            self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        # 使用通用的全屏切换函数
+        self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
+            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
         
         # 更新布局
         self.update_layout()
