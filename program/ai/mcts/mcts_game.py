@@ -47,7 +47,7 @@ state_list_init = [
     # 10行
     ['一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一'],
     # 11行
-    ['一一', '一一', '一一', '红傌', '红相', '红仕', '红汉', '红仕', '红相', '红傌', '一一', '一一', '一一'],
+    ['一一', '一一', '一一', '红傌', '红相', '红仕', '红漢', '红仕', '红相', '红傌', '一一', '一一', '一一'],
     # 12行
     ['红射', '一一', '红俥', '一一', '红檑', '一一', '一一', '一一', '红檑', '一一', '红俥', '一一', '红射']
 ]
@@ -62,7 +62,7 @@ string2array = dict(红俥=np.array([1, 0, 0, 0, 0, 0, 0, 0, 0]),
                     红傌=np.array([0, 1, 0, 0, 0, 0, 0, 0, 0]),
                     红相=np.array([0, 0, 1, 0, 0, 0, 0, 0, 0]),
                     红仕=np.array([0, 0, 0, 1, 0, 0, 0, 0, 0]),
-                    红汉=np.array([0, 0, 0, 0, 1, 0, 0, 0, 0]),
+                    红漢=np.array([0, 0, 0, 0, 1, 0, 0, 0, 0]),
                     红炮=np.array([0, 0, 0, 0, 0, 1, 0, 0, 0]),
                     红兵=np.array([0, 0, 0, 0, 0, 0, 1, 0, 0]),
                     红檑=np.array([0, 0, 0, 0, 0, 0, 0, 1, 0]),
@@ -316,7 +316,7 @@ def get_legal_moves(state_deque, current_player_color):
                             if change_state(state_list, m) != old_state_list:
                                 moves.append(m)
 
-            elif piece_type in ['汉', '汗']:  # 将/帅的走法
+            elif piece_type in ['漢', '汗']:  # 将/帅的走法
                 # 将/帅只能在九宫内横向移动一格
                 king_moves = [
                     (y, x - 1), (y, x + 1)  # 左右
@@ -838,7 +838,7 @@ class Board(object):
         if state_list[end_y][end_x] != '一一':
             # 如果吃掉对方的帅，则返回当前的current_player胜利
             self.kill_action = 0
-            if self.current_player_color == '黑' and '红汉' in state_list[end_y][end_x]:
+            if self.current_player_color == '黑' and '红漢' in state_list[end_y][end_x]:
                 self.winner = self.color2id['黑']
             elif self.current_player_color == '红' and '黑汗' in state_list[end_y][end_x]:
                 self.winner = self.color2id['红']
@@ -1054,7 +1054,7 @@ class XiangHanChessRuleAdapter:
         # 创建从游戏本体棋子名称到MCTS棋子名称的映射
         game_to_mcts_name_map = {
             # 红方棋子
-            "汉": "红汉", "仕": "红仕", "相": "红相", "俥": "红俥", 
+            "漢": "红漢", "仕": "红仕", "相": "红相", "俥": "红俥",
             "傌": "红傌", "炮": "红炮", "兵": "红兵", "射": "红射", 
             "檑": "红檑", "巡": "红巡",
             # 黑方棋子

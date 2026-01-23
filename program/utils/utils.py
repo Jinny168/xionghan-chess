@@ -189,7 +189,7 @@ def print_board(pieces, step=[0], show_step=True):
                 print('〇', end='')
             else:
                 # 根据棋子名称判断颜色
-                if cell.name in '汉仕相傌俥炮兵巡射檑甲盾射刺':
+                if cell.name in '漢仕相傌俥炮兵巡射檑甲盾射刺':
                     print(f'\033[32m{cell.name}\033[0m', end='')
                 else:
                     print(f'\033[31m{cell.name}\033[0m', end='')

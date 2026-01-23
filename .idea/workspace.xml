@@ -4,11 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="修改了about_screen的加载逻辑，新增about.md文件。">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="确保了MCTS算法能够正确地与游戏本体进行交互">
       <change beforePath="$PROJECT_DIR$/program/ai/chess_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/chess_ai.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/ai/mcts/mcts_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/mcts_game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/core/chess_pieces.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/chess_pieces.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/core/game_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_state.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/utils/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -312,15 +314,7 @@
       <workItem from="1768904643592" duration="3057000" />
       <workItem from="1769078384230" duration="2498000" />
       <workItem from="1769084956089" duration="13075000" />
-      <workItem from="1769136069581" duration="4598000" />
-    </task>
-    <task id="LOCAL-00030" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768041134302</created>
-      <option name="number" value="00030" />
-      <option name="presentableId" value="LOCAL-00030" />
-      <option name="project" value="LOCAL" />
-      <updated>1768041134302</updated>
+      <workItem from="1769136069581" duration="5808000" />
     </task>
     <task id="LOCAL-00031" summary="最新更新">
       <option name="closed" value="true" />
@@ -706,7 +700,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769136614111</updated>
     </task>
-    <option name="localTasksCounter" value="79" />
+    <task id="LOCAL-00079" summary="确保了MCTS算法能够正确地与游戏本体进行交互">
+      <option name="closed" value="true" />
+      <created>1769140849715</created>
+      <option name="number" value="00079" />
+      <option name="presentableId" value="LOCAL-00079" />
+      <option name="project" value="LOCAL" />
+      <updated>1769140849715</updated>
+    </task>
+    <option name="localTasksCounter" value="80" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -758,7 +760,8 @@
     <MESSAGE value="提取game_screen,将ui与逻辑分离" />
     <MESSAGE value="美化了game_screen，实现按钮的归纳与梳理。" />
     <MESSAGE value="修改了about_screen的加载逻辑，新增about.md文件。" />
-    <option name="LAST_COMMIT_MESSAGE" value="修改了about_screen的加载逻辑，新增about.md文件。" />
+    <MESSAGE value="确保了MCTS算法能够正确地与游戏本体进行交互" />
+    <option name="LAST_COMMIT_MESSAGE" value="确保了MCTS算法能够正确地与游戏本体进行交互" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -864,6 +867,11 @@
           <url>file://$PROJECT_DIR$/program/utils/utils.py</url>
           <line>8</line>
           <option name="timeStamp" value="73" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/core/chess_pieces.py</url>
+          <line>122</line>
+          <option name="timeStamp" value="74" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

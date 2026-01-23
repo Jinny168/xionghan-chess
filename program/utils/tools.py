@@ -127,19 +127,19 @@ def get_piece_class_by_name(name):
 
 
     name_to_class = {
-        '汉': King, '汗': King, '漢': King,'帅': King, '将': King,  # 将/帅
-        '車': Ju, '俥': Ju,'车': Ju,  # 车
-        '馬': Ma, '傌': Ma, '马': Ma, # 马
+         '汗': King, '漢': King, # 漢/汗
+        '車': Ju, '俥': Ju, # 俥/車
+        '馬': Ma, '傌': Ma, # 馬/傌
         '象': Xiang, '相': Xiang,  # 相/象
         '士': Shi, '仕': Shi,  # 士/仕
-        '砲': Pao, '炮': Pao,  # 炮
+        '砲': Pao, '炮': Pao,  # 炮/砲
         '卒': Pawn, '兵': Pawn,  # 兵/卒
-        '衛': Wei, '尉': Wei, '卫': Wei, # 卫/尉
-        '䠶': She, '射': She,  # 射
-        '礌': Lei, '檑': Lei,  # 檑
+        '衛': Wei, '尉': Wei, # 卫/尉
+        '䠶': She, '射': She,  # 射/䠶
+        '礌': Lei, '檑': Lei,  # 檑/礌
         '胄': Jia, '甲': Jia,  # 甲/胄
-        '刺': Ci,  # 刺
-        '盾': Dun,  # 盾
+        '刺': Ci,  '伺': Ci, # 刺/伺
+        '楯': Dun, '碷': Dun,# 楯/碷
         '廵': Xun, '巡': Xun,  # 巡/廵
     }
 
