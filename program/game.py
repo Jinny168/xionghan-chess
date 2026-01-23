@@ -9,7 +9,7 @@ from program.core.game_state import GameState
 from program.ui.dialogs import PopupDialog, AudioSettingsDialog, StatisticsDialog
 from program.ui.game_screen import GameScreen
 from program.utils import tools
-
+from program.controllers.sound_manager import SoundManager
 # 初始化PyGame
 pygame.init()
 pygame.mixer.init()  # 初始化音频模块
@@ -420,12 +420,6 @@ class ChessGame:
                         elif self.game_screen.audio_settings_button and self.game_screen.audio_settings_button.is_clicked(mouse_pos, event):
                             # 打开音效设置对话框
                             self.audio_settings_dialog = AudioSettingsDialog(600, 400, self.sound_manager)
-                        # 检查是否点击了返回按钮 - 从菜单中调用，不再使用独立按钮
-                        # 检查是否点击了退出游戏按钮 - 从菜单中调用，不再使用独立按钮
-                        # 检查是否点击了重新开始按钮 - 从菜单中调用，不再使用独立按钮
-                        # 检查是否点击了悔棋按钮 - 从菜单中调用，不再使用独立按钮
-                        # 检查是否点击了导入棋局按钮 - 从菜单中调用，不再使用独立按钮
-                        # 检查是否点击了导出棋局按钮 - 从菜单中调用，不再使用独立按钮
                         # 处理棋子操作
                         elif self._should_handle_player_input():  # 统一判断是否应该处理玩家输入
                             input_handler.handle_click(self,mouse_pos)
@@ -584,4 +578,3 @@ class ChessGame:
         """检查AI是否正在思考"""
         return self.ai_manager.ai_thinking
 
-from program.controllers.sound_manager import SoundManager

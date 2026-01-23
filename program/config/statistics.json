@@ -12,8 +12,8 @@
         "xiang": 0,
         "shi": 0,
         "king": 0,
-        "pao": 2,
-        "pawn": 8,
+        "pao": 4,
+        "pawn": 10,
         "wei": 0,
         "she": 0,
         "lei": 0,
@@ -24,7 +24,7 @@
     },
     "fastest_win": {
         "red": 29.151459217071533,
-        "black": Infinity
+        "black": null
     },
     "longest_game": 29.151459217071533,
     "favorite_piece": {
@@ -40,5 +40,5 @@
         }
     },
     "last_played": "2026-01-23 00:07:19",
-    "total_moves_made": 77
+    "total_moves_made": 97
 }

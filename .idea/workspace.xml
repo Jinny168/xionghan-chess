@@ -7,12 +7,8 @@
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="继续修复error">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/config/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/statistics.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/game_io_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/game_io_controller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/replay_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/replay_controller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_replay_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/test_replay_controller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/game_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/game_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/replay_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/replay_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_ai_integration.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/test_ai_integration.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/lan/network_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/lan/network_game.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -126,13 +122,13 @@
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\test" />
+      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program" />
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\controllers" />
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\config" />
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\ui" />
-      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\lan" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main">
+  <component name="RunManager" selected="Python.test_local_network (1)">
     <configuration name="convert_md_to_pdf" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="xionghan-chess" />
       <option name="ENV_FILES" value="" />
@@ -193,7 +189,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/test/server_only.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\27415\PycharmProjects\xionghan-chess\program\test\server_only.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -202,7 +198,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="test_local_network (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="test_local_network" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="xionghan-chess" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -216,7 +212,30 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/test/test_local_network.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\27415\PycharmProjects\xionghan-chess\program\test_local_network.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="test_local_network" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="xionghan-chess" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/program" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\27415\PycharmProjects\xionghan-chess\program\test\test_local_network.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -250,11 +269,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.test_local_network (1)" />
+        <item itemvalue="Python.test_local_network (1)" />
         <item itemvalue="Python.main" />
         <item itemvalue="Python.convert_md_to_pdf" />
-        <item itemvalue="Python.test_local_network (1)" />
         <item itemvalue="Python.server_only" />
-        <item itemvalue="Python.test_local_network" />
       </list>
     </recent_temporary>
   </component>
@@ -318,15 +337,7 @@
       <workItem from="1769084956089" duration="13075000" />
       <workItem from="1769136069581" duration="8206000" />
       <workItem from="1769154175303" duration="2858000" />
-      <workItem from="1769159579240" duration="3895000" />
-    </task>
-    <task id="LOCAL-00041" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768551418682</created>
-      <option name="number" value="00041" />
-      <option name="presentableId" value="LOCAL-00041" />
-      <option name="project" value="LOCAL" />
-      <updated>1768551418682</updated>
+      <workItem from="1769159579240" duration="5529000" />
     </task>
     <task id="LOCAL-00042" summary="最新更新">
       <option name="closed" value="true" />
@@ -712,7 +723,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769160495713</updated>
     </task>
-    <option name="localTasksCounter" value="90" />
+    <task id="LOCAL-00090" summary="继续修复error">
+      <option name="closed" value="true" />
+      <created>1769166441018</created>
+      <option name="number" value="00090" />
+      <option name="presentableId" value="LOCAL-00090" />
+      <option name="project" value="LOCAL" />
+      <updated>1769166441018</updated>
+    </task>
+    <option name="localTasksCounter" value="91" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -851,7 +870,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/lan/network_game.py</url>
-          <line>131</line>
+          <line>123</line>
           <option name="timeStamp" value="54" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -919,6 +938,11 @@
           <line>5</line>
           <option name="timeStamp" value="81" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/game.py</url>
+          <line>580</line>
+          <option name="timeStamp" value="83" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
@@ -940,7 +964,7 @@
     <SUITE FILE_PATH="coverage/xionghan_chess$test_ci_piece.coverage" NAME="test_ci_piece 覆盖结果" MODIFIED="1767790743910" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$game_rules.coverage" NAME="game_rules 覆盖结果" MODIFIED="1768491391284" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/core" />
     <SUITE FILE_PATH="coverage/xionghan_chess$convert_md_to_pdf.coverage" NAME="convert_md_to_pdf 覆盖结果" MODIFIED="1768905088834" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$test_local_network__1_.coverage" NAME="test_local_network (1) 覆盖结果" MODIFIED="1768660077519" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$test_local_network__1_.coverage" NAME="test_local_network (1) 覆盖结果" MODIFIED="1769167826195" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$dun_test.coverage" NAME="dun_test 覆盖结果" MODIFIED="1767952707887" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$game_logic.coverage" NAME="game_logic 覆盖结果" MODIFIED="1766850974112" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$gen.coverage" NAME="gen 覆盖结果" MODIFIED="1768033508731" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
