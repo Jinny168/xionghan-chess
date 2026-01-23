@@ -50,6 +50,17 @@ class SettingsScreen:
         self.xiang_appear_checkbox = None
         self.shi_appear_checkbox = None
         self.king_appear_checkbox = None
+        
+        # 字体设置
+        self.option_font = None
+        self.desc_font = None
+        
+        # 分类布局相关属性
+        self.category_padding = None
+        self.category_bg_color = None
+        self.category_border_color = None
+        self.category_title_height = None
+        self.category_icon_size = None
         self.piece_settings = {
             # 汗/汗设置
             "king": {
@@ -213,7 +224,7 @@ class SettingsScreen:
         self.category_background_color = (230, 230, 230)  # 分类背景色
         self.category_border_color = (180, 180, 180)  # 分类边框色
         self.category_padding = 15  # 分类内边距
-        self.category_spacing = 20  # 分类间间距
+        self.category_spacing = 20  # 分类间距
         self.category_title_height = 40  # 分类标题高度
         self.category_title_font = load_font(20, bold=True)  # 分类标题字体
         self.category_icon_radius = 15  # 分类图标半径
@@ -288,7 +299,6 @@ class SettingsScreen:
     def create_ui_elements(self):
         """创建界面元素，按棋子类型进行分类"""
         # 标题字体
-        self.title_font = load_font(48)
         self.option_font = load_font(18)  # 减小字体
         self.desc_font = load_font(14)  # 减小描述字体
 
@@ -651,14 +661,14 @@ class SettingsScreen:
 
         # AI算法分类
         ai_items = self.create_ai_items()
-        category_height = draw_category(
+        draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
             self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
             self.option_font, self.desc_font, self.draw_piece_icon,
             "A", "AI算法", ai_items, y_offset
         )
-        y_offset = y_offset + category_height + self.category_spacing
+        # y_offset = y_offset + category_height + self.category_spacing  # 最终值未被使用
 
         # 取消裁剪区域
         self.screen.set_clip(None)
@@ -690,7 +700,7 @@ class SettingsScreen:
             king_items = self.create_king_items()
             clicked_item = self.check_category_click(king_items, adjusted_mouse_pos, 150)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "汉/汗可以出九宫":
                     self.piece_settings["king"]["can_leave_palace"] = not self.piece_settings["king"]["can_leave_palace"]
                 elif text == "汉/汗出九宫后失去斜走能力":
@@ -702,15 +712,14 @@ class SettingsScreen:
                     pass
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(king_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = 150 + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = 150 + len(king_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 士棋子分类
             shi_items = self.create_shi_items()
-            clicked_item = self.check_category_click(shi_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(shi_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "士可以出九宫":
                     self.piece_settings["shi"]["can_leave_palace"] = not self.piece_settings["shi"]["can_leave_palace"]
                 elif text == "士出九宫后获得直走能力":
@@ -719,15 +728,14 @@ class SettingsScreen:
                     self.piece_settings["shi"]["appear"] = not self.piece_settings["shi"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(shi_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(shi_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 相棋子分类
             xiang_items = self.create_xiang_items()
-            clicked_item = self.check_category_click(xiang_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(xiang_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "相可以过河":
                     self.piece_settings["xiang"]["can_cross_river"] = not self.piece_settings["xiang"]["can_cross_river"]
                 elif text == "相过河后获得隔两格吃子能力":
@@ -736,56 +744,52 @@ class SettingsScreen:
                     self.piece_settings["xiang"]["appear"] = not self.piece_settings["xiang"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(xiang_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(xiang_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 马棋子分类
             ma_items = self.create_ma_items()
-            clicked_item = self.check_category_click(ma_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(ma_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "马可以获得直走三格的能力":
                     self.piece_settings["ma"]["can_straight_three"] = not self.piece_settings["ma"]["can_straight_three"]
                 elif text == "馬登场":
                     self.piece_settings["ma"]["appear"] = not self.piece_settings["ma"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(ma_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(ma_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 車棋子分类
             ju_items = self.create_ju_items()
-            clicked_item = self.check_category_click(ju_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(ju_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "車登场":
                     self.piece_settings["ju"]["appear"] = not self.piece_settings["ju"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(ju_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(ju_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 炮棋子分类
             pao_items = self.create_pao_items()
-            clicked_item = self.check_category_click(pao_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(pao_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "炮登场":
                     self.piece_settings["pao"]["appear"] = not self.piece_settings["pao"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(pao_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(pao_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 兵/卒棋子分类
             pawn_items = self.create_pawn_items()
-            clicked_item = self.check_category_click(pawn_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(pawn_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "兵/卒登场":
                     self.piece_settings["pawn"]["appear"] = not self.piece_settings["pawn"]["appear"]
                 elif text == "兵/卒复活机制":
@@ -798,119 +802,110 @@ class SettingsScreen:
                     self.piece_settings["pawn"]["full_movement_at_base_enabled"] = not self.piece_settings["pawn"]["full_movement_at_base_enabled"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(pawn_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(pawn_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 尉棋子分类
             wei_items = self.create_wei_items()
-            clicked_item = self.check_category_click(wei_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(wei_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "尉登场":
                     self.piece_settings["wei"]["appear"] = not self.piece_settings["wei"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(wei_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(wei_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 射棋子分类
             she_items = self.create_she_items()
-            clicked_item = self.check_category_click(she_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(she_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "射登场":
                     self.piece_settings["she"]["appear"] = not self.piece_settings["she"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(she_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(she_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 檵/檑棋子分类
             lei_items = self.create_lei_items()
-            clicked_item = self.check_category_click(lei_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(lei_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "檑登场":
                     self.piece_settings["lei"]["appear"] = not self.piece_settings["lei"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(lei_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(lei_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 甲棋子分类
             jia_items = self.create_jia_items()
-            clicked_item = self.check_category_click(jia_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(jia_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "甲登场":
                     self.piece_settings["jia"]["appear"] = not self.piece_settings["jia"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(jia_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(jia_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 刺棋子分类
             ci_items = self.create_ci_items()
-            clicked_item = self.check_category_click(ci_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(ci_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "刺登场":
                     self.piece_settings["ci"]["appear"] = not self.piece_settings["ci"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(ci_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(ci_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 盾棋子分类
             dun_items = self.create_dun_items()
-            clicked_item = self.check_category_click(dun_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(dun_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "盾登场":
                     self.piece_settings["dun"]["appear"] = not self.piece_settings["dun"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(dun_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(dun_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 巡棋子分类
             xun_items = self.create_xun_items()
-            clicked_item = self.check_category_click(xun_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(xun_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "巡登场":
                     self.piece_settings["xun"]["appear"] = not self.piece_settings["xun"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(xun_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(xun_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
             # 游戏模式分类
             game_mode_items = self.create_game_mode_items()
-            clicked_item = self.check_category_click(game_mode_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(game_mode_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 if text == "经典模式":
                     self.piece_settings["game_mode"]["classic_mode"] = not self.piece_settings["game_mode"]["classic_mode"]
                 return  # 处理完后直接返回，避免其他检测
             
-            # 更新y_offset
-            category_height = len(game_mode_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
+            # 计算下一个分类的y位置
+            next_y_pos = next_y_pos + len(game_mode_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
 
             # AI算法分类
             ai_items = self.create_ai_items()
-            clicked_item = self.check_category_click(ai_items, adjusted_mouse_pos, y_offset)
+            clicked_item = self.check_category_click(ai_items, adjusted_mouse_pos, next_y_pos)
             if clicked_item is not None:
-                checkbox, label, value, text, desc, is_disabled = clicked_item
+                _, _, value, text, _, _ = clicked_item
                 # 根据文本内容识别是哪个算法选项
                 if "Negamax搜索算法" in text or "negamax" in text.lower():
                     self.ai_settings["ai_algorithm"] = "negamax"
@@ -921,10 +916,6 @@ class SettingsScreen:
                 elif "MCTS+神经网络算法" in text or "mcts" in text.lower():
                     self.ai_settings["ai_algorithm"] = "mcts"
                 return  # 处理完后直接返回，避免其他检测
-            
-            # 更新y_offset
-            category_height = len(ai_items) * 60 + self.category_title_height + 2 * self.category_padding
-            y_offset = y_offset + category_height + self.category_spacing
             
             # 检查按钮点击（按钮不受滚动影响）
             if self.confirm_button.is_clicked(event.pos, event):
@@ -953,8 +944,7 @@ class SettingsScreen:
         item_y = y_position + self.category_title_height + self.category_padding
         
         for index, item in enumerate(items):
-            checkbox, label, value, text, desc, is_disabled = item
-            
+            # checkbox, label, value, text, desc, is_disabled = item
             # 计算每项的背景框
             item_rect = pygame.Rect(category_rect.left + 10, item_y - 5, category_rect.width - 20, 55)
             
@@ -1004,14 +994,12 @@ class SettingsScreen:
             "lei_appear": self.piece_settings["lei"]["appear"],
             "jia_appear": self.piece_settings["jia"]["appear"],
             "ci_appear": self.piece_settings["ci"]["appear"],
-            "dun_appear": self.piece_settings["dun"]["appear"]
+            "dun_appear": self.piece_settings["dun"]["appear"],
+            # 添加游戏模式设置
+            "classic_mode": self.piece_settings["game_mode"]["classic_mode"],
+            # 添加AI算法设置
+            "ai_algorithm": self.ai_settings["ai_algorithm"]
         }
-
-        # 添加游戏模式设置
-        settings["classic_mode"] = self.piece_settings["game_mode"]["classic_mode"]
-
-        # 添加AI算法设置
-        settings["ai_algorithm"] = self.ai_settings["ai_algorithm"]
 
         # 保存设置到全局配置
         game_config.update_settings(settings)

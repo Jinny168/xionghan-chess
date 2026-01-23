@@ -4,6 +4,7 @@ AI管理器 - 将游戏中的AI相关操作独立出来
 import random
 import pygame
 from program.ai.chess_ai import ChessAI
+from program.utils import tools
 
 
 class AIManager:
@@ -123,14 +124,7 @@ class AIManager:
         if best_move is None:
             # 如果仍然没有最佳走法，则随机选择一个移动
             ai_color = "black" if self.player_camp == "red" else "red"
-            valid_moves = []
-
-            for piece in game_state.pieces:
-                if piece.color == ai_color:
-                    possible_moves, _ = game_state.calculate_possible_moves(piece.row, piece.col)
-                    for to_row, to_col in possible_moves:
-                        valid_moves.append(((piece.row, piece.col), (to_row, to_col)))
-
+            valid_moves=tools.get_valid_moves(game_state,ai_color)
             if valid_moves:
                 best_move = random.choice(valid_moves)
 

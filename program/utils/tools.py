@@ -12,11 +12,11 @@ def generate_move_notation(piece, from_row, from_col, to_row, to_col):
     piece_name = piece.name  # 直接使用棋子名称
 
     # 转换列数为中文数字或数字 - 从右至左标识
-    # 红方用一至十三标识，黑方用1-13标识
+    # 红方用汉字“一”至“十三”标识，黑方用数字“1”-“13”标识
     col_names_red = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三"]
     col_names_black = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]
 
-    # 根据棋子颜色选择合适的列名表示
+    # 根据棋子颜色选择合适列名表示
     col_names = col_names_red if piece.color == "red" else col_names_black
 
     # 计算棋盘坐标到列标识的映射（从右到左）

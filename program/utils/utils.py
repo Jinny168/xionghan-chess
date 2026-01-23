@@ -41,8 +41,8 @@ def load_font(size, bold=False):
     # 作为最后的备选方案，尝试直接使用本地字体文件
     fallback_fonts = ['fonts/simhei.ttf', 'fonts/simkai.ttf', 'fonts/fangsong.ttf']
     for font_path in fallback_fonts:
+        full_path = resource_path(font_path)  # 使用统一的资源路径处理函数
         try:
-            full_path = resource_path(font_path)  # 使用统一的资源路径处理函数
             font = pygame.font.Font(full_path, size)
             if bold and hasattr(font, 'bold'):
                 font.bold = True
@@ -61,8 +61,10 @@ def resource_path(relative_path):
     """获取资源文件的绝对路径，兼容PyInstaller打包后的环境"""
     try:
         # PyInstaller创建的临时文件夹存储在sys._MEIPASS中
-        base_path = sys._MEIPASS
-    except Exception:
+        base_path = getattr(sys, '_MEIPASS', None)
+        if base_path is None:
+            raise AttributeError
+    except AttributeError:
         # 在开发环境下，如果相对路径找不到资源，尝试在program目录下查找
         base_path = os.path.abspath(".")
         full_path = os.path.join(base_path, relative_path)
@@ -163,7 +165,7 @@ def virtual_move(pieces, piece, to_row, to_col, check_function, *args):
     return result
 
 
-def print_board(pieces, step=[0], show_step=True):
+def print_board(pieces, step=None, show_step=True):
     """ 打印当前棋盘状态
     
     Args:
@@ -171,6 +173,8 @@ def print_board(pieces, step=[0], show_step=True):
         step: 步数计数器，默认为[0]
         show_step: 是否显示步数，默认为True
     """
+    if step is None:
+        step = [0]
     if show_step:
         step[0] += 1
         print('\033[36mSTEP\033[0m:', step[0])
@@ -188,11 +192,14 @@ def print_board(pieces, step=[0], show_step=True):
             if cell is None:
                 print('〇', end='')
             else:
-                # 根据棋子名称判断颜色
-                if cell.name in '漢仕相傌俥炮兵巡射檑甲盾射刺':
-                    print(f'\033[32m{cell.name}\033[0m', end='')
-                else:
-                    print(f'\033[31m{cell.name}\033[0m', end='')
+                # 获取棋子名称，确保安全访问
+                cell_name = getattr(cell, 'name', None)
+                if cell_name and cell_name in '漢仕相傌俥炮兵巡射檑甲盾射刺':
+                    print(f'\033[32m{cell_name}\033[0m', end='')
+                elif cell_name:  # 如果有名称但不在上述列表中
+                    print(f'\033[31m{cell_name}\033[0m', end='')
+                else:  # 如果没有名称属性或名称为空
+                    print('?', end='')  # 显示问号作为占位符
         print()
     print()
 

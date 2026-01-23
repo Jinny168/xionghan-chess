@@ -6,7 +6,7 @@ from program.config.config import game_config
 from program.controllers.input_handler import input_handler
 from program.core.game_rules import GameRules
 from program.core.game_state import GameState
-from program.ui.dialogs import PopupDialog, ConfirmDialog, AudioSettingsDialog, StatisticsDialog
+from program.ui.dialogs import PopupDialog, AudioSettingsDialog, StatisticsDialog
 from program.ui.game_screen import GameScreen
 from program.utils import tools
 
@@ -379,7 +379,7 @@ class ChessGame:
                     # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
                     continue  # 跳过后续的事件处理，防止同时处理其他操作
                 # 如果游戏结束，处理弹窗事件
-                elif self.game_state.game_over and self.popup:
+                elif self.game_state.game_over and self.popup is not None:
                     result = self.popup.handle_event(event, mouse_pos)
                     if result == "restart":
                         # 在重置游戏之前停止背景音乐
