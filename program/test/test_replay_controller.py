@@ -41,8 +41,11 @@ class TestReplayControllerIntegration(unittest.TestCase):
     def test_controller_initialization(self):
         """测试控制器初始化"""
         self.assertIsNotNone(self.controller.game_state)
-        self.assertIsNotNone(self.controller.base_controller)
+        # 根据经验教训，复盘控制器应该是独立实现的，不依赖base_controller
+        # self.assertIsNotNone(self.controller.base_controller)
         self.assertFalse(self.controller.is_replay_mode)
+        self.assertEqual(self.controller.current_step, 0)
+        self.assertEqual(self.controller.max_steps, 0)
     
     def test_start_replay(self):
         """测试开始复盘"""

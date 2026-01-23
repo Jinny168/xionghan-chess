@@ -5,6 +5,7 @@ from program.config.config import (
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO,
     PANEL_BORDER, BLACK, RED
 )
+from program.config.taunts_manager import taunt_manager
 from program.ui.avatar import Avatar
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
@@ -279,7 +280,7 @@ class TauntAnimation:
     def __init__(self, window_width, window_height):
         self.window_width = window_width
         self.window_height = window_height
-        self.text = "是我天下无敌啦！"
+        self.text = taunt_manager.get_random_taunt()
         self.font = load_font(36, bold=True)
         self.text_surface = self.font.render(self.text, True, (255, 0, 0))  # 红色文字
         self.text_width = self.text_surface.get_width()
@@ -293,6 +294,12 @@ class TauntAnimation:
         
     def start(self):
         """开始动画"""
+        # 随机选择一个新的嘲讽语句
+        self.text = taunt_manager.get_random_taunt()
+        # 重新渲染文本表面
+        self.text_surface = self.font.render(self.text, True, (255, 0, 0))
+        self.text_width = self.text_surface.get_width()
+        
         self.current_x = self.start_x
         self.active = True
         
