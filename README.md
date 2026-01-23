@@ -1,6 +1,4 @@
-匈汉象棋 (XiongHan Chess)
-
-# 匈汉象棋 (Hung-Han Chess)
+# 匈汉象棋 (XiongHan Chess)
 
 一个基于PyGame的匈汉象棋游戏，支持双人对战和人机对战，拥有美观的界面和智能AI。
 
