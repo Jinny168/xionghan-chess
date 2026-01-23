@@ -1027,7 +1027,7 @@ class StatisticsDialog:
         else:
             fastest_red_text = self.normal_font.render("红方最快胜利: 无", True, (180, 30, 30))  # 红色
 
-        if fastest_black != float('inf'):
+        if fastest_black is not None and fastest_black != float('inf'):
             fastest_black_text = self.normal_font.render(
                 f"黑方最快胜利: {fastest_black:.1f}秒 ({int(fastest_black // 60)}:{int(fastest_black % 60):02d})", True,
                 (0, 0, 0))
