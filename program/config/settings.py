@@ -171,6 +171,14 @@ class SettingsScreen:
             }
         }
 
+        # AI算法设置
+        self.ai_settings = {
+            "ai_algorithm": game_config.get_setting("ai_algorithm", "negamax"),          # AI算法选择，从全局配置加载
+            "section_title": None,
+            "algorithm_radio_buttons": {},  # 存储算法选择的单选按钮
+            "algorithm_labels": {},       # 存储算法标签
+        }
+
         # 按钮
         self.confirm_button = None
         self.back_button = None
@@ -403,6 +411,19 @@ class SettingsScreen:
         self.piece_settings["game_mode"]["classic_checkbox"] = pygame.Rect(checkbox_x, y_pos, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
         self.piece_settings["game_mode"]["classic_label"] = (label_x, y_pos)
         y_pos += option_spacing + section_spacing
+        
+        # AI算法设置区域
+        # AI算法分类标题
+        self.ai_settings["section_title"] = (left_col_x, y_pos - 10)
+        y_pos += 30  # 为标题留出空间
+        
+        # 创建AI算法选择单选按钮
+        available_algorithms = ["negamax", "minimax", "alpha-beta", "mcts"]  # 包含MCTS选项
+        for i, alg in enumerate(available_algorithms):
+            checkbox_y = y_pos + i * option_spacing
+            self.ai_settings["algorithm_radio_buttons"][alg] = pygame.Rect(checkbox_x, checkbox_y, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
+            self.ai_settings["algorithm_labels"][alg] = (label_x, checkbox_y)
+        y_pos += len(available_algorithms) * option_spacing + section_spacing
 
         # 确认按钮 & 返回按钮（位于界面底部，不受滚动影响）
         confirm_y = self.window_height - 80
@@ -428,32 +449,22 @@ class SettingsScreen:
         )
 
     def draw(self):
-        """绘制设置界面（按棋子类型分类）"""
-        # 绘制背景
+        """绘制界面"""
         self.screen.fill(BACKGROUND_COLOR)
 
-        # 绘制标题
-        title_surface = self.title_font.render("自定义设置", True, BLACK)
-        title_rect = title_surface.get_rect(center=(self.window_width // 2, 80))
-        self.screen.blit(title_surface, title_rect)
+        # 设置裁剪区域
+        self.screen.set_clip(0, 0, self.window_width, self.window_height - 100)
 
-        # 设置可视区域裁剪，实现滚动效果
-        scroll_area_rect = pygame.Rect(30, 100, self.window_width - 50, self.window_height - 180)
-        self.screen.set_clip(scroll_area_rect)
-        
-        # 使用模块化方式绘制各个棋子分类
-        y_offset = 150  # 初始Y坐标
-        
         # 汉/汗棋子分类
-        king_items = self.create_king_items(y_offset)
+        king_items = self.create_king_items(150)
         category_height = draw_category(
             self.screen, self.category_background_color, self.category_border_color,
             self.category_padding, self.category_title_height, self.category_title_font,
             self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
             self.option_font, self.desc_font, self.draw_piece_icon,
-            "将", "汉/汗", king_items, y_offset
+            "将", "汉/汗", king_items, 150
         )
-        y_offset = y_offset + category_height + self.category_spacing
+        y_offset = 150 + category_height + self.category_spacing
         
         # 士棋子分类
         shi_items = self.create_shi_items(y_offset)
@@ -609,6 +620,17 @@ class SettingsScreen:
         )
         y_offset = y_offset + category_height + self.category_spacing
 
+        # AI算法分类
+        ai_items = self.create_ai_items(y_offset)
+        category_height = draw_category(
+            self.screen, self.category_background_color, self.category_border_color,
+            self.category_padding, self.category_title_height, self.category_title_font,
+            self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
+            self.option_font, self.desc_font, self.draw_piece_icon,
+            "A", "AI算法", ai_items, y_offset
+        )
+        y_offset = y_offset + category_height + self.category_spacing
+
         # 取消裁剪区域
         self.screen.set_clip(None)
         
@@ -619,18 +641,27 @@ class SettingsScreen:
         self.confirm_button.draw(self.screen)
         self.back_button.draw(self.screen)
 
-    def handle_event(self, event, mouse_pos):
-        """处理事件（考虑滚动位置）"""
+    def handle_event(self, event):
+        """处理事件"""
         if event.type == pygame.MOUSEBUTTONDOWN:
-            # 考虑滚动位置调整鼠标坐标用于检测
+            # 检查滚动条点击
+            if self.scroll_bar.is_clicked(event.pos):
+                self.dragging_scroll = True
+                return
+
+            # 检查滚动条拖动
+            if self.dragging_scroll:
+                self.scroll_bar.update(event.pos)
+                self.scroll_y = self.scroll_bar.scroll_y
+                return
+
+            # 检查分类中的点击事件
+            mouse_pos = event.pos
             adjusted_mouse_pos = (mouse_pos[0], mouse_pos[1] + self.scroll_y)
-            
-            # 检查复选框点击 - 使用实际绘制位置
-            y_offset = 150  # 初始Y坐标，与draw方法中的一致
-            
+
             # 汉/汗棋子分类
-            king_items = self.create_king_items(y_offset)
-            clicked_item = self.check_category_click(king_items, adjusted_mouse_pos, y_offset)
+            king_items = self.create_king_items(150)
+            clicked_item = self.check_category_click(king_items, adjusted_mouse_pos, 150)
             if clicked_item is not None:
                 checkbox, label, value, text, desc, is_disabled = clicked_item
                 if text == "汉/汗可以出九宫":
@@ -847,6 +878,26 @@ class SettingsScreen:
             # 更新y_offset
             category_height = len(game_mode_items) * 60 + self.category_title_height + 2 * self.category_padding
             y_offset = y_offset + category_height + self.category_spacing
+
+            # AI算法分类
+            ai_items = self.create_ai_items(y_offset)
+            clicked_item = self.check_category_click(ai_items, adjusted_mouse_pos, y_offset)
+            if clicked_item is not None:
+                checkbox, label, value, text, desc, is_disabled = clicked_item
+                # 根据文本内容识别是哪个算法选项
+                if "Negamax搜索算法" in text or "negamax" in text.lower():
+                    self.ai_settings["ai_algorithm"] = "negamax"
+                elif "Minimax搜索算法" in text or "minimax" in text.lower():
+                    self.ai_settings["ai_algorithm"] = "minimax"
+                elif "Alpha-Beta剪枝算法" in text or "alpha-beta" in text.lower():
+                    self.ai_settings["ai_algorithm"] = "alpha-beta"
+                elif "MCTS+神经网络算法" in text or "mcts" in text.lower():
+                    self.ai_settings["ai_algorithm"] = "mcts"
+                return  # 处理完后直接返回，避免其他检测
+            
+            # 更新y_offset
+            category_height = len(ai_items) * 60 + self.category_title_height + 2 * self.category_padding
+            y_offset = y_offset + category_height + self.category_spacing
             
             # 检查按钮点击（按钮不受滚动影响）
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -860,17 +911,6 @@ class SettingsScreen:
         self.back_button.check_hover(mouse_pos)
 
         return None
-
-    def check_category_click(self, items, mouse_pos, y_position):
-        """检查分类中的点击事件，与draw_category中的绘制逻辑保持一致"""
-        # 计算分类区域的尺寸
-        category_width = self.window_width - 100  # 留出边距
-        items_count = len(items)  # 该分类下的设置项数量
-        category_height = items_count * 60 + self.category_title_height + 2 * self.category_padding  # 包含标题高度和内边距
-        
-        # 分类区域矩形
-        category_rect = pygame.Rect(50, y_position - self.category_padding, category_width, category_height)
-        
         # 分类标题下方开始绘制内容
         item_y = y_position + self.category_title_height + self.category_padding
         
@@ -932,20 +972,13 @@ class SettingsScreen:
         # 添加游戏模式设置
         settings["classic_mode"] = self.piece_settings["game_mode"]["classic_mode"]
 
+        # 添加AI算法设置
+        settings["ai_algorithm"] = self.ai_settings["ai_algorithm"]
+
         # 保存设置到全局配置
         game_config.update_settings(settings)
 
         return settings
-
-    def draw_piece_icon(self, text, x, y, size=None):
-        """绘制棋子图标，类似Avatar的实现（修复问题5：完善字体兜底逻辑）"""
-        # 使用缓存避免重复创建Surface
-        icon_size = size or self.PIECE_RADIUS
-        cache_key = (text, icon_size)
-        if cache_key in self._piece_icon_cache:
-            circle_surface = self._piece_icon_cache[cache_key]
-        else:
-            # 创建一个圆形背景
             radius = icon_size  # 小圆圈的半径
             circle_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
             pygame.draw.circle(circle_surface, self.PIECE_BG_COLOR, (radius, radius), radius)  # 白色背景
@@ -1161,6 +1194,16 @@ class SettingsScreen:
         category_height = len(xun_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
         
+        # 游戏模式分类
+        game_mode_items = self.create_game_mode_items(y_offset)
+        category_height = len(game_mode_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+
+        # AI算法分类
+        ai_items = self.create_ai_items(y_offset)
+        category_height = len(ai_items) * 60 + self.category_title_height + 2 * self.category_padding
+        y_offset = y_offset + category_height + self.category_spacing
+        
         total_height = y_offset  # 总高度就是最后一个分类的底部位置
         
         visible_height = self.window_height - 180  # 可视区域高度
@@ -1168,12 +1211,6 @@ class SettingsScreen:
         
         # 更新滚动条
         self.scroll_bar = ScrollBar(self.window_width - 20, 100, 15, self.window_height - 180, total_height)
-
-    def handle_scroll_event(self, event, mouse_pos):
-        """处理滚动事件"""
-        # 传递事件给滚动条
-        self.scroll_bar.handle_event(event, mouse_pos)
-        # 更新滚动位置
         self.scroll_y = self.scroll_bar.get_scroll_offset()
         
         # 限制滚动范围
@@ -1455,6 +1492,41 @@ class SettingsScreen:
              "巡/廵登场（河界专属控场棋子）", 
              False)
         ]
+
+    def create_ai_items(self, y_offset):
+        """创建AI算法相关的设置项"""
+        available_algorithms = ["negamax", "minimax", "alpha-beta", "mcts"]
+        items = []
+        
+        for i, alg in enumerate(available_algorithms):
+            checkbox = self.ai_settings["algorithm_radio_buttons"][alg]
+            label = self.ai_settings["algorithm_labels"][alg]
+            value = (self.ai_settings["ai_algorithm"] == alg)
+            
+            alg_names = {
+                "negamax": "Negamax搜索算法", 
+                "minimax": "Minimax搜索算法",
+                "alpha-beta": "Alpha-Beta剪枝算法",
+                "mcts": "MCTS+神经网络算法"
+            }
+            
+            alg_descriptions = {
+                "negamax": "传统搜索算法，使用Negamax算法进行决策",
+                "minimax": "传统搜索算法，使用Minimax算法进行决策",
+                "alpha-beta": "传统搜索算法，使用Alpha-Beta剪枝优化",
+                "mcts": "现代AI算法，结合蒙特卡洛树搜索和神经网络"
+            }
+            
+            items.append((
+                checkbox,
+                label,
+                value,
+                alg_names.get(alg, f"使用{alg.upper()}算法"),
+                alg_descriptions.get(alg, f"选择{alg}算法进行AI对战"),
+                False  # 不是禁用状态
+            ))
+        
+        return items
 
     def create_game_mode_items(self, y_offset):
         """创建游戏模式相关的设置项"""

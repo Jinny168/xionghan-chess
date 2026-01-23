@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="美化了game_screen，实现按钮的归纳与梳理。">
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="修改了about_screen的加载逻辑，新增about.md文件。">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/statistics.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/about_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/about_screen.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/chess_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/chess_ai.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/mcts_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/mcts_game.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/config/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/settings.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -311,15 +312,7 @@
       <workItem from="1768904643592" duration="3057000" />
       <workItem from="1769078384230" duration="2498000" />
       <workItem from="1769084956089" duration="13075000" />
-      <workItem from="1769136069581" duration="491000" />
-    </task>
-    <task id="LOCAL-00029" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768027978919</created>
-      <option name="number" value="00029" />
-      <option name="presentableId" value="LOCAL-00029" />
-      <option name="project" value="LOCAL" />
-      <updated>1768027978919</updated>
+      <workItem from="1769136069581" duration="4598000" />
     </task>
     <task id="LOCAL-00030" summary="最新更新">
       <option name="closed" value="true" />
@@ -705,7 +698,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769097951507</updated>
     </task>
-    <option name="localTasksCounter" value="78" />
+    <task id="LOCAL-00078" summary="修改了about_screen的加载逻辑，新增about.md文件。">
+      <option name="closed" value="true" />
+      <created>1769136614110</created>
+      <option name="number" value="00078" />
+      <option name="presentableId" value="LOCAL-00078" />
+      <option name="project" value="LOCAL" />
+      <updated>1769136614111</updated>
+    </task>
+    <option name="localTasksCounter" value="79" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -756,7 +757,8 @@
     <MESSAGE value="提取ai_manager" />
     <MESSAGE value="提取game_screen,将ui与逻辑分离" />
     <MESSAGE value="美化了game_screen，实现按钮的归纳与梳理。" />
-    <option name="LAST_COMMIT_MESSAGE" value="美化了game_screen，实现按钮的归纳与梳理。" />
+    <MESSAGE value="修改了about_screen的加载逻辑，新增about.md文件。" />
+    <option name="LAST_COMMIT_MESSAGE" value="修改了about_screen的加载逻辑，新增about.md文件。" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
