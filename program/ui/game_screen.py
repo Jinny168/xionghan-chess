@@ -327,12 +327,12 @@ def draw_info_panel(screen, game_state):
         turn_color = RED if game_state.player_turn == "red" else BLACK
         turn_text = f"当前回合: {'红方' if game_state.player_turn == 'red' else '黑方'}"
 
-        # 计算位置 - 在左上角，对局时长下方
+        # 计算位置 - 在左上角，对局时长下方，避开菜单栏
         font = load_font(20)
         text_surface = font.render(turn_text, True, turn_color)
         # 位于对局时长信息的下方
         text_rect = text_surface.get_rect(
-            topleft=(10, 40)  # 在左上角，对局时长下方
+            topleft=(10, 75)  # 在左上角，对局时长下方，避开菜单栏
         )
         screen.blit(text_surface, text_rect)
 
@@ -393,6 +393,7 @@ class GameScreen:
     def init_menus(self):
         """初始化菜单系统"""
         # 选项菜单 - 放在左上角，避开左侧面板
+        # 确保菜单不会遮挡其他界面元素
         self.option_menu = Menu(10, 10, 150, "选项", collapsed=True)
         self.option_menu.add_item("导入棋局")
         self.option_menu.add_item("导出棋局")
@@ -403,7 +404,7 @@ class GameScreen:
         self.option_menu.add_item("", separator=True)  # 分隔符
         self.option_menu.add_item("统计数据")
         
-        # 帮助菜单 - 紧邻选项菜单
+        # 帮助菜单 - 紧邻选项菜单，但需要确保不遮挡其他元素
         self.help_menu = Menu(170, 10, 150, "帮助", collapsed=True)
         self.help_menu.add_item("游戏规则")
         self.help_menu.add_item("关于")
@@ -427,6 +428,10 @@ class GameScreen:
         self.left_panel_width = int(LEFT_PANEL_WIDTH_RATIO * self.window_width)
         self.board_margin_top = int(BOARD_MARGIN_TOP_RATIO * self.window_height)
         
+        # 确保棋盘和其他组件有足够的间距，避免被菜单遮挡
+        # 为菜单栏预留空间，增加顶部边距
+        adjusted_board_margin_top = max(self.board_margin_top, 80)  # 确保有足够空间给菜单
+        
         # 如果窗口尺寸发生变化，清除缓存的Surface
         if old_width != self.left_panel_width or old_height != self.window_height:
             self.left_panel_surface_cache = None
@@ -434,10 +439,10 @@ class GameScreen:
 
         # 更新棋盘 - 整体右移，确保不被菜单遮挡
         self.board = ChessBoard(
-            self.window_width - self.left_panel_width - 20,  # 增加右边距
+            self.window_width - self.left_panel_width - 40,  # 增加更多右边距
             self.window_height,
-            self.left_panel_width + 20,  # 棋盘起始位置右移
-            self.board_margin_top
+            self.left_panel_width + 30,  # 棋盘起始位置右移更多
+            adjusted_board_margin_top  # 使用调整后的顶部边距
         )
 
         # 更新操作面板位置
@@ -513,8 +518,9 @@ class GameScreen:
         """创建玩家头像"""
         avatar_radius = 40
         panel_center_x = self.left_panel_width // 2
-        black_y = self.window_height // 3 - 50
-        red_y = self.window_height * 2 // 3
+        # 调整头像位置，避免与菜单栏重叠
+        black_y = self.window_height // 3 - 80  # 增加顶部间距
+        red_y = self.window_height * 2 // 3 + 30  # 增加与黑方头像的间距
 
         # 创建头像
         self.black_avatar = Avatar(panel_center_x, black_y, avatar_radius, (245, 245, 235), "黑方", False)
@@ -574,7 +580,7 @@ class GameScreen:
         if game_state.should_show_check_animation():
             king_pos = game_state.get_checked_king_position()
             if king_pos:
-                self.board.draw_check_animation(screen, king_pos)
+                self.board.draw_check_animation(screen, king_pos, game_state)
 
         # 绘制游戏信息面板
         draw_info_panel(screen, game_state)
@@ -675,23 +681,23 @@ class GameScreen:
         black_time_str = f"{int(black_time // 60):02}:{int(black_time % 60):02}"
         total_time_str = f"{int(total_time // 60):02}:{int(total_time % 60):02}"
 
+        # 绘制总时间 - 在左上角，但避开菜单栏
+        total_time_surface = self.timer_font.render(f"对局时长: {total_time_str}", True, BLACK)
+        screen.blit(total_time_surface, (10, 45))  # 将Y坐标从10改为45，避开菜单
+
         # 绘制红方时间 - 在红方头像下方
         red_time_surface = self.timer_font.render(f"用时: {red_time_str}", True, RED)
         red_time_rect = red_time_surface.get_rect(
-            center=(self.left_panel_width // 2, self.red_avatar.y + self.red_avatar.radius + 50)
+            center=(self.left_panel_width // 2, self.red_avatar.y + self.red_avatar.radius + 60)  # 增加间距
         )
         screen.blit(red_time_surface, red_time_rect)
 
         # 绘制黑方时间 - 在黑方头像下方
         black_time_surface = self.timer_font.render(f"用时: {black_time_str}", True, BLACK)
         black_time_rect = black_time_surface.get_rect(
-            center=(self.left_panel_width // 2, self.black_avatar.y + self.black_avatar.radius + 50)
+            center=(self.left_panel_width // 2, self.black_avatar.y + self.black_avatar.radius + 60)  # 增加间距
         )
         screen.blit(black_time_surface, black_time_rect)
-
-        # 绘制总时间 - 在左侧面板顶部
-        total_time_surface = self.timer_font.render(f"对局时长: {total_time_str}", True, BLACK)
-        screen.blit(total_time_surface, (10, 10))
 
     def handle_menu_events(self, event, mouse_pos, game, game_state):
         """处理菜单事件"""

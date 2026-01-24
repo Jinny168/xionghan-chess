@@ -111,15 +111,22 @@ class ChessGame:
         if piece:
             self.last_move_notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
 
+        # 检查游戏是否结束
+        if self.game_state.game_over:
+            print(f"[DEBUG] 游戏结束检测到! 胜者: {self.game_state.winner}")
+            self.show_game_over_popup()
+            return
+
         # 播放音效
         # 优先处理绝杀情况，因为绝杀时is_check和is_checkmate都为True
         if self.game_state.is_checkmate():
-            # 绝杀时播放绝杀音效，而不是将军音效
-            self.sound_manager.play_sound('warn')  # 使用将军语音
+            print("[DEBUG] 检测到绝杀，播放绝杀音效")
+            # 绝杀时播放更明显的音效
             try:
-                self.sound_manager.play_sound('check')  # 播放旧版音效
-            except (AttributeError, Exception):
-                pass
+                self.sound_manager.play_sound('defeat')  # 播放失败音效
+            except:
+                # 如果没有特定音效，播放警告音效
+                self.sound_manager.play_sound('warn')
         elif self.game_state.is_check:
             # 普通将军情况，播放将军音效
             self.sound_manager.play_sound('warn')# 使用将军语音
@@ -132,11 +139,6 @@ class ChessGame:
             self.sound_manager.play_sound('eat')
         else:
             self.sound_manager.play_sound('drop')
-
-        # 检查游戏是否结束
-        if self.game_state.game_over:
-            self.show_game_over_popup()
-            return
 
         # 如果是人机对战，启动AI
         if self.ai_manager.is_ai_turn(self.game_state.player_turn):
@@ -162,6 +164,8 @@ class ChessGame:
         total_time = self.game_state.total_time
         red_time = self.game_state.red_time
         black_time = self.game_state.black_time
+        
+        print(f"[DEBUG] 显示游戏结束弹窗: {message}")
 
         self.popup = PopupDialog(400, 320, message, total_time, red_time, black_time)  # 增加高度以适应更多信息
         
@@ -367,39 +371,53 @@ class ChessGame:
                     # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
                     continue  # 跳过后续的事件处理，防止同时处理其他操作
                 # 如果游戏结束，处理弹窗事件
-                elif self.game_state.game_over and self.popup is not None:
-                    result = self.popup.handle_event(event, mouse_pos)
-                    if result == "restart":
-                        # 在重置游戏之前停止背景音乐
-                        self.sound_manager.stop_background_music()
-                        # 重置所有对话框
-                        self.popup = None
-                        self.confirm_dialog = None
-                        self.stats_dialog = None
-                        self.__init__(self.game_mode, self.player_camp)  # 重置游戏，保持相同模式和阵营
-                        # 重新启动背景音乐
-                        self.sound_manager.toggle_music_style()
-                    elif result == "export":
-                        # 导出当前对局
-                        from program.controllers.game_io_controller import game_io_controller
-                        success = game_io_controller.export_game(self.game_state)
-                        # 显示通知
-                        if success:
-                            # 可以添加成功通知
-                            pass
-                        else:
-                            # 可以添加失败通知
-                            pass
-                    elif result == "replay":
-                        # 进入复盘模式
-                        from program.controllers.replay_controller import ReplayController
-                        from program.ui.replay_screen import ReplayScreen
-                        
-                        replay_controller = ReplayController(self.game_state)
-                        replay_controller.start_replay()
-                        
-                        replay_screen = ReplayScreen(self.game_state, replay_controller)
-                        replay_screen.run()
+                elif self.game_state.game_over:
+                    # 即使没有弹窗，也要检查是否需要创建
+                    if self.popup is None:
+                        print("[DEBUG] 游戏已结束，但弹窗尚未创建，正在创建弹窗")
+                        self.show_game_over_popup()
+                    # 处理弹窗事件
+                    if self.popup is not None:
+                        result = self.popup.handle_event(event, mouse_pos)
+                        if result == "restart":
+                            # 在重置游戏之前停止背景音乐
+                            self.sound_manager.stop_background_music()
+                            # 重置所有对话框
+                            self.popup = None
+                            self.confirm_dialog = None
+                            self.stats_dialog = None
+                            self.__init__(self.game_mode, self.player_camp)  # 重置游戏，保持相同模式和阵营
+                            # 重新启动背景音乐
+                            self.sound_manager.toggle_music_style()
+                        elif result == "export":
+                            # 导出当前对局
+                            from program.controllers.game_io_controller import game_io_controller
+                            success = game_io_controller.export_game(self.game_state)
+                            # 显示通知
+                            if success:
+                                # 可以添加成功通知
+                                pass
+                            else:
+                                # 可以添加失败通知
+                                pass
+                        elif result == "replay":
+                            # 进入复盘模式
+                            from program.controllers.replay_controller import ReplayController
+                            from program.ui.replay_screen import ReplayScreen
+                            
+                            replay_controller = ReplayController(self.game_state)
+                            replay_controller.start_replay()
+                            
+                            replay_screen = ReplayScreen(self.game_state, replay_controller)
+                            replay_screen.run()
+                        elif result == "return":
+                            # 返回主菜单
+                            self.sound_manager.stop_background_music()
+                            # 关闭所有对话框
+                            self.popup = None
+                            self.confirm_dialog = None
+                            self.stats_dialog = None
+                            return "back_to_menu"
                 # 如果游戏未结束，处理鼠标点击
                 elif not self.game_state.game_over:
                     if event.type == pygame.MOUSEBUTTONDOWN:

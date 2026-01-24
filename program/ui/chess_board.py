@@ -2,6 +2,7 @@ import math
 
 import pygame
 
+from program.core.game_rules import GameRules
 from program.utils.utils import load_font
 
 
@@ -259,7 +260,7 @@ class ChessBoard:
                 3
             )
             
-    def draw_check_animation(self, screen, king_position):
+    def draw_check_animation(self, screen, king_position, game_state=None):
         """绘制将军动画效果"""
         if not king_position:
             return
@@ -327,16 +328,20 @@ class ChessBoard:
         border_size_cached = cached_border.get_width() // 2
         screen.blit(cached_border, (x - border_size_cached, y - border_size_cached))
         
-        # 绘制"将军"文字提示 - 使其更显眼
+        # 绘制"将军"/"绝杀"文字提示 - 使其更显眼
         font = load_font(40, bold=True)
         # 闪烁的文字颜色
         text_alpha = int(200 + 55 * pulse)  # 文字透明度也随脉动变化
         text_color = (255, 50, 50, text_alpha)  
-        text = font.render("将军!", True, text_color)
+        # 根据游戏状态决定显示"绝杀"还是"将军"
+        # 根据项目规范，当判定为绝杀时，界面提示文字应显示为"绝杀"，而非"将军"
+        is_checkmate = game_state and game_state.is_checkmate() if game_state else False
+        text = "绝杀!" if is_checkmate else "将军!"
+        rendered_text = font.render(text, True, (255, 50, 50))
         
         # 文字位置 - 在棋子上方，稍稍上移
         text_pos = (x, y - self.grid_size * 1.5)  # 进一步上移文字
-        text_rect = text.get_rect(center=text_pos)
+        text_rect = rendered_text.get_rect(center=text_pos)
         
         # 增大背景框，使文字更突出
         padding = 15  # 增大内边距
@@ -366,7 +371,7 @@ class ChessBoard:
         screen.blit(outline_surface, (outline_rect.left, outline_rect.top))
         
         # 绘制文字
-        screen.blit(text, text_rect)
+        screen.blit(rendered_text, text_rect)
     
     def draw_piece(self, screen, piece):
         """绘制美化后的棋子，使用白玉渐变效果"""
