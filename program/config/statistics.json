@@ -7,13 +7,13 @@
     },
     "total_time_played": 476.52110147476196,
     "pieces_captured": {
-        "ju": 10,
+        "ju": 11,
         "ma": 11,
         "xiang": 4,
-        "shi": 1,
+        "shi": 2,
         "king": 0,
         "pao": 6,
-        "pawn": 15,
+        "pawn": 21,
         "wei": 0,
         "she": 10,
         "lei": 12,
@@ -40,5 +40,5 @@
         }
     },
     "last_played": "2026-01-24 19:59:58",
-    "total_moves_made": 196
+    "total_moves_made": 237
 }

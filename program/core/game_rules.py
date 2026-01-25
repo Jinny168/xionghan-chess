@@ -756,7 +756,7 @@ class GameRules:
                 # 移动方向：仅能向敌方方向直线走
                 if col_diff != 0:  # 不是直线向前
                     return False
-                    
+                
                 # 检查是否跨越长城（到达row <= 5）
                 if to_row <= 5:  # 跨越了长城阴山
                     # 可以进行远距离移动，但不可吃子（如果目标位置有敌子，且移动步数大于1）
@@ -780,12 +780,25 @@ class GameRules:
                                     return False  # 不能跳过阻挡
                         return True
                 else:  # 没有跨越长城
-                    # 基础步数：可走1格
-                    if row_diff == -1:  # 向前走1格
+                    # 计算移动步数限制：到第5行为止的最大步数
+                    max_steps = from_row - 5
+                    if abs(row_diff) <= max_steps and row_diff < 0:  # 向前移动，不超过最大步数
+                        # 检查路径上是否有阻挡
+                        for step in range(1, abs(row_diff) + 1):
+                            check_row = from_row + (step * -1)  # 向前移动
+                            if GameRules.get_piece_at(pieces, check_row, from_col):
+                                # 如果路径有阻挡且移动步数大于1，则不能移动
+                                if abs(row_diff) > 1:
+                                    return False
+                                # 如果路径有阻挡但移动步数为1，可以停在阻挡处（如果目标位置是阻挡）
+                                if check_row == to_row:
+                                    break  # 可以停在这里
+                                else:
+                                    return False  # 不能跳过阻挡
                         return True
-                        
-                    # 其他情况不符合未跨越长城的移动规则
-                    return False
+                    else:
+                        # 其他情况不符合未跨越长城的移动规则
+                        return False
                 
             # 2. 已跨越长城阶段（敌方半场，已过长城，即row <= 5且未到底线）
             elif from_row <= 5 and from_row > 0:  # 已跨越长城但未到底线（第0-5行）
@@ -828,7 +841,7 @@ class GameRules:
                 # 移动方向：仅能向敌方方向直线走
                 if col_diff != 0:  # 不是直线向前
                     return False
-                    
+                
                 # 检查是否跨越长城（到达row >= 7）
                 if to_row >= 7:  # 跨越了长城阴山
                     # 可以进行远距离移动，但不可吃子（如果目标位置有敌子，且移动步数大于1）
@@ -852,12 +865,25 @@ class GameRules:
                                     return False  # 不能跳过阻挡
                         return True
                 else:  # 没有跨越长城
-                    # 基础步数：可走1格
-                    if row_diff == 1:  # 向前走1格
+                    # 计算移动步数限制：到第7行为止的最大步数
+                    max_steps = 7 - from_row
+                    if abs(row_diff) <= max_steps and row_diff > 0:  # 向前移动，不超过最大步数
+                        # 检查路径上是否有阻挡
+                        for step in range(1, abs(row_diff) + 1):
+                            check_row = from_row + (step * 1)  # 向前移动
+                            if GameRules.get_piece_at(pieces, check_row, from_col):
+                                # 如果路径有阻挡且移动步数大于1，则不能移动
+                                if abs(row_diff) > 1:
+                                    return False
+                                # 如果路径有阻挡但移动步数为1，可以停在阻挡处（如果目标位置是阻挡）
+                                if check_row == to_row:
+                                    break  # 可以停在这里
+                                else:
+                                    return False  # 不能跳过阻挡
                         return True
-                        
-                    # 其他情况不符合未跨越长城的移动规则
-                    return False
+                    else:
+                        # 其他情况不符合未跨越长城的移动规则
+                        return False
                 
             # 2. 已跨越长城阶段（敌方半场，已过长城，即row >= 7且未到底线）
             elif from_row >= 7 and from_row < 12:  # 已跨越长城但未到底线（第7-11行）
@@ -879,7 +905,7 @@ class GameRules:
                     
                 return True
         
-        return True
+        return False
     
     @staticmethod
     def is_valid_wei_move(pieces, from_row, from_col, to_row, to_col):
@@ -1756,56 +1782,10 @@ class GameRules:
                         moves.append((to_row, to_col))
         elif isinstance(piece, Pawn):  # 兵/卒
             # 兵/卒的可能移动位置（根据位置和规则）
-            pawn_moves = []
-            # 基础移动：向前
-            if piece.color == "red":
-                # 红方兵移动规则
-                if piece.row >= 6:  # 未过河
-                    pawn_moves.append((-1, 0))  # 向前1格
-                    # 检查是否在初始位置，可以向前2格（需要路径和目标位置都为空）
-                    if piece.row == 8:  # 初始位置
-                        # 检查中间位置和目标位置是否都为空
-                        middle_row = piece.row - 1  # 7
-                        target_row = piece.row - 2   # 6
-                        if (0 <= middle_row < 13 and 0 <= target_row < 13 and
-                            GameRules.get_piece_at(pieces, middle_row, piece.col) is None and
-                            GameRules.get_piece_at(pieces, target_row, piece.col) is None):
-                            pawn_moves.append((-2, 0))  # 向前2格
-                else:  # 已过河
-                    if piece.row == 0 and GameRules.pawn_full_movement_at_base_enabled:  # 到达底线且启用完整移动
-                        # 底线兵获得前后左右完整移动能力
-                        pawn_moves.extend([(-1, 0), (1, 0), (0, -1), (0, 1)])  # 前后左右
-                    elif piece.row == 0 and GameRules.pawn_backward_at_base_enabled:  # 到达底线且启用后退能力
-                        # 底线兵可后退一格
-                        pawn_moves.extend([(-1, 0), (0, -1), (0, 1), (1, 0)])  # 前左右和后退
-                    else:  # 过河后但未到底线
-                        pawn_moves.extend([(-1, 0), (0, -1), (0, 1)])  # 前左右
-            else:  # 黑方
-                # 黑方卒移动规则
-                if piece.row <= 6:  # 未过河
-                    pawn_moves.append((1, 0))  # 向前1格
-                    # 检查是否在初始位置，可以向前2格（需要路径和目标位置都为空）
-                    if piece.row == 4:  # 初始位置
-                        # 检查中间位置和目标位置是否都为空
-                        middle_row = piece.row + 1  # 5
-                        target_row = piece.row + 2   # 6
-                        if (0 <= middle_row < 13 and 0 <= target_row < 13 and
-                            GameRules.get_piece_at(pieces, middle_row, piece.col) is None and
-                            GameRules.get_piece_at(pieces, target_row, piece.col) is None):
-                            pawn_moves.append((2, 0))  # 向前2格
-                else:  # 已过河
-                    if piece.row == 12 and GameRules.pawn_full_movement_at_base_enabled:  # 到达底线且启用完整移动
-                        # 底线卒获得前后左右完整移动能力
-                        pawn_moves.extend([(1, 0), (-1, 0), (0, -1), (0, 1)])  # 前后左右
-                    elif piece.row == 12 and GameRules.pawn_backward_at_base_enabled:  # 到达底线且启用后退能力
-                        # 底线卒可后退一格
-                        pawn_moves.extend([(1, 0), (0, -1), (0, 1), (-1, 0)])  # 前左右和后退
-                    else:  # 过河后但未到底线
-                        pawn_moves.extend([(1, 0), (0, -1), (0, 1)])  # 前左右
-            
-            for dr, dc in pawn_moves:
-                to_row, to_col = piece.row + dr, piece.col + dc
-                if 0 <= to_row < 13 and 0 <= to_col < 13:  # 在棋盘范围内
+            # 由于兵的移动规则已增强，需要遍历所有可能位置
+            for to_row in range(13):
+                for to_col in range(13):
+                    # 检查移动是否合法
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
                         target = GameRules.get_piece_at(pieces, to_row, to_col)
                         if target and target.color != piece.color:
