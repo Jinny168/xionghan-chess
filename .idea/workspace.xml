@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="尉的增强功能实现：在保持其他能力不变的前提下，新增了斜线跨越能力，同时保持了&quot;无吃子能力、仅具备控制能力&quot;的核心属性。">
-      <change beforePath="$PROJECT_DIR$/program/core/game_rules.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_rules.py" afterDir="false" />
-    </list>
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="增强棋子功能" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -118,8 +116,8 @@
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\ai\mcts\imgs" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program" />
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\test" />
+      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program" />
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\controllers" />
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\config" />
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\ui" />
@@ -358,22 +356,6 @@
       <workItem from="1769154175303" duration="2858000" />
       <workItem from="1769159579240" duration="14143000" />
       <workItem from="1769347630267" duration="3337000" />
-    </task>
-    <task id="LOCAL-00048" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768580289077</created>
-      <option name="number" value="00048" />
-      <option name="presentableId" value="LOCAL-00048" />
-      <option name="project" value="LOCAL" />
-      <updated>1768580289077</updated>
-    </task>
-    <task id="LOCAL-00049" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768580527678</created>
-      <option name="number" value="00049" />
-      <option name="presentableId" value="LOCAL-00049" />
-      <option name="project" value="LOCAL" />
-      <updated>1768580527678</updated>
     </task>
     <task id="LOCAL-00050" summary="最新更新">
       <option name="closed" value="true" />
@@ -751,7 +733,23 @@
       <option name="project" value="LOCAL" />
       <updated>1769350421241</updated>
     </task>
-    <option name="localTasksCounter" value="97" />
+    <task id="LOCAL-00097" summary="实现射和礌棋子在斜向移动路径中遇到&quot;与当前移动斜线交叉的两相邻棋子&quot;（即形成夹逼）时，后续路径被阻挡的功能。">
+      <option name="closed" value="true" />
+      <created>1769354791268</created>
+      <option name="number" value="00097" />
+      <option name="presentableId" value="LOCAL-00097" />
+      <option name="project" value="LOCAL" />
+      <updated>1769354791268</updated>
+    </task>
+    <task id="LOCAL-00098" summary="增强棋子功能">
+      <option name="closed" value="true" />
+      <created>1769354860087</created>
+      <option name="number" value="00098" />
+      <option name="presentableId" value="LOCAL-00098" />
+      <option name="project" value="LOCAL" />
+      <updated>1769354860087</updated>
+    </task>
+    <option name="localTasksCounter" value="99" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -817,7 +815,9 @@
     <MESSAGE value="修复了打包exe" />
     <MESSAGE value="继续修复打包exe" />
     <MESSAGE value="尉的增强功能实现：在保持其他能力不变的前提下，新增了斜线跨越能力，同时保持了&quot;无吃子能力、仅具备控制能力&quot;的核心属性。" />
-    <option name="LAST_COMMIT_MESSAGE" value="尉的增强功能实现：在保持其他能力不变的前提下，新增了斜线跨越能力，同时保持了&quot;无吃子能力、仅具备控制能力&quot;的核心属性。" />
+    <MESSAGE value="实现射和礌棋子在斜向移动路径中遇到&quot;与当前移动斜线交叉的两相邻棋子&quot;（即形成夹逼）时，后续路径被阻挡的功能。" />
+    <MESSAGE value="增强棋子功能" />
+    <option name="LAST_COMMIT_MESSAGE" value="增强棋子功能" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
