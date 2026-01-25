@@ -57,7 +57,7 @@ def resource_path(relative_path):
         # PyInstaller创建的临时文件夹存储在sys._MEIPASS中
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.abspath(".")
+        base_path = os.path.abspath("../..")
     
     return os.path.join(base_path, relative_path)
 

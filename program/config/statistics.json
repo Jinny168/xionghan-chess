@@ -9,8 +9,8 @@
     "pieces_captured": {
         "ju": 11,
         "ma": 11,
-        "xiang": 4,
-        "shi": 2,
+        "xiang": 5,
+        "shi": 3,
         "king": 0,
         "pao": 6,
         "pawn": 21,
@@ -40,5 +40,5 @@
         }
     },
     "last_played": "2026-01-24 19:59:58",
-    "total_moves_made": 237
+    "total_moves_made": 255
 }

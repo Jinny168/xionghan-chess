@@ -1115,6 +1115,25 @@ class GameRules:
                 check_col = from_col + i * step_col
                 if GameRules.get_piece_at(pieces, check_row, check_col):
                     return False
+                
+                # 检查是否存在与当前移动斜线交叉的两相邻棋子形成的夹逼
+                # 检查当前路径点的相邻位置是否有两个棋子形成夹逼
+                # 夹逼方向：与移动方向相关的两个侧向方向
+                # 对于移动方向(step_row, step_col)，夹逼方向是(0, step_col)和(step_row, 0)
+                cross_dirs = [(0, step_col), (step_row, 0)]
+                
+                adjacent_pieces = []
+                for cross_dr, cross_dc in cross_dirs:
+                    adj_row = check_row + cross_dr
+                    adj_col = check_col + cross_dc
+                    if 0 <= adj_row < 13 and 0 <= adj_col < 13:
+                        if GameRules.get_piece_at(pieces, adj_row, adj_col):
+                            adjacent_pieces.append((adj_row, adj_col))
+                
+                # 如果在移动方向的两个侧向位置都有棋子，则形成夹逼，阻挡路径
+                if len(adjacent_pieces) == 2:
+                    # 一旦发现夹逼，就阻挡移动
+                    return False
         
         return True
     
@@ -1178,6 +1197,25 @@ class GameRules:
                     check_col = from_col + i * step_col
                     if GameRules.get_piece_at(pieces, check_row, check_col):
                         return False  # 路径上有阻挡
+                    
+                    # 检查斜向移动时是否存在与当前移动斜线交叉的两相邻棋子形成的夹逼
+                    if abs(row_diff) == abs(col_diff) and abs(row_diff) > 0:  # 是斜向移动
+                        # 夹逼方向：与移动方向相关的两个侧向方向
+                        # 对于移动方向(step_row, step_col)，夹逼方向是(0, step_col)和(step_row, 0)
+                        cross_dirs = [(0, step_col), (step_row, 0)]
+                        
+                        adjacent_pieces = []
+                        for cross_dr, cross_dc in cross_dirs:
+                            adj_row = check_row + cross_dr
+                            adj_col = check_col + cross_dc
+                            if 0 <= adj_row < 13 and 0 <= adj_col < 13:
+                                if GameRules.get_piece_at(pieces, adj_row, adj_col):
+                                    adjacent_pieces.append((adj_row, adj_col))
+                        
+                        # 如果在移动方向的两个侧向位置都有棋子，则形成夹逼，阻挡路径
+                        if len(adjacent_pieces) == 2:
+                            # 一旦发现夹逼，就阻挡移动
+                            return False
         
         return True
     
