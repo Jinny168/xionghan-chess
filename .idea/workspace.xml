@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="继续修复打包exe">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/build_exe.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/build_exe.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/xionghan_chess.spec" beforeDir="false" afterPath="$PROJECT_DIR$/program/xionghan_chess.spec" afterDir="false" />
-    </list>
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="增强棋子功能" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -50,62 +46,62 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.UIplay.executor": "Run",
-    "Python.build_exe.executor": "Run",
-    "Python.check_data_status (1).executor": "Run",
-    "Python.check_data_status.executor": "Run",
-    "Python.collect.executor": "Run",
-    "Python.combined_sound_generator.executor": "Run",
-    "Python.convert_md_to_pdf.executor": "Run",
-    "Python.dun_test.executor": "Run",
-    "Python.game_logic.executor": "Run",
-    "Python.game_rules.executor": "Run",
-    "Python.gen.executor": "Run",
-    "Python.generate_sounds.executor": "Run",
-    "Python.generate_voice (1).executor": "Run",
-    "Python.main (1).executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.mcts_game.executor": "Run",
-    "Python.my_redis.executor": "Run",
-    "Python.server_only.executor": "Run",
-    "Python.shield_interaction_test.executor": "Run",
-    "Python.simple_view_data.executor": "Run",
-    "Python.sound_manager.executor": "Run",
-    "Python.start_multiple_collectors.executor": "Run",
-    "Python.test_ai_fix.executor": "Run",
-    "Python.test_ci_piece.executor": "Run",
-    "Python.test_dun_piece.executor": "Run",
-    "Python.test_flip_map.executor": "Run",
-    "Python.test_local_network (1).executor": "Run",
-    "Python.test_local_network.executor": "Run",
-    "Python.test_move_format.executor": "Run",
-    "Python.test_paddle.executor": "Run",
-    "Python.test_py.executor": "Run",
-    "Python.test_redis.executor": "Run",
-    "Python.test_redis_collection.executor": "Run",
-    "Python.test_single_collector.executor": "Run",
-    "Python.test_torch.executor": "Run",
-    "Python.test_uiplay.executor": "Run",
-    "Python.train.executor": "Run",
-    "Python.validate_moves.executor": "Run",
-    "Python.view_redis_data.executor": "Run",
-    "Python.view_training_data.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "ToolWindow.Problems View.ShowToolbar": "false",
-    "git-widget-placeholder": "master",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Users/27415/PycharmProjects/xionghan-chess/program/assets",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.UIplay.executor&quot;: &quot;Run&quot;,
+    &quot;Python.build_exe.executor&quot;: &quot;Run&quot;,
+    &quot;Python.check_data_status (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.check_data_status.executor&quot;: &quot;Run&quot;,
+    &quot;Python.collect.executor&quot;: &quot;Run&quot;,
+    &quot;Python.combined_sound_generator.executor&quot;: &quot;Run&quot;,
+    &quot;Python.convert_md_to_pdf.executor&quot;: &quot;Run&quot;,
+    &quot;Python.dun_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.game_logic.executor&quot;: &quot;Run&quot;,
+    &quot;Python.game_rules.executor&quot;: &quot;Run&quot;,
+    &quot;Python.gen.executor&quot;: &quot;Run&quot;,
+    &quot;Python.generate_sounds.executor&quot;: &quot;Run&quot;,
+    &quot;Python.generate_voice (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.main (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.mcts_game.executor&quot;: &quot;Run&quot;,
+    &quot;Python.my_redis.executor&quot;: &quot;Run&quot;,
+    &quot;Python.server_only.executor&quot;: &quot;Run&quot;,
+    &quot;Python.shield_interaction_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.simple_view_data.executor&quot;: &quot;Run&quot;,
+    &quot;Python.sound_manager.executor&quot;: &quot;Run&quot;,
+    &quot;Python.start_multiple_collectors.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_ai_fix.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_ci_piece.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_dun_piece.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_flip_map.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_local_network (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_local_network.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_move_format.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_paddle.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_py.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_redis.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_redis_collection.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_single_collector.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_torch.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_uiplay.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train.executor&quot;: &quot;Run&quot;,
+    &quot;Python.validate_moves.executor&quot;: &quot;Run&quot;,
+    &quot;Python.view_redis_data.executor&quot;: &quot;Run&quot;,
+    &quot;Python.view_training_data.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;ToolWindow.Problems View.ShowToolbar&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/27415/PycharmProjects/xionghan-chess/program/assets&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="QodanaReportsService">
     <option name="descriptions">
       <ReportDescription localRun="true" path="C:\Users\27415\AppData\Local\Temp\qodana_output\qodana.sarif.json" reportGuid="ea5477ac-0515-4258-8a8a-0be20138c3de" reportId="xionghan-chess/qodana/2026-01-17" />
@@ -127,7 +123,7 @@
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\ui" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.build_exe">
+  <component name="RunManager" selected="Python.main">
     <configuration name="build_exe" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="xionghan-chess" />
       <option name="ENV_FILES" value="" />
@@ -189,6 +185,29 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="xionghan-chess" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\27415\PycharmProjects\xionghan-chess\program\test\main.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -268,10 +287,9 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.build_exe" />
         <item itemvalue="Python.main" />
-        <item itemvalue="Python.test_local_network (1)" />
-        <item itemvalue="Python.test_local_network (1)" />
+        <item itemvalue="Python.main (1)" />
+        <item itemvalue="Python.build_exe" />
         <item itemvalue="Python.convert_md_to_pdf" />
       </list>
     </recent_temporary>
@@ -337,30 +355,7 @@
       <workItem from="1769136069581" duration="8206000" />
       <workItem from="1769154175303" duration="2858000" />
       <workItem from="1769159579240" duration="14143000" />
-    </task>
-    <task id="LOCAL-00047" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768579225909</created>
-      <option name="number" value="00047" />
-      <option name="presentableId" value="LOCAL-00047" />
-      <option name="project" value="LOCAL" />
-      <updated>1768579225909</updated>
-    </task>
-    <task id="LOCAL-00048" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768580289077</created>
-      <option name="number" value="00048" />
-      <option name="presentableId" value="LOCAL-00048" />
-      <option name="project" value="LOCAL" />
-      <updated>1768580289077</updated>
-    </task>
-    <task id="LOCAL-00049" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768580527678</created>
-      <option name="number" value="00049" />
-      <option name="presentableId" value="LOCAL-00049" />
-      <option name="project" value="LOCAL" />
-      <updated>1768580527678</updated>
+      <workItem from="1769347630267" duration="3337000" />
     </task>
     <task id="LOCAL-00050" summary="最新更新">
       <option name="closed" value="true" />
@@ -730,7 +725,31 @@
       <option name="project" value="LOCAL" />
       <updated>1769175258338</updated>
     </task>
-    <option name="localTasksCounter" value="96" />
+    <task id="LOCAL-00096" summary="尉的增强功能实现：在保持其他能力不变的前提下，新增了斜线跨越能力，同时保持了&quot;无吃子能力、仅具备控制能力&quot;的核心属性。">
+      <option name="closed" value="true" />
+      <created>1769350421241</created>
+      <option name="number" value="00096" />
+      <option name="presentableId" value="LOCAL-00096" />
+      <option name="project" value="LOCAL" />
+      <updated>1769350421241</updated>
+    </task>
+    <task id="LOCAL-00097" summary="实现射和礌棋子在斜向移动路径中遇到&quot;与当前移动斜线交叉的两相邻棋子&quot;（即形成夹逼）时，后续路径被阻挡的功能。">
+      <option name="closed" value="true" />
+      <created>1769354791268</created>
+      <option name="number" value="00097" />
+      <option name="presentableId" value="LOCAL-00097" />
+      <option name="project" value="LOCAL" />
+      <updated>1769354791268</updated>
+    </task>
+    <task id="LOCAL-00098" summary="增强棋子功能">
+      <option name="closed" value="true" />
+      <created>1769354860087</created>
+      <option name="number" value="00098" />
+      <option name="presentableId" value="LOCAL-00098" />
+      <option name="project" value="LOCAL" />
+      <updated>1769354860087</updated>
+    </task>
+    <option name="localTasksCounter" value="99" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -795,7 +814,10 @@
     <MESSAGE value="美化了主界面" />
     <MESSAGE value="修复了打包exe" />
     <MESSAGE value="继续修复打包exe" />
-    <option name="LAST_COMMIT_MESSAGE" value="继续修复打包exe" />
+    <MESSAGE value="尉的增强功能实现：在保持其他能力不变的前提下，新增了斜线跨越能力，同时保持了&quot;无吃子能力、仅具备控制能力&quot;的核心属性。" />
+    <MESSAGE value="实现射和礌棋子在斜向移动路径中遇到&quot;与当前移动斜线交叉的两相邻棋子&quot;（即形成夹逼）时，后续路径被阻挡的功能。" />
+    <MESSAGE value="增强棋子功能" />
+    <option name="LAST_COMMIT_MESSAGE" value="增强棋子功能" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -807,13 +829,8 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/ui/dialogs.py</url>
-          <line>453</line>
+          <line>455</line>
           <option name="timeStamp" value="12" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
-          <line>2124</line>
-          <option name="timeStamp" value="13" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/test/dun_test.py</url>
@@ -857,20 +874,6 @@
           <url>file://$PROJECT_DIR$/program/Chess-master/GUI.py</url>
           <line>4</line>
           <option name="timeStamp" value="39" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
-          <line>3</line>
-          <option name="timeStamp" value="47" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
-          <line>1260</line>
-          <option name="timeStamp" value="51" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
-          <option name="timeStamp" value="53" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/lan/network_game.py</url>
@@ -938,13 +941,8 @@
           <option name="timeStamp" value="80" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/utils/tools.py</url>
-          <line>5</line>
-          <option name="timeStamp" value="81" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/game.py</url>
-          <line>580</line>
+          <line>598</line>
           <option name="timeStamp" value="83" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -969,7 +967,7 @@
     <SUITE FILE_PATH="coverage/xionghan_chess$test_redis.coverage" NAME="test_redis 覆盖结果" MODIFIED="1768360499214" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$my_redis.coverage" NAME="my_redis 覆盖结果" MODIFIED="1768359564663" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$collect.coverage" NAME="collect 覆盖结果" MODIFIED="1768097363820" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$main__1_.coverage" NAME="main (1) 覆盖结果" MODIFIED="1768572451124" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/Chess-master" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$main__1_.coverage" NAME="main (1) 覆盖结果" MODIFIED="1769252234107" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$UIplay.coverage" NAME="UIplay 覆盖结果" MODIFIED="1768387968521" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_ai_fix.coverage" NAME="test_ai_fix 覆盖结果" MODIFIED="1766936931089" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$generate_sounds.coverage" NAME="generate_sounds 覆盖结果" MODIFIED="1768039645391" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
@@ -982,7 +980,7 @@
     <SUITE FILE_PATH="coverage/xionghan_chess$dun_test.coverage" NAME="dun_test 覆盖结果" MODIFIED="1767952707887" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$game_logic.coverage" NAME="game_logic 覆盖结果" MODIFIED="1766850974112" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$gen.coverage" NAME="gen 覆盖结果" MODIFIED="1768033508731" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1769173781881" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1769354576627" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_py.coverage" NAME="test_py 覆盖结果" MODIFIED="1768096345997" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$sound_manager.coverage" NAME="sound_manager 覆盖结果" MODIFIED="1768035454859" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
     <SUITE FILE_PATH="coverage/xionghan_chess$view_training_data.coverage" NAME="view_training_data 覆盖结果" MODIFIED="1768100204598" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
@@ -992,8 +990,9 @@
     <SUITE FILE_PATH="coverage/xionghan_chess$test_uiplay.coverage" NAME="test_uiplay 覆盖结果" MODIFIED="1768109621282" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$validate_moves.coverage" NAME="validate_moves 覆盖结果" MODIFIED="1768060437308" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$start_multiple_collectors.coverage" NAME="start_multiple_collectors 覆盖结果" MODIFIED="1768099132107" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$build_exe.coverage" NAME="build_exe 覆盖结果" MODIFIED="1769175358840" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$build_exe.coverage" NAME="build_exe 覆盖结果" MODIFIED="1769183472474" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_paddle.coverage" NAME="test_paddle 覆盖结果" MODIFIED="1768061779565" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$test_real_checkmate.coverage" NAME="test_real_checkmate 覆盖结果" MODIFIED="1769239205792" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$generate_voice__1_.coverage" NAME="generate_voice (1) 覆盖结果" MODIFIED="1768037026142" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_torch.coverage" NAME="test_torch 覆盖结果" MODIFIED="1768061637898" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_single_collector.coverage" NAME="test_single_collector 覆盖结果" MODIFIED="1768097188791" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />

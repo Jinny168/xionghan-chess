@@ -182,7 +182,7 @@ class NetworkGameScreen:
         if game_state.should_show_check_animation():
             king_pos = game_state.get_checked_king_position()
             if king_pos:
-                self.board.draw_check_animation(screen, king_pos)
+                self.board.draw_check_animation(screen, king_pos, game_state)
 
         # 绘制游戏信息面板
         self.draw_info_panel(screen, game_state, last_move_notation)
@@ -639,12 +639,19 @@ class NetworkChessGame(ChessGame):
             self.game_screen.board.clear_highlights()
 
     def check_sound_play(self):
+        # 检查游戏是否结束
+        if self.game_state.game_over:
+            return
+        
+        # 播放音效
+        # 优先处理绝杀情况，因为绝杀时is_check和is_checkmate都为True
         if self.game_state.is_checkmate():
+            print("[DEBUG] 网络对战模式检测到绝杀，播放绝杀音效")
             try:
-                self.sound_manager.play_sound('warn')
-                self.sound_manager.play_sound('check')
+                self.sound_manager.play_sound('defeat')  # 播放失败音效
             except:
-                pass
+                # 如果没有特定音效，播放警告音效
+                self.sound_manager.play_sound('warn')
         elif self.game_state.is_check:
             try:
                 self.sound_manager.play_sound('warn')
@@ -952,26 +959,40 @@ class NetworkChessGame(ChessGame):
                                 self.confirm_dialog = None
                             else:
                                 self.confirm_dialog = None
-                elif self.game_state.game_over and self.popup:
-                    popup_result = self.popup.handle_event(event, mouse_pos)
-                    if popup_result == "restart":
-                        # 网络对局结束后返回主菜单
-                        self.sound_manager.stop_background_music()
-                        return "back_to_menu"
-                    elif popup_result == "replay":
-                        # 进入复盘模式
-                        from program.utils.tools import enter_replay_mode
-                        from program.ui.replay_screen import ReplayScreen
-                        
-                        # 创建复盘控制器
-                        replay_controller = enter_replay_mode(self.game_state)
-                        
-                        # 创建并运行复盘界面
-                        replay_screen = ReplayScreen(self.game_state, replay_controller)
-                        replay_screen.run()
-                        
-                        # 复盘结束后可能需要一些清理工作
-                        # （例如，可能需要重新绘制游戏界面）
+                elif self.game_state.game_over:
+                    # 即使没有弹窗，也要检查是否需要创建
+                    if self.popup is None:
+                        print("[DEBUG] 网络对战模式 - 游戏已结束，但弹窗尚未创建，正在创建弹窗")
+                        # 创建弹窗
+                        winner_text = self.game_state.get_winner_text()
+                        red_time, black_time = self.game_state.update_times()
+                        total_time = self.game_state.total_time
+                        self.popup = PopupDialog(400, 320, winner_text, total_time, red_time, black_time)
+                    # 处理弹窗事件
+                    if self.popup:
+                        popup_result = self.popup.handle_event(event, mouse_pos)
+                        if popup_result == "restart":
+                            # 网络对局结束后返回主菜单
+                            self.sound_manager.stop_background_music()
+                            return "back_to_menu"
+                        elif popup_result == "replay":
+                            # 进入复盘模式
+                            from program.utils.tools import enter_replay_mode
+                            from program.ui.replay_screen import ReplayScreen
+                            
+                            # 创建复盘控制器
+                            replay_controller = enter_replay_mode(self.game_state)
+                            
+                            # 创建并运行复盘界面
+                            replay_screen = ReplayScreen(self.game_state, replay_controller)
+                            replay_screen.run()
+                            
+                            # 复盘结束后可能需要一些清理工作
+                            # （例如，可能需要重新绘制游戏界面）
+                        elif popup_result == "return":
+                            # 返回主菜单
+                            self.sound_manager.stop_background_music()
+                            return "back_to_menu"
                 elif self.audio_settings_dialog:
                     result = self.audio_settings_dialog.handle_event(event, mouse_pos)
                     if result == "ok":  # 确认设置

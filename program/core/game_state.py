@@ -483,7 +483,8 @@ class GameState:
     
     def should_show_check_animation(self):
         """检查是否应该显示将军动画"""
-        if not self.is_check:
+        # 修复逻辑：如果游戏已经结束，不应该显示将军动画
+        if not self.is_check or self.game_over:
             return False
             
         # 检查动画是否在有效时间内
@@ -493,23 +494,16 @@ class GameState:
     
     def get_checked_king_position(self):
         """获取被将军的将/帅的位置"""
-        if not self.is_check:
+        # 修复逻辑：如果游戏已经结束，不应该再显示将军动画
+        if not self.is_check or self.game_over:
             return None
             
-        # 检查是否是将死情况
-        # 在将死情况下，游戏结束，但player_turn没有切换，仍然为当前玩家（将军方）
-        # 因此，被将军的是对手
-        if self.game_over and self.is_checkmate():
-            # 在将死情况下，被将死的是对手
-            opponent_color = "black" if self.player_turn == "red" else "red"
-            for piece in self.pieces:
-                if isinstance(piece, King) and piece.color == opponent_color:
-                    return piece.row, piece.col
-        else:
-            # 普通将军情况，player_turn已经是被将军方
-            for piece in self.pieces:
-                if isinstance(piece, King) and piece.color == self.player_turn:
-                    return piece.row, piece.col
+        # 确定被将军的一方 - 根据player_turn确定当前受威胁方
+        # player_turn表示当前轮到谁走，因此被将军的是当前回合的对手
+        checked_color = "red" if self.player_turn == "black" else "black"
+        for piece in self.pieces:
+            if isinstance(piece, King) and piece.color == checked_color:
+                return piece.row, piece.col
         
         return None
     

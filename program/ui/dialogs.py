@@ -221,7 +221,8 @@ class AudioSettingsDialog:
 
 class PopupDialog:
     def __init__(self, width, height, message, total_time=0, red_time=0, black_time=0):
-        self.width = width
+        # 增加默认宽度以更好地显示内容
+        self.width = width if width != 400 else 500  # 默认从400增加到500
         self.height = height
         self.message = message
         self.total_time = total_time
@@ -233,7 +234,7 @@ class PopupDialog:
         self.y = 0
         
         # 创建按钮
-        button_width = 120
+        button_width = 100  # 减小按钮宽度以适应更多按钮
         button_height = 40
         self.button_width = button_width
         self.button_height = button_height
@@ -242,6 +243,7 @@ class PopupDialog:
         self.restart_button = Button(0, 0, button_width, button_height, "重新开始")
         self.replay_button = Button(0, 0, button_width, button_height, "复盘")
         self.export_button = Button(0, 0, button_width, button_height, "导出对局")
+        self.return_button = Button(0, 0, button_width, button_height, "返回")
         
         # 预创建覆盖层表面
         self.overlay_surface = None
@@ -254,14 +256,15 @@ class PopupDialog:
         self.x = (window_width - self.width) // 2
         self.y = (window_height - self.height) // 2
         
-        # 计算按钮位置（两个按钮水平排列）
-        total_button_width = 3 * self.button_width + 20  # 增加了一个按钮
+        # 计算按钮位置（四个按钮水平排列在一行）
+        total_button_width = 4 * self.button_width + 3 * 10  # 四个按钮加上三个间距
         start_x = self.x + (self.width - total_button_width) // 2
         button_y = self.y + self.height - self.button_height - 20
         
         self.restart_button.update_position(start_x, button_y)
-        self.replay_button.update_position(start_x + self.button_width + 20, button_y)
-        self.export_button.update_position(start_x + 2 * (self.button_width + 20), button_y)  # 新增导出按钮
+        self.replay_button.update_position(start_x + self.button_width + 10, button_y)
+        self.export_button.update_position(start_x + 2 * (self.button_width + 10), button_y)
+        self.return_button.update_position(start_x + 3 * (self.button_width + 10), button_y)
         
         # 绘制半透明背景
         if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
@@ -337,22 +340,19 @@ class PopupDialog:
         # 绘制按钮
         self.restart_button.draw(screen)
         self.replay_button.draw(screen)
-        self.export_button.draw(screen)  # 新增导出按钮
-        
-        # 绘制按钮
-        self.restart_button.draw(screen)
-        self.replay_button.draw(screen)
         self.export_button.draw(screen)
+        self.return_button.draw(screen)
     
     def handle_event(self, event, mouse_pos):
         # 如果按钮尚未创建，返回None
-        if not self.restart_button or not self.replay_button or not self.export_button:
+        if not self.restart_button or not self.replay_button or not self.export_button or not self.return_button:
             return None
 
         # 处理鼠标悬停
         self.restart_button.check_hover(mouse_pos)
         self.replay_button.check_hover(mouse_pos)
         self.export_button.check_hover(mouse_pos)
+        self.return_button.check_hover(mouse_pos)
         
         # 检查按钮点击
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -362,6 +362,8 @@ class PopupDialog:
                 return "replay"  # 复盘
             elif self.export_button.is_clicked(mouse_pos, event):
                 return "export"  # 导出对局
+            elif self.return_button.is_clicked(mouse_pos, event):
+                return "return"  # 返回主菜单
         
         return None  # 无操作
 
