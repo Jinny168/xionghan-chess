@@ -42,10 +42,6 @@ def toggle_fullscreen(screen, window_width, window_height, is_fullscreen, window
     
     return new_screen, new_window_width, new_window_height, new_is_fullscreen, new_windowed_size
 
-
-
-
-
 def generate_move_notation(piece, from_row, from_col, to_row, to_col):
     """生成走法的中文表示，如"炮二平五"、"马8进7"等"""
 
@@ -184,20 +180,3 @@ def get_piece_class_by_name(name):
     }
 
     return name_to_class.get(name)
-
-
-def check_sound_play(game_instance):
-    """检查并播放将军/绝杀音效"""
-    # 检查游戏状态是否为将军或绝杀
-    if game_instance.game_state.is_checkmate():
-        # 绝杀时播放绝杀音效
-        try:
-            game_instance.sound_manager.play_sound('defeat')  # 播放失败音效
-        except (AttributeError, Exception):
-            pass
-    elif game_instance.game_state.is_check:
-        # 将军时播放将军音效
-        try:
-            game_instance.sound_manager.play_sound('warn')  # 播放将军音效
-        except (AttributeError, Exception):
-            pass

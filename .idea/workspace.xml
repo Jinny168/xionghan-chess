@@ -4,68 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="小修改">
-      <change afterPath="$PROJECT_DIR$/program/assets/docs/hungarian_chinese_chess_rules.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/assets/pics/1.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/assets/pics/2.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/assets/pics/3.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/assets/pics/4.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/assets/sounds/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/chess_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/chess_ai.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/UIplay.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/UIplay.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/adapter.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/adapter.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/comprehensive_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/comprehensive_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts/mcts_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/mcts_game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/assets/1.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/assets/2.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/assets/3.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/assets/4.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/build_exe.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/build_exe.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/statistics.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/replay_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/replay_controller.py" afterDir="false" />
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="调整了文件结构">
+      <change beforePath="$PROJECT_DIR$/program/controllers/input_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/input_handler.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/controllers/sound_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/sound_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/core/game_rules.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_rules.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/docs/hungarian_chinese_chess_rules.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/fonts/fangsong.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/fonts/fangsong.ttf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/fonts/kaiti.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/fonts/kaiti.ttf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/fonts/msyh.ttc" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/fonts/msyh.ttc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/fonts/simhei.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/fonts/simhei.ttf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/fonts/simkai.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/fonts/simkai.ttf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/fonts/xingkai.ttf" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/fonts/xingkai.ttf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/lan/network_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/lan/network_game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/button.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/button.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/capture.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/capture.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/check.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/check.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/choose.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/choose.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/convert_mp3_to_wav.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/convert_mp3_to_wav.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/defeat.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/defeat.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/drop.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/drop.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/eat.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/eat.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/fc_background_sound.mp3" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/fc_background_sound.mp3" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/fc_background_sound.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/fc_background_sound.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/fc_defeat_sound.mp3" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/fc_defeat_sound.mp3" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/fc_defeat_sound.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/fc_defeat_sound.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/fc_victory_sound.mp3" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/fc_victory_sound.mp3" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/fc_victory_sound.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/fc_victory_sound.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/generate_sounds.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/generate_sounds.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/generate_voice.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/generate_voice.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/jiangjun.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/jiangjun.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/juesha.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/juesha.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/move.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/move.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/qq_background_sound.mp3" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/qq_background_sound.mp3" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/qq_background_sound.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/qq_background_sound.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/qq_defeat_sound.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/qq_defeat_sound.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/qq_victory_sound.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/qq_victory_sound.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/select.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/select.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/victory.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/victory.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/sounds/warn.wav" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/sounds/warn.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/menu_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/menu_screen.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/utils/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -418,15 +361,7 @@
       <workItem from="1769159579240" duration="14143000" />
       <workItem from="1769347630267" duration="3337000" />
       <workItem from="1769424181105" duration="2385000" />
-      <workItem from="1769431064330" duration="2005000" />
-    </task>
-    <task id="LOCAL-00051" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768581251120</created>
-      <option name="number" value="00051" />
-      <option name="presentableId" value="LOCAL-00051" />
-      <option name="project" value="LOCAL" />
-      <updated>1768581251120</updated>
+      <workItem from="1769431064330" duration="2724000" />
     </task>
     <task id="LOCAL-00052" summary="最新更新">
       <option name="closed" value="true" />
@@ -812,7 +747,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769356001579</updated>
     </task>
-    <option name="localTasksCounter" value="100" />
+    <task id="LOCAL-00100" summary="调整了文件结构">
+      <option name="closed" value="true" />
+      <created>1769433121242</created>
+      <option name="number" value="00100" />
+      <option name="presentableId" value="LOCAL-00100" />
+      <option name="project" value="LOCAL" />
+      <updated>1769433121242</updated>
+    </task>
+    <option name="localTasksCounter" value="101" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -856,7 +799,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="最新更新" />
     <MESSAGE value="提取step_counter" />
     <MESSAGE value="基本跑通了replay_controller和复盘功能，但是功能未实现" />
     <MESSAGE value="小变动，修复game.py中嵌套调用的问题" />
@@ -881,7 +823,8 @@
     <MESSAGE value="实现射和礌棋子在斜向移动路径中遇到&quot;与当前移动斜线交叉的两相邻棋子&quot;（即形成夹逼）时，后续路径被阻挡的功能。" />
     <MESSAGE value="增强棋子功能" />
     <MESSAGE value="小修改" />
-    <option name="LAST_COMMIT_MESSAGE" value="小修改" />
+    <MESSAGE value="调整了文件结构" />
+    <option name="LAST_COMMIT_MESSAGE" value="调整了文件结构" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1020,9 +963,19 @@
           <option name="timeStamp" value="85" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/utils/tools.py</url>
-          <line>243</line>
-          <option name="timeStamp" value="87" />
+          <url>file://$PROJECT_DIR$/program/core/chess_pieces.py</url>
+          <line>177</line>
+          <option name="timeStamp" value="90" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/core/chess_pieces.py</url>
+          <line>34</line>
+          <option name="timeStamp" value="91" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/core/chess_pieces.py</url>
+          <line>64</line>
+          <option name="timeStamp" value="92" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
@@ -1049,7 +1002,7 @@
     <SUITE FILE_PATH="coverage/xionghan_chess$dun_test.coverage" NAME="dun_test 覆盖结果" MODIFIED="1767952707887" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$game_logic.coverage" NAME="game_logic 覆盖结果" MODIFIED="1766850974112" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$gen.coverage" NAME="gen 覆盖结果" MODIFIED="1768033508731" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1769433069215" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1769433789929" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_py.coverage" NAME="test_py 覆盖结果" MODIFIED="1768096345997" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$sound_manager.coverage" NAME="sound_manager 覆盖结果" MODIFIED="1768035454859" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
     <SUITE FILE_PATH="coverage/xionghan_chess$view_training_data.coverage" NAME="view_training_data 覆盖结果" MODIFIED="1768100204598" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />

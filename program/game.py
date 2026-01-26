@@ -542,7 +542,7 @@ class ChessGame:
             self.sound_manager.play_sound('drop')
         # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
 
-        tools.check_sound_play(self)
+        sound_manager.check_and_play_game_sound(self.game_state)
         # 更新头像状态 - 只需更新一次
         self.update_avatars()
 

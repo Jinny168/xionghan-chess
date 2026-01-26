@@ -6,9 +6,9 @@
 import pygame
 
 from program.config.config import MODE_PVP
+from program.controllers.sound_manager import sound_manager
 from program.ui.dialogs import AudioSettingsDialog, PawnResurrectionDialog, PromotionDialog
 from program.utils import tools
-from program.utils.tools import check_sound_play
 
 
 class InputHandler:
@@ -170,19 +170,19 @@ class InputHandler:
                 # 播放选子音效（当选择棋子时）
                 if game_instance.selected_piece and not captured_piece:
                     try:
-                        game_instance.sound_manager.play_sound('choose')  # 使用chess-master的选子音效
+                        sound_manager.play_sound('choose')  # 使用chess-master的选子音效
                     except:
                         pass
                 
                 # 播放移动音效
                 if captured_piece:
                     try:
-                        game_instance.sound_manager.play_sound('eat')  # 使用chess-master的吃子音效
+                        sound_manager.play_sound('eat')  # 使用chess-master的吃子音效
                     except:
                         pass
                 else:
                     try:
-                        game_instance.sound_manager.play_sound('drop')  # 使用chess-master的落子音效
+                        sound_manager.play_sound('drop')  # 使用chess-master的落子音效
                     except:
                         pass
 
@@ -190,7 +190,7 @@ class InputHandler:
                 game_instance.update_avatars()
 
                 # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
-                check_sound_play(game_instance)
+                sound_manager.check_and_play_game_sound(game_instance.game_state)
 
                 # 移动完成后清除所有高亮显示
                 game_instance.game_screen.board.clear_highlights()

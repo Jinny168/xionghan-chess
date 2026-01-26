@@ -187,5 +187,22 @@ class SoundManager:
             if sound_name in _sound_cache:
                 _sound_cache[sound_name].set_volume(volume)
 
+    def check_and_play_game_sound(self, game_state):
+        """检查并播放将军/绝杀音效"""
+        # 检查游戏状态是否为将军或绝杀
+        if hasattr(game_state, 'is_checkmate') and game_state.is_checkmate():
+            # 绝杀时播放绝杀音效
+            try:
+                self.play_sound('defeat')  # 播放失败音效
+            except (AttributeError, Exception):
+                pass
+        elif hasattr(game_state, 'is_check') and game_state.is_check:
+            # 将军时播放将军音效
+            try:
+                self.play_sound('warn')  # 播放将军音效
+            except (AttributeError, Exception):
+                pass
+
+
 # 全局音效管理器实例
 sound_manager = SoundManager()
