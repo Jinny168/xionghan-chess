@@ -33,7 +33,7 @@ def collect_resource_files(project_root=".", resource_dir="", extensions=None):
 def create_spec_file():
     """创建PyInstaller spec文件"""
     # 收集声音文件
-    sounds_datas = collect_resource_files(".", "sounds", [".wav", ".mp3"])
+    sounds_datas = collect_resource_files(".", "assets/sounds", [".wav", ".mp3"])
     # 确保必要的声音文件存在
     required_sounds = [
         ("sounds/check.wav", "sounds"),
@@ -62,7 +62,7 @@ def create_spec_file():
             sounds_datas.append(sound)
 
     # 收集字体文件
-    fonts_datas = collect_resource_files(".", "fonts", [".ttf", ".ttc"])
+    fonts_datas = collect_resource_files(".", "assets/fonts", [".ttf", ".ttc"])
     # 确保必要的字体文件存在
     required_fonts = [
         ("fonts/fangsong.ttf", "fonts"),

@@ -1,7 +1,9 @@
 """工具函数模块，包含导入导出棋局和复盘等功能"""
 from tkinter import filedialog
 import pygame
-
+from program.core.chess_pieces import (
+    King, Ju, Ma, Xiang, Shi, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun
+)
 
 def toggle_fullscreen(screen, window_width, window_height, is_fullscreen, windowed_size=None):
     """
@@ -41,9 +43,7 @@ def toggle_fullscreen(screen, window_width, window_height, is_fullscreen, window
     return new_screen, new_window_width, new_window_height, new_is_fullscreen, new_windowed_size
 
 
-from program.core.chess_pieces import (
-    King, Ju, Ma, Xiang, Shi, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun
-)
+
 
 
 def generate_move_notation(piece, from_row, from_col, to_row, to_col):
@@ -185,74 +185,7 @@ def get_piece_class_by_name(name):
 
     return name_to_class.get(name)
 
-def save_game_to_file(game_state, filename=None):
-    """保存当前游戏到文件
-    
-    Args:
-        game_state: 游戏状态对象
-        filename (str, optional): 保存的文件名
-        
-    Returns:
-        bool: 是否成功保存
-    """
-    try:
-        if filename is None:
-            filename = filedialog.asksaveasfilename(
-                title="导出棋局",
-                defaultextension=".fen",
-                filetypes=[("FEN文件", "*.fen"), ("所有文件", "*.*")]
-            )
-            if not filename:
-                return False
-        
-        # 生成FEN表示
-        fen_string = game_state.export_position()
-        
-        # 保存到文件
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(fen_string)
-        
-        print(f"游戏已保存到: {filename}")
-        return True
-    except Exception as e:
-        print(f"保存游戏失败: {str(e)}")
-        return False
 
-
-def load_game_from_file(game_state, filename=None):
-    """从文件加载游戏
-    
-    Args:
-        game_state: 游戏状态对象
-        filename (str, optional): 要加载的文件名
-        
-    Returns:
-        bool: 是否成功加载
-    """
-    try:
-        if filename is None:
-            filename = filedialog.askopenfilename(
-                title="导入棋局",
-                filetypes=[("FEN文件", "*.fen"), ("所有文件", "*.*")]
-            )
-            if not filename:
-                return False
-        
-        # 从文件读取FEN字符串
-        with open(filename, 'r', encoding='utf-8') as f:
-            fen_string = f.read().strip()
-        
-        # 导入位置
-        success = game_state.import_position(fen_string)
-        if success:
-            print(f"游戏已从 {filename} 加载")
-        else:
-            print("导入游戏失败")
-        
-        return success
-    except Exception as e:
-        print(f"加载游戏失败: {str(e)}")
-        return False
 def check_sound_play(game_instance):
     """检查并播放将军/绝杀音效"""
     # 检查游戏状态是否为将军或绝杀
@@ -268,17 +201,3 @@ def check_sound_play(game_instance):
             game_instance.sound_manager.play_sound('warn')  # 播放将军音效
         except (AttributeError, Exception):
             pass
-
-def enter_replay_mode(game_state):
-    """进入复盘模式
-    
-    Args:
-        game_state: 游戏状态对象
-        
-    Returns:
-        ReplayController: 复盘控制器实例
-    """
-    from program.controllers.replay_controller import ReplayController
-    controller = ReplayController(game_state)
-    controller.start_replay()
-    return controller

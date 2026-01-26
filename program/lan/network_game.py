@@ -8,6 +8,7 @@ from program.config.config import (
     PANEL_BORDER, BLACK, CAMP_RED, RED
 )
 from program.config.config import game_config
+from program.controllers.replay_controller import ReplayController
 from program.core.game_state import GameState
 from program.game import ChessGame
 from program.lan.xhlan import XiangqiNetworkGame, SimpleAPI
@@ -977,11 +978,11 @@ class NetworkChessGame(ChessGame):
                             return "back_to_menu"
                         elif popup_result == "replay":
                             # 进入复盘模式
-                            from program.utils.tools import enter_replay_mode
+
                             from program.ui.replay_screen import ReplayScreen
                             
                             # 创建复盘控制器
-                            replay_controller = enter_replay_mode(self.game_state)
+                            replay_controller = ReplayController.enter_replay_mode(self.game_state)
                             
                             # 创建并运行复盘界面
                             replay_screen = ReplayScreen(self.game_state, replay_controller)

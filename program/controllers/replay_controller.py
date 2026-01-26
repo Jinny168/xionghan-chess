@@ -34,6 +34,20 @@ class ReplayController:
         # 原始游戏状态（用于恢复）
         self.original_state = None
     
+    @classmethod
+    def enter_replay_mode(cls, game_state):
+        """进入复盘模式的工厂方法
+        
+        Args:
+            game_state: 游戏状态对象
+            
+        Returns:
+            ReplayController: 复盘控制器实例
+        """
+        controller = cls(game_state)
+        controller.start_replay()
+        return controller
+    
     def start_replay(self):
         """开始复盘模式"""
         # 保存原始游戏状态

@@ -3,13 +3,34 @@ import sys
 import pygame
 
 
+# 定义音效文件路径
+SOUND_PATHS = {
+    'check': os.path.join("assets/sounds", "check.wav"),  # 旧将军音效，纯音乐
+    'move': os.path.join("assets/sounds", "move.wav"),  # 旧走子音效
+    'capture': os.path.join("assets/sounds", "capture.wav"),  # 旧吃子音效
+    'select': os.path.join("assets/sounds", "select.wav"),  # 旧选子音效
+    'jiangjun_voice': os.path.join("assets/sounds", "jiangjun.wav"),  # 旧将军音效，女声版
+    'juesha_voice': os.path.join("assets/sounds", "juesha.wav"),  # 旧绝杀音效，女声版
+    'victory': os.path.join("assets/sounds", "fc_victory_sound.wav"),  # 默认使用fc风格的胜利音效
+    'defeat': os.path.join("assets/sounds", "fc_defeat_sound.wav"),  # 默认使用fc风格的失败音效
+    'qq_victory': os.path.join("assets/sounds", "qq_victory_sound.wav"),  # QQ风格的胜利音效
+    'qq_defeat': os.path.join("assets/sounds", "qq_defeat_sound.wav"),  # QQ风格的失败音效
+    'fc_victory': os.path.join("assets/sounds", "fc_victory_sound.wav"),  # 默认使用fc风格的胜利音效
+    'fc_defeat': os.path.join("assets/sounds", "fc_defeat_sound.wav"),  # 默认使用fc风格的失败音效
+    'button': os.path.join("assets/sounds", "button.wav"),  # 点击按钮的音效，暂未使用
+    'choose': os.path.join("assets/sounds", "choose.wav"),  # 新选子音效
+    'drop': os.path.join("assets/sounds", "drop.wav"),  # 新走子音效
+    'eat': os.path.join("assets/sounds", "eat.wav"),  # 新吃子音效
+    'warn': os.path.join("assets/sounds", "warn.wav"),  # 新将军音效
+    'qq_background': os.path.join("assets/sounds", "qq_background_sound.wav"),  # QQ风格背景音乐
+    'fc_background': os.path.join("assets/sounds", "fc_background_sound.wav")  # FC风格背景音乐
+}
+
+
 def resource_path(relative_path):
     """获取资源文件的绝对路径"""
-    try:
-        # PyInstaller创建临时文件夹，并将路径存储在_MEIPASS中
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath("../program")
+    # 检查是否有_MEIPASS属性（PyInstaller环境）
+    base_path = getattr(sys, '_MEIPASS', os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
     return os.path.join(base_path, relative_path)
 
 
@@ -30,30 +51,9 @@ def load_sound(sound_name):
     if sound_name in _sound_cache:
         return _sound_cache[sound_name]
 
-    # 定义音效文件路径
-    sound_paths = {
-        'check': os.path.join("sounds", "check.wav"),  # 旧将军音效，纯音乐
-        'move': os.path.join("sounds", "move.wav"),  # 旧走子音效
-        'capture': os.path.join("sounds", "capture.wav"),  # 旧吃子音效
-        'select': os.path.join("sounds", "select.wav"),  # 旧选子音效
-        'jiangjun_voice': os.path.join("sounds", "jiangjun.wav"),  # 旧将军音效，女声版
-        'juesha_voice': os.path.join("sounds", "juesha.wav"),  # 旧绝杀音效，女声版
-        'victory': os.path.join("sounds", "fc_victory_sound.wav"),  # 默认使用fc风格的胜利音效
-        'defeat': os.path.join("sounds", "fc_defeat_sound.wav"),  # 默认使用fc风格的失败音效
-        'qq_victory': os.path.join("sounds", "qq_victory_sound.wav"),  # QQ风格的胜利音效
-        'qq_defeat': os.path.join("sounds", "qq_defeat_sound.wav"),  # QQ风格的失败音效
-        'fc_victory': os.path.join("sounds", "fc_victory_sound.wav"),  # 默认使用fc风格的胜利音效
-        'fc_defeat': os.path.join("sounds", "fc_defeat_sound.wav"),  # 默认使用fc风格的失败音效
-        'button': os.path.join("sounds", "button.wav"),  # 点击按钮的音效，暂未使用
-        'choose': os.path.join("sounds", "choose.wav"),  # 新选子音效
-        'drop': os.path.join("sounds", "drop.wav"),  # 新走子音效
-        'eat': os.path.join("sounds", "eat.wav"),  # 新吃子音效
-        'warn': os.path.join("sounds", "warn.wav"),  # 新将军音效
-        'qq_background': os.path.join("sounds", "qq_background_sound.wav"),  # QQ风格背景音乐
-        'fc_background': os.path.join("sounds", "fc_background_sound.wav")  # FC风格背景音乐
-    }
+    # 使用全局音效路径字典
 
-    if sound_name not in sound_paths:
+    if sound_name not in SOUND_PATHS:
         print(f"未知的音效名称: {sound_name}")
         # 返回一个空的音效对象
         empty_sound = pygame.mixer.Sound(bytes(bytearray(100)))
@@ -62,7 +62,7 @@ def load_sound(sound_name):
         return empty_sound
 
     # 实际加载音效文件
-    sound_path = resource_path(sound_paths[sound_name])
+    sound_path = resource_path(SOUND_PATHS[sound_name])
     if os.path.exists(sound_path):
         try:
             sound = pygame.mixer.Sound(sound_path)
@@ -70,17 +70,17 @@ def load_sound(sound_name):
             # 缓存音效对象
             _sound_cache[sound_name] = sound
             return sound
-        except Exception as e:
+        except (pygame.error, FileNotFoundError) as e:
             print(f"加载音效文件失败 {sound_path}: {e}")
             print(f"尝试使用相对路径加载...")
             # 如果resource_path失败，尝试直接使用相对路径
             try:
-                sound = pygame.mixer.Sound(sound_paths[sound_name])
+                sound = pygame.mixer.Sound(SOUND_PATHS[sound_name])
                 sound.set_volume(0.7)
                 # 缓存音效对象
                 _sound_cache[sound_name] = sound
                 return sound
-            except Exception as e2:
+            except (pygame.error, FileNotFoundError) as e2:
                 print(f"使用相对路径加载音效也失败: {e2}")
     else:
         print(f"音效文件不存在: {sound_path}")
@@ -105,7 +105,8 @@ class SoundManager:
         # 预加载所有音效
         self.preload_sounds()
 
-    def preload_sounds(self):
+    @staticmethod
+    def preload_sounds():
         """预加载所有音效"""
         sound_types = ['move', 'capture', 'select', 'check', 'jiangjun_voice', 'juesha_voice',
                        'victory', 'defeat', 'qq_victory', 'qq_defeat', 'fc_victory', 'fc_defeat',
@@ -113,13 +114,14 @@ class SoundManager:
         for sound_type in sound_types:
             load_sound(sound_type)
 
-    def play_sound(self, sound_type):
+    @staticmethod
+    def play_sound(sound_type):
         """播放指定类型的音效"""
         sound = load_sound(sound_type)
         if sound:
             try:
                 sound.play()
-            except Exception as e:
+            except pygame.error as e:
                 print(f"播放音效 {sound_type} 失败: {e}")
 
     def toggle_music_style(self):
@@ -139,31 +141,8 @@ class SoundManager:
             music_type = 'qq_background'
         else:
             music_type = 'fc_background'
-
-        # 获取音效路径
-        sound_paths = {
-            'check': os.path.join("sounds", "check.wav"),  # 旧将军音效，纯音乐
-            'move': os.path.join("sounds", "move.wav"),  # 旧走子音效
-            'capture': os.path.join("sounds", "capture.wav"),  # 旧吃子音效
-            'select': os.path.join("sounds", "select.wav"),  # 旧选子音效
-            'jiangjun_voice': os.path.join("sounds", "jiangjun.wav"),  # 旧将军音效，女声版
-            'juesha_voice': os.path.join("sounds", "juesha.wav"),  # 旧绝杀音效，女声版
-            'victory': os.path.join("sounds", "fc_victory_sound.wav"),  # 默认使用fc风格的胜利音效
-            'defeat': os.path.join("sounds", "fc_defeat_sound.wav"),  # 默认使用fc风格的失败音效
-            'qq_victory': os.path.join("sounds", "qq_victory_sound.wav"),  # QQ风格的胜利音效
-            'qq_defeat': os.path.join("sounds", "qq_defeat_sound.wav"),  # QQ风格的失败音效
-            'fc_victory': os.path.join("sounds", "fc_victory_sound.wav"),  # 默认使用fc风格的胜利音效
-            'fc_defeat': os.path.join("sounds", "fc_defeat_sound.wav"),  # 默认使用fc风格的失败音效
-            'button': os.path.join("sounds", "button.wav"),  # 点击按钮的音效，暂未使用
-            'choose': os.path.join("sounds", "choose.wav"),  # 新选子音效
-            'drop': os.path.join("sounds", "drop.wav"),  # 新走子音效
-            'eat': os.path.join("sounds", "eat.wav"),  # 新吃子音效
-            'warn': os.path.join("sounds", "warn.wav"),  # 新将军音效
-            'qq_background': os.path.join("sounds", "qq_background_sound.wav"),  # QQ风格背景音乐
-            'fc_background': os.path.join("sounds", "fc_background_sound.wav")  # FC风格背景音乐
-        }
         
-        music_filepath = resource_path(sound_paths[music_type])
+        music_filepath = resource_path(SOUND_PATHS[music_type])
 
         # 检查背景音乐文件是否存在
         if os.path.exists(music_filepath):
@@ -171,7 +150,7 @@ class SoundManager:
                 pygame.mixer.music.load(music_filepath)
                 pygame.mixer.music.set_volume(self.music_volume)
                 pygame.mixer.music.play(-1)  # 循环播放
-            except Exception as e:
+            except pygame.error as e:
                 print(f"播放背景音乐失败: {e}")
         else:
             print(f"警告: 背景音乐文件 {music_type} 不存在")
@@ -190,7 +169,8 @@ class SoundManager:
         else:
             self.play_sound('qq_defeat')
 
-    def stop_background_music(self):
+    @staticmethod
+    def stop_background_music():
         """停止背景音乐"""
         pygame.mixer.music.stop()
 
@@ -203,8 +183,9 @@ class SoundManager:
         """设置音效音量 (0.0 到 1.0)"""
         self.sound_volume = max(0.0, min(1.0, volume))
         # 更新已缓存的音效音量
-        for sound_name in ['check', 'move', 'capture', 'select', 'jiangjun_voice', 'juesha_voice',
-                           'victory', 'defeat', 'qq_victory', 'qq_defeat', 'fc_victory', 'fc_defeat',
-                           'qq_background', 'fc_background']:
+        for sound_name in SOUND_PATHS.keys():
             if sound_name in _sound_cache:
                 _sound_cache[sound_name].set_volume(volume)
+
+# 全局音效管理器实例
+sound_manager = SoundManager()

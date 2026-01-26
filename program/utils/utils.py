@@ -14,12 +14,12 @@ def load_font(size, bold=False):
         return _font_cache[cache_key]
 
     font_paths = [
-        'fonts/simkai.ttf',  # 楷体
-        'fonts/kaiti.ttf',  # 楷体
-        'fonts/fangsong.ttf',  # 仿宋
-        'fonts/simhei.ttf',  # 黑体
-        'fonts/xingkai.ttf',  # 行楷
-        'fonts/msyh.ttc',  # 微软雅黑
+        'assets/fonts/simkai.ttf',  # 楷体
+        'assets/fonts/kaiti.ttf',  # 楷体
+        'assets/fonts/fangsong.ttf',  # 仿宋
+        'assets/fonts/simhei.ttf',  # 黑体
+        'assets/fonts/xingkai.ttf',  # 行楷
+        'assets/fonts/msyh.ttc',  # 微软雅黑
     ]
 
     # 尝试加载游戏资源中的字体文件，使用统一的资源路径处理
@@ -39,7 +39,7 @@ def load_font(size, bold=False):
 
     # 如果没有找到资源字体，使用默认字体
     # 作为最后的备选方案，尝试直接使用本地字体文件
-    fallback_fonts = ['fonts/simhei.ttf', 'fonts/simkai.ttf', 'fonts/fangsong.ttf']
+    fallback_fonts = ['assets/fonts/simhei.ttf', 'assets/fonts/simkai.ttf', 'assets/fonts/fangsong.ttf']
     for font_path in fallback_fonts:
         full_path = resource_path(font_path)  # 使用统一的资源路径处理函数
         try:

@@ -4,12 +4,13 @@ import pygame
 
 from program.config.config import game_config
 from program.controllers.input_handler import input_handler
+from program.controllers.sound_manager import sound_manager
 from program.core.game_rules import GameRules
 from program.core.game_state import GameState
 from program.ui.dialogs import PopupDialog, AudioSettingsDialog, StatisticsDialog
 from program.ui.game_screen import GameScreen
 from program.utils import tools
-from program.controllers.sound_manager import SoundManager
+
 # 初始化PyGame
 pygame.init()
 pygame.mixer.init()  # 初始化音频模块
@@ -77,7 +78,7 @@ class ChessGame:
 
         
         # 音效管理器（包含背景音乐功能）
-        self.sound_manager = SoundManager()
+        self.sound_manager = sound_manager
         # 启动背景音乐
         self.sound_manager.toggle_music_style()  # 设置为QQ风格
         # 如果需要FC风格，可以再次调用toggle_music_style()

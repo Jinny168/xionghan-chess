@@ -1,16 +1,16 @@
 import os
 import sys
-import math
+
 import pygame
 
 from program.config.config import (
     DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
-    BLACK, GOLD, RED, BACKGROUND_COLOR,
-    MODE_PVP, MODE_PVC, CAMP_RED, CAMP_BLACK, FPS
+    BLACK, GOLD, MODE_PVP, MODE_PVC, CAMP_RED, CAMP_BLACK, FPS
 )
+from program.controllers.sound_manager import sound_manager
 from program.ui.button import Button
-from program.utils.utils import load_font, draw_background
 from program.utils import tools, utils
+from program.utils.utils import load_font, draw_background
 
 
 class StyledButton:
@@ -96,6 +96,9 @@ class ModeSelectionScreen:
         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
         pygame.display.set_caption("匈汉象棋 - 模式选择")
         
+        # 使用全局声音管理器
+        self.sound_manager = sound_manager
+        
         # 背景相关
         self.background_image = None
         self.background_surface = None
@@ -117,15 +120,15 @@ class ModeSelectionScreen:
         """加载背景图片，如果没有则使用默认背景"""
         try:
             # 尝试加载背景图片
-            bg_path = utils.resource_path("assets/4.jpg")
+            bg_path = utils.resource_path("assets/pics/4.jpg")
             if os.path.exists(bg_path):
                 self.background_image = pygame.image.load(bg_path).convert()
             else:
                 # 尝试其他常见背景图片路径
                 alt_paths = [
-                    utils.resource_path("assets/3.jpg"),
-                    utils.resource_path("assets/2.jpg"),
-                    utils.resource_path("assets/1.jpg")
+                    utils.resource_path("assets/pics/3.jpg"),
+                    utils.resource_path("assets/pics/2.jpg"),
+                    utils.resource_path("assets/pics/1.jpg")
                 ]
                 for path in alt_paths:
                     if os.path.exists(path):
@@ -316,17 +319,22 @@ class ModeSelectionScreen:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     # 检查是否点击了核心模式按钮
                     if self.pvp_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
                         self.selected_mode = MODE_PVP
                     elif self.pvc_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
                         self.selected_mode = MODE_PVC
                     elif self.network_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
                         self.selected_mode = "network"
                     elif self.settings_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
                         self.toggle_settings_menu()
                     elif self.show_settings_menu:
                         # 检查是否点击了设置菜单项
                         for button, mode in self.settings_menu_items:
                             if button.is_clicked(mouse_pos, event):
+                                self.sound_manager.play_sound('button')  # 播放按钮音效
                                 if mode == "load_game":
                                     # 特殊处理：导入棋局
                                     from program.core.game_state import GameState
@@ -361,6 +369,7 @@ class ModeSelectionScreen:
                         else:
                             # 点击了菜单外部区域，关闭菜单
                             if self.show_settings_menu:
+                                self.sound_manager.play_sound('button')  # 播放按钮音效
                                 self.toggle_settings_menu()
             
             # 更新按钮悬停状态
@@ -547,6 +556,9 @@ class NetworkModeScreen:
         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
         pygame.display.set_caption("匈汉象棋 - 网络对战")
         
+        # 初始化声音管理器
+        self.sound_manager = sound_manager
+        
         self.update_layout()
         self.selected_option = None
         
@@ -681,6 +693,9 @@ class RulesScreen:
         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
         pygame.display.set_caption("匈汉象棋 - 游戏规则")
         
+        # 使用全局声音管理器
+        self.sound_manager = sound_manager
+        
         # 规则文本
         self.rules_text = [
             "匈汉象棋游戏规则：",
@@ -795,6 +810,7 @@ class RulesScreen:
                 # 处理鼠标点击
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if self.back_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
                         running = False
                         
             # 更新按钮悬停状态
@@ -860,6 +876,9 @@ class CampSelectionScreen:
         self.is_fullscreen = False
         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
         pygame.display.set_caption("匈汉象棋 - 选择阵营")
+        
+        # 使用全局声音管理器
+        self.sound_manager = sound_manager
         
         self.update_layout()
         self.selected_camp = None
@@ -949,10 +968,13 @@ class CampSelectionScreen:
                 
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if self.red_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
                         self.selected_camp = CAMP_RED
                     elif self.black_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
                         self.selected_camp = CAMP_BLACK
                     elif self.back_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
                         # 返回到上一级界面（模式选择界面）
                         return None  # 返回None表示返回上级界面
             
