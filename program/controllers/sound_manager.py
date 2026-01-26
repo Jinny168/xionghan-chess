@@ -189,17 +189,20 @@ class SoundManager:
 
     def check_and_play_game_sound(self, game_state):
         """检查并播放将军/绝杀音效"""
-        # 检查游戏状态是否为将军或绝杀
+        # 优先处理绝杀情况，因为绝杀时is_check和is_checkmate都为True
         if hasattr(game_state, 'is_checkmate') and game_state.is_checkmate():
-            # 绝杀时播放绝杀音效
+            print("[DEBUG] 检测到绝杀，播放绝杀音效")
+            # 绝杀时播放更明显的音效
             try:
                 self.play_sound('defeat')  # 播放失败音效
-            except (AttributeError, Exception):
-                pass
+            except:
+                # 如果没有特定音效，播放警告音效
+                self.play_sound('warn')
         elif hasattr(game_state, 'is_check') and game_state.is_check:
-            # 将军时播放将军音效
+            # 普通将军情况，播放将军音效
+            self.play_sound('warn')  # 使用将军语音
             try:
-                self.play_sound('warn')  # 播放将军音效
+                self.play_sound('capture')  # 播放旧版音效
             except (AttributeError, Exception):
                 pass
 

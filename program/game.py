@@ -117,6 +117,11 @@ class ChessGame:
         if piece:
             self.last_move_notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
 
+        # 检查将军/绝杀状态并播放相应音效
+        # 注意：这里需要在移动完成后立即检查，以确保状态正确
+        # 使用统一的声音管理器方法
+        self.sound_manager.check_and_play_game_sound(self.game_state)
+        
         # 检查游戏是否结束
         if self.game_state.game_over:
             print(f"[DEBUG] 游戏结束检测到! 胜者: {self.game_state.winner}")
@@ -146,16 +151,17 @@ class ChessGame:
         else:
             self.sound_manager.play_sound('drop')
 
+        # 检查将军/绝杀状态并播放相应音效
+        # 注意：这里需要在移动完成后立即检查，以确保状态正确
+        # 使用统一的声音管理器方法
+        self.sound_manager.check_and_play_game_sound(self.game_state)
+
         # 如果是人机对战，启动AI
         if self.ai_manager.is_ai_turn(self.game_state.player_turn):
             self.ai_manager.start_ai_thinking()
             pygame.time.set_timer(pygame.USEREVENT, 1000)  # 1秒后启动AI
 
-    def ai_move(self):
-        """AI执行走法"""
-        move = self.ai_manager.get_ai_move(self.game_state)
-        if move:
-            self.make_move(move)
+
 
     def show_game_over_popup(self):
         """显示游戏结束弹窗"""
@@ -516,7 +522,7 @@ class ChessGame:
             self.sound_manager.play_sound('drop')
         # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
 
-        sound_manager.check_and_play_game_sound(self.game_state)
+        self.sound_manager.check_and_play_game_sound(self.game_state)
         # 更新头像状态 - 只需更新一次
         self.game_screen.update_avatars(self.game_state)
 
@@ -526,6 +532,11 @@ class ChessGame:
         move, game_ended = self.ai_manager.process_async_ai_computation(self.game_state)
 
         if move:
+            # 检查将军/绝杀状态并播放相应音效
+            # 注意：这里需要在移动完成后立即检查，以确保状态正确
+            # 使用统一的声音管理器方法
+            self.sound_manager.check_and_play_game_sound(self.game_state)
+            
             # 检查游戏是否结束
             if game_ended:
                 self.game_over_after()

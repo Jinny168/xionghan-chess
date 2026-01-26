@@ -272,11 +272,12 @@ class GameState:
             # 切换玩家
             opponent_color = "black" if self.player_turn == "red" else "red"
             
-            # 检查是否将军
+            # 检查是否将军（在检查游戏结束之前）
             self.is_check = GameRules.is_check(self.pieces, opponent_color)
             if self.is_check:
                 # 设置将军动画计时器
                 self.check_animation_time = current_time
+                print(f"[DEBUG] 检测到将军状态，被将军方: {opponent_color}")
             
             # 检查是否将死或获胜
             game_over, winner = GameRules.is_game_over(self.pieces, self.player_turn)
@@ -500,7 +501,7 @@ class GameState:
             
         # 确定被将军的一方 - 根据player_turn确定当前受威胁方
         # player_turn表示当前轮到谁走，因此被将军的是当前回合的对手
-        checked_color = "red" if self.player_turn == "black" else "black"
+        checked_color = "red" if self.player_turn == "red" else "black"  # 修正：被将军的是当前玩家，而不是对手
         for piece in self.pieces:
             if isinstance(piece, King) and piece.color == checked_color:
                 return piece.row, piece.col
