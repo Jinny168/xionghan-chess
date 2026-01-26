@@ -53,7 +53,8 @@ class ChessGame:
         self.game_state = GameState()
 
         # 初始化AI管理器（如果需要）
-        self.ai_manager = AIManager(game_mode, player_camp, game_settings)
+        from program.controllers.ai_manager import AIManager
+        self.ai_manager = AIManager.get_instance(game_mode, player_camp, game_settings)
 
         # 初始化界面元素
         self.game_screen = GameScreen(self.window_width, self.window_height, game_mode, player_camp)
@@ -80,8 +81,8 @@ class ChessGame:
         # 音效管理器（包含背景音乐功能）
         self.sound_manager = sound_manager
         # 启动背景音乐
-        self.sound_manager.toggle_music_style()  # 设置为QQ风格
-        # 如果需要FC风格，可以再次调用toggle_music_style()
+        self.sound_manager.toggle_music_style()  # 设置为QQ风格，如果需要FC风格，可以再次调用toggle_music_style()
+        
 
     def init_window(self):
         """初始化窗口"""
@@ -268,7 +269,7 @@ class ChessGame:
                             self.game_state.player_turn = opponent_color
                             print(f"[DEBUG] 兵升变后切换玩家: {current_player} -> {opponent_color}")
                             # 更新头像状态
-                            self.update_avatars()
+                            self.game_screen.update_avatars(self.game_state)
                         elif result is False:  # 取消
                             print(f"[DEBUG] 兵升变取消: 当前玩家 {self.game_state.player_turn}")
                             # 清除升变对话框
@@ -281,7 +282,7 @@ class ChessGame:
                             print(f"[DEBUG] 兵升变取消后切换玩家: {current_player} -> {opponent_color}")
 
                             # 更新头像状态
-                            self.update_avatars()
+                            self.game_screen.update_avatars(self.game_state)
                 # 如果有复活对话框，优先处理它的事件
                 elif self.pawn_resurrection_dialog:
                     result = self.pawn_resurrection_dialog.handle_event(event, mouse_pos)
@@ -303,7 +304,7 @@ class ChessGame:
                             self.game_state.player_turn = opponent_color
 
                             # 更新头像状态
-                            self.update_avatars()
+                            self.game_screen.update_avatars(self.game_state)
                         else:  # 取消
                             # 清除复活对话框
                             self.pawn_resurrection_dialog = None
@@ -453,7 +454,7 @@ class ChessGame:
 
                 # 如果是人机模式且轮到AI，执行当前已知最佳走法
                 if self.ai_manager.is_ai_turn(self.game_state.player_turn):
-                    self.make_random_ai_move()
+                    self.ai_manager.make_random_ai_move(self.game_state)
 
             # 更新按钮的悬停状态
             self.game_screen.update_button_states(mouse_pos)
@@ -495,47 +496,14 @@ class ChessGame:
 
     def make_random_ai_move(self):
         """当AI思考超时时，执行当前已知的最优移动"""
-        if not self.ai_manager.ai or self.game_mode != MODE_PVC:
-            return
-
-        # 使用AI管理器处理超时情况
-        best_move = self.ai_manager.handle_ai_timeout(self.game_state)
-
-        if best_move:
-            self.move_after(best_move)
-
-            # 检查游戏是否结束
-            if self.game_state.game_over:
-                winner_text = self.game_state.get_winner_text()
-
-                # 更新时间数据，确保获取最终值
-                red_time, black_time = self.game_state.update_times()
-                total_time = self.game_state.total_time
-
-                # 创建弹窗并传入时间信息
-                self.popup = PopupDialog(
-                    400, 320,  # 增加高度以适应更多内容
-                    winner_text,
-                    total_time,
-                    red_time,
-                    black_time
-                )
+        return self.ai_manager.make_random_ai_move(self.game_state)
 
     def move_after(self, best_move):
-        from_pos, to_pos = best_move
-        from_row, from_col = from_pos
-        to_row, to_col = to_pos
-        # 检查目标位置是否有棋子（吃子）
-        target_piece = self.game_state.get_piece_at(to_row, to_col)
-        # 执行移动
-        self.game_state.move_piece(from_row, from_col, to_row, to_col)
-        # 记录上一步走法
-        self.last_move = (from_row, from_col, to_row, to_col)
-        # 生成上一步走法的中文表示
-        piece = self.game_state.get_piece_at(to_row, to_col)
-        if piece:
-            self.last_move_notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
+        """执行AI移动后的处理"""
+        # 委托给AIManager处理
+        from_pos, to_pos = self.ai_manager.move_after(self.game_state, best_move)
         # 播放音效
+        target_piece = self.game_state.get_piece_at(to_pos[0], to_pos[1])
         if target_piece:
             self.sound_manager.play_sound('eat')
         else:
@@ -544,24 +512,20 @@ class ChessGame:
 
         sound_manager.check_and_play_game_sound(self.game_state)
         # 更新头像状态 - 只需更新一次
-        self.update_avatars()
-
-    def update_avatars(self):
-        """更新头像状态"""
         self.game_screen.update_avatars(self.game_state)
 
     def process_async_ai_result(self):
         """处理异步AI计算结果"""
         # 使用AI管理器处理异步结果
-        move = self.ai_manager.process_async_ai_result()
+        move, game_ended = self.ai_manager.process_async_ai_computation(self.game_state)
 
         if move:
-            self.move_after(move)
             # 检查游戏是否结束
-            if self.game_state.game_over:
+            if game_ended:
                 self.game_over_after()
 
     def game_over_after(self):
+        """处理游戏结束后的逻辑"""
         winner_text = self.game_state.get_winner_text()
         # 更新时间数据，确保获取最终值
         red_time, black_time = self.game_state.update_times()
