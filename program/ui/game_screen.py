@@ -576,11 +576,8 @@ class GameScreen:
             from_row, from_col, to_row, to_col = last_move
             self.board.highlight_last_move(screen, from_row, from_col, to_row, to_col)
 
-        # 检查是否需要显示将军动画
-        if game_state.should_show_check_animation():
-            king_pos = game_state.get_checked_king_position()
-            if king_pos:
-                self.board.draw_check_animation(screen, king_pos, game_state)
+        # 检查是否需要显示将军/绝杀提示
+        # 这里不应该直接绘制，而应该由游戏主循环调用管理器的绘制方法
 
         # 绘制游戏信息面板
         draw_info_panel(screen, game_state)

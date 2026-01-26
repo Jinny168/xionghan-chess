@@ -82,7 +82,8 @@ class CheckCheckmateTipManager:
         # 绘制"将军"/"绝杀"文字提示
         self._draw_tip_text(screen, x, y, is_checkmate, pulse, board.grid_size)
     
-    def _draw_pulse_effect(self, screen, x, y, current_size, alpha):
+    @staticmethod
+    def _draw_pulse_effect(screen, x, y, current_size, alpha):
         """绘制脉动效果的圆圈
         
         Args:
@@ -132,7 +133,8 @@ class CheckCheckmateTipManager:
         border_size_cached = border_surface.get_width() // 2
         screen.blit(border_surface, (x - border_size_cached, y - border_size_cached))
     
-    def _draw_tip_text(self, screen, x, y, is_checkmate, pulse, grid_size):
+    @staticmethod
+    def _draw_tip_text(screen, x, y, is_checkmate, pulse, grid_size):
         """绘制将军/绝杀文字提示
         
         Args:

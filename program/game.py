@@ -83,6 +83,10 @@ class ChessGame:
         # 启动背景音乐
         self.sound_manager.toggle_music_style()  # 设置为QQ风格，如果需要FC风格，可以再次调用toggle_music_style()
         
+        # 将军/绝杀提示管理器
+        from program.controllers.check_checkmate_tip_manager import CheckCheckmateTipManager
+        self.check_checkmate_tip_manager = CheckCheckmateTipManager()
+        
 
     def init_window(self):
         """初始化窗口"""
@@ -475,6 +479,8 @@ class ChessGame:
                 self.game_screen.draw(self.screen, self.game_state, self.last_move, self.last_move_notation, 
                                      self.popup, self.confirm_dialog, self.pawn_resurrection_dialog, 
                                      self.promotion_dialog, self.audio_settings_dialog)
+                # 绘制将军/绝杀提示
+                self.check_checkmate_tip_manager.draw_tip(self.screen, self.game_state, self.game_screen.board)
             
             # 如果有统计数据对话框，绘制它
             if self.stats_dialog:

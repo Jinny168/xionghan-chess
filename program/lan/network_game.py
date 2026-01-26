@@ -179,11 +179,7 @@ class NetworkGameScreen:
             from_row, from_col, to_row, to_col = last_move
             self.board.highlight_last_move(screen, from_row, from_col, to_row, to_col)
 
-        # 检查是否需要显示将军动画
-        if game_state.should_show_check_animation():
-            king_pos = game_state.get_checked_king_position()
-            if king_pos:
-                self.board.draw_check_animation(screen, king_pos, game_state)
+        # 将军/绝杀提示将在游戏主循环中绘制
 
         # 绘制游戏信息面板
         self.draw_info_panel(screen, game_state, last_move_notation)
@@ -1077,6 +1073,8 @@ class NetworkChessGame(ChessGame):
 
             # 绘制画面
             self.draw(mouse_pos)
+            # 绘制将军/绝杀提示
+            self.check_checkmate_tip_manager.draw_tip(self.screen, self.game_state, self.game_screen.board)
             pygame.display.flip()
             self.clock.tick(FPS)
     

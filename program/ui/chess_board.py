@@ -2,7 +2,6 @@ import math
 
 import pygame
 
-from program.core.game_rules import GameRules
 from program.utils.utils import load_font
 
 
@@ -16,6 +15,9 @@ class ChessBoard:
             margin_left (int): 左侧边距
             margin_top (int): 顶部边距
         """
+        self.label_font = None
+        self.label_font_size = None
+        self.chess_font = None
         self.window_width = window_width
         self.window_height = window_height
         self.margin_left = margin_left
@@ -259,119 +261,6 @@ class ChessBoard:
                 self.grid_size * 0.4,
                 3
             )
-            
-    def draw_check_animation(self, screen, king_position, game_state=None):
-        """绘制将军动画效果"""
-        if not king_position:
-            return
-            
-        row, col = king_position
-        x = self.margin_left + col * self.grid_size
-        y = self.margin_top + row * self.grid_size
-        
-        # 获取当前时间毫秒数，用于动画效果
-        ticks = pygame.time.get_ticks()
-        
-        # 创建脉动效果 - 使用正弦函数产生0到1之间的值 - 加快脉动速度
-        pulse = (math.sin(ticks * 0.015) + 1) * 0.5  # 0.0 到 1.0 之间变化，频率提高
-        
-        # 计算动态大小和透明度 - 增大基础大小和变化范围
-        base_size = self.grid_size * 1.0  # 增大基础大小
-        size_variation = self.grid_size * 0.3  # 增加大小变化范围
-        current_size = base_size + size_variation * pulse
-        
-        # 增强透明度对比 - 最小值提高，让整体更醒目
-        alpha = int(220 + 35 * pulse)  # 透明度在220-255之间变化，更不透明
-        
-        # 使用缓存的表面来提高性能
-        cache_key = (round(current_size * 10), alpha)  # 使用当前大小和透明度作为缓存键
-        if cache_key not in self.check_animation_surfaces:
-            # 创建多层脉动效果的表面
-            total_size = int(current_size * 1.1 * 2)
-            glow_surface = pygame.Surface((total_size, total_size), pygame.SRCALPHA)
-            
-            # 红色脉动圆圈 - 多层渐变效果，增强视觉冲击
-            for i in range(3):  # 创建3层效果
-                layer_size = current_size * (1 - i * 0.2)  # 每层递减尺寸
-                layer_alpha = alpha * (1 - i * 0.2)  # 每层递减透明度
-                
-                # 使用更鲜艳的红色
-                red_color = (255, 20 + i*20, 20, int(layer_alpha))
-                
-                # 绘制一个渐变的红色圆形
-                pygame.draw.circle(glow_surface, red_color, 
-                                 (total_size // 2, total_size // 2), 
-                                 int(layer_size))
-            
-            self.check_animation_surfaces[cache_key] = glow_surface
-        
-        # 绘制到屏幕上
-        cached_surface = self.check_animation_surfaces[cache_key]
-        surface_size = cached_surface.get_width()
-        screen.blit(cached_surface, (x - surface_size // 2, y - surface_size // 2))
-        
-        # 再绘制一个较亮的边框，增强视觉效果
-        border_cache_key = (round(current_size * 1.1 * 10), alpha)  # 使用当前大小和透明度作为缓存键
-        if border_cache_key not in self.check_animation_surfaces:
-            border_size = current_size * 1.1  # 边框略大于内圆
-            border_surface = pygame.Surface((int(border_size*2), int(border_size*2)), pygame.SRCALPHA)
-            border_color = (255, 100, 100, alpha)
-            # 只画边框
-            pygame.draw.circle(border_surface, border_color, 
-                             (int(border_size), int(border_size)), 
-                             int(border_size), 3)
-            
-            self.check_animation_surfaces[border_cache_key] = border_surface
-        
-        # 绘制到屏幕上
-        cached_border = self.check_animation_surfaces[border_cache_key]
-        border_size_cached = cached_border.get_width() // 2
-        screen.blit(cached_border, (x - border_size_cached, y - border_size_cached))
-        
-        # 绘制"将军"/"绝杀"文字提示 - 使其更显眼
-        font = load_font(40, bold=True)
-        # 闪烁的文字颜色
-        text_alpha = int(200 + 55 * pulse)  # 文字透明度也随脉动变化
-        text_color = (255, 50, 50, text_alpha)  
-        # 根据游戏状态决定显示"绝杀"还是"将军"
-        # 根据项目规范，当判定为绝杀时，界面提示文字应显示为"绝杀"，而非"将军"
-        is_checkmate = game_state and game_state.is_checkmate() if game_state else False
-        text = "绝杀!" if is_checkmate else "将军!"
-        rendered_text = font.render(text, True, (255, 50, 50))
-        
-        # 文字位置 - 在棋子上方，稍稍上移
-        text_pos = (x, y - self.grid_size * 1.5)  # 进一步上移文字
-        text_rect = rendered_text.get_rect(center=text_pos)
-        
-        # 增大背景框，使文字更突出
-        padding = 15  # 增大内边距
-        bg_rect = pygame.Rect(
-            text_rect.left - padding, 
-            text_rect.top - padding,
-            text_rect.width + padding * 2,
-            text_rect.height + padding * 2
-        )
-        
-        # 加入闪烁效果背景
-        bg_alpha = int(150 + 50 * pulse)  # 背景透明度
-        bg_surface = pygame.Surface((bg_rect.width, bg_rect.height), pygame.SRCALPHA)
-        bg_surface.fill((0, 0, 0, bg_alpha))  # 更深的半透明黑色背景
-        screen.blit(bg_surface, (bg_rect.left, bg_rect.top))
-        
-        # 绘制文字边框，使文字更突出
-        outline_rect = pygame.Rect(
-            text_rect.left - 2, 
-            text_rect.top - 2,
-            text_rect.width + 4,
-            text_rect.height + 4
-        )
-        outline_surface = pygame.Surface((outline_rect.width, outline_rect.height), pygame.SRCALPHA)
-        pygame.draw.rect(outline_surface, (255, 255, 255, 150), 
-                       (0, 0, outline_rect.width, outline_rect.height), 2)
-        screen.blit(outline_surface, (outline_rect.left, outline_rect.top))
-        
-        # 绘制文字
-        screen.blit(rendered_text, text_rect)
     
     def draw_piece(self, screen, piece):
         """绘制美化后的棋子，使用白玉渐变效果"""
@@ -425,7 +314,7 @@ class ChessBoard:
             piece_surface = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
             
             # 创建白玉渐变效果 - 从外到内
-            gradient_steps = 15  # 更细腻的渐变步数
+            gradient_steps = 15  # 更细腻渐变
             for i in range(gradient_steps, 0, -1):
                 current_radius = int(radius * (i / gradient_steps))
                 # 计算当前渐变颜色
@@ -486,7 +375,6 @@ class ChessBoard:
     def draw_position_mark(self, screen, x, y):
         """绘制位置标记（兵、炮位置）"""
         # 标记大小参数
-        mark_size = int(self.grid_size * 0.15)
         offset = int(self.grid_size * 0.15)
         line_length = int(self.grid_size * 0.25)
         
