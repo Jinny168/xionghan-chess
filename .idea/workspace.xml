@@ -4,30 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="about_screen也支持分页显示和翻页功能">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/assets/docs/hungarian_chinese_chess_rules.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/ai_settings.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/general_drawers.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/statistics.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/statistics.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/statistics_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/taunts.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/taunts.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/taunts_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/taunts_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/core/game_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_state.py" afterDir="false" />
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="整理文件结构">
+      <change beforePath="$PROJECT_DIR$/program/build_exe.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/build_exe.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/controllers/ai_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/ai_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/controllers/check_checkmate_tip_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/check_checkmate_tip_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/controllers/game_io_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/game_io_controller.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_statistics.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/test_statistics.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_taunts.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/test_taunts.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/about.md" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/about.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/about_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/about_screen.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/lan/network_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/lan/network_game.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/ui/camp_selection_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/camp_selection_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/dialogs.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/dialogs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/game_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/game_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/help.md" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/help.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/rule_screen.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/rules_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/rules_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/settings_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/settings_screen.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/mode_selection_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/mode_selection_screen.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/network_mode_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/network_mode_screen.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/utils/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -382,15 +370,7 @@
       <workItem from="1769424181105" duration="2385000" />
       <workItem from="1769431064330" duration="6040000" />
       <workItem from="1769517575047" duration="3069000" />
-      <workItem from="1769520680058" duration="3241000" />
-    </task>
-    <task id="LOCAL-00062" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768660325748</created>
-      <option name="number" value="00062" />
-      <option name="presentableId" value="LOCAL-00062" />
-      <option name="project" value="LOCAL" />
-      <updated>1768660325748</updated>
+      <workItem from="1769520680058" duration="3820000" />
     </task>
     <task id="LOCAL-00063" summary="最新更新">
       <option name="closed" value="true" />
@@ -776,7 +756,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769522464415</updated>
     </task>
-    <option name="localTasksCounter" value="111" />
+    <task id="LOCAL-00111" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769524028337</created>
+      <option name="number" value="00111" />
+      <option name="presentableId" value="LOCAL-00111" />
+      <option name="project" value="LOCAL" />
+      <updated>1769524028337</updated>
+    </task>
+    <option name="localTasksCounter" value="112" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -820,7 +808,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="确保了MCTS算法能够正确地与游戏本体进行交互" />
     <MESSAGE value="统一棋子红方将帅命名为繁体的漢，刺标识为不同的字，即伺/刺，盾标识为不同的字，即楯/碷。" />
     <MESSAGE value="修复了game.py中的小error" />
     <MESSAGE value="修复了settings中的小error" />
@@ -845,7 +832,8 @@
     <MESSAGE value="优化converter" />
     <MESSAGE value="拆分screen" />
     <MESSAGE value="about_screen也支持分页显示和翻页功能" />
-    <option name="LAST_COMMIT_MESSAGE" value="about_screen也支持分页显示和翻页功能" />
+    <MESSAGE value="整理文件结构" />
+    <option name="LAST_COMMIT_MESSAGE" value="整理文件结构" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -997,6 +985,11 @@
           <url>file://$PROJECT_DIR$/program/ui/about_screen.py</url>
           <line>48</line>
           <option name="timeStamp" value="98" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/utils/tools.py</url>
+          <line>132</line>
+          <option name="timeStamp" value="100" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

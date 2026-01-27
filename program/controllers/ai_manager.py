@@ -91,12 +91,9 @@ class AIManager:
         if self.ai:
             self.ai.get_move_async(game_state)
     
-    def process_async_ai_result(self, game_state):
+    def process_async_ai_result(self):
         """处理异步AI计算结果
-        
-        Args:
-            game_state: 当前游戏状态
-            
+
         Returns:
             tuple: AI计算的移动，如果没有则返回None
         """
@@ -189,7 +186,8 @@ class AIManager:
 
         return False  # 表示游戏未结束
     
-    def move_after(self, game_state, best_move):
+    @staticmethod
+    def move_after(game_state, best_move):
         """执行AI移动后的处理
         
         Args:
@@ -202,8 +200,6 @@ class AIManager:
         from_pos, to_pos = best_move
         from_row, from_col = from_pos
         to_row, to_col = to_pos
-        # 检查目标位置是否有棋子（吃子）
-        target_piece = game_state.get_piece_at(to_row, to_col)
         # 执行移动
         game_state.move_piece(from_row, from_col, to_row, to_col)
         # 记录上一步走法
@@ -228,7 +224,7 @@ class AIManager:
             tuple: (move, game_ended) AI移动和游戏是否结束的元组
         """
         # 获取AI计算好的最佳走法
-        move = self.process_async_ai_result(game_state)
+        move = self.process_async_ai_result()
 
         if move:
             self.move_after(game_state, move)

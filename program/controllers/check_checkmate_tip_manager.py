@@ -151,7 +151,6 @@ class CheckCheckmateTipManager:
         text = "绝杀!" if is_checkmate else "将军!"
         
         # 闪烁的文字颜色
-        text_alpha = int(200 + 55 * pulse)  # 文字透明度也随脉动变化
         rendered_text = font.render(text, True, (255, 50, 50))
         
         # 文字位置 - 在棋子上方，稍稍上移

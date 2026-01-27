@@ -149,7 +149,7 @@ class NetworkModeScreen:
         """切换全屏模式"""
         # 使用通用的全屏切换函数
         self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
-            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
+            tools.toggle_fullscreen(self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
         
         # 更新布局
         self.update_layout()

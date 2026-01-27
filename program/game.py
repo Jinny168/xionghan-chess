@@ -134,7 +134,7 @@ class ChessGame:
             # 绝杀时播放更明显的音效
             try:
                 self.sound_manager.play_sound('defeat')  # 播放失败音效
-            except:
+            except (AttributeError, Exception):
                 # 如果没有特定音效，播放警告音效
                 self.sound_manager.play_sound('warn')
         elif self.game_state.is_check:
@@ -207,7 +207,7 @@ class ChessGame:
         """切换全屏模式"""
         # 使用通用的全屏切换函数
         self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
-            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
+            tools.toggle_fullscreen(self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
 
         # 更新界面布局
         self.game_screen.update_layout()

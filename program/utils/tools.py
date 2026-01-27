@@ -130,12 +130,11 @@ def draw_category(screen, category_background_color, category_border_color, cate
         item_y += 60
 
     return category_height
-def toggle_fullscreen(screen, window_width, window_height, is_fullscreen, windowed_size=None):
+def toggle_fullscreen(window_width, window_height, is_fullscreen, windowed_size=None):
     """
     切换全屏模式的通用函数
     
     Args:
-        screen: pygame屏幕对象
         window_width: 当前窗口宽度
         window_height: 当前窗口高度
         is_fullscreen: 是否为全屏模式

@@ -3,8 +3,6 @@
 PyInstaller打包脚本 - 匈汉象棋游戏
 用于将Python游戏打包成exe可执行文件
 """
-import os
-import sys
 from pathlib import Path
 
 def collect_resource_files(project_root=".", resource_dir="", extensions=None):
@@ -403,7 +401,7 @@ def main():
 
         print("打包完成！生成的exe文件位于 dist/XionghanChessGame 文件夹中")
     except Exception as e:
-        print(f"打包过程中出现错误: {{e}}")
+        print(f"打包过程中出现错误: {e}")
         import traceback
         traceback.print_exc()
 
