@@ -3,7 +3,7 @@ import threading
 import pygame
 
 from program.ai.base_ai import BaseAI
-from program.ai.game_state_converter import GameStateConverter
+from program.ai.mcts_adapter import MCTSAdapter, convert_mcts_move_to_game_format
 
 from program.utils import tools
 
@@ -16,6 +16,10 @@ try:
     MCTS_AVAILABLE = True
 except ImportError:
     MCTS_AVAILABLE = False
+    MCTSPlayer = None  # 确保 MCTSPlayer 在 except 块中已定义
+    PolicyValueNet = None  # 确保其他 MCTS 相关类也已定义
+    MCTS_CONFIG = None
+    Board = None
     print("Warning: MCTS modules not available. Only traditional algorithms will be supported.")
 
 
@@ -64,7 +68,7 @@ class MCTSAI(BaseAI):
         )
 
         # 游戏状态转换器
-        self.game_converter = GameStateConverter()
+        self.game_adapter = MCTSAdapter()
 
     def get_move_async(self, game_state):
         """异步获取AI的最佳走法，启动多线程计算
@@ -122,7 +126,7 @@ class MCTSAI(BaseAI):
             tuple: ((from_row, from_col), (to_row, to_col)) 表示移动的起点和终点
         """
         # 将游戏状态转换为MCTS所需的格式
-        mcts_board = self.game_converter.convert_to_mcts_board(game_state)
+        mcts_board = self.game_adapter.convert_to_mcts_board(game_state)
 
         # 使用MCTS获取动作
         move = self.mcts_player.get_action(mcts_board, temp=1e-3)
