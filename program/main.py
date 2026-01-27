@@ -142,6 +142,12 @@ def main():
         if game_mode == MODE_PVC:
             camp_screen = CampSelectionScreen()
             player_camp = camp_screen.run()
+            
+            # 如果阵营选择界面返回None（表示用户点击了返回按钮），则返回到模式选择界面
+            if player_camp is None:
+                mode_screen = ModeSelectionScreen()
+                game_mode = mode_screen.run()
+                continue
 
         # 根据选择的模式和阵营创建游戏，传递设置
         game = ChessGame(game_mode, player_camp,

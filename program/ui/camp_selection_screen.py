@@ -17,6 +17,9 @@ class CampSelectionScreen:
 
     def __init__(self):
         # 初始化窗口尺寸和模式
+        self.black_button = None
+        self.red_button = None
+        self.back_button = None
         self.window_width = DEFAULT_WINDOW_WIDTH
         self.window_height = DEFAULT_WINDOW_HEIGHT
         self.is_fullscreen = False
@@ -121,6 +124,7 @@ class CampSelectionScreen:
                         self.sound_manager.play_sound('button')  # 播放按钮音效
                         self.selected_camp = CAMP_BLACK
                     elif self.back_button.is_clicked(mouse_pos, event):
+                        print("[DEBUG] 返回模式选择界面")
                         self.sound_manager.play_sound('button')  # 播放按钮音效
                         # 返回到上一级界面（模式选择界面）
                         return None  # 返回None表示返回上级界面
