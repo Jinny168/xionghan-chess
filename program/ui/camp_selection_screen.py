@@ -35,8 +35,8 @@ class CampSelectionScreen:
 
         # 添加AI难度选择滚动框
         self.ai_difficulty_options = [
-            {"name": "菜鸟", "algorithm": "negamax", "desc": "Negamax搜索算法"},
-            {"name": "入门", "algorithm": "minimax", "desc": "Minimax搜索算法"},
+            {"name": "菜鸟", "algorithm": "minimax", "desc": "Minimax搜索算法"},
+            {"name": "入门", "algorithm": "negamax", "desc": "Negamax搜索算法"},
             {"name": "专家", "algorithm": "alpha-beta", "desc": "Alpha-Beta剪枝算法"},
             {"name": "大师", "algorithm": "mcts", "desc": "MCTS+神经网络算法"}
         ]
@@ -74,7 +74,8 @@ class CampSelectionScreen:
         camp_font = load_font(32, bold=True)
         camp_text = camp_font.render(current_camp, True, GOLD)
         camp_text_x = center_x - camp_text.get_width() // 2
-        camp_arrow_y = center_y - 80  # 阵营选择箭头Y位置
+        camp_text_y = 250  # 文字绘制的Y位置
+        camp_arrow_y = camp_text_y + (camp_text.get_height() // 2) - (arrow_button_height // 2)  # 箭头按钮Y位置，垂直居中文本
         
         # 左箭头在文本左边，右箭头在文本右边
         left_arrow_x = camp_text_x - arrow_button_width - 10  # 在文本左侧留出10像素间距
@@ -105,7 +106,8 @@ class CampSelectionScreen:
         ai_name_font = load_font(32, bold=True)
         ai_name_text = ai_name_font.render(current_ai["name"], True, GOLD)
         ai_text_x = center_x - ai_name_text.get_width() // 2
-        ai_arrow_y = center_y + 20  # AI难度选择箭头Y位置
+        ai_text_y = 390  # 文字绘制的Y位置
+        ai_arrow_y = ai_text_y + (ai_name_text.get_height() // 2) - (arrow_button_height // 2)  # 箭头按钮Y位置，垂直居中文本
         
         # 左箭头在文本左边，右箭头在文本右边
         ai_left_arrow_x = ai_text_x - arrow_button_width - 10  # 在文本左侧留出10像素间距
@@ -283,7 +285,8 @@ class CampSelectionScreen:
         current_camp = self.camp_options[self.current_camp_index]
         camp_font = load_font(32, bold=True)
         camp_text = camp_font.render(current_camp, True, GOLD)
-        self.screen.blit(camp_text, (self.window_width // 2 - camp_text.get_width() // 2, 250))
+        camp_text_x = self.window_width // 2 - camp_text.get_width() // 2
+        self.screen.blit(camp_text, (camp_text_x, 250))
 
         # 绘制阵营选择箭头按钮
         self.left_arrow_button.draw(self.screen)
@@ -298,7 +301,8 @@ class CampSelectionScreen:
         current_ai = self.ai_difficulty_options[self.current_ai_index]
         ai_name_font = load_font(32, bold=True)
         ai_name_text = ai_name_font.render(current_ai["name"], True, GOLD)
-        self.screen.blit(ai_name_text, (self.window_width // 2 - ai_name_text.get_width() // 2, 390))
+        ai_text_x = self.window_width // 2 - ai_name_text.get_width() // 2
+        self.screen.blit(ai_name_text, (ai_text_x, 390))
 
         # 绘制AI算法说明
         ai_desc_font = load_font(18)

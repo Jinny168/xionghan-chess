@@ -685,11 +685,19 @@ class GameScreen:
 
     def draw_thinking_indicator(self, screen, game_state):
         """绘制AI思考时的指示器，减少闪烁"""
-        # 绘制完整的界面背景
-        self._draw_background_and_side_panel(screen)
-
-        # 绘制棋盘和棋子（使用稳定的游戏状态）
-        self.board.draw(screen, game_state.pieces, game_state)
+        # 完整绘制界面，包括所有组件
+        self.draw(screen, game_state)
+        
+        # 在界面中央叠加显示AI思考提示
+        overlay = pygame.Surface((self.window_width, self.window_height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 128))  # 半透明黑色遮罩
+        screen.blit(overlay, (0, 0))
+        
+        # 显示AI正在思考的文字
+        thinking_font = load_font(36, bold=True)
+        thinking_text = thinking_font.render("AI 思考中...", True, (255, 255, 255))
+        text_rect = thinking_text.get_rect(center=(self.window_width // 2, self.window_height // 2))
+        screen.blit(thinking_text, text_rect)
 
     def draw_timers(self, screen, game_state):
         """绘制计时器信息"""

@@ -6,60 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="整理文件结构">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/CHECKMATE_FIX_SUMMARY.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/FIX_SUMMARY.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/network_game/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/client_only.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/network_game/client_only.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/comprehensive_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/config/statistics.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/debug_checkmate.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/debug_checkmate_detailed.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/debug_isolated.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/debug_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/debug_truly_isolated.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/demo_pawn_enhancement.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/demo_she_lei_pinch.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/demo_wei_enhancement.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/dun_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/final_debug_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/final_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/final_validation_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/final_verification.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/integration_test_game_io.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/network_debug.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/network_test_instructions.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/server_only.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/network_game/server_only.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/simple_debug_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/simple_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/temp_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/temp_test_directions.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/temp_test_lei.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_ai_integration.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_check_fix.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_checkmate_fix.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_checkmate_fix_corrected.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_comprehensive_she_pinch.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_fix.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_fix_verification.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_game_io_controller.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_gameplay_export_import.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_general_fix.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_lei_weakness.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_local_network.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/network_game/test_local_network.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_network_sync.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_pawn_attack_range.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_real_checkmate.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_replay_controller.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_replay_flow.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_replay_screen.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_rules_viewer.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_she_pinch_block.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_statistics.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_taunts.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_wei_enhancement.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/test_wei_possible_moves.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/verify_fix.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test/verify_logic.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/assets/docs/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/statistics.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/camp_selection_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/camp_selection_screen.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/game_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/game_screen.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -179,7 +128,7 @@
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\assets" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.test_local_network (1)">
+  <component name="RunManager" selected="Python.main">
     <configuration name="build_exe" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="xionghan-chess" />
       <option name="ENV_FILES" value="" />
@@ -366,8 +315,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.test_local_network (1)" />
         <item itemvalue="Python.main" />
+        <item itemvalue="Python.test_local_network (1)" />
         <item itemvalue="Python.build_exe" />
         <item itemvalue="Python.convert_md_to_pdf" />
       </list>
@@ -438,15 +387,7 @@
       <workItem from="1769424181105" duration="2385000" />
       <workItem from="1769431064330" duration="6040000" />
       <workItem from="1769517575047" duration="3069000" />
-      <workItem from="1769520680058" duration="6010000" />
-    </task>
-    <task id="LOCAL-00067" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1769087623451</created>
-      <option name="number" value="00067" />
-      <option name="presentableId" value="LOCAL-00067" />
-      <option name="project" value="LOCAL" />
-      <updated>1769087623451</updated>
+      <workItem from="1769520680058" duration="6735000" />
     </task>
     <task id="LOCAL-00068" summary="最新更新">
       <option name="closed" value="true" />
@@ -832,7 +773,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769526080392</updated>
     </task>
-    <option name="localTasksCounter" value="116" />
+    <task id="LOCAL-00116" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769526760835</created>
+      <option name="number" value="00116" />
+      <option name="presentableId" value="LOCAL-00116" />
+      <option name="project" value="LOCAL" />
+      <updated>1769526760835</updated>
+    </task>
+    <option name="localTasksCounter" value="117" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1079,7 +1028,7 @@
     <SUITE FILE_PATH="coverage/xionghan_chess$dun_test.coverage" NAME="dun_test 覆盖结果" MODIFIED="1767952707887" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$game_logic.coverage" NAME="game_logic 覆盖结果" MODIFIED="1766850974112" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$gen.coverage" NAME="gen 覆盖结果" MODIFIED="1768033508731" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1769523945592" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1769527341529" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_py.coverage" NAME="test_py 覆盖结果" MODIFIED="1768096345997" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$sound_manager.coverage" NAME="sound_manager 覆盖结果" MODIFIED="1768035454859" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
     <SUITE FILE_PATH="coverage/xionghan_chess$view_training_data.coverage" NAME="view_training_data 覆盖结果" MODIFIED="1768100204598" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />

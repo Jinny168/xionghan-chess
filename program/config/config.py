@@ -67,20 +67,20 @@ class GameConfig:
         # 初始化默认设置
         self.settings = {
             # 汉/汗设置
-            "king_can_leave_palace": False,  # 汉/汗是否可以出九宫
-            "king_lose_diagonal_outside_palace": False,  # 汉/汗出九宫后是否失去斜走能力
-            "king_can_diagonal_in_palace": False,  # 汉/汗在九宫内是否可以斜走
+            "king_can_leave_palace": True,  # 汉/汗是否可以出九宫
+            "king_lose_diagonal_outside_palace": True,  # 汉/汗出九宫后是否失去斜走能力
+            "king_can_diagonal_in_palace": True,  # 汉/汗在九宫内是否可以斜走
             
             # 士设置
-            "shi_can_leave_palace": False,  # 士是否可以出九宫
-            "shi_gain_straight_outside_palace": False,  # 士出九宫后是否获得直走能力
+            "shi_can_leave_palace": True,  # 士是否可以出九宫
+            "shi_gain_straight_outside_palace": True,  # 士出九宫后是否获得直走能力
             
             # 相设置
-            "xiang_can_cross_river": False,  # 相是否可以过河
-            "xiang_gain_jump_two_outside_river": False,  # 相过河后是否获得隔两格吃子能力
+            "xiang_can_cross_river": True,  # 相是否可以过河
+            "xiang_gain_jump_two_outside_river": True,  # 相过河后是否获得隔两格吃子能力
             
             # 马设置
-            "ma_can_straight_three": False,  # 马是否可以获得直走三格的能力
+            "ma_can_straight_three": True,  # 马是否可以获得直走三格的能力
             
             # 棋子登场设置
             "ju_appear": True,      # 車/车登场
@@ -90,10 +90,10 @@ class GameConfig:
             "king_appear": True,    # 将/帅/汉/汗登场
             "pao_appear": True,     # 炮/砲登场
             "pawn_appear": True,    # 兵/卒登场
-            "pawn_resurrection_enabled": False,  # 兵/卒复活机制启用
-            "pawn_promotion_enabled": False,     # 兵/卒升变机制启用
-            "pawn_backward_at_base_enabled": False,  # 兵/卒底线后退能力
-            "pawn_full_movement_at_base_enabled": False,  # 兵/卒底线完整移动能力
+            "pawn_resurrection_enabled": True,  # 兵/卒复活机制启用
+            "pawn_promotion_enabled": True,     # 兵/卒升变机制启用
+            "pawn_backward_at_base_enabled": True,  # 兵/卒底线后退能力
+            "pawn_full_movement_at_base_enabled": True,  # 兵/卒底线完整移动能力
             "wei_appear": True,     # 尉/衛登场
             "she_appear": True,     # 射/䠶登场
             "lei_appear": True,     # 檑/礌登场
@@ -102,7 +102,7 @@ class GameConfig:
             "dun_appear": True,     # 盾登场
             "xun_appear": True,     # 巡/廵登场
             # 游戏模式设置
-            "classic_mode": True,  # 经典模式
+            "classic_mode": False,  # 经典模式
             # AI设置
             "ai_algorithm": "negamax",  # AI算法类型: negamax, minimax, alpha-beta
         }
