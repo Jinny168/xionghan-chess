@@ -142,7 +142,7 @@ class GameIOController:
             
             # 保存到文件
             with open(filename, 'w', encoding='utf-8') as f:
-                json.dump(game_data, f, ensure_ascii=False, indent=2)
+                json.dump(game_data, f, ensure_ascii=False, indent=2)  # type: ignore
             
             print(f"游戏已保存到: {filename}")
             return True

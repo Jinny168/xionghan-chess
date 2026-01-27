@@ -171,19 +171,19 @@ class InputHandler:
                 if game_instance.selected_piece and not captured_piece:
                     try:
                         sound_manager.play_sound('choose')  # 使用chess-master的选子音效
-                    except:
+                    except (pygame.error, KeyError, FileNotFoundError):
                         pass
                 
                 # 播放移动音效
                 if captured_piece:
                     try:
                         sound_manager.play_sound('eat')  # 使用chess-master的吃子音效
-                    except:
+                    except (pygame.error, KeyError, FileNotFoundError):
                         pass
                 else:
                     try:
                         sound_manager.play_sound('drop')  # 使用chess-master的落子音效
-                    except:
+                    except (pygame.error, KeyError, FileNotFoundError):
                         pass
 
                 # 更新头像状态

@@ -195,7 +195,7 @@ class SoundManager:
             # 绝杀时播放更明显的音效
             try:
                 self.play_sound('defeat')  # 播放失败音效
-            except:
+            except (pygame.error, AttributeError, Exception):
                 # 如果没有特定音效，播放警告音效
                 self.play_sound('warn')
         elif hasattr(game_state, 'is_check') and game_state.is_check:

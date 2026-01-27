@@ -5,17 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="整理文件结构">
-      <change beforePath="$PROJECT_DIR$/program/build_exe.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/build_exe.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/ai_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/ai_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/check_checkmate_tip_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/check_checkmate_tip_manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/controllers/game_io_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/game_io_controller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/controllers/input_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/input_handler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/controllers/replay_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/replay_controller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/controllers/sound_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/sound_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/controllers/statistics_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/statistics_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/core/game_rules.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_rules.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/lan/network_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/lan/network_game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/camp_selection_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/camp_selection_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/mode_selection_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/mode_selection_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/network_mode_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/network_mode_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/utils/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -370,15 +366,7 @@
       <workItem from="1769424181105" duration="2385000" />
       <workItem from="1769431064330" duration="6040000" />
       <workItem from="1769517575047" duration="3069000" />
-      <workItem from="1769520680058" duration="3820000" />
-    </task>
-    <task id="LOCAL-00063" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768661625340</created>
-      <option name="number" value="00063" />
-      <option name="presentableId" value="LOCAL-00063" />
-      <option name="project" value="LOCAL" />
-      <updated>1768661625341</updated>
+      <workItem from="1769520680058" duration="4458000" />
     </task>
     <task id="LOCAL-00064" summary="最新更新">
       <option name="closed" value="true" />
@@ -764,7 +752,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769524028337</updated>
     </task>
-    <option name="localTasksCounter" value="112" />
+    <task id="LOCAL-00112" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769524542330</created>
+      <option name="number" value="00112" />
+      <option name="presentableId" value="LOCAL-00112" />
+      <option name="project" value="LOCAL" />
+      <updated>1769524542330</updated>
+    </task>
+    <option name="localTasksCounter" value="113" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

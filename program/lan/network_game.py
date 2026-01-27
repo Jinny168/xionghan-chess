@@ -640,21 +640,8 @@ class NetworkChessGame(ChessGame):
         if self.game_state.game_over:
             return
         
-        # 播放音效
-        # 优先处理绝杀情况，因为绝杀时is_check和is_checkmate都为True
-        if self.game_state.is_checkmate():
-            print("[DEBUG] 网络对战模式检测到绝杀，播放绝杀音效")
-            try:
-                self.sound_manager.play_sound('defeat')  # 播放失败音效
-            except:
-                # 如果没有特定音效，播放警告音效
-                self.sound_manager.play_sound('warn')
-        elif self.game_state.is_check:
-            try:
-                self.sound_manager.play_sound('warn')
-                self.sound_manager.play_sound('capture')
-            except:
-                pass
+        # 使用SoundManager中的通用方法播放将军/绝杀音效
+        self.sound_manager.check_and_play_game_sound(self.game_state)
 
     def send_network_move(self, from_row, from_col, to_row, to_col):
         """发送移动到网络对手"""

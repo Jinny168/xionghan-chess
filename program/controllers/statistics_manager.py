@@ -30,7 +30,8 @@ class StatisticsManager:
             # 文件不存在，创建默认数据
             return self._get_default_statistics()
     
-    def _get_default_statistics(self) -> Dict[str, Any]:
+    @staticmethod
+    def _get_default_statistics() -> Dict[str, Any]:
         """获取默认统计数据结构"""
         return {
             "games_played": 0,           # 总游戏数
@@ -91,7 +92,7 @@ class StatisticsManager:
         """保存统计数据到文件"""
         try:
             with open(self.statistics_file, 'w', encoding='utf-8') as file:
-                json.dump(self.data, file, ensure_ascii=False, indent=4)
+                json.dump(self.data, file, ensure_ascii=False, indent=4)  # type: ignore
         except Exception as e:
             print(f"保存统计数据失败: {e}")
 
@@ -110,7 +111,7 @@ class StatisticsManager:
         if winner in ["red", "black"]:
             self.data["games_won"][winner] += 1
             # 更新最快胜利记录
-            if game_duration > 0 and game_duration < self.data["fastest_win"][winner]:
+            if 0 < game_duration < self.data["fastest_win"][winner]:
                 self.data["fastest_win"][winner] = game_duration
             # 更新连胜记录
             self.data["win_streak"]["current_streak"][winner] += 1
