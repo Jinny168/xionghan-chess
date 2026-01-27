@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, Any
 
 # 统计数据文件路径
-STATISTICS_FILE = "./config/statistics.json"
+STATISTICS_FILE = "./assets/docs/statistics.json"
 
 
 class StatisticsManager:

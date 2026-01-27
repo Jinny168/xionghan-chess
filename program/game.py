@@ -368,7 +368,7 @@ class ChessGame:
                         self.stats_dialog = None
                     elif result == "reset":
                         # 重置统计数据
-                        from program.config.statistics import statistics_manager
+                        from program.controllers.statistics_manager import statistics_manager
                         statistics_manager.reset_statistics()
                         # 重新创建对话框以更新显示
                         self.stats_dialog = StatisticsDialog()

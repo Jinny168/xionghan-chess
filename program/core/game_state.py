@@ -2,7 +2,7 @@ import time
 
 import program.utils.tools as tools
 from program.config.config import game_config
-from program.config.statistics import statistics_manager
+from program.controllers.statistics_manager import statistics_manager
 from program.controllers.step_counter import step_counter
 from program.core.chess_pieces import create_initial_pieces, King, Jia, Ci, Dun, Pawn
 from program.core.game_rules import GameRules

@@ -46,7 +46,8 @@ class AboutScreen:
         """解析about.md文件，按章节分割成页面"""
         try:
             import os
-            about_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "about.md")
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            about_path  = os.path.join(base_dir, "assets/docs", "about.md")
             with open(about_path, "r", encoding="utf-8") as f:
                 content = f.read()
         except Exception as e:

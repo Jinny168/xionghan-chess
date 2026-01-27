@@ -1,6 +1,6 @@
 """测试匈汉象棋统计数据功能"""
 
-from program.config.statistics import statistics_manager
+from program.controllers.statistics_manager import statistics_manager
 
 def test_statistics():
     print("测试匈汉象棋统计数据功能...")

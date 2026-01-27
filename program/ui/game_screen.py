@@ -5,7 +5,7 @@ from program.config.config import (
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO,
     PANEL_BORDER, BLACK, RED
 )
-from program.config.taunts_manager import taunt_manager
+from program.controllers.taunts_manager import taunt_manager
 from program.ui.avatar import Avatar
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
@@ -377,6 +377,9 @@ class GameScreen:
         self.left_panel_surface_cache = None
         self.left_panel_overlay_cache = None
         
+        # 存储AI难度和算法信息
+        self.ai_difficulty_info = None
+        
         # 初始化所有UI组件
         self.init_ui_components()
         
@@ -390,6 +393,10 @@ class GameScreen:
         # 初始化嘲讽动画
         self.init_taunt_animation()
         
+    def set_ai_info(self, ai_difficulty_info):
+        """设置AI难度和算法信息"""
+        self.ai_difficulty_info = ai_difficulty_info
+
     def init_menus(self):
         """初始化菜单系统"""
         # 选项菜单 - 放在左上角，避开左侧面板
@@ -619,6 +626,23 @@ class GameScreen:
             screen.blit(mode_surface, (
                 self.left_panel_width + (self.window_width - self.left_panel_width) // 2 - mode_surface.get_width() // 2,
                 15))
+                
+            # 显示AI难度和算法信息
+            if self.ai_difficulty_info:
+                ai_info_font = load_font(16)
+                ai_difficulty_text = f"AI难度: {self.ai_difficulty_info['name']}"
+                ai_algorithm_text = f"AI算法: {self.ai_difficulty_info['algorithm']}"
+                
+                ai_difficulty_surface = ai_info_font.render(ai_difficulty_text, True, BLACK)
+                ai_algorithm_surface = ai_info_font.render(ai_algorithm_text, True, BLACK)
+                
+                # 显示在模式提示下方
+                screen.blit(ai_difficulty_surface, (
+                    self.left_panel_width + (self.window_width - self.left_panel_width) // 2 - ai_difficulty_surface.get_width() // 2,
+                    45))
+                screen.blit(ai_algorithm_surface, (
+                    self.left_panel_width + (self.window_width - self.left_panel_width) // 2 - ai_algorithm_surface.get_width() // 2,
+                    70))
 
         # 绘制 captured pieces（阵亡棋子）
         self.draw_captured_pieces(screen, game_state)

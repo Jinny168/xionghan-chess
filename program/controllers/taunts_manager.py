@@ -16,7 +16,7 @@ class TauntManager:
         if taunts_file_path is None:
             # 默认使用 config 目录下的 taunts.json
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            taunts_file_path = os.path.join(base_dir, "config", "taunts.json")
+            taunts_file_path = os.path.join(base_dir, "assets/docs", "taunts.json")
         
         self.taunts_file_path = taunts_file_path
         self.taunts = self.load_taunts()

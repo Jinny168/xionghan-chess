@@ -40,7 +40,8 @@ class RulesScreen:
         """解析help.md文件，按章节分割成页面"""
         # 使用绝对路径从当前文件所在的目录开始查找
         import os
-        help_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "help.md")
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        help_file_path =  os.path.join(base_dir, "assets/docs", "help.md")
         try:
             with open(help_file_path, "r", encoding="utf-8") as f:
                 content = f.read()

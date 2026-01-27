@@ -1,7 +1,7 @@
 import pygame
 
 from program.utils.utils import load_font
-from program.config.general_drawers import draw_category
+from program.utils.tools import draw_category
 from program.ui.scrollbar import ScrollBar
 from program.ui.button import Button
 from program.config.config import game_config, BACKGROUND_COLOR, RED, BLACK

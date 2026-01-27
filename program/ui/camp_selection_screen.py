@@ -29,36 +29,106 @@ class CampSelectionScreen:
         # 使用全局声音管理器
         self.sound_manager = sound_manager
 
+        # 添加阵营选择滚动框
+        self.camp_options = ["执红先行", "执黑后行"]
+        self.current_camp_index = 0  # 默认选择执红先行
+
+        # 添加AI难度选择滚动框
+        self.ai_difficulty_options = [
+            {"name": "菜鸟", "algorithm": "negamax", "desc": "Negamax搜索算法"},
+            {"name": "入门", "algorithm": "minimax", "desc": "Minimax搜索算法"},
+            {"name": "专家", "algorithm": "alpha-beta", "desc": "Alpha-Beta剪枝算法"},
+            {"name": "大师", "algorithm": "mcts", "desc": "MCTS+神经网络算法"}
+        ]
+        self.current_ai_index = 0  # 默认选择菜鸟
+
+        # 添加左右箭头按钮
+        self.left_arrow_button = None
+        self.right_arrow_button = None
+        self.ai_left_arrow_button = None
+        self.ai_right_arrow_button = None
+
+        # 添加确认按钮
+        self.confirm_button = None
+
         self.update_layout()
         self.selected_camp = None
+        self.selected_ai_difficulty = None
 
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
-        button_width = 160  # 进一步缩小按钮
-        button_height = 40
-        button_spacing = 20
+        # 按钮尺寸
+        button_width = 40
+        button_height = 60
+        arrow_button_width = 50
+        arrow_button_height = 50
+        confirm_button_width = 120
+        confirm_button_height = 40
+
         center_x = self.window_width // 2
         center_y = self.window_height // 2
 
-        # 创建按钮
-        self.red_button = StyledButton(
-            center_x - button_width // 2,
-            center_y - button_height - button_spacing // 2,
-            button_width,
-            button_height,
-            "执红先行",
-            20,  # 进一步缩小字体
-            12  # 增加圆角
+        # 计算阵营选择箭头位置 - 基于文本中心对齐
+        current_camp = self.camp_options[self.current_camp_index]
+        from program.utils.utils import load_font
+        camp_font = load_font(32, bold=True)
+        camp_text = camp_font.render(current_camp, True, GOLD)
+        camp_text_x = center_x - camp_text.get_width() // 2
+        camp_arrow_y = center_y - 80  # 阵营选择箭头Y位置
+        
+        # 左箭头在文本左边，右箭头在文本右边
+        left_arrow_x = camp_text_x - arrow_button_width - 10  # 在文本左侧留出10像素间距
+        right_arrow_x = camp_text_x + camp_text.get_width() + 10  # 在文本右侧留出10像素间距
+        
+        self.left_arrow_button = StyledButton(
+            left_arrow_x,
+            camp_arrow_y,
+            arrow_button_width,
+            arrow_button_height,
+            "<",
+            30,
+            10
         )
 
-        self.black_button = StyledButton(
-            center_x - button_width // 2,
-            center_y + button_spacing // 2,
-            button_width,
-            button_height,
-            "执黑后行",
-            20,  # 进一步缩小字体
-            12  # 增加圆角
+        self.right_arrow_button = StyledButton(
+            right_arrow_x,
+            camp_arrow_y,
+            arrow_button_width,
+            arrow_button_height,
+            ">",
+            30,
+            10
+        )
+
+        # 计算AI难度选择箭头位置 - 基于文本中心对齐
+        current_ai = self.ai_difficulty_options[self.current_ai_index]
+        ai_name_font = load_font(32, bold=True)
+        ai_name_text = ai_name_font.render(current_ai["name"], True, GOLD)
+        ai_text_x = center_x - ai_name_text.get_width() // 2
+        ai_arrow_y = center_y + 20  # AI难度选择箭头Y位置
+        
+        # 左箭头在文本左边，右箭头在文本右边
+        ai_left_arrow_x = ai_text_x - arrow_button_width - 10  # 在文本左侧留出10像素间距
+        ai_right_arrow_x = ai_text_x + ai_name_text.get_width() + 10  # 在文本右侧留出10像素间距
+        
+        self.ai_left_arrow_button = StyledButton(
+            ai_left_arrow_x,
+            ai_arrow_y,
+            arrow_button_width,
+            arrow_button_height,
+            "<",
+            30,
+            10
+        )
+
+        self.ai_right_arrow_button = StyledButton(
+            ai_right_arrow_x,
+            ai_arrow_y,
+            arrow_button_width,
+            arrow_button_height,
+            ">",
+            30,
+            10
         )
 
         # 添加返回按钮
@@ -72,6 +142,17 @@ class CampSelectionScreen:
             "返回",
             16,  # 字体大小
             10  # 增加圆角
+        )
+
+        # 添加确认按钮
+        self.confirm_button = StyledButton(
+            center_x - confirm_button_width // 2,
+            center_y + 120,  # 确认按钮Y位置
+            confirm_button_width,
+            confirm_button_height,
+            "确认选择",
+            18,
+            10
         )
 
     def toggle_fullscreen(self):
@@ -94,7 +175,7 @@ class CampSelectionScreen:
         """运行阵营选择界面"""
         clock = pygame.time.Clock()
 
-        while self.selected_camp is None:
+        while self.selected_camp is None or self.selected_ai_difficulty is None:
             mouse_pos = pygame.mouse.get_pos()
 
             for event in pygame.event.get():
@@ -117,12 +198,38 @@ class CampSelectionScreen:
                         self.toggle_fullscreen()
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if self.red_button.is_clicked(mouse_pos, event):
+                    # 阵营选择箭头按钮
+                    if self.left_arrow_button.is_clicked(mouse_pos, event):
                         self.sound_manager.play_sound('button')  # 播放按钮音效
-                        self.selected_camp = CAMP_RED
-                    elif self.black_button.is_clicked(mouse_pos, event):
+                        self.current_camp_index = (self.current_camp_index - 1) % len(self.camp_options)
+                        self.update_layout()  # 更新布局以重新定位箭头
+                    elif self.right_arrow_button.is_clicked(mouse_pos, event):
                         self.sound_manager.play_sound('button')  # 播放按钮音效
-                        self.selected_camp = CAMP_BLACK
+                        self.current_camp_index = (self.current_camp_index + 1) % len(self.camp_options)
+                        self.update_layout()  # 更新布局以重新定位箭头
+                    
+                    # AI难度选择箭头按钮
+                    elif self.ai_left_arrow_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
+                        self.current_ai_index = (self.current_ai_index - 1) % len(self.ai_difficulty_options)
+                        self.update_layout()  # 更新布局以重新定位箭头
+                    elif self.ai_right_arrow_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
+                        self.current_ai_index = (self.current_ai_index + 1) % len(self.ai_difficulty_options)
+                        self.update_layout()  # 更新布局以重新定位箭头
+                    
+                    # 确认按钮
+                    elif self.confirm_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
+                        # 根据选择的阵营文本确定阵营
+                        if self.camp_options[self.current_camp_index] == "执红先行":
+                            self.selected_camp = CAMP_RED
+                        else:
+                            self.selected_camp = CAMP_BLACK
+                        
+                        # 设置AI难度和算法
+                        self.selected_ai_difficulty = self.ai_difficulty_options[self.current_ai_index]
+                        
                     elif self.back_button.is_clicked(mouse_pos, event):
                         print("[DEBUG] 返回模式选择界面")
                         self.sound_manager.play_sound('button')  # 播放按钮音效
@@ -130,8 +237,11 @@ class CampSelectionScreen:
                         return None  # 返回None表示返回上级界面
 
             # 更新按钮悬停状态
-            self.red_button.check_hover(mouse_pos)
-            self.black_button.check_hover(mouse_pos)
+            self.left_arrow_button.check_hover(mouse_pos)
+            self.right_arrow_button.check_hover(mouse_pos)
+            self.ai_left_arrow_button.check_hover(mouse_pos)
+            self.ai_right_arrow_button.check_hover(mouse_pos)
+            self.confirm_button.check_hover(mouse_pos)
             self.back_button.check_hover(mouse_pos)
 
             # 绘制界面
@@ -139,7 +249,8 @@ class CampSelectionScreen:
             pygame.display.flip()
             clock.tick(FPS)
 
-        return self.selected_camp
+        # 返回阵营和AI难度信息
+        return {"camp": self.selected_camp, "ai_difficulty": self.selected_ai_difficulty}
 
     def draw(self):
         """绘制选择界面"""
@@ -148,17 +259,10 @@ class CampSelectionScreen:
 
         # 绘制标题
         title_font = load_font(40)  # 缩小标题字体
-        title_text = "选择您的阵营"
+        title_text = "选择您的阵营与AI难度"
         title_surface = title_font.render(title_text, True, BLACK)
         title_rect = title_surface.get_rect(center=(self.window_width // 2, 100))  # 上移标题
         self.screen.blit(title_surface, title_rect)
-
-        # 绘制提示文字
-        hint_font = load_font(18)  # 缩小提示文字
-        hint_text = "在匈汉象棋中，红方先行"
-        hint_surface = hint_font.render(hint_text, True, BLACK)
-        hint_rect = hint_surface.get_rect(center=(self.window_width // 2, 140))  # 调整位置
-        self.screen.blit(hint_surface, hint_rect)
 
         # 绘制金色装饰线
         line_y = title_rect.bottom + 20  # 调整线条位置
@@ -170,7 +274,43 @@ class CampSelectionScreen:
             3
         )
 
-        # 绘制按钮
-        self.red_button.draw(self.screen)
-        self.black_button.draw(self.screen)
-        self.back_button.draw(self.screen)  # 绘制返回按钮
+        # 绘制阵营选择标题
+        camp_title_font = load_font(24)
+        camp_title = camp_title_font.render("选择阵营:", True, BLACK)
+        self.screen.blit(camp_title, (self.window_width // 2 - camp_title.get_width() // 2, 200))
+
+        # 绘制当前阵营选择
+        current_camp = self.camp_options[self.current_camp_index]
+        camp_font = load_font(32, bold=True)
+        camp_text = camp_font.render(current_camp, True, GOLD)
+        self.screen.blit(camp_text, (self.window_width // 2 - camp_text.get_width() // 2, 250))
+
+        # 绘制阵营选择箭头按钮
+        self.left_arrow_button.draw(self.screen)
+        self.right_arrow_button.draw(self.screen)
+
+        # 绘制AI难度选择标题
+        ai_title_font = load_font(24)
+        ai_title = ai_title_font.render("选择AI难度:", True, BLACK)
+        self.screen.blit(ai_title, (self.window_width // 2 - ai_title.get_width() // 2, 340))
+
+        # 绘制当前AI难度选择
+        current_ai = self.ai_difficulty_options[self.current_ai_index]
+        ai_name_font = load_font(32, bold=True)
+        ai_name_text = ai_name_font.render(current_ai["name"], True, GOLD)
+        self.screen.blit(ai_name_text, (self.window_width // 2 - ai_name_text.get_width() // 2, 390))
+
+        # 绘制AI算法说明
+        ai_desc_font = load_font(18)
+        ai_desc_text = ai_desc_font.render(current_ai["desc"], True, BLACK)
+        self.screen.blit(ai_desc_text, (self.window_width // 2 - ai_desc_text.get_width() // 2, 440))
+
+        # 绘制AI难度选择箭头按钮
+        self.ai_left_arrow_button.draw(self.screen)
+        self.ai_right_arrow_button.draw(self.screen)
+
+        # 绘制确认按钮
+        self.confirm_button.draw(self.screen)
+
+        # 绘制返回按钮
+        self.back_button.draw(self.screen)

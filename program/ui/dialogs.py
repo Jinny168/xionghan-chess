@@ -3,8 +3,9 @@ import pygame
 from program.config.config import BLACK, RED, POPUP_BG
 from program.ui.button import Button
 from program.utils.utils import load_font
-from program.config.statistics import statistics_manager
-from program.controllers.game_io_controller import game_io_controller
+from program.controllers.statistics_manager import statistics_manager
+
+
 class AudioSettingsDialog:
     """音效设置对话框"""
     def __init__(self, width, height, sound_manager):

@@ -5,7 +5,7 @@ import os
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from program.config.taunts_manager import taunt_manager
+from program.controllers.taunts_manager import taunt_manager
 
 
 def test_taunt_manager():

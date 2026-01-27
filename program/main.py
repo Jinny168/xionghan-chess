@@ -76,7 +76,7 @@ def main():
                         running = False
                     elif result == "reset":
                         # 重置统计数据
-                        from program.config.statistics import statistics_manager
+                        from program.controllers.statistics_manager import statistics_manager
                         statistics_manager.reset_statistics()
                         # 重新创建对话框以更新显示
                         stats_dialog = StatisticsDialog()
@@ -136,22 +136,30 @@ def main():
             game_mode = mode_screen.run()
             continue
 
-        player_camp = CAMP_RED  # 默认玩家执红
-
         # 如果是人机对战模式，显示阵营选择界面
         if game_mode == MODE_PVC:
             camp_screen = CampSelectionScreen()
-            player_camp = camp_screen.run()
+            camp_selection_result = camp_screen.run()
             
             # 如果阵营选择界面返回None（表示用户点击了返回按钮），则返回到模式选择界面
-            if player_camp is None:
+            if camp_selection_result is None:
                 mode_screen = ModeSelectionScreen()
                 game_mode = mode_screen.run()
                 continue
 
+            player_camp = camp_selection_result["camp"]
+            ai_difficulty_info = camp_selection_result["ai_difficulty"]
+        else:
+            player_camp = CAMP_RED  # 默认玩家执红
+            ai_difficulty_info = None
+
         # 根据选择的模式和阵营创建游戏，传递设置
         game = ChessGame(game_mode, player_camp,
                          game_settings=settings_result if isinstance(settings_result, dict) else None)
+                         
+        # 如果是人机模式，设置AI信息
+        if game_mode == MODE_PVC and ai_difficulty_info:
+            game.game_screen.set_ai_info(ai_difficulty_info)
         result = game.run()
 
         # 如果返回到菜单，重新显示模式选择界面

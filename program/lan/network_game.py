@@ -5,19 +5,19 @@ import pygame
 
 from program.config.config import (
     FPS,
-    PANEL_BORDER, BLACK, CAMP_RED, RED
+    PANEL_BORDER, CAMP_RED, RED
 )
 from program.config.config import game_config
 from program.controllers.replay_controller import ReplayController
-from program.core.game_state import GameState
 from program.game import ChessGame
 from program.lan.xhlan import XiangqiNetworkGame, SimpleAPI
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
 from program.ui.dialogs import PopupDialog, ConfirmDialog
+from program.ui.dialogs import PromotionDialog
 from program.utils import tools
 from program.utils.utils import load_font, draw_background
-from program.ui.dialogs import PromotionDialog
+
 
 class NetworkGameScreen:
     """网络对战模式的UI界面类"""
