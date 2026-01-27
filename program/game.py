@@ -19,7 +19,6 @@ from program.config.config import (
     DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
     FPS,
     MODE_PVP, MODE_PVC, CAMP_RED, )
-from program.controllers.ai_manager import AIManager
 
 
 class ChessGame:
