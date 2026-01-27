@@ -10,14 +10,32 @@ import os
 
 def run_server():
     """运行服务器进程"""
-    cmd = [sys.executable, "server_only.py"]
-    subprocess.run(cmd, cwd=os.path.dirname(os.path.abspath(__file__)))
+    # 修改命令，添加项目根目录到PYTHONPATH
+    env = os.environ.copy()
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    python_path = env.get('PYTHONPATH', '')
+    if python_path:
+        env['PYTHONPATH'] = f"{project_root};{python_path}"
+    else:
+        env['PYTHONPATH'] = project_root
+    
+    cmd = [sys.executable, "-u", "server_only.py"]
+    subprocess.run(cmd, cwd=os.path.dirname(os.path.abspath(__file__)), env=env, shell=True)
 
 def run_client():
     """运行客户端进程"""
+    # 修改命令，添加项目根目录到PYTHONPATH
+    env = os.environ.copy()
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    python_path = env.get('PYTHONPATH', '')
+    if python_path:
+        env['PYTHONPATH'] = f"{project_root};{python_path}"
+    else:
+        env['PYTHONPATH'] = project_root
+    
     time.sleep(3)  # 等待服务器启动
-    cmd = [sys.executable, "client_only.py"]
-    subprocess.run(cmd, cwd=os.path.dirname(os.path.abspath(__file__)))
+    cmd = [sys.executable, "-u", "client_only.py"]
+    subprocess.run(cmd, cwd=os.path.dirname(os.path.abspath(__file__)), env=env, shell=True)
 
 def main():
     print("匈汉象棋单机网络对战测试")

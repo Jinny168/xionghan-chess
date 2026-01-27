@@ -2,8 +2,28 @@
 仅服务器模式 - 用于单机测试联机功能
 """
 import pygame
-from program.lan.network_game import NetworkChessGame
-from program.lan.xhlan import SimpleAPI
+import sys
+import os
+
+# 添加项目根目录到Python路径
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+# 现在导入所需的模块
+try:
+    from program.lan.network_game import NetworkChessGame
+    from program.lan.xhlan import SimpleAPI
+    from program.config.config import PORT
+except ImportError as e:
+    print(f"导入错误: {e}")
+    # 尝试直接从相对路径导入
+    sys.path.append(os.path.join(project_root))
+    from program.lan.network_game import NetworkChessGame
+    from program.lan.xhlan import SimpleAPI
+    from program.config.config import PORT
+
 import time
 
 def run_server():
@@ -13,7 +33,7 @@ def run_server():
     # 初始化网络API作为服务器
     SimpleAPI.init('SERVER')
     print("服务器已启动，等待客户端连接...")
-    print(f"服务器地址: 127.0.0.1:{10087}")
+    print(f"服务器地址: 127.0.0.1:{PORT}")
     
     # 等待一段时间让服务器完全启动
     time.sleep(2)
@@ -59,7 +79,7 @@ def run_server():
         
         # 显示连接信息
         info_font = pygame.font.SysFont(None, 24)
-        info_text = info_font.render(f"服务器地址: 127.0.0.1:{10087}", True, (0, 0, 0))
+        info_text = info_font.render(f"服务器地址: 127.0.0.1:{PORT}", True, (0, 0, 0))
         screen.blit(info_text, (150, 200))
         
         info_text2 = info_font.render("请运行: python client_only.py", True, (0, 0, 0))
