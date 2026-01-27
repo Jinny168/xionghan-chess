@@ -43,7 +43,7 @@ def run_client():
     """运行客户端"""
     print("启动匈汉象棋客户端...")
     # 初始化API作为客户端
-    SimpleAPI.init('CLIENT', None, "127.0.0.1")
+    SimpleAPI.init('CLIENT', None)
     
     # 等待连接建立
     print("正在连接到服务器...")

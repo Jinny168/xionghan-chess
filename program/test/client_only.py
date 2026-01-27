@@ -15,7 +15,7 @@ def run_client():
     
     # 初始化网络API作为客户端
     # 在这里初始化SimpleAPI，但注意不要与游戏实例中的初始化冲突
-    SimpleAPI.init('CLIENT', server_addr="127.0.0.1")
+    SimpleAPI.init('CLIENT')
     print("客户端模式初始化")
     
     # 等待连接建立

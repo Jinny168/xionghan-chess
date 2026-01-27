@@ -5,13 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="整理文件结构">
-      <change beforePath="$PROJECT_DIR$/program/controllers/game_io_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/game_io_controller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/input_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/input_handler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/replay_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/replay_controller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/sound_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/sound_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/statistics_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/statistics_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/core/game_rules.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_rules.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/lan/network_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/lan/network_game.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/lan/xhlan.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/lan/xhlan.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/test/client_only.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/client_only.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/test/test_network_sync.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/test_network_sync.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/network_connect_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/network_connect_screen.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -366,23 +366,7 @@
       <workItem from="1769424181105" duration="2385000" />
       <workItem from="1769431064330" duration="6040000" />
       <workItem from="1769517575047" duration="3069000" />
-      <workItem from="1769520680058" duration="4458000" />
-    </task>
-    <task id="LOCAL-00064" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768662783450</created>
-      <option name="number" value="00064" />
-      <option name="presentableId" value="LOCAL-00064" />
-      <option name="project" value="LOCAL" />
-      <updated>1768662783450</updated>
-    </task>
-    <task id="LOCAL-00065" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768662789850</created>
-      <option name="number" value="00065" />
-      <option name="presentableId" value="LOCAL-00065" />
-      <option name="project" value="LOCAL" />
-      <updated>1768662789850</updated>
+      <workItem from="1769520680058" duration="5337000" />
     </task>
     <task id="LOCAL-00066" summary="最新更新">
       <option name="closed" value="true" />
@@ -760,7 +744,23 @@
       <option name="project" value="LOCAL" />
       <updated>1769524542330</updated>
     </task>
-    <option name="localTasksCounter" value="113" />
+    <task id="LOCAL-00113" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769525184113</created>
+      <option name="number" value="00113" />
+      <option name="presentableId" value="LOCAL-00113" />
+      <option name="project" value="LOCAL" />
+      <updated>1769525184113</updated>
+    </task>
+    <task id="LOCAL-00114" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769525746570</created>
+      <option name="number" value="00114" />
+      <option name="presentableId" value="LOCAL-00114" />
+      <option name="project" value="LOCAL" />
+      <updated>1769525746570</updated>
+    </task>
+    <option name="localTasksCounter" value="115" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

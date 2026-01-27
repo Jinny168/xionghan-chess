@@ -264,6 +264,7 @@ class NetworkGameScreen:
         if last_move_notation:
             move_font = load_font(18)
             move_text = f"上一步: {last_move_notation}"
+            from program.config.config import BLACK  # 确保BLACK在此作用域内可用
             move_surface = move_font.render(move_text, True, BLACK)
             # 显示在左侧面板底部
             move_rect = move_surface.get_rect(center=(self.left_panel_width // 2, self.window_height - 80))
@@ -711,13 +712,47 @@ class NetworkChessGame(ChessGame):
         total_time = self.game_state.total_time
 
         # 创建弹窗并传入时间信息
-        self.popup = PopupDialog(
-            400, 320,
+        self.popup = PopupDialog(400, 320,
             winner_text,
             total_time,
             red_time,
             black_time
         )
+
+    def perform_restart(self):
+        """执行重新开始游戏"""
+        # 重置游戏状态
+        self.game_state.reset_game()
+        
+        # 重置相关变量
+        self.selected_piece = None
+        self.last_move = None
+        self.last_move_notation = ""
+        self.popup = None
+        self.confirm_dialog = None
+        self.pawn_resurrection_dialog = None
+        self.promotion_dialog = None
+        self.undo_requested = False
+        self.restart_requested = False
+        
+        # 重新设置玩家回合
+        if self.is_host:
+            self.game_state.player_turn = "red"  # 主机执红
+        else:
+            self.game_state.player_turn = "black"  # 客户端执黑
+
+    def perform_undo(self):
+        """执行悔棋操作"""
+        # 悔棋操作通常会回退到上一个状态
+        if len(self.game_state.move_history) >= 2:
+            # 回退两步（对手的移动和自己的上一步）
+            self.game_state.undo_move()
+            self.game_state.undo_move()
+            
+            # 更新界面
+            self.selected_piece = None
+            self.last_move = None
+            self.last_move_notation = ""
 
     @staticmethod
     def display_chat_message(message):
@@ -1129,24 +1164,6 @@ class NetworkChessGame(ChessGame):
             # 可以显示提示信息
             pass
     
-    def perform_undo(self):
-        """执行悔棋操作"""
-        # 在网络对战中，悔棋需要双方同意
-        # 这里需要实现具体悔棋逻辑
-        try:
-            # 尝试悔棋操作
-            if self.game_state.undo_move():
-                print("悔棋成功")
-                # 悔棋成功后，GameState的undo_move方法已经处理了回合切换
-                # 我们只需更新头像状态即可
-                self.update_avatars()
-            else:
-                print("悔棋失败 - 可能没有足够的移动历史")
-        except AttributeError:
-            print("悔棋失败 - GameState不支持undo_move方法")
-        except (ValueError, TypeError, RuntimeError) as e:
-            print(f"悔棋失败 - 错误: {e}")
-
     def update_avatars(self):
         """更新头像状态"""
         self.game_screen.update_avatars(self.game_state, self.is_host)

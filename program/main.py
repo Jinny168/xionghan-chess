@@ -110,7 +110,7 @@ def main():
                 game.run()
             elif network_choice == "join":
                 # 初始化网络API
-                SimpleAPI.init('CLIENT', server_addr=ip_address if ip_address else "127.0.0.1")
+                SimpleAPI.init('CLIENT')
                 # 检查连接状态
                 time.sleep(1)  # 等待连接建立
                 if not SimpleAPI.is_connected():
