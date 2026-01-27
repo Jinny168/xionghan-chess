@@ -1,6 +1,4 @@
 """全局配置管理模块"""
-from sympy import false
-
 
 """
 匈汉象棋网络对战常量
