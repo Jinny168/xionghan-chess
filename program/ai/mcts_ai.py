@@ -128,7 +128,7 @@ class MCTSAI(BaseAI):
         move = self.mcts_player.get_action(mcts_board, temp=1e-3)
 
         # 将MCTS动作转换回游戏状态格式
-        return self.game_converter.convert_mcts_move_to_game_format(move, game_state)
+        return convert_mcts_move_to_game_format(move, game_state)
 
     def _get_random_valid_move(self, game_state):
         """获取一个随机的有效移动作为备选

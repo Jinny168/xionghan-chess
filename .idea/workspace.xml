@@ -5,13 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="拆分ai">
-      <change afterPath="$PROJECT_DIR$/program/ai/base_ai.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/ai/game_state_converter.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/ai/mcts_ai.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/program/ai/traditional_ai.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/chess_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/chess_ai.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/config/statistics.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/game_state_converter.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/adapter.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/comprehensive_test.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/mcts_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts/mcts_game.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/test_adapter.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts/test_state_conversion.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/mcts_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts_ai.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -365,15 +366,7 @@
       <workItem from="1769347630267" duration="3337000" />
       <workItem from="1769424181105" duration="2385000" />
       <workItem from="1769431064330" duration="6040000" />
-      <workItem from="1769517575047" duration="449000" />
-    </task>
-    <task id="LOCAL-00055" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768619707980</created>
-      <option name="number" value="00055" />
-      <option name="presentableId" value="LOCAL-00055" />
-      <option name="project" value="LOCAL" />
-      <updated>1768619707980</updated>
+      <workItem from="1769517575047" duration="1818000" />
     </task>
     <task id="LOCAL-00056" summary="最新更新">
       <option name="closed" value="true" />
@@ -759,7 +752,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769436072090</updated>
     </task>
-    <option name="localTasksCounter" value="104" />
+    <task id="LOCAL-00104" summary="拆分ai">
+      <option name="closed" value="true" />
+      <created>1769518064049</created>
+      <option name="number" value="00104" />
+      <option name="presentableId" value="LOCAL-00104" />
+      <option name="project" value="LOCAL" />
+      <updated>1769518064049</updated>
+    </task>
+    <option name="localTasksCounter" value="105" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -803,7 +804,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="提取ai_manager" />
     <MESSAGE value="提取game_screen,将ui与逻辑分离" />
     <MESSAGE value="美化了game_screen，实现按钮的归纳与梳理。" />
     <MESSAGE value="修改了about_screen的加载逻辑，新增about.md文件。" />
@@ -828,7 +828,8 @@
     <MESSAGE value="清晰了代码职责" />
     <MESSAGE value="清晰了ai_manager职责" />
     <MESSAGE value="清晰了绝杀文本绘制职责" />
-    <option name="LAST_COMMIT_MESSAGE" value="清晰了绝杀文本绘制职责" />
+    <MESSAGE value="拆分ai" />
+    <option name="LAST_COMMIT_MESSAGE" value="拆分ai" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -970,6 +971,21 @@
           <url>file://$PROJECT_DIR$/program/ai/chess_ai.py</url>
           <line>13</line>
           <option name="timeStamp" value="93" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/ai/converter.py</url>
+          <line>182</line>
+          <option name="timeStamp" value="97" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/ai/converter.py</url>
+          <line>277</line>
+          <option name="timeStamp" value="98" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/ai/converter.py</url>
+          <line>381</line>
+          <option name="timeStamp" value="99" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
