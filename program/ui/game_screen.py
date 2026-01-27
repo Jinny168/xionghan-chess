@@ -5,7 +5,7 @@ from program.config.config import (
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO,
     PANEL_BORDER, BLACK, RED
 )
-from program.config.taunts_manager import taunt_manager
+from program.controllers.taunts_manager import taunt_manager
 from program.ui.avatar import Avatar
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
@@ -377,6 +377,9 @@ class GameScreen:
         self.left_panel_surface_cache = None
         self.left_panel_overlay_cache = None
         
+        # 存储AI难度和算法信息
+        self.ai_difficulty_info = None
+        
         # 初始化所有UI组件
         self.init_ui_components()
         
@@ -390,6 +393,10 @@ class GameScreen:
         # 初始化嘲讽动画
         self.init_taunt_animation()
         
+    def set_ai_info(self, ai_difficulty_info):
+        """设置AI难度和算法信息"""
+        self.ai_difficulty_info = ai_difficulty_info
+
     def init_menus(self):
         """初始化菜单系统"""
         # 选项菜单 - 放在左上角，避开左侧面板
@@ -576,11 +583,8 @@ class GameScreen:
             from_row, from_col, to_row, to_col = last_move
             self.board.highlight_last_move(screen, from_row, from_col, to_row, to_col)
 
-        # 检查是否需要显示将军动画
-        if game_state.should_show_check_animation():
-            king_pos = game_state.get_checked_king_position()
-            if king_pos:
-                self.board.draw_check_animation(screen, king_pos, game_state)
+        # 检查是否需要显示将军/绝杀提示
+        # 这里不应该直接绘制，而应该由游戏主循环调用管理器的绘制方法
 
         # 绘制游戏信息面板
         draw_info_panel(screen, game_state)
@@ -622,6 +626,23 @@ class GameScreen:
             screen.blit(mode_surface, (
                 self.left_panel_width + (self.window_width - self.left_panel_width) // 2 - mode_surface.get_width() // 2,
                 15))
+                
+            # 显示AI难度和算法信息
+            if self.ai_difficulty_info:
+                ai_info_font = load_font(16)
+                ai_difficulty_text = f"AI难度: {self.ai_difficulty_info['name']}"
+                ai_algorithm_text = f"AI算法: {self.ai_difficulty_info['algorithm']}"
+                
+                ai_difficulty_surface = ai_info_font.render(ai_difficulty_text, True, BLACK)
+                ai_algorithm_surface = ai_info_font.render(ai_algorithm_text, True, BLACK)
+                
+                # 显示在模式提示下方
+                screen.blit(ai_difficulty_surface, (
+                    self.left_panel_width + (self.window_width - self.left_panel_width) // 2 - ai_difficulty_surface.get_width() // 2,
+                    45))
+                screen.blit(ai_algorithm_surface, (
+                    self.left_panel_width + (self.window_width - self.left_panel_width) // 2 - ai_algorithm_surface.get_width() // 2,
+                    70))
 
         # 绘制 captured pieces（阵亡棋子）
         self.draw_captured_pieces(screen, game_state)
@@ -664,11 +685,19 @@ class GameScreen:
 
     def draw_thinking_indicator(self, screen, game_state):
         """绘制AI思考时的指示器，减少闪烁"""
-        # 绘制完整的界面背景
-        self._draw_background_and_side_panel(screen)
-
-        # 绘制棋盘和棋子（使用稳定的游戏状态）
-        self.board.draw(screen, game_state.pieces, game_state)
+        # 完整绘制界面，包括所有组件
+        self.draw(screen, game_state)
+        
+        # 在界面中央叠加显示AI思考提示
+        overlay = pygame.Surface((self.window_width, self.window_height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 128))  # 半透明黑色遮罩
+        screen.blit(overlay, (0, 0))
+        
+        # 显示AI正在思考的文字
+        thinking_font = load_font(36, bold=True)
+        thinking_text = thinking_font.render("AI 思考中...", True, (255, 255, 255))
+        text_rect = thinking_text.get_rect(center=(self.window_width // 2, self.window_height // 2))
+        screen.blit(thinking_text, text_rect)
 
     def draw_timers(self, screen, game_state):
         """绘制计时器信息"""

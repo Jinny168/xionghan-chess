@@ -5,18 +5,19 @@ import pygame
 
 from program.config.config import (
     FPS,
-    PANEL_BORDER, BLACK, CAMP_RED, RED
+    PANEL_BORDER, CAMP_RED, RED, BLACK,
 )
 from program.config.config import game_config
-from program.core.game_state import GameState
+from program.controllers.replay_controller import ReplayController
 from program.game import ChessGame
 from program.lan.xhlan import XiangqiNetworkGame, SimpleAPI
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
 from program.ui.dialogs import PopupDialog, ConfirmDialog
+from program.ui.dialogs import PromotionDialog
 from program.utils import tools
 from program.utils.utils import load_font, draw_background
-from program.ui.dialogs import PromotionDialog
+
 
 class NetworkGameScreen:
     """网络对战模式的UI界面类"""
@@ -151,9 +152,7 @@ class NetworkGameScreen:
         # 使用统一的背景绘制函数
         draw_background(screen)
 
-        # 绘制左侧面板背景 - 使用与主界面一致的纹理
-        left_panel_rect = pygame.Rect(0, 0, self.left_panel_width, self.window_height)
-
+        
         # 先绘制与主背景一致的纹理
         left_panel_surface = pygame.Surface((self.left_panel_width, self.window_height))
         draw_background(left_panel_surface)  # 使用相同的背景绘制函数
@@ -178,11 +177,7 @@ class NetworkGameScreen:
             from_row, from_col, to_row, to_col = last_move
             self.board.highlight_last_move(screen, from_row, from_col, to_row, to_col)
 
-        # 检查是否需要显示将军动画
-        if game_state.should_show_check_animation():
-            king_pos = game_state.get_checked_king_position()
-            if king_pos:
-                self.board.draw_check_animation(screen, king_pos, game_state)
+        # 将军/绝杀提示将在游戏主循环中绘制
 
         # 绘制游戏信息面板
         self.draw_info_panel(screen, game_state, last_move_notation)
@@ -243,7 +238,6 @@ class NetworkGameScreen:
     def draw_info_panel(self, screen, game_state, last_move_notation):
         """绘制游戏信息面板"""
         # 当游戏进行中，在左上角显示当前回合
-        global BLACK
         if not game_state.game_over:
             # 创建回合信息文本
             from program.config.config import RED, BLACK
@@ -270,6 +264,7 @@ class NetworkGameScreen:
         if last_move_notation:
             move_font = load_font(18)
             move_text = f"上一步: {last_move_notation}"
+            from program.config.config import BLACK  # 确保BLACK在此作用域内可用
             move_surface = move_font.render(move_text, True, BLACK)
             # 显示在左侧面板底部
             move_rect = move_surface.get_rect(center=(self.left_panel_width // 2, self.window_height - 80))
@@ -460,7 +455,7 @@ class NetworkChessGame(ChessGame):
         """切换全屏模式"""
         # 使用通用的全屏切换函数
         self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
-            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
+            tools.toggle_fullscreen(self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
 
         # 更新界面布局
         self.game_screen.update_layout()
@@ -468,7 +463,7 @@ class NetworkChessGame(ChessGame):
         # 更新全屏按钮的文本
         self.game_screen.update_fullscreen_button_text(self.is_fullscreen)
 
-    def draw(self, mouse_pos):
+    def draw(self):
         """绘制游戏界面 - 网络对战模式特化版本"""
         # 使用专门的网络对战界面绘制
         self.game_screen.draw(
@@ -581,19 +576,19 @@ class NetworkChessGame(ChessGame):
                 if self.selected_piece and not captured_piece:
                     try:
                         self.sound_manager.play_sound('choose')
-                    except:
+                    except (AttributeError, KeyError):
                         pass
                 
                 # 播放移动音效
                 if captured_piece:
                     try:
                         self.sound_manager.play_sound('eat')
-                    except:
+                    except (AttributeError, KeyError):
                         pass
                 else:
                     try:
                         self.sound_manager.play_sound('drop')
-                    except:
+                    except (AttributeError, KeyError):
                         pass
 
                 # 切换玩家回合（本地玩家移动后，轮到对手）
@@ -643,29 +638,17 @@ class NetworkChessGame(ChessGame):
         if self.game_state.game_over:
             return
         
-        # 播放音效
-        # 优先处理绝杀情况，因为绝杀时is_check和is_checkmate都为True
-        if self.game_state.is_checkmate():
-            print("[DEBUG] 网络对战模式检测到绝杀，播放绝杀音效")
-            try:
-                self.sound_manager.play_sound('defeat')  # 播放失败音效
-            except:
-                # 如果没有特定音效，播放警告音效
-                self.sound_manager.play_sound('warn')
-        elif self.game_state.is_check:
-            try:
-                self.sound_manager.play_sound('warn')
-                self.sound_manager.play_sound('capture')
-            except:
-                pass
+        # 使用SoundManager中的通用方法播放将军/绝杀音效
+        self.sound_manager.check_and_play_game_sound(self.game_state)
 
-    def send_network_move(self, from_row, from_col, to_row, to_col):
+    @staticmethod
+    def send_network_move(from_row, from_col, to_row, to_col):
         """发送移动到网络对手"""
         print(f"发送本地移动: {from_row},{from_col} -> {to_row},{to_col}")
         # 调用网络接口发送移动
         try:
             XiangqiNetworkGame.send_move(from_row, from_col, to_row, to_col)
-        except Exception as e:
+        except (ConnectionError, TimeoutError, RuntimeError) as e:
             print(f"发送网络移动失败: {e}")
 
     def receive_network_move(self, from_row, from_col, to_row, to_col):
@@ -692,12 +675,12 @@ class NetworkChessGame(ChessGame):
             if captured_piece:
                 try:
                     self.sound_manager.play_sound('eat')
-                except:
+                except (AttributeError, KeyError):
                     pass
             else:
                 try:
                     self.sound_manager.play_sound('drop')
-                except:
+                except (AttributeError, KeyError):
                     pass
 
             # 更新头像状态
@@ -729,18 +712,52 @@ class NetworkChessGame(ChessGame):
         total_time = self.game_state.total_time
 
         # 创建弹窗并传入时间信息
-        self.popup = PopupDialog(
-            400, 320,
+        self.popup = PopupDialog(400, 320,
             winner_text,
             total_time,
             red_time,
             black_time
         )
 
-    def display_chat_message(self, message):
+    def perform_restart(self):
+        """执行重新开始游戏"""
+        # 重置游戏状态
+        self.game_state.reset_game()
+        
+        # 重置相关变量
+        self.selected_piece = None
+        self.last_move = None
+        self.last_move_notation = ""
+        self.popup = None
+        self.confirm_dialog = None
+        self.pawn_resurrection_dialog = None
+        self.promotion_dialog = None
+        self.undo_requested = False
+        self.restart_requested = False
+        
+        # 重新设置玩家回合
+        if self.is_host:
+            self.game_state.player_turn = "red"  # 主机执红
+        else:
+            self.game_state.player_turn = "black"  # 客户端执黑
+
+    def perform_undo(self):
+        """执行悔棋操作"""
+        # 悔棋操作通常会回退到上一个状态
+        if len(self.game_state.move_history) >= 2:
+            # 回退两步（对手的移动和自己的上一步）
+            self.game_state.undo_move()
+            self.game_state.undo_move()
+            
+            # 更新界面
+            self.selected_piece = None
+            self.last_move = None
+            self.last_move_notation = ""
+
+    @staticmethod
+    def display_chat_message(message):
         """显示聊天消息"""
         print(f"收到聊天消息: {message}")
-        # 在实际游戏中，这里会在界面上显示聊天消息
 
     def handle_event(self, event, mouse_pos):
         """处理游戏事件 - 网络对战专用"""
@@ -762,7 +779,7 @@ class NetworkChessGame(ChessGame):
         if event.type == pygame.MOUSEWHEEL:
             # 检查鼠标是否在棋谱区域
             right_panel_x = self.window_width - 350
-            if mouse_pos[0] >= right_panel_x and mouse_pos[1] >= 300 and mouse_pos[0] <= self.window_width - 10:
+            if right_panel_x <= mouse_pos[0] <= self.window_width - 10 and mouse_pos[1] >= 300:
                 # 滚动棋谱
                 self.history_scroll_y = max(0, self.history_scroll_y - event.y)
                 total_moves = len(self.game_state.move_history)
@@ -794,8 +811,8 @@ class NetworkChessGame(ChessGame):
                 # 发送悔棋请求到对手
                 try:
                     XiangqiNetworkGame.send_undo_request()
-                except:
-                    print("发送悔棋请求失败")
+                except (ConnectionError, TimeoutError) as e:
+                    print(f"发送悔棋请求失败: {e}")
                     self.undo_requested = False  # 重置标志，以便可以重试
             
             # 检查是否点击了重新开始按钮
@@ -844,7 +861,7 @@ class NetworkChessGame(ChessGame):
                     # 发送认输信号
                     try:
                         XiangqiNetworkGame.send_resign()
-                    except:
+                    except (ConnectionError, TimeoutError):
                         pass
                     self.sound_manager.stop_background_music()
                     return "back_to_menu"
@@ -928,7 +945,7 @@ class NetworkChessGame(ChessGame):
                                 # 发送认输信号并退出
                                 try:
                                     XiangqiNetworkGame.send_resign()
-                                except:
+                                except (ConnectionError, TimeoutError):
                                     pass
                                 self.sound_manager.stop_background_music()
                                 return "back_to_menu"
@@ -938,7 +955,7 @@ class NetworkChessGame(ChessGame):
                                 # 发送认输信号并退出
                                 try:
                                     XiangqiNetworkGame.send_resign()
-                                except:
+                                except (ConnectionError, TimeoutError):
                                     pass
                                 self.sound_manager.stop_background_music()
                                 return "back_to_menu"
@@ -977,11 +994,11 @@ class NetworkChessGame(ChessGame):
                             return "back_to_menu"
                         elif popup_result == "replay":
                             # 进入复盘模式
-                            from program.utils.tools import enter_replay_mode
+
                             from program.ui.replay_screen import ReplayScreen
                             
                             # 创建复盘控制器
-                            replay_controller = enter_replay_mode(self.game_state)
+                            replay_controller = ReplayController.enter_replay_mode(self.game_state)
                             
                             # 创建并运行复盘界面
                             replay_screen = ReplayScreen(self.game_state, replay_controller)
@@ -1031,8 +1048,8 @@ class NetworkChessGame(ChessGame):
                         # 发送悔棋请求到对手
                         try:
                             XiangqiNetworkGame.send_undo_request()
-                        except:
-                            print("发送悔棋请求失败")
+                        except (ConnectionError, TimeoutError, RuntimeError) as e:
+                            print(f"发送悔棋请求失败: {e}")
                             self.undo_requested = False  # 重置标志，以便可以重试
                     
                     # 检查是否点击了重新开始按钮
@@ -1055,7 +1072,7 @@ class NetworkChessGame(ChessGame):
                         try:
                             XiangqiNetworkGame.send_restart_request()
                             print("已发送重新开始请求")
-                        except Exception as e:
+                        except (ConnectionError, TimeoutError, RuntimeError) as e:
                             print(f"发送重新开始请求失败: {e}")
                             self.restart_requested = False  # 重置标志，以便可以重试
                     
@@ -1075,7 +1092,9 @@ class NetworkChessGame(ChessGame):
             self.game_screen.update_button_states(mouse_pos)
 
             # 绘制画面
-            self.draw(mouse_pos)
+            self.draw()
+            # 绘制将军/绝杀提示
+            self.check_checkmate_tip_manager.draw_tip(self.screen, self.game_state, self.game_screen.board)
             pygame.display.flip()
             self.clock.tick(FPS)
     
@@ -1145,24 +1164,6 @@ class NetworkChessGame(ChessGame):
             # 可以显示提示信息
             pass
     
-    def perform_undo(self):
-        """执行悔棋操作"""
-        # 在网络对战中，悔棋需要双方同意
-        # 这里需要实现具体的悔棋逻辑
-        try:
-            # 尝试悔棋操作
-            if self.game_state.undo_move():
-                print("悔棋成功")
-                # 悔棋成功后，GameState的undo_move方法已经处理了回合切换
-                # 我们只需更新头像状态即可
-                self.update_avatars()
-            else:
-                print("悔棋失败 - 可能没有足够的移动历史")
-        except AttributeError:
-            print("悔棋失败 - GameState不支持undo_move方法")
-        except Exception as e:
-            print(f"悔棋失败 - 错误: {e}")
-
     def update_avatars(self):
         """更新头像状态"""
         self.game_screen.update_avatars(self.game_state, self.is_host)

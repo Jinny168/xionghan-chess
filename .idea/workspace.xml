@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="增强棋子功能">
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="整理文件结构">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/help.md" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/help.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/assets/docs/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/statistics.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/camp_selection_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/camp_selection_screen.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/game_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/game_screen.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,62 +51,62 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.UIplay.executor": "Run",
-    "Python.build_exe.executor": "Run",
-    "Python.check_data_status (1).executor": "Run",
-    "Python.check_data_status.executor": "Run",
-    "Python.collect.executor": "Run",
-    "Python.combined_sound_generator.executor": "Run",
-    "Python.convert_md_to_pdf.executor": "Run",
-    "Python.dun_test.executor": "Run",
-    "Python.game_logic.executor": "Run",
-    "Python.game_rules.executor": "Run",
-    "Python.gen.executor": "Run",
-    "Python.generate_sounds.executor": "Run",
-    "Python.generate_voice (1).executor": "Run",
-    "Python.main (1).executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.mcts_game.executor": "Run",
-    "Python.my_redis.executor": "Run",
-    "Python.server_only.executor": "Run",
-    "Python.shield_interaction_test.executor": "Run",
-    "Python.simple_view_data.executor": "Run",
-    "Python.sound_manager.executor": "Run",
-    "Python.start_multiple_collectors.executor": "Run",
-    "Python.test_ai_fix.executor": "Run",
-    "Python.test_ci_piece.executor": "Run",
-    "Python.test_dun_piece.executor": "Run",
-    "Python.test_flip_map.executor": "Run",
-    "Python.test_local_network (1).executor": "Run",
-    "Python.test_local_network.executor": "Run",
-    "Python.test_move_format.executor": "Run",
-    "Python.test_paddle.executor": "Run",
-    "Python.test_py.executor": "Run",
-    "Python.test_redis.executor": "Run",
-    "Python.test_redis_collection.executor": "Run",
-    "Python.test_single_collector.executor": "Run",
-    "Python.test_torch.executor": "Run",
-    "Python.test_uiplay.executor": "Run",
-    "Python.train.executor": "Run",
-    "Python.validate_moves.executor": "Run",
-    "Python.view_redis_data.executor": "Run",
-    "Python.view_training_data.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "ToolWindow.Problems View.ShowToolbar": "false",
-    "git-widget-placeholder": "master",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Users/27415/PycharmProjects/xionghan-chess/program/assets",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.UIplay.executor&quot;: &quot;Run&quot;,
+    &quot;Python.build_exe.executor&quot;: &quot;Run&quot;,
+    &quot;Python.check_data_status (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.check_data_status.executor&quot;: &quot;Run&quot;,
+    &quot;Python.collect.executor&quot;: &quot;Run&quot;,
+    &quot;Python.combined_sound_generator.executor&quot;: &quot;Run&quot;,
+    &quot;Python.convert_md_to_pdf.executor&quot;: &quot;Run&quot;,
+    &quot;Python.dun_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.game_logic.executor&quot;: &quot;Run&quot;,
+    &quot;Python.game_rules.executor&quot;: &quot;Run&quot;,
+    &quot;Python.gen.executor&quot;: &quot;Run&quot;,
+    &quot;Python.generate_sounds.executor&quot;: &quot;Run&quot;,
+    &quot;Python.generate_voice (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.main (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.mcts_game.executor&quot;: &quot;Run&quot;,
+    &quot;Python.my_redis.executor&quot;: &quot;Run&quot;,
+    &quot;Python.server_only.executor&quot;: &quot;Run&quot;,
+    &quot;Python.shield_interaction_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.simple_view_data.executor&quot;: &quot;Run&quot;,
+    &quot;Python.sound_manager.executor&quot;: &quot;Run&quot;,
+    &quot;Python.start_multiple_collectors.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_ai_fix.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_ci_piece.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_dun_piece.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_flip_map.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_local_network (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_local_network.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_move_format.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_paddle.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_py.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_redis.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_redis_collection.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_single_collector.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_torch.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_uiplay.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train.executor&quot;: &quot;Run&quot;,
+    &quot;Python.validate_moves.executor&quot;: &quot;Run&quot;,
+    &quot;Python.view_redis_data.executor&quot;: &quot;Run&quot;,
+    &quot;Python.view_training_data.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;ToolWindow.Problems View.ShowToolbar&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/27415/PycharmProjects/xionghan-chess/program/assets&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="QodanaReportsService">
     <option name="descriptions">
       <ReportDescription localRun="true" path="C:\Users\27415\AppData\Local\Temp\qodana_output\qodana.sarif.json" reportGuid="ea5477ac-0515-4258-8a8a-0be20138c3de" reportId="xionghan-chess/qodana/2026-01-17" />
@@ -120,11 +121,11 @@
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\ai\mcts\imgs" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\test" />
-      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program" />
+      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\test\network_game" />
+      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\assets\docs" />
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\controllers" />
-      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\config" />
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\ui" />
+      <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\assets" />
     </key>
   </component>
   <component name="RunManager" selected="Python.main">
@@ -220,6 +221,29 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="test_local_network (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="xionghan-chess" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/program/test/network_game" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/program/test/network_game/test_local_network.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="test_local_network" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="xionghan-chess" />
       <option name="ENV_FILES" value="" />
@@ -292,7 +316,7 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.main" />
-        <item itemvalue="Python.main (1)" />
+        <item itemvalue="Python.test_local_network (1)" />
         <item itemvalue="Python.build_exe" />
         <item itemvalue="Python.convert_md_to_pdf" />
       </list>
@@ -360,150 +384,10 @@
       <workItem from="1769154175303" duration="2858000" />
       <workItem from="1769159579240" duration="14143000" />
       <workItem from="1769347630267" duration="3337000" />
-    </task>
-    <task id="LOCAL-00050" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768580729364</created>
-      <option name="number" value="00050" />
-      <option name="presentableId" value="LOCAL-00050" />
-      <option name="project" value="LOCAL" />
-      <updated>1768580729365</updated>
-    </task>
-    <task id="LOCAL-00051" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768581251120</created>
-      <option name="number" value="00051" />
-      <option name="presentableId" value="LOCAL-00051" />
-      <option name="project" value="LOCAL" />
-      <updated>1768581251120</updated>
-    </task>
-    <task id="LOCAL-00052" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768614657394</created>
-      <option name="number" value="00052" />
-      <option name="presentableId" value="LOCAL-00052" />
-      <option name="project" value="LOCAL" />
-      <updated>1768614657394</updated>
-    </task>
-    <task id="LOCAL-00053" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768616300355</created>
-      <option name="number" value="00053" />
-      <option name="presentableId" value="LOCAL-00053" />
-      <option name="project" value="LOCAL" />
-      <updated>1768616300355</updated>
-    </task>
-    <task id="LOCAL-00054" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768619700995</created>
-      <option name="number" value="00054" />
-      <option name="presentableId" value="LOCAL-00054" />
-      <option name="project" value="LOCAL" />
-      <updated>1768619700995</updated>
-    </task>
-    <task id="LOCAL-00055" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768619707980</created>
-      <option name="number" value="00055" />
-      <option name="presentableId" value="LOCAL-00055" />
-      <option name="project" value="LOCAL" />
-      <updated>1768619707980</updated>
-    </task>
-    <task id="LOCAL-00056" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768651266253</created>
-      <option name="number" value="00056" />
-      <option name="presentableId" value="LOCAL-00056" />
-      <option name="project" value="LOCAL" />
-      <updated>1768651266254</updated>
-    </task>
-    <task id="LOCAL-00057" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768651827194</created>
-      <option name="number" value="00057" />
-      <option name="presentableId" value="LOCAL-00057" />
-      <option name="project" value="LOCAL" />
-      <updated>1768651827194</updated>
-    </task>
-    <task id="LOCAL-00058" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768653459977</created>
-      <option name="number" value="00058" />
-      <option name="presentableId" value="LOCAL-00058" />
-      <option name="project" value="LOCAL" />
-      <updated>1768653459977</updated>
-    </task>
-    <task id="LOCAL-00059" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768656029854</created>
-      <option name="number" value="00059" />
-      <option name="presentableId" value="LOCAL-00059" />
-      <option name="project" value="LOCAL" />
-      <updated>1768656029854</updated>
-    </task>
-    <task id="LOCAL-00060" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768656596369</created>
-      <option name="number" value="00060" />
-      <option name="presentableId" value="LOCAL-00060" />
-      <option name="project" value="LOCAL" />
-      <updated>1768656596369</updated>
-    </task>
-    <task id="LOCAL-00061" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768659867926</created>
-      <option name="number" value="00061" />
-      <option name="presentableId" value="LOCAL-00061" />
-      <option name="project" value="LOCAL" />
-      <updated>1768659867927</updated>
-    </task>
-    <task id="LOCAL-00062" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768660325748</created>
-      <option name="number" value="00062" />
-      <option name="presentableId" value="LOCAL-00062" />
-      <option name="project" value="LOCAL" />
-      <updated>1768660325748</updated>
-    </task>
-    <task id="LOCAL-00063" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768661625340</created>
-      <option name="number" value="00063" />
-      <option name="presentableId" value="LOCAL-00063" />
-      <option name="project" value="LOCAL" />
-      <updated>1768661625341</updated>
-    </task>
-    <task id="LOCAL-00064" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768662783450</created>
-      <option name="number" value="00064" />
-      <option name="presentableId" value="LOCAL-00064" />
-      <option name="project" value="LOCAL" />
-      <updated>1768662783450</updated>
-    </task>
-    <task id="LOCAL-00065" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768662789850</created>
-      <option name="number" value="00065" />
-      <option name="presentableId" value="LOCAL-00065" />
-      <option name="project" value="LOCAL" />
-      <updated>1768662789850</updated>
-    </task>
-    <task id="LOCAL-00066" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1768907110151</created>
-      <option name="number" value="00066" />
-      <option name="presentableId" value="LOCAL-00066" />
-      <option name="project" value="LOCAL" />
-      <updated>1768907110152</updated>
-    </task>
-    <task id="LOCAL-00067" summary="最新更新">
-      <option name="closed" value="true" />
-      <created>1769087623451</created>
-      <option name="number" value="00067" />
-      <option name="presentableId" value="LOCAL-00067" />
-      <option name="project" value="LOCAL" />
-      <updated>1769087623451</updated>
+      <workItem from="1769424181105" duration="2385000" />
+      <workItem from="1769431064330" duration="6040000" />
+      <workItem from="1769517575047" duration="3069000" />
+      <workItem from="1769520680058" duration="6735000" />
     </task>
     <task id="LOCAL-00068" summary="最新更新">
       <option name="closed" value="true" />
@@ -753,7 +637,151 @@
       <option name="project" value="LOCAL" />
       <updated>1769354860087</updated>
     </task>
-    <option name="localTasksCounter" value="99" />
+    <task id="LOCAL-00099" summary="小修改">
+      <option name="closed" value="true" />
+      <created>1769356001579</created>
+      <option name="number" value="00099" />
+      <option name="presentableId" value="LOCAL-00099" />
+      <option name="project" value="LOCAL" />
+      <updated>1769356001579</updated>
+    </task>
+    <task id="LOCAL-00100" summary="调整了文件结构">
+      <option name="closed" value="true" />
+      <created>1769433121242</created>
+      <option name="number" value="00100" />
+      <option name="presentableId" value="LOCAL-00100" />
+      <option name="project" value="LOCAL" />
+      <updated>1769433121242</updated>
+    </task>
+    <task id="LOCAL-00101" summary="清晰了代码职责">
+      <option name="closed" value="true" />
+      <created>1769433965910</created>
+      <option name="number" value="00101" />
+      <option name="presentableId" value="LOCAL-00101" />
+      <option name="project" value="LOCAL" />
+      <updated>1769433965910</updated>
+    </task>
+    <task id="LOCAL-00102" summary="清晰了ai_manager职责">
+      <option name="closed" value="true" />
+      <created>1769435405791</created>
+      <option name="number" value="00102" />
+      <option name="presentableId" value="LOCAL-00102" />
+      <option name="project" value="LOCAL" />
+      <updated>1769435405791</updated>
+    </task>
+    <task id="LOCAL-00103" summary="清晰了绝杀文本绘制职责">
+      <option name="closed" value="true" />
+      <created>1769436072090</created>
+      <option name="number" value="00103" />
+      <option name="presentableId" value="LOCAL-00103" />
+      <option name="project" value="LOCAL" />
+      <updated>1769436072090</updated>
+    </task>
+    <task id="LOCAL-00104" summary="拆分ai">
+      <option name="closed" value="true" />
+      <created>1769518064049</created>
+      <option name="number" value="00104" />
+      <option name="presentableId" value="LOCAL-00104" />
+      <option name="project" value="LOCAL" />
+      <updated>1769518064049</updated>
+    </task>
+    <task id="LOCAL-00105" summary="拆分ai">
+      <option name="closed" value="true" />
+      <created>1769519413115</created>
+      <option name="number" value="00105" />
+      <option name="presentableId" value="LOCAL-00105" />
+      <option name="project" value="LOCAL" />
+      <updated>1769519413115</updated>
+    </task>
+    <task id="LOCAL-00106" summary="优化converter">
+      <option name="closed" value="true" />
+      <created>1769520752035</created>
+      <option name="number" value="00106" />
+      <option name="presentableId" value="LOCAL-00106" />
+      <option name="project" value="LOCAL" />
+      <updated>1769520752035</updated>
+    </task>
+    <task id="LOCAL-00107" summary="优化converter">
+      <option name="closed" value="true" />
+      <created>1769521079021</created>
+      <option name="number" value="00107" />
+      <option name="presentableId" value="LOCAL-00107" />
+      <option name="project" value="LOCAL" />
+      <updated>1769521079021</updated>
+    </task>
+    <task id="LOCAL-00108" summary="拆分screen">
+      <option name="closed" value="true" />
+      <created>1769521934166</created>
+      <option name="number" value="00108" />
+      <option name="presentableId" value="LOCAL-00108" />
+      <option name="project" value="LOCAL" />
+      <updated>1769521934166</updated>
+    </task>
+    <task id="LOCAL-00109" summary="拆分screen">
+      <option name="closed" value="true" />
+      <created>1769522353202</created>
+      <option name="number" value="00109" />
+      <option name="presentableId" value="LOCAL-00109" />
+      <option name="project" value="LOCAL" />
+      <updated>1769522353202</updated>
+    </task>
+    <task id="LOCAL-00110" summary="about_screen也支持分页显示和翻页功能">
+      <option name="closed" value="true" />
+      <created>1769522464415</created>
+      <option name="number" value="00110" />
+      <option name="presentableId" value="LOCAL-00110" />
+      <option name="project" value="LOCAL" />
+      <updated>1769522464415</updated>
+    </task>
+    <task id="LOCAL-00111" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769524028337</created>
+      <option name="number" value="00111" />
+      <option name="presentableId" value="LOCAL-00111" />
+      <option name="project" value="LOCAL" />
+      <updated>1769524028337</updated>
+    </task>
+    <task id="LOCAL-00112" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769524542330</created>
+      <option name="number" value="00112" />
+      <option name="presentableId" value="LOCAL-00112" />
+      <option name="project" value="LOCAL" />
+      <updated>1769524542330</updated>
+    </task>
+    <task id="LOCAL-00113" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769525184113</created>
+      <option name="number" value="00113" />
+      <option name="presentableId" value="LOCAL-00113" />
+      <option name="project" value="LOCAL" />
+      <updated>1769525184113</updated>
+    </task>
+    <task id="LOCAL-00114" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769525746570</created>
+      <option name="number" value="00114" />
+      <option name="presentableId" value="LOCAL-00114" />
+      <option name="project" value="LOCAL" />
+      <updated>1769525746570</updated>
+    </task>
+    <task id="LOCAL-00115" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769526080392</created>
+      <option name="number" value="00115" />
+      <option name="presentableId" value="LOCAL-00115" />
+      <option name="project" value="LOCAL" />
+      <updated>1769526080392</updated>
+    </task>
+    <task id="LOCAL-00116" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769526760835</created>
+      <option name="number" value="00116" />
+      <option name="presentableId" value="LOCAL-00116" />
+      <option name="project" value="LOCAL" />
+      <updated>1769526760835</updated>
+    </task>
+    <option name="localTasksCounter" value="117" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -797,15 +825,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="最新更新" />
-    <MESSAGE value="提取step_counter" />
-    <MESSAGE value="基本跑通了replay_controller和复盘功能，但是功能未实现" />
-    <MESSAGE value="小变动，修复game.py中嵌套调用的问题" />
-    <MESSAGE value="提取ai_manager" />
-    <MESSAGE value="提取game_screen,将ui与逻辑分离" />
-    <MESSAGE value="美化了game_screen，实现按钮的归纳与梳理。" />
-    <MESSAGE value="修改了about_screen的加载逻辑，新增about.md文件。" />
-    <MESSAGE value="确保了MCTS算法能够正确地与游戏本体进行交互" />
     <MESSAGE value="统一棋子红方将帅命名为繁体的漢，刺标识为不同的字，即伺/刺，盾标识为不同的字，即楯/碷。" />
     <MESSAGE value="修复了game.py中的小error" />
     <MESSAGE value="修复了settings中的小error" />
@@ -821,7 +840,17 @@
     <MESSAGE value="尉的增强功能实现：在保持其他能力不变的前提下，新增了斜线跨越能力，同时保持了&quot;无吃子能力、仅具备控制能力&quot;的核心属性。" />
     <MESSAGE value="实现射和礌棋子在斜向移动路径中遇到&quot;与当前移动斜线交叉的两相邻棋子&quot;（即形成夹逼）时，后续路径被阻挡的功能。" />
     <MESSAGE value="增强棋子功能" />
-    <option name="LAST_COMMIT_MESSAGE" value="增强棋子功能" />
+    <MESSAGE value="小修改" />
+    <MESSAGE value="调整了文件结构" />
+    <MESSAGE value="清晰了代码职责" />
+    <MESSAGE value="清晰了ai_manager职责" />
+    <MESSAGE value="清晰了绝杀文本绘制职责" />
+    <MESSAGE value="拆分ai" />
+    <MESSAGE value="优化converter" />
+    <MESSAGE value="拆分screen" />
+    <MESSAGE value="about_screen也支持分页显示和翻页功能" />
+    <MESSAGE value="整理文件结构" />
+    <option name="LAST_COMMIT_MESSAGE" value="整理文件结构" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -833,13 +862,8 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/ui/dialogs.py</url>
-          <line>455</line>
+          <line>456</line>
           <option name="timeStamp" value="12" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/test/dun_test.py</url>
-          <line>209</line>
-          <option name="timeStamp" value="14" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/ai/mcts/load_pkl.py</url>
@@ -881,7 +905,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/lan/network_game.py</url>
-          <line>123</line>
+          <line>124</line>
           <option name="timeStamp" value="54" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -895,19 +919,9 @@
           <option name="timeStamp" value="67" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/utils/utils.py</url>
-          <line>80</line>
-          <option name="timeStamp" value="69" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/controllers/sound_manager.py</url>
-          <line>19</line>
+          <line>40</line>
           <option name="timeStamp" value="70" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/utils/utils.py</url>
-          <line>8</line>
-          <option name="timeStamp" value="73" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/core/chess_pieces.py</url>
@@ -915,49 +929,79 @@
           <option name="timeStamp" value="74" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/config/settings.py</url>
+          <url>file://$PROJECT_DIR$/program/ui/settings_screen.py</url>
           <line>1158</line>
           <option name="timeStamp" value="75" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/config/settings.py</url>
+          <url>file://$PROJECT_DIR$/program/ui/settings_screen.py</url>
           <line>9</line>
           <option name="timeStamp" value="76" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/config/settings.py</url>
+          <url>file://$PROJECT_DIR$/program/ui/settings_screen.py</url>
           <line>1044</line>
           <option name="timeStamp" value="77" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/config/settings.py</url>
+          <url>file://$PROJECT_DIR$/program/ui/settings_screen.py</url>
           <line>1403</line>
           <option name="timeStamp" value="78" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/config/settings.py</url>
+          <url>file://$PROJECT_DIR$/program/ui/settings_screen.py</url>
           <line>1300</line>
           <option name="timeStamp" value="79" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/config/settings.py</url>
+          <url>file://$PROJECT_DIR$/program/ui/settings_screen.py</url>
           <line>1329</line>
           <option name="timeStamp" value="80" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/game.py</url>
-          <line>598</line>
-          <option name="timeStamp" value="83" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/ui/menu_screen.py</url>
-          <line>674</line>
-          <option name="timeStamp" value="84" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/ui/menu_screen.py</url>
-          <line>86</line>
+          <url>file://$PROJECT_DIR$/program/ui/network_mode_screen.py</url>
+          <line>14</line>
           <option name="timeStamp" value="85" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/core/chess_pieces.py</url>
+          <line>177</line>
+          <option name="timeStamp" value="90" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/core/chess_pieces.py</url>
+          <line>34</line>
+          <option name="timeStamp" value="91" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/core/chess_pieces.py</url>
+          <line>64</line>
+          <option name="timeStamp" value="92" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/ai/chess_ai.py</url>
+          <line>13</line>
+          <option name="timeStamp" value="93" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/ui/mode_selection_screen.py</url>
+          <line>16</line>
+          <option name="timeStamp" value="95" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/controllers/ai_manager.py</url>
+          <line>9</line>
+          <option name="timeStamp" value="96" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/ui/about_screen.py</url>
+          <line>48</line>
+          <option name="timeStamp" value="98" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/utils/tools.py</url>
+          <line>132</line>
+          <option name="timeStamp" value="100" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
@@ -980,11 +1024,11 @@
     <SUITE FILE_PATH="coverage/xionghan_chess$test_ci_piece.coverage" NAME="test_ci_piece 覆盖结果" MODIFIED="1767790743910" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$game_rules.coverage" NAME="game_rules 覆盖结果" MODIFIED="1768491391284" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/core" />
     <SUITE FILE_PATH="coverage/xionghan_chess$convert_md_to_pdf.coverage" NAME="convert_md_to_pdf 覆盖结果" MODIFIED="1768905088834" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$test_local_network__1_.coverage" NAME="test_local_network (1) 覆盖结果" MODIFIED="1769167826195" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$test_local_network__1_.coverage" NAME="test_local_network (1) 覆盖结果" MODIFIED="1769526656001" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test/network_game" />
     <SUITE FILE_PATH="coverage/xionghan_chess$dun_test.coverage" NAME="dun_test 覆盖结果" MODIFIED="1767952707887" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$game_logic.coverage" NAME="game_logic 覆盖结果" MODIFIED="1766850974112" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$gen.coverage" NAME="gen 覆盖结果" MODIFIED="1768033508731" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1769355808507" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1769527341529" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_py.coverage" NAME="test_py 覆盖结果" MODIFIED="1768096345997" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$sound_manager.coverage" NAME="sound_manager 覆盖结果" MODIFIED="1768035454859" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
     <SUITE FILE_PATH="coverage/xionghan_chess$view_training_data.coverage" NAME="view_training_data 覆盖结果" MODIFIED="1768100204598" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />

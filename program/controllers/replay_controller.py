@@ -34,6 +34,20 @@ class ReplayController:
         # 原始游戏状态（用于恢复）
         self.original_state = None
     
+    @classmethod
+    def enter_replay_mode(cls, game_state):
+        """进入复盘模式的工厂方法
+        
+        Args:
+            game_state: 游戏状态对象
+            
+        Returns:
+            ReplayController: 复盘控制器实例
+        """
+        controller = cls(game_state)
+        controller.start_replay()
+        return controller
+    
     def start_replay(self):
         """开始复盘模式"""
         # 保存原始游戏状态
@@ -44,7 +58,6 @@ class ReplayController:
         temp_game_state = copy.deepcopy(self.game_state)
         
         # 重置临时状态的历史，以便从初始状态开始
-        initial_pieces = temp_game_state.pieces[:]  # 保存当前棋子
         temp_game_state.pieces = []  # 清空棋子
         # 重新初始化初始棋子
         from program.core.chess_pieces import create_initial_pieces
@@ -70,7 +83,7 @@ class ReplayController:
                 piece, from_row, from_col, to_row, to_col, captured_piece = move_record
                 temp_game_state.move_piece(from_row, from_col, to_row, to_col)
             
-            # 将执行完这步后的状态添加到历史
+            # 将执行该步的状态添加到历史
             self.history_states.append(copy.deepcopy(temp_game_state))
         
         # 如果没有历史记录，至少保存初始状态

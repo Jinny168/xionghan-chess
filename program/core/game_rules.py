@@ -759,9 +759,9 @@ class GameRules:
                 
                 # 检查是否跨越长城（到达row <= 5）
                 if to_row <= 5:  # 跨越了长城阴山
-                    # 可以进行远距离移动，但不可吃子（如果目标位置有敌子，且移动步数大于1）
+                    # 可以进行远距离移动，但不可吃子（如果目标位置有敌子，且移动的步数大于1）
                     if target_piece is not None and abs(row_diff) > 1:
-                        return False  # 移动步数大于1时不可吃子
+                        return False  # 移动的步数大于1时不可吃子
                         
                     # 移动距离限制：从当前行到第5行的最大距离
                     max_steps = from_row - 5
@@ -770,27 +770,27 @@ class GameRules:
                         for step in range(1, abs(row_diff) + 1):
                             check_row = from_row + (step * -1)  # 向前移动
                             if GameRules.get_piece_at(pieces, check_row, from_col):
-                                # 如果路径有阻挡且移动步数大于1，则不能移动
+                                # 如果路径有阻挡且移动的步数大于1，则不能移动
                                 if abs(row_diff) > 1:
                                     return False
-                                # 如果路径有阻挡但移动步数为1，可以停在阻挡处（如果目标位置是阻挡）
+                                # 如果路径有阻挡但移动的步数为1，可以停在阻挡处（如果目标位置是阻挡）
                                 if check_row == to_row:
                                     break  # 可以停在这里
                                 else:
                                     return False  # 不能跳过阻挡
                         return True
                 else:  # 没有跨越长城
-                    # 计算移动步数限制：到第5行为止的最大步数
+                    # 计算移动的步数限制：到第5行为止的最大步数
                     max_steps = from_row - 5
                     if abs(row_diff) <= max_steps and row_diff < 0:  # 向前移动，不超过最大步数
                         # 检查路径上是否有阻挡
                         for step in range(1, abs(row_diff) + 1):
                             check_row = from_row + (step * -1)  # 向前移动
                             if GameRules.get_piece_at(pieces, check_row, from_col):
-                                # 如果路径有阻挡且移动步数大于1，则不能移动
+                                # 如果路径有阻挡且移动的步数大于1，则不能移动
                                 if abs(row_diff) > 1:
                                     return False
-                                # 如果路径有阻挡但移动步数为1，可以停在阻挡处（如果目标位置是阻挡）
+                                # 如果路径有阻挡但移动的步数为1，可以停在阻挡处（如果目标位置是阻挡）
                                 if check_row == to_row:
                                     break  # 可以停在这里
                                 else:
@@ -801,8 +801,8 @@ class GameRules:
                         return False
                 
             # 2. 已跨越长城阶段（敌方半场，已过长城，即row <= 5且未到底线）
-            elif from_row <= 5 and from_row > 0:  # 已跨越长城但未到底线（第0-5行）
-                # 移动方向：保留向前走1格的能力，新增左右横向走1格的能力
+            elif 5 >= from_row > 0:  # 已跨越长城但未到底线（第0-5行）
+                # 移动方向：保留向前走1格的能力，新增左右走1格的能力
                 if not (abs(row_diff) <= 1 and abs(col_diff) <= 1 and abs(row_diff) + abs(col_diff) == 1):
                     return False
                     
@@ -844,9 +844,9 @@ class GameRules:
                 
                 # 检查是否跨越长城（到达row >= 7）
                 if to_row >= 7:  # 跨越了长城阴山
-                    # 可以进行远距离移动，但不可吃子（如果目标位置有敌子，且移动步数大于1）
+                    # 可以进行远距离移动，但不可吃子（如果目标位置有敌子，且移动的步数大于1）
                     if target_piece is not None and abs(row_diff) > 1:
-                        return False  # 移动步数大于1时不可吃子
+                        return False  # 移动的步数大于1时不可吃子
                         
                     # 移动距离限制：从当前行到第7行的最大距离
                     max_steps = 7 - from_row
@@ -855,27 +855,27 @@ class GameRules:
                         for step in range(1, abs(row_diff) + 1):
                             check_row = from_row + (step * 1)  # 向前移动
                             if GameRules.get_piece_at(pieces, check_row, from_col):
-                                # 如果路径有阻挡且移动步数大于1，则不能移动
+                                # 如果路径有阻挡且移动的步数大于1，则不能移动
                                 if abs(row_diff) > 1:
                                     return False
-                                # 如果路径有阻挡但移动步数为1，可以停在阻挡处（如果目标位置是阻挡）
+                                # 如果路径有阻挡但移动的步数为1，可以停在阻挡处（如果目标位置是阻挡）
                                 if check_row == to_row:
                                     break  # 可以停在这里
                                 else:
                                     return False  # 不能跳过阻挡
                         return True
                 else:  # 没有跨越长城
-                    # 计算移动步数限制：到第7行为止的最大步数
+                    # 计算移动的步数限制：到第7行为止的最大步数
                     max_steps = 7 - from_row
                     if abs(row_diff) <= max_steps and row_diff > 0:  # 向前移动，不超过最大步数
                         # 检查路径上是否有阻挡
                         for step in range(1, abs(row_diff) + 1):
                             check_row = from_row + (step * 1)  # 向前移动
                             if GameRules.get_piece_at(pieces, check_row, from_col):
-                                # 如果路径有阻挡且移动步数大于1，则不能移动
+                                # 如果路径有阻挡且移动的步数大于1，则不能移动
                                 if abs(row_diff) > 1:
                                     return False
-                                # 如果路径有阻挡但移动步数为1，可以停在阻挡处（如果目标位置是阻挡）
+                                # 如果路径有阻挡但移动的步数为1，可以停在阻挡处（如果目标位置是阻挡）
                                 if check_row == to_row:
                                     break  # 可以停在这里
                                 else:
@@ -886,8 +886,8 @@ class GameRules:
                         return False
                 
             # 2. 已跨越长城阶段（敌方半场，已过长城，即row >= 7且未到底线）
-            elif from_row >= 7 and from_row < 12:  # 已跨越长城但未到底线（第7-11行）
-                # 移动方向：保留向前走1格的能力，新增左右横向走1格的能力
+            elif 7 <= from_row < 12:  # 已跨越长城但未到底线（第7-11行）
+                # 移动方向：保留向前走1格的能力，新增左右走1格的能力
                 if not (abs(row_diff) <= 1 and abs(col_diff) <= 1 and abs(row_diff) + abs(col_diff) == 1):
                     return False
                     
@@ -1406,7 +1406,7 @@ class GameRules:
         """检查盾的移动是否合法
 
         盾棋子的规则：
-        - 不可被吃：任何试图移除盾的操作都会被拦截
+        - 任何敌方棋子不能吃掉它：任何试图移除盾的操作都会被拦截
         - 不能吃子：盾没有任何攻击/吃子逻辑
         - 只能直线跨越移动（移动规则同尉）
         """
@@ -1521,9 +1521,9 @@ class GameRules:
         巡/廵规则：
         1. 初始位置：分别置于河界左右两侧最边缘，即第5行和第7行的第0列和第12列
         2. 走法规则：仅能横向移动，不可纵向、斜向移动，也不可越子
-        3. 移动格数为任意偶数（2格、4格、6格等），需符合河界的限制
+        3. 移动格数为任意偶数（2格、4格、等），需符合河界的限制
         4. 河界为专属活动区域，不可离开第5行和第7行
-        5. 吃子范围限定为自身左右紧邻的第二格，仅2个目标点（左二格、右二格）
+        5. 吃子范围限定为自身左右的第二格，仅2个目标点（左二格、右二格）
         6. 吃子需满足两个条件：一是目标格有敌方棋子，二是移动路径无任何棋子阻挡
         """
         # 获取巡/廵棋子
@@ -1569,7 +1569,7 @@ class GameRules:
 
         # 检查是否是吃子移动
         if target_piece:
-            # 巡/廵只能吃左右紧邻的第二格的棋子（即移动2格到达的位置）
+            # 巡/廵只能吃左右的第二格的棋子（即移动2格到达的位置）
             if col_diff == 2:
                 # 检查是否是吃子（目标位置有敌方棋子）
                 if target_piece.color != xun_piece.color:
@@ -1705,7 +1705,7 @@ class GameRules:
                             capturable.append((to_row, to_col))
                         moves.append((to_row, to_col))
         elif isinstance(piece, Xiang):  # 相/象，走田字等
-            # 相的可能移动位置
+            # 相可移动位置
             elephant_moves = [
                 (-2, -2), (-2, 2), (2, -2), (2, 2)  # 田字
             ]
@@ -1729,7 +1729,7 @@ class GameRules:
                         (-2, 0), (2, 0), (0, -2), (0, 2)     # 隔一格直线
                     ])
             else:
-                # 如果没开启特殊能力，仍保留基本的隔一格直线移动
+                # 如果没开启特殊能力，仍保留隔一格直线移动
                 elephant_moves.extend([
                     (-2, 0), (2, 0), (0, -2), (0, 2)     # 隔一格直线
                 ])
@@ -1832,7 +1832,7 @@ class GameRules:
         elif isinstance(piece, Xun):  # 巡/廵，河界专属控场棋子
             # 巡/廵只能在河界（第5行和第7行）横向移动，移动偶数格（2, 4, 6等）
             if piece.row == 5 or piece.row == 7:  # 确保在河界
-                # 尝试左右方向移动偶数格
+                # 尝试左右移动偶数格
                 for step in [2, 4, 6, 8, 10, 12]:  # 移动2, 4, 6, 8, 10, 12格
                     # 向右移动
                     to_col_right = piece.col + step

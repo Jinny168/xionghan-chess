@@ -104,7 +104,7 @@ board_list_init = [
     # 10行
     ['一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一', '一一'],
     # 11行
-    ['一一', '一一', '一一', '红傌', '红相', '红仕', '红汉', '红仕', '红相', '红傌', '一一', '一一', '一一'],
+    ['一一', '一一', '一一', '红傌', '红相', '红仕', '红漢', '红仕', '红相', '红傌', '一一', '一一', '一一'],
     # 12行
     ['红射', '一一', '红俥', '一一', '红檑', '一一', '一一', '一一', '红檑', '一一', '红俥', '一一', '红射']
 ]
@@ -125,7 +125,7 @@ try:
         '红傌': pygame.transform.smoothscale(pygame.image.load("imgs/hongma.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
         '红相': pygame.transform.smoothscale(pygame.image.load("imgs/hongxiang.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
         '红仕': pygame.transform.smoothscale(pygame.image.load("imgs/hongshi.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
-        '红汉': pygame.transform.smoothscale(pygame.image.load("imgs/honghan.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
+        '红漢': pygame.transform.smoothscale(pygame.image.load("imgs/honghan.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
         '红炮': pygame.transform.smoothscale(pygame.image.load("imgs/hongpao.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
         '红兵': pygame.transform.smoothscale(pygame.image.load("imgs/hongbing.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
         '红檑': pygame.transform.smoothscale(pygame.image.load("imgs/honglei.png").convert_alpha(), (width // 13 - 10, height // 13 - 10)),
@@ -150,7 +150,7 @@ str2image_rect = {
     '红傌': str2image['红傌'].get_rect(),
     '红相': str2image['红相'].get_rect(),
     '红仕': str2image['红仕'].get_rect(),
-    '红汉': str2image['红汉'].get_rect(),
+    '红漢': str2image['红漢'].get_rect(),
     '红炮': str2image['红炮'].get_rect(),
     '红兵': str2image['红兵'].get_rect(),
     '红檑': str2image['红檑'].get_rect(),
@@ -201,10 +201,10 @@ def board2image(board):
                 str2image_rect['红仕'].center = (j * x_ratio + x_bais, i * y_ratio + y_bais)
                 str2image_rect_copy = copy.deepcopy(str2image_rect['红仕'])
                 return_image_rect.append((str2image['红仕'], str2image_rect_copy))
-            elif board[i][j] == '红汉':
-                str2image_rect['红汉'].center = (j * x_ratio + x_bais, i * y_ratio + y_bais)
-                str2image_rect_copy = copy.deepcopy(str2image_rect['红汉'])
-                return_image_rect.append((str2image['红汉'], str2image_rect_copy))
+            elif board[i][j] == '红漢':
+                str2image_rect['红漢'].center = (j * x_ratio + x_bais, i * y_ratio + y_bais)
+                str2image_rect_copy = copy.deepcopy(str2image_rect['红漢'])
+                return_image_rect.append((str2image['红漢'], str2image_rect_copy))
             elif board[i][j] == '红檑':
                 str2image_rect['红檑'].center = (j * x_ratio + x_bais, i * y_ratio + y_bais)
                 str2image_rect_copy = copy.deepcopy(str2image_rect['红檑'])

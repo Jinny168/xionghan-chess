@@ -192,7 +192,7 @@ class NetworkConnectScreen:
             status_messages.append(f"正在连接到服务器: {ip_address or '127.0.0.1'}")
 
             # 初始化API
-            SimpleAPI.init('CLIENT', server_addr=ip_address or "127.0.0.1")
+            SimpleAPI.init('CLIENT')
             status_messages.append("客户端初始化完成")
             connection_status = f"尝试连接到服务器: {ip_address or '127.0.0.1'}"
 

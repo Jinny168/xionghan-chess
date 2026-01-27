@@ -13,7 +13,7 @@ from program.config.config import ADDRESS, PORT, BUFFER_SIZE
 class _Base:
     """ 基本功能 """
 
-    def __init__(self, toplevel: object) -> None:  # 修改参数类型注释
+    def __init__(self) -> None:
         self.socket = socket()  # 套接字
         self.connection: socket | None = None  # 连接对象
         self.flag = False
@@ -28,7 +28,7 @@ class _Base:
             return self.socket.send(message.encode('utf-8'))
         except ConnectionResetError:
             pass
-        except Exception:
+        except OSError:
             pass
 
     def recv(self, __bufsize: int = BUFFER_SIZE) -> dict:
@@ -41,7 +41,11 @@ class _Base:
             return json.loads(data)
         except ConnectionResetError:
             pass
-        except Exception:
+        except json.JSONDecodeError:
+            pass
+        except OSError:
+            pass
+        except UnicodeDecodeError:
             pass
         return {}
 
@@ -51,16 +55,17 @@ class _Base:
         if self.socket:
             try:
                 self.socket.close()
-            except:
+            except OSError:
                 pass
 
 
 class Server(_Base):
     """ 服务端 """
 
-    def __init__(self, toplevel: object) -> None:
-        _Base.__init__(self, toplevel)
+    def __init__(self) -> None:
+        _Base.__init__(self)
         # 绑定到所有可用接口
+        self.client_address = None
         self.bound = False
         try:
             # 绑定到所有接口，这样客户端可以用127.0.0.1连接
@@ -91,7 +96,6 @@ class Server(_Base):
             try:
                 response = self.recv()
                 if 'msg' in response:
-                    code = response['msg']
                     # 设置游戏模式为局域网模式
                     XiangqiNetworkGame.set_network_mode('SERVER', self)
             except Exception as e:
@@ -101,8 +105,8 @@ class Server(_Base):
 class Client(_Base):
     """ 客户端 """
 
-    def __init__(self, toplevel: object, server_addr: str = "127.0.0.1") -> None:
-        _Base.__init__(self, toplevel)
+    def __init__(self, server_addr: str = "127.0.0.1") -> None:
+        _Base.__init__(self)
         self.server_addr = server_addr
         self.connected = False  # 添加连接状态标志
         self.connect_thread = Thread(target=self.connect_client, daemon=True)
@@ -149,11 +153,11 @@ class SimpleAPI:
     instance: Server | Client | None = None
 
     @classmethod
-    def init(cls, role: str, connection_obj=None, server_addr: str = "127.0.0.1") -> None:
+    def init(cls, role: str, connection_obj=None) -> None:
         if role == 'SERVER':
-            cls.instance = Server(connection_obj)
+            cls.instance = Server()
         else:
-            cls.instance = Client(connection_obj, server_addr)
+            cls.instance = Client(connection_obj)
 
     @classmethod
     def send(cls, **kw) -> int:

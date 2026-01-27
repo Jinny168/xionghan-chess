@@ -6,9 +6,9 @@
 import pygame
 
 from program.config.config import MODE_PVP
+from program.controllers.sound_manager import sound_manager
 from program.ui.dialogs import AudioSettingsDialog, PawnResurrectionDialog, PromotionDialog
 from program.utils import tools
-from program.utils.tools import check_sound_play
 
 
 class InputHandler:
@@ -128,7 +128,7 @@ class InputHandler:
             # 检查是否点击了同一个棋子（取消选择）
             if sel_row == row and sel_col == col:
                 game_instance.selected_piece = None
-                game_instance.board.clear_highlights()
+                game_instance.game_screen.board.clear_highlights()
                 return
 
             # 检查是否选择了另一个己方棋子（更换选择）
@@ -170,27 +170,27 @@ class InputHandler:
                 # 播放选子音效（当选择棋子时）
                 if game_instance.selected_piece and not captured_piece:
                     try:
-                        game_instance.sound_manager.play_sound('choose')  # 使用chess-master的选子音效
-                    except:
+                        sound_manager.play_sound('choose')  # 使用chess-master的选子音效
+                    except (pygame.error, KeyError, FileNotFoundError):
                         pass
                 
                 # 播放移动音效
                 if captured_piece:
                     try:
-                        game_instance.sound_manager.play_sound('eat')  # 使用chess-master的吃子音效
-                    except:
+                        sound_manager.play_sound('eat')  # 使用chess-master的吃子音效
+                    except (pygame.error, KeyError, FileNotFoundError):
                         pass
                 else:
                     try:
-                        game_instance.sound_manager.play_sound('drop')  # 使用chess-master的落子音效
-                    except:
+                        sound_manager.play_sound('drop')  # 使用chess-master的落子音效
+                    except (pygame.error, KeyError, FileNotFoundError):
                         pass
 
                 # 更新头像状态
-                game_instance.update_avatars()
+                game_instance.game_screen.update_avatars(game_instance.game_state)
 
                 # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
-                check_sound_play(game_instance)
+                sound_manager.check_and_play_game_sound(game_instance.game_state)
 
                 # 移动完成后清除所有高亮显示
                 game_instance.game_screen.board.clear_highlights()
@@ -214,7 +214,7 @@ class InputHandler:
                 # 悔棋成功
                 game_instance.selected_piece = None
                 game_instance.game_screen.board.clear_highlights()
-                game_instance.update_avatars()
+                game_instance.game_screen.update_avatars(game_instance.game_state)
 
                 # 清除上一步记录
                 game_instance.last_move = None
@@ -259,7 +259,7 @@ class InputHandler:
 
                     game_instance.selected_piece = None
                     game_instance.game_screen.board.clear_highlights()
-                    game_instance.update_avatars()
+                    game_instance.game_screen.update_avatars(game_instance.game_state)
                     return True
             else:
                 # AI回合 - 悔一步（AI刚下的或上一个玩家步骤）
@@ -267,7 +267,7 @@ class InputHandler:
                     game_instance.game_state.undo_move()
                     game_instance.selected_piece = None
                     game_instance.game_screen.board.clear_highlights()
-                    game_instance.update_avatars()
+                    game_instance.game_screen.update_avatars(game_instance.game_state)
 
                     # 如果悔棋后轮到AI行动，延迟1秒
                     if game_instance.game_state.player_turn != game_instance.player_camp:

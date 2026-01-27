@@ -3,11 +3,9 @@
 
 此模块负责处理棋局的导入和导出功能，使用FEN格式进行数据持久化
 """
-import os
-import copy
 import json
+import os
 from tkinter import filedialog
-from program.core.game_state import GameState
 
 
 class GameIOController:
@@ -144,8 +142,7 @@ class GameIOController:
             
             # 保存到文件
             with open(filename, 'w', encoding='utf-8') as f:
-                import json
-                json.dump(game_data, f, ensure_ascii=False, indent=2)
+                json.dump(game_data, f, ensure_ascii=False, indent=2)  # type: ignore
             
             print(f"游戏已保存到: {filename}")
             return True
@@ -322,7 +319,8 @@ class GameIOController:
         
         return self.export_game(game_state, full_path)
     
-    def get_saved_games(self):
+    @staticmethod
+    def get_saved_games():
         """获取已保存的游戏文件列表
         
         Returns:
@@ -339,7 +337,8 @@ class GameIOController:
         
         return sorted(saved_files, reverse=True)  # 按时间倒序排列
 
-    def _create_piece_from_data(self, piece_data):
+    @staticmethod
+    def _create_piece_from_data(piece_data):
         """根据序列化的数据创建棋子对象
         
         Args:

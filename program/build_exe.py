@@ -3,8 +3,6 @@
 PyInstaller打包脚本 - 匈汉象棋游戏
 用于将Python游戏打包成exe可执行文件
 """
-import os
-import sys
 from pathlib import Path
 
 def collect_resource_files(project_root=".", resource_dir="", extensions=None):
@@ -33,7 +31,7 @@ def collect_resource_files(project_root=".", resource_dir="", extensions=None):
 def create_spec_file():
     """创建PyInstaller spec文件"""
     # 收集声音文件
-    sounds_datas = collect_resource_files(".", "sounds", [".wav", ".mp3"])
+    sounds_datas = collect_resource_files(".", "assets/sounds", [".wav", ".mp3"])
     # 确保必要的声音文件存在
     required_sounds = [
         ("sounds/check.wav", "sounds"),
@@ -62,7 +60,7 @@ def create_spec_file():
             sounds_datas.append(sound)
 
     # 收集字体文件
-    fonts_datas = collect_resource_files(".", "fonts", [".ttf", ".ttc"])
+    fonts_datas = collect_resource_files(".", "assets/fonts", [".ttf", ".ttc"])
     # 确保必要的字体文件存在
     required_fonts = [
         ("fonts/fangsong.ttf", "fonts"),
@@ -403,7 +401,7 @@ def main():
 
         print("打包完成！生成的exe文件位于 dist/XionghanChessGame 文件夹中")
     except Exception as e:
-        print(f"打包过程中出现错误: {{e}}")
+        print(f"打包过程中出现错误: {e}")
         import traceback
         traceback.print_exc()
 

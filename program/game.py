@@ -4,12 +4,13 @@ import pygame
 
 from program.config.config import game_config
 from program.controllers.input_handler import input_handler
+from program.controllers.sound_manager import sound_manager
 from program.core.game_rules import GameRules
 from program.core.game_state import GameState
 from program.ui.dialogs import PopupDialog, AudioSettingsDialog, StatisticsDialog
 from program.ui.game_screen import GameScreen
 from program.utils import tools
-from program.controllers.sound_manager import SoundManager
+
 # 初始化PyGame
 pygame.init()
 pygame.mixer.init()  # 初始化音频模块
@@ -18,7 +19,6 @@ from program.config.config import (
     DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
     FPS,
     MODE_PVP, MODE_PVC, CAMP_RED, )
-from program.controllers.ai_manager import AIManager
 
 
 class ChessGame:
@@ -52,7 +52,8 @@ class ChessGame:
         self.game_state = GameState()
 
         # 初始化AI管理器（如果需要）
-        self.ai_manager = AIManager(game_mode, player_camp, game_settings)
+        from program.controllers.ai_manager import AIManager
+        self.ai_manager = AIManager.get_instance(game_mode, player_camp, game_settings)
 
         # 初始化界面元素
         self.game_screen = GameScreen(self.window_width, self.window_height, game_mode, player_camp)
@@ -77,10 +78,14 @@ class ChessGame:
 
         
         # 音效管理器（包含背景音乐功能）
-        self.sound_manager = SoundManager()
+        self.sound_manager = sound_manager
         # 启动背景音乐
-        self.sound_manager.toggle_music_style()  # 设置为QQ风格
-        # 如果需要FC风格，可以再次调用toggle_music_style()
+        self.sound_manager.toggle_music_style()  # 设置为QQ风格，如果需要FC风格，可以再次调用toggle_music_style()
+        
+        # 将军/绝杀提示管理器
+        from program.controllers.check_checkmate_tip_manager import CheckCheckmateTipManager
+        self.check_checkmate_tip_manager = CheckCheckmateTipManager()
+        
 
     def init_window(self):
         """初始化窗口"""
@@ -111,6 +116,11 @@ class ChessGame:
         if piece:
             self.last_move_notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
 
+        # 检查将军/绝杀状态并播放相应音效
+        # 注意：这里需要在移动完成后立即检查，以确保状态正确
+        # 使用统一的声音管理器方法
+        self.sound_manager.check_and_play_game_sound(self.game_state)
+        
         # 检查游戏是否结束
         if self.game_state.game_over:
             print(f"[DEBUG] 游戏结束检测到! 胜者: {self.game_state.winner}")
@@ -124,7 +134,7 @@ class ChessGame:
             # 绝杀时播放更明显的音效
             try:
                 self.sound_manager.play_sound('defeat')  # 播放失败音效
-            except:
+            except (AttributeError, Exception):
                 # 如果没有特定音效，播放警告音效
                 self.sound_manager.play_sound('warn')
         elif self.game_state.is_check:
@@ -140,16 +150,17 @@ class ChessGame:
         else:
             self.sound_manager.play_sound('drop')
 
+        # 检查将军/绝杀状态并播放相应音效
+        # 注意：这里需要在移动完成后立即检查，以确保状态正确
+        # 使用统一的声音管理器方法
+        self.sound_manager.check_and_play_game_sound(self.game_state)
+
         # 如果是人机对战，启动AI
         if self.ai_manager.is_ai_turn(self.game_state.player_turn):
             self.ai_manager.start_ai_thinking()
             pygame.time.set_timer(pygame.USEREVENT, 1000)  # 1秒后启动AI
 
-    def ai_move(self):
-        """AI执行走法"""
-        move = self.ai_manager.get_ai_move(self.game_state)
-        if move:
-            self.make_move(move)
+
 
     def show_game_over_popup(self):
         """显示游戏结束弹窗"""
@@ -196,7 +207,7 @@ class ChessGame:
         """切换全屏模式"""
         # 使用通用的全屏切换函数
         self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size = \
-            tools.toggle_fullscreen(self.screen, self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
+            tools.toggle_fullscreen(self.window_width, self.window_height, self.is_fullscreen, self.windowed_size)
 
         # 更新界面布局
         self.game_screen.update_layout()
@@ -267,7 +278,7 @@ class ChessGame:
                             self.game_state.player_turn = opponent_color
                             print(f"[DEBUG] 兵升变后切换玩家: {current_player} -> {opponent_color}")
                             # 更新头像状态
-                            self.update_avatars()
+                            self.game_screen.update_avatars(self.game_state)
                         elif result is False:  # 取消
                             print(f"[DEBUG] 兵升变取消: 当前玩家 {self.game_state.player_turn}")
                             # 清除升变对话框
@@ -280,7 +291,7 @@ class ChessGame:
                             print(f"[DEBUG] 兵升变取消后切换玩家: {current_player} -> {opponent_color}")
 
                             # 更新头像状态
-                            self.update_avatars()
+                            self.game_screen.update_avatars(self.game_state)
                 # 如果有复活对话框，优先处理它的事件
                 elif self.pawn_resurrection_dialog:
                     result = self.pawn_resurrection_dialog.handle_event(event, mouse_pos)
@@ -302,7 +313,7 @@ class ChessGame:
                             self.game_state.player_turn = opponent_color
 
                             # 更新头像状态
-                            self.update_avatars()
+                            self.game_screen.update_avatars(self.game_state)
                         else:  # 取消
                             # 清除复活对话框
                             self.pawn_resurrection_dialog = None
@@ -357,7 +368,7 @@ class ChessGame:
                         self.stats_dialog = None
                     elif result == "reset":
                         # 重置统计数据
-                        from program.config.statistics import statistics_manager
+                        from program.controllers.statistics_manager import statistics_manager
                         statistics_manager.reset_statistics()
                         # 重新创建对话框以更新显示
                         self.stats_dialog = StatisticsDialog()
@@ -452,7 +463,7 @@ class ChessGame:
 
                 # 如果是人机模式且轮到AI，执行当前已知最佳走法
                 if self.ai_manager.is_ai_turn(self.game_state.player_turn):
-                    self.make_random_ai_move()
+                    self.ai_manager.make_random_ai_move(self.game_state)
 
             # 更新按钮的悬停状态
             self.game_screen.update_button_states(mouse_pos)
@@ -473,6 +484,8 @@ class ChessGame:
                 self.game_screen.draw(self.screen, self.game_state, self.last_move, self.last_move_notation, 
                                      self.popup, self.confirm_dialog, self.pawn_resurrection_dialog, 
                                      self.promotion_dialog, self.audio_settings_dialog)
+                # 绘制将军/绝杀提示
+                self.check_checkmate_tip_manager.draw_tip(self.screen, self.game_state, self.game_screen.board)
             
             # 如果有统计数据对话框，绘制它
             if self.stats_dialog:
@@ -494,73 +507,41 @@ class ChessGame:
 
     def make_random_ai_move(self):
         """当AI思考超时时，执行当前已知的最优移动"""
-        if not self.ai_manager.ai or self.game_mode != MODE_PVC:
-            return
-
-        # 使用AI管理器处理超时情况
-        best_move = self.ai_manager.handle_ai_timeout(self.game_state)
-
-        if best_move:
-            self.move_after(best_move)
-
-            # 检查游戏是否结束
-            if self.game_state.game_over:
-                winner_text = self.game_state.get_winner_text()
-
-                # 更新时间数据，确保获取最终值
-                red_time, black_time = self.game_state.update_times()
-                total_time = self.game_state.total_time
-
-                # 创建弹窗并传入时间信息
-                self.popup = PopupDialog(
-                    400, 320,  # 增加高度以适应更多内容
-                    winner_text,
-                    total_time,
-                    red_time,
-                    black_time
-                )
+        return self.ai_manager.make_random_ai_move(self.game_state)
 
     def move_after(self, best_move):
-        from_pos, to_pos = best_move
-        from_row, from_col = from_pos
-        to_row, to_col = to_pos
-        # 检查目标位置是否有棋子（吃子）
-        target_piece = self.game_state.get_piece_at(to_row, to_col)
-        # 执行移动
-        self.game_state.move_piece(from_row, from_col, to_row, to_col)
-        # 记录上一步走法
-        self.last_move = (from_row, from_col, to_row, to_col)
-        # 生成上一步走法的中文表示
-        piece = self.game_state.get_piece_at(to_row, to_col)
-        if piece:
-            self.last_move_notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
+        """执行AI移动后的处理"""
+        # 委托给AIManager处理
+        from_pos, to_pos = self.ai_manager.move_after(self.game_state, best_move)
         # 播放音效
+        target_piece = self.game_state.get_piece_at(to_pos[0], to_pos[1])
         if target_piece:
             self.sound_manager.play_sound('eat')
         else:
             self.sound_manager.play_sound('drop')
         # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
 
-        tools.check_sound_play(self)
+        self.sound_manager.check_and_play_game_sound(self.game_state)
         # 更新头像状态 - 只需更新一次
-        self.update_avatars()
-
-    def update_avatars(self):
-        """更新头像状态"""
         self.game_screen.update_avatars(self.game_state)
 
     def process_async_ai_result(self):
         """处理异步AI计算结果"""
         # 使用AI管理器处理异步结果
-        move = self.ai_manager.process_async_ai_result()
+        move, game_ended = self.ai_manager.process_async_ai_computation(self.game_state)
 
         if move:
-            self.move_after(move)
+            # 检查将军/绝杀状态并播放相应音效
+            # 注意：这里需要在移动完成后立即检查，以确保状态正确
+            # 使用统一的声音管理器方法
+            self.sound_manager.check_and_play_game_sound(self.game_state)
+            
             # 检查游戏是否结束
-            if self.game_state.game_over:
+            if game_ended:
                 self.game_over_after()
 
     def game_over_after(self):
+        """处理游戏结束后的逻辑"""
         winner_text = self.game_state.get_winner_text()
         # 更新时间数据，确保获取最终值
         red_time, black_time = self.game_state.update_times()
