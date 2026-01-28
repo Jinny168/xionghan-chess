@@ -5,7 +5,7 @@
 
 import pygame
 
-from program.config.config import MODE_PVP
+from program.controllers.game_config_manager import MODE_PVP
 from program.controllers.sound_manager import sound_manager
 from program.ui.dialogs import AudioSettingsDialog, PawnResurrectionDialog, PromotionDialog
 from program.utils import tools

@@ -250,7 +250,7 @@ class MCTSAdapter:
         self.reverse_piece_name_mapping = MCTS_TO_GAME_NAME_MAP
 
         # 特殊规则设置，从游戏配置中获取
-        from program.config.config import game_config
+        from program.controllers.game_config_manager import game_config
         self.king_can_leave_palace = game_config.get_setting("king_can_leave_palace", True)  # 汉/汗是否可以出九宫
         self.king_lose_diagonal_outside_palace = game_config.get_setting("king_lose_diagonal_outside_palace",
                                                                          True)  # 汉/汗出九宫后是否失去斜走能力

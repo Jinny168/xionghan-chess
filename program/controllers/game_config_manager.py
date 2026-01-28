@@ -59,7 +59,7 @@ MODE_PVC = "pvc"
 CAMP_RED = "red"
 CAMP_BLACK = "black"
 
-class GameConfig:
+class GameConfigManager:
     """游戏配置管理类"""
     def __init__(self):
         # 初始化默认设置
@@ -131,4 +131,4 @@ class GameConfig:
                     self.settings[key] = value
 
 # 创建全局配置实例
-game_config = GameConfig()
+game_config = GameConfigManager()

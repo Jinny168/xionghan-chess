@@ -46,7 +46,7 @@ class AIManager:
         self.player_camp = player_camp
         
         # 根据游戏模式重新初始化AI（如果需要）
-        from program.config.config import MODE_PVC
+        from program.controllers.game_config_manager import MODE_PVC
         if game_mode == MODE_PVC:  # 人机模式
             if self.ai is None:  # 只在AI未初始化时创建
                 ai_algorithm = game_settings.get('ai_algorithm', 'negamax') if game_settings else 'negamax'
@@ -74,7 +74,7 @@ class AIManager:
         Returns:
             bool: 是否轮到AI行动
         """
-        from program.config.config import MODE_PVC
+        from program.controllers.game_config_manager import MODE_PVC
         return self.game_mode == MODE_PVC and current_player_turn != self.player_camp
     
     def start_ai_thinking(self):

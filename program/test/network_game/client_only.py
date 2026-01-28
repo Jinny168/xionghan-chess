@@ -15,14 +15,14 @@ if project_root not in sys.path:
 try:
     from program.lan.network_game import NetworkChessGame
     from program.lan.xhlan import SimpleAPI
-    from program.config.config import ADDRESS, PORT
+    from program.controllers.game_config_manager import ADDRESS, PORT
 except ImportError as e:
     print(f"导入错误: {e}")
     # 尝试直接从相对路径导入
     sys.path.append(os.path.join(project_root))
     from program.lan.network_game import NetworkChessGame
     from program.lan.xhlan import SimpleAPI
-    from program.config.config import ADDRESS, PORT
+    from program.controllers.game_config_manager import ADDRESS, PORT
 
 
 def run_client():

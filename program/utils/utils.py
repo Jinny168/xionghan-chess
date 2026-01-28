@@ -90,7 +90,7 @@ def draw_background(surface, background_color=None):
         surface: pygame表面对象
         background_color: 背景颜色，如果为None则使用默认的BACKGROUND_COLOR
     """
-    from program.config.config import BACKGROUND_COLOR as DEFAULT_BG_COLOR
+    from program.controllers.game_config_manager import BACKGROUND_COLOR as DEFAULT_BG_COLOR
 
     # 使用传入的背景颜色或默认背景颜色
     color = background_color if background_color is not None else DEFAULT_BG_COLOR

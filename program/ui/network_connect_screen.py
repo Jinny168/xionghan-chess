@@ -8,7 +8,7 @@ from tkinter.simpledialog import askstring
 
 import pygame
 
-from program.config.config import DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, BLACK, FPS
+from program.controllers.game_config_manager import DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, BLACK, FPS
 from program.ui.button import Button
 from program.utils.utils import load_font, draw_background
 from program.lan.xhlan import SimpleAPI

@@ -1,7 +1,7 @@
 import pygame
 import time
 
-from program.config.config import MODE_PVC, CAMP_RED
+from program.controllers.game_config_manager import MODE_PVC, CAMP_RED
 from program.game import ChessGame
 from program.lan.network_game import NetworkChessGame
 from program.ui.network_connect_screen import NetworkConnectScreen

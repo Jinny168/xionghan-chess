@@ -1,5 +1,5 @@
-from program.config.config import BOARD_SIZE
-from program.config.config import game_config
+from program.controllers.game_config_manager import BOARD_SIZE
+from program.controllers.game_config_manager import game_config
 
 
 class ChessPiece:

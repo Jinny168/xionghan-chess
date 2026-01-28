@@ -2,7 +2,7 @@ import sys
 
 import pygame
 
-from program.config.config import game_config
+from program.controllers.game_config_manager import game_config
 from program.controllers.input_handler import input_handler
 from program.controllers.sound_manager import sound_manager
 from program.core.game_rules import GameRules
@@ -15,7 +15,7 @@ from program.utils import tools
 pygame.init()
 pygame.mixer.init()  # 初始化音频模块
 
-from program.config.config import (
+from program.controllers.game_config_manager import (
     DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
     FPS,
     MODE_PVP, MODE_PVC, CAMP_RED, )

@@ -1,9 +1,9 @@
 """复盘界面，用于控制棋局复盘过程"""
 import pygame
 
-from program.config.config import (
+from program.controllers.game_config_manager import (
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO,
-    PANEL_BORDER, BLACK, RED, BACKGROUND_COLOR, PANEL_COLOR
+    PANEL_BORDER, PANEL_COLOR
 )
 from program.ui.avatar import Avatar
 from program.ui.button import Button

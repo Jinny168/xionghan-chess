@@ -7,7 +7,7 @@ import time
 from socket import socket
 from threading import Thread
 
-from program.config.config import ADDRESS, PORT, BUFFER_SIZE
+from program.controllers.game_config_manager import ADDRESS, PORT, BUFFER_SIZE
 
 
 class _Base:

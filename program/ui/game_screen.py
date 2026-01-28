@@ -1,7 +1,7 @@
 """游戏主界面UI管理模块"""
 import pygame
 
-from program.config.config import (
+from program.controllers.game_config_manager import (
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO,
     PANEL_BORDER, BLACK, RED
 )

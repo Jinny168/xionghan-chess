@@ -1,6 +1,6 @@
 import pygame
 
-from program.config.config import BLACK, RED, POPUP_BG
+from program.controllers.game_config_manager import BLACK, RED, POPUP_BG
 from program.ui.button import Button
 from program.utils.utils import load_font
 from program.controllers.statistics_manager import statistics_manager
