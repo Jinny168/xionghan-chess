@@ -23,6 +23,7 @@ def test_network_fixes():
     # 导入相关模块
     from program.lan.network_game import NetworkChessGame
     from program.lan.xhlan import SimpleAPI, XiangqiNetworkGame
+    from program.core.chess_pieces import Pawn  # 使用Pawn类
     
     # 模拟SimpleAPI
     with mock.patch.object(SimpleAPI, 'init') as mock_init, \
@@ -86,10 +87,9 @@ def test_network_fixes():
         
         # 先添加一些虚拟移动历史，以便悔棋操作可以执行
         # 创建一个虚拟的移动记录
-        from program.core.chess_pieces import Bing  # 使用任意棋子类
+        fake_piece = Pawn("red", 0, 0)  # 使用Pawn类创建一个虚拟棋子
         
         # 添加一些虚拟移动到历史记录中
-        fake_piece = Bing("red", 0, 0)  # 创建一个虚拟棋子
         fake_move_record = (fake_piece, 0, 0, 1, 1, None)  # (piece, from_row, from_col, to_row, to_col, captured_piece)
         host_game.game_state.move_history.append(fake_move_record)
         host_game.game_state.move_history.append(fake_move_record)  # 需要至少2个记录

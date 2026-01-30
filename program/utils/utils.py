@@ -165,6 +165,27 @@ def virtual_move(pieces, piece, to_row, to_col, check_function, *args):
     return result
 
 
+def draw_gradient_background(surface):
+    """绘制渐变背景
+    
+    Args:
+        surface: pygame表面对象
+    """
+    width, height = surface.get_size()
+    
+    # 创建渐变背景
+    for y in range(height):
+        # 计算渐变比例 (0.0-1.0)
+        ratio = y / height
+        
+        # 定义渐变颜色 (从浅蓝到浅紫)
+        r = int(135 + (230 - 135) * ratio)  # 从RGB(135,206,235)到RGB(230,230,250)
+        g = int(206 + (230 - 206) * ratio)
+        b = int(235 + (250 - 235) * ratio)
+        
+        pygame.draw.line(surface, (r, g, b), (0, y), (width, y))
+
+
 def print_board(pieces, step=None, show_step=True):
     """ 打印当前棋盘状态
     

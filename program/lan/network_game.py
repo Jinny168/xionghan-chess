@@ -47,7 +47,9 @@ class NetworkChessGame(ChessGame):
         self.processing_restart_request = False  # 是否正在处理重新开始请求
         
         # 记录最后移动的玩家，用于悔棋权限控制
-        self.last_moved_player = None
+        # 游戏开始时，如果是主机（红方），则红方先走，所以最后移动玩家设为红方；
+        # 如果是客户端（黑方），则等待红方先走，所以最后移动玩家设为红方
+        self.last_moved_player = "red"  # 红方总是先走
         
         # 初始化网络功能 - 在这里我们不初始化SimpleAPI实例，因为已在外部完成
         # 我们直接设置XiangqiNetworkGame的game_instance
@@ -208,6 +210,10 @@ class NetworkChessGame(ChessGame):
                     except (AttributeError, KeyError):
                         pass
 
+                # 记录最后移动的玩家（当前玩家）
+                self.last_moved_player = self.player_camp
+                print(f"[DEBUG] 记录最后移动玩家: {self.player_camp}")
+                
                 # 切换玩家回合（本地玩家移动后，轮到对手）
                 # 在网络游戏中，本地玩家移动后，应该将回合交给对手
                 # 注意：这里要确保切换到非本地玩家的阵营
@@ -273,6 +279,9 @@ class NetworkChessGame(ChessGame):
         print(f"[DEBUG] 接收对手移动: {from_row},{from_col} -> {to_row},{to_col}")
         print(f"[DEBUG] 接收前玩家回合: {self.game_state.player_turn}, 本地玩家阵营: {self.player_camp}")
         
+        # 记录最后移动的玩家（对手）
+        self.last_moved_player = "black" if self.player_camp == "red" else "red"
+        
         # 执行对手的移动
         success = self.game_state.move_piece(from_row, from_col, to_row, to_col)
         if success:
@@ -297,7 +306,7 @@ class NetworkChessGame(ChessGame):
             else:
                 try:
                     self.sound_manager.play_sound('drop')
-                except (AttributeError, KeyError):
+                except :
                     pass
 
             # 更新头像状态
@@ -313,10 +322,16 @@ class NetworkChessGame(ChessGame):
             self.update_avatars()
         else:
             print(f"[DEBUG] 对手移动执行失败: {from_row},{from_col} -> {to_row},{to_col}")
-            # 即使移动失败，也要确保状态正确
-            # 如果移动失败，仍应轮到本地玩家走棋（因为对手的移动无效）
-            self.game_state.player_turn = self.player_camp
-            print(f"[DEBUG] 移动失败，但仍切换到本地玩家: {self.player_camp}")
+            # 移动失败可能是因为违反了游戏规则或导致送将等情况
+            # 在这种情况下，需要谨慎处理状态，避免与正在进行的重启请求冲突
+            if not self.processing_restart_request:  # 如果没有在处理重启请求
+                # 如果移动失败，说明对手的移动不合法，但我们仍应切换到本地玩家回合
+                # 因为对手尝试了一次移动，只是这次移动不合法
+                self.game_state.player_turn = self.player_camp
+                print(f"[DEBUG] 移动失败，但仍切换到本地玩家: {self.player_camp}")
+                self.update_avatars()
+            else:
+                print("[DEBUG] 移动失败但正在处理重启请求，跳过玩家切换")
 
     def handle_opponent_win(self):
         """处理对手胜利的情况"""
@@ -338,22 +353,7 @@ class NetworkChessGame(ChessGame):
 
     def perform_restart(self):
         """执行重新开始游戏"""
-        # 重置游戏状态
-        self.game_state.reset()
-        
-        # 重置相关变量
-        self.selected_piece = None
-        self.last_move = None
-        self.last_move_notation = ""
-        self.popup = None
-        self.confirm_dialog = None
-        self.pawn_resurrection_dialog = None
-        self.promotion_dialog = None
-        self.undo_requested = False
-        self.restart_requested = False
-        
-        # 重置最后移动玩家
-        self.last_moved_player = None
+        self._reset_common_game_state()
         
         # 重新设置玩家回合
         if self.is_host:
@@ -363,13 +363,8 @@ class NetworkChessGame(ChessGame):
             self.game_state.player_turn = "black"  # 客户端执黑
             self.last_moved_player = "red"  # 红方先走，所以黑方等待红方走棋
         
-        # 重置界面状态
-        self.game_screen.board.clear_highlights()
-        self.game_screen.board.set_possible_moves([])
-        self.game_screen.board.set_capturable_positions([])
-        
-        # 重置头像状态
-        self.update_avatars()
+        # 更新悔棋按钮状态
+        self.update_undo_button_state()
 
     def perform_undo(self):
         """执行悔棋操作"""
@@ -385,6 +380,9 @@ class NetworkChessGame(ChessGame):
             # 更新最后移动的玩家为当前玩家（因为悔棋后轮到当前玩家走棋）
             self.last_moved_player = self.player_camp
             
+            # 更新悔棋按钮状态
+            self.update_undo_button_state()
+            
             # 更新界面
             self.selected_piece = None
             self.last_move = None
@@ -393,10 +391,12 @@ class NetworkChessGame(ChessGame):
             # 更新头像状态
             self.update_avatars()
 
-    def on_game_restarted(self):
-        """处理游戏重新开始后的状态同步"""
-        # 确保游戏状态同步
+    def _reset_common_game_state(self):
+        """重置游戏状态的公共方法"""
+        # 重置游戏状态
         self.game_state.reset()
+        
+        # 重置相关变量
         self.selected_piece = None
         self.last_move = None
         self.last_move_notation = ""
@@ -407,16 +407,8 @@ class NetworkChessGame(ChessGame):
         self.undo_requested = False
         self.restart_requested = False
         
-        # 重置最后移动玩家
-        self.last_moved_player = None
-        
-        # 重新设置玩家回合
-        if self.is_host:
-            self.game_state.player_turn = "red"  # 主机执红
-            self.last_moved_player = "red"  # 主机先走
-        else:
-            self.game_state.player_turn = "black"  # 客户端执黑
-            self.last_moved_player = "red"  # 红方先走，所以黑方等待红方走棋
+        # 重置最后移动玩家为红方（游戏开始时红方先走）
+        self.last_moved_player = "red"
         
         # 重置界面状态
         self.game_screen.board.clear_highlights()
@@ -520,11 +512,13 @@ class NetworkChessGame(ChessGame):
             
             # 检查是否点击了退出游戏按钮
             elif hasattr(self.game_screen, 'exit_button') and self.game_screen.exit_button and self.game_screen.exit_button.is_clicked(mouse_pos, event):
-                # 显示确认对话框确认退出游戏
-                self.confirm_dialog = ConfirmDialog(
-                    400, 200, "是否要退出网络对局？\n这将视为认输。"
-                )
-                self.confirm_dialog.type = "exit_game"  # 标记为退出游戏对话框
+                # 检查是否已经存在确认对话框，避免重复创建
+                if self.confirm_dialog is None:
+                    # 显示确认对话框确认退出游戏
+                    self.confirm_dialog = ConfirmDialog(
+                        400, 200, "是否要退出网络对局？\n这将视为认输。"
+                    )
+                    self.confirm_dialog.type = "exit_game"  # 标记为退出游戏对话框
 
             # 处理棋盘点击
             elif not self.game_state.game_over:
@@ -556,22 +550,32 @@ class NetworkChessGame(ChessGame):
                             
                             # 清除升变对话框
                             self.promotion_dialog = None
-            
+
+                            # 记录最后移动的玩家（当前玩家）
+                            self.last_moved_player = self.player_camp
+                            print(f"[DEBUG] 兵升变后记录最后移动玩家: {self.player_camp}")
+                            
                             # 切换玩家回合 - 升变完成后，轮到对手走棋
                             # 在网络游戏中，升变后同样需要切换到对手
                             opponent_color = "black" if self.player_camp == "red" else "red"
                             self.game_state.player_turn = opponent_color
                             print(f"[DEBUG] 兵升变后切换玩家: {self.player_camp} -> {opponent_color}")
                             self.update_avatars()
+                            
+                            # 跳过后续事件处理，防止同时处理其他操作
+                            continue
                         elif result is False:
                             # 取消升变
                             self.promotion_dialog = None
-            
+        
                             # 切换玩家回合 - 即使取消升变，走子机会也已消耗，轮到对手
                             opponent_color = "black" if self.player_camp == "red" else "red"
                             self.game_state.player_turn = opponent_color
                             print(f"[DEBUG] 兵升变取消后切换玩家: {self.player_camp} -> {opponent_color}")
                             self.update_avatars()
+                            
+                            # 跳过后续事件处理，防止同时处理其他操作
+                            continue
                 elif hasattr(self, 'pawn_resurrection_dialog') and self.pawn_resurrection_dialog is not None:
                     result = self.pawn_resurrection_dialog.handle_event(event, mouse_pos)
                     if result is not None:  # 用户已做出选择
@@ -580,27 +584,41 @@ class NetworkChessGame(ChessGame):
                             current_player = self.game_state.player_turn
                             # 获取复活位置
                             resurrection_pos = self.pawn_resurrection_dialog.position
-                            
+                        
                             # 执行复活
                             self.game_state.perform_pawn_resurrection(current_player, resurrection_pos)
                             
                             # 清除复活对话框
                             self.pawn_resurrection_dialog = None
+                        
+                            # 记录最后移动的玩家（当前玩家）
+                            self.last_moved_player = self.player_camp
+                            print(f"[DEBUG] 兵复活后记录最后移动玩家: {self.player_camp}")
                             
                             # 切换玩家回合 - 复活棋子后，轮到对手走棋
                             opponent_color = "black" if self.player_camp == "red" else "red"
                             self.game_state.player_turn = opponent_color
                             print(f"[DEBUG] 兵复活后切换玩家: {self.player_camp} -> {opponent_color}")
                             self.update_avatars()
+                            
+                            # 跳过后续事件处理，防止同时处理其他操作
+                            continue
                         else:  # 取消
                             # 清除复活对话框
                             self.pawn_resurrection_dialog = None
+                        
+                            # 记录最后移动的玩家（当前玩家）
+                            self.last_moved_player = self.player_camp
+                            print(f"[DEBUG] 兵复活取消后记录最后移动玩家: {self.player_camp}")
                             
                             # 即使取消复活，也应切换回合（因为点击了复活位置）
                             opponent_color = "black" if self.player_camp == "red" else "red"
                             self.game_state.player_turn = opponent_color
                             print(f"[DEBUG] 兵复活取消后切换玩家: {self.player_camp} -> {opponent_color}")
                             self.update_avatars()
+                            
+                            # 跳过后续事件处理，防止同时处理其他操作
+                            continue
                 elif hasattr(self, 'confirm_dialog') and self.confirm_dialog:
                     result = self.confirm_dialog.handle_event(event, mouse_pos)
                     if result is not None:
@@ -675,7 +693,7 @@ class NetworkChessGame(ChessGame):
                             # 进入复盘模式
 
                             from program.ui.replay_screen import ReplayScreen
-                            
+                        
                             # 创建复盘控制器
                             replay_controller = ReplayController.enter_replay_mode(self.game_state)
                             
@@ -720,12 +738,12 @@ class NetworkChessGame(ChessGame):
                         # 悔棋只能由最后移动的玩家发起
                         if self.last_moved_player != self.player_camp:
                             print("只有最后移动的玩家才能发起悔棋")
-                            return
-                        
+                            continue
+                    
                         # 检查是否已经发起了悔棋请求
                         if hasattr(self, 'undo_requested') and self.undo_requested:
                             print("已有悔棋请求在处理中，请稍候...")
-                            return  # 避免重复请求
+                            continue  # 避免重复请求
                         
                         # 设置请求标志
                         self.undo_requested = True
@@ -743,12 +761,12 @@ class NetworkChessGame(ChessGame):
                         # 检查是否已经发起了重新开始请求
                         if hasattr(self, 'restart_requested') and self.restart_requested:
                             print("已有重新开始请求在处理中，请稍候...")
-                            return  # 避免重复请求
+                            continue  # 避免重复请求
                         
                         # 检查是否正在处理重启请求
                         if hasattr(self, 'processing_restart_request') and self.processing_restart_request:
                             print("正在处理重启请求，请稍候...")
-                            return  # 避免重复请求
+                            continue  # 避免重复请求
                         
                         # 设置请求标志
                         self.restart_requested = True
@@ -764,11 +782,13 @@ class NetworkChessGame(ChessGame):
                     
                     # 检查是否点击了退出游戏按钮
                     elif hasattr(self.game_screen, 'exit_button') and self.game_screen.exit_button and self.game_screen.exit_button.is_clicked(mouse_pos, event):
-                        # 显示确认对话框确认退出游戏
-                        self.confirm_dialog = ConfirmDialog(
-                            400, 200, "是否要退出网络对局？\n这将视为认输。"
-                        )
-                        self.confirm_dialog.type = "exit_game"  # 标记为退出游戏对话框
+                        # 检查是否已经存在确认对话框，避免重复创建
+                        if self.confirm_dialog is None:
+                            # 显示确认对话框确认退出游戏
+                            self.confirm_dialog = ConfirmDialog(
+                                400, 200, "是否要退出网络对局？\n这将视为认输。"
+                            )
+                            self.confirm_dialog.type = "exit_game"  # 标记为退出游戏对话框
 
                     # 处理棋盘点击
                     elif not self.game_state.game_over:
@@ -776,6 +796,9 @@ class NetworkChessGame(ChessGame):
 
             # 更新按钮的悬停状态
             self.game_screen.update_button_states(mouse_pos)
+            
+            # 更新悔棋按钮的状态
+            self.update_undo_button_state()
 
             # 绘制画面
             self.draw()
@@ -854,7 +877,7 @@ class NetworkChessGame(ChessGame):
         """处理游戏重新开始确认信号 - 确保双方状态同步"""
         print("收到游戏重新开始确认，确保状态同步")
         # 确保游戏状态完全同步
-        self.on_game_restarted()
+        self.perform_restart()
     
     def update_avatars(self):
         """更新头像状态"""

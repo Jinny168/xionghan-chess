@@ -401,7 +401,7 @@ class XiangqiNetworkGame:
         print("收到游戏重新开始确认，确保状态同步")
         if cls.game_instance:
             # 确保游戏状态完全同步
-            cls.game_instance.on_game_restarted()
+            cls.game_instance.perform_restart()
     
     @classmethod
     def send_leave_game(cls):
