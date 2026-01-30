@@ -589,3 +589,127 @@ class ChessBoard:
             
             # 绘制文本
             screen.blit(text, text_rect)
+
+    def handle_click(self, pos, game_state, game_instance):
+        """处理棋盘点击事件"""
+        # 获取点击的棋盘位置
+        grid_pos = self.get_grid_position(pos)
+        if not grid_pos:
+            return
+
+        row, col = grid_pos
+
+        # 如果正在等待升变选择，不处理棋盘点击
+        if game_instance.promotion_dialog:
+            return
+
+        # 检查是否点击了空闲的兵/卒起始位置，触发复活对话框
+        # 首先检查当前玩家是否有兵/卒在局数量不足7个，且点击位置是初始兵/卒位置且为空
+        current_player = game_state.player_turn
+        if game_instance.selected_piece is None:  # 如果没有选中任何棋子
+            # 检查是否点击了兵/卒初始位置且该位置为空
+            if ((current_player == "red" and row == 8) or (current_player == "black" and row == 4)) and \
+               game_state.get_piece_at(row, col) is None:
+                # 检查当前玩家在局的兵/卒数量是否小于7
+                if game_state.get_pawn_count(current_player) < 7:
+                    # 检查是否满足复活条件
+                    resurrection_positions = game_state.get_resurrection_positions()
+                    if (row, col) in resurrection_positions[current_player]:
+                        # 弹出复活确认对话框
+                        from program.ui.dialogs import PawnResurrectionDialog
+                        game_instance.pawn_resurrection_dialog = PawnResurrectionDialog(
+                            500, 200, current_player, (row, col)
+                        )
+                        return
+
+        # 选择棋子或移动棋子
+        if game_instance.selected_piece is None:
+            # 尝试选择棋子
+            piece = game_state.get_piece_at(row, col)
+            if piece and piece.color == game_state.player_turn:
+                game_instance.selected_piece = (row, col)
+                self.highlight_position(row, col)
+
+                # 计算可能的移动位置
+                possible_moves, capturable = game_state.calculate_possible_moves(row, col)
+                self.set_possible_moves(possible_moves)
+                self.set_capturable_positions(capturable)
+        else:
+            sel_row, sel_col = game_instance.selected_piece
+
+            # 检查是否点击了同一个棋子（取消选择）
+            if sel_row == row and sel_col == col:
+                game_instance.selected_piece = None
+                self.clear_highlights()
+                return
+
+            # 检查是否选择了另一个己方棋子（更换选择）
+            new_piece = game_state.get_piece_at(row, col)
+            if new_piece and new_piece.color == game_state.player_turn:
+                game_instance.selected_piece = (row, col)
+                self.highlight_position(row, col)
+
+                # 计算新选择棋子的可能移动
+                possible_moves, capturable = game_state.calculate_possible_moves(row, col)
+                self.set_possible_moves(possible_moves)
+                self.set_capturable_positions(capturable)
+                return
+
+            # 已选择棋子，尝试移动
+            captured_piece = game_state.get_piece_at(row, col)
+            move_successful = game_state.move_piece(sel_row, sel_col, row, col)
+
+            if move_successful:
+                print(f"[DEBUG] 移动成功: {sel_row},{sel_col} -> {row},{col}")
+                # 检查是否需要升变（兵/卒到达对方底线）
+                if game_state.needs_promotion:
+                    # 获取兵的颜色
+                    pawn_color = game_state.promotion_pawn.color if game_state.promotion_pawn else game_state.player_turn
+                    print(f"[DEBUG] 需要升变: {pawn_color}方兵到达底线")
+                    # 自动弹出升变选择对话框
+                    from program.ui.dialogs import PromotionDialog
+                    game_instance.promotion_dialog = PromotionDialog(
+                        500, 400, pawn_color, (row, col), game_state.available_promotion_pieces
+                    )
+
+                # 记录上一步走法
+                game_instance.last_move = (sel_row, sel_col, row, col)
+
+                # 生成上一步走法的中文表示
+                from program.utils import tools
+                piece = game_state.get_piece_at(row, col)
+                if piece:
+                    game_instance.last_move_notation = tools.generate_move_notation(piece, sel_row, sel_col, row, col)
+
+                # 播放选子音效（当选择棋子时）
+                if game_instance.selected_piece and not captured_piece:
+                    try:
+                        from program.controllers.sound_manager import sound_manager
+                        sound_manager.play_sound('choose')  # 使用chess-master的选子音效
+                    except (pygame.error, KeyError, FileNotFoundError):
+                        pass
+                
+                # 播放移动音效
+                if captured_piece:
+                    try:
+                        from program.controllers.sound_manager import sound_manager
+                        sound_manager.play_sound('eat')  # 使用chess-master的吃子音效
+                    except (pygame.error, KeyError, FileNotFoundError):
+                        pass
+                else:
+                    try:
+                        from program.controllers.sound_manager import sound_manager
+                        sound_manager.play_sound('drop')  # 使用chess-master的落子音效
+                    except (pygame.error, KeyError, FileNotFoundError):
+                        pass
+
+                # 更新头像状态
+                game_instance.game_screen.update_avatars(game_state)
+
+                # 播放将军/绝杀音效 - 优先处理绝杀情况，避免重复播放
+                from program.controllers.sound_manager import sound_manager
+                sound_manager.check_and_play_game_sound(game_state)
+
+                # 移动完成后清除所有高亮显示
+                self.clear_highlights()
+                game_instance.selected_piece = None

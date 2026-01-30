@@ -46,6 +46,9 @@ class NetworkChessGame(ChessGame):
         self.processing_undo_request = False  # 是否正在处理悔棋请求
         self.processing_restart_request = False  # 是否正在处理重新开始请求
         
+        # 记录最后移动的玩家，用于悔棋权限控制
+        self.last_moved_player = None
+        
         # 初始化网络功能 - 在这里我们不初始化SimpleAPI实例，因为已在外部完成
         # 我们直接设置XiangqiNetworkGame的game_instance
         XiangqiNetworkGame.game_instance = self
@@ -336,7 +339,7 @@ class NetworkChessGame(ChessGame):
     def perform_restart(self):
         """执行重新开始游戏"""
         # 重置游戏状态
-        self.game_state.reset_game()
+        self.game_state.reset()
         
         # 重置相关变量
         self.selected_piece = None
@@ -349,11 +352,24 @@ class NetworkChessGame(ChessGame):
         self.undo_requested = False
         self.restart_requested = False
         
+        # 重置最后移动玩家
+        self.last_moved_player = None
+        
         # 重新设置玩家回合
         if self.is_host:
             self.game_state.player_turn = "red"  # 主机执红
+            self.last_moved_player = "red"  # 主机先走
         else:
             self.game_state.player_turn = "black"  # 客户端执黑
+            self.last_moved_player = "red"  # 红方先走，所以黑方等待红方走棋
+        
+        # 重置界面状态
+        self.game_screen.board.clear_highlights()
+        self.game_screen.board.set_possible_moves([])
+        self.game_screen.board.set_capturable_positions([])
+        
+        # 重置头像状态
+        self.update_avatars()
 
     def perform_undo(self):
         """执行悔棋操作"""
@@ -363,10 +379,52 @@ class NetworkChessGame(ChessGame):
             self.game_state.undo_move()
             self.game_state.undo_move()
             
+            # 切换回本地玩家的回合，因为悔棋后应该轮到本地玩家走棋
+            self.game_state.player_turn = self.player_camp
+            
+            # 更新最后移动的玩家为当前玩家（因为悔棋后轮到当前玩家走棋）
+            self.last_moved_player = self.player_camp
+            
             # 更新界面
             self.selected_piece = None
             self.last_move = None
             self.last_move_notation = ""
+            
+            # 更新头像状态
+            self.update_avatars()
+
+    def on_game_restarted(self):
+        """处理游戏重新开始后的状态同步"""
+        # 确保游戏状态同步
+        self.game_state.reset()
+        self.selected_piece = None
+        self.last_move = None
+        self.last_move_notation = ""
+        self.popup = None
+        self.confirm_dialog = None
+        self.pawn_resurrection_dialog = None
+        self.promotion_dialog = None
+        self.undo_requested = False
+        self.restart_requested = False
+        
+        # 重置最后移动玩家
+        self.last_moved_player = None
+        
+        # 重新设置玩家回合
+        if self.is_host:
+            self.game_state.player_turn = "red"  # 主机执红
+            self.last_moved_player = "red"  # 主机先走
+        else:
+            self.game_state.player_turn = "black"  # 客户端执黑
+            self.last_moved_player = "red"  # 红方先走，所以黑方等待红方走棋
+        
+        # 重置界面状态
+        self.game_screen.board.clear_highlights()
+        self.game_screen.board.set_possible_moves([])
+        self.game_screen.board.set_capturable_positions([])
+        
+        # 重置头像状态
+        self.update_avatars()
 
     @staticmethod
     def display_chat_message(message):
@@ -412,7 +470,14 @@ class NetworkChessGame(ChessGame):
                 self.audio_settings_dialog = AudioSettingsDialog(500, 350, self.sound_manager)
 
             # 检查是否点击了悔棋按钮
-            elif hasattr(self.game_screen, 'undo_button') and self.game_screen.undo_button and self.game_screen.undo_button.is_clicked(mouse_pos, event):
+            elif (hasattr(self.game_screen, 'undo_button') and self.game_screen.undo_button and 
+                  self.game_screen.undo_button.is_clicked(mouse_pos, event) and 
+                  hasattr(self.game_screen.undo_button, 'enabled') and self.game_screen.undo_button.enabled):
+                # 悔棋只能由最后移动的玩家发起
+                if self.last_moved_player != self.player_camp:
+                    print("只有最后移动的玩家才能发起悔棋")
+                    return
+                
                 # 检查是否已经发起了悔棋请求
                 if hasattr(self, 'undo_requested') and self.undo_requested:
                     print("已有悔棋请求在处理中，请稍候...")
@@ -649,7 +714,14 @@ class NetworkChessGame(ChessGame):
                         self.audio_settings_dialog = AudioSettingsDialog(500, 350, self.sound_manager)
 
                     # 检查是否点击了悔棋按钮
-                    elif hasattr(self.game_screen, 'undo_button') and self.game_screen.undo_button and self.game_screen.undo_button.is_clicked(mouse_pos, event):
+                    elif (hasattr(self.game_screen, 'undo_button') and self.game_screen.undo_button and 
+                          self.game_screen.undo_button.is_clicked(mouse_pos, event) and 
+                          hasattr(self.game_screen.undo_button, 'enabled') and self.game_screen.undo_button.enabled):
+                        # 悔棋只能由最后移动的玩家发起
+                        if self.last_moved_player != self.player_camp:
+                            print("只有最后移动的玩家才能发起悔棋")
+                            return
+                        
                         # 检查是否已经发起了悔棋请求
                         if hasattr(self, 'undo_requested') and self.undo_requested:
                             print("已有悔棋请求在处理中，请稍候...")
@@ -777,7 +849,25 @@ class NetworkChessGame(ChessGame):
             self.processing_restart_request = False
             # 可以显示提示信息
             pass
+
+    def handle_game_restart_confirmation(self):
+        """处理游戏重新开始确认信号 - 确保双方状态同步"""
+        print("收到游戏重新开始确认，确保状态同步")
+        # 确保游戏状态完全同步
+        self.on_game_restarted()
     
     def update_avatars(self):
         """更新头像状态"""
         self.game_screen.update_avatars(self.game_state, self.is_host)
+        
+    def update_undo_button_state(self):
+        """更新悔棋按钮的可用性状态"""
+        if hasattr(self.game_screen, 'undo_button') and self.game_screen.undo_button:
+            # 悔棋按钮只有在是最后移动的玩家时才可用
+            can_request_undo = (self.last_moved_player == self.player_camp) and not self.game_state.game_over
+            
+            # 添加一个enabled属性到按钮对象，如果不存在的话
+            if not hasattr(self.game_screen.undo_button, 'enabled'):
+                self.game_screen.undo_button.enabled = True
+            
+            self.game_screen.undo_button.enabled = can_request_undo

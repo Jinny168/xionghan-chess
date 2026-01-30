@@ -6,29 +6,15 @@
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="整理文件结构">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ai/mcts_adapter.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/mcts_adapter.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/assets/docs/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/statistics.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/network_game_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/config/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/game_config_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/ai_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/ai_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/input_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/input_handler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/core/chess_pieces.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/chess_pieces.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/core/game_rules.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_rules.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/core/game_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_state.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/controllers/statistics_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/statistics_manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/lan/network_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/lan/network_game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/lan/xhlan.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/lan/xhlan.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/test/network_game/client_only.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/network_game/client_only.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/test/network_game/server_only.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/test/network_game/server_only.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/camp_selection_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/camp_selection_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/dialogs.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/dialogs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/chess_board.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/chess_board.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/ui/game_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/game_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/mode_selection_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/mode_selection_screen.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/ui/network_connect_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/network_connect_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/network_mode_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/network_mode_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/replay_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/replay_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/settings_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/settings_screen.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -149,7 +135,7 @@
       <recent name="C:\Users\27415\PycharmProjects\xionghan-chess\program\assets" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main">
+  <component name="RunManager" selected="Python.test_local_network (1)">
     <configuration name="build_exe" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="xionghan-chess" />
       <option name="ENV_FILES" value="" />
@@ -336,8 +322,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.main" />
         <item itemvalue="Python.test_local_network (1)" />
+        <item itemvalue="Python.main" />
         <item itemvalue="Python.build_exe" />
         <item itemvalue="Python.convert_md_to_pdf" />
       </list>
@@ -409,31 +395,8 @@
       <workItem from="1769431064330" duration="6040000" />
       <workItem from="1769517575047" duration="3069000" />
       <workItem from="1769520680058" duration="7013000" />
-      <workItem from="1769610923182" duration="442000" />
-    </task>
-    <task id="LOCAL-00070" summary="提取step_counter">
-      <option name="closed" value="true" />
-      <created>1769089224065</created>
-      <option name="number" value="00070" />
-      <option name="presentableId" value="LOCAL-00070" />
-      <option name="project" value="LOCAL" />
-      <updated>1769089224065</updated>
-    </task>
-    <task id="LOCAL-00071" summary="基本跑通了replay_controller和复盘功能，但是功能未实现">
-      <option name="closed" value="true" />
-      <created>1769090381871</created>
-      <option name="number" value="00071" />
-      <option name="presentableId" value="LOCAL-00071" />
-      <option name="project" value="LOCAL" />
-      <updated>1769090381871</updated>
-    </task>
-    <task id="LOCAL-00072" summary="小变动，修复game.py中嵌套调用的问题">
-      <option name="closed" value="true" />
-      <created>1769091287072</created>
-      <option name="number" value="00072" />
-      <option name="presentableId" value="LOCAL-00072" />
-      <option name="project" value="LOCAL" />
-      <updated>1769091287072</updated>
+      <workItem from="1769610923182" duration="2006000" />
+      <workItem from="1769782485432" duration="2206000" />
     </task>
     <task id="LOCAL-00073" summary="提取ai_manager">
       <option name="closed" value="true" />
@@ -803,7 +766,31 @@
       <option name="project" value="LOCAL" />
       <updated>1769527626649</updated>
     </task>
-    <option name="localTasksCounter" value="119" />
+    <task id="LOCAL-00119" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769611551539</created>
+      <option name="number" value="00119" />
+      <option name="presentableId" value="LOCAL-00119" />
+      <option name="project" value="LOCAL" />
+      <updated>1769611551539</updated>
+    </task>
+    <task id="LOCAL-00120" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769611608684</created>
+      <option name="number" value="00120" />
+      <option name="presentableId" value="LOCAL-00120" />
+      <option name="project" value="LOCAL" />
+      <updated>1769611608684</updated>
+    </task>
+    <task id="LOCAL-00121" summary="整理文件结构">
+      <option name="closed" value="true" />
+      <created>1769611699502</created>
+      <option name="number" value="00121" />
+      <option name="presentableId" value="LOCAL-00121" />
+      <option name="project" value="LOCAL" />
+      <updated>1769611699502</updated>
+    </task>
+    <option name="localTasksCounter" value="122" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1020,6 +1007,11 @@
           <line>511</line>
           <option name="timeStamp" value="101" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/lan/network_game.py</url>
+          <line>18</line>
+          <option name="timeStamp" value="102" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
@@ -1041,11 +1033,11 @@
     <SUITE FILE_PATH="coverage/xionghan_chess$test_ci_piece.coverage" NAME="test_ci_piece 覆盖结果" MODIFIED="1767790743910" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$game_rules.coverage" NAME="game_rules 覆盖结果" MODIFIED="1768491391284" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/core" />
     <SUITE FILE_PATH="coverage/xionghan_chess$convert_md_to_pdf.coverage" NAME="convert_md_to_pdf 覆盖结果" MODIFIED="1768905088834" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$test_local_network__1_.coverage" NAME="test_local_network (1) 覆盖结果" MODIFIED="1769526656001" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test/network_game" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$test_local_network__1_.coverage" NAME="test_local_network (1) 覆盖结果" MODIFIED="1769784293717" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test/network_game" />
     <SUITE FILE_PATH="coverage/xionghan_chess$dun_test.coverage" NAME="dun_test 覆盖结果" MODIFIED="1767952707887" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/test" />
     <SUITE FILE_PATH="coverage/xionghan_chess$game_logic.coverage" NAME="game_logic 覆盖结果" MODIFIED="1766850974112" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/xionghan_chess$gen.coverage" NAME="gen 覆盖结果" MODIFIED="1768033508731" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
-    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1769527643437" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
+    <SUITE FILE_PATH="coverage/xionghan_chess$main.coverage" NAME="main 覆盖结果" MODIFIED="1769783228861" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program" />
     <SUITE FILE_PATH="coverage/xionghan_chess$test_py.coverage" NAME="test_py 覆盖结果" MODIFIED="1768096345997" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />
     <SUITE FILE_PATH="coverage/xionghan_chess$sound_manager.coverage" NAME="sound_manager 覆盖结果" MODIFIED="1768035454859" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/sounds" />
     <SUITE FILE_PATH="coverage/xionghan_chess$view_training_data.coverage" NAME="view_training_data 覆盖结果" MODIFIED="1768100204598" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/program/ai/mcts" />

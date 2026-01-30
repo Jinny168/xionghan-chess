@@ -728,6 +728,52 @@ class GameScreen:
         )
         screen.blit(black_time_surface, black_time_rect)
 
+    def handle_event(self, event, mouse_pos, game):
+        """处理界面事件"""
+        # 处理窗口大小变化
+        if event.type == pygame.VIDEORESIZE:
+            if not game.is_fullscreen:  # 只在窗口模式下处理大小变化
+                self.handle_resize((event.w, event.h))
+
+        # 处理键盘事件
+        if event.type == pygame.KEYDOWN:
+            # F11或Alt+Enter切换全屏
+            if event.key == pygame.K_F11 or (
+                    event.key == pygame.K_RETURN and
+                    pygame.key.get_mods() & pygame.KMOD_ALT
+            ):
+                game.toggle_fullscreen()
+
+        # 处理鼠标滚轮事件（用于棋谱滚动）
+        if event.type == pygame.MOUSEWHEEL:
+            # 检查鼠标是否在棋谱区域
+            right_panel_x = self.window_width - 350  # 与绘制位置保持一致
+            # 检查鼠标是否在右侧信息面板区域内
+            if right_panel_x <= mouse_pos[0] <= self.window_width - 10 and mouse_pos[1] >= 300:
+                # 滚动棋谱
+                game.history_scroll_y = max(0, game.history_scroll_y - event.y)
+                # 确保不会滚动过多
+                total_moves = len(game.game_state.move_history)
+                max_scroll = max(0, total_moves - game.history_max_visible_lines)
+                game.history_scroll_y = min(game.history_scroll_y, max_scroll)
+
+        # 处理鼠标点击
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            # 检查是否点击了全屏按钮
+            if self.fullscreen_button.is_clicked(mouse_pos, event):
+                game.toggle_fullscreen()
+            
+            # 检查是否点击了音效设置按钮
+            elif self.audio_settings_button.is_clicked(mouse_pos, event):
+                # 打开音效设置对话框
+                from program.ui.dialogs import AudioSettingsDialog
+                game.audio_settings_dialog = AudioSettingsDialog(600, 400, game.sound_manager)
+
+            # 处理棋子操作，只有在当前回合是玩家回合时才处理
+            elif not game.is_ai_thinking() and (game.game_mode == "pvp" or
+                                   game.game_state.player_turn == game.player_camp):
+                self.board.handle_click(mouse_pos, game.game_state, game)
+
     def handle_menu_events(self, event, mouse_pos, game, game_state):
         """处理菜单事件"""
         # 处理选项菜单事件
@@ -794,8 +840,7 @@ class GameScreen:
             # 操作面板切换展开/折叠，不需要进一步处理
             return "handled"
         elif op_result == "undo":
-            from program.controllers.input_handler import input_handler
-            input_handler.handle_undo(game)
+            self.handle_undo(game)
             return "handled"
         elif op_result == "restart":
             game.restart_game()
@@ -890,3 +935,95 @@ class GameScreen:
 
                 # 绘制文本
                 screen.blit(text_surface, (self.window_width - 250, start_y + i * line_spacing))
+
+    def handle_undo(self, game):
+        """处理悔棋操作"""
+        # 如果AI正在思考，不允许悔棋
+        if game.is_ai_thinking():
+            return False
+
+        # 如果游戏已经结束，先清除状态
+        if game.game_state.game_over:
+            game.popup = None
+            game.game_state.game_over = False
+
+        if game.game_mode == "pvp":  # MODE_PVP
+            # 人人模式直接悔棋
+            if game.game_state.undo_move():
+                # 悔棋成功
+                game.selected_piece = None
+                self.board.clear_highlights()
+                self.update_avatars(game.game_state)
+
+                # 清除上一步记录
+                game.last_move = None
+                game.last_move_notation = ""
+
+                # 如果还有移动历史，更新上一步记录
+                if hasattr(game.game_state, 'move_history') and len(game.game_state.move_history) > 0:
+                    last_history = game.game_state.move_history[-1]
+                    if 'from_pos' in last_history and 'to_pos' in last_history:
+                        from_row, from_col = last_history['from_pos']
+                        to_row, to_col = last_history['to_pos']
+                        game.last_move = (from_row, from_col, to_row, to_col)
+                        piece = game.game_state.get_piece_at(to_row, to_col)
+                        if piece:
+                            from program.utils import tools
+                            game.last_move_notation = tools.generate_move_notation(
+                                piece, from_row, from_col, to_row, to_col
+                            )
+
+                return True
+        else:  # 人机模式
+            # 首先停止任何AI计时器
+            import pygame
+            pygame.time.set_timer(pygame.USEREVENT + 1, 0)
+            pygame.time.set_timer(pygame.USEREVENT + 2, 0)
+            game.ai_manager.reset_ai_state()
+
+            # 移动历史为空，没有步骤可以悔棋
+            if not hasattr(game.game_state, 'move_history') or len(game.game_state.move_history) == 0:
+                return False
+
+            # 判断当前是玩家回合还是AI回合
+            is_player_turn = game.game_state.player_turn == game.player_camp
+
+            if is_player_turn:
+                # 玩家回合 - 需要悔两步（玩家和AI各一步）
+                if len(game.game_state.move_history) >= 1:
+                    # 至少有一步可以悔棋
+                    game.game_state.undo_move()  # 悔掉玩家上一步
+
+                    # 如果还有更多步骤，尝试悔掉AI的上一步
+                    if len(game.game_state.move_history) >= 1:
+                        game.game_state.undo_move()  # 悔掉AI上一步
+
+                    game.selected_piece = None
+                    self.board.clear_highlights()
+                    self.update_avatars(game.game_state)
+                    return True
+            else:
+                # AI回合 - 悔一步（AI刚下的或上一个玩家步骤）
+                if len(game.game_state.move_history) >= 1:
+                    game.game_state.undo_move()
+                    game.selected_piece = None
+                    self.board.clear_highlights()
+                    self.update_avatars(game.game_state)
+
+                    # 如果悔棋后轮到AI行动，延迟1秒
+                    if game.game_state.player_turn != game.player_camp:
+                        game.ai_manager.start_ai_thinking()
+                        pygame.time.set_timer(pygame.USEREVENT + 2, 1000)
+
+                    return True
+
+        # 重置滚动位置
+        game.history_scroll_y = 0
+
+        return False
+
+    def handle_resize(self, new_size):
+        """处理窗口大小变化"""
+        self.window_width, self.window_height = new_size
+        # 更新布局
+        self.update_layout()

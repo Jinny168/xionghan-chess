@@ -3,7 +3,6 @@ import sys
 import pygame
 
 from program.controllers.game_config_manager import game_config
-from program.controllers.input_handler import input_handler
 from program.controllers.sound_manager import sound_manager
 from program.core.game_rules import GameRules
 from program.core.game_state import GameState
@@ -220,7 +219,8 @@ class ChessGame:
 
     def handle_event(self, event, mouse_pos):
         """处理游戏事件"""
-        input_handler.handle_event(self, event, mouse_pos)
+        # 直接将事件传递给游戏界面处理
+        return self.game_screen.handle_event(event, mouse_pos, self)
 
     def run(self):
         """游戏主循环 - 统一的游戏循环处理PVP和PVC模式"""
@@ -451,8 +451,8 @@ class ChessGame:
                             self.audio_settings_dialog = AudioSettingsDialog(600, 400, self.sound_manager)
                         # 处理棋子操作
                         elif self._should_handle_player_input():  # 统一判断是否应该处理玩家输入
-                            input_handler.handle_click(self,mouse_pos)
-
+                            # 将棋子操作委托给游戏界面处理
+                            self.game_screen.handle_event(event, mouse_pos, self)
             # 检查AI是否思考超时（仅PVC模式需要）
             if (self.game_mode == MODE_PVC and self.ai_manager.ai_thinking and
                     self.ai_manager.check_ai_timeout(current_time)):

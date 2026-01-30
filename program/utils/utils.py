@@ -194,7 +194,7 @@ def print_board(pieces, step=None, show_step=True):
             else:
                 # 获取棋子名称，确保安全访问
                 cell_name = getattr(cell, 'name', None)
-                if cell_name and cell_name in '漢仕相傌俥炮兵巡射檑甲盾射刺':
+                if cell_name and cell_name in '漢仕相傌俥炮兵巡射檑甲楯射刺尉':
                     print(f'\033[32m{cell_name}\033[0m', end='')
                 elif cell_name:  # 如果有名称但不在上述列表中
                     print(f'\033[31m{cell_name}\033[0m', end='')

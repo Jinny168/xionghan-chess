@@ -5,8 +5,9 @@ import os
 from datetime import datetime
 from typing import Dict, Any
 
-# 统计数据文件路径
-STATISTICS_FILE = "./assets/docs/statistics.json"
+# 统计数据文件路径 - 使用绝对路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+STATISTICS_FILE = os.path.join(os.path.dirname(os.path.dirname(current_dir)), "assets", "docs", "statistics.json")
 
 
 class StatisticsManager:
@@ -27,7 +28,10 @@ class StatisticsManager:
                 # 文件损坏或读取错误，返回默认数据
                 return self._get_default_statistics()
         else:
-            # 文件不存在，创建默认数据
+            # 文件不存在，创建目录并返回默认数据
+            stats_dir = os.path.dirname(self.statistics_file)
+            if not os.path.exists(stats_dir):
+                os.makedirs(stats_dir, exist_ok=True)
             return self._get_default_statistics()
     
     @staticmethod
@@ -91,6 +95,11 @@ class StatisticsManager:
     def save_statistics(self):
         """保存统计数据到文件"""
         try:
+            # 确保目录存在
+            stats_dir = os.path.dirname(self.statistics_file)
+            if not os.path.exists(stats_dir):
+                os.makedirs(stats_dir, exist_ok=True)
+                
             with open(self.statistics_file, 'w', encoding='utf-8') as file:
                 json.dump(self.data, file, ensure_ascii=False, indent=4)  # type: ignore
         except Exception as e:
@@ -157,8 +166,6 @@ class StatisticsManager:
         """重置所有统计数据"""
         self.data = self._get_default_statistics()
         self.save_statistics()
-
-
 
 
 # 全局统计数据实例
