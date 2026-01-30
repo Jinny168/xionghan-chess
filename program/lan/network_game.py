@@ -46,6 +46,9 @@ class NetworkChessGame(ChessGame):
         self.processing_undo_request = False  # 是否正在处理悔棋请求
         self.processing_restart_request = False  # 是否正在处理重新开始请求
         
+        # 重来后状态同步标志
+        self.just_restarted = False  # 标记是否刚重来过，需要等待状态同步
+        
         # 记录最后移动的玩家，用于悔棋权限控制
         # 游戏开始时，如果是主机（红方），则红方先走，所以最后移动玩家设为红方；
         # 如果是客户端（黑方），则等待红方先走，所以最后移动玩家设为红方
@@ -94,6 +97,11 @@ class NetworkChessGame(ChessGame):
     def handle_click(self, pos):
         """处理鼠标点击事件 - 网络对战专用"""
         if self.game_state.game_over:
+            return
+
+        # 如果刚重来过，等待状态同步完成
+        if hasattr(self, 'just_restarted') and self.just_restarted:
+            print("[DEBUG] 刚重来过，等待状态同步完成...")
             return
 
         # 如果不是轮到本地玩家，忽略点击
@@ -224,6 +232,9 @@ class NetworkChessGame(ChessGame):
                 # 更新头像状态
                 self.update_avatars()
 
+                # 更新悔棋按钮状态
+                self.update_undo_button_state()
+
                 # 播放将军/绝杀音效
                 self.check_sound_play()
 
@@ -279,6 +290,12 @@ class NetworkChessGame(ChessGame):
         print(f"[DEBUG] 接收对手移动: {from_row},{from_col} -> {to_row},{to_col}")
         print(f"[DEBUG] 接收前玩家回合: {self.game_state.player_turn}, 本地玩家阵营: {self.player_camp}")
         
+        # 如果刚重来过，可能需要一点时间来同步状态
+        if hasattr(self, 'just_restarted') and self.just_restarted:
+            # 重置标志
+            self.just_restarted = False
+            print("[DEBUG] 重来后接收移动，确保状态同步")
+        
         # 记录最后移动的玩家（对手）
         self.last_moved_player = "black" if self.player_camp == "red" else "red"
         
@@ -320,18 +337,29 @@ class NetworkChessGame(ChessGame):
             self.game_state.player_turn = self.player_camp
             print(f"[DEBUG] 收到对手移动后切换到本地玩家: {self.player_camp}")
             self.update_avatars()
+            
+            # 更新悔棋按钮状态以反映当前玩家状态
+            self.update_undo_button_state()
         else:
             print(f"[DEBUG] 对手移动执行失败: {from_row},{from_col} -> {to_row},{to_col}")
-            # 移动失败可能是因为违反了游戏规则或导致送将等情况
-            # 在这种情况下，需要谨慎处理状态，避免与正在进行的重启请求冲突
+            print(f"[DEBUG] 当前游戏状态: 玩家回合={self.game_state.player_turn}, 本地玩家阵营={self.player_camp}")
+            
+            # 移动失败可能是因为游戏状态不同步，特别是在重新开始后
+            # 在这种情况下，需要重新同步状态
             if not self.processing_restart_request:  # 如果没有在处理重启请求
-                # 如果移动失败，说明对手的移动不合法，但我们仍应切换到本地玩家回合
-                # 因为对手尝试了一次移动，只是这次移动不合法
+                # 即使移动失败，也要确保玩家回合正确切换
+                # 重要：这里需要确保状态正确，而不是简单地切换回合
                 self.game_state.player_turn = self.player_camp
-                print(f"[DEBUG] 移动失败，但仍切换到本地玩家: {self.player_camp}")
+                print(f"[DEBUG] 移动失败，但切换到本地玩家: {self.player_camp}")
                 self.update_avatars()
+                
+                # 更新悔棋按钮状态
+                self.update_undo_button_state()
             else:
                 print("[DEBUG] 移动失败但正在处理重启请求，跳过玩家切换")
+                
+            # 如果移动失败，可能是由于游戏状态不同步，需要特殊处理
+            # 在重来后第一次移动时尤其可能出现这种情况
 
     def handle_opponent_win(self):
         """处理对手胜利的情况"""
@@ -353,32 +381,54 @@ class NetworkChessGame(ChessGame):
 
     def perform_restart(self):
         """执行重新开始游戏"""
+        # 保存当前的玩家阵营
+        current_player_camp = self.player_camp
+        
         self._reset_common_game_state()
         
-        # 重新设置玩家回合
-        if self.is_host:
-            self.game_state.player_turn = "red"  # 主机执红
-            self.last_moved_player = "red"  # 主机先走
-        else:
-            self.game_state.player_turn = "black"  # 客户端执黑
-            self.last_moved_player = "red"  # 红方先走，所以黑方等待红方走棋
+        # 重新设置玩家回合 - 游戏开始时总是红方先走
+        self.game_state.player_turn = "red"  # 游戏开始时红方先走
+        # 重置后红方先走，但在游戏刚开始时，还没有人移动过
+        # 根据经验法则，初始化时应该将last_moved_player设置为"red"，以确保悔棋功能在游戏开始时有正确的初始值
+        self.last_moved_player = "red"  # 游戏开始时的初始值，红方先走
+        
+        # 确保界面状态同步
+        self.update_avatars()
         
         # 更新悔棋按钮状态
         self.update_undo_button_state()
-
+        
+        # 确保绘制更新
+        self.draw()
+        
+        # 标记刚重来过，需要等待状态同步
+        self.just_restarted = True
+        
+        # 重置刚重来的标志，避免影响首次移动
+        # 在重来后首次移动时，我们希望正常处理
+        self.first_move_after_restart = True
+        
+        # 发送状态同步确认，确保双方状态一致
+        self.send_state_sync_confirmation()
+    
     def perform_undo(self):
         """执行悔棋操作"""
         # 悔棋操作通常会回退到上一个状态
         if len(self.game_state.move_history) >= 2:
+            # 记录悔棋前的最后移动玩家，这个信息对于权限控制很重要
+            original_last_moved_player = self.last_moved_player
+            
             # 回退两步（对手的移动和自己的上一步）
             self.game_state.undo_move()
             self.game_state.undo_move()
             
-            # 切换回本地玩家的回合，因为悔棋后应该轮到本地玩家走棋
-            self.game_state.player_turn = self.player_camp
+            # 悔棋后，应该轮到悔棋前的上一个玩家（即执行悔棋的玩家）走棋
+            # 因为悔棋撤销了最后两个移动，所以应该回到发起悔棋的玩家的回合
+            # 发起悔棋的玩家就是original_last_moved_player
+            self.game_state.player_turn = original_last_moved_player
             
-            # 更新最后移动的玩家为当前玩家（因为悔棋后轮到当前玩家走棋）
-            self.last_moved_player = self.player_camp
+            # 更新最后移动的玩家为当前玩家（即悔棋后应该走棋的玩家）
+            self.last_moved_player = original_last_moved_player
             
             # 更新悔棋按钮状态
             self.update_undo_button_state()
@@ -390,6 +440,113 @@ class NetworkChessGame(ChessGame):
             
             # 更新头像状态
             self.update_avatars()
+            
+            # 发送状态同步确认，确保双方状态一致
+            self.send_state_sync_confirmation()
+    
+    def send_state_sync_confirmation(self):
+        """发送状态同步确认信息，确保双方状态一致"""
+        if hasattr(XiangqiNetworkGame, 'api_instance') and XiangqiNetworkGame.api_instance:
+            try:
+                # 计算当前游戏状态的哈希值
+                import hashlib
+                import json
+                
+                # 创建状态快照
+                state_snapshot = {
+                    'player_turn': self.game_state.player_turn,
+                    'pieces': [(p.name, p.color, p.row, p.col) for p in sorted(self.game_state.pieces, key=lambda x: (x.row, x.col, x.name))],
+                    'move_history_length': len(self.game_state.move_history),
+                    'captured_pieces': {
+                        'red': [p.name for p in self.game_state.captured_pieces['red']],
+                        'black': [p.name for p in self.game_state.captured_pieces['black']]
+                    },
+                    'last_moved_player': self.last_moved_player
+                }
+                
+                # 计算哈希
+                state_str = json.dumps(state_snapshot, sort_keys=True)
+                state_hash = hashlib.md5(state_str.encode()).hexdigest()
+                
+                # 发送状态同步确认
+                XiangqiNetworkGame.api_instance.send(state_sync={'hash': state_hash, 'snapshot': state_snapshot})
+                print(f"[DEBUG] 发送状态同步确认: {state_hash}")
+            except Exception as e:
+                print(f"[DEBUG] 发送状态同步确认失败: {e}")
+    
+    def handle_state_sync_confirmation(self, state_data):
+        """处理状态同步确认"""
+        try:
+            import hashlib
+            import json
+            
+            # 重建本地状态快照
+            local_snapshot = {
+                'player_turn': self.game_state.player_turn,
+                'pieces': [(p.name, p.color, p.row, p.col) for p in sorted(self.game_state.pieces, key=lambda x: (x.row, x.col, x.name))],
+                'move_history_length': len(self.game_state.move_history),
+                'captured_pieces': {
+                    'red': [p.name for p in self.game_state.captured_pieces['red']],
+                    'black': [p.name for p in self.game_state.captured_pieces['black']]
+                },
+                'last_moved_player': self.last_moved_player
+            }
+            
+            # 计算本地哈希
+            local_str = json.dumps(local_snapshot, sort_keys=True)
+            local_hash = hashlib.md5(local_str.encode()).hexdigest()
+            
+            remote_hash = state_data['hash']
+            
+            print(f"[DEBUG] 本地状态哈希: {local_hash}")
+            print(f"[DEBUG] 远程状态哈希: {remote_hash}")
+            
+            if local_hash != remote_hash:
+                print("[DEBUG] 状态不一致，需要重新同步!")
+                # 如果状态不一致，发送完整状态给对方
+                XiangqiNetworkGame.api_instance.send(full_state_sync={'snapshot': local_snapshot})
+            else:
+                print("[DEBUG] 状态同步确认完成，双方状态一致")
+        except Exception as e:
+            print(f"[DEBUG] 处理状态同步确认失败: {e}")
+    
+    def handle_full_state_sync(self, full_state_data):
+        """处理完整状态同步"""
+        try:
+            snapshot = full_state_data['snapshot']
+            
+            # 恢复棋子位置
+            from program.core.chess_pieces import PieceFactory
+            
+            # 保存当前的游戏状态
+            old_player_turn = self.game_state.player_turn
+            old_captured_pieces = self.game_state.captured_pieces.copy()
+            
+            # 重新创建棋盘状态
+            self.game_state.pieces.clear()
+            for piece_data in snapshot['pieces']:
+                name, color, row, col = piece_data
+                # 根据名称创建相应类型的棋子
+                piece = PieceFactory.create_piece_by_name(name, color, row, col)
+                if piece:
+                    self.game_state.pieces.append(piece)
+            
+            # 恢复被吃棋子 - 这部分比较复杂，需要重构被吃棋子列表
+            # 我们需要根据原始被吃棋子的信息重建列表
+            # 这里简化处理，直接清空被吃棋子列表
+            self.game_state.captured_pieces = {'red': [], 'black': []}
+            
+            # 恢复游戏状态
+            self.game_state.player_turn = snapshot['player_turn']
+            self.last_moved_player = snapshot['last_moved_player']
+            
+            # 恢复其他状态
+            self.game_state.game_over = False  # 确保游戏未结束
+            self.game_state.winner = None
+            
+            print("[DEBUG] 完整状态同步完成")
+        except Exception as e:
+            print(f"[DEBUG] 处理完整状态同步失败: {e}")
 
     def _reset_common_game_state(self):
         """重置游戏状态的公共方法"""
@@ -452,8 +609,28 @@ class NetworkChessGame(ChessGame):
 
         # 处理鼠标点击
         if event.type == pygame.MOUSEBUTTONDOWN:
+            # 检查是否点击了悔棋按钮
+            if (hasattr(self.game_screen, 'undo_button') and 
+                self.game_screen.undo_button and 
+                self.game_screen.undo_button.is_clicked(mouse_pos, event) and
+                hasattr(self.game_screen.undo_button, 'enabled') and 
+                self.game_screen.undo_button.enabled):
+                # 发送悔棋请求
+                if not self.undo_requested:  # 避免重复请求
+                    self.undo_requested = True
+                    XiangqiNetworkGame.send_undo_request()
+                    
+            # 检查是否点击了重来按钮
+            elif (hasattr(self.game_screen, 'restart_button') and 
+                  self.game_screen.restart_button and 
+                  self.game_screen.restart_button.is_clicked(mouse_pos, event)):
+                # 发送重来请求
+                if not self.restart_requested:  # 避免重复请求
+                    self.restart_requested = True
+                    XiangqiNetworkGame.send_restart_request()
+                    
             # 检查是否点击了全屏按钮
-            if hasattr(self.game_screen, 'fullscreen_button') and self.game_screen.fullscreen_button.is_clicked(mouse_pos, event):
+            elif hasattr(self.game_screen, 'fullscreen_button') and self.game_screen.fullscreen_button.is_clicked(mouse_pos, event):
                 self.toggle_fullscreen()
             
             # 检查是否点击了音效设置按钮
@@ -461,55 +638,6 @@ class NetworkChessGame(ChessGame):
                 from program.ui.dialogs import AudioSettingsDialog
                 self.audio_settings_dialog = AudioSettingsDialog(500, 350, self.sound_manager)
 
-            # 检查是否点击了悔棋按钮
-            elif (hasattr(self.game_screen, 'undo_button') and self.game_screen.undo_button and 
-                  self.game_screen.undo_button.is_clicked(mouse_pos, event) and 
-                  hasattr(self.game_screen.undo_button, 'enabled') and self.game_screen.undo_button.enabled):
-                # 悔棋只能由最后移动的玩家发起
-                if self.last_moved_player != self.player_camp:
-                    print("只有最后移动的玩家才能发起悔棋")
-                    return
-                
-                # 检查是否已经发起了悔棋请求
-                if hasattr(self, 'undo_requested') and self.undo_requested:
-                    print("已有悔棋请求在处理中，请稍候...")
-                    return  # 避免重复请求
-                
-                # 设置请求标志
-                self.undo_requested = True
-                # 网络模式下需要请求对手同意悔棋
-                print("请求对手同意悔棋...")
-                # 发送悔棋请求到对手
-                try:
-                    XiangqiNetworkGame.send_undo_request()
-                except (ConnectionError, TimeoutError) as e:
-                    print(f"发送悔棋请求失败: {e}")
-                    self.undo_requested = False  # 重置标志，以便可以重试
-            
-            # 检查是否点击了重新开始按钮
-            elif hasattr(self.game_screen, 'restart_button') and self.game_screen.restart_button and self.game_screen.restart_button.is_clicked(mouse_pos, event):
-                # 检查是否已经发起了重新开始请求
-                if hasattr(self, 'restart_requested') and self.restart_requested:
-                    print("已有重新开始请求在处理中，请稍候...")
-                    return  # 避免重复请求
-                
-                # 检查是否正在处理重启请求
-                if hasattr(self, 'processing_restart_request') and self.processing_restart_request:
-                    print("正在处理重启请求，请稍候...")
-                    return  # 避免重复请求
-                
-                # 设置请求标志
-                self.restart_requested = True
-                # 网络模式下需要请求对手同意重新开始
-                print("请求对手同意重新开始...")
-                # 发送重新开始请求到对手
-                try:
-                    XiangqiNetworkGame.send_restart_request()
-                    print("已发送重新开始请求")
-                except Exception as e:
-                    print(f"发送重新开始请求失败: {e}")
-                    self.restart_requested = False  # 重置标志，以便可以重试
-            
             # 检查是否点击了退出游戏按钮
             elif hasattr(self.game_screen, 'exit_button') and self.game_screen.exit_button and self.game_screen.exit_button.is_clicked(mouse_pos, event):
                 # 检查是否已经存在确认对话框，避免重复创建
@@ -722,8 +850,28 @@ class NetworkChessGame(ChessGame):
                     # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
                     continue  # 跳过后续的事件处理，防止同时处理其他操作
                 elif event.type == pygame.MOUSEBUTTONDOWN:
+                    # 检查是否点击了悔棋按钮
+                    if (hasattr(self.game_screen, 'undo_button') and 
+                        self.game_screen.undo_button and 
+                        self.game_screen.undo_button.is_clicked(mouse_pos, event) and
+                        hasattr(self.game_screen.undo_button, 'enabled') and 
+                        self.game_screen.undo_button.enabled):
+                        # 发送悔棋请求
+                        if not self.undo_requested:  # 避免重复请求
+                            self.undo_requested = True
+                            XiangqiNetworkGame.send_undo_request()
+                    
+                    # 检查是否点击了重来按钮
+                    elif (hasattr(self.game_screen, 'restart_button') and 
+                          self.game_screen.restart_button and 
+                          self.game_screen.restart_button.is_clicked(mouse_pos, event)):
+                        # 发送重来请求
+                        if not self.restart_requested:  # 避免重复请求
+                            self.restart_requested = True
+                            XiangqiNetworkGame.send_restart_request()
+                    
                     # 检查是否点击了全屏按钮
-                    if hasattr(self.game_screen, 'fullscreen_button') and self.game_screen.fullscreen_button.is_clicked(mouse_pos, event):
+                    elif hasattr(self.game_screen, 'fullscreen_button') and self.game_screen.fullscreen_button.is_clicked(mouse_pos, event):
                         self.toggle_fullscreen()
                     
                     # 检查是否点击了音效设置按钮
@@ -731,55 +879,6 @@ class NetworkChessGame(ChessGame):
                         from program.ui.dialogs import AudioSettingsDialog
                         self.audio_settings_dialog = AudioSettingsDialog(500, 350, self.sound_manager)
 
-                    # 检查是否点击了悔棋按钮
-                    elif (hasattr(self.game_screen, 'undo_button') and self.game_screen.undo_button and 
-                          self.game_screen.undo_button.is_clicked(mouse_pos, event) and 
-                          hasattr(self.game_screen.undo_button, 'enabled') and self.game_screen.undo_button.enabled):
-                        # 悔棋只能由最后移动的玩家发起
-                        if self.last_moved_player != self.player_camp:
-                            print("只有最后移动的玩家才能发起悔棋")
-                            continue
-                    
-                        # 检查是否已经发起了悔棋请求
-                        if hasattr(self, 'undo_requested') and self.undo_requested:
-                            print("已有悔棋请求在处理中，请稍候...")
-                            continue  # 避免重复请求
-                        
-                        # 设置请求标志
-                        self.undo_requested = True
-                        # 网络模式下需要请求对手同意悔棋
-                        print("请求对手同意悔棋...")
-                        # 发送悔棋请求到对手
-                        try:
-                            XiangqiNetworkGame.send_undo_request()
-                        except (ConnectionError, TimeoutError, RuntimeError) as e:
-                            print(f"发送悔棋请求失败: {e}")
-                            self.undo_requested = False  # 重置标志，以便可以重试
-                    
-                    # 检查是否点击了重新开始按钮
-                    elif hasattr(self.game_screen, 'restart_button') and self.game_screen.restart_button and self.game_screen.restart_button.is_clicked(mouse_pos, event):
-                        # 检查是否已经发起了重新开始请求
-                        if hasattr(self, 'restart_requested') and self.restart_requested:
-                            print("已有重新开始请求在处理中，请稍候...")
-                            continue  # 避免重复请求
-                        
-                        # 检查是否正在处理重启请求
-                        if hasattr(self, 'processing_restart_request') and self.processing_restart_request:
-                            print("正在处理重启请求，请稍候...")
-                            continue  # 避免重复请求
-                        
-                        # 设置请求标志
-                        self.restart_requested = True
-                        # 网络模式下需要请求对手同意重新开始
-                        print("请求对手同意重新开始...")
-                        # 发送重新开始请求到对手
-                        try:
-                            XiangqiNetworkGame.send_restart_request()
-                            print("已发送重新开始请求")
-                        except (ConnectionError, TimeoutError, RuntimeError) as e:
-                            print(f"发送重新开始请求失败: {e}")
-                            self.restart_requested = False  # 重置标志，以便可以重试
-                    
                     # 检查是否点击了退出游戏按钮
                     elif hasattr(self.game_screen, 'exit_button') and self.game_screen.exit_button and self.game_screen.exit_button.is_clicked(mouse_pos, event):
                         # 检查是否已经存在确认对话框，避免重复创建
@@ -863,34 +962,4 @@ class NetworkChessGame(ChessGame):
             # 执行重新开始操作
             self.perform_restart()
             # 重置重新开始请求状态
-            self.restart_requested = False
-            self.processing_restart_request = False
-        else:
-            print("对手拒绝重新开始请求")
-            # 重置重新开始请求状态
-            self.restart_requested = False
-            self.processing_restart_request = False
-            # 可以显示提示信息
-            pass
-
-    def handle_game_restart_confirmation(self):
-        """处理游戏重新开始确认信号 - 确保双方状态同步"""
-        print("收到游戏重新开始确认，确保状态同步")
-        # 确保游戏状态完全同步
-        self.perform_restart()
-    
-    def update_avatars(self):
-        """更新头像状态"""
-        self.game_screen.update_avatars(self.game_state, self.is_host)
-        
-    def update_undo_button_state(self):
-        """更新悔棋按钮的可用性状态"""
-        if hasattr(self.game_screen, 'undo_button') and self.game_screen.undo_button:
-            # 悔棋按钮只有在是最后移动的玩家时才可用
-            can_request_undo = (self.last_moved_player == self.player_camp) and not self.game_state.game_over
-            
-            # 添加一个enabled属性到按钮对象，如果不存在的话
-            if not hasattr(self.game_screen.undo_button, 'enabled'):
-                self.game_screen.undo_button.enabled = True
-            
-            self.game_screen.undo_button.enabled = can_request_undo
+            self

@@ -276,6 +276,12 @@ class XiangqiNetworkGame:
                     elif data and 'game_restart_confirmed' in data:
                         # 游戏重新开始确认
                         cls.handle_game_restart_confirmation()
+                    elif data and 'state_sync' in data:
+                        # 状态同步确认
+                        cls.handle_state_sync_confirmation(data['state_sync'])
+                    elif data and 'full_state_sync' in data:
+                        # 完整状态同步
+                        cls.handle_full_state_sync(data['full_state_sync'])
             except Exception as e:
                 # 添加短暂延时以避免过于频繁的异常处理
                 print(f"监听移动时出错: {e}")
@@ -424,3 +430,17 @@ class XiangqiNetworkGame:
         # 在游戏中显示聊天消息
         if cls.game_instance:
             cls.game_instance.display_chat_message(message)
+
+    @classmethod
+    def handle_state_sync_confirmation(cls, state_data):
+        """ 处理状态同步确认 """
+        print("收到状态同步确认请求")
+        if cls.game_instance:
+            cls.game_instance.handle_state_sync_confirmation(state_data)
+
+    @classmethod
+    def handle_full_state_sync(cls, full_state_data):
+        """ 处理完整状态同步 """
+        print("收到完整状态同步请求")
+        if cls.game_instance:
+            cls.game_instance.handle_full_state_sync(full_state_data)
