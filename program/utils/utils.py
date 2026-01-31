@@ -90,7 +90,7 @@ def draw_background(surface, background_color=None):
         surface: pygame表面对象
         background_color: 背景颜色，如果为None则使用默认的BACKGROUND_COLOR
     """
-    from program.config.config import BACKGROUND_COLOR as DEFAULT_BG_COLOR
+    from program.controllers.game_config_manager import BACKGROUND_COLOR as DEFAULT_BG_COLOR
 
     # 使用传入的背景颜色或默认背景颜色
     color = background_color if background_color is not None else DEFAULT_BG_COLOR
@@ -165,6 +165,27 @@ def virtual_move(pieces, piece, to_row, to_col, check_function, *args):
     return result
 
 
+def draw_gradient_background(surface):
+    """绘制渐变背景
+    
+    Args:
+        surface: pygame表面对象
+    """
+    width, height = surface.get_size()
+    
+    # 创建渐变背景
+    for y in range(height):
+        # 计算渐变比例 (0.0-1.0)
+        ratio = y / height
+        
+        # 定义渐变颜色 (从浅蓝到浅紫)
+        r = int(135 + (230 - 135) * ratio)  # 从RGB(135,206,235)到RGB(230,230,250)
+        g = int(206 + (230 - 206) * ratio)
+        b = int(235 + (250 - 235) * ratio)
+        
+        pygame.draw.line(surface, (r, g, b), (0, y), (width, y))
+
+
 def print_board(pieces, step=None, show_step=True):
     """ 打印当前棋盘状态
     
@@ -194,7 +215,7 @@ def print_board(pieces, step=None, show_step=True):
             else:
                 # 获取棋子名称，确保安全访问
                 cell_name = getattr(cell, 'name', None)
-                if cell_name and cell_name in '漢仕相傌俥炮兵巡射檑甲盾射刺':
+                if cell_name and cell_name in '漢仕相傌俥炮兵巡射檑甲楯射刺尉':
                     print(f'\033[32m{cell_name}\033[0m', end='')
                 elif cell_name:  # 如果有名称但不在上述列表中
                     print(f'\033[31m{cell_name}\033[0m', end='')
@@ -204,3 +225,69 @@ def print_board(pieces, step=None, show_step=True):
     print()
 
 
+def draw_theme_icon(surface, x, y, diameter=40, theme="day"):
+    """绘制日夜主题切换图标
+    
+    Args:
+        surface: pygame表面对象
+        x: 图标中心x坐标
+        y: 图标中心y坐标
+        diameter: 图标直径
+        theme: 当前主题 ("day" 或 "night")
+    """
+    center_x, center_y = x, y
+    radius = diameter // 2
+    
+    if theme == "day":
+        # 阳光图标（白天主题）
+        # 主体：圆形渐变（中心#FFD700，边缘#FFA500）
+        sun_color = (255, 215, 0)  # #FFD700
+        edge_color = (255, 165, 0)  # #FFA500
+        
+        # 绘制太阳主体（带渐变效果）
+        for r in range(radius, 0, -1):
+            # 计算当前环的颜色，从中心向边缘渐变
+            ratio = r / radius
+            color = (
+                int(sun_color[0] * ratio + edge_color[0] * (1 - ratio)),
+                int(sun_color[1] * ratio + edge_color[1] * (1 - ratio)),
+                int(sun_color[2] * ratio + edge_color[2] * (1 - ratio))
+            )
+            pygame.draw.circle(surface, color, (center_x, center_y), r)
+        
+        # 装饰：8条等距射线（长度10px，颜色#FF8C00）
+        ray_color = (255, 140, 0)  # #FF8C00
+        ray_length = 10
+        import math
+        for i in range(8):
+            angle = i * (360 / 8)  # 8条射线，等距分布
+            radian = math.radians(angle)
+            start_x = center_x + (radius + 2) * math.cos(radian)
+            start_y = center_y + (radius + 2) * math.sin(radian)
+            end_x = center_x + (radius + 2 + ray_length) * math.cos(radian)
+            end_y = center_y + (radius + 2 + ray_length) * math.sin(radian)
+            pygame.draw.line(surface, ray_color, (start_x, start_y), (end_x, end_y), 2)
+    
+    else:  # night
+        # 月光图标（夜晚主题）
+        # 主体：圆形渐变（中心#E6F3FF，边缘#87CEFA）
+        moon_center_color = (230, 243, 255)  # #E6F3FF
+        moon_edge_color = (135, 206, 250)  # #87CEFA
+        
+        # 绘制月亮主体（带渐变效果）
+        for r in range(radius, 0, -1):
+            # 计算当前环的颜色，从中心向边缘渐变
+            ratio = r / radius
+            color = (
+                int(moon_center_color[0] * ratio + moon_edge_color[0] * (1 - ratio)),
+                int(moon_center_color[1] * ratio + moon_edge_color[1] * (1 - ratio)),
+                int(moon_center_color[2] * ratio + moon_edge_color[2] * (1 - ratio))
+            )
+            pygame.draw.circle(surface, color, (center_x, center_y), r)
+        
+        # 装饰：光晕效果（外扩5px，颜色#B0E0E6，透明度50%）
+        glow_radius = radius + 5
+        glow_surface = pygame.Surface((glow_radius * 2, glow_radius * 2), pygame.SRCALPHA)
+        glow_color = (176, 224, 230, 128)  # #B0E0E6 with 50% transparency
+        pygame.draw.circle(glow_surface, glow_color, (glow_radius, glow_radius), glow_radius)
+        surface.blit(glow_surface, (center_x - glow_radius, center_y - glow_radius))

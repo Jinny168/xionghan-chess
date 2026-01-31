@@ -2,7 +2,7 @@ import sys
 
 import pygame
 
-from program.config.config import (
+from program.controllers.game_config_manager import (
     DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
     BLACK, FPS
 )

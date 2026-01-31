@@ -1,9 +1,9 @@
 """复盘界面，用于控制棋局复盘过程"""
 import pygame
 
-from program.config.config import (
+from program.controllers.game_config_manager import (
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO,
-    PANEL_BORDER, BLACK, RED, BACKGROUND_COLOR, PANEL_COLOR
+    PANEL_BORDER, PANEL_COLOR
 )
 from program.ui.avatar import Avatar
 from program.ui.button import Button
@@ -240,6 +240,57 @@ class ReplayScreen:
             text_surface = font.render(step_text, True, (0, 0, 0))
             screen.blit(text_surface, (self.screen_width // 2 - text_surface.get_width() // 2, 
                                       self.progress_bar_y - 30))
+    
+    def draw_timers(self, screen):
+        """绘制计时器信息"""
+        # 获取当前的游戏状态
+        game_state = self.game_state
+        
+        # 获取当前的时间状态
+        red_time, black_time = game_state.update_times()
+        total_time = game_state.total_time
+
+        # 转换为分钟:秒格式
+        red_time_str = f"{int(red_time // 60):02}:{int(red_time % 60):02}"
+        black_time_str = f"{int(black_time // 60):02}:{int(black_time % 60):02}"
+        total_time_str = f"{int(total_time // 60):02}:{int(total_time % 60):02}"
+
+        # 创建计时器字体
+        timer_font = load_font(18)
+
+        # 绘制总时间 - 在左上角
+        total_time_surface = timer_font.render(f"对局时长: {total_time_str}", True, (0, 0, 0))
+        
+        # 为总时间文本添加背景矩形
+        total_time_rect = total_time_surface.get_rect(topleft=(10, 10))
+        total_time_bg_rect = pygame.Rect(total_time_rect.left - 5, total_time_rect.top - 3, 
+                                         total_time_rect.width + 10, total_time_rect.height + 6)
+        pygame.draw.rect(screen, (255, 255, 255, 200), total_time_bg_rect)  # 半透明白色背景
+        screen.blit(total_time_surface, (10, 10))
+
+        # 绘制红方时间 - 在红方头像下方，添加背景矩形
+        red_time_surface = timer_font.render(f"用时: {red_time_str}", True, (180, 30, 30))
+        red_time_rect = red_time_surface.get_rect(
+            center=(self.left_panel_width // 2, self.red_avatar.y + self.red_avatar.radius + 60)
+        )
+        
+        # 为红方时间添加背景矩形
+        red_time_bg_rect = pygame.Rect(red_time_rect.left - 8, red_time_rect.top - 4, 
+                                       red_time_rect.width + 16, red_time_rect.height + 8)
+        pygame.draw.rect(screen, (255, 200, 200, 180), red_time_bg_rect)  # 淡红色半透明背景
+        screen.blit(red_time_surface, red_time_rect)
+
+        # 绘制黑方时间 - 在黑方头像下方，添加背景矩形
+        black_time_surface = timer_font.render(f"用时: {black_time_str}", True, (0, 0, 0))
+        black_time_rect = black_time_surface.get_rect(
+            center=(self.left_panel_width // 2, self.black_avatar.y + self.black_avatar.radius + 60)
+        )
+        
+        # 为黑方时间添加背景矩形
+        black_time_bg_rect = pygame.Rect(black_time_rect.left - 8, black_time_rect.top - 4, 
+                                         black_time_rect.width + 16, black_time_rect.height + 8)
+        pygame.draw.rect(screen, (200, 200, 220, 180), black_time_bg_rect)  # 淡蓝色半透明背景
+        screen.blit(black_time_surface, black_time_rect)
     
     def run(self):
         """运行复盘界面"""

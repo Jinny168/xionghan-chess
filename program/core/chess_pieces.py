@@ -1,5 +1,5 @@
-from program.config.config import BOARD_SIZE
-from program.config.config import game_config
+from program.controllers.game_config_manager import BOARD_SIZE
+from program.controllers.game_config_manager import game_config
 
 
 class ChessPiece:
@@ -281,3 +281,35 @@ def create_initial_pieces():
                 pieces.append(piece_class("red", row, col))
 
     return pieces
+
+
+class PieceFactory:
+    """棋子工厂类，用于根据名称创建棋子"""
+    
+    # 棋子名称到类的映射
+    NAME_TO_CLASS_MAP = {
+        # 黑方棋子
+        '汗': King, '車': Ju, '馬': Ma, '象': Xiang, '士': Shi, '砲': Pao, '卒': Pawn,
+        '衛': Wei, '䠶': She, '礌': Lei, '胄': Jia, '伺': Ci, '碷': Dun, '廵': Xun,
+        # 红方棋子
+        '漢': King, '俥': Ju, '傌': Ma, '相': Xiang, '仕': Shi, '炮': Pao, '兵': Pawn,
+        '尉': Wei, '射': She, '檑': Lei, '甲': Jia, '刺': Ci, '楯': Dun, '巡': Xun
+    }
+    
+    @classmethod
+    def create_piece_by_name(cls, name, color, row, col):
+        """根据棋子名称创建棋子实例
+        
+        Args:
+            name (str): 棋子名称
+            color (str): 棋子颜色
+            row (int): 行坐标
+            col (int): 列坐标
+            
+        Returns:
+            ChessPiece: 棋子实例，如果找不到对应名称则返回None
+        """
+        if name in cls.NAME_TO_CLASS_MAP:
+            piece_class = cls.NAME_TO_CLASS_MAP[name]
+            return piece_class(color, row, col)
+        return None

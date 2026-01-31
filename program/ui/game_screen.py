@@ -1,9 +1,10 @@
 """游戏主界面UI管理模块"""
+import math
 import pygame
 
-from program.config.config import (
+from program.controllers.game_config_manager import (
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO,
-    PANEL_BORDER, BLACK, RED
+    BLACK, RED, theme_manager
 )
 from program.controllers.taunts_manager import taunt_manager
 from program.ui.avatar import Avatar
@@ -363,6 +364,15 @@ class GameScreen:
         self.import_button = None
         self.export_button = None
         
+        # 背景图片列表
+        self.background_images = [
+            "assets/pics/1.jpg",
+            "assets/pics/2.jpg", 
+            "assets/pics/3.jpg"
+        ]
+        self.current_bg_index = 0  # 当前背景索引
+        self.loaded_background = None  # 加载的背景图片
+        
         # 布局参数
         self.left_panel_width = None
         self.board_margin_top = None
@@ -408,6 +418,8 @@ class GameScreen:
         self.option_menu.add_item("音效设置")
         self.option_menu.add_item("", separator=True)  # 分隔符
         self.option_menu.add_item("窗口切换")
+        self.option_menu.add_item("", separator=True)  # 分隔符
+        self.option_menu.add_item("主题切换")
         self.option_menu.add_item("", separator=True)  # 分隔符
         self.option_menu.add_item("统计数据")
         
@@ -471,8 +483,15 @@ class GameScreen:
         
     def _draw_background_and_side_panel(self, screen):
         """绘制背景和左侧边栏"""
-        # 使用统一的背景绘制函数
-        draw_background(screen)
+        # 获取当前主题颜色
+        theme_colors = theme_manager.get_theme_colors()
+        
+        # 如果有加载的背景图片，则绘制背景图片
+        if self.loaded_background:
+            screen.blit(self.loaded_background, (0, 0))
+        else:
+            # 使用统一的背景绘制函数
+            draw_background(screen, theme_colors["background"])
         
         # 绘制左侧面板背景
         # 检查缓存的Surface是否仍然有效（大小匹配）
@@ -481,18 +500,26 @@ class GameScreen:
             # 创建新的缓存Surface
             self.left_panel_surface_cache = pygame.Surface((self.left_panel_width, self.window_height))
             self.left_panel_overlay_cache = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
-            self.left_panel_overlay_cache.fill((255, 255, 255, 30))  # 半透明白色覆盖，轻微增亮
             
             # 绘制背景到缓存Surface
-            draw_background(self.left_panel_surface_cache)
-            # 应用半透明覆盖
-            self.left_panel_surface_cache.blit(self.left_panel_overlay_cache, (0, 0))
+            draw_background(self.left_panel_surface_cache, theme_colors["panel"])
+            
+            # 应用更美观的渐变效果或纹理覆盖
+            overlay = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
+            # 创建渐变效果，使左侧面板更具层次感
+            for y in range(self.window_height):
+                # 根据y位置计算透明度，创建垂直渐变效果
+                alpha = 20 + int(10 * abs(math.sin(y / 100.0)))  # 轻微的垂直变化
+                overlay_color = (255, 255, 255, alpha)
+                pygame.draw.line(overlay, overlay_color, (0, y), (self.left_panel_width, y))
+            
+            self.left_panel_surface_cache.blit(overlay, (0, 0))
         
         # 应用到主界面
         screen.blit(self.left_panel_surface_cache, (0, 0))
         
         # 添加分隔线
-        pygame.draw.line(screen, PANEL_BORDER, (self.left_panel_width, 0),
+        pygame.draw.line(screen, theme_colors["panel_border"], (self.left_panel_width, 0),
                          (self.left_panel_width, self.window_height), 2)
         
     def create_buttons(self):
@@ -551,6 +578,8 @@ class GameScreen:
             self.red_avatar.player_name = "红方"
             self.black_avatar.player_name = "黑方"
 
+
+
     def update_button_states(self, mouse_pos):
         """更新按钮悬停状态"""
         # 更新全屏按钮悬停状态
@@ -559,6 +588,7 @@ class GameScreen:
         # 更新音效设置按钮悬停状态
         if self.audio_settings_button:
             self.audio_settings_button.check_hover(mouse_pos)
+
         
         # 更新菜单悬停状态
         self.option_menu.check_hover(mouse_pos)
@@ -663,6 +693,8 @@ class GameScreen:
             self.taunt_animation.update()
             self.taunt_animation.draw(screen)
 
+        # 主题切换功能已迁移到菜单栏中
+
         # 如果游戏结束，显示弹窗
         if popup:
             popup.draw(screen)
@@ -712,21 +744,85 @@ class GameScreen:
 
         # 绘制总时间 - 在左上角，但避开菜单栏
         total_time_surface = self.timer_font.render(f"对局时长: {total_time_str}", True, BLACK)
-        screen.blit(total_time_surface, (10, 45))  # 将Y坐标从10改为45，避开菜单
+        
+        # 为总时间文本添加背景矩形
+        total_time_rect = total_time_surface.get_rect(topleft=(10, 45))
+        total_time_bg_rect = pygame.Rect(total_time_rect.left - 5, total_time_rect.top - 3, 
+                                         total_time_rect.width + 10, total_time_rect.height + 6)
+        pygame.draw.rect(screen, (255, 255, 255, 200), total_time_bg_rect)  # 半透明白色背景
+        screen.blit(total_time_surface, (10, 45))
 
-        # 绘制红方时间 - 在红方头像下方
+        # 绘制红方时间 - 在红方头像下方，添加背景矩形
         red_time_surface = self.timer_font.render(f"用时: {red_time_str}", True, RED)
         red_time_rect = red_time_surface.get_rect(
-            center=(self.left_panel_width // 2, self.red_avatar.y + self.red_avatar.radius + 60)  # 增加间距
+            center=(self.left_panel_width // 2, self.red_avatar.y + self.red_avatar.radius + 60)
         )
+        
+        # 为红方时间添加背景矩形
+        red_time_bg_rect = pygame.Rect(red_time_rect.left - 8, red_time_rect.top - 4, 
+                                       red_time_rect.width + 16, red_time_rect.height + 8)
+        pygame.draw.rect(screen, (255, 200, 200, 180), red_time_bg_rect)  # 淡红色半透明背景
         screen.blit(red_time_surface, red_time_rect)
 
-        # 绘制黑方时间 - 在黑方头像下方
+        # 绘制黑方时间 - 在黑方头像下方，添加背景矩形
         black_time_surface = self.timer_font.render(f"用时: {black_time_str}", True, BLACK)
         black_time_rect = black_time_surface.get_rect(
-            center=(self.left_panel_width // 2, self.black_avatar.y + self.black_avatar.radius + 60)  # 增加间距
+            center=(self.left_panel_width // 2, self.black_avatar.y + self.black_avatar.radius + 60)
         )
+        
+        # 为黑方时间添加背景矩形
+        black_time_bg_rect = pygame.Rect(black_time_rect.left - 8, black_time_rect.top - 4, 
+                                         black_time_rect.width + 16, black_time_rect.height + 8)
+        pygame.draw.rect(screen, (200, 200, 220, 180), black_time_bg_rect)  # 淡蓝色半透明背景
         screen.blit(black_time_surface, black_time_rect)
+
+    def handle_event(self, event, mouse_pos, game):
+        """处理界面事件"""
+        # 处理窗口大小变化
+        if event.type == pygame.VIDEORESIZE:
+            if not game.is_fullscreen:  # 只在窗口模式下处理大小变化
+                self.handle_resize((event.w, event.h))
+
+        # 处理键盘事件
+        if event.type == pygame.KEYDOWN:
+            # F11或Alt+Enter切换全屏
+            if event.key == pygame.K_F11 or (
+                    event.key == pygame.K_RETURN and
+                    pygame.key.get_mods() & pygame.KMOD_ALT
+            ):
+                game.toggle_fullscreen()
+
+        # 处理鼠标滚轮事件（用于棋谱滚动）
+        if event.type == pygame.MOUSEWHEEL:
+            # 检查鼠标是否在棋谱区域
+            right_panel_x = self.window_width - 350  # 与绘制位置保持一致
+            # 检查鼠标是否在右侧信息面板区域内
+            if right_panel_x <= mouse_pos[0] <= self.window_width - 10 and mouse_pos[1] >= 300:
+                # 滚动棋谱
+                game.history_scroll_y = max(0, game.history_scroll_y - event.y)
+                # 确保不会滚动过多
+                total_moves = len(game.game_state.move_history)
+                max_scroll = max(0, total_moves - game.history_max_visible_lines)
+                game.history_scroll_y = min(game.history_scroll_y, max_scroll)
+
+        # 处理鼠标点击
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            # 检查是否点击了全屏按钮
+            if self.fullscreen_button.is_clicked(mouse_pos, event):
+                game.toggle_fullscreen()
+            
+            # 检查是否点击了音效设置按钮
+            elif self.audio_settings_button.is_clicked(mouse_pos, event):
+                # 打开音效设置对话框
+                from program.ui.dialogs import AudioSettingsDialog
+                game.audio_settings_dialog = AudioSettingsDialog(600, 400, game.sound_manager)
+            
+
+
+            # 处理棋子操作，只有在当前回合是玩家回合时才处理
+            elif not game.is_ai_thinking() and (game.game_mode == "pvp" or
+                                   game.game_state.player_turn == game.player_camp):
+                self.board.handle_click(mouse_pos, game.game_state, game)
 
     def handle_menu_events(self, event, mouse_pos, game, game_state):
         """处理菜单事件"""
@@ -763,6 +859,11 @@ class GameScreen:
             from program.ui.dialogs import StatisticsDialog
             game.stats_dialog = StatisticsDialog()
             return "handled"
+        elif option_result == "主题切换":
+            # 切换主题
+            # 使用主题管理器的切换功能，支持所有主题
+            theme_manager.toggle_theme()
+            return "handled"
         
         # 处理帮助菜单事件
         help_result = self.help_menu.handle_event(event, mouse_pos)
@@ -794,8 +895,7 @@ class GameScreen:
             # 操作面板切换展开/折叠，不需要进一步处理
             return "handled"
         elif op_result == "undo":
-            from program.controllers.input_handler import input_handler
-            input_handler.handle_undo(game)
+            self.handle_undo(game)
             return "handled"
         elif op_result == "restart":
             game.restart_game()
@@ -890,3 +990,95 @@ class GameScreen:
 
                 # 绘制文本
                 screen.blit(text_surface, (self.window_width - 250, start_y + i * line_spacing))
+
+    def handle_undo(self, game):
+        """处理悔棋操作"""
+        # 如果AI正在思考，不允许悔棋
+        if game.is_ai_thinking():
+            return False
+
+        # 如果游戏已经结束，先清除状态
+        if game.game_state.game_over:
+            game.popup = None
+            game.game_state.game_over = False
+
+        if game.game_mode == "pvp":  # MODE_PVP
+            # 人人模式直接悔棋
+            if game.game_state.undo_move():
+                # 悔棋成功
+                game.selected_piece = None
+                self.board.clear_highlights()
+                self.update_avatars(game.game_state)
+
+                # 清除上一步记录
+                game.last_move = None
+                game.last_move_notation = ""
+
+                # 如果还有移动历史，更新上一步记录
+                if hasattr(game.game_state, 'move_history') and len(game.game_state.move_history) > 0:
+                    last_history = game.game_state.move_history[-1]
+                    if 'from_pos' in last_history and 'to_pos' in last_history:
+                        from_row, from_col = last_history['from_pos']
+                        to_row, to_col = last_history['to_pos']
+                        game.last_move = (from_row, from_col, to_row, to_col)
+                        piece = game.game_state.get_piece_at(to_row, to_col)
+                        if piece:
+                            from program.utils import tools
+                            game.last_move_notation = tools.generate_move_notation(
+                                piece, from_row, from_col, to_row, to_col
+                            )
+
+                return True
+        else:  # 人机模式
+            # 首先停止任何AI计时器
+            import pygame
+            pygame.time.set_timer(pygame.USEREVENT + 1, 0)
+            pygame.time.set_timer(pygame.USEREVENT + 2, 0)
+            game.ai_manager.reset_ai_state()
+
+            # 移动历史为空，没有步骤可以悔棋
+            if not hasattr(game.game_state, 'move_history') or len(game.game_state.move_history) == 0:
+                return False
+
+            # 判断当前是玩家回合还是AI回合
+            is_player_turn = game.game_state.player_turn == game.player_camp
+
+            if is_player_turn:
+                # 玩家回合 - 需要悔两步（玩家和AI各一步）
+                if len(game.game_state.move_history) >= 1:
+                    # 至少有一步可以悔棋
+                    game.game_state.undo_move()  # 悔掉玩家上一步
+
+                    # 如果还有更多步骤，尝试悔掉AI的上一步
+                    if len(game.game_state.move_history) >= 1:
+                        game.game_state.undo_move()  # 悔掉AI上一步
+
+                    game.selected_piece = None
+                    self.board.clear_highlights()
+                    self.update_avatars(game.game_state)
+                    return True
+            else:
+                # AI回合 - 悔一步（AI刚下的或上一个玩家步骤）
+                if len(game.game_state.move_history) >= 1:
+                    game.game_state.undo_move()
+                    game.selected_piece = None
+                    self.board.clear_highlights()
+                    self.update_avatars(game.game_state)
+
+                    # 如果悔棋后轮到AI行动，延迟1秒
+                    if game.game_state.player_turn != game.player_camp:
+                        game.ai_manager.start_ai_thinking()
+                        pygame.time.set_timer(pygame.USEREVENT + 2, 1000)
+
+                    return True
+
+        # 重置滚动位置
+        game.history_scroll_y = 0
+
+        return False
+
+    def handle_resize(self, new_size):
+        """处理窗口大小变化"""
+        self.window_width, self.window_height = new_size
+        # 更新布局
+        self.update_layout()

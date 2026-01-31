@@ -1,5 +1,5 @@
 from program.core.chess_pieces import ChessPiece, Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun
-from program.config.config import game_config
+from program.controllers.game_config_manager import game_config
 
 class GameRules:
     """匈汉象棋游戏规则类，负责验证移动的合法性和胜负判定"""
@@ -193,7 +193,7 @@ class GameRules:
             if isinstance(p, Wei) and GameRules.is_facing_enemy(p, pieces):
                 facing_target = GameRules.get_facing_piece(p, pieces)
                 # 如果移动的正是被照面限制的棋子，且不是尉/衛本身，则不允许移动
-                if piece == facing_target:
+                if piece == facing_target and piece != p:
                     return False
         
         # 根据棋子类型检查移动是否符合规则
@@ -1358,16 +1358,7 @@ class GameRules:
         if target_piece is not None:
             return False
 
-        # 检查被尉照面的限制
-        piece = GameRules.get_piece_at(pieces, from_row, from_col)
-        if piece and isinstance(piece, Ci):  # 检查移动的棋子是否是刺
-            # 检查是否有敌方尉与当前刺照面
-            for p in pieces:
-                if isinstance(p, Wei) and p.color != color:  # 敌方尉
-                    if GameRules.is_facing_enemy(p, pieces):  # 如果尉与其他棋子照面
-                        facing_target = GameRules.get_facing_piece(p, pieces)  # 获取被照面的棋子
-                        if facing_target == piece:  # 如果被照面的就是当前刺
-                            return False  # 被尉照面的刺禁止移动
+
 
         # 检查移动前起始位置的反方向一格是否有敌棋（兑子条件）
         row_diff = to_row - from_row
@@ -2372,8 +2363,8 @@ class GameRules:
         if not isinstance(wei_piece, Wei):
             return None
             
-        # 检查8个方向是否有敌方棋子直接照面（无遮挡）
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+        # 检查4个方向是否有敌方棋子直接照面（无遮挡）
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         
         for dr, dc in directions:
             # 沿着这个方向逐步检查

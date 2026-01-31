@@ -8,9 +8,9 @@ from tkinter.simpledialog import askstring
 
 import pygame
 
-from program.config.config import DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, BLACK, FPS
+from program.controllers.game_config_manager import DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, FPS
 from program.ui.button import Button
-from program.utils.utils import load_font, draw_background
+from program.utils.utils import load_font, draw_gradient_background
 from program.lan.xhlan import SimpleAPI
 from program.lan.network_game import NetworkChessGame
 
@@ -34,20 +34,24 @@ class NetworkConnectScreen:
 
     def update_layout(self):
         """更新布局"""
-        button_width = 220  # 缩小按钮
-        button_height = 50
-        button_spacing = 25
+        button_width = 240
+        button_height = 60
+        button_spacing = 40
         center_x = self.window_width // 2
         center_y = self.window_height // 2 - 30
 
-        # 创建按钮
+        # 创建按钮 - 使用更现代的颜色方案
         self.host_button = Button(
             center_x - button_width // 2,
             center_y - button_height - button_spacing,
             button_width,
             button_height,
             "创建房间",
-            24
+            28,
+            bg_color=(70, 130, 180),  # Steel Blue
+            hover_color=(100, 149, 237),  # Cornflower Blue
+            text_color=(255, 255, 255),
+            border_radius=15
         )
 
         self.join_button = Button(
@@ -56,7 +60,11 @@ class NetworkConnectScreen:
             button_width,
             button_height,
             "加入房间",
-            24
+            28,
+            bg_color=(50, 150, 50),  # Green
+            hover_color=(34, 139, 34),  # Forest Green
+            text_color=(255, 255, 255),
+            border_radius=15
         )
 
         self.back_button = Button(
@@ -65,7 +73,11 @@ class NetworkConnectScreen:
             button_width,
             button_height,
             "返回",
-            24
+            28,
+            bg_color=(180, 70, 70),  # Reddish
+            hover_color=(220, 100, 100),
+            text_color=(255, 255, 255),
+            border_radius=15
         )
 
     def toggle_fullscreen(self):
@@ -257,26 +269,34 @@ class NetworkConnectScreen:
 
     def draw_connection_status(self, current_status, status_messages, mode):
         """绘制连接状态界面"""
-        # 使用统一的背景绘制函数
-        draw_background(self.screen)
+        # 使用渐变背景
+        draw_gradient_background(self.screen)
+
+        # 绘制半透明覆盖层
+        overlay = pygame.Surface((self.window_width, self.window_height), pygame.SRCALPHA)
+        overlay.fill((255, 255, 255, 200))  # 半透明白色覆盖层
+        self.screen.blit(overlay, (0, 0))
 
         # 绘制标题
         title_font = load_font(48)
         title_text = "网络连接状态"
-        title_surface = title_font.render(title_text, True, BLACK)
+        title_surface = title_font.render(title_text, True, (50, 50, 100))
         title_rect = title_surface.get_rect(center=(self.window_width//2, 80))
         self.screen.blit(title_surface, title_rect)
 
         # 绘制连接模式
         mode_text = f"模式: {'服务器(房主)' if mode == 'host' else '客户端(加入者)'}"
         mode_font = load_font(28)
-        mode_surface = mode_font.render(mode_text, True, BLACK)
+        mode_surface = mode_font.render(mode_text, True, (70, 70, 120))
         mode_rect = mode_surface.get_rect(center=(self.window_width//2, 140))
         self.screen.blit(mode_surface, mode_rect)
 
         # 绘制当前状态
         status_font = load_font(32)
-        status_surface = status_font.render(current_status, True, (0, 128, 0) if "成功" in current_status or "连接" in current_status else (0, 0, 0))
+        status_surface = status_font.render(current_status, True, 
+                                          (0, 150, 0) if "成功" in current_status or "连接" in current_status 
+                                          else (200, 0, 0) if "失败" in current_status or "取消" in current_status 
+                                          else (200, 150, 0))
         status_rect = status_surface.get_rect(center=(self.window_width//2, 190))
         self.screen.blit(status_surface, status_rect)
 
@@ -286,22 +306,22 @@ class NetworkConnectScreen:
         # 只显示最新的几条消息
         recent_messages = status_messages[-8:]  # 只显示最近8条消息
         for i, msg in enumerate(recent_messages):
-            color = (0, 0, 0)  # 默认黑色
+            color = (80, 80, 80)  # 默认灰色
             if "成功" in msg or "连接" in msg:
-                color = (0, 128, 0)  # 成功状态绿色
-            elif "失败" in msg or "超时" in msg or "错误" in msg:
-                color = (255, 0, 0)  # 错误状态红色
+                color = (0, 150, 0)  # 成功状态绿色
+            elif "失败" in msg or "超时" in msg or "错误" in msg or "取消" in msg:
+                color = (200, 0, 0)  # 错误状态红色
             elif "等待" in msg:
-                color = (128, 128, 0)  # 等待状态黄色
+                color = (200, 150, 0)  # 等待状态黄色
 
             msg_surface = history_font.render(f"• {msg}", True, color)
-            self.screen.blit(msg_surface, (50, y_offset + i * 30))
+            self.screen.blit(msg_surface, (self.window_width//2 - 250, y_offset + i * 35))
 
         # 创建取消按钮（在连接状态界面显示）
-        button_width = 150
-        button_height = 40
+        button_width = 160
+        button_height = 45
         cancel_button_x = self.window_width // 2 - button_width // 2
-        cancel_button_y = self.window_height - 80  # 底部位置
+        cancel_button_y = self.window_height - 100  # 底部位置
         
         if self.cancel_button is None:
             self.cancel_button = Button(
@@ -310,7 +330,11 @@ class NetworkConnectScreen:
                 button_width,
                 button_height,
                 "取消连接",
-                20
+                22,
+                bg_color=(180, 70, 70),
+                hover_color=(220, 100, 100),
+                text_color=(255, 255, 255),
+                border_radius=10
             )
         else:
             # 更新按钮位置（以防窗口大小改变）
@@ -378,22 +402,39 @@ class NetworkConnectScreen:
 
     def draw(self):
         """绘制界面"""
-        # 使用统一的背景绘制函数
-        draw_background(self.screen)
+        # 使用渐变背景
+        draw_gradient_background(self.screen)
+
+        # 绘制半透明覆盖层
+        overlay = pygame.Surface((self.window_width, self.window_height), pygame.SRCALPHA)
+        overlay.fill((255, 255, 255, 180))  # 半透明白色覆盖层
+        self.screen.blit(overlay, (0, 0))
 
         # 绘制标题
-        title_font = load_font(48)
+        title_font = load_font(56)
         title_text = "网络对战"
-        title_surface = title_font.render(title_text, True, BLACK)
+        title_surface = title_font.render(title_text, True, (50, 50, 100))
         title_rect = title_surface.get_rect(center=(self.window_width//2, 150))
         self.screen.blit(title_surface, title_rect)
 
+        # 绘制装饰元素
+        pygame.draw.line(self.screen, (100, 150, 200), 
+                         (self.window_width//2 - 150, 190), 
+                         (self.window_width//2 + 150, 190), 3)
+
         # 绘制副标题
-        subtitle_font = load_font(24)
+        subtitle_font = load_font(28)
         subtitle_text = "请选择网络对战方式"
-        subtitle_surface = subtitle_font.render(subtitle_text, True, BLACK)
-        subtitle_rect = subtitle_surface.get_rect(center=(self.window_width//2, 200))
+        subtitle_surface = subtitle_font.render(subtitle_text, True, (80, 80, 120))
+        subtitle_rect = subtitle_surface.get_rect(center=(self.window_width//2, 220))
         self.screen.blit(subtitle_surface, subtitle_rect)
+
+        # 绘制装饰图标
+        icon_font = load_font(36)
+        server_icon = icon_font.render("🏠", True, (70, 130, 180))
+        client_icon = icon_font.render("👤", True, (50, 150, 50))
+        self.screen.blit(server_icon, (self.window_width//2 - 180, self.host_button.y + 10))
+        self.screen.blit(client_icon, (self.window_width//2 - 180, self.join_button.y + 10))
 
         # 绘制按钮
         self.host_button.draw(self.screen)

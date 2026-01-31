@@ -7,18 +7,18 @@
     },
     "total_time_played": 0,
     "pieces_captured": {
-        "ju": 0,
+        "ju": 3,
         "ma": 0,
         "xiang": 2,
         "shi": 0,
         "king": 0,
-        "pao": 3,
-        "pawn": 7,
+        "pao": 9,
+        "pawn": 33,
         "wei": 0,
-        "she": 0,
-        "lei": 0,
-        "jia": 0,
-        "ci": 0,
+        "she": 1,
+        "lei": 1,
+        "jia": 1,
+        "ci": 1,
         "dun": 0,
         "xun": 0
     },
@@ -40,5 +40,5 @@
         }
     },
     "last_played": "",
-    "total_moves_made": 53
+    "total_moves_made": 332
 }
