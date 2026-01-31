@@ -3,6 +3,7 @@
 """
 匈汉象棋网络对战常量
 """
+import math
 from socket import gethostbyname, gethostname
 import json
 import os
@@ -63,6 +64,65 @@ CAMP_BLACK = "black"
 
 # 主题配置
 THEME_CONFIG = {
+    "origin": {  # 原始主题
+        "background": (220, 179, 92),  # 背景颜色（棋盘木色）
+        "panel": (230, 210, 185),  # 面板颜色
+        "panel_border": (100, 60, 20),  # 面板边框颜色（深棕色）
+        "board": {
+            "base_color": (220, 179, 92),  # 棋盘底色（木色）
+            "line_color": (0, 0, 0),  # 棋盘线条色（黑色）
+            "grid_color": (200, 160, 80),  # 棋盘格子线色（木纹色）
+            "checkerboard": [  # 棋盘格子交替配色
+                (220, 179, 92), (200, 160, 80),
+                (220, 179, 92), (200, 160, 80),
+                (220, 179, 92), (200, 160, 80),
+                (220, 179, 92), (200, 160, 80)
+            ]
+        },
+        "pieces": {
+            # 基础阵营棋子（原始主题-基于chess_board.py的配色）
+            "light_side": {  # 浅色方/黑方
+                "汗": (30, 30, 30),  # 汗（深黑色）
+                "車": (30, 30, 30),  # 車（深黑色）
+                "馬": (30, 30, 30),  # 馬（深黑色）
+                "象": (30, 30, 30),  # 象（深黑色）
+                "士": (30, 30, 30),  # 士（深黑色）
+                "砲": (30, 30, 30),  # 砲（深黑色）
+                "卒": (30, 30, 30),  # 卒（深黑色）
+                "衛": (30, 30, 30),
+                "䠶": (30, 30, 30),
+                "礌": (30, 30, 30),
+                "胄": (30, 30, 30),
+                "伺": (30, 30, 30),
+                "碷": (30, 30, 30),
+                "廵": (30, 30, 30),
+                "text_color": (30, 30, 30)  # 棋子文字色（深黑色）
+            },
+            "dark_side": {  # 深色方/红方
+                "漢": (180, 30, 30),  # 漢（深红色）
+                "俥": (180, 30, 30),  # 俥（深红色）
+                "傌": (180, 30, 30),  # 傌（深红色）
+                "相": (180, 30, 30),  # 相（深红色）
+                "仕": (180, 30, 30),  # 仕（深红色）
+                "炮": (180, 30, 30),  # 炮（深红色）
+                "兵": (180, 30, 30),  # 兵（深红色）
+                "尉": (180, 30, 30),
+                "射": (180, 30, 30),
+                "檑": (180, 30, 30),
+                "甲": (180, 30, 30),
+                "楯": (180, 30, 30),
+                "刺": (180, 30, 30),
+                "巡": (180, 30, 30),
+                "text_color": (180, 30, 30)  # 棋子文字色（深红色）
+            },
+            "text_border": (0, 0, 0)  # 棋子文字描边色（黑色）
+        },
+        "ui": {
+            "text_color": (50, 50, 50),  # UI文字色（深灰色）
+            "button_color": (100, 60, 20),  # 按钮色（深棕色）
+            "button_border": (50, 30, 10)  # 按钮边框色（浅棕色）
+        }
+    },
     "day": {  # 白天主题
         "background": (240, 217, 181),  # 背景颜色
         "panel": (230, 210, 185),  # 面板颜色
@@ -79,42 +139,42 @@ THEME_CONFIG = {
             ]
         },
         "pieces": {
-            # 基础阵营棋子（白天主题-深色系）
+            # 白天主题棋子配色
             "light_side": {  # 浅色方/黑方
-                "汗": (30, 20, 10),  # 汗（黑色）
-                "車": (30, 20, 10),  # 車（黑色）
-                "馬": (30, 20, 10),  # 馬（黑色）
-                "象": (30, 20, 10),  # 象（黑色）
-                "士": (30, 20, 10),  # 士（黑色）
-                "砲": (30, 20, 10),  # 砲（黑色）
-                "卒": (30, 20, 10),  # 卒（黑色）
-                "衛": (30, 20, 10),
-                "䠶": (30, 20, 10),
-                "礌": (30, 20, 10),
-                "胄": (30, 20, 10),
-                "伺": (30, 20, 10),
-                "碷": (30, 20, 10),
-                "廵": (30, 20, 10),
-                "text_color": (245, 245, 245)  # 棋子文字色（纯白色，提升辨识度）
+                "汗": (30, 30, 30),  # 汗（深黑色）
+                "車": (30, 30, 30),  # 車（深黑色）
+                "馬": (30, 30, 30),  # 馬（深黑色）
+                "象": (30, 30, 30),  # 象（深黑色）
+                "士": (30, 30, 30),  # 士（深黑色）
+                "砲": (30, 30, 30),  # 砲（深黑色）
+                "卒": (30, 30, 30),  # 卒（深黑色）
+                "衛": (30, 30, 30),
+                "䠶": (30, 30, 30),
+                "礌": (30, 30, 30),
+                "胄": (30, 30, 30),
+                "伺": (30, 30, 30),
+                "碷": (30, 30, 30),
+                "廵": (30, 30, 30),
+                "text_color": (255, 255, 255)  # 棋子文字色（白色）
             },
             "dark_side": {  # 深色方/红方
-                "漢": (180, 0, 0),  # 漢（深红色）
-                "俥": (180, 0, 0),  # 俥（深红色）
-                "傌": (180, 0, 0),  # 傌（深红色）
-                "相": (180, 0, 0),  # 相（深红色）
-                "仕": (180, 0, 0),  # 仕（深红色）
-                "炮": (180, 0, 0),  # 炮（深红色）
-                "兵": (180, 0, 0),  # 兵（深红色）
-                "尉": (180, 0, 0),
-                "射": (180, 0, 0),
-                "檑": (180, 0, 0),
-                "甲": (180, 0, 0),
-                "楯": (180, 0, 0),
-                "刺": (180, 0, 0),
-                "巡": (180, 0, 0),
-                "text_color": (245, 245, 245)  # 棋子文字色（纯白色）
+                "漢": (180, 30, 30),  # 漢（深红色）
+                "俥": (180, 30, 30),  # 俥（深红色）
+                "傌": (180, 30, 30),  # 傌（深红色）
+                "相": (180, 30, 30),  # 相（深红色）
+                "仕": (180, 30, 30),  # 仕（深红色）
+                "炮": (180, 30, 30),  # 炮（深红色）
+                "兵": (180, 30, 30),  # 兵（深红色）
+                "尉": (180, 30, 30),
+                "射": (180, 30, 30),
+                "檑": (180, 30, 30),
+                "甲": (180, 30, 30),
+                "楯": (180, 30, 30),
+                "刺": (180, 30, 30),
+                "巡": (180, 30, 30),
+                "text_color": (255, 255, 255)  # 棋子文字色（白色）
             },
-            "text_border": (20, 20, 20)  # 棋子文字描边色（深黑，增强可读性）
+            "text_border": (0, 0, 0)  # 棋子文字描边色（黑色）
         },
         "ui": {
             "text_color": (50, 50, 50),  # UI文字色（深灰色）
@@ -188,14 +248,14 @@ def get_piece_color(piece_type: str, theme: str, side: str) -> tuple:
     """
     根据棋子类型、主题、阵营返回对应配色
     :param piece_type: 棋子类型（如"漢""射""檑"）
-    :param theme: 主题（day/night）
+    :param theme: 主题（day/night/origin）
     :param side: 阵营（light_side/dark_side）
     :return: 棋子RGB配色元组
     """
     try:
         # 校验参数合法性
-        if theme not in ["day", "night"]:
-            theme = "day"  # 默认白天主题
+        if theme not in ["day", "night", "origin"]:
+            theme = "origin"  # 默认原始主题
         if side not in ["light_side", "dark_side"]:
             side = "light_side"  # 默认浅色方
 
@@ -205,14 +265,15 @@ def get_piece_color(piece_type: str, theme: str, side: str) -> tuple:
             # 未知棋子类型，返回默认色
             default_colors = {
                 "day": {"light_side": (30, 20, 10), "dark_side": (180, 0, 0)},
-                "night": {"light_side": (240, 220, 180), "dark_side": (255, 215, 0)}
+                "night": {"light_side": (240, 220, 180), "dark_side": (255, 215, 0)},
+                "origin": {"light_side": (30, 20, 10), "dark_side": (180, 0, 0)}
             }
             color = default_colors[theme][side]
         return color
     except Exception as e:
         print(f"获取棋子配色失败：{e}")
         # 终极兜底配色
-        return (150, 150, 150) if theme == "day" else (100, 100, 100)
+        return (150, 150, 150) if theme in ["day", "origin"] else (100, 100, 100)
 
 
 def get_piece_text_color(theme: str, side: str) -> tuple:
@@ -220,7 +281,7 @@ def get_piece_text_color(theme: str, side: str) -> tuple:
     try:
         return THEME_CONFIG[theme]["pieces"][side]["text_color"]
     except:
-        return (255, 255, 255) if theme == "day" else (0, 0, 0)
+        return (255, 255, 255) if theme in ["day", "origin"] else (0, 0, 0)
 
 
 class ThemeManager:
@@ -241,7 +302,7 @@ class ThemeManager:
                 with open(self.config_file, 'r', encoding='utf-8') as f:
                     config = json.load(f)
                     theme = config.get('theme', self.default_theme)
-                    return theme if theme in ['day', 'night'] else self.default_theme
+                    return theme if theme in ['day', 'night', 'origin'] else self.default_theme
         except Exception as e:
             print(f"加载主题配置失败: {e}")
 
@@ -275,7 +336,13 @@ class ThemeManager:
 
     def toggle_theme(self):
         """切换主题"""
-        new_theme = "night" if self.current_theme == "day" else "day"
+        # 在三个主题之间循环切换
+        if self.current_theme == "day":
+            new_theme = "night"
+        elif self.current_theme == "night":
+            new_theme = "origin"
+        else:  # self.current_theme == "origin"
+            new_theme = "day"
         self.save_theme(new_theme)
         return new_theme
 
