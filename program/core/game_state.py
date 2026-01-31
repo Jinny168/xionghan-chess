@@ -905,31 +905,3 @@ class GameState:
         except Exception as e:
             print(f"导入棋局失败: {str(e)}")
             return False
-
-
-
-    def save_game(self, filename=None):
-        """保存当前游戏到文件
-        
-        Args:
-            filename (str, optional): 保存的文件名
-            
-        Returns:
-            bool: 是否成功保存
-        """
-        from program.controllers.game_io_controller import GameIOController
-        io_controller = GameIOController()
-        return io_controller.export_game(self, filename)
-
-    def load_game_from_file(self, filename=None):
-        """从文件加载游戏
-        
-        Args:
-            filename (str, optional): 要加载的文件名
-            
-        Returns:
-            bool: 是否成功加载
-        """
-        from program.controllers.game_io_controller import GameIOController
-        io_controller = GameIOController()
-        return io_controller.import_game(self, filename)

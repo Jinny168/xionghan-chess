@@ -2372,8 +2372,8 @@ class GameRules:
         if not isinstance(wei_piece, Wei):
             return None
             
-        # 检查8个方向是否有敌方棋子直接照面（无遮挡）
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+        # 检查4个方向是否有敌方棋子直接照面（无遮挡）
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         
         for dr, dc in directions:
             # 沿着这个方向逐步检查
