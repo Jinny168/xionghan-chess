@@ -3,10 +3,9 @@
 """
 匈汉象棋网络对战常量
 """
-import math
-from socket import gethostbyname, gethostname
 import json
 import os
+from socket import gethostbyname, gethostname
 
 # 当前地址
 ADDRESS = gethostbyname(gethostname())

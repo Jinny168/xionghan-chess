@@ -183,10 +183,55 @@ def create_initial_pieces():
     """
     pieces = []
 
+    # 检查是否启用传统模式
+    traditional_mode = game_config.get_setting("traditional_mode", False)
     # 检查是否启用经典模式
     classic_mode = game_config.get_setting("classic_mode", False)
     
-    if classic_mode:
+    if traditional_mode:
+        # 传统中国象棋布局 - 9x10棋盘
+        # 黑方（下方）
+        # 第0行 - 底线
+        pieces.append(Ju("black", 0, 0))
+        pieces.append(Ma("black", 0, 1))
+        pieces.append(Xiang("black", 0, 2))
+        pieces.append(Shi("black", 0, 3))
+        pieces.append(King("black", 0, 4))  # 黑方为“将”
+        pieces.append(Shi("black", 0, 5))
+        pieces.append(Xiang("black", 0, 6))
+        pieces.append(Ma("black", 0, 7))
+        pieces.append(Ju("black", 0, 8))
+        # 第2行 - 炮位置
+        pieces.append(Pao("black", 2, 1))
+        pieces.append(Pao("black", 2, 7))
+        # 第3行 - 兵位置
+        pieces.append(Pawn("black", 3, 0))
+        pieces.append(Pawn("black", 3, 2))
+        pieces.append(Pawn("black", 3, 4))
+        pieces.append(Pawn("black", 3, 6))
+        pieces.append(Pawn("black", 3, 8))
+        
+        # 红方（上方）
+        # 第9行 - 底线
+        pieces.append(Ju("red", 9, 0))
+        pieces.append(Ma("red", 9, 1))
+        pieces.append(Xiang("red", 9, 2))
+        pieces.append(Shi("red", 9, 3))
+        pieces.append(King("red", 9, 4))  # 红方为“帅”
+        pieces.append(Shi("red", 9, 5))
+        pieces.append(Xiang("red", 9, 6))
+        pieces.append(Ma("red", 9, 7))
+        pieces.append(Ju("red", 9, 8))
+        # 第7行 - 炮位置
+        pieces.append(Pao("red", 7, 1))
+        pieces.append(Pao("red", 7, 7))
+        # 第6行 - 兵位置
+        pieces.append(Pawn("red", 6, 0))
+        pieces.append(Pawn("red", 6, 2))
+        pieces.append(Pawn("red", 6, 4))
+        pieces.append(Pawn("red", 6, 6))
+        pieces.append(Pawn("red", 6, 8))
+    elif classic_mode:
         # 经典模式布局 - 只包含传统象棋棋子及新增的射\檑\巡
         black_pieces_config = [
             # 第0行 - 黑方底线
@@ -219,6 +264,18 @@ def create_initial_pieces():
             # 第7行
             (Xun, 7, 0), (Xun, 7, 12)# 红方廵在最边缘
         ]
+        
+        # 添加黑方棋子，根据设置决定是否添加
+        for piece_class, row, col in black_pieces_config:
+            # 在经典模式下，只包含特定棋子
+            if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei, Xun]:
+                pieces.append(piece_class("black", row, col))
+        
+        # 添加红方棋子，根据设置决定是否添加
+        for piece_class, row, col in red_pieces_config:
+            # 在经典模式下，只包含特定棋子
+            if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei, Xun]:
+                pieces.append(piece_class("red", row, col))
     else:
         # 原始布局配置
         black_pieces_config = [
@@ -255,27 +312,15 @@ def create_initial_pieces():
             # 第7行
             (Xun, 7, 0), (Xun, 7, 12)
         ]
-
-    # 添加黑方棋子，根据设置决定是否添加
-    for piece_class, row, col in black_pieces_config:
-        # 在经典模式下，只包含特定棋子
-        if classic_mode:
-            # 经典模式只包含车、马、相、士、漢、炮、兵，以及新增的射、檑、巡
-            if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei, Xun]:
-                pieces.append(piece_class("black", row, col))
-        else:
+        
+        # 添加黑方棋子，根据设置决定是否添加
+        for piece_class, row, col in black_pieces_config:
             # 原始模式根据设置决定是否包含棋子
             if should_include_piece(piece_class.__name__):
                 pieces.append(piece_class("black", row, col))
 
-    # 添加红方棋子，根据设置决定是否添加
-    for piece_class, row, col in red_pieces_config:
-        # 在经典模式下，只包含特定棋子
-        if classic_mode:
-            # 经典模式只包含车、马、相、士、将/帅、炮、兵/卒，以及新增的射、檑、巡
-            if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei, Xun]:
-                pieces.append(piece_class("red", row, col))
-        else:
+        # 添加红方棋子，根据设置决定是否添加
+        for piece_class, row, col in red_pieces_config:
             # 原始模式根据设置决定是否包含棋子
             if should_include_piece(piece_class.__name__):
                 pieces.append(piece_class("red", row, col))

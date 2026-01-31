@@ -54,8 +54,12 @@ class ChessGame:
         from program.controllers.ai_manager import AIManager
         self.ai_manager = AIManager.get_instance(game_mode, player_camp, game_settings)
 
-        # 初始化界面元素
-        self.game_screen = GameScreen(self.window_width, self.window_height, game_mode, player_camp)
+        # 根据游戏配置选择正确的界面
+        if game_config.get_setting("traditional_mode", False):
+            from ui.traditional_game_screen import TraditionalGameScreen
+            self.game_screen = TraditionalGameScreen(self.window_width, self.window_height, game_mode, player_camp)
+        else:
+            self.game_screen = GameScreen(self.window_width, self.window_height, game_mode, player_camp)
 
         # 选中的棋子
         self.selected_piece = None

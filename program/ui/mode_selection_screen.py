@@ -434,15 +434,20 @@ class ModeSelectionScreen:
                         # 检查是否选择了传统象棋模式
                         selected_game_mode = self.game_mode_options[self.current_game_mode_index]
                         if selected_game_mode == "传统象棋":
-                            # 启动传统象棋模式
+                            # 设置传统象棋模式，禁用经典模式
                             from program.controllers.game_config_manager import game_config
                             game_config.set_setting("traditional_mode", True)
-                        else:
-                            # 根据选择的游戏模式设置经典模式配置
-                            classic_mode = (selected_game_mode == "经典匈汉")
-                            # 从game_config更新设置
+                            game_config.set_setting("classic_mode", False)
+                        elif selected_game_mode == "经典匈汉":
+                            # 设置经典匈汉模式，禁用传统模式
                             from program.controllers.game_config_manager import game_config
-                            game_config.set_setting("classic_mode", classic_mode)
+                            game_config.set_setting("traditional_mode", False)
+                            game_config.set_setting("classic_mode", True)
+                        elif selected_game_mode == "狂暴匈汉":
+                            # 设置狂暴匈汉模式，禁用传统和经典模式
+                            from program.controllers.game_config_manager import game_config
+                            game_config.set_setting("traditional_mode", False)
+                            game_config.set_setting("classic_mode", False)
                         # 根据选择的游戏类型设置最终模式
                         selected_type = self.game_type_options[self.current_game_type_index]
                         if selected_type == "双人对战":
