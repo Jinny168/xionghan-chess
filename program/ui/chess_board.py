@@ -3,6 +3,7 @@ import math
 import pygame
 
 from program.utils.utils import load_font
+from program.controllers.game_config_manager import get_piece_color, get_piece_text_color, theme_manager, THEME_CONFIG
 
 
 class ChessBoard:
@@ -59,6 +60,10 @@ class ChessBoard:
         
     def draw(self, screen, pieces, game_state=None):
         """绘制棋盘和棋子"""
+        # 获取当前主题
+        current_theme = theme_manager.get_current_theme()
+        theme_colors = theme_manager.get_theme_colors()
+        
         # 绘制棋盘背景
         board_rect = pygame.Rect(
             self.margin_left, 
@@ -66,20 +71,23 @@ class ChessBoard:
             self.board_width, 
             self.board_height
         )
-        pygame.draw.rect(screen, (220, 179, 92), board_rect)
+        # 使用主题配置的棋盘底色
+        pygame.draw.rect(screen, theme_colors["board"]["base_color"], board_rect)
         
         # 添加木纹效果（使用细线条模拟木纹）
         for i in range(0, int(self.board_width), 4):
             pygame.draw.line(
                 screen,
-                (200, 160, 80),  # 稍暗的颜色作为木纹
+                (theme_colors["board"]["base_color"][0]-20, 
+                 theme_colors["board"]["base_color"][1]-20, 
+                 theme_colors["board"]["base_color"][2]-10),  # 稍暗的颜色作为木纹
                 (self.margin_left + i, self.margin_top),
                 (self.margin_left + i, self.margin_top + self.board_height),
                 1
             )
         
         # 绘制棋盘外边框
-        pygame.draw.rect(screen, (100, 60, 20), board_rect, 3)
+        pygame.draw.rect(screen, theme_colors["board"]["line_color"], board_rect, 3)
         
         # 绘制棋盘线条 (13x13)
         for i in range(13):  # 横线，但在楚河汉界区域不绘制
@@ -88,7 +96,7 @@ class ChessBoard:
             if i != 6:
                 pygame.draw.line(
                     screen, 
-                    (0, 0, 0), 
+                    theme_colors["board"]["line_color"], 
                     (self.margin_left, y), 
                     (self.margin_left + self.board_width, y), 
                     2
@@ -100,7 +108,7 @@ class ChessBoard:
             # 上半部分（0-5行）
             pygame.draw.line(
                 screen,
-                (0, 0, 0),
+                theme_colors["board"]["line_color"],
                 (x, self.margin_top),
                 (x, self.margin_top + 5 * self.grid_size),
                 2
@@ -108,7 +116,7 @@ class ChessBoard:
             # 下半部分（7-12行）
             pygame.draw.line(
                 screen,
-                (0, 0, 0),
+                theme_colors["board"]["line_color"],
                 (x, self.margin_top + 7 * self.grid_size),
                 (x, self.margin_top + 12 * self.grid_size),
                 2
@@ -121,15 +129,15 @@ class ChessBoard:
             # 绘制四个方向的短线 - 增大长度
             line_length = 8
             # 上
-            pygame.draw.line(screen, (0, 0, 0), (x - line_length, separator_y), (x + line_length, separator_y), 2)
+            pygame.draw.line(screen, theme_colors["board"]["line_color"], (x - line_length, separator_y), (x + line_length, separator_y), 2)
             # 下
-            pygame.draw.line(screen, (0, 0, 0), (x - line_length, separator_y), (x + line_length, separator_y), 2)
+            pygame.draw.line(screen, theme_colors["board"]["line_color"], (x - line_length, separator_y), (x + line_length, separator_y), 2)
             # 左 - 只有非第一列才绘制
             if col > 0:
-                pygame.draw.line(screen, (0, 0, 0), (x, separator_y - line_length), (x, separator_y + line_length), 2)
+                pygame.draw.line(screen, theme_colors["board"]["line_color"], (x, separator_y - line_length), (x, separator_y + line_length), 2)
             # 右 - 只有非最后一列才绘制
             if col < 12:
-                pygame.draw.line(screen, (0, 0, 0), (x, separator_y - line_length), (x, separator_y + line_length), 2)
+                pygame.draw.line(screen, theme_colors["board"]["line_color"], (x, separator_y - line_length), (x, separator_y + line_length), 2)
 
         # 绘制列标识
         self.draw_column_labels(screen)
@@ -138,14 +146,14 @@ class ChessBoard:
         # 上方九宫 (1-3行, 5-7列)
         pygame.draw.line(
             screen,
-            (0, 0, 0),
+            theme_colors["board"]["line_color"],
             (self.margin_left + 5 * self.grid_size, self.margin_top + 1 * self.grid_size),
             (self.margin_left + 7 * self.grid_size, self.margin_top + 3 * self.grid_size),
             2
         )
         pygame.draw.line(
             screen,
-            (0, 0, 0),
+            theme_colors["board"]["line_color"],
             (self.margin_left + 7 * self.grid_size, self.margin_top + 1 * self.grid_size),
             (self.margin_left + 5 * self.grid_size, self.margin_top + 3 * self.grid_size),
             2
@@ -154,14 +162,14 @@ class ChessBoard:
         # 下方九宫 (9-11行, 5-7列)
         pygame.draw.line(
             screen,
-            (0, 0, 0),
+            theme_colors["board"]["line_color"],
             (self.margin_left + 5 * self.grid_size, self.margin_top + 9 * self.grid_size),
             (self.margin_left + 7 * self.grid_size, self.margin_top + 11 * self.grid_size),
             2
         )
         pygame.draw.line(
             screen,
-            (0, 0, 0),
+            theme_colors["board"]["line_color"],
             (self.margin_left + 7 * self.grid_size, self.margin_top + 9 * self.grid_size),
             (self.margin_left + 5 * self.grid_size, self.margin_top + 11 * self.grid_size),
             2
@@ -170,8 +178,8 @@ class ChessBoard:
 
         # 绘制"长城阴山"
         font = load_font(36)
-        chu_text = font.render("长 城", True, (0, 0, 0))
-        han_text = font.render("阴 山", True, (0, 0, 0))
+        chu_text = font.render("长 城", True, theme_colors["board"]["line_color"])
+        han_text = font.render("阴 山", True, theme_colors["board"]["line_color"])
         
         # 绘制分隔线（只在两端绘制短线）
         separator_y = self.margin_top + 6 * self.grid_size
@@ -217,7 +225,7 @@ class ChessBoard:
         
         # 绘制所有棋子
         for piece in pieces:
-            self.draw_piece(screen, piece)
+            self.draw_piece(screen, piece, current_theme)
             
         # 绘制可以吃子的位置（画红叉）- 移到棋子绘制之后，这样叉会显示在棋子上面
         for row, col in self.capturable_positions:
@@ -262,8 +270,8 @@ class ChessBoard:
                 3
             )
     
-    def draw_piece(self, screen, piece):
-        """绘制美化后的棋子，使用白玉渐变效果"""
+    def draw_piece(self, screen, piece, current_theme):
+        """绘制美化后的棋子，使用白玉渐变效果，并应用主题配色"""
         # 计算棋子中心位置
         center_x = self.margin_left + piece.col * self.grid_size
         center_y = self.margin_top + piece.row * self.grid_size
@@ -299,16 +307,16 @@ class ChessBoard:
         highlight_color = (255, 255, 255)    # 高光点纯白
         edge_color = (180, 180, 170)         # 边缘颜色微灰
         
-        # 文字颜色区分双方
-        if piece.color == "red":
-            text_color = (180, 30, 30)       # 深红色文字
-            text_shadow_color = (120, 20, 20) # 红字阴影色
-        else:  # black
-            text_color = (30, 30, 30)        # 深黑色文字
-            text_shadow_color = (10, 10, 10) # 黑字阴影色
+        # 根据棋子颜色确定阵营（side）
+        side = "light_side" if piece.color == "black" else "dark_side"
+        
+        # 获取棋子配色 - 使用新的配色函数
+        piece_color = get_piece_color(piece.name, current_theme, side)
+        text_color = get_piece_text_color(current_theme, side)
+        text_shadow_color = THEME_CONFIG[current_theme]["pieces"]["text_border"]  # 使用主题配置的描边色
         
         # 使用缓存的棋子表面
-        piece_cache_key = (piece.color, piece.name, radius)
+        piece_cache_key = (piece.color, piece.name, radius, current_theme)
         if piece_cache_key not in self.check_animation_surfaces:
             # 绘制主体
             piece_surface = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
@@ -319,9 +327,10 @@ class ChessBoard:
                 current_radius = int(radius * (i / gradient_steps))
                 # 计算当前渐变颜色
                 ratio = i / gradient_steps
-                r = int(outer_color[0] * ratio + inner_color[0] * (1-ratio))
-                g = int(outer_color[1] * ratio + inner_color[1] * (1-ratio))
-                b = int(outer_color[2] * ratio + inner_color[2] * (1-ratio))
+                # 使用棋子的配色进行渐变，从外部较暗到内部较亮
+                r = int(piece_color[0] * ratio + min(255, piece_color[0] + 30) * (1-ratio))
+                g = int(piece_color[1] * ratio + min(255, piece_color[1] + 30) * (1-ratio))
+                b = int(piece_color[2] * ratio + min(255, piece_color[2] + 30) * (1-ratio))
                 
                 pygame.draw.circle(piece_surface, (r, g, b), (radius, radius), current_radius)
             
@@ -523,6 +532,10 @@ class ChessBoard:
 
     def draw_column_labels(self, screen):
         """绘制列标识"""
+        # 获取当前主题
+        current_theme = theme_manager.get_current_theme()
+        theme_colors = theme_manager.get_theme_colors()
+        
         # 定义标识
         red_labels = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三"]
         black_labels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]

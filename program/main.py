@@ -1,16 +1,16 @@
 import pygame
 import time
 
-from program.controllers.game_config_manager import MODE_PVC, CAMP_RED
-from program.game import ChessGame
-from program.lan.network_game import NetworkChessGame
-from program.ui.network_connect_screen import NetworkConnectScreen
-from program.ui.mode_selection_screen import ModeSelectionScreen
-from program.ui.camp_selection_screen import CampSelectionScreen
-from program.ui.rules_screen import RulesScreen
-from program.ui.settings_screen import SettingsScreen
-from program.ui.dialogs import StatisticsDialog
-from program.lan.xhlan import SimpleAPI
+from controllers.game_config_manager import MODE_PVC, CAMP_RED
+from game import ChessGame
+from lan.network_game import NetworkChessGame
+from ui.network_connect_screen import NetworkConnectScreen
+from ui.mode_selection_screen import ModeSelectionScreen
+from ui.camp_selection_screen import CampSelectionScreen
+from ui.rules_screen import RulesScreen
+from ui.settings_screen import SettingsScreen
+from ui.dialogs import StatisticsDialog
+from lan.xhlan import SimpleAPI
 
 # 初始化PyGame
 pygame.init()

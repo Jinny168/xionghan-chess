@@ -14,9 +14,68 @@ from program.utils import tools, utils
 from program.utils.utils import load_font, draw_background
 
 
+class BackgroundManager:
+    """背景图管理类，处理模式选择界面的背景图切换逻辑"""
+    
+    def __init__(self):
+        # 背景图配置
+        self.background_config = {
+            "images": [
+                "assets/pics/4.jpg",   # 预设背景图1
+                "assets/pics/3.jpg",   # 预设背景图2
+                "assets/pics/2.jpg",   # 预设背景图3
+                "assets/pics/1.jpg"    # 预设背景图4
+            ],
+            "default_bg_color": (200, 200, 200),  # 背景图加载失败时的默认纯色
+            "button_style": {
+                "position": (200, 30),              # 按钮位置（x:200, y:30）
+                "size": (120, 40),                  # 按钮尺寸（宽120px，高40px）
+                "border_color": (100, 100, 100),    # 按钮边框色（深灰色）
+                "text_color": (50, 50, 50),         # 按钮文字色（深灰色）
+                "text": "切换背景"                  # 按钮文字
+            }
+        }
+        self.current_bg_index = 0  # 默认加载第一张背景图
+        self.background_image = None
+
+    def load_background(self, index):
+        """根据索引加载背景图，捕获异常并返回默认背景"""
+        try:
+            bg_path = self.background_config["images"][index]
+            bg_full_path = utils.resource_path(bg_path)
+            if os.path.exists(bg_full_path):
+                background = pygame.image.load(bg_full_path).convert()
+                return background
+            else:
+                print(f"背景图片不存在: {bg_full_path}")
+                return None
+        except Exception as e:
+            print(f"无法加载背景图片: {e}")
+            return None
+
+    def switch_background(self):
+        """循环切换背景图索引，调用load_background()更新背景"""
+        # 循环切换背景图索引
+        self.current_bg_index = (self.current_bg_index + 1) % len(self.background_config["images"])
+        # 加载新背景
+        self.background_image = self.load_background(self.current_bg_index)
+        return self.background_image
+
+    def get_current_background(self):
+        """获取当前背景图像"""
+        if self.background_image is None:
+            self.background_image = self.load_background(self.current_bg_index)
+        return self.background_image
+
+
 class ModeSelectionScreen:
     def __init__(self):
         # 初始化窗口尺寸和模式
+        self.settings_menu_items = None
+        self.settings_button = None
+        self.pvc_button = None
+        self.network_button = None
+        self.pvp_button = None
         self.windowed_size = None
         self.window_width = DEFAULT_WINDOW_WIDTH
         self.window_height = DEFAULT_WINDOW_HEIGHT
@@ -30,8 +89,15 @@ class ModeSelectionScreen:
         # 背景相关
         self.background_image = None
         self.background_surface = None
+        self.background_images = [
+            "assets/pics/4.jpg",
+            "assets/pics/3.jpg",
+            "assets/pics/2.jpg",
+            "assets/pics/1.jpg"
+        ]
+        self.current_bg_index = 0  # 添加这个缺失的属性
         self.load_background()
-
+        
         # 设置菜单状态
         self.show_settings_menu = False
         self.settings_menu_opening = False
@@ -43,28 +109,50 @@ class ModeSelectionScreen:
         # 初始化布局
         self.update_layout()
         self.selected_mode = None
-
+        
     def load_background(self):
         """加载背景图片，如果没有则使用默认背景"""
-        try:
-            # 尝试加载背景图片
-            bg_path = utils.resource_path("assets/pics/4.jpg")
-            if os.path.exists(bg_path):
-                self.background_image = pygame.image.load(bg_path).convert()
-            else:
-                # 尝试其他常见背景图片路径
-                alt_paths = [
-                    utils.resource_path("assets/pics/3.jpg"),
-                    utils.resource_path("assets/pics/2.jpg"),
-                    utils.resource_path("assets/pics/1.jpg")
-                ]
-                for path in alt_paths:
-                    if os.path.exists(path):
-                        self.background_image = pygame.image.load(path).convert()
-                        break
-        except Exception as e:
-            print(f"无法加载背景图片: {e}")
-            self.background_image = None
+        # 尝试加载当前背景图片
+        if self.current_bg_index < len(self.background_images):
+            bg_path = self.background_images[self.current_bg_index]
+            try:
+                # 使用resource_path处理资源路径
+                bg_full_path = utils.resource_path(bg_path)
+                if os.path.exists(bg_full_path):
+                    self.background_image = pygame.image.load(bg_full_path).convert()
+                else:
+                    print(f"背景图片不存在: {bg_full_path}")
+                    self.background_image = None
+            except Exception as e:
+                print(f"无法加载背景图片: {e}")
+                self.background_image = None
+        else:
+            # 如果超出范围，尝试加载默认背景
+            try:
+                bg_path = utils.resource_path("assets/pics/4.jpg")
+                if os.path.exists(bg_path):
+                    self.background_image = pygame.image.load(bg_path).convert()
+                else:
+                    # 尝试其他常见背景图片路径
+                    alt_paths = [
+                        utils.resource_path("assets/pics/3.jpg"),
+                        utils.resource_path("assets/pics/2.jpg"),
+                        utils.resource_path("assets/pics/1.jpg")
+                    ]
+                    for path in alt_paths:
+                        if os.path.exists(path):
+                            self.background_image = pygame.image.load(path).convert()
+                            break
+            except Exception as e:
+                print(f"无法加载背景图片: {e}")
+                self.background_image = None
+
+    def switch_background(self):
+        """循环切换背景图"""
+        # 循环切换背景图索引
+        self.current_bg_index = (self.current_bg_index + 1) % len(self.background_images)
+        # 加载新背景
+        self.load_background()
 
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
@@ -119,28 +207,29 @@ class ModeSelectionScreen:
         )
 
         # 设置按钮（右下角，圆形按钮）
-        settings_button_size = max(int(30 * scale_factor), 30)  # 进一步缩小
+        settings_button_size = max(int(25 * scale_factor), 25)  # 进一步缩小设置按钮
         self.settings_button = StyledButton(
-            self.window_width - settings_button_size - 15,  # 距离右边15px (原20px)
-            self.window_height - settings_button_size - 15,  # 距离底部15px (原20px)
+            self.window_width - settings_button_size - 10,  # 距离右边10px
+            self.window_height - settings_button_size - 10,  # 距离底部10px
             settings_button_size,
             settings_button_size,
             "⚙️",  # 齿轮图标
-            int(14 * scale_factor),  # 进一步缩小
+            int(12 * scale_factor),  # 进一步缩小
             15  # 圆角，近似圆形
         )
 
         # 设置菜单项（隐藏状态）
-        menu_item_width = max(int(60 * scale_factor), 60)  # 进一步缩小
-        menu_item_height = max(int(20 * scale_factor), 20)  # 进一步缩小
-        menu_spacing = 2  # 菜单项间距 (进一步缩小)
+        menu_item_width = max(int(50 * scale_factor), 50)  # 进一步缩小
+        menu_item_height = max(int(16 * scale_factor), 16)  # 进一步缩小
+        menu_spacing = 1  # 菜单项间距 (进一步缩小)
 
-        # 计算菜单位置（在设置按钮上方）
-        menu_x = self.window_width - menu_item_width - 15
-        menu_y = self.window_height - settings_button_size - 15 - (4 * menu_item_height + 3 * menu_spacing)
+        # 计算菜单位置（在设置按钮上方，紧密对齐）
+        menu_x = self.window_width - menu_item_width - 10
+        menu_y = self.window_height - settings_button_size - 10 - (5 * menu_item_height + 4 * menu_spacing)
 
         self.settings_menu_items = []
         settings_options = [
+            ("切换背景", "bg_switch"),
             ("自定义设置", "settings"),
             ("游戏规则", "rules"),
             ("游戏统计", "stats"),
@@ -154,8 +243,8 @@ class ModeSelectionScreen:
                 menu_item_width,
                 menu_item_height,
                 text,
-                int(10 * scale_factor),  # 进一步缩小
-                8  # 增加圆角
+                int(8 * scale_factor),  # 进一步缩小
+                6  # 圆角
             )
             self.settings_menu_items.append((item, mode))
 
@@ -264,7 +353,13 @@ class ModeSelectionScreen:
                         for button, mode in self.settings_menu_items:
                             if button.is_clicked(mouse_pos, event):
                                 self.sound_manager.play_sound('button')  # 播放按钮音效
-                                if mode == "load_game":
+                                if mode == "bg_switch":
+                                    # 切换背景
+                                    self.switch_background()
+                                    # 关闭设置菜单
+                                    if self.show_settings_menu:
+                                        self.toggle_settings_menu()
+                                elif mode == "load_game":
                                     # 特殊处理：导入棋局
                                     from program.core.game_state import GameState
                                     from program.controllers.game_io_controller import GameIOController
@@ -410,6 +505,8 @@ class ModeSelectionScreen:
         self.pvp_button.draw(self.screen)
         self.pvc_button.draw(self.screen)
         self.network_button.draw(self.screen)
+
+        # 不再绘制独立的背景切换按钮，已整合到设置菜单中
 
         # 绘制设置按钮
         # 创建一个临时表面用于绘制旋转的图标

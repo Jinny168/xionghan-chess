@@ -2,19 +2,19 @@ import sys
 
 import pygame
 
-from program.controllers.game_config_manager import game_config
-from program.controllers.sound_manager import sound_manager
-from program.core.game_rules import GameRules
-from program.core.game_state import GameState
-from program.ui.dialogs import PopupDialog, AudioSettingsDialog, StatisticsDialog
-from program.ui.game_screen import GameScreen
-from program.utils import tools
+from controllers.game_config_manager import game_config
+from controllers.sound_manager import sound_manager
+from core.game_rules import GameRules
+from core.game_state import GameState
+from ui.dialogs import PopupDialog, AudioSettingsDialog, StatisticsDialog
+from ui.game_screen import GameScreen
+from utils import tools
 
 # 初始化PyGame
 pygame.init()
 pygame.mixer.init()  # 初始化音频模块
 
-from program.controllers.game_config_manager import (
+from controllers.game_config_manager import (
     DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
     FPS,
     MODE_PVP, MODE_PVC, CAMP_RED, )

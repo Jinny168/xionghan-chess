@@ -4,6 +4,8 @@
 匈汉象棋网络对战常量
 """
 from socket import gethostbyname, gethostname
+import json
+import os
 
 # 当前地址
 ADDRESS = gethostbyname(gethostname())
@@ -34,22 +36,22 @@ DEFAULT_WINDOW_HEIGHT = 900
 
 # 布局常量
 LEFT_PANEL_WIDTH_RATIO = 130 / 850  # 左侧面板宽度比例
-BOARD_MARGIN_TOP_RATIO = 50 / 850   # 棋盘顶部边距比例
+BOARD_MARGIN_TOP_RATIO = 50 / 850  # 棋盘顶部边距比例
 FPS = 60
 
 # 颜色常量
 BACKGROUND_COLOR = (240, 217, 181)  # 背景颜色
-PANEL_COLOR = (230, 210, 185)       # 面板颜色
-PANEL_BORDER = (160, 140, 110)      # 面板边框颜色
-BLACK = (0, 0, 0)                   # 黑色
-RED = (180, 30, 30)                 # 红色
-GREEN = (0, 128, 0)                 # 绿色
-WHITE = (255, 255, 255)             # 白色
-POPUP_BG = (250, 240, 230)          # 弹窗背景色
-BUTTON_COLOR = (100, 100, 200)      # 按钮颜色
-BUTTON_HOVER = (120, 120, 220)      # 按钮悬停颜色
-BUTTON_TEXT = (240, 240, 255)       # 按钮文字颜色
-GOLD = (218, 165, 32)               # 金色
+PANEL_COLOR = (230, 210, 185)  # 面板颜色
+PANEL_BORDER = (160, 140, 110)  # 面板边框颜色
+BLACK = (0, 0, 0)  # 黑色
+RED = (180, 30, 30)  # 红色
+GREEN = (0, 128, 0)  # 绿色
+WHITE = (255, 255, 255)  # 白色
+POPUP_BG = (250, 240, 230)  # 弹窗背景色
+BUTTON_COLOR = (100, 100, 200)  # 按钮颜色
+BUTTON_HOVER = (120, 120, 220)  # 按钮悬停颜色
+BUTTON_TEXT = (240, 240, 255)  # 按钮文字颜色
+GOLD = (218, 165, 32)  # 金色
 LAST_MOVE_SOURCE = (0, 200, 80, 100)  # 上一步移动起始位置高亮
 LAST_MOVE_TARGET = (0, 200, 80, 150)  # 上一步移动目标位置高亮
 
@@ -59,8 +61,231 @@ MODE_PVC = "pvc"
 CAMP_RED = "red"
 CAMP_BLACK = "black"
 
+# 主题配置
+THEME_CONFIG = {
+    "day": {  # 白天主题
+        "background": (240, 217, 181),  # 背景颜色
+        "panel": (230, 210, 185),  # 面板颜色
+        "panel_border": (160, 140, 110),  # 面板边框颜色
+        "board": {
+            "base_color": (220, 180, 120),  # 棋盘底色（浅木色）
+            "line_color": (100, 60, 20),  # 棋盘线条色（深棕色）
+            "grid_color": (245, 220, 180),  # 棋盘格子线色（浅米色）
+            "checkerboard": [  # 棋盘格子交替配色
+                (220, 180, 120), (245, 220, 180),
+                (220, 180, 120), (245, 220, 180),
+                (220, 180, 120), (245, 220, 180),
+                (220, 180, 120), (245, 220, 180)
+            ]
+        },
+        "pieces": {
+            # 基础阵营棋子（白天主题-深色系）
+            "light_side": {  # 浅色方/黑方
+                "汗": (30, 20, 10),  # 汗（黑色）
+                "車": (30, 20, 10),  # 車（黑色）
+                "馬": (30, 20, 10),  # 馬（黑色）
+                "象": (30, 20, 10),  # 象（黑色）
+                "士": (30, 20, 10),  # 士（黑色）
+                "砲": (30, 20, 10),  # 砲（黑色）
+                "卒": (30, 20, 10),  # 卒（黑色）
+                "衛": (30, 20, 10),
+                "䠶": (30, 20, 10),
+                "礌": (30, 20, 10),
+                "胄": (30, 20, 10),
+                "伺": (30, 20, 10),
+                "碷": (30, 20, 10),
+                "廵": (30, 20, 10),
+                "text_color": (245, 245, 245)  # 棋子文字色（纯白色，提升辨识度）
+            },
+            "dark_side": {  # 深色方/红方
+                "漢": (180, 0, 0),  # 漢（深红色）
+                "俥": (180, 0, 0),  # 俥（深红色）
+                "傌": (180, 0, 0),  # 傌（深红色）
+                "相": (180, 0, 0),  # 相（深红色）
+                "仕": (180, 0, 0),  # 仕（深红色）
+                "炮": (180, 0, 0),  # 炮（深红色）
+                "兵": (180, 0, 0),  # 兵（深红色）
+                "尉": (180, 0, 0),
+                "射": (180, 0, 0),
+                "檑": (180, 0, 0),
+                "甲": (180, 0, 0),
+                "楯": (180, 0, 0),
+                "刺": (180, 0, 0),
+                "巡": (180, 0, 0),
+                "text_color": (245, 245, 245)  # 棋子文字色（纯白色）
+            },
+            "text_border": (20, 20, 20)  # 棋子文字描边色（深黑，增强可读性）
+        },
+        "ui": {
+            "text_color": (50, 50, 50),  # UI文字色（深灰色）
+            "button_color": (100, 60, 20),  # 按钮色（深棕色）
+            "button_border": (50, 30, 10)  # 按钮边框色（浅棕色）
+        }
+    },
+    "night": {  # 夜晚主题
+        "background": (40, 40, 40),  # 背景色（深色）
+        "panel": (60, 60, 60),  # 面板色（稍浅的深色）
+        "panel_border": (100, 100, 100),  # 面板边框色（灰色）
+        "board": {
+            "base_color": (100, 70, 40),  # 棋盘底色（深檀木色）
+            "line_color": (240, 220, 180),  # 棋盘线条色（米白色）
+            "grid_color": (150, 100, 60),  # 棋盘格子线色（浅棕色）
+            "checkerboard": [  # 棋盘格子交替配色
+                (100, 70, 40), (150, 100, 60),
+                (100, 70, 40), (150, 100, 60),
+                (100, 70, 40), (150, 100, 60),
+                (100, 70, 40), (150, 100, 60)
+            ]
+        },
+        "pieces": {
+            # 基础阵营棋子（夜晚主题-浅色系）
+            "light_side": {  # 浅色方/白方
+                "汗": (240, 220, 180),  # 汗（米白色）
+                "車": (240, 220, 180),  # 車（米白色）
+                "馬": (240, 220, 180),  # 馬（米白色）
+                "象": (240, 220, 180),  # 象（米白色）
+                "士": (240, 220, 180),  # 士（米白色）
+                "砲": (240, 220, 180),  # 砲（米白色）
+                "卒": (240, 220, 180),  # 卒（米白色）
+                "衛": (240, 220, 180),
+                "䠶": (240, 220, 180),
+                "礌": (240, 220, 180),
+                "胄": (240, 220, 180),
+                "伺": (240, 220, 180),
+                "碷": (240, 220, 180),
+                "廵": (240, 220, 180),
+                "text_color": (30, 30, 30)  # 棋子文字色（深黑色）
+            },
+            "dark_side": {  # 深色方/金方
+                "漢": (255, 215, 0),  # 漢（金色）
+                "俥": (255, 215, 0),  # 俥（金色）
+                "傌": (255, 215, 0),  # 傌（金色）
+                "相": (255, 215, 0),  # 相（金色）
+                "仕": (255, 215, 0),  # 仕（金色）
+                "炮": (255, 215, 0),  # 炮（金色）
+                "兵": (255, 215, 0),  # 兵（金色）
+                "尉": (255, 215, 0),
+                "射": (255, 215, 0),
+                "檑": (255, 215, 0),
+                "甲": (255, 215, 0),
+                "楯": (255, 215, 0),
+                "刺": (255, 215, 0),
+                "巡": (255, 215, 0),
+                "text_color": (30, 30, 30)  # 棋子文字色（深黑色）
+            },
+            "text_border": (200, 200, 200)  # 棋子文字描边色（浅灰，增强可读性）
+        },
+        "ui": {
+            "text_color": (220, 220, 220),  # UI文字色（浅灰色）
+            "button_color": (240, 220, 180),  # 按钮色（米白色）
+            "button_border": (200, 180, 140)  # 按钮边框色（浅棕色）
+        }
+    }
+}
+
+
+def get_piece_color(piece_type: str, theme: str, side: str) -> tuple:
+    """
+    根据棋子类型、主题、阵营返回对应配色
+    :param piece_type: 棋子类型（如"漢""射""檑"）
+    :param theme: 主题（day/night）
+    :param side: 阵营（light_side/dark_side）
+    :return: 棋子RGB配色元组
+    """
+    try:
+        # 校验参数合法性
+        if theme not in ["day", "night"]:
+            theme = "day"  # 默认白天主题
+        if side not in ["light_side", "dark_side"]:
+            side = "light_side"  # 默认浅色方
+
+        # 获取对应配色
+        color = THEME_CONFIG[theme]["pieces"][side].get(piece_type)
+        if color is None:
+            # 未知棋子类型，返回默认色
+            default_colors = {
+                "day": {"light_side": (30, 20, 10), "dark_side": (180, 0, 0)},
+                "night": {"light_side": (240, 220, 180), "dark_side": (255, 215, 0)}
+            }
+            color = default_colors[theme][side]
+        return color
+    except Exception as e:
+        print(f"获取棋子配色失败：{e}")
+        # 终极兜底配色
+        return (150, 150, 150) if theme == "day" else (100, 100, 100)
+
+
+def get_piece_text_color(theme: str, side: str) -> tuple:
+    """获取棋子文字配色"""
+    try:
+        return THEME_CONFIG[theme]["pieces"][side]["text_color"]
+    except:
+        return (255, 255, 255) if theme == "day" else (0, 0, 0)
+
+
+class ThemeManager:
+    """主题管理类，处理日/夜主题配置和切换逻辑"""
+
+    def __init__(self):
+        self.config_file = "game_config.json"
+        self.default_theme = "day"  # 默认主题为白天
+        self.current_theme = self.load_theme()
+
+        # 使用统一的主题配置
+        self.themes = THEME_CONFIG
+
+    def load_theme(self):
+        """从配置文件加载主题"""
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    theme = config.get('theme', self.default_theme)
+                    return theme if theme in ['day', 'night'] else self.default_theme
+        except Exception as e:
+            print(f"加载主题配置失败: {e}")
+
+        return self.default_theme
+
+    def save_theme(self, theme):
+        """保存主题到配置文件"""
+        try:
+            config = {}
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+
+            config['theme'] = theme
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=4)
+
+            self.current_theme = theme
+            return True
+        except Exception as e:
+            print(f"保存主题配置失败: {e}")
+            return False
+
+    def get_current_theme(self):
+        """获取当前主题"""
+        return self.current_theme
+
+    def get_theme_colors(self):
+        """获取当前主题的颜色配置"""
+        return self.themes[self.current_theme]
+
+    def toggle_theme(self):
+        """切换主题"""
+        new_theme = "night" if self.current_theme == "day" else "day"
+        self.save_theme(new_theme)
+        return new_theme
+
+
+theme_manager = ThemeManager()
+
+
 class GameConfigManager:
     """游戏配置管理类"""
+
     def __init__(self):
         # 初始化默认设置
         self.settings = {
@@ -68,60 +293,60 @@ class GameConfigManager:
             "king_can_leave_palace": True,  # 汉/汗是否可以出九宫
             "king_lose_diagonal_outside_palace": True,  # 汉/汗出九宫后是否失去斜走能力
             "king_can_diagonal_in_palace": True,  # 汉/汗在九宫内是否可以斜走
-            
+
             # 士设置
             "shi_can_leave_palace": True,  # 士是否可以出九宫
             "shi_gain_straight_outside_palace": True,  # 士出九宫后是否获得直走能力
-            
+
             # 相设置
             "xiang_can_cross_river": True,  # 相是否可以过河
             "xiang_gain_jump_two_outside_river": True,  # 相过河后是否获得隔两格吃子能力
-            
+
             # 马设置
             "ma_can_straight_three": True,  # 马是否可以获得直走三格的能力
-            
+
             # 棋子登场设置
-            "ju_appear": True,      # 車/车登场
-            "ma_appear": True,      # 馬/马登场
-            "xiang_appear": True,   # 相/象登场
-            "shi_appear": True,     # 士/仕登场
-            "king_appear": True,    # 将/帅/汉/汗登场
-            "pao_appear": True,     # 炮/砲登场
-            "pawn_appear": True,    # 兵/卒登场
+            "ju_appear": True,  # 車/车登场
+            "ma_appear": True,  # 馬/马登场
+            "xiang_appear": True,  # 相/象登场
+            "shi_appear": True,  # 士/仕登场
+            "king_appear": True,  # 将/帅/汉/汗登场
+            "pao_appear": True,  # 炮/砲登场
+            "pawn_appear": True,  # 兵/卒登场
             "pawn_resurrection_enabled": True,  # 兵/卒复活机制启用
-            "pawn_promotion_enabled": True,     # 兵/卒升变机制启用
+            "pawn_promotion_enabled": True,  # 兵/卒升变机制启用
             "pawn_backward_at_base_enabled": True,  # 兵/卒底线后退能力
             "pawn_full_movement_at_base_enabled": True,  # 兵/卒底线完整移动能力
-            "wei_appear": True,     # 尉/衛登场
-            "she_appear": True,     # 射/䠶登场
-            "lei_appear": True,     # 檑/礌登场
-            "jia_appear": True,     # 甲/胄登场
-            "ci_appear": True,      # 刺登场
-            "dun_appear": True,     # 盾登场
-            "xun_appear": True,     # 巡/廵登场
+            "wei_appear": True,  # 尉/衛登场
+            "she_appear": True,  # 射/䠶登场
+            "lei_appear": True,  # 檑/礌登场
+            "jia_appear": True,  # 甲/胄登场
+            "ci_appear": True,  # 刺登场
+            "dun_appear": True,  # 盾登场
+            "xun_appear": True,  # 巡/廵登场
             # 游戏模式设置
             "classic_mode": False,  # 经典模式
             # AI设置
             "ai_algorithm": "negamax",  # AI算法类型: negamax, minimax, alpha-beta
         }
-    
+
     def get_setting(self, key, default=None):
         """获取设置值"""
         # 确保只返回已定义的配置键
         if key not in self.settings:
             return default
         return self.settings.get(key, default)
-    
+
     def set_setting(self, key, value):
         """设置值"""
         # 确保只设置已定义的配置键
         if key in self.settings:
             self.settings[key] = value
-    
+
     def get_all_settings(self):
         """获取所有设置"""
         return self.settings.copy()
-    
+
     def update_settings(self, new_settings):
         """批量更新设置"""
         if isinstance(new_settings, dict):
@@ -129,6 +354,7 @@ class GameConfigManager:
                 # 确保只更新已定义的配置键，防止添加意外的配置项
                 if key in self.settings:
                     self.settings[key] = value
+
 
 # 创建全局配置实例
 game_config = GameConfigManager()

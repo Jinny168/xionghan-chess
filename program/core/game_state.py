@@ -4,7 +4,7 @@ import program.utils.tools as tools
 from program.controllers.game_config_manager import game_config
 from program.controllers.statistics_manager import statistics_manager
 from program.controllers.step_counter import step_counter
-from program.core.chess_pieces import create_initial_pieces, King, Jia, Ci, Dun, Pawn
+from program.core.chess_pieces import create_initial_pieces, King, Jia, Ci, Dun, Pawn, Wei
 from program.core.game_rules import GameRules
 from program.utils.utils import print_board
 
@@ -57,10 +57,22 @@ class GameState:
         self.moves_count = 0  # 当前对局走子数
 
         self.history_scroll_y = 0
+        
+        # 尉照面追踪：记录当前被尉照面的棋子
+        self.facing_pairs = []  # 存储 (wei_piece, facing_target_piece) 的元组
 
     def get_piece_at(self, row, col):
         """获取指定位置的棋子"""
         return GameRules.get_piece_at(self.pieces, row, col)
+    
+    def update_facing_pairs(self):
+        """更新尉照面关系"""
+        self.facing_pairs = []
+        for piece in self.pieces:
+            if isinstance(piece, Wei) and GameRules.is_facing_enemy(piece, self.pieces):
+                facing_target = GameRules.get_facing_piece(piece, self.pieces)
+                if facing_target:
+                    self.facing_pairs.append((piece, facing_target))
     
     def move_piece(self, from_row, from_col, to_row, to_col):
         """移动棋子
@@ -79,7 +91,8 @@ class GameState:
         if not piece or piece.color != self.player_turn:
             return False
         
-        # 检查移动是否合法
+        # 更新尉照面关系，然后再检查移动是否合法
+        self.update_facing_pairs()
         if not GameRules.is_valid_move(self.pieces, piece, from_row, from_col, to_row, to_col):
             return False
         
@@ -524,17 +537,27 @@ class GameState:
         
         moves, capturable = GameRules.calculate_possible_moves(self.pieces, piece)
         
-        # 过滤掉会导致被将军的移动（送将）
-        safe_moves = self.filter_safe_moves(moves, piece)
+        # 过滤掉会导致被将军的移动（送将）和被尉照面限制的移动
+        safe_moves = self.filter_safe_moves_and_regular_moves(moves, piece)
 
-        # 过滤掉会导致被将军的吃子移动
+        # 过滤掉会导致被将军的吃子移动和被尉照面限制的吃子移动
         safe_capturable = self.filter_safe_moves(capturable, piece)
 
         return safe_moves, safe_capturable
 
+    def is_piece_facing_restricted(self, piece):
+        """检查棋子是否被尉照面限制移动"""
+        for wei_piece, facing_target in self.facing_pairs:
+            if facing_target == piece and piece != wei_piece:
+                return True
+        return False
+    
     def filter_safe_moves(self, capturable, piece):
         safe_capturable = []
         for to_row, to_col in capturable:
+            # 检查是否被尉照面限制
+            if self.is_piece_facing_restricted(piece):
+                continue  # 被尉照面限制的棋子不能移动
             if not GameRules.would_be_in_check_after_move(self.pieces, piece, to_row, to_col):
                 # 如果目标位置有盾，且不是己方的盾，则不能吃（盾不可被吃）
                 target_piece = self.get_piece_at(to_row, to_col)
@@ -542,6 +565,17 @@ class GameState:
                     continue  # 不能吃盾
                 safe_capturable.append((to_row, to_col))
         return safe_capturable
+    
+    def filter_safe_moves_and_regular_moves(self, moves, piece):
+        """过滤安全的移动（包括非吃子移动）"""
+        safe_moves = []
+        for to_row, to_col in moves:
+            # 检查是否被尉照面限制
+            if self.is_piece_facing_restricted(piece):
+                continue  # 被尉照面限制的棋子不能移动
+            if not GameRules.would_be_in_check_after_move(self.pieces, piece, to_row, to_col):
+                safe_moves.append((to_row, to_col))
+        return safe_moves
 
     def get_winner_text(self):
         """获取胜利方文本

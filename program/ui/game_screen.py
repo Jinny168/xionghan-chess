@@ -3,15 +3,15 @@ import pygame
 
 from program.controllers.game_config_manager import (
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO,
-    PANEL_BORDER, BLACK, RED
+    PANEL_BORDER, BLACK, RED, theme_manager
 )
 from program.controllers.taunts_manager import taunt_manager
 from program.ui.avatar import Avatar
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
 from program.ui.dialogs import AudioSettingsDialog
-from program.utils.utils import load_font, draw_background
-
+from program.utils.utils import load_font, draw_background, draw_theme_icon
+from program.controllers.game_config_manager import ThemeManager
 
 class MenuItem:
     """菜单项类"""
@@ -362,6 +362,17 @@ class GameScreen:
         self.audio_settings_button = None
         self.import_button = None
         self.export_button = None
+        self.theme_button = None  # 主题切换按钮
+        self.bg_switch_button = None  # 背景切换按钮
+        
+        # 背景图片列表
+        self.background_images = [
+            "assets/pics/1.jpg",
+            "assets/pics/2.jpg", 
+            "assets/pics/3.jpg"
+        ]
+        self.current_bg_index = 0  # 当前背景索引
+        self.loaded_background = None  # 加载的背景图片
         
         # 布局参数
         self.left_panel_width = None
@@ -471,8 +482,15 @@ class GameScreen:
         
     def _draw_background_and_side_panel(self, screen):
         """绘制背景和左侧边栏"""
-        # 使用统一的背景绘制函数
-        draw_background(screen)
+        # 获取当前主题颜色
+        theme_colors = theme_manager.get_theme_colors()
+        
+        # 如果有加载的背景图片，则绘制背景图片
+        if self.loaded_background:
+            screen.blit(self.loaded_background, (0, 0))
+        else:
+            # 使用统一的背景绘制函数
+            draw_background(screen, theme_colors["background"])
         
         # 绘制左侧面板背景
         # 检查缓存的Surface是否仍然有效（大小匹配）
@@ -484,7 +502,7 @@ class GameScreen:
             self.left_panel_overlay_cache.fill((255, 255, 255, 30))  # 半透明白色覆盖，轻微增亮
             
             # 绘制背景到缓存Surface
-            draw_background(self.left_panel_surface_cache)
+            draw_background(self.left_panel_surface_cache, theme_colors["panel"])
             # 应用半透明覆盖
             self.left_panel_surface_cache.blit(self.left_panel_overlay_cache, (0, 0))
         
@@ -492,7 +510,7 @@ class GameScreen:
         screen.blit(self.left_panel_surface_cache, (0, 0))
         
         # 添加分隔线
-        pygame.draw.line(screen, PANEL_BORDER, (self.left_panel_width, 0),
+        pygame.draw.line(screen, theme_colors["panel_border"], (self.left_panel_width, 0),
                          (self.left_panel_width, self.window_height), 2)
         
     def create_buttons(self):
@@ -518,6 +536,26 @@ class GameScreen:
             button_width,
             button_height,
             "音效",
+            14
+        )
+        
+        # 主题切换按钮，放在音效按钮下方
+        self.theme_button = Button(
+            self.window_width - button_width - 10,
+            90,
+            button_width,
+            button_height,
+            "主题",
+            14
+        )
+        
+        # 背景切换按钮，放在主题按钮下方
+        self.bg_switch_button = Button(
+            self.window_width - button_width - 10,
+            130,
+            button_width,
+            button_height,
+            "背景",
             14
         )
 
@@ -551,6 +589,18 @@ class GameScreen:
             self.red_avatar.player_name = "红方"
             self.black_avatar.player_name = "黑方"
 
+    def is_theme_icon_clicked(self, mouse_pos):
+        """检查主题切换图标是否被点击
+        图标位置：x:720, y:40（中心点），直径40px，点击区域为外扩10px的矩形（x:705~755, y:10~60）
+        """
+        x, y = mouse_pos
+        icon_x, icon_y = 720, 40  # 图标中心坐标
+        click_area_radius = 25  # 外扩10px的点击区域
+        
+        # 检查鼠标是否在点击区域内
+        distance_squared = (x - icon_x) ** 2 + (y - icon_y) ** 2
+        return distance_squared <= click_area_radius ** 2
+
     def update_button_states(self, mouse_pos):
         """更新按钮悬停状态"""
         # 更新全屏按钮悬停状态
@@ -559,6 +609,12 @@ class GameScreen:
         # 更新音效设置按钮悬停状态
         if self.audio_settings_button:
             self.audio_settings_button.check_hover(mouse_pos)
+        # 更新主题切换按钮悬停状态
+        if self.theme_button:
+            self.theme_button.check_hover(mouse_pos)
+        # 更新背景切换按钮悬停状态
+        if self.bg_switch_button:
+            self.bg_switch_button.check_hover(mouse_pos)
         
         # 更新菜单悬停状态
         self.option_menu.check_hover(mouse_pos)
@@ -662,6 +718,10 @@ class GameScreen:
         if self.taunt_animation:
             self.taunt_animation.update()
             self.taunt_animation.draw(screen)
+
+        # 绘制主题切换图标 - 右上角位置
+        current_theme = theme_manager.get_current_theme()
+        draw_theme_icon(screen, 720, 40, 40, current_theme)
 
         # 如果游戏结束，显示弹窗
         if popup:
@@ -768,6 +828,14 @@ class GameScreen:
                 # 打开音效设置对话框
                 from program.ui.dialogs import AudioSettingsDialog
                 game.audio_settings_dialog = AudioSettingsDialog(600, 400, game.sound_manager)
+            
+            # 检查是否点击了主题切换图标
+            elif self.is_theme_icon_clicked(mouse_pos):
+                # 切换主题
+                new_theme = theme_manager.toggle_theme()
+                print(f"主题已切换到: {new_theme}")
+                # 重新加载当前游戏界面的布局以应用新主题
+                self.update_layout()
 
             # 处理棋子操作，只有在当前回合是玩家回合时才处理
             elif not game.is_ai_thinking() and (game.game_mode == "pvp" or
