@@ -50,7 +50,7 @@ class StatisticsManager:
                 "ma": 0,                # 馬
                 "xiang": 0,             # 相/象
                 "shi": 0,               # 士/仕
-                "king": 0,              # 将/帅
+                "king": 0,              # 将/帥
                 "pao": 0,               # 炮/砲
                 "pawn": 0,              # 兵/卒
                 "wei": 0,               # 尉/衛

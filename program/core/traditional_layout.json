@@ -1,0 +1,199 @@
+{
+  "name": "traditional_layout",
+  "description": "传统中国象棋初始布局",
+  "board_size": 13,
+  "pieces": [
+    {
+      "type": "black_shi",
+      "name": "士",
+      "row": 0,
+      "col": 3
+    },
+    {
+      "type": "black_shi",
+      "name": "士",
+      "row": 0,
+      "col": 5
+    },
+    {
+      "type": "black_xiang",
+      "name": "象",
+      "row": 0,
+      "col": 2
+    },
+    {
+      "type": "black_xiang",
+      "name": "象",
+      "row": 0,
+      "col": 6
+    },
+    {
+      "type": "black_ma",
+      "name": "馬",
+      "row": 0,
+      "col": 1
+    },
+    {
+      "type": "black_ma",
+      "name": "馬",
+      "row": 0,
+      "col": 7
+    },
+    {
+      "type": "black_ju",
+      "name": "車",
+      "row": 0,
+      "col": 0
+    },
+    {
+      "type": "black_ju",
+      "name": "車",
+      "row": 0,
+      "col": 8
+    },
+    {
+      "type": "black_king",
+      "name": "將",
+      "row": 0,
+      "col": 4
+    },
+    {
+      "type": "black_pao",
+      "name": "砲",
+      "row": 2,
+      "col": 1
+    },
+    {
+      "type": "black_pao",
+      "name": "砲",
+      "row": 2,
+      "col": 7
+    },
+    {
+      "type": "black_pawn",
+      "name": "卒",
+      "row": 3,
+      "col": 0
+    },
+    {
+      "type": "black_pawn",
+      "name": "卒",
+      "row": 3,
+      "col": 2
+    },
+    {
+      "type": "black_pawn",
+      "name": "卒",
+      "row": 3,
+      "col": 4
+    },
+    {
+      "type": "black_pawn",
+      "name": "卒",
+      "row": 3,
+      "col": 6
+    },
+    {
+      "type": "black_pawn",
+      "name": "卒",
+      "row": 3,
+      "col": 8
+    },
+    {
+      "type": "red_shi",
+      "name": "仕",
+      "row": 9,
+      "col": 3
+    },
+    {
+      "type": "red_shi",
+      "name": "仕",
+      "row": 9,
+      "col": 5
+    },
+    {
+      "type": "red_xiang",
+      "name": "相",
+      "row": 9,
+      "col": 2
+    },
+    {
+      "type": "red_xiang",
+      "name": "相",
+      "row": 9,
+      "col": 6
+    },
+    {
+      "type": "red_ma",
+      "name": "傌",
+      "row": 9,
+      "col": 1
+    },
+    {
+      "type": "red_ma",
+      "name": "傌",
+      "row": 9,
+      "col": 7
+    },
+    {
+      "type": "red_ju",
+      "name": "俥",
+      "row": 9,
+      "col": 0
+    },
+    {
+      "type": "red_ju",
+      "name": "俥",
+      "row": 9,
+      "col": 8
+    },
+    {
+      "type": "red_king",
+      "name": "帥",
+      "row": 9,
+      "col": 4
+    },
+    {
+      "type": "red_pao",
+      "name": "炮",
+      "row": 7,
+      "col": 1
+    },
+    {
+      "type": "red_pao",
+      "name": "炮",
+      "row": 7,
+      "col": 7
+    },
+    {
+      "type": "red_pawn",
+      "name": "兵",
+      "row": 6,
+      "col": 0
+    },
+    {
+      "type": "red_pawn",
+      "name": "兵",
+      "row": 6,
+      "col": 2
+    },
+    {
+      "type": "red_pawn",
+      "name": "兵",
+      "row": 6,
+      "col": 4
+    },
+    {
+      "type": "red_pawn",
+      "name": "兵",
+      "row": 6,
+      "col": 6
+    },
+    {
+      "type": "red_pawn",
+      "name": "兵",
+      "row": 6,
+      "col": 8
+    }
+  ]
+}
