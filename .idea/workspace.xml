@@ -5,8 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="合并中象、匈汉逻辑">
-      <change beforePath="$PROJECT_DIR$/program/ui/settings_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/settings_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/traditional_game_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/traditional_game_screen.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/mode_selection_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/mode_selection_screen.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -386,14 +385,6 @@
       <workItem from="1769610923182" duration="2006000" />
       <workItem from="1769782485432" duration="8685000" />
       <workItem from="1769835119128" duration="10965000" />
-    </task>
-    <task id="LOCAL-00083" summary="修复了settings中的小error">
-      <option name="closed" value="true" />
-      <created>1769155552163</created>
-      <option name="number" value="00083" />
-      <option name="presentableId" value="LOCAL-00083" />
-      <option name="project" value="LOCAL" />
-      <updated>1769155552163</updated>
     </task>
     <task id="LOCAL-00084" summary="修复了settings中的小error">
       <option name="closed" value="true" />
@@ -779,7 +770,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769875496268</updated>
     </task>
-    <option name="localTasksCounter" value="132" />
+    <task id="LOCAL-00132" summary="合并中象、匈汉逻辑">
+      <option name="closed" value="true" />
+      <created>1769876558365</created>
+      <option name="number" value="00132" />
+      <option name="presentableId" value="LOCAL-00132" />
+      <option name="project" value="LOCAL" />
+      <updated>1769876558365</updated>
+    </task>
+    <option name="localTasksCounter" value="133" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
