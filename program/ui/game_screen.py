@@ -1,4 +1,5 @@
 """游戏主界面UI管理模块"""
+import math
 import pygame
 
 from program.controllers.game_config_manager import (
@@ -499,12 +500,20 @@ class GameScreen:
             # 创建新的缓存Surface
             self.left_panel_surface_cache = pygame.Surface((self.left_panel_width, self.window_height))
             self.left_panel_overlay_cache = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
-            self.left_panel_overlay_cache.fill((255, 255, 255, 30))  # 半透明白色覆盖，轻微增亮
             
             # 绘制背景到缓存Surface
             draw_background(self.left_panel_surface_cache, theme_colors["panel"])
-            # 应用半透明覆盖
-            self.left_panel_surface_cache.blit(self.left_panel_overlay_cache, (0, 0))
+            
+            # 应用更美观的渐变效果或纹理覆盖
+            overlay = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
+            # 创建渐变效果，使左侧面板更具层次感
+            for y in range(self.window_height):
+                # 根据y位置计算透明度，创建垂直渐变效果
+                alpha = 20 + int(10 * abs(math.sin(y / 100.0)))  # 轻微的垂直变化
+                overlay_color = (255, 255, 255, alpha)
+                pygame.draw.line(overlay, overlay_color, (0, y), (self.left_panel_width, y))
+            
+            self.left_panel_surface_cache.blit(overlay, (0, 0))
         
         # 应用到主界面
         screen.blit(self.left_panel_surface_cache, (0, 0))
@@ -735,20 +744,36 @@ class GameScreen:
 
         # 绘制总时间 - 在左上角，但避开菜单栏
         total_time_surface = self.timer_font.render(f"对局时长: {total_time_str}", True, BLACK)
-        screen.blit(total_time_surface, (10, 45))  # 将Y坐标从10改为45，避开菜单
+        
+        # 为总时间文本添加背景矩形
+        total_time_rect = total_time_surface.get_rect(topleft=(10, 45))
+        total_time_bg_rect = pygame.Rect(total_time_rect.left - 5, total_time_rect.top - 3, 
+                                         total_time_rect.width + 10, total_time_rect.height + 6)
+        pygame.draw.rect(screen, (255, 255, 255, 200), total_time_bg_rect)  # 半透明白色背景
+        screen.blit(total_time_surface, (10, 45))
 
-        # 绘制红方时间 - 在红方头像下方
+        # 绘制红方时间 - 在红方头像下方，添加背景矩形
         red_time_surface = self.timer_font.render(f"用时: {red_time_str}", True, RED)
         red_time_rect = red_time_surface.get_rect(
-            center=(self.left_panel_width // 2, self.red_avatar.y + self.red_avatar.radius + 60)  # 增加间距
+            center=(self.left_panel_width // 2, self.red_avatar.y + self.red_avatar.radius + 60)
         )
+        
+        # 为红方时间添加背景矩形
+        red_time_bg_rect = pygame.Rect(red_time_rect.left - 8, red_time_rect.top - 4, 
+                                       red_time_rect.width + 16, red_time_rect.height + 8)
+        pygame.draw.rect(screen, (255, 200, 200, 180), red_time_bg_rect)  # 淡红色半透明背景
         screen.blit(red_time_surface, red_time_rect)
 
-        # 绘制黑方时间 - 在黑方头像下方
+        # 绘制黑方时间 - 在黑方头像下方，添加背景矩形
         black_time_surface = self.timer_font.render(f"用时: {black_time_str}", True, BLACK)
         black_time_rect = black_time_surface.get_rect(
-            center=(self.left_panel_width // 2, self.black_avatar.y + self.black_avatar.radius + 60)  # 增加间距
+            center=(self.left_panel_width // 2, self.black_avatar.y + self.black_avatar.radius + 60)
         )
+        
+        # 为黑方时间添加背景矩形
+        black_time_bg_rect = pygame.Rect(black_time_rect.left - 8, black_time_rect.top - 4, 
+                                         black_time_rect.width + 16, black_time_rect.height + 8)
+        pygame.draw.rect(screen, (200, 200, 220, 180), black_time_bg_rect)  # 淡蓝色半透明背景
         screen.blit(black_time_surface, black_time_rect)
 
     def handle_event(self, event, mouse_pos, game):
@@ -836,15 +861,8 @@ class GameScreen:
             return "handled"
         elif option_result == "主题切换":
             # 切换主题
-            current_theme = theme_manager.get_current_theme()
-            # 在三个主题之间循环切换
-            if current_theme == "day":
-                new_theme = "night"
-            elif current_theme == "night":
-                new_theme = "origin"
-            else:  # current_theme == "origin"
-                new_theme = "day"
-            theme_manager.save_theme(new_theme)
+            # 使用主题管理器的切换功能，支持所有主题
+            theme_manager.toggle_theme()
             return "handled"
         
         # 处理帮助菜单事件

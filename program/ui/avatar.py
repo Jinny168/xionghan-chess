@@ -32,7 +32,7 @@ class Avatar:
     def draw(self, screen):
         # 绘制外圆框
         border_color = (200, 100, 100) if self.is_red else (60, 60, 80)
-        border_width = 3 if self.active else 1
+        border_width = 3 if self.active else 2
         
         # 如果是当前活跃玩家，添加光晕效果
         if self.active:
@@ -46,17 +46,27 @@ class Avatar:
                 pygame.draw.circle(temp_surface, glow_color, (glow_radius, glow_radius), glow_radius, 2)
                 screen.blit(temp_surface, (self.x - glow_radius, self.y - glow_radius))
         
-        # 绘制头像背景
+        # 绘制头像背景 - 使用渐变效果
         pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
+        
+        # 添加内部装饰圆圈，增强视觉效果
+        inner_radius = self.radius - 5
+        if self.is_red:
+            inner_color = (255, 200, 200)  # 红方内部浅红色
+        else:
+            inner_color = (200, 200, 220)  # 黑方内部浅蓝色
+        pygame.draw.circle(screen, inner_color, (self.x, self.y), inner_radius)
+        
+        # 绘制边框
         pygame.draw.circle(screen, border_color, (self.x, self.y), self.radius, border_width)
         
         # 绘制简单的玩家标识
         if self.is_red:
-            # 红方标识 - 绘制"帅"字或简单图案
+            # 红方标识 - 绘制"汉"字
             text = "汉"
             text_color = (180, 30, 30)
         else:  # black
-            # 黑方标识 - 绘制"将"字或简单图案
+            # 黑方标识 - 绘制"匈"字
             text = "匈"
             text_color = (30, 30, 30)
         
@@ -69,14 +79,23 @@ class Avatar:
         text_shadow_rect = text_shadow.get_rect(center=(self.x + shadow_offset, self.y + shadow_offset))
         screen.blit(text_shadow, text_shadow_rect)
         
-        # 再绘制文字
+        # 再绘制主要文字
         text_surface = self.piece_font.render(text, True, text_color)
         text_rect = text_surface.get_rect(center=(self.x, self.y))
         screen.blit(text_surface, text_rect)
         
-        # 绘制玩家名称
+        # 绘制玩家名称 - 添加背景矩形，提高可读性
         name_surface = self.name_font.render(self.player_name, True, (20, 20, 20))
-        name_rect = name_surface.get_rect(center=(self.x, self.y + self.radius + 20))
+        name_rect = name_surface.get_rect(center=(self.x, self.y + self.radius + 25))
+        
+        # 绘制名称背景矩形
+        name_bg_rect = pygame.Rect(name_rect.left - 8, name_rect.top - 4, 
+                                   name_rect.width + 16, name_rect.height + 8)
+        name_bg_color = (255, 255, 255, 180)  # 半透明白色背景
+        temp_surface = pygame.Surface((name_bg_rect.width, name_bg_rect.height), pygame.SRCALPHA)
+        temp_surface.fill(name_bg_color)
+        screen.blit(temp_surface, (name_bg_rect.x, name_bg_rect.y))
+        
         screen.blit(name_surface, name_rect)
         
     def set_active(self, active):
@@ -90,4 +109,3 @@ class Avatar:
         if radius:
             self.radius = radius
             self.update_font()  # 如果大小变化，需要更新字体
-

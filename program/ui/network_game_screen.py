@@ -1,8 +1,9 @@
+import math
 
 import pygame
 
 from program.controllers.game_config_manager import (
-    PANEL_BORDER, RED, BLACK,
+    PANEL_BORDER, RED, BLACK, theme_manager,
 )
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
@@ -140,22 +141,33 @@ class NetworkGameScreen:
              promotion_dialog=None, audio_settings_dialog=None):
         """绘制网络对战界面"""
         # 使用统一的背景绘制函数
-        draw_background(screen)
+        theme_colors = theme_manager.get_theme_colors()
+        
+        # 绘制主背景
+        draw_background(screen, theme_colors["background"])
 
-        # 先绘制与主背景一致的纹理
+        # 绘制左侧面板背景
         left_panel_surface = pygame.Surface((self.left_panel_width, self.window_height))
-        draw_background(left_panel_surface)  # 使用相同的背景绘制函数
-
-        # 稍微调亮左侧面板使其有区分度
+        
+        # 绘制主题背景
+        draw_background(left_panel_surface, theme_colors["panel"])
+        
+        # 应用更美观的渐变效果或纹理覆盖
         overlay = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
-        overlay.fill((255, 255, 255, 30))  # 半透明白色覆盖，轻微增亮
+        # 创建渐变效果，使左侧面板更具层次感
+        for y in range(self.window_height):
+            # 根据y位置计算透明度，创建垂直渐变效果
+            alpha = 20 + int(10 * abs(math.sin(y / 100.0)))  # 轻微的垂直变化
+            overlay_color = (255, 255, 255, alpha)
+            pygame.draw.line(overlay, overlay_color, (0, y), (self.left_panel_width, y))
+        
         left_panel_surface.blit(overlay, (0, 0))
 
         # 应用到主界面
         screen.blit(left_panel_surface, (0, 0))
 
         # 添加分隔线
-        pygame.draw.line(screen, PANEL_BORDER, (self.left_panel_width, 0),
+        pygame.draw.line(screen, theme_colors["panel_border"], (self.left_panel_width, 0),
                          (self.left_panel_width, self.window_height), 2)
 
         # 绘制棋盘和棋子
