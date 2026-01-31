@@ -7,72 +7,42 @@ from program.controllers.game_config_manager import (
 from program.controllers.sound_manager import sound_manager
 from program.ui.avatar import Avatar
 from program.ui.button import Button, StyledButton
-from program.ui.game_screen import Menu, OperationPanel, draw_info_panel, TauntAnimation
+from program.ui.game_screen import GameScreen, draw_info_panel
 from program.ui.traditional_chess_board import TraditionalChessBoard
 from program.utils.utils import load_font, draw_background
 
 
-class TraditionalGameScreen:
-    """管理传统象棋游戏界面的UI组件和绘制逻辑"""
+class TraditionalGameScreen(GameScreen):
+    """管理传统象棋游戏界面的UI组件和绘制逻辑，继承自GameScreen"""
     
     def __init__(self, window_width, window_height, game_mode, player_camp):
-        """初始化游戏界面组件"""
+        """初始化传统象棋游戏界面组件"""
+        # 调用父类构造函数
+        super().__init__(window_width, window_height, game_mode, player_camp)
+        
         self.window_width = window_width
         self.window_height = window_height
         self.game_mode = game_mode
         self.player_camp = player_camp
         
-        # 初始化界面组件
-        self.board = None
-        self.red_avatar = None
-        self.black_avatar = None
-        self.timer_font = None
+        # 重新初始化棋盘为传统象棋棋盘
+        self.update_traditional_board()
         
-        # 按钮组件
-        self.back_button = None
-        self.restart_button = None
-        self.exit_button = None
-        self.undo_button = None
-        self.fullscreen_button = None
-        self.audio_settings_button = None
-        self.import_button = None
-        self.export_button = None
-        
-        # 背景图片列表
-        self.background_images = [
-            "assets/pics/1.jpg",
-            "assets/pics/2.jpg", 
-            "assets/pics/3.jpg"
-        ]
-        self.current_bg_index = 0  # 当前背景索引
-        self.loaded_background = None  # 加载的背景图片
-        
-        # 布局参数
-        self.left_panel_width = None
-        self.board_margin_top = None
-        
-        # 新增：菜单系统
-        self.option_menu = None
-        self.help_menu = None
-        self.operation_panel = None
-        self.taunt_animation = None
-        
-        # 预创建左侧面板背景Surface
-        self.left_panel_surface_cache = None
-        self.left_panel_overlay_cache = None
-        
-        # 存储AI难度和算法信息
-        self.ai_difficulty_info = None
-        
-        # 计时器相关
+        # 计时器相关（传统象棋计时器）
         self.start_time = pygame.time.get_ticks()  # 游戏开始时间
         self.red_time = 0  # 红方累计用时
         self.black_time = 0  # 黑方累计用时
         self.current_player_start_time = self.start_time  # 当前玩家开始用时
         self._last_player = "red"  # 上一个玩家
         
-        # 初始化所有UI组件
-        self.init_ui_components()
+    def update_traditional_board(self):
+        """更新为传统象棋棋盘"""
+        self.board = TraditionalChessBoard(
+            self.window_width - self.left_panel_width - 40,  # 增加更多右边距
+            self.window_height,
+            self.left_panel_width + 30,  # 棋盘起始位置右移更多
+            self.board_margin_top  # 使用调整后的顶部边距
+        )
         
     def init_ui_components(self):
         """初始化所有UI组件"""
