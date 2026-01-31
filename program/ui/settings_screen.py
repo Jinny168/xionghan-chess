@@ -193,16 +193,6 @@ class SettingsScreen:
                 "section_title": None,
                 "appear_checkbox": None,
                 "appear_label": None,
-            },
-            # 游戏模式设置
-            "game_mode": {
-                "classic_mode": None,               # 经典模式设置
-                "traditional_mode": None,           # 传统模式设置
-                "section_title": None,
-                "classic_checkbox": None,
-                "classic_label": None,
-                "traditional_checkbox": None,
-                "traditional_label": None,
             }
         }
 
@@ -243,7 +233,7 @@ class SettingsScreen:
         
         # 初始化滚动
         self.update_max_scroll()
-
+        
     def load_settings(self):
         """从全局配置加载设置"""
         # 汗/汗设置
@@ -281,10 +271,7 @@ class SettingsScreen:
         self.piece_settings["ci"]["appear"] = game_config.get_setting("ci_appear", True)
         self.piece_settings["dun"]["appear"] = game_config.get_setting("dun_appear", True)
         self.piece_settings["xun"]["appear"] = game_config.get_setting("xun_appear", True)
-        
-        # 游戏模式设置
-        self.piece_settings["game_mode"]["classic_mode"] = game_config.get_setting("classic_mode", False)
-        self.piece_settings["game_mode"]["traditional_mode"] = game_config.get_setting("traditional_mode", False)
+
 
     def create_ui_elements(self):
         """创建界面元素，按棋子类型进行分类"""
@@ -434,17 +421,7 @@ class SettingsScreen:
         self.piece_settings["xun"]["appear_label"] = (label_x, y_pos)
         y_pos += option_spacing + section_spacing
         
-        # 游戏模式设置
-        self.piece_settings["game_mode"]["section_title"] = (left_col_x, y_pos - 10)
-        y_pos += 30  # 为标题留出空间
-        self.piece_settings["game_mode"]["classic_checkbox"] = pygame.Rect(checkbox_x, y_pos, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
-        self.piece_settings["game_mode"]["classic_label"] = (label_x, y_pos)
-        y_pos += option_spacing
-        
-        # 传统模式设置
-        self.piece_settings["game_mode"]["traditional_checkbox"] = pygame.Rect(checkbox_x, y_pos, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
-        self.piece_settings["game_mode"]["traditional_label"] = (label_x, y_pos)
-        y_pos += option_spacing + section_spacing
+
         
 
         # 确认按钮 & 返回按钮（位于界面底部，不受滚动影响）
@@ -622,25 +599,6 @@ class SettingsScreen:
         
         # 巡棋子分类
         xun_items = self.create_xun_items()
-        category_height = draw_category(
-            self.screen, self.category_background_color, self.category_border_color,
-            self.category_padding, self.category_title_height, self.category_title_font,
-            self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
-            self.option_font, self.desc_font, self.draw_piece_icon,
-            "巡", "巡", xun_items, y_offset
-        )
-        y_offset = y_offset + category_height + self.category_spacing
-        
-        # 游戏模式分类
-        game_mode_items = self.create_game_mode_items()
-        category_height = draw_category(
-            self.screen, self.category_background_color, self.category_border_color,
-            self.category_padding, self.category_title_height, self.category_title_font,
-            self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
-            self.option_font, self.desc_font, self.draw_piece_icon,
-            "模", "游戏模式", game_mode_items, y_offset
-        )
-        y_offset = y_offset + category_height + self.category_spacing
 
 
         # 取消裁剪区域
@@ -862,19 +820,7 @@ class SettingsScreen:
             # 计算下一个分类的y位置
             next_y_pos = next_y_pos + len(xun_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
-            # 游戏模式分类
-            game_mode_items = self.create_game_mode_items()
-            clicked_item = self.check_category_click(game_mode_items, adjusted_mouse_pos, next_y_pos)
-            if clicked_item is not None:
-                _, _, value, text, _, _ = clicked_item
-                if text == "经典模式":
-                    self.piece_settings["game_mode"]["classic_mode"] = not self.piece_settings["game_mode"]["classic_mode"]
-                elif text == "传统模式":
-                    self.piece_settings["game_mode"]["traditional_mode"] = not self.piece_settings["game_mode"]["traditional_mode"]
-                    # 当启用传统模式时，自动禁用特殊规则并只保留传统棋子
-                    if self.piece_settings["game_mode"]["traditional_mode"]:
-                        self.apply_traditional_mode_settings()
-                return  # 处理完后直接返回，避免其他检测
+
 
             # 检查按钮点击（按钮不受滚动影响）
             if self.confirm_button.is_clicked(event.pos, event):
@@ -953,11 +899,7 @@ class SettingsScreen:
             "lei_appear": self.piece_settings["lei"]["appear"],
             "jia_appear": self.piece_settings["jia"]["appear"],
             "ci_appear": self.piece_settings["ci"]["appear"],
-            "dun_appear": self.piece_settings["dun"]["appear"],
-            # 添加游戏模式设置
-            "classic_mode": self.piece_settings["game_mode"]["classic_mode"],
-            "traditional_mode": self.piece_settings["game_mode"]["traditional_mode"],
-
+            "dun_appear": self.piece_settings["dun"]["appear"]
         }
 
         # 保存设置到全局配置
@@ -1189,11 +1131,6 @@ class SettingsScreen:
         # 巡棋子分类
         xun_items = self.create_xun_items()
         category_height = len(xun_items) * 60 + self.category_title_height + 2 * self.category_padding
-        y_offset = y_offset + category_height + self.category_spacing
-        
-        # 游戏模式分类
-        game_mode_items = self.create_game_mode_items()
-        category_height = len(game_mode_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
 
         
@@ -1478,57 +1415,4 @@ class SettingsScreen:
              "巡/廵登场（河界专属控场棋子）", 
              False)
         ]
-
-    def create_game_mode_items(self):
-        """创建游戏模式相关的设置项"""
-        return [
-            (self.piece_settings["game_mode"]["classic_checkbox"], 
-             self.piece_settings["game_mode"]["classic_label"], 
-             self.piece_settings["game_mode"]["classic_mode"], 
-             "经典模式", 
-             "采用传统布局，只包含车、马、相、士、将/帅、炮、兵/卒，以及新增的射和檑", 
-             False),
-            (self.piece_settings["game_mode"]["traditional_checkbox"], 
-             self.piece_settings["game_mode"]["traditional_label"], 
-             self.piece_settings["game_mode"]["traditional_mode"], 
-             "传统模式", 
-             "采用传统中国象棋规则，只包含漢仕相傌俥炮兵七种棋子，禁用所有特殊规则", 
-             False)
-        ]
-    
-    def apply_traditional_mode_settings(self):
-        """应用传统模式设置 - 禁用特殊规则并只保留传统棋子"""
-        # 禁用特殊规则
-        self.piece_settings["ma"]["can_straight_three"] = False
-        self.piece_settings["king"]["can_leave_palace"] = False
-        self.piece_settings["king"]["lose_diagonal_outside_palace"] = False
-        self.piece_settings["king"]["can_diagonal_in_palace"] = False
-        self.piece_settings["shi"]["can_leave_palace"] = False
-        self.piece_settings["shi"]["gain_straight_outside_palace"] = False
-        self.piece_settings["xiang"]["can_cross_river"] = False
-        self.piece_settings["xiang"]["gain_jump_two_outside_river"] = False
-        
-        # 设置棋子登场 - 只保留传统棋子：漢仕相傌俥炮兵
-        self.piece_settings["king"]["appear"] = True  # 將/帥
-        self.piece_settings["shi"]["appear"] = True   # 士
-        self.piece_settings["xiang"]["appear"] = True  # 相
-        self.piece_settings["ma"]["appear"] = True     # 傌
-        self.piece_settings["ju"]["appear"] = True     # 俥
-        self.piece_settings["pao"]["appear"] = True    # 炮
-        self.piece_settings["pawn"]["appear"] = True   # 兵
-        
-        # 非传统棋子设为不出现
-        self.piece_settings["wei"]["appear"] = False   # 尉
-        self.piece_settings["she"]["appear"] = False   # 射
-        self.piece_settings["lei"]["appear"] = False   # 檵/檑
-        self.piece_settings["jia"]["appear"] = False   # 甲
-        self.piece_settings["ci"]["appear"] = False    # 刺
-        self.piece_settings["dun"]["appear"] = False   # 盾
-        self.piece_settings["xun"]["appear"] = False   # 巡
-        
-        # 禁用兵/卒的特殊机制
-        self.piece_settings["pawn"]["resurrection_enabled"] = False
-        self.piece_settings["pawn"]["promotion_enabled"] = False
-        self.piece_settings["pawn"]["backward_at_base_enabled"] = False
-        self.piece_settings["pawn"]["full_movement_at_base_enabled"] = False
 
