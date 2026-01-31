@@ -510,7 +510,8 @@ class GameConfigManager:
             "dun_appear": True,  # 盾登场
             "xun_appear": True,  # 巡/廵登场
             # 游戏模式设置
-            "classic_mode": False,  # 经典模式
+            "classic_mode": False,  # 决定匈汉象棋为经典模式还是狂暴模式
+            "traditional_mode":False,  # 决定游玩中国象棋还是匈汉象棋
             # AI设置
             "ai_algorithm": "negamax",  # AI算法类型: negamax, minimax, alpha-beta
         }

@@ -1,7 +1,8 @@
 """传统象棋AI对手"""
 
 import random
-from program.core.traditional_chess_rules import TraditionalChessRules
+
+from program.core.game_rules import GameRules
 
 
 class TraditionalAI:
@@ -13,7 +14,7 @@ class TraditionalAI:
         :param difficulty: 难度级别 ("easy", "medium", "hard")
         """
         self.difficulty = difficulty
-        self.rules = TraditionalChessRules()
+        self.rules = GameRules()
         # 棋子价值表，参考标准象棋评估
         self.piece_values = {
             '將': 1000, '帥': 1000,  # 将/帅
@@ -106,10 +107,17 @@ class TraditionalAI:
     
     def _get_piece_possible_moves(self, pieces, piece):
         """获取棋子的所有可能移动"""
-        # 创建一个临时的游戏模式实例来获取移动
-        from program.core.traditional_chess_mode import TraditionalChessMode
-        mode = TraditionalChessMode()
-        return mode.get_traditional_possible_moves(pieces, piece)
+        # 临时设置传统模式以获取移动
+        original_traditional_mode = self.rules.traditional_mode
+        self.rules.set_game_settings({"traditional_mode": True})
+        
+        # 获取可能的移动
+        moves, capturable = self.rules.calculate_possible_moves(pieces, piece)
+        
+        # 恢复原始模式设置
+        self.rules.set_game_settings({"traditional_mode": original_traditional_mode})
+        
+        return moves, capturable
     
     def _get_piece_at(self, pieces, row, col):
         """获取指定位置的棋子"""

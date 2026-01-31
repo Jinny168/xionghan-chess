@@ -431,50 +431,28 @@ class ModeSelectionScreen:
                     # 开始游戏按钮
                     elif self.start_game_button.is_clicked(mouse_pos, event):
                         self.sound_manager.play_sound('button')  # 播放按钮音效
-                        
                         # 检查是否选择了传统象棋模式
                         selected_game_mode = self.game_mode_options[self.current_game_mode_index]
                         if selected_game_mode == "传统象棋":
                             # 启动传统象棋模式
-                            from program.core.traditional_game import run_traditional_chess
-                            selected_type = self.game_type_options[self.current_game_type_index]
-                            traditional_type = "pvp" if selected_type == "双人对战" else "pvc" if selected_type == "人机对战" else "network"
-                            run_traditional_chess(traditional_type)
-                            # 重新创建界面以刷新显示
-                            self.__init__()
+                            from program.controllers.game_config_manager import game_config
+                            game_config.set_setting("traditional_mode", True)
                         else:
                             # 根据选择的游戏模式设置经典模式配置
                             classic_mode = (selected_game_mode == "经典匈汉")
-                            
                             # 从game_config更新设置
                             from program.controllers.game_config_manager import game_config
                             game_config.set_setting("classic_mode", classic_mode)
-                            
-                            # 根据选择的游戏类型设置最终模式
-                            selected_type = self.game_type_options[self.current_game_type_index]
-                            if selected_type == "双人对战":
-                                self.selected_mode = MODE_PVP
-                            elif selected_type == "人机对战":
-                                self.selected_mode = MODE_PVC
-                            elif selected_type == "网络对战":
-                                self.selected_mode = "network"
-                            
-                    # 传统象棋模式按钮
-                    elif self.traditional_chess_button and self.traditional_chess_button.is_clicked(mouse_pos, event):
-                        self.sound_manager.play_sound('button')  # 播放按钮音效
-                        # 启动传统象棋模式
-                        from program.core.traditional_game import run_traditional_chess
-                        # 根据游戏类型选择启动相应模式
+                        # 根据选择的游戏类型设置最终模式
                         selected_type = self.game_type_options[self.current_game_type_index]
                         if selected_type == "双人对战":
-                            run_traditional_chess("pvp")
+                            self.selected_mode = MODE_PVP
                         elif selected_type == "人机对战":
-                            run_traditional_chess("pvc")
+                            self.selected_mode = MODE_PVC
                         elif selected_type == "网络对战":
-                            run_traditional_chess("network")
-                        # 重新创建界面以刷新显示
-                        self.__init__()
-                            
+                            self.selected_mode = "network"
+
+
                     elif self.settings_button.is_clicked(mouse_pos, event):
                         self.sound_manager.play_sound('button')  # 播放按钮音效
                         self.toggle_settings_menu()
@@ -494,6 +472,7 @@ class ModeSelectionScreen:
                                     from program.core.game_state import GameState
                                     from program.controllers.game_io_controller import GameIOController
                                     from program.ui.replay_screen import ReplayScreen
+                                    from program.controllers.game_config_manager import game_config
 
                                     # 创建游戏状态
                                     game_state = GameState()

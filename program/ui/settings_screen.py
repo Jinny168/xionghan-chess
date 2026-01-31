@@ -206,13 +206,7 @@ class SettingsScreen:
             }
         }
 
-        # AI算法设置
-        self.ai_settings = {
-            "ai_algorithm": game_config.get_setting("ai_algorithm", "negamax"),          # AI算法选择，从全局配置加载
-            "section_title": (0.0, 0),  # 初始化为默认坐标
-            "algorithm_radio_buttons": {},  # 存储算法选择的单选按钮
-            "algorithm_labels": {},       # 存储算法标签
-        }
+
 
         # 按钮
         self.confirm_button = None
@@ -452,18 +446,6 @@ class SettingsScreen:
         self.piece_settings["game_mode"]["traditional_label"] = (label_x, y_pos)
         y_pos += option_spacing + section_spacing
         
-        # AI算法设置区域
-        # AI算法分类标题
-        self.ai_settings["section_title"] = (left_col_x, y_pos - 10)
-        y_pos += 30  # 为标题留出空间
-        
-        # 创建AI算法选择单选按钮
-        available_algorithms = ["negamax", "minimax", "alpha-beta", "mcts"]  # 包含MCTS选项
-        for i, alg in enumerate(available_algorithms):
-            checkbox_y = y_pos + i * option_spacing
-            self.ai_settings["algorithm_radio_buttons"][alg] = pygame.Rect(checkbox_x, checkbox_y, self.CHECKBOX_SIZE, self.CHECKBOX_SIZE)
-            self.ai_settings["algorithm_labels"][alg] = (label_x, checkbox_y)
-        y_pos += len(available_algorithms) * option_spacing + section_spacing
 
         # 确认按钮 & 返回按钮（位于界面底部，不受滚动影响）
         confirm_y = self.window_height - 80
@@ -660,16 +642,6 @@ class SettingsScreen:
         )
         y_offset = y_offset + category_height + self.category_spacing
 
-        # AI算法分类
-        ai_items = self.create_ai_items()
-        draw_category(
-            self.screen, self.category_background_color, self.category_border_color,
-            self.category_padding, self.category_title_height, self.category_title_font,
-            self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
-            self.option_font, self.desc_font, self.draw_piece_icon,
-            "A", "AI算法", ai_items, y_offset
-        )
-        # y_offset = y_offset + category_height + self.category_spacing  # 最终值未被使用
 
         # 取消裁剪区域
         self.screen.set_clip(None)
@@ -903,26 +875,7 @@ class SettingsScreen:
                     if self.piece_settings["game_mode"]["traditional_mode"]:
                         self.apply_traditional_mode_settings()
                 return  # 处理完后直接返回，避免其他检测
-            
-            # 计算下一个分类的y位置
-            next_y_pos = next_y_pos + len(game_mode_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
 
-            # AI算法分类
-            ai_items = self.create_ai_items()
-            clicked_item = self.check_category_click(ai_items, adjusted_mouse_pos, next_y_pos)
-            if clicked_item is not None:
-                _, _, value, text, _, _ = clicked_item
-                # 根据文本内容识别是哪个算法选项
-                if "Negamax搜索算法" in text or "negamax" in text.lower():
-                    self.ai_settings["ai_algorithm"] = "negamax"
-                elif "Minimax搜索算法" in text or "minimax" in text.lower():
-                    self.ai_settings["ai_algorithm"] = "minimax"
-                elif "Alpha-Beta剪枝算法" in text or "alpha-beta" in text.lower():
-                    self.ai_settings["ai_algorithm"] = "alpha-beta"
-                elif "MCTS+神经网络算法" in text or "mcts" in text.lower():
-                    self.ai_settings["ai_algorithm"] = "mcts"
-                return  # 处理完后直接返回，避免其他检测
-            
             # 检查按钮点击（按钮不受滚动影响）
             if self.confirm_button.is_clicked(event.pos, event):
                 return "confirm"
@@ -1004,8 +957,7 @@ class SettingsScreen:
             # 添加游戏模式设置
             "classic_mode": self.piece_settings["game_mode"]["classic_mode"],
             "traditional_mode": self.piece_settings["game_mode"]["traditional_mode"],
-            # 添加AI算法设置
-            "ai_algorithm": self.ai_settings["ai_algorithm"]
+
         }
 
         # 保存设置到全局配置
@@ -1244,10 +1196,6 @@ class SettingsScreen:
         category_height = len(game_mode_items) * 60 + self.category_title_height + 2 * self.category_padding
         y_offset = y_offset + category_height + self.category_spacing
 
-        # AI算法分类
-        ai_items = self.create_ai_items()
-        category_height = len(ai_items) * 60 + self.category_title_height + 2 * self.category_padding
-        y_offset = y_offset + category_height + self.category_spacing
         
         total_height = y_offset  # 总高度就是最后一个分类的底部位置
         
@@ -1530,41 +1478,6 @@ class SettingsScreen:
              "巡/廵登场（河界专属控场棋子）", 
              False)
         ]
-
-    def create_ai_items(self):
-        """创建AI算法相关的设置项"""
-        available_algorithms = ["negamax", "minimax", "alpha-beta", "mcts"]
-        items = []
-        
-        for i, alg in enumerate(available_algorithms):
-            checkbox = self.ai_settings["algorithm_radio_buttons"][alg]
-            label = self.ai_settings["algorithm_labels"][alg]
-            value = (self.ai_settings["ai_algorithm"] == alg)
-            
-            alg_names = {
-                "negamax": "Negamax搜索算法", 
-                "minimax": "Minimax搜索算法",
-                "alpha-beta": "Alpha-Beta剪枝算法",
-                "mcts": "MCTS+神经网络算法"
-            }
-            
-            alg_descriptions = {
-                "negamax": "传统搜索算法，使用Negamax算法进行决策",
-                "minimax": "传统搜索算法，使用Minimax算法进行决策",
-                "alpha-beta": "传统搜索算法，使用Alpha-Beta剪枝优化",
-                "mcts": "现代AI算法，结合蒙特卡洛树搜索和神经网络"
-            }
-            
-            items.append((
-                checkbox,
-                label,
-                value,
-                alg_names.get(alg, f"使用{alg.upper()}算法"),
-                alg_descriptions.get(alg, f"选择{alg}算法进行AI对战"),
-                False  # 不是禁用状态
-            ))
-        
-        return items
 
     def create_game_mode_items(self):
         """创建游戏模式相关的设置项"""
