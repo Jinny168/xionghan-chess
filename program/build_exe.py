@@ -79,9 +79,9 @@ def create_spec_file():
     # 确保必要的图像文件存在
     required_images = [
         ("assets/1.jpg", "assets"),
-        ("assets/2.jpg", "assets"),
+        ("assets/1.jpg", "assets"),
         ("assets/3.jpg", "assets"),
-        ("assets/4.jpg", "assets"),
+        ("assets/2.jpg", "assets"),
         ("assets/5.jpg", "assets"),
     ]
     for image in required_images:

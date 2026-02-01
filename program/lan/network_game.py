@@ -662,7 +662,7 @@ class NetworkChessGame(ChessGame):
             # 检查是否点击了音效设置按钮
             elif hasattr(self.game_screen, 'audio_settings_button') and self.game_screen.audio_settings_button.is_clicked(mouse_pos, event):
                 from program.ui.dialogs import AudioSettingsDialog
-                self.audio_settings_dialog = AudioSettingsDialog(500, 350, self.sound_manager)
+                self.audio_settings_dialog = AudioSettingsDialog(self.sound_manager)
 
             # 检查是否点击了退出游戏按钮
             elif hasattr(self.game_screen, 'exit_button') and self.game_screen.exit_button and self.game_screen.exit_button.is_clicked(mouse_pos, event):
@@ -903,7 +903,7 @@ class NetworkChessGame(ChessGame):
                     # 检查是否点击了音效设置按钮
                     elif hasattr(self.game_screen, 'audio_settings_button') and self.game_screen.audio_settings_button.is_clicked(mouse_pos, event):
                         from program.ui.dialogs import AudioSettingsDialog
-                        self.audio_settings_dialog = AudioSettingsDialog(500, 350, self.sound_manager)
+                        self.audio_settings_dialog = AudioSettingsDialog(self.sound_manager)
 
                     # 检查是否点击了退出游戏按钮
                     elif hasattr(self.game_screen, 'exit_button') and self.game_screen.exit_button and self.game_screen.exit_button.is_clicked(mouse_pos, event):

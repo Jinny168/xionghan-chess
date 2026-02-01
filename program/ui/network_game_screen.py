@@ -7,6 +7,7 @@ from program.controllers.game_config_manager import (
 )
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
+from program.ui.game_screen import BaseGameScreen
 from program.utils.utils import load_font, draw_background
 
 
@@ -220,10 +221,10 @@ class NetworkGameScreen:
         screen.blit(vs_surface, vs_rect)
 
         # 绘制 captured pieces（阵亡棋子）
-        self.draw_captured_pieces(screen, game_state)
+        self.draw_captured_pieces(screen, game_state, self.window_width)
 
         # 绘制棋谱历史记录
-        self.draw_move_history(screen, game_state)
+        self.draw_move_history(screen, game_state, self.window_width)
 
         # 如果游戏结束，显示弹窗
         if game_state.game_over and popup:
@@ -308,76 +309,6 @@ class NetworkGameScreen:
         # 绘制总时间 - 在左侧面板顶部
         total_time_surface = self.timer_font.render(f"对局时长: {total_time_str}", True, BLACK)
         screen.blit(total_time_surface, (10, 10))
-
-    def draw_captured_pieces(self, screen, game_state):
-        """绘制双方阵亡棋子"""
-        # 绘制标题
-        title_font = load_font(20, bold=True)
-        red_title = title_font.render("红方阵亡:", True, RED)
-        black_title = title_font.render("黑方阵亡:", True, BLACK)
-
-        # 将阵亡棋子信息移到右侧
-        right_panel_x = self.window_width - 250  # 右侧边栏起始x坐标
-        screen.blit(red_title, (right_panel_x, 60))
-        screen.blit(black_title, (right_panel_x, 180))
-
-        # 定义颜色和位置配置
-        configurations = [
-            {"color": "red", "x_start": right_panel_x, "y_start": 90, "text_color": RED},
-            {"color": "black", "x_start": right_panel_x, "y_start": 210, "text_color": BLACK}
-        ]
-
-        # 绘制阵亡棋子
-        for config in configurations:
-            x, y = config["x_start"], config["y_start"]
-            for piece in game_state.captured_pieces[config["color"]]:
-                piece_text = title_font.render(piece.name, True, config["text_color"])
-                # 减小右边距，提供更多空间给棋子显示
-                if x + piece_text.get_width() > self.window_width - 40:
-                    x = config["x_start"]
-                    y += 25
-                screen.blit(piece_text, (x, y))
-                x += piece_text.get_width() + 5
-
-    def draw_move_history(self, screen, game_state):
-        """绘制棋谱历史记录"""
-        # 只显示最近的棋谱记录
-        if hasattr(game_state, 'move_history') and game_state.move_history:
-            # 绘制标题
-            title_font = load_font(20, bold=True)
-            history_title = title_font.render("棋谱历史:", True, BLACK)
-            screen.blit(history_title, (self.window_width - 250, 300))
-
-            # 显示最近的10条记录
-            recent_moves = game_state.move_history[-10:]
-            start_y = 330  # 起始y坐标
-            line_spacing = 25  # 行间距
-
-            for i, move_record in enumerate(recent_moves):
-                # 处理新旧格式的历史记录
-                if len(move_record) >= 8:  # 新格式：包含甲/胄吃子信息和刺兑子信息
-                    piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces, ci_captured_pieces = move_record
-                elif len(move_record) >= 7:  # 新格式：包含甲/胄吃子信息
-                    piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces = move_record
-                else:  # 旧格式：6个元素
-                    piece, from_row, from_col, to_row, to_col, captured_piece = move_record
-
-                # 生成棋谱记号
-                from program.utils import tools
-                notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
-
-                # 计算正确编号，避免负数
-                move_index = max(0, len(game_state.move_history) - 10) + i + 1
-
-                # 根据玩家颜色确定文字颜色
-                if piece.color == "red":
-                    move_text = f"{move_index}. {notation}"
-                    text_surface = load_font(16).render(move_text, True, RED)
-                else:
-                    text_surface = load_font(16).render(f"{move_index}. {notation}", True, BLACK)
-
-                # 绘制文本
-                screen.blit(text_surface, (self.window_width - 250, start_y + i * line_spacing))
 
     def update_avatars(self, game_state, is_host):
         """更新头像状态"""

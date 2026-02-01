@@ -7,8 +7,6 @@ import json
 import os
 from tkinter import filedialog
 
-from program.controllers.game_config_manager import game_config
-
 
 class GameIOController:
     """游戏数据导入导出控制器类"""

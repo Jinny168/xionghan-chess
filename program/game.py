@@ -455,7 +455,7 @@ class ChessGame:
                         # 检查是否点击了音效设置按钮
                         elif self.game_screen.audio_settings_button and self.game_screen.audio_settings_button.is_clicked(mouse_pos, event):
                             # 打开音效设置对话框
-                            self.audio_settings_dialog = AudioSettingsDialog(600, 400, self.sound_manager)
+                            self.audio_settings_dialog = AudioSettingsDialog(self.sound_manager)
                         # 处理棋子操作
                         elif self._should_handle_player_input():  # 统一判断是否应该处理玩家输入
                             # 将棋子操作委托给游戏界面处理

@@ -1,6 +1,6 @@
 """工具函数模块，包含导入导出棋局和复盘等功能"""
 from program.core.chess_pieces import (
-    King, Ju, Ma, Xiang, Shi, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun
+    Ma, Xiang, Shi, Pawn, Wei, She
 )
 
 """通用的设置界面分类绘制函数"""
@@ -274,33 +274,3 @@ def is_pawn_at_opponent_base(piece, to_row):
         return True
 
     return False
-
-def get_piece_class_by_name(name):
-    """根据棋子名称获取对应的棋子类
-
-    Args:
-        name (str): 棋子名称
-
-    Returns:
-        class: 棋子类
-    """
-
-
-    name_to_class = {
-         '汗': King, '漢': King, # 漢/汗
-        '車': Ju, '俥': Ju, # 俥/車
-        '馬': Ma, '傌': Ma, # 馬/傌
-        '象': Xiang, '相': Xiang,  # 相/象
-        '士': Shi, '仕': Shi,  # 士/仕
-        '砲': Pao, '炮': Pao,  # 炮/砲
-        '卒': Pawn, '兵': Pawn,  # 兵/卒
-        '衛': Wei, '尉': Wei, # 卫/尉
-        '䠶': She, '射': She,  # 射/䠶
-        '礌': Lei, '檑': Lei,  # 檑/礌
-        '胄': Jia, '甲': Jia,  # 甲/胄
-        '刺': Ci,  '伺': Ci, # 刺/伺
-        '楯': Dun, '碷': Dun,# 楯/碷
-        '廵': Xun, '巡': Xun,  # 巡/廵
-    }
-
-    return name_to_class.get(name)

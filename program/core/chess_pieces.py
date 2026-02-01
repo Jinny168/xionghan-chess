@@ -341,7 +341,7 @@ class PieceFactory:
         '漢': King, '俥': Ju, '傌': Ma, '相': Xiang, '仕': Shi, '炮': Pao, '兵': Pawn,
         '尉': Wei, '射': She, '檑': Lei, '甲': Jia, '刺': Ci, '楯': Dun, '巡': Xun
     }
-    
+
     @classmethod
     def create_piece_by_name(cls, name, color, row, col):
         """根据棋子名称创建棋子实例
@@ -359,3 +359,16 @@ class PieceFactory:
             piece_class = cls.NAME_TO_CLASS_MAP[name]
             return piece_class(color, row, col)
         return None
+
+    @classmethod
+    def get_piece_class_by_name(cls,name):
+        """根据棋子名称获取对应的棋子类
+
+        Args:
+            name (str): 棋子名称
+
+        Returns:
+            class: 棋子类
+        """
+
+        return cls.NAME_TO_CLASS_MAP.get(name)

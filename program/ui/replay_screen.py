@@ -21,6 +21,18 @@ class ReplayScreen:
             game_state: 游戏状态对象
             replay_controller: 复盘控制器
         """
+        self.red_avatar = None
+        self.black_avatar = None
+        self.dragging_progress = None
+        self.progress_bar_height = None
+        self.progress_bar_width = None
+        self.progress_bar_y = None
+        self.progress_bar_x = None
+        self.next_button = None
+        self.end_button = None
+        self.return_button = None
+        self.previous_button = None
+        self.beginning_button = None
         self.game_state = game_state
         self.controller = replay_controller
         
