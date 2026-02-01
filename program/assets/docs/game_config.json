@@ -25,7 +25,7 @@
     "ci_appear": true,
     "dun_appear": true,
     "xun_appear": true,
-    "classic_mode": false,
+    "classic_mode": true,
     "traditional_mode": false,
     "ai_algorithm": "negamax"
 }
