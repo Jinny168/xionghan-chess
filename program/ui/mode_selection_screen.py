@@ -153,9 +153,9 @@ class ModeSelectionScreen:
             # 原来的加载方式（保留向后兼容）
             background_images = [
                 "assets/pics/5.jpg",
-                "assets/pics/4.jpg",
-                "assets/pics/3.jpg",
                 "assets/pics/2.jpg",
+                "assets/pics/3.jpg",
+                "assets/pics/1.jpg",
                 "assets/pics/1.jpg"
             ]
             
@@ -175,14 +175,14 @@ class ModeSelectionScreen:
             else:
                 # 如果超出范围，尝试加载默认背景
                 try:
-                    bg_path = utils.resource_path("assets/pics/4.jpg")
+                    bg_path = utils.resource_path("assets/pics/2.jpg")
                     if os.path.exists(bg_path):
                         self.background_image = pygame.image.load(bg_path).convert()
                     else:
                         # 尝试其他常见背景图片路径
                         alt_paths = [
                             utils.resource_path("assets/pics/3.jpg"),
-                            utils.resource_path("assets/pics/2.jpg"),
+                            utils.resource_path("assets/pics/1.jpg"),
                             utils.resource_path("assets/pics/1.jpg"),
                             utils.resource_path("assets/pics/5.jpg")
                         ]
@@ -203,9 +203,9 @@ class ModeSelectionScreen:
             # 原来的切换方式（保留向后兼容）
             background_images = [
                 "assets/pics/5.jpg",
-                "assets/pics/4.jpg",
-                "assets/pics/3.jpg",
                 "assets/pics/2.jpg",
+                "assets/pics/3.jpg",
+                "assets/pics/1.jpg",
                 "assets/pics/1.jpg"
             ]
             # 循环切换背景图索引

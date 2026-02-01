@@ -368,7 +368,7 @@ class GameScreen:
         # 背景图片列表
         self.background_images = [
             "assets/pics/1.jpg",
-            "assets/pics/2.jpg", 
+            "assets/pics/1.jpg",
             "assets/pics/3.jpg"
         ]
         self.current_bg_index = 0  # 当前背景索引
