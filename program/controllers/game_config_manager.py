@@ -510,7 +510,7 @@ class GameConfigManager:
             "xun_appear": True,  # 巡/廵登场
             # 游戏模式设置
             "classic_mode": False,  # 决定匈汉象棋为经典模式还是狂暴模式
-            "traditional_mode":False,  # 决定游玩中国象棋还是匈汉象棋
+            "traditional_mode": False,  # 决定游玩中国象棋还是匈汉象棋
             # AI设置
             "ai_algorithm": "negamax",  # AI算法类型: negamax, minimax, alpha-beta
         }
@@ -528,9 +528,7 @@ class GameConfigManager:
         if key in self.settings:
             self.settings[key] = value
 
-        if key == "traditional_mode" and value== True:
-            # Debug
-            print("使用中国象棋模式")
+        if key == "traditional_mode" and value == True:
             self.settings["king_can_leave_palace"] = False
             self.settings["king_lose_diagonal_outside_palace"] = False
             self.settings["king_can_diagonal_in_palace"] = False
@@ -543,8 +541,7 @@ class GameConfigManager:
             self.settings["pawn_promotion_enabled"] = False
             self.settings["pawn_backward_at_base_enabled"] = False
             self.settings["pawn_full_movement_at_base_enabled"] = False
-        else:
-            print("使用匈汉象棋模式")
+        elif key == "traditional_mode" and value == False:
             self.settings["king_can_leave_palace"] = True
             self.settings["king_lose_diagonal_outside_palace"] = True
             self.settings["king_can_diagonal_in_palace"] = True
@@ -557,7 +554,6 @@ class GameConfigManager:
             self.settings["pawn_promotion_enabled"] = True
             self.settings["pawn_backward_at_base_enabled"] = True
             self.settings["pawn_full_movement_at_base_enabled"] = True
-
 
     def get_all_settings(self):
         """获取所有设置"""
