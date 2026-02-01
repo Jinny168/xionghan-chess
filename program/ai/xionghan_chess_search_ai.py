@@ -1178,12 +1178,6 @@ class XionghanChessSearchAI:
 
         return max_value, best_move
 
-    # Alpha-Beta剪枝算法实现
-    def _alpha_beta_search(self, game_state, current_player):
-        """Alpha-Beta剪枝搜索算法"""
-        _, best_move = self._alpha_beta(game_state, self.search_depth, float('-inf'), float('inf'),
-                                        current_player == self.ai_color)
-        return best_move
 
     def _alpha_beta(self, game_state, depth, alpha, beta, maximizing_player):
         """Alpha-Beta剪枝核心算法"""

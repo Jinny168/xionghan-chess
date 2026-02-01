@@ -5,8 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="合并中象、匈汉逻辑">
-      <change beforePath="$PROJECT_DIR$/assets/docs/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/assets/docs/statistics.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/chinese_chess_search_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/chinese_chess_search_ai.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/xionghan_chess_search_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/xionghan_chess_search_ai.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/controllers/game_config_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/game_config_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/game_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/game_config.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/chess_board.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/chess_board.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -387,14 +392,6 @@
       <workItem from="1769782485432" duration="8685000" />
       <workItem from="1769835119128" duration="10965000" />
       <workItem from="1769907379242" duration="7962000" />
-    </task>
-    <task id="LOCAL-00090" summary="继续修复error">
-      <option name="closed" value="true" />
-      <created>1769166441018</created>
-      <option name="number" value="00090" />
-      <option name="presentableId" value="LOCAL-00090" />
-      <option name="project" value="LOCAL" />
-      <updated>1769166441018</updated>
     </task>
     <task id="LOCAL-00091" summary="修复networkgame">
       <option name="closed" value="true" />
@@ -780,7 +777,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769926375055</updated>
     </task>
-    <option name="localTasksCounter" value="139" />
+    <task id="LOCAL-00139" summary="合并中象、匈汉逻辑">
+      <option name="closed" value="true" />
+      <created>1769926907386</created>
+      <option name="number" value="00139" />
+      <option name="presentableId" value="LOCAL-00139" />
+      <option name="project" value="LOCAL" />
+      <updated>1769926907386</updated>
+    </task>
+    <option name="localTasksCounter" value="140" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -919,7 +924,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/ui/chess_board.py</url>
-          <line>811</line>
+          <line>804</line>
           <option name="timeStamp" value="108" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -929,27 +934,27 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/ui/chess_board.py</url>
-          <line>294</line>
+          <line>293</line>
           <option name="timeStamp" value="117" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/ai/chinese_chess_search_ai.py</url>
-          <line>794</line>
+          <line>790</line>
           <option name="timeStamp" value="118" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/ai/xionghan_chess_search_ai.py</url>
-          <line>1986</line>
+          <line>1980</line>
           <option name="timeStamp" value="119" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/ai/xionghan_chess_search_ai.py</url>
-          <line>2058</line>
+          <line>2052</line>
           <option name="timeStamp" value="120" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/ai/xionghan_chess_search_ai.py</url>
-          <line>2132</line>
+          <line>2126</line>
           <option name="timeStamp" value="121" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -959,8 +964,13 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/controllers/game_config_manager.py</url>
-          <line>530</line>
+          <line>557</line>
           <option name="timeStamp" value="132" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/program/controllers/game_config_manager.py</url>
+          <line>363</line>
+          <option name="timeStamp" value="133" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

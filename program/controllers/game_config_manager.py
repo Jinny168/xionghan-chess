@@ -397,15 +397,35 @@ def get_piece_text_color(theme: str, side: str) -> tuple:
     """获取棋子文字配色"""
     try:
         return THEME_CONFIG[theme]["pieces"][side]["text_color"]
-    except:
-        return (255, 255, 255) if theme in ["day", "origin", "qq_chess", "jj_chess"] else (0, 0, 0)
+    except KeyError:
+        # 处理主题或阵营不存在的情况
+        if theme in ["day", "night", "origin", "qq_chess", "jj_chess"]:
+            if side == "light_side":
+                return 255, 255, 255  # 默认白色
+            elif side == "dark_side":
+                return 255, 255, 255  # 默认白色
+        return 0, 0, 0  # 默认黑色
+    except TypeError:
+        # 处理配置数据类型错误
+        return 255, 255, 255  # 返回默认白色
+    except Exception as e:
+        # 记录其他未预期的异常
+        print(f"获取棋子文字配色失败: {e}")
+        return 255, 255, 255  # 返回默认白色
 
 
 class ThemeManager:
     """主题管理类，处理日/夜主题配置和切换逻辑"""
 
     def __init__(self):
-        self.config_file = "game_config.json"
+        # 构建配置文件的绝对路径
+        current_dir = os.path.dirname(os.path.abspath(__file__))  # 获取当前文件目录
+        assets_docs_dir = os.path.join(current_dir, "..", "assets", "docs")  # 构建assets/docs路径
+        self.config_file = os.path.join(assets_docs_dir, "game_config.json")  # 配置文件完整路径
+
+        # 确保目录存在
+        os.makedirs(assets_docs_dir, exist_ok=True)
+
         self.default_theme = "day"  # 默认主题为白天
         self.current_theme = self.load_theme()
 
@@ -420,6 +440,10 @@ class ThemeManager:
                     config = json.load(f)
                     theme = config.get('theme', self.default_theme)
                     return theme if theme in ['day', 'night', 'origin'] else self.default_theme
+        except FileNotFoundError:
+            print(f"配置文件不存在: {self.config_file}")
+        except json.JSONDecodeError:
+            print(f"配置文件格式错误: {self.config_file}")
         except Exception as e:
             print(f"加载主题配置失败: {e}")
 
@@ -428,6 +452,9 @@ class ThemeManager:
     def save_theme(self, theme):
         """保存主题到配置文件"""
         try:
+            # 确保目录存在
+            os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
+
             config = {}
             if os.path.exists(self.config_file):
                 with open(self.config_file, 'r', encoding='utf-8') as f:
@@ -435,7 +462,7 @@ class ThemeManager:
 
             config['theme'] = theme
             with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(config, f, ensure_ascii=False, indent=4)
+                json.dump(config, f, ensure_ascii=False, indent=4)  # type: ignore
 
             self.current_theme = theme
             return True
