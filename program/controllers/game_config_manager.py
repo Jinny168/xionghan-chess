@@ -529,6 +529,8 @@ class GameConfigManager:
             self.settings[key] = value
 
         if key == "traditional_mode" and value== True:
+            # Debug
+            print("使用中国象棋模式")
             self.settings["king_can_leave_palace"] = False
             self.settings["king_lose_diagonal_outside_palace"] = False
             self.settings["king_can_diagonal_in_palace"] = False
@@ -541,6 +543,21 @@ class GameConfigManager:
             self.settings["pawn_promotion_enabled"] = False
             self.settings["pawn_backward_at_base_enabled"] = False
             self.settings["pawn_full_movement_at_base_enabled"] = False
+        else:
+            print("使用匈汉象棋模式")
+            self.settings["king_can_leave_palace"] = True
+            self.settings["king_lose_diagonal_outside_palace"] = True
+            self.settings["king_can_diagonal_in_palace"] = True
+            self.settings["shi_can_leave_palace"] = True
+            self.settings["shi_gain_straight_outside_palace"] = True
+            self.settings["xiang_can_cross_river"] = True
+            self.settings["xiang_gain_jump_two_outside_river"] = True
+            self.settings["ma_can_straight_three"] = True
+            self.settings["pawn_resurrection_enabled"] = True
+            self.settings["pawn_promotion_enabled"] = True
+            self.settings["pawn_backward_at_base_enabled"] = True
+            self.settings["pawn_full_movement_at_base_enabled"] = True
+
 
     def get_all_settings(self):
         """获取所有设置"""
