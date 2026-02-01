@@ -163,6 +163,11 @@ class ChessBoard:
                 highlight_radius,
                 3
             )
+        
+        # 绘制上一步走法的高亮显示
+        if game_state and hasattr(game_state, 'last_move') and game_state.last_move:
+            from_row, from_col, to_row, to_col = game_state.last_move
+            self.highlight_last_move(screen, from_row, from_col, to_row, to_col)
     
     def _draw_traditional_chess_board(self, screen, theme_colors):
         """绘制传统象棋棋盘"""

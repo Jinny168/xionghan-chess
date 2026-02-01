@@ -528,6 +528,20 @@ class GameConfigManager:
         if key in self.settings:
             self.settings[key] = value
 
+        if key == "traditional_mode" and value== True:
+            self.settings["king_can_leave_palace"] = False
+            self.settings["king_lose_diagonal_outside_palace"] = False
+            self.settings["king_can_diagonal_in_palace"] = False
+            self.settings["shi_can_leave_palace"] = False
+            self.settings["shi_gain_straight_outside_palace"] = False
+            self.settings["xiang_can_cross_river"] = False
+            self.settings["xiang_gain_jump_two_outside_river"] = False
+            self.settings["ma_can_straight_three"] = False
+            self.settings["pawn_resurrection_enabled"] = False
+            self.settings["pawn_promotion_enabled"] = False
+            self.settings["pawn_backward_at_base_enabled"] = False
+            self.settings["pawn_full_movement_at_base_enabled"] = False
+
     def get_all_settings(self):
         """获取所有设置"""
         return self.settings.copy()
