@@ -227,7 +227,7 @@ def convert_mcts_move_to_game_format(mcts_move: int, game_state: GameState) -> T
             raise ValueError(f"No valid moves available for game state: {game_state.player_turn}")
 
 
-class MCTSAdapter:
+class XionghanChessMctsAdapter:
     """MCTS AI与游戏本体之间的适配器，负责双向状态转换和同步及规则适配"""
 
     """匈汉象棋规则适配器，用于将游戏本体的规则适配到MCTS中"""

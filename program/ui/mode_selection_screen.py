@@ -8,8 +8,7 @@ from program.controllers.game_config_manager import (
     GOLD, MODE_PVP, MODE_PVC, FPS
 )
 from program.controllers.sound_manager import sound_manager
-from program.ui.button import Button
-from program.ui.network_mode_screen import StyledButton
+from program.ui.button import Button, StyledButton
 from program.utils import tools, utils
 from program.utils.utils import load_font, draw_background
 
@@ -106,6 +105,26 @@ class ModeSelectionScreen:
         self.animation_direction = 0  # 0=idle, 1=opening, -1=closing
         self.gear_rotation = 0  # 齿轮图标旋转角度
 
+        # 添加游戏模式选择滚动框
+        self.game_mode_options = ["经典匈汉", "狂暴匈汉", "传统象棋"]
+        self.current_game_mode_index = 0  # 默认选择经典匈汉
+
+        # 添加游戏类型选择滚动框
+        self.game_type_options = ["双人对战", "人机对战", "网络对战"]
+        self.current_game_type_index = 0  # 默认选择双人对战
+
+        # 添加左右箭头按钮
+        self.game_mode_left_arrow_button = None
+        self.game_mode_right_arrow_button = None
+        self.game_type_left_arrow_button = None
+        self.game_type_right_arrow_button = None
+
+        # 添加开始游戏按钮
+        self.start_game_button = None
+
+        # 添加传统象棋模式按钮
+        self.traditional_chess_button = None
+
         # 初始化布局
         self.update_layout()
         self.selected_mode = None
@@ -167,43 +186,97 @@ class ModeSelectionScreen:
         center_x = self.window_width // 2
         center_y = self.window_height // 2 - 30  # 调整中心位置
 
-        # 创建核心对战模式按钮
-        # 三个按钮水平排列，间距均匀
-        # 缩小按钮尺寸
-        button_width = max(int(70 * scale_factor), 70)  # 进一步缩小按钮宽度
-        button_height = max(int(30 * scale_factor), 30)  # 进一步缩小按钮高度
-
-        total_width = 3 * button_width + 2 * button_spacing
-        start_x = center_x - total_width // 2
-
-        self.pvp_button = StyledButton(
-            start_x,
-            center_y - button_height,
-            button_width,
-            button_height,
-            "双人对战",
-            int(10 * scale_factor),  # 进一步缩小字体
-            15  # 增加圆角半径
+        # 添加游戏模式选择滚动框
+        arrow_button_width = 50
+        arrow_button_height = 50
+        game_mode_center_y = 250  # 游戏模式选择的位置
+        current_game_mode = self.game_mode_options[self.current_game_mode_index]
+        from program.utils.utils import load_font
+        game_mode_font = load_font(32, bold=True)
+        game_mode_text = game_mode_font.render(current_game_mode, True, GOLD)
+        game_mode_text_x = center_x - game_mode_text.get_width() // 2
+        game_mode_text_y = game_mode_center_y
+        game_mode_arrow_y = game_mode_text_y + (game_mode_text.get_height() // 2) - (arrow_button_height // 2)
+        
+        # 左箭头在文本左边，右箭头在文本右边
+        game_mode_left_arrow_x = game_mode_text_x - arrow_button_width - 10
+        game_mode_right_arrow_x = game_mode_text_x + game_mode_text.get_width() + 10
+        
+        self.game_mode_left_arrow_button = StyledButton(
+            game_mode_left_arrow_x,
+            game_mode_arrow_y,
+            arrow_button_width,
+            arrow_button_height,
+            "<",
+            30,
+            10
         )
 
-        self.pvc_button = StyledButton(
-            start_x + button_width + button_spacing,
-            center_y - button_height,
-            button_width,
-            button_height,
-            "人机对战",
-            int(10 * scale_factor),  # 进一步缩小字体
-            15  # 增加圆角半径
+        self.game_mode_right_arrow_button = StyledButton(
+            game_mode_right_arrow_x,
+            game_mode_arrow_y,
+            arrow_button_width,
+            arrow_button_height,
+            ">",
+            30,
+            10
         )
 
-        self.network_button = StyledButton(
-            start_x + 2 * (button_width + button_spacing),
-            center_y - button_height,
-            button_width,
-            button_height,
-            "网络对战",
-            int(10 * scale_factor),  # 进一步缩小字体
-            15  # 增加圆角半径
+        # 添加游戏类型选择滚动框
+        game_type_center_y = 390  # 游戏类型选择的位置
+        current_game_type = self.game_type_options[self.current_game_type_index]
+        game_type_font = load_font(32, bold=True)
+        game_type_text = game_type_font.render(current_game_type, True, GOLD)
+        game_type_text_x = center_x - game_type_text.get_width() // 2
+        game_type_text_y = game_type_center_y
+        game_type_arrow_y = game_type_text_y + (game_type_text.get_height() // 2) - (arrow_button_height // 2)
+        
+        # 左箭头在文本左边，右箭头在文本右边
+        game_type_left_arrow_x = game_type_text_x - arrow_button_width - 10
+        game_type_right_arrow_x = game_type_text_x + game_type_text.get_width() + 10
+        
+        self.game_type_left_arrow_button = StyledButton(
+            game_type_left_arrow_x,
+            game_type_arrow_y,
+            arrow_button_width,
+            arrow_button_height,
+            "<",
+            30,
+            10
+        )
+
+        self.game_type_right_arrow_button = StyledButton(
+            game_type_right_arrow_x,
+            game_type_arrow_y,
+            arrow_button_width,
+            arrow_button_height,
+            ">",
+            30,
+            10
+        )
+
+        # 添加开始游戏按钮
+        start_button_width = 120
+        start_button_height = 40
+        self.start_game_button = StyledButton(
+            center_x - start_button_width // 2,
+            center_y + 200,  # 开始游戏按钮Y位置
+            start_button_width,
+            start_button_height,
+            "开始游戏",
+            18,
+            10
+        )
+        
+        # 添加传统象棋模式按钮
+        self.traditional_chess_button = StyledButton(
+            center_x - start_button_width // 2,
+            center_y + 250,  # 传统象棋按钮Y位置
+            start_button_width,
+            start_button_height,
+            "传统象棋",
+            18,
+            10
         )
 
         # 设置按钮（右下角，圆形按钮）
@@ -335,16 +408,58 @@ class ModeSelectionScreen:
                         self.toggle_fullscreen()
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    # 检查是否点击了核心模式按钮
-                    if self.pvp_button.is_clicked(mouse_pos, event):
+                    # 游戏模式选择箭头按钮
+                    if self.game_mode_left_arrow_button.is_clicked(mouse_pos, event):
                         self.sound_manager.play_sound('button')  # 播放按钮音效
-                        self.selected_mode = MODE_PVP
-                    elif self.pvc_button.is_clicked(mouse_pos, event):
+                        self.current_game_mode_index = (self.current_game_mode_index - 1) % len(self.game_mode_options)
+                        self.update_layout()  # 更新布局以重新定位箭头
+                    elif self.game_mode_right_arrow_button.is_clicked(mouse_pos, event):
                         self.sound_manager.play_sound('button')  # 播放按钮音效
-                        self.selected_mode = MODE_PVC
-                    elif self.network_button.is_clicked(mouse_pos, event):
+                        self.current_game_mode_index = (self.current_game_mode_index + 1) % len(self.game_mode_options)
+                        self.update_layout()  # 更新布局以重新定位箭头
+                    
+                    # 游戏类型选择箭头按钮
+                    elif self.game_type_left_arrow_button.is_clicked(mouse_pos, event):
                         self.sound_manager.play_sound('button')  # 播放按钮音效
-                        self.selected_mode = "network"
+                        self.current_game_type_index = (self.current_game_type_index - 1) % len(self.game_type_options)
+                        self.update_layout()  # 更新布局以重新定位箭头
+                    elif self.game_type_right_arrow_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
+                        self.current_game_type_index = (self.current_game_type_index + 1) % len(self.game_type_options)
+                        self.update_layout()  # 更新布局以重新定位箭头
+                    
+                    # 开始游戏按钮
+                    elif self.start_game_button.is_clicked(mouse_pos, event):
+                        self.sound_manager.play_sound('button')  # 播放按钮音效
+                        # 检查是否选择了传统象棋模式
+                        selected_game_mode = self.game_mode_options[self.current_game_mode_index]
+                        if selected_game_mode == "传统象棋":
+                            # 设置传统象棋模式，禁用经典模式
+                            from program.controllers.game_config_manager import game_config
+                            game_config.set_setting("traditional_mode", True)
+                            game_config.set_setting("classic_mode", False)
+                            print("已选择传统象棋模式")
+                            print(f"traditional_mode={game_config.get_setting('traditional_mode', True)}")
+                            print(f"classic_mode={game_config.get_setting('classic_mode', False)}")
+                        elif selected_game_mode == "经典匈汉":
+                            # 设置经典匈汉模式，启用经典模式，禁用传统模式
+                            from program.controllers.game_config_manager import game_config
+                            game_config.set_setting("traditional_mode", False)
+                            game_config.set_setting("classic_mode", True)
+                        elif selected_game_mode == "狂暴匈汉":
+                            # 设置狂暴匈汉模式，禁用传统和经典模式
+                            from program.controllers.game_config_manager import game_config
+                            game_config.set_setting("traditional_mode", False)
+                            game_config.set_setting("classic_mode", False)
+                        # 根据选择的游戏类型设置最终模式
+                        selected_type = self.game_type_options[self.current_game_type_index]
+                        if selected_type == "双人对战":
+                            self.selected_mode = MODE_PVP
+                        elif selected_type == "人机对战":
+                            self.selected_mode = MODE_PVC
+                        elif selected_type == "网络对战":
+                            self.selected_mode = "network"
+
                     elif self.settings_button.is_clicked(mouse_pos, event):
                         self.sound_manager.play_sound('button')  # 播放按钮音效
                         self.toggle_settings_menu()
@@ -364,6 +479,7 @@ class ModeSelectionScreen:
                                     from program.core.game_state import GameState
                                     from program.controllers.game_io_controller import GameIOController
                                     from program.ui.replay_screen import ReplayScreen
+                                    from program.controllers.game_config_manager import game_config
 
                                     # 创建游戏状态
                                     game_state = GameState()
@@ -397,9 +513,11 @@ class ModeSelectionScreen:
                                 self.toggle_settings_menu()
 
             # 更新按钮悬停状态
-            self.pvp_button.check_hover(mouse_pos)
-            self.pvc_button.check_hover(mouse_pos)
-            self.network_button.check_hover(mouse_pos)
+            self.game_mode_left_arrow_button.check_hover(mouse_pos)
+            self.game_mode_right_arrow_button.check_hover(mouse_pos)
+            self.game_type_left_arrow_button.check_hover(mouse_pos)
+            self.game_type_right_arrow_button.check_hover(mouse_pos)
+            self.start_game_button.check_hover(mouse_pos)
             self.settings_button.check_hover(mouse_pos)
 
             # 更新设置菜单项的悬停状态
@@ -484,29 +602,40 @@ class ModeSelectionScreen:
                 3
             )
 
-        # 绘制带描边的核心提示文字
-        prompt_font = load_font(max(12, int(12 * self.window_width / 360)), bold=False)  # 进一步缩小提示文字
-        if prompt_font:
-            prompt_text = "请选择游戏模式"
-            # 绘制描边（黑色）
-            outline_offsets = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-            for offset_x, offset_y in outline_offsets:
-                outline_surface = prompt_font.render(prompt_text, True, (0, 0, 0))  # 黑色描边
-                outline_rect = outline_surface.get_rect(
-                    center=(self.window_width // 2 + offset_x, 280 + offset_y))  # 调整回适当位置
-                self.screen.blit(outline_surface, outline_rect)
+        # 绘制游戏模式选择标题
+        game_mode_title_font = load_font(24)
+        game_mode_title = game_mode_title_font.render("选择游戏模式:", True, (0, 0, 0))
+        self.screen.blit(game_mode_title, (self.window_width // 2 - game_mode_title.get_width() // 2, 200))
 
-            # 绘制主体文字（象棋红）
-            prompt_surface = prompt_font.render(prompt_text, True, (183, 36, 36))  # 象棋红
-            prompt_rect = prompt_surface.get_rect(center=(self.window_width // 2, 280))  # 提示文字位置
-            self.screen.blit(prompt_surface, prompt_rect)
+        # 绘制当前游戏模式选择
+        current_game_mode = self.game_mode_options[self.current_game_mode_index]
+        game_mode_font = load_font(32, bold=True)
+        game_mode_text = game_mode_font.render(current_game_mode, True, GOLD)
+        game_mode_text_x = self.window_width // 2 - game_mode_text.get_width() // 2
+        self.screen.blit(game_mode_text, (game_mode_text_x, 250))
 
-        # 绘制核心模式按钮
-        self.pvp_button.draw(self.screen)
-        self.pvc_button.draw(self.screen)
-        self.network_button.draw(self.screen)
+        # 绘制游戏模式选择箭头按钮
+        self.game_mode_left_arrow_button.draw(self.screen)
+        self.game_mode_right_arrow_button.draw(self.screen)
 
-        # 不再绘制独立的背景切换按钮，已整合到设置菜单中
+        # 绘制游戏类型选择标题
+        game_type_title_font = load_font(24)
+        game_type_title = game_type_title_font.render("选择游戏类型:", True, (0, 0, 0))
+        self.screen.blit(game_type_title, (self.window_width // 2 - game_type_title.get_width() // 2, 340))
+
+        # 绘制当前游戏类型选择
+        current_game_type = self.game_type_options[self.current_game_type_index]
+        game_type_font = load_font(32, bold=True)
+        game_type_text = game_type_font.render(current_game_type, True, GOLD)
+        game_type_text_x = self.window_width // 2 - game_type_text.get_width() // 2
+        self.screen.blit(game_type_text, (game_type_text_x, 390))
+
+        # 绘制游戏类型选择箭头按钮
+        self.game_type_left_arrow_button.draw(self.screen)
+        self.game_type_right_arrow_button.draw(self.screen)
+
+        # 绘制开始游戏按钮
+        self.start_game_button.draw(self.screen)
 
         # 绘制设置按钮
         # 创建一个临时表面用于绘制旋转的图标
@@ -538,7 +667,7 @@ class ModeSelectionScreen:
 
             for i, (button, _) in enumerate(self.settings_menu_items):
                 # 计算每个菜单项的显示进度
-                item_progress = max(0, min(1, self.settings_menu_animation_progress * 4 - i * 0.25))
+                item_progress = max(0, min(1.0,self.settings_menu_animation_progress * 4.0 - i * 0.25))
                 if item_progress > 0:
                     # 绘制半透明背景
                     menu_surface = pygame.Surface((button.rect.width, button.rect.height))

@@ -1,11 +1,13 @@
+"""传统象棋AI对手"""
+
+import random
 import threading
 import time
 
-import pygame
-
-from program.ai.base_ai import BaseAI
-from program.core.chess_pieces import Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun
+from program.core.game_rules import GameRules
+from program.controllers.game_config_manager import game_config
 from program.utils import tools
+from program.core.chess_pieces import Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun
 
 
 def _can_capture_simple(game_state, attacker, target):
@@ -516,44 +518,7 @@ def _is_in_check_for_current_player(game_state):
 
 
 def _clone_game_state(game_state):
-    """创建游戏状态的高效深拷贝用于模拟"""
-    # 使用更高效的克隆方法
-
-    # 创建一个新的game_state对象
-    cloned_state = type('GameStateClone', (), {})()
-
-    # 快速克隆棋子列表
-    cloned_state.pieces = []
-    for piece in game_state.pieces:
-        cloned_piece = type('PieceClone', (), {})()
-        cloned_piece.color = piece.color
-        cloned_piece.name = piece.name
-        cloned_piece.row = piece.row
-        cloned_piece.col = piece.col
-        cloned_state.pieces.append(cloned_piece)
-
-    cloned_state.player_turn = game_state.player_turn
-    cloned_state.game_over = game_state.game_over
-    cloned_state.winner = game_state.winner
-    cloned_state.is_check = game_state.is_check
-    cloned_state.move_history = getattr(game_state, 'move_history', [])[:]
-    cloned_state.captured_pieces = {
-        'red': getattr(game_state, 'captured_pieces', {}).get('red', [])[:],
-        'black': getattr(game_state, 'captured_pieces', {}).get('black', [])[:]
-    }
-
-    # 添加必要的方法
-    def get_piece_at(row, col):
-        for p in cloned_state.pieces:
-            if p.row == row and p.col == col:
-                return p
-        return None
-
-    cloned_state.get_piece_at = get_piece_at
-    cloned_state.calculate_possible_moves = game_state.calculate_possible_moves
-    cloned_state.is_valid_move = getattr(game_state, 'is_valid_move', None)
-
-    return cloned_state
+    return game_state.clone()
 
 
 def _make_move(game_state, from_pos, to_pos):
@@ -605,22 +570,45 @@ def _get_state_key(game_state):
     return pieces_str + game_state.player_turn
 
 
-class TraditionalAI(BaseAI):
-    """传统的搜索算法AI类，支持Minimax、Negamax和Alpha-Beta搜索算法，支持多线程计算"""
+class XionghanChessSearchAI:
+    """传统象棋AI类"""
 
     def __init__(self, algorithm="negamax", difficulty="hard", ai_color="black"):
-        """初始化AI
-
-        Args:
-            algorithm (str): 算法类型 'minimax', 'negamax', 'alpha-beta'
-            difficulty (str): 难度级别 'easy', 'medium', 'hard' - 现在始终使用最高难度
-            ai_color (str): AI执子颜色 'red' 或 'black'
         """
-        super().__init__(ai_color)
+        初始化AI
+        :param algorithm: 算法类型 ('negamax', 'minimax', 'alpha-beta')
+        :param difficulty: 难度级别 ("easy", "medium", "hard")
+        :param ai_color: AI执子颜色 ('red', 'black')
+        """
         self.algorithm = algorithm.lower()
-        self.difficulty = "hard"  # 始终使用最高难度
-        self.transposition_table = {}  # 置换表
-        self.history_table = {}  # 历史启发表
+        self.ai_color = ai_color
+        self.rules = GameRules()
+        self.lock = threading.Lock()  # 添加锁用于线程安全
+
+        # 添加多线程相关属性
+        self.computed_move = None
+        self.computation_finished = False
+        self.best_move_so_far = None
+        self.best_value_so_far = float('-inf')
+        self.ai_thread = None
+
+        # 匈汉象棋棋子价值表（包含更多种类的棋子）
+        self.piece_values = {
+            '汗': 1000, '漢': 1000,  # 将/帅 (King)
+            '車': 18, '俥': 18,      # 車/俥 (Ju)
+            '馬': 8, '傌': 8,        # 馬/傌 (Ma)
+            '象': 4, '相': 4,        # 象/相 (Xiang)
+            '士': 4, '仕': 4,        # 士/仕 (Shi)
+            '砲': 9, '炮': 9,        # 炮/砲 (Pao)
+            '卒': 3, '兵': 3,        # 卒/兵 (Pawn)
+            '衛': 6, '尉': 6,        # 卫/尉 (Wei)
+            '䠶': 5, '射': 5,        # 䠶/射 (She)
+            '礌': 7, '檑': 7,        # 碌/檑 (Lei)
+            '胄': 5, '甲': 5,        # 胄/甲 (Jia)
+            '伺': 6, '刺': 6,        # 伺/刺 (Ci)
+            '碷': 4, '楯': 4,        # 碷/楯 (Dun)
+            '廵': 5, '巡': 5         # 廵/巡 (Xun)
+        }
 
         # 根据难度设置搜索参数
         if difficulty == "easy":
@@ -630,8 +618,8 @@ class TraditionalAI(BaseAI):
             self.search_depth = 5
             self.max_think_time = 4000
         else:  # hard
-            self.search_depth = 9  # 调整搜索深度到9层
-            self.max_think_time = 8000  # 优化思考时间
+            self.search_depth = 9
+            self.max_think_time = 8000
 
         # 增加搜索深度和思考时间，提高AI难度
         self.search_depth = 9  # 调整搜索深度到9层
@@ -669,6 +657,8 @@ class TraditionalAI(BaseAI):
         self.killer_moves = [[None for _ in range(2)] for _ in range(20)]  # 杀手着法表
         self.use_history_heuristic = True  # 启用历史启发
         self.transposition_table_size = 1000000  # 增大置换表容量
+        self.transposition_table = {}  # 置换表
+        self.history_table = {}  # 历史启发表
 
     def _init_position_tables(self):
         """初始化棋子位置价值表（适用于匈汉象棋13x13棋盘）"""
@@ -807,6 +797,19 @@ class TraditionalAI(BaseAI):
         self.ai_thread.daemon = True  # 设置为守护线程
         self.ai_thread.start()
 
+    def _compute_move(self, game_state):
+        """在单独线程中计算最佳走法"""
+        try:
+            # 执行实际的AI计算
+            self.computed_move = self._get_best_move(game_state)
+        finally:
+            # 标记计算完成
+            with self.lock:  # 线程安全
+                self.computation_finished = True
+            # 通过pygame事件通知主线程
+            import pygame
+            pygame.event.post(pygame.event.Event(pygame.USEREVENT + 2))  # 使用不同的事件ID
+
     def is_computation_finished(self):
         """检查计算是否完成"""
         return self.computation_finished
@@ -820,17 +823,94 @@ class TraditionalAI(BaseAI):
                 # 如果计算未完成，返回当前已知的最佳走法
                 return self.best_move_so_far if self.best_move_so_far is not None else self.computed_move
 
-    def _compute_move(self, game_state):
-        """在单独线程中计算最佳走法"""
-        try:
-            # 执行实际的AI计算
-            self.computed_move = self._get_best_move(game_state)
-        finally:
-            # 标记计算完成
-            with self.lock:  # 线程安全
-                self.computation_finished = True
-            # 通过pygame事件通知主线程
-            pygame.event.post(pygame.event.Event(pygame.USEREVENT + 2))  # 使用不同的事件ID
+    def get_best_move(self, game_state):
+        """
+        获取最佳移动
+        :param game_state: 游戏状态对象
+        :return: (棋子, 目标行, 目标列) 或 None
+        """
+        pieces = game_state.pieces
+        current_player = game_state.player_turn
+
+        # 根据算法类型选择不同的策略
+        if self.algorithm == "minimax":
+            return self._minimax_search(game_state, current_player)
+        elif self.algorithm == "negamax":
+            return self._negamax_search(game_state, current_player)
+        elif self.algorithm == "alpha-beta":
+            return self._alpha_beta_search(game_state, current_player)
+        else:
+            # 默认使用中等难度策略
+            if self.difficulty == "easy":
+                return self._get_random_move(pieces, current_player)
+            elif self.difficulty == "medium":
+                return self._get_medium_move(pieces, current_player)
+            else:  # hard
+                return self._get_hard_move(pieces, current_player)
+
+    def _get_random_move(self, pieces, current_player):
+        """随机移动策略"""
+        # 获取所有可能的移动
+        possible_moves = []
+        for piece in pieces:
+            if piece.color == current_player:
+                moves, capturable = self._get_piece_possible_moves(pieces, piece, current_player)
+                all_moves = moves + capturable
+                for to_row, to_col in all_moves:
+                    possible_moves.append((piece, to_row, to_col))
+
+        if possible_moves:
+            return random.choice(possible_moves)
+        return None
+
+    def _get_medium_move(self, pieces, current_player):
+        """中等难度策略：优先吃子，其次保护自己，然后随机移动"""
+        # 获取所有可能的移动
+        possible_moves = []
+        capture_moves = []  # 吃子移动
+        normal_moves = []   # 普通移动
+
+        for piece in pieces:
+            if piece.color == current_player:
+                moves, capturable = self._get_piece_possible_moves(pieces, piece, current_player)
+
+                # 检查能否吃子
+                for to_row, to_col in capturable:
+                    target_piece = self._get_piece_at(pieces, to_row, to_col)
+                    if target_piece:
+                        capture_moves.append((piece, to_row, to_col, target_piece))
+
+                # 普通移动
+                for to_row, to_col in moves:
+                    normal_moves.append((piece, to_row, to_col))
+
+        # 优先选择吃子移动
+        if capture_moves:
+            # 按照被吃棋子的价值排序，优先吃价值高的棋子
+            capture_moves.sort(key=lambda x: self.piece_values.get(x[3].name, 0), reverse=True)
+            best_capture = capture_moves[0]
+            return best_capture[0], best_capture[1], best_capture[2]
+
+        # 如果没有吃子机会，选择普通移动
+        if normal_moves:
+            # 评估每个移动的价值
+            evaluated_moves = []
+            for piece, to_row, to_col in normal_moves:
+                value = self._evaluate_move(pieces, piece, to_row, to_col, current_player)
+                evaluated_moves.append((piece, to_row, to_col, value))
+
+            # 选择价值最高的移动
+            evaluated_moves.sort(key=lambda x: x[3], reverse=True)
+            best_move = evaluated_moves[0]
+            return best_move[0], best_move[1], best_move[2]
+
+        return None
+
+    def _get_hard_move(self, pieces, current_player):
+        """高级策略：使用简单的评估函数"""
+        # 这里可以实现更复杂的AI算法，比如minimax或alpha-beta剪枝
+        # 为简化，我们使用改进的中等难度策略
+        return self._get_medium_move(pieces, current_player)
 
     def _get_best_move(self, game_state):
         """获取AI的最佳走法（实际计算逻辑）
@@ -985,69 +1065,11 @@ class TraditionalAI(BaseAI):
 
         return best_move
 
-    def get_best_move(self, game_state):
-        """获取AI的最佳走法（同步方法，用于兼容性）"""
-        # 使用同步方式获取最佳走法
-        return self._get_best_move(game_state)
-
-    def _sort_moves(self, game_state, moves):
-        """改进的走法排序，提高剪枝效率
-
-        排序优先级：杀手着法 > 历史启发 > MVV-LVA > 将军 > 普通走法
-        """
-        scored_moves = []
-
-        for from_pos, to_pos in moves:
-            score = 0
-            from_row, from_col = from_pos
-            to_row, to_col = to_pos
-
-            # 获取移动的棋子和目标棋子
-            moving_piece = None
-            target_piece = None
-            for piece in game_state.pieces:
-                if piece.row == from_row and piece.col == from_col:
-                    moving_piece = piece
-                elif piece.row == to_row and piece.col == to_col:
-                    target_piece = piece
-
-            # 检查是否为杀手着法（导致beta剪枝的走法）
-            if (hasattr(self, 'killer_moves') and
-                    (from_pos, to_pos) in [km for sublist in self.killer_moves for km in sublist]):
-                score += 10000  # 杀手着法优先级最高
-
-            # 历史启发：使用历史表中的评分
-            history_score = self.history_table.get((from_pos, to_pos), 0)
-            score += history_score * 10  # 历史启发权重较高
-
-            # MVV-LVA (Most Valuable Victim - Least Valuable Attacker) 启发
-            if target_piece:
-                # 吃子得分：目标棋子价值 - 当前棋子价值
-                mvv_lva_score = self._get_piece_value(target_piece) - self._get_piece_value(moving_piece) // 10
-                score += mvv_lva_score * 2  # 增加吃子权重
-
-            # 模拟移动，检查是否将军
-            cloned_state = _clone_game_state(game_state)
-            _make_move(cloned_state, from_pos, to_pos)
-
-            opponent_color = "red" if self.ai_color == "black" else "black"
-            if _is_check(cloned_state, opponent_color):
-                score += 300  # 将军得高分，增加将军权重
-
-            # 位置价值启发：移动到更好位置的加权
-            if moving_piece:
-                old_pos_value = self._get_position_value_at_pos(moving_piece, from_row, from_col)
-                new_pos_value = self._get_position_value_at_pos(moving_piece, to_row, to_col)
-                pos_improvement = new_pos_value - old_pos_value
-                score += pos_improvement * 0.5  # 位置改进权重
-
-            scored_moves.append(((from_pos, to_pos), score))
-
-        # 按分数降序排列
-        scored_moves.sort(key=lambda x: x[1], reverse=True)
-
-        # 返回排序后的走法
-        return [move for move, _ in scored_moves]
+    # Minimax算法实现
+    def _minimax_search(self, game_state, current_player):
+        """Minimax搜索算法"""
+        _, best_move = self._minimax(game_state, self.search_depth, current_player == self.ai_color)
+        return best_move
 
     def _minimax(self, game_state, depth, is_maximizing, start_time):
         """Minimax搜索算法
@@ -1119,6 +1141,453 @@ class TraditionalAI(BaseAI):
                 min_eval = min(min_eval, eval)
 
             return min_eval
+
+    # Negamax算法实现
+    def _negamax_search(self, game_state, current_player):
+        """Negamax搜索算法"""
+        _, best_move = self._negamax(game_state, self.search_depth, 1 if current_player == self.ai_color else -1)
+        return best_move
+
+    def _negamax(self, game_state, depth, color):
+        """Negamax核心算法"""
+        if depth == 0 or game_state.game_over:
+            return color * self._evaluate_state(game_state), None
+
+        best_move = None
+        max_value = float('-inf')
+
+        # 获取当前玩家的移动
+        player_color = self.ai_color if color == 1 else ("black" if self.ai_color == "red" else "red")
+        moves = self._get_all_possible_moves(game_state, player_color)
+
+        for move in moves:
+            # 执行移动
+            original_pieces = self._copy_pieces(game_state.pieces)
+            game_state.move_piece(move[0], move[1], move[2], move[3])
+
+            value, _ = self._negamax(game_state, depth - 1, -color)
+            value = -value  # Negamax的关键：翻转值
+
+            # 撤销移动
+            game_state.pieces = original_pieces
+            game_state.update_pieces_positions(original_pieces)
+
+            if value > max_value:
+                max_value = value
+                best_move = move
+
+        return max_value, best_move
+
+    # Alpha-Beta剪枝算法实现
+    def _alpha_beta_search(self, game_state, current_player):
+        """Alpha-Beta剪枝搜索算法"""
+        _, best_move = self._alpha_beta(game_state, self.search_depth, float('-inf'), float('inf'),
+                                        current_player == self.ai_color)
+        return best_move
+
+    def _alpha_beta(self, game_state, depth, alpha, beta, maximizing_player):
+        """Alpha-Beta剪枝核心算法"""
+        if depth == 0 or game_state.game_over:
+            return self._evaluate_state(game_state), None
+
+        best_move = None
+        if maximizing_player:
+            max_eval = float('-inf')
+            moves = self._get_all_possible_moves(game_state, self.ai_color)
+            for move in moves:
+                # 执行移动
+                original_pieces = self._copy_pieces(game_state.pieces)
+                game_state.move_piece(move[0], move[1], move[2], move[3])
+
+                eval_score, _ = self._alpha_beta(game_state, depth - 1, alpha, beta, False)
+
+                # 撤销移动
+                game_state.pieces = original_pieces
+                game_state.update_pieces_positions(original_pieces)
+
+                if eval_score > max_eval:
+                    max_eval = eval_score
+                    best_move = move
+
+                alpha = max(alpha, eval_score)
+                if beta <= alpha:  # 剪枝
+                    break
+            return max_eval, best_move
+        else:
+            min_eval = float('inf')
+            opponent_color = "black" if self.ai_color == "red" else "red"
+            moves = self._get_all_possible_moves(game_state, opponent_color)
+            for move in moves:
+                # 执行移动
+                original_pieces = self._copy_pieces(game_state.pieces)
+                game_state.move_piece(move[0], move[1], move[2], move[3])
+
+                eval_score, _ = self._alpha_beta(game_state, depth - 1, alpha, beta, True)
+
+                # 撤销移动
+                game_state.pieces = original_pieces
+                game_state.update_pieces_positions(original_pieces)
+
+                if eval_score < min_eval:
+                    min_eval = eval_score
+                    best_move = move
+
+                beta = min(beta, eval_score)
+                if beta <= alpha:  # 剪枝
+                    break
+            return min_eval, best_move
+
+    def _get_all_possible_moves(self, game_state, player_color):
+        """获取玩家的所有可能移动"""
+        moves = []
+        for piece in game_state.pieces:
+            if piece.color == player_color:
+                possible_moves, capturable = self._get_piece_possible_moves(game_state.pieces, piece)
+
+                # 添加所有可能的移动
+                for to_row, to_col in possible_moves + capturable:
+                    moves.append((piece.row, piece.col, to_row, to_col))
+        return moves
+
+    def _get_piece_possible_moves(self, pieces, piece):
+        """获取棋子的所有可能移动"""
+        # 根据当前的游戏模式来确定使用哪种规则
+        is_traditional_mode = game_config.get_setting("traditional_mode", False)
+
+        # 临时保存当前的传统模式设置
+        original_traditional_mode = game_config.get_setting("traditional_mode", False)
+        # 设置为当前游戏模式以获取正确的移动规则
+        game_config.set_setting("traditional_mode", is_traditional_mode)
+
+        # 获取可能的移动
+        moves, capturable = self.rules.calculate_possible_moves(pieces, piece)
+
+        # 恢复原始模式设置
+        game_config.set_setting("traditional_mode", original_traditional_mode)
+
+        return moves, capturable
+
+    def _evaluate_state(self, game_state):
+        """评估游戏状态"""
+        score = 0
+        for piece in game_state.pieces:
+            value = self.piece_values.get(piece.name, 0)
+            piece_score = value
+
+            if piece.color == self.ai_color:
+                score += piece_score
+            else:
+                score -= piece_score
+        return score
+
+    def _copy_pieces(self, pieces):
+        """复制棋子列表"""
+        copied_pieces = []
+        for piece in pieces:
+            # 创建新棋子实例，保持相同的位置和属性
+            import copy
+            new_piece = copy.copy(piece)
+            copied_pieces.append(new_piece)
+        return copied_pieces
+
+    def _evaluate_move(self, pieces, piece, to_row, to_col, current_player):
+        """评估移动的价值"""
+        # 根据游戏模式选择不同的评估逻辑
+        is_traditional_mode = game_config.get_setting("traditional_mode", False)
+
+        value = 0
+
+        # 基础位置价值：控制中心更有价值
+        if is_traditional_mode:
+            # 传统象棋评估：更注重防守和河界控制
+            center_bonus = 0
+            # 传统象棋中，接近河界和九宫格的位置更有价值
+            if 4 <= to_row <= 5 and 3 <= to_col <= 5:  # 河界附近
+                center_bonus = 3
+            elif 3 <= to_row <= 6 and 2 <= to_col <= 6:  # 中心区域
+                center_bonus = 2
+            elif 2 <= to_row <= 7 and 1 <= to_col <= 7:  # 边缘中心
+                center_bonus = 1
+            value += center_bonus
+        else:
+            # 匈汉象棋评估：更大的棋盘，控制更广泛区域
+            center_bonus = 0
+            if 5 <= to_row <= 7 and 5 <= to_col <= 7:  # 接近中心
+                center_bonus = 2
+            elif 4 <= to_row <= 8 and 4 <= to_col <= 8:  # 中心附近
+                center_bonus = 1
+            value += center_bonus
+
+        # 棋子安全性：避免被吃
+        original_row, original_col = piece.row, piece.col
+        piece.row, piece.col = to_row, to_col
+
+        # 检查移动后是否会被吃
+        if self._would_be_attacked(pieces, piece, current_player):
+            value -= self.piece_values.get(piece.name, 1) * 0.5  # 避免损失
+
+        # 恢复位置
+        piece.row, piece.col = original_row, original_col
+
+        # 检查是否能攻击对方棋子
+        attacked_pieces = self._get_attacked_pieces(pieces, piece, to_row, to_col)
+        for attacked_piece in attacked_pieces:
+            value += self.piece_values.get(attacked_piece.name, 0) * 0.8  # 攻击奖励
+
+        return value
+
+    def _get_piece_at(self, pieces, row, col):
+        """获取指定位置的棋子"""
+        for piece in pieces:
+            if piece.row == row and piece.col == col:
+                return piece
+        return None
+
+    def _would_be_attacked(self, pieces, piece, current_player):
+        """检查移动后棋子是否会被攻击"""
+        enemy_color = "black" if current_player == "red" else "red"
+
+        # 检查是否有敌方棋子能攻击到这个位置
+        for enemy_piece in pieces:
+            if enemy_piece.color == enemy_color:
+                # 使用规则检查敌方棋子是否能攻击到这个位置
+                # 根据当前模式获取正确的移动规则
+                is_traditional_mode = game_config.get_setting("traditional_mode", False)
+
+                # 临时保存当前的传统模式设置
+                original_traditional_mode = game_config.get_setting("traditional_mode", False)
+                # 设置为当前游戏模式以获取正确的移动规则
+                game_config.set_setting("traditional_mode", is_traditional_mode)
+
+                moves, capturable = self.rules.calculate_possible_moves(pieces, enemy_piece)
+
+                # 恢复原始模式设置
+                game_config.set_setting("traditional_mode", original_traditional_mode)
+
+                all_moves = moves + capturable
+                for move_row, move_col in all_moves:
+                    if move_row == piece.row and move_col == piece.col:
+                        return True
+        return False
+
+    def _get_attacked_pieces(self, pieces, piece, to_row, to_col):
+        """获取移动后能攻击的敌方棋子"""
+        attacked = []
+        enemy_color = "black" if piece.color == "red" else "red"
+
+        # 检查这个位置是否能攻击敌方棋子
+        for target_piece in pieces:
+            if target_piece.color == enemy_color and target_piece.row == to_row and target_piece.col == to_col:
+                attacked.append(target_piece)
+        return attacked
+
+    def _sort_moves(self, game_state, moves):
+        """改进的走法排序，提高剪枝效率
+
+        排序优先级：杀手着法 > 历史启发 > MVV-LVA > 将军 > 普通走法
+        """
+        scored_moves = []
+
+        for from_pos, to_pos in moves:
+            score = 0
+            from_row, from_col = from_pos
+            to_row, to_col = to_pos
+
+            # 获取移动的棋子和目标棋子
+            moving_piece = None
+            target_piece = None
+            for piece in game_state.pieces:
+                if piece.row == from_row and piece.col == from_col:
+                    moving_piece = piece
+                elif piece.row == to_row and piece.col == to_col:
+                    target_piece = piece
+
+            # 检查是否为杀手着法（导致beta剪枝的走法）
+            if (hasattr(self, 'killer_moves') and
+                    (from_pos, to_pos) in [km for sublist in self.killer_moves for km in sublist]):
+                score += 10000  # 杀手着法优先级最高
+
+            # 历史启发：使用历史表中的评分
+            history_score = self.history_table.get((from_pos, to_pos), 0)
+            score += history_score * 10  # 历史启发权重较高
+
+            # MVV-LVA (Most Valuable Victim - Least Valuable Attacker) 启发
+            if target_piece:
+                # 吃子得分：目标棋子价值 - 当前棋子价值
+                mvv_lva_score = self._get_piece_value(target_piece) - self._get_piece_value(moving_piece) // 10
+                score += mvv_lva_score * 2  # 增加吃子权重
+
+            # 模拟移动，检查是否将军
+            cloned_state = _clone_game_state(game_state)
+            _make_move(cloned_state, from_pos, to_pos)
+
+            opponent_color = "red" if self.ai_color == "black" else "black"
+            if _is_check(cloned_state, opponent_color):
+                score += 300  # 将军得高分，增加将军权重
+
+            # 位置价值启发：移动到更好位置的加权
+            if moving_piece:
+                old_pos_value = self._get_position_value_at_pos(moving_piece, from_row, from_col)
+                new_pos_value = self._get_position_value_at_pos(moving_piece, to_row, to_col)
+                pos_improvement = new_pos_value - old_pos_value
+                score += pos_improvement * 0.5  # 位置改进权重
+
+            # 新增：评估移动的安全性
+            if moving_piece:
+                safety_improvement = -self._evaluate_future_threats(moving_piece, game_state, to_row, to_col)
+                score += safety_improvement * 0.8  # 安全性权重
+
+                exposure_risk = -self._evaluate_exposure_risk(moving_piece, game_state, to_row, to_col)
+                score += exposure_risk * 0.6  # 暴露风险权重
+
+                tactical_value = self._evaluate_tactical_combinations(moving_piece, game_state, to_row, to_col)
+                score += tactical_value * 0.7  # 战术价值权重
+
+            scored_moves.append(((from_pos, to_pos), score))
+
+        # 按分数降序排列
+        scored_moves.sort(key=lambda x: x[1], reverse=True)
+
+        # 返回排序后的走法
+        return [move for move, _ in scored_moves]
+
+    def _evaluate_future_threats(self, piece, game_state, to_row, to_col):
+        """评估移动后可能面临的威胁"""
+        # 创建一个临时移动后的新状态
+        cloned_state = _clone_game_state(game_state)
+        
+        # 找到要移动的棋子
+        moving_piece = None
+        for p in cloned_state.pieces:
+            if p.row == piece.row and p.col == piece.col and p.name == piece.name:
+                moving_piece = p
+                break
+        
+        if moving_piece:
+            # 执行移动
+            moving_piece.row = to_row
+            moving_piece.col = to_col
+            
+            # 检查新位置是否会被敌方棋子攻击
+            opponent_color = "black" if moving_piece.color == "red" else "red"
+            threats = 0
+            
+            for enemy_piece in cloned_state.pieces:
+                if enemy_piece.color == opponent_color:
+                    # 使用规则检查敌方棋子是否能攻击到这个位置
+                    if self.rules.is_valid_move(
+                        cloned_state.pieces, 
+                        enemy_piece, 
+                        enemy_piece.row, 
+                        enemy_piece.col, 
+                        to_row, 
+                        to_col
+                    ):
+                        # 根据攻击棋子的价值给予不同权重
+                        threats += 1
+            
+            return threats
+        
+        return 0
+
+    def _evaluate_exposure_risk(self, piece, game_state, to_row, to_col):
+        """评估移动后对我方重要棋子的暴露风险"""
+        # 创建一个临时移动后的新状态
+        cloned_state = _clone_game_state(game_state)
+        
+        # 找到要移动的棋子
+        moving_piece = None
+        for p in cloned_state.pieces:
+            if p.row == piece.row and p.col == piece.col and p.name == piece.name:
+                moving_piece = p
+                break
+        
+        if moving_piece:
+            # 保存原来的位置
+            original_row, original_col = moving_piece.row, moving_piece.col
+            
+            # 执行移动
+            moving_piece.row = to_row
+            moving_piece.col = to_col
+            
+            # 检查移动是否暴露了我方重要棋子（如将/帅）
+            my_color = moving_piece.color
+            risk = 0
+            
+            # 检查是否阻挡了对我方将/帅的保护
+            general_piece = None
+            for p in cloned_state.pieces:
+                if isinstance(p, King) and p.color == my_color:
+                    general_piece = p
+                    break
+            
+            if general_piece:
+                # 检查移动是否使我方将/帅更容易被攻击
+                opponent_color = "black" if my_color == "red" else "red"
+                
+                for enemy_piece in cloned_state.pieces:
+                    if enemy_piece.color == opponent_color:
+                        if self.rules.is_valid_move(
+                            cloned_state.pieces,
+                            enemy_piece,
+                            enemy_piece.row,
+                            enemy_piece.col,
+                            general_piece.row,
+                            general_piece.col
+                        ):
+                            risk += 2  # 将/帅被攻击风险权重较高
+            
+            return risk
+        
+        return 0
+
+    def _evaluate_tactical_combinations(self, piece, game_state, to_row, to_col):
+        """评估移动可能产生的战术组合价值"""
+        # 创建一个临时移动后的新状态
+        cloned_state = _clone_game_state(game_state)
+        
+        # 找到要移动的棋子
+        moving_piece = None
+        for p in cloned_state.pieces:
+            if p.row == piece.row and p.col == piece.col and p.name == piece.name:
+                moving_piece = p
+                break
+        
+        if moving_piece:
+            # 执行移动
+            moving_piece.row = to_row
+            moving_piece.col = to_col
+            
+            # 检查是否能形成有利的战术形势
+            tactical_value = 0
+            
+            # 检查移动后是否能攻击多个敌方棋子（牵制、闪击等）
+            opponent_color = "black" if moving_piece.color == "red" else "red"
+            attack_count = 0
+            
+            for enemy_piece in cloned_state.pieces:
+                if enemy_piece.color == opponent_color:
+                    if self.rules.is_valid_move(
+                        cloned_state.pieces,
+                        moving_piece,
+                        moving_piece.row,
+                        moving_piece.col,
+                        enemy_piece.row,
+                        enemy_piece.col
+                    ):
+                        attack_count += 1
+            
+            if attack_count > 1:
+                tactical_value += attack_count * 0.5  # 多重攻击价值
+            
+            # 检查是否控制了中心或其他重要位置
+            center_positions = [(6, 6), (6, 7), (7, 6), (7, 7)]  # 假设中心位置
+            if (to_row, to_col) in center_positions:
+                tactical_value += 0.3  # 控制中心价值
+            
+            return tactical_value
+        
+        return 0
 
     def _alpha_beta_search(self, game_state, depth, alpha, beta, is_maximizing, start_time):
         """Alpha-Beta搜索算法
@@ -1718,4 +2187,3 @@ class TraditionalAI(BaseAI):
         """更新历史表，记录导致剪枝的好走法"""
         key = (from_pos, to_pos)
         self.history_table[key] = self.history_table.get(key, 0) + depth * depth
-

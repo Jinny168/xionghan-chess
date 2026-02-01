@@ -272,7 +272,7 @@ v1.0.0
         )
         screen.blit(self.page_info, page_info_rect)
         
-        # 更新按钮状态并绘制
+        # 获取当前鼠标位置并更新按钮状态
         mouse_pos = pygame.mouse.get_pos()
         self.prev_button.check_hover(mouse_pos)
         self.next_button.check_hover(mouse_pos)
@@ -289,16 +289,19 @@ v1.0.0
         else:
             self.next_button.enabled = True
         
+        # 绘制按钮
         self.prev_button.draw(screen)
         self.next_button.draw(screen)
         self.back_button.draw(screen)
     
     def run(self):
         """运行关于界面"""
+        # 创建一个独立的时钟用于控制帧率
         clock = pygame.time.Clock()
         
         running = True
         while running:
+            # 获取当前鼠标位置
             mouse_pos = pygame.mouse.get_pos()
             
             for event in pygame.event.get():

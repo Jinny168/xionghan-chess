@@ -7,6 +7,8 @@ import json
 import os
 from tkinter import filedialog
 
+from program.controllers.game_config_manager import game_config
+
 
 class GameIOController:
     """游戏数据导入导出控制器类"""
@@ -30,6 +32,7 @@ class GameIOController:
             bool: 是否成功保存
         """
         target_game_state = game_state or self.game_state
+
         if not target_game_state:
             print("错误：未提供游戏状态对象")
             return False

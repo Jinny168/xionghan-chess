@@ -1,6 +1,9 @@
 import os
-import pygame
 import sys
+
+import pygame
+
+from program.controllers.game_config_manager import game_config
 
 # 字体缓存
 _font_cache = {}
@@ -200,12 +203,19 @@ def print_board(pieces, step=None, show_step=True):
         step[0] += 1
         print('\033[36mSTEP\033[0m:', step[0])
     
-    # 创建棋盘表示
-    board = [[None for _ in range(13)] for _ in range(13)]
+    # 根据GameRules的设置确定棋盘尺寸
+    if game_config.get_setting("traditional_mode", False):
+        # 传统中国象棋：9列 x 10行
+        board = [[None for _ in range(9)] for _ in range(10)]
+    else:
+        # 匈汉象棋：13列 x 13行
+        board = [[None for _ in range(13)] for _ in range(13)]
     
     # 将棋子放置到棋盘上
     for piece in pieces:
-        board[piece.row][piece.col] = piece
+        # 检查棋子位置是否在当前棋盘范围内
+        if 0 <= piece.row < len(board) and 0 <= piece.col < len(board[0]):
+            board[piece.row][piece.col] = piece
     
     # 打印棋盘
     for row in board:
@@ -291,3 +301,20 @@ def draw_theme_icon(surface, x, y, diameter=40, theme="day"):
         glow_color = (176, 224, 230, 128)  # #B0E0E6 with 50% transparency
         pygame.draw.circle(glow_surface, glow_color, (glow_radius, glow_radius), glow_radius)
         surface.blit(glow_surface, (center_x - glow_radius, center_y - glow_radius))
+
+def is_position_on_board(row, col):
+    """检查位置是否在棋盘范围内
+
+    Args:
+        row (int): 行坐标
+        col (int): 列坐标
+
+    Returns:
+        bool: 位置是否在棋盘范围内
+    """
+    if game_config.get_setting("traditional_mode", False):
+        # 传统中国象棋：9列 x 10行 (0-8列, 0-9行)
+        return 0 <= row < 10 and 0 <= col < 9
+    else:
+        # 匈汉象棋：13列 x 13行 (0-12列, 0-12行)
+        return 0 <= row < 13 and 0 <= col < 13

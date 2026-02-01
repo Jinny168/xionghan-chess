@@ -3,7 +3,7 @@ import threading
 import pygame
 
 from program.ai.base_ai import BaseAI
-from program.ai.mcts_adapter import MCTSAdapter, convert_mcts_move_to_game_format
+from program.ai.xionghan_chess_mcts_adapter import XionghanChessMctsAdapter, convert_mcts_move_to_game_format
 
 from program.utils import tools
 
@@ -25,7 +25,7 @@ except ImportError:
 
 
 
-class MCTSAI(BaseAI):
+class XionghanChessMctsAI(BaseAI):
     """MCTS+神经网络AI类"""
 
     def __init__(self, ai_color="black", model_file=None, n_playout=1000):
@@ -68,7 +68,7 @@ class MCTSAI(BaseAI):
         )
 
         # 游戏状态转换器
-        self.game_adapter = MCTSAdapter()
+        self.game_adapter = XionghanChessMctsAdapter()
 
     def get_move_async(self, game_state):
         """异步获取AI的最佳走法，启动多线程计算

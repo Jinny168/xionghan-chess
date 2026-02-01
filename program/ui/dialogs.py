@@ -864,7 +864,7 @@ class PromotionDialog:
 class StatisticsDialog:
     """统计数据展示对话框"""
 
-    def __init__(self):
+    def __init__(self, statistics_manager=None):
         # 字体
         self.title_font = load_font(24, bold=True)
         self.section_font = load_font(18, bold=True)
@@ -876,26 +876,19 @@ class StatisticsDialog:
         self.max_scroll = 0
         self.dragging = False
 
-        # 加载统计数据
-        self.stats = statistics_manager.get_statistics()
+        # 使用指定的统计数据管理器，如果不指定则使用默认的
+        if statistics_manager is None:
+            from program.controllers.statistics_manager import statistics_manager as default_sm
+            self.statistics_manager = default_sm
+        else:
+            self.statistics_manager = statistics_manager
 
         # 创建关闭按钮和重置按钮 - 位置会在draw方法中动态计算
         self.close_button = None
         self.reset_button = None
 
-        # 字体
-        self.title_font = load_font(24, bold=True)
-        self.section_font = load_font(18, bold=True)
-        self.normal_font = load_font(16)
-        self.small_font = load_font(14)
-
-        # 滚动相关
-        self.scroll_y = 0
-        self.max_scroll = 0
-        self.dragging = False
-
         # 加载统计数据
-        self.stats = statistics_manager.get_statistics()
+        self.stats = self.statistics_manager.get_statistics()
 
     def handle_event(self, event, mouse_pos):
         """处理事件"""
@@ -926,7 +919,7 @@ class StatisticsDialog:
         pygame.draw.line(screen, (218, 165, 32), (screen_width // 4, 100), (screen_width * 3 // 4, 100), 3)
 
         # 获取统计数据
-        stats = statistics_manager.get_statistics()
+        stats = self.statistics_manager.get_statistics()
 
         # 设置滚动偏移
         y_pos = 130 - self.scroll_y
@@ -1101,4 +1094,6 @@ class StatisticsDialog:
 
         # 绘制按钮
         self.close_button.draw(screen)
+        self.reset_button.draw(screen)
+
         self.reset_button.draw(screen)

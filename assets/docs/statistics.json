@@ -1,44 +1,44 @@
 {
-    "games_played": 0,
+    "games_played": 3,
     "games_won": {
-        "red": 0,
+        "red": 3,
         "black": 0,
         "draw": 0
     },
-    "total_time_played": 0,
+    "total_time_played": 210.43535947799683,
     "pieces_captured": {
-        "ju": 3,
-        "ma": 0,
-        "xiang": 2,
-        "shi": 0,
+        "ju": 5,
+        "ma": 4,
+        "xiang": 3,
+        "shi": 1,
         "king": 0,
-        "pao": 9,
-        "pawn": 33,
+        "pao": 2,
+        "pawn": 16,
         "wei": 0,
-        "she": 1,
-        "lei": 1,
-        "jia": 1,
-        "ci": 1,
+        "she": 2,
+        "lei": 3,
+        "jia": 0,
+        "ci": 0,
         "dun": 0,
-        "xun": 0
+        "xun": 2
     },
     "fastest_win": {
-        "red": Infinity,
+        "red": 53.196044921875,
         "black": Infinity
     },
-    "longest_game": 0,
+    "longest_game": 100.99171257019043,
     "favorite_piece": {
         "red": "",
         "black": ""
     },
     "win_streak": {
-        "red": 0,
+        "red": 3,
         "black": 0,
         "current_streak": {
-            "red": 0,
+            "red": 3,
             "black": 0
         }
     },
-    "last_played": "",
-    "total_moves_made": 332
+    "last_played": "2026-02-01 12:52:45",
+    "total_moves_made": 171
 }

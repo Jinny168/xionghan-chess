@@ -135,7 +135,6 @@ def main():
             mode_screen = ModeSelectionScreen()
             game_mode = mode_screen.run()
             continue
-
         # 如果是人机对战模式，显示阵营选择界面
         if game_mode == MODE_PVC:
             camp_screen = CampSelectionScreen()
