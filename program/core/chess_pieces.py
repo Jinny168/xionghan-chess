@@ -183,9 +183,10 @@ def create_initial_pieces():
     """
     pieces = []
 
-    # 检查是否启用传统模式
+    # 检查是否启用传统模式 - 直接从配置获取最新设置
+    from program.controllers.game_config_manager import game_config
     traditional_mode = game_config.get_setting("traditional_mode", False)
-    # 检查是否启用经典模式
+    # 检查是否启用经典模式 - 直接从配置获取最新设置
     classic_mode = game_config.get_setting("classic_mode", False)
     
     if traditional_mode:
@@ -277,7 +278,7 @@ def create_initial_pieces():
             if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei, Xun]:
                 pieces.append(piece_class("red", row, col))
     else:
-        # 原始布局配置
+        # 原始布局配置（狂暴模式）
         black_pieces_config = [
             # 第0行
             (Jia, 0, 2), (Jia, 0, 10), (She, 0, 0), (She, 0, 12),

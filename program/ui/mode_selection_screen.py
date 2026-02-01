@@ -124,7 +124,7 @@ class ModeSelectionScreen:
 
         # 添加传统象棋模式按钮
         self.traditional_chess_button = None
-        
+
         # 初始化布局
         self.update_layout()
         self.selected_mode = None
@@ -438,6 +438,9 @@ class ModeSelectionScreen:
                             from program.controllers.game_config_manager import game_config
                             game_config.set_setting("traditional_mode", True)
                             game_config.set_setting("classic_mode", False)
+                            print("已选择传统象棋模式")
+                            print(f"traditional_mode={ game_config.get_setting("traditional_mode", True) }")
+                            print(f"classic_mode={ game_config.get_setting("classic_mode", False) }")
                         elif selected_game_mode == "经典匈汉":
                             # 设置经典匈汉模式，启用经典模式，禁用传统模式
                             from program.controllers.game_config_manager import game_config
@@ -456,7 +459,6 @@ class ModeSelectionScreen:
                             self.selected_mode = MODE_PVC
                         elif selected_type == "网络对战":
                             self.selected_mode = "network"
-
 
                     elif self.settings_button.is_clicked(mouse_pos, event):
                         self.sound_manager.play_sound('button')  # 播放按钮音效

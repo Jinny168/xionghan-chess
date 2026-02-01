@@ -56,9 +56,13 @@ class ChessGame:
 
         # 根据游戏配置选择正确的界面
         if game_config.get_setting("traditional_mode", False):
+            # print ("[DEBUG] 正在使用传统模式")
             from ui.traditional_game_screen import TraditionalGameScreen
             self.game_screen = TraditionalGameScreen(self.window_width, self.window_height, game_mode, player_camp)
         else:
+            # print ("[DEBUG] 正在使用匈汉模式")
+            # print(f"traditional_mode= {game_config.get_setting('traditional_mode', False)}")
+            # print(f"classic_mode= {game_config.get_setting('classic_mode', False)}")
             self.game_screen = GameScreen(self.window_width, self.window_height, game_mode, player_camp)
 
         # 选中的棋子

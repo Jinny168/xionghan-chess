@@ -1,71 +1,26 @@
 from program.core.chess_pieces import ChessPiece, Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun
 from program.controllers.game_config_manager import game_config
+from program.utils import utils
 
 
 class GameRules:
     """匈汉象棋游戏规则类，负责验证移动的合法性和胜负判定"""
-    # 游戏模式设置
-    traditional_mode = game_config.get_setting("traditional_mode", False)  # 传统模式
-
-    # 特殊规则设置
-    king_can_leave_palace = game_config.get_setting("king_can_leave_palace", True)  # 汉/汗是否可以出九宫
-    king_lose_diagonal_outside_palace = game_config.get_setting("king_lose_diagonal_outside_palace",
-                                                                True)  # 汉/汗出九宫后是否失去斜走能力
-    king_can_diagonal_in_palace = game_config.get_setting("king_can_diagonal_in_palace", True)  # 汉/汗在九宫内是否可以斜走
-    shi_can_leave_palace = game_config.get_setting("shi_can_leave_palace", True)  # 士是否可以出九宫
-    shi_gain_straight_outside_palace = game_config.get_setting("shi_gain_straight_outside_palace",
-                                                               True)  # 士出九宫后是否获得直走能力
-    xiang_can_cross_river = game_config.get_setting("xiang_can_cross_river", True)  # 相是否可以过河
-    xiang_gain_jump_two_outside_river = game_config.get_setting("xiang_gain_jump_two_outside_river",
-                                                                True)  # 相过河后是否获得隔两格吃子能力
-    ma_can_straight_three = game_config.get_setting("ma_can_straight_three", True)  # 马是否可以获得直走三格的能力
-    pawn_backward_at_base_enabled = game_config.get_setting("pawn_backward_at_base_enabled", False)  # 兵/卒底线后退能力
-    pawn_full_movement_at_base_enabled = game_config.get_setting("pawn_full_movement_at_base_enabled",
-                                                                 False)  # 兵/卒底线完整移动能力
-    # 棋子登场设置
-    ju_appear = game_config.get_setting("ju_appear", True)  # 車/车登场
-    ma_appear = game_config.get_setting("ma_appear", True)  # 馬/马登场
-    xiang_appear = game_config.get_setting("xiang_appear", True)  # 相/象登场
-    shi_appear = game_config.get_setting("shi_appear", True)  # 士/仕登场
-    king_appear = game_config.get_setting("king_appear", True)  # 将/帅/汉/汗登场
-    pao_appear = game_config.get_setting("pao_appear", True)  # 炮/砲登场
-    pawn_appear = game_config.get_setting("pawn_appear", True)  # 兵/卒登场
-    wei_appear = game_config.get_setting("wei_appear", True)  # 尉/衛登场
-    she_appear = game_config.get_setting("she_appear", True)  # 射/䠶登场
-    lei_appear = game_config.get_setting("lei_appear", True)  # 檑/礌登场
-    jia_appear = game_config.get_setting("jia_appear", True)  # 甲/胄登场
-    ci_appear = game_config.get_setting("ci_appear", True)  # 刺登场
-    dun_appear = game_config.get_setting("dun_appear", True)  # 盾登场
-
-    @staticmethod
-    def is_position_on_board(row, col):
-        """检查位置是否在棋盘范围内
-
-        Args:
-            row (int): 行坐标
-            col (int): 列坐标
-
-        Returns:
-            bool: 位置是否在棋盘范围内
-        """
-        if GameRules.traditional_mode:
-            # 传统中国象棋：9列 x 10行 (0-8列, 0-9行)
-            return 0 <= row < 10 and 0 <= col < 9
-        else:
-            # 匈汉象棋：13列 x 13行 (0-12列, 0-12行)
-            return 0 <= row < 13 and 0 <= col < 13
-
     @staticmethod
     def set_game_settings(settings):
+
+
         """设置游戏规则参数
         
         Args:
             settings (dict): 游戏规则设置字典
         """
+        # 更新模式设置
         if "traditional_mode" in settings:
             GameRules.traditional_mode = settings["traditional_mode"]
+        if "classic_mode" in settings:
+            GameRules.classic_mode = settings["classic_mode"]
 
-            # 特殊规则设置
+        # 特殊规则设置
         if "king_can_leave_palace" in settings:
             GameRules.king_can_leave_palace = settings["king_can_leave_palace"]
         if "king_lose_diagonal_outside_palace" in settings:
@@ -116,7 +71,6 @@ class GameRules:
             GameRules.dun_appear = settings["dun_appear"]
         if "xun_appear" in settings:
             GameRules.xun_appear = settings["xun_appear"]
-
 
         # 如果启用传统模式，应用传统中国象棋规则
         if GameRules.traditional_mode:
@@ -178,7 +132,7 @@ class GameRules:
             return False
 
         # 检查目标位置是否在棋盘范围内
-        if not GameRules.is_position_on_board(to_row, to_col):
+        if not utils.is_position_on_board(to_row, to_col):
             return False
 
         # 检查目标位置是否有己方棋子
@@ -359,7 +313,8 @@ class GameRules:
 
         # 检查是否允许直走三格
         is_straight_three_move = False
-        if GameRules.ma_can_straight_three:
+
+        if game_config.get_setting("ma_can_straight_three", True)():
             is_straight_three_move = ((row_diff == 3 and col_diff == 0) or (row_diff == 0 and col_diff == 3))  # 直三
 
         # 马移动必须是日字或直三（如果设置允许）
@@ -413,7 +368,7 @@ class GameRules:
 
         # 检查是否允许直走三格
         is_straight_three_move = False
-        if GameRules.ma_can_straight_three:
+        if game_config.get_setting("ma_can_straight_three", True):
             is_straight_three_move = ((row_diff == 3 and col_diff == 0) or (row_diff == 0 and col_diff == 3))  # 直三
 
         # 马攻击必须是日字或直三（如果设置允许）
@@ -461,7 +416,7 @@ class GameRules:
             return False
 
         # 判断相是否可以过河
-        can_cross_river = GameRules.xiang_can_cross_river
+        can_cross_river = game_config.get_setting("xiang_can_cross_river", True)
 
         # 检查是否是正常的田字移动（斜向移动2格，形如"田"）
         if abs(to_row - from_row) == 2 and abs(to_col - from_col) == 2:
@@ -493,7 +448,7 @@ class GameRules:
             return True
 
         # 如果不是田字移动，检查是否是横竖隔一格移动（特殊能力）
-        if GameRules.xiang_gain_jump_two_outside_river:
+        if game_config.get_setting("xiang_gain_jump_two_outside_river", True):
             row_diff = abs(to_row - from_row)
             col_diff = abs(to_col - from_col)
 
@@ -591,7 +546,7 @@ class GameRules:
             in_target_palace = (1 <= to_row <= 3 and 5 <= to_col <= 7)  # 黑方九宫
 
         # 如果当前在九宫内，但目标位置在九宫外，且不允许出九宫，则禁止移动
-        if in_palace and not in_target_palace and not GameRules.shi_can_leave_palace:
+        if in_palace and not in_target_palace and not game_config.get_setting("shi_can_leave_palace", True):
             return False
 
         # 如果当前在九宫外，且不允许出九宫，但目标位置在九宫内，这种情况下允许返回九宫
@@ -614,7 +569,7 @@ class GameRules:
                 return False
         else:
             # 不在九宫内
-            if not GameRules.shi_can_leave_palace:
+            if not game_config.get_setting("shi_can_leave_palace", True):
                 # 如果不允许出九宫，但当前已经不在九宫内，说明规则设置与当前状态冲突
                 # 按照规则，不允许出九宫的士不应该在九宫外，但为了兼容性，我们限制其移动
                 # 如果目标位置也在九宫外，不允许移动
@@ -628,7 +583,7 @@ class GameRules:
                 if is_diagonal_move:
                     # 斜走始终允许
                     return True
-                elif GameRules.shi_gain_straight_outside_palace and (is_horizontal_move or is_vertical_move):
+                elif game_config.get_setting("shi_gain_straight_outside_palace", True) and (is_horizontal_move or is_vertical_move):
                     # 如果设置允许出九宫后获得直走能力，且是直走，则允许
                     return True
                 else:
@@ -639,7 +594,7 @@ class GameRules:
     def is_valid_king_move(pieces, color, from_row, from_col, to_row, to_col):
         """检查将/帅/汉/汗的移动是否合法"""
         # 检查是否在棋盘范围内
-        if not GameRules.is_position_on_board(to_row, to_col):
+        if not utils.is_position_on_board(to_row, to_col):
             return False
 
         # 检查目标位置是否有己方棋子
@@ -652,7 +607,7 @@ class GameRules:
         col_diff = to_col - from_col
 
         # 判断是否在九宫内,匈汉象棋与中国象棋的九宫位置不同
-        if GameRules.traditional_mode:
+        if game_config.get_setting("traditional_mode", False):
             if color == "red":
                 # 9*10的中国象棋的九宫（红方：第7-9行，第3-5列）
                 in_own_palace = (7 <= from_row <= 9 and 3 <= from_col <= 5)
@@ -669,7 +624,7 @@ class GameRules:
         # 根据位置应用不同的移动规则
         if in_own_palace:
             # 在九宫内，根据设置决定是否可以斜走
-            if GameRules.king_can_diagonal_in_palace:
+            if game_config.get_setting("king_can_diagonal_in_palace", True):
                 # 在九宫内，可以横竖斜走一格
                 if max(abs(row_diff), abs(col_diff)) != 1:
                     return False
@@ -679,7 +634,7 @@ class GameRules:
                     return False
         else:
             # 在九宫外，根据设置决定是否失去斜走能力
-            if GameRules.king_lose_diagonal_outside_palace:
+            if game_config.get_setting("king_lose_diagonal_outside_palace", True):
                 # 在九宫外，失去斜走能力，只能横竖走一格
                 if not ((abs(row_diff) == 1 and col_diff == 0) or (row_diff == 0 and abs(col_diff) == 1)):
                     return False
@@ -689,7 +644,7 @@ class GameRules:
                     return False
 
         # 检查是否允许汉/汗出九宫
-        if not GameRules.king_can_leave_palace:
+        if not game_config.get_setting("king_can_leave_palace", True):
             # 如果不允许出九宫，判断目标位置是否在九宫内
             if color == "red":
                 in_target_palace = (9 <= to_row <= 11 and 5 <= to_col <= 7)  # 红方九宫
@@ -700,7 +655,7 @@ class GameRules:
                 return False
 
         # 汉/汗进入敌方九宫直接获胜（在移动合法的基础上）
-        if GameRules.traditional_mode:
+        if game_config.get_setting("traditional_mode", False):
             # 传统中国象棋：将/帅进入敌方九宫获胜
             if color == "red":  # 红方将进入黑方九宫(0-2行, 3-5列)获胜
                 if 0 <= to_row <= 2 and 3 <= to_col <= 5:
@@ -818,10 +773,10 @@ class GameRules:
             return False
 
         # 检查是否在棋盘范围内
-        if not GameRules.is_position_on_board(to_row, to_col):
+        if not utils.is_position_on_board(to_row, to_col):
             return False
 
-        if GameRules.traditional_mode:
+        if game_config.get_setting("traditional_mode", False):
             # 传统中国象棋兵/卒规则
             if color == "red":
                 # 红兵规则
@@ -921,11 +876,11 @@ class GameRules:
                 # 3. 进入底线阶段（对方最后一行）
                 elif from_row == 0:
                     # 检查是否启用完整移动能力
-                    if GameRules.pawn_full_movement_at_base_enabled:
+                    if game_config.get_setting("pawn_full_movement_at_base_enabled", False):
                         # 启用完整移动能力，可以前后左右移动
                         if not (abs(row_diff) <= 1 and abs(col_diff) <= 1 and abs(row_diff) + abs(col_diff) == 1):
                             return False
-                    elif GameRules.pawn_backward_at_base_enabled:
+                    elif game_config.get_setting("pawn_backward_at_base_enabled", False):
                         # 启用后退能力，可以前后左右移动
                         if not (abs(row_diff) <= 1 and abs(col_diff) <= 1 and abs(row_diff) + abs(col_diff) == 1):
                             return False
@@ -1026,7 +981,7 @@ class GameRules:
             return False  # 目标位置不为空，无法跳跃
 
         # 检查目标位置是否在棋盘范围内
-        if not GameRules.is_position_on_board(to_row, to_col):
+        if not utils.is_position_on_board(to_row, to_col):
             return False
 
         # 不能原地不动
@@ -1258,7 +1213,7 @@ class GameRules:
             return False
 
         # 检查目标位置是否在棋盘范围内（根据模式选择棋盘大小）
-        if GameRules.traditional_mode:
+        if game_config.get_setting("traditional_mode", False):
             # 传统中国象棋：9列 x 10行 (0-8列, 0-9行)
             if not (0 <= to_row < 10 and 0 <= to_col < 9):
                 return False
@@ -1344,7 +1299,7 @@ class GameRules:
             return False
 
         # 检查目标位置是否在棋盘范围内（根据模式选择棋盘大小）
-        if GameRules.traditional_mode:
+        if game_config.get_setting("traditional_mode", False):
             # 传统中国象棋：9列 x 10行 (0-8列, 0-9行)
             if not (0 <= to_row < 10 and 0 <= to_col < 9):
                 return False
@@ -1462,7 +1417,7 @@ class GameRules:
             return False
 
         # 检查目标位置是否在棋盘范围内（根据模式选择棋盘大小）
-        if GameRules.traditional_mode:
+        if game_config.get_setting("traditional_mode", False):
             # 传统中国象棋：9列 x 10行 (0-8列, 0-9行)
             if not (0 <= to_row < 10 and 0 <= to_col < 9):
                 return False
@@ -1498,7 +1453,7 @@ class GameRules:
         reverse_col = from_col - col_diff
 
         # 检查反方向位置是否在棋盘范围内（根据模式选择棋盘大小）
-        if GameRules.traditional_mode:
+        if game_config.get_setting("traditional_mode", False):
             # 传统中国象棋：9列 x 10行 (0-8列, 0-9行)
             if 0 <= reverse_row < 10 and 0 <= reverse_col < 9:
                 reverse_piece = GameRules.get_piece_at(pieces, reverse_row, reverse_col)
@@ -1675,7 +1630,7 @@ class GameRules:
             return False
 
         # 检查目标位置是否在棋盘范围内（根据模式选择棋盘大小）
-        if GameRules.traditional_mode:
+        if game_config.get_setting("traditional_mode", False):
             # 传统中国象棋：9列 x 10行 (0-8列, 0-9行)
             if not (0 <= to_row < 10 and 0 <= to_col < 9):
                 return False
@@ -1754,7 +1709,7 @@ class GameRules:
                     # 只有斜向移动
                     if abs(dr) == abs(dc) and (dr != 0 and dc != 0):
                         to_row, to_col = piece.row + dr, piece.col + dc
-                        if GameRules.is_position_on_board(to_row, to_col):  # 在棋盘范围内
+                        if utils.is_position_on_board(to_row, to_col):  # 在棋盘范围内
                             if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
                                 # 检查目标位置是否有对方棋子（可吃子）
                                 target = GameRules.get_piece_at(pieces, to_row, to_col)
@@ -1767,7 +1722,7 @@ class GameRules:
             for dr, dc in directions:
                 # 沿着方向一直移动直到边界或遇到障碍
                 current_row, current_col = piece.row + dr, piece.col + dc
-                while GameRules.is_position_on_board(current_row, current_col):
+                while utils.is_position_on_board(current_row, current_col):
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, current_row, current_col):
                         target = GameRules.get_piece_at(pieces, current_row, current_col)
                         if target and target.color != piece.color:
@@ -1785,7 +1740,7 @@ class GameRules:
             for dr, dc in directions:
                 # 沿着方向一直移动直到边界或遇到障碍
                 current_row, current_col = piece.row + dr, piece.col + dc
-                while GameRules.is_position_on_board(current_row, current_col):
+                while utils.is_position_on_board(current_row, current_col):
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, current_row, current_col):
                         target = GameRules.get_piece_at(pieces, current_row, current_col)
                         if target and target.color != piece.color:
@@ -1798,7 +1753,7 @@ class GameRules:
                                 # 炮可以越过一个棋子后继续移动，直到遇到第二个棋子
                                 current_row += dr
                                 current_col += dc
-                                while GameRules.is_position_on_board(current_row, current_col):
+                                while utils.is_position_on_board(current_row, current_col):
                                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, current_row,
                                                                current_col):
                                         target2 = GameRules.get_piece_at(pieces, current_row, current_col)
@@ -1822,7 +1777,7 @@ class GameRules:
             for dr, dc in directions:
                 # 沿着方向一直移动直到边界或遇到障碍
                 current_row, current_col = piece.row + dr, piece.col + dc
-                while GameRules.is_position_on_board(current_row, current_col):
+                while utils.is_position_on_board(current_row, current_col):
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, current_row, current_col):
                         target = GameRules.get_piece_at(pieces, current_row, current_col)
                         if target and target.color != piece.color:
@@ -1842,14 +1797,14 @@ class GameRules:
             ]
 
             # 如果设置了马可以直走三格，则添加这些移动
-            if GameRules.ma_can_straight_three:
+            if game_config.get_setting("ma_can_straight_three", True):
                 knight_moves.extend([
                     (-3, 0), (3, 0), (0, -3), (0, 3)  # 直走三格
                 ])
 
             for dr, dc in knight_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
-                if GameRules.is_position_on_board(to_row, to_col):  # 在棋盘范围内
+                if utils.is_position_on_board(to_row, to_col):  # 在棋盘范围内
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
                         target = GameRules.get_piece_at(pieces, to_row, to_col)
                         if target and target.color != piece.color:
@@ -1862,7 +1817,7 @@ class GameRules:
             ]
 
             # 如果设置了相可以在敌方区域获得隔两格的能力，则添加这些移动
-            if GameRules.xiang_gain_jump_two_outside_river:
+            if game_config.get_setting("xiang_gain_jump_two_outside_river", True):
                 # 检查相是否在敌方区域
                 is_in_enemy_territory = False
                 if piece.color == "red":
@@ -1887,7 +1842,7 @@ class GameRules:
 
             for dr, dc in elephant_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
-                if GameRules.is_position_on_board(to_row, to_col):  # 在棋盘范围内
+                if utils.is_position_on_board(to_row, to_col):  # 在棋盘范围内
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
                         target = GameRules.get_piece_at(pieces, to_row, to_col)
                         if target and target.color != piece.color:
@@ -1900,7 +1855,7 @@ class GameRules:
             ]
 
             # 检查士是否在九宫外
-            if GameRules.traditional_mode:
+            if game_config.get_setting("traditional_mode", False):
                 # 中象九宫
                 if piece.color == "red":
                     in_palace = (7 <= piece.row <= 9 and 3 <= piece.col <= 5)  # 红方九宫
@@ -1912,7 +1867,7 @@ class GameRules:
                 else:  # black
                     in_palace = (1 <= piece.row <= 3 and 5 <= piece.col <= 7)  # 黑方九宫
             # 如果士可以离开九宫且设置了出九宫后获得直走能力，则添加直走移动
-            if GameRules.shi_can_leave_palace and GameRules.shi_gain_straight_outside_palace and not in_palace:
+            if game_config.get_setting("shi_can_leave_palace", True) and game_config.get_setting("shi_gain_straight_outside_palace", True) and not in_palace:
                 # 添加直走移动（横竖各一格）
                 advisor_moves.extend([
                     (-1, 0), (1, 0), (0, -1), (0, 1)  # 横竖移动
@@ -1920,7 +1875,7 @@ class GameRules:
 
             for dr, dc in advisor_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
-                if GameRules.is_position_on_board(to_row, to_col):  # 在棋盘范围内
+                if utils.is_position_on_board(to_row, to_col):  # 在棋盘范围内
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
                         target = GameRules.get_piece_at(pieces, to_row, to_col)
                         if target and target.color != piece.color:
@@ -1929,7 +1884,7 @@ class GameRules:
         elif isinstance(piece, King):  # 将/帅/汉/汗
             # 检查是否在九宫内
 
-            if GameRules.traditional_mode:
+            if game_config.get_setting("traditional_mode", False):
                 if piece.color == "red":
                     in_own_palace = (7 <= piece.row <= 9 and 3 <= piece.col <= 5)  # 红方九宫
                 else:  # black
@@ -1943,7 +1898,7 @@ class GameRules:
             # 根据位置和设置确定可能的移动
             if in_own_palace:
                 # 在九宫内，根据设置决定是否可以斜走
-                if GameRules.king_can_diagonal_in_palace:
+                if game_config.get_setting("king_can_diagonal_in_palace", True):
                     # 在九宫内，可以横竖斜走一格
                     king_moves = [
                         (-1, -1), (-1, 0), (-1, 1),  # 斜向和上
@@ -1959,7 +1914,7 @@ class GameRules:
                     ]
             else:
                 # 在九宫外，根据设置决定是否失去斜走能力
-                if GameRules.king_lose_diagonal_outside_palace:
+                if game_config.get_setting("king_lose_diagonal_outside_palace", True):
                     # 在九宫外，失去斜走能力，只能横竖走一格
                     king_moves = [
                         (-1, 0),  # 上
@@ -1976,7 +1931,7 @@ class GameRules:
 
             for dr, dc in king_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
-                if GameRules.is_position_on_board(to_row, to_col):  # 在棋盘范围内
+                if utils.is_position_on_board(to_row, to_col):  # 在棋盘范围内
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
                         target = GameRules.get_piece_at(pieces, to_row, to_col)
                         if target and target.color != piece.color:
@@ -1984,7 +1939,7 @@ class GameRules:
                         moves.append((to_row, to_col))
         elif isinstance(piece, Pawn):  # 兵/卒
             # 兵/卒的可能移动位置（根据位置和规则）
-            if GameRules.traditional_mode:
+            if game_config.get_setting("traditional_mode", False):
                 for to_row in range(10):
                     for to_col in range(9):
                         # 检查移动是否合法
@@ -2028,7 +1983,7 @@ class GameRules:
         else:  # 其他情况，遍历所有位置
             # 遍历所有可能的位置
 
-            if GameRules.traditional_mode:
+            if game_config.get_setting("traditional_mode", False):
                 for to_row in range(10):
                     for to_col in range(9):
                         # 检查移动是否合法
@@ -2414,7 +2369,7 @@ class GameRules:
         for piece in pieces:
             if piece.color == color:  # 该方的棋子
                 # 尝试所有可能的移动
-                if GameRules.traditional_mode:
+                if game_config.get_setting("traditional_mode", False):
                     # 中象检查
                     for row in range(10):
                         for col in range(9):
@@ -2453,7 +2408,7 @@ class GameRules:
         for piece in pieces:
             if isinstance(piece, King):
 
-                if GameRules.traditional_mode:
+                if game_config.get_setting("traditional_mode", False):
                     # 检查红方汉是否进入黑方九宫
                     if piece.color == "red" and 0 <= piece.row <= 2 and 3 <= piece.col <= 5:
                         return True, "red"
@@ -2521,7 +2476,7 @@ class GameRules:
             for piece in pieces:
                 if piece.color == opponent_color:
 
-                    if GameRules.traditional_mode:
+                    if game_config.get_setting("traditional_mode", False):
                         # 中象检查
                         for row in range(10):
                             for col in range(9):
@@ -2671,7 +2626,7 @@ class GameRules:
         # 检查当前玩家是否有任何合法移动
         for piece in pieces:
             if piece.color == player_color:
-                if GameRules.traditional_mode:
+                if game_config.get_setting("traditional_mode", False):
                     # 尝试所有可能的移动
                     for row in range(10):
                         for col in range(9):
