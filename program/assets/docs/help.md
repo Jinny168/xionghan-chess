@@ -109,7 +109,7 @@ A: 射和檑在斜向移动时，如果路径中的某个点的相邻垂直方�
 ## 📞 技术支持
 
 如遇到问题或有建议，请通过以下方式联系我们：
-- GitHub Issues: 提交问题报告
+- GitHub Issues: https://github.com/Jinny168/xionghan-chess/issues
 - 邮箱: 2741526119@qq.com
 
 ## ©️ 版权声明

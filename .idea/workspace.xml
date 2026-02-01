@@ -5,11 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="合并中象、匈汉逻辑">
-      <change beforePath="$PROJECT_DIR$/program/assets/docs/game_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/game_config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/assets/docs/theme_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/theme_config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/game_config_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/game_config_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/test_piece_colors.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/assets/docs/about.md" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/about.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/assets/docs/help.md" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/help.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -390,14 +388,6 @@
       <workItem from="1769782485432" duration="8685000" />
       <workItem from="1769835119128" duration="10965000" />
       <workItem from="1769907379242" duration="7962000" />
-    </task>
-    <task id="LOCAL-00095" summary="继续修复打包exe">
-      <option name="closed" value="true" />
-      <created>1769175258338</created>
-      <option name="number" value="00095" />
-      <option name="presentableId" value="LOCAL-00095" />
-      <option name="project" value="LOCAL" />
-      <updated>1769175258338</updated>
     </task>
     <task id="LOCAL-00096" summary="尉的增强功能实现：在保持其他能力不变的前提下，新增了斜线跨越能力，同时保持了&quot;无吃子能力、仅具备控制能力&quot;的核心属性。">
       <option name="closed" value="true" />
@@ -783,7 +773,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769929688671</updated>
     </task>
-    <option name="localTasksCounter" value="144" />
+    <task id="LOCAL-00144" summary="合并中象、匈汉逻辑">
+      <option name="closed" value="true" />
+      <created>1769930352665</created>
+      <option name="number" value="00144" />
+      <option name="presentableId" value="LOCAL-00144" />
+      <option name="project" value="LOCAL" />
+      <updated>1769930352666</updated>
+    </task>
+    <option name="localTasksCounter" value="145" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

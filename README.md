@@ -1,3 +1,4 @@
+README.md
 # 匈汉象棋 (XiongHan Chess)
 
 一个融合了中国传统象棋与匈牙利文化元素的创新象棋变体游戏，基于PyGame开发，支持双人对战和智能AI对弈。
@@ -40,7 +41,7 @@
 ### 安装指南
 ```bash
 # 1. 克隆项目仓库
-git clone https://github.com/yourusername/xionghan-chess.git
+git clone https://github.com/Jinny168/xionghan-chess.git
 cd xionghan-chess
 
 # 2. 安装依赖包
@@ -136,3 +137,4 @@ program/
 
 - 感谢所有为中国象棋文化传承做出贡献的爱好者
 - 感谢开源社区提供的优质资源和工具
+- 本项目由个人开发者维护，感谢社区支持
