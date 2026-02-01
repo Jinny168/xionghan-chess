@@ -5,9 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="合并中象、匈汉逻辑">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/docs/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/assets/docs/statistics.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/assets/docs/game_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/game_config.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/controllers/game_config_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/game_config_manager.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -389,14 +386,6 @@
       <workItem from="1769782485432" duration="8685000" />
       <workItem from="1769835119128" duration="10965000" />
       <workItem from="1769907379242" duration="7962000" />
-    </task>
-    <task id="LOCAL-00092" summary="修复一系列bug">
-      <option name="closed" value="true" />
-      <created>1769168712088</created>
-      <option name="number" value="00092" />
-      <option name="presentableId" value="LOCAL-00092" />
-      <option name="project" value="LOCAL" />
-      <updated>1769168712088</updated>
     </task>
     <task id="LOCAL-00093" summary="美化了主界面">
       <option name="closed" value="true" />
@@ -782,7 +771,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769928308233</updated>
     </task>
-    <option name="localTasksCounter" value="141" />
+    <task id="LOCAL-00141" summary="合并中象、匈汉逻辑">
+      <option name="closed" value="true" />
+      <created>1769929029323</created>
+      <option name="number" value="00141" />
+      <option name="presentableId" value="LOCAL-00141" />
+      <option name="project" value="LOCAL" />
+      <updated>1769929029323</updated>
+    </task>
+    <option name="localTasksCounter" value="142" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -961,13 +958,13 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/controllers/game_config_manager.py</url>
-          <line>927</line>
+          <line>925</line>
           <option name="timeStamp" value="132" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/controllers/game_config_manager.py</url>
-          <line>363</line>
-          <option name="timeStamp" value="133" />
+          <line>739</line>
+          <option name="timeStamp" value="136" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

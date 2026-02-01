@@ -744,7 +744,7 @@ class ThemeManager:
         # 构建配置文件的绝对路径
         current_dir = os.path.dirname(os.path.abspath(__file__))  # 获取当前文件目录
         assets_docs_dir = os.path.join(current_dir, "..", "assets", "docs")  # 构建assets/docs路径
-        self.config_file = os.path.join(assets_docs_dir, "theme.json")  # 主题配置文件完整路径
+        self.theme_config_file = os.path.join(assets_docs_dir, "theme_config.json")  # 主题选择配置文件完整路径
         
         # 确保目录存在
         os.makedirs(assets_docs_dir, exist_ok=True)
@@ -758,15 +758,15 @@ class ThemeManager:
     def load_theme(self):
         """从配置文件加载主题"""
         try:
-            if os.path.exists(self.config_file):
-                with open(self.config_file, 'r', encoding='utf-8') as f:
+            if os.path.exists(self.theme_config_file):
+                with open(self.theme_config_file, 'r', encoding='utf-8') as f:
                     config = json.load(f)
                     theme = config.get('theme', self.default_theme)
-                    return theme if theme in ['day', 'night', 'origin'] else self.default_theme
+                    return theme if theme in ['day', 'night', 'origin', 'qq_chess', 'jj_chess'] else self.default_theme
         except FileNotFoundError:
-            print(f"主题配置文件不存在: {self.config_file}，使用默认主题")
+            print(f"主题配置文件不存在: {self.theme_config_file}，使用默认主题")
         except json.JSONDecodeError:
-            print(f"主题配置文件格式错误: {self.config_file}，使用默认主题")
+            print(f"主题配置文件格式错误: {self.theme_config_file}，使用默认主题")
         except Exception as e:
             print(f"加载主题配置失败: {e}，使用默认主题")
 
@@ -776,16 +776,16 @@ class ThemeManager:
         """保存主题到配置文件"""
         try:
             # 确保目录存在
-            os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
+            os.makedirs(os.path.dirname(self.theme_config_file), exist_ok=True)
             
             config = {}
-            if os.path.exists(self.config_file):
-                with open(self.config_file, 'r', encoding='utf-8') as f:
+            if os.path.exists(self.theme_config_file):
+                with open(self.theme_config_file, 'r', encoding='utf-8') as f:
                     config = json.load(f)
 
             config['theme'] = theme
-            with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(config, f, ensure_ascii=False, indent=4)  # type: ignore
+            with open(self.theme_config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=4)
 
             self.current_theme = theme
             return True
@@ -803,13 +803,11 @@ class ThemeManager:
 
     def toggle_theme(self):
         """切换主题"""
-        # 在三个主题之间循环切换
-        if self.current_theme == "day":
-            new_theme = "night"
-        elif self.current_theme == "night":
-            new_theme = "origin"
-        else:  # self.current_theme == "origin"
-            new_theme = "day"
+        # 在多个主题之间循环切换
+        themes_list = ["day", "night", "origin", "qq_chess", "jj_chess"]
+        current_index = themes_list.index(self.current_theme) if self.current_theme in themes_list else 0
+        new_index = (current_index + 1) % len(themes_list)
+        new_theme = themes_list[new_index]
         self.save_theme(new_theme)
         return new_theme
 
