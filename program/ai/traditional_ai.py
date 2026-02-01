@@ -3,6 +3,7 @@
 import random
 
 from program.core.game_rules import GameRules
+from program.controllers.game_config_manager import game_config
 
 
 class TraditionalAI:
@@ -107,15 +108,16 @@ class TraditionalAI:
     
     def _get_piece_possible_moves(self, pieces, piece):
         """获取棋子的所有可能移动"""
-        # 临时设置传统模式以获取移动
-        original_traditional_mode = self.rules.traditional_mode
-        self.rules.set_game_settings({"traditional_mode": True})
+        # 临时保存当前的传统模式设置
+        original_traditional_mode = game_config.get_setting("traditional_mode", False)
+        # 临时设置为传统模式以获取移动
+        game_config.set_setting("traditional_mode", True)
         
         # 获取可能的移动
         moves, capturable = self.rules.calculate_possible_moves(pieces, piece)
         
         # 恢复原始模式设置
-        self.rules.set_game_settings({"traditional_mode": original_traditional_mode})
+        game_config.set_setting("traditional_mode", original_traditional_mode)
         
         return moves, capturable
     

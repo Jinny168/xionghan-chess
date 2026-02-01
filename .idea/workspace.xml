@@ -5,15 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="合并中象、匈汉逻辑">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/docs/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/assets/docs/statistics.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/core/chess_pieces.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/chess_pieces.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ai/traditional_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ai/traditional_ai.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/core/game_rules.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_rules.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/core/game_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_state.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/mode_selection_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/mode_selection_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/traditional_game_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/traditional_game_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -393,15 +388,7 @@
       <workItem from="1769610923182" duration="2006000" />
       <workItem from="1769782485432" duration="8685000" />
       <workItem from="1769835119128" duration="10965000" />
-      <workItem from="1769907379242" duration="3812000" />
-    </task>
-    <task id="LOCAL-00085" summary="修复了ai_manager中的小error">
-      <option name="closed" value="true" />
-      <created>1769156017196</created>
-      <option name="number" value="00085" />
-      <option name="presentableId" value="LOCAL-00085" />
-      <option name="project" value="LOCAL" />
-      <updated>1769156017196</updated>
+      <workItem from="1769907379242" duration="4339000" />
     </task>
     <task id="LOCAL-00086" summary="修复了ai_manager中的小error">
       <option name="closed" value="true" />
@@ -787,7 +774,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769876865209</updated>
     </task>
-    <option name="localTasksCounter" value="134" />
+    <task id="LOCAL-00134" summary="合并中象、匈汉逻辑">
+      <option name="closed" value="true" />
+      <created>1769911212179</created>
+      <option name="number" value="00134" />
+      <option name="presentableId" value="LOCAL-00134" />
+      <option name="project" value="LOCAL" />
+      <updated>1769911212181</updated>
+    </task>
+    <option name="localTasksCounter" value="135" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -951,27 +946,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
-          <line>2282</line>
+          <line>2193</line>
           <option name="timeStamp" value="101" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
-          <line>97</line>
-          <option name="timeStamp" value="102" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
-          <line>15</line>
-          <option name="timeStamp" value="103" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
-          <line>8</line>
-          <option name="timeStamp" value="104" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
-          <line>2033</line>
+          <line>1944</line>
           <option name="timeStamp" value="106" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -981,28 +961,18 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/core/game_state.py</url>
-          <line>15</line>
-          <option name="timeStamp" value="111" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/core/game_state.py</url>
           <line>365</line>
           <option name="timeStamp" value="112" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/game.py</url>
-          <line>105</line>
+          <line>102</line>
           <option name="timeStamp" value="113" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/ui/mode_selection_screen.py</url>
           <line>467</line>
           <option name="timeStamp" value="114" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/program/core/game_rules.py</url>
-          <line>75</line>
-          <option name="timeStamp" value="115" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -23,7 +23,7 @@ class GameState:
         Returns:
             bool: 位置是否在棋盘范围内
         """
-        if GameRules.traditional_mode:
+        if game_config.get_setting("traditional_mode", False):
             # 传统中国象棋：9列 x 10行 (0-8列, 0-9行)
             return 0 <= row < 10 and 0 <= col < 9
         else:
@@ -795,7 +795,7 @@ class GameState:
         Returns:
             str: FEN格式的棋盘表示
         """
-        if GameRules.traditional_mode:
+        if game_config.get_setting("traditional_mode", False):
             # 传统中国象棋的FEN映射和处理
             piece_fen_map = {
                 '汗': 'k',  # 黑方将/帅
@@ -890,8 +890,6 @@ class GameState:
 
         Args:
             fen_string (str): FEN格式的棋盘表示
-            traditional_mode (bool): 是否为传统象棋模式
-
         Returns:
             bool: 是否成功导入
         """
@@ -905,7 +903,7 @@ class GameState:
             fen_board = parts[0]
             fen_player = parts[1]
 
-            if GameRules.traditional_mode:
+            if game_config.get_setting("traditional_mode", False):
                 # 传统中国象棋的FEN映射
                 fen_piece_map = {
                     # 小写为黑方，大写为红方

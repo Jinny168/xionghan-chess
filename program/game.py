@@ -40,12 +40,9 @@ class ChessGame:
         self.game_mode = game_mode
         self.player_camp = player_camp
 
-        # 应用游戏设置
+        # 如果有传入特定设置，更新全局配置
         if game_settings:
-            GameRules.set_game_settings(game_settings)
-        else:
-            # 如果没有传入特定设置，应用全局配置
-            GameRules.set_game_settings(game_config.get_all_settings())
+            game_config.update_settings(game_settings)
 
         # 初始化游戏状态
         self.game_state = GameState()
