@@ -163,6 +163,11 @@ class ChessBoard:
                 highlight_radius,
                 3
             )
+        
+        # 绘制上一步走法的高亮显示
+        if game_state and hasattr(game_state, 'last_move') and game_state.last_move:
+            from_row, from_col, to_row, to_col = game_state.last_move
+            self.highlight_last_move(screen, from_row, from_col, to_row, to_col)
     
     def _draw_traditional_chess_board(self, screen, theme_colors):
         """绘制传统象棋棋盘"""
@@ -237,7 +242,6 @@ class ChessBoard:
 
         # 绘制九宫格斜线
         # 上方九宫 (0-2行, 3-5列)
-        mid_x = self.margin_left + 4 * (self.board_width / 8)
         top_3_y = self.margin_top + 0 * (self.board_height / 9)
         top_2_y = self.margin_top + 2 * (self.board_height / 9)
         bottom_7_y = self.margin_top + 7 * (self.board_height / 9)
@@ -469,15 +473,13 @@ class ChessBoard:
                         center_y - shadow_radius + shadow_offset))
         
         # 白玉颜色方案 - 两种棋子都使用相同的白玉颜色
-        outer_color = (230, 230, 220)        # 外环略带米黄的白色
-        inner_color = (255, 255, 250)        # 内部纯白微泛光
         highlight_color = (255, 255, 255)    # 高光点纯白
         edge_color = (180, 180, 170)         # 边缘颜色微灰
         
         # 根据棋子颜色确定阵营（side）
         side = "light_side" if piece.color == "black" else "dark_side"
         
-        # 获取棋子配色 - 使用新的配色函数
+        # 获取棋子配色 - 使用新配色函数
         piece_color = get_piece_color(piece.name, current_theme, side)
         text_color = get_piece_text_color(current_theme, side)
         text_shadow_color = THEME_CONFIG[current_theme]["pieces"]["text_border"]  # 使用主题配置的描边色
@@ -733,10 +735,6 @@ class ChessBoard:
 
     def draw_column_labels(self, screen):
         """绘制列标识"""
-        # 获取当前主题
-        current_theme = theme_manager.get_current_theme()
-        theme_colors = theme_manager.get_theme_colors()
-        
         # 定义标识
         red_labels = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三"]
         black_labels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]

@@ -4,7 +4,6 @@ import pygame
 
 from controllers.game_config_manager import game_config
 from controllers.sound_manager import sound_manager
-from core.game_rules import GameRules
 from core.game_state import GameState
 from ui.dialogs import PopupDialog, AudioSettingsDialog, StatisticsDialog
 from ui.game_screen import GameScreen

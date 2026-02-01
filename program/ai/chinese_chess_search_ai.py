@@ -295,6 +295,7 @@ class ChineseChessSearchAI:
         :param difficulty: 难度级别 ("easy", "medium", "hard")
         :param ai_color: AI执子颜色 ('red', 'black')
         """
+        self.difficulty = None
         self.algorithm = algorithm.lower()
         self.ai_color = ai_color
         self.rules = GameRules()
@@ -714,12 +715,7 @@ class ChineseChessSearchAI:
 
         return max_value, best_move
 
-    # Alpha-Beta剪枝算法实现
-    def _alpha_beta_search(self, game_state, current_player):
-        """Alpha-Beta剪枝搜索算法"""
-        _, best_move = self._alpha_beta(game_state, self.search_depth, float('-inf'), float('inf'),
-                                        current_player == self.ai_color)
-        return best_move
+
 
     def _alpha_beta(self, game_state, depth, alpha, beta, maximizing_player):
         """Alpha-Beta剪枝核心算法"""
@@ -874,19 +870,6 @@ class ChineseChessSearchAI:
 
         return best_move
 
-    def _evaluate_board(self, pieces, player):
-        """评估整个棋盘的状态"""
-        score = 0
-        for piece in pieces:
-            value = self.piece_values.get(piece.name, 0)
-            pos_value = self._get_position_value_at_pos(piece, piece.row, piece.col) if 0 <= piece.row < 10 and 0 <= piece.col < 9 else 0
-            piece_score = value + pos_value
-
-            if piece.color == player:
-                score += piece_score
-            else:
-                score -= piece_score
-        return score
 
     def _evaluate_move(self, pieces, piece, to_row, to_col, current_player):
         """评估移动的价值"""
@@ -1576,9 +1559,6 @@ class ChineseChessSearchAI:
         original_row, original_col = piece.row, piece.col
         piece.row, piece.col = to_row, to_col
 
-        # 检查移动棋子后是否暴露了己方其他棋子
-        own_pieces_before_move = [p for p in game_state.pieces if p.color == piece.color and p != piece]
-
         # 创建一个模拟移动后的新状态
         cloned_state = _clone_game_state(game_state)
         # 在模拟状态中执行移动
@@ -1606,10 +1586,6 @@ class ChineseChessSearchAI:
     def _evaluate_tactical_combinations(self, piece, game_state, to_row, to_col):
         """评估战术组合潜力，如牵制、闪击等"""
         tactical_value = 0
-
-        # 评估牵制效果：移动后是否能让对方重要棋子受限制
-        opponent_color = "red" if piece.color == "black" else "black"
-        opponent_pieces = [p for p in game_state.pieces if p.color == opponent_color]
 
         # 检查移动后是否形成新的攻击线或威胁
         new_possible_moves, new_capturable = game_state.calculate_possible_moves(to_row, to_col)
