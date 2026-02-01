@@ -4,7 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="合并中象、匈汉逻辑">
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="更新md文件">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/assets/docs/about.md" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/about.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/assets/docs/help.md" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/help.md" afterDir="false" />
@@ -389,30 +390,6 @@
       <workItem from="1769835119128" duration="10965000" />
       <workItem from="1769907379242" duration="7962000" />
     </task>
-    <task id="LOCAL-00096" summary="尉的增强功能实现：在保持其他能力不变的前提下，新增了斜线跨越能力，同时保持了&quot;无吃子能力、仅具备控制能力&quot;的核心属性。">
-      <option name="closed" value="true" />
-      <created>1769350421241</created>
-      <option name="number" value="00096" />
-      <option name="presentableId" value="LOCAL-00096" />
-      <option name="project" value="LOCAL" />
-      <updated>1769350421241</updated>
-    </task>
-    <task id="LOCAL-00097" summary="实现射和礌棋子在斜向移动路径中遇到&quot;与当前移动斜线交叉的两相邻棋子&quot;（即形成夹逼）时，后续路径被阻挡的功能。">
-      <option name="closed" value="true" />
-      <created>1769354791268</created>
-      <option name="number" value="00097" />
-      <option name="presentableId" value="LOCAL-00097" />
-      <option name="project" value="LOCAL" />
-      <updated>1769354791268</updated>
-    </task>
-    <task id="LOCAL-00098" summary="增强棋子功能">
-      <option name="closed" value="true" />
-      <created>1769354860087</created>
-      <option name="number" value="00098" />
-      <option name="presentableId" value="LOCAL-00098" />
-      <option name="project" value="LOCAL" />
-      <updated>1769354860087</updated>
-    </task>
     <task id="LOCAL-00099" summary="小修改">
       <option name="closed" value="true" />
       <created>1769356001579</created>
@@ -781,7 +758,31 @@
       <option name="project" value="LOCAL" />
       <updated>1769930352666</updated>
     </task>
-    <option name="localTasksCounter" value="145" />
+    <task id="LOCAL-00145" summary="更新md文件">
+      <option name="closed" value="true" />
+      <created>1769930832257</created>
+      <option name="number" value="00145" />
+      <option name="presentableId" value="LOCAL-00145" />
+      <option name="project" value="LOCAL" />
+      <updated>1769930832257</updated>
+    </task>
+    <task id="LOCAL-00146" summary="更新md文件">
+      <option name="closed" value="true" />
+      <created>1769930982457</created>
+      <option name="number" value="00146" />
+      <option name="presentableId" value="LOCAL-00146" />
+      <option name="project" value="LOCAL" />
+      <updated>1769930982457</updated>
+    </task>
+    <task id="LOCAL-00147" summary="更新md文件">
+      <option name="closed" value="true" />
+      <created>1769931078480</created>
+      <option name="number" value="00147" />
+      <option name="presentableId" value="LOCAL-00147" />
+      <option name="project" value="LOCAL" />
+      <updated>1769931078480</updated>
+    </task>
+    <option name="localTasksCounter" value="148" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -825,7 +826,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="修复了settings中的小error" />
     <MESSAGE value="修复了utils中的小error" />
     <MESSAGE value="修复了ai_manager中的小error" />
     <MESSAGE value="修复了tools中的小error" />
@@ -850,7 +850,8 @@
     <MESSAGE value="整理文件结构" />
     <MESSAGE value="增加白天/夜晚主题，增加切换背景" />
     <MESSAGE value="合并中象、匈汉逻辑" />
-    <option name="LAST_COMMIT_MESSAGE" value="合并中象、匈汉逻辑" />
+    <MESSAGE value="更新md文件" />
+    <option name="LAST_COMMIT_MESSAGE" value="更新md文件" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
