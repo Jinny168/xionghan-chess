@@ -5,9 +5,9 @@ import os
 from datetime import datetime
 from typing import Dict, Any
 
-# 统计数据文件路径 - 使用绝对路径
+# 统计数据文件路径 - 使用相对路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
-STATISTICS_FILE = os.path.join(os.path.dirname(os.path.dirname(current_dir)), "assets", "docs", "statistics.json")
+STATISTICS_FILE = os.path.join(current_dir, "..", "assets", "docs", "statistics.json")
 
 
 class StatisticsManager:

@@ -1,5 +1,6 @@
 import os
 import sys
+import glob
 
 import pygame
 
@@ -16,15 +17,9 @@ from program.utils.utils import load_font, draw_background
 class BackgroundManager:
     """背景图管理类，处理模式选择界面的背景图切换逻辑"""
     
-    def __init__(self):
+    def __init__(self, pics_dir="assets/pics"):
         # 背景图配置
         self.background_config = {
-            "images": [
-                "assets/pics/4.jpg",   # 预设背景图1
-                "assets/pics/3.jpg",   # 预设背景图2
-                "assets/pics/2.jpg",   # 预设背景图3
-                "assets/pics/1.jpg"    # 预设背景图4
-            ],
             "default_bg_color": (200, 200, 200),  # 背景图加载失败时的默认纯色
             "button_style": {
                 "position": (200, 30),              # 按钮位置（x:200, y:30）
@@ -34,13 +29,34 @@ class BackgroundManager:
                 "text": "切换背景"                  # 按钮文字
             }
         }
+        # 扫描图片目录
+        self.pics_dir = pics_dir
+        self.scan_background_images()
+        
         self.current_bg_index = 0  # 默认加载第一张背景图
         self.background_image = None
 
+    def scan_background_images(self):
+        """扫描背景图片目录，获取所有图片文件"""
+        pics_dir = utils.resource_path(self.pics_dir)
+        image_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tga', '.webp')
+        
+        if os.path.exists(pics_dir):
+            all_files = os.listdir(pics_dir)
+            image_files = [f for f in all_files if f.lower().endswith(image_extensions)]
+            self.background_config["images"] = [f"{self.pics_dir}/{img}" for img in sorted(image_files)]
+        else:
+            print(f"背景图片目录不存在: {pics_dir}")
+            self.background_config["images"] = []  # 如果目录不存在，则设置为空列表
+
     def load_background(self, index):
-        """根据索引加载背景图，捕获异常并返回默认背景"""
+        """根据索引加载背景图，捕获异常并返回默认背景"""        
         try:
-            bg_path = self.background_config["images"][index]
+            if not self.background_config["images"]:
+                print("没有找到任何背景图片")
+                return None
+            
+            bg_path = self.background_config["images"][index % len(self.background_config["images"])]
             bg_full_path = utils.resource_path(bg_path)
             if os.path.exists(bg_full_path):
                 background = pygame.image.load(bg_full_path).convert()
@@ -55,7 +71,8 @@ class BackgroundManager:
     def switch_background(self):
         """循环切换背景图索引，调用load_background()更新背景"""
         # 循环切换背景图索引
-        self.current_bg_index = (self.current_bg_index + 1) % len(self.background_config["images"])
+        if self.background_config["images"]:
+            self.current_bg_index = (self.current_bg_index + 1) % len(self.background_config["images"])
         # 加载新背景
         self.background_image = self.load_background(self.current_bg_index)
         return self.background_image
@@ -88,12 +105,7 @@ class ModeSelectionScreen:
         # 背景相关
         self.background_image = None
         self.background_surface = None
-        self.background_images = [
-            "assets/pics/4.jpg",
-            "assets/pics/3.jpg",
-            "assets/pics/2.jpg",
-            "assets/pics/1.jpg"
-        ]
+        self.background_manager = BackgroundManager()
         self.current_bg_index = 0  # 添加这个缺失的属性
         self.load_background()
         
@@ -131,47 +143,75 @@ class ModeSelectionScreen:
         
     def load_background(self):
         """加载背景图片，如果没有则使用默认背景"""
-        # 尝试加载当前背景图片
-        if self.current_bg_index < len(self.background_images):
-            bg_path = self.background_images[self.current_bg_index]
-            try:
-                # 使用resource_path处理资源路径
-                bg_full_path = utils.resource_path(bg_path)
-                if os.path.exists(bg_full_path):
-                    self.background_image = pygame.image.load(bg_full_path).convert()
-                else:
-                    print(f"背景图片不存在: {bg_full_path}")
-                    self.background_image = None
-            except Exception as e:
-                print(f"无法加载背景图片: {e}")
-                self.background_image = None
+        # 使用BackgroundManager来加载背景图片
+        if hasattr(self, 'background_manager'):
+            # 自动切换到下一张背景图片（每次加载主界面时）
+            if self.background_manager.background_config["images"]:
+                self.current_bg_index = (self.current_bg_index + 1) % len(self.background_manager.background_config["images"])
+            self.background_image = self.background_manager.load_background(self.current_bg_index)
         else:
-            # 如果超出范围，尝试加载默认背景
-            try:
-                bg_path = utils.resource_path("assets/pics/4.jpg")
-                if os.path.exists(bg_path):
-                    self.background_image = pygame.image.load(bg_path).convert()
-                else:
-                    # 尝试其他常见背景图片路径
-                    alt_paths = [
-                        utils.resource_path("assets/pics/3.jpg"),
-                        utils.resource_path("assets/pics/2.jpg"),
-                        utils.resource_path("assets/pics/1.jpg")
-                    ]
-                    for path in alt_paths:
-                        if os.path.exists(path):
-                            self.background_image = pygame.image.load(path).convert()
-                            break
-            except Exception as e:
-                print(f"无法加载背景图片: {e}")
-                self.background_image = None
+            # 原来的加载方式（保留向后兼容）
+            background_images = [
+                "assets/pics/5.jpg",
+                "assets/pics/2.jpg",
+                "assets/pics/3.jpg",
+                "assets/pics/1.jpg",
+                "assets/pics/1.jpg"
+            ]
+            
+            if self.current_bg_index < len(background_images):
+                bg_path = background_images[self.current_bg_index]
+                try:
+                    # 使用resource_path处理资源路径
+                    bg_full_path = utils.resource_path(bg_path)
+                    if os.path.exists(bg_full_path):
+                        self.background_image = pygame.image.load(bg_full_path).convert()
+                    else:
+                        print(f"背景图片不存在: {bg_full_path}")
+                        self.background_image = None
+                except Exception as e:
+                    print(f"无法加载背景图片: {e}")
+                    self.background_image = None
+            else:
+                # 如果超出范围，尝试加载默认背景
+                try:
+                    bg_path = utils.resource_path("assets/pics/2.jpg")
+                    if os.path.exists(bg_path):
+                        self.background_image = pygame.image.load(bg_path).convert()
+                    else:
+                        # 尝试其他常见背景图片路径
+                        alt_paths = [
+                            utils.resource_path("assets/pics/3.jpg"),
+                            utils.resource_path("assets/pics/1.jpg"),
+                            utils.resource_path("assets/pics/1.jpg"),
+                            utils.resource_path("assets/pics/5.jpg")
+                        ]
+                        for path in alt_paths:
+                            if os.path.exists(path):
+                                self.background_image = pygame.image.load(path).convert()
+                                break
+                except Exception as e:
+                    print(f"无法加载背景图片: {e}")
+                    self.background_image = None
 
     def switch_background(self):
         """循环切换背景图"""
-        # 循环切换背景图索引
-        self.current_bg_index = (self.current_bg_index + 1) % len(self.background_images)
-        # 加载新背景
-        self.load_background()
+        # 使用BackgroundManager来切换背景图
+        if hasattr(self, 'background_manager'):
+            self.background_image = self.background_manager.switch_background()
+        else:
+            # 原来的切换方式（保留向后兼容）
+            background_images = [
+                "assets/pics/5.jpg",
+                "assets/pics/2.jpg",
+                "assets/pics/3.jpg",
+                "assets/pics/1.jpg",
+                "assets/pics/1.jpg"
+            ]
+            # 循环切换背景图索引
+            self.current_bg_index = (self.current_bg_index + 1) % len(background_images)
+            # 加载新背景
+            self.load_background()
 
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
