@@ -99,7 +99,8 @@ def draw_background(surface, background_color=None):
     color = background_color if background_color is not None else DEFAULT_BG_COLOR
 
     surface_size = surface.get_size()
-    cache_key = (surface_size, color)
+    # Convert color to tuple if it's a list to make it hashable for cache key
+    cache_key = (surface_size, tuple(color) if isinstance(color, list) else color)
 
     # 检查缓存中是否有对应的背景纹理
     if cache_key in _background_texture_cache:

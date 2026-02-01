@@ -1,8 +1,4 @@
 """全局配置管理模块"""
-
-"""
-匈汉象棋网络对战常量
-"""
 import json
 import os
 from socket import gethostbyname, gethostname
@@ -624,34 +620,46 @@ class GameConfigManager:
             self.settings[key] = value
 
         if key == "traditional_mode" and value == True:
-            self.settings["king_can_leave_palace"] = False
-            self.settings["king_lose_diagonal_outside_palace"] = False
-            self.settings["king_can_diagonal_in_palace"] = False
-            self.settings["shi_can_leave_palace"] = False
-            self.settings["shi_gain_straight_outside_palace"] = False
-            self.settings["xiang_can_cross_river"] = False
-            self.settings["xiang_gain_jump_two_outside_river"] = False
-            self.settings["ma_can_straight_three"] = False
-            self.settings["pawn_resurrection_enabled"] = False
-            self.settings["pawn_promotion_enabled"] = False
-            self.settings["pawn_backward_at_base_enabled"] = False
-            self.settings["pawn_full_movement_at_base_enabled"] = False
+            self._apply_traditional_mode_settings()
         elif key == "traditional_mode" and value == False:
-            self.settings["king_can_leave_palace"] = True
-            self.settings["king_lose_diagonal_outside_palace"] = True
-            self.settings["king_can_diagonal_in_palace"] = True
-            self.settings["shi_can_leave_palace"] = True
-            self.settings["shi_gain_straight_outside_palace"] = True
-            self.settings["xiang_can_cross_river"] = True
-            self.settings["xiang_gain_jump_two_outside_river"] = True
-            self.settings["ma_can_straight_three"] = True
-            self.settings["pawn_resurrection_enabled"] = True
-            self.settings["pawn_promotion_enabled"] = True
-            self.settings["pawn_backward_at_base_enabled"] = True
-            self.settings["pawn_full_movement_at_base_enabled"] = True
+            self._apply_xionghan_mode_settings()
         
         # 保存设置到文件
         self._save_settings_to_file()
+
+    def _apply_traditional_mode_settings(self):
+        """应用传统模式设置"""
+        self.settings.update({
+            "king_can_leave_palace": False,
+            "king_lose_diagonal_outside_palace": False,
+            "king_can_diagonal_in_palace": False,
+            "shi_can_leave_palace": False,
+            "shi_gain_straight_outside_palace": False,
+            "xiang_can_cross_river": False,
+            "xiang_gain_jump_two_outside_river": False,
+            "ma_can_straight_three": False,
+            "pawn_resurrection_enabled": False,
+            "pawn_promotion_enabled": False,
+            "pawn_backward_at_base_enabled": False,
+            "pawn_full_movement_at_base_enabled": False
+        })
+
+    def _apply_xionghan_mode_settings(self):
+        """应用匈汉模式设置"""
+        self.settings.update({
+            "king_can_leave_palace": True,
+            "king_lose_diagonal_outside_palace": True,
+            "king_can_diagonal_in_palace": True,
+            "shi_can_leave_palace": True,
+            "shi_gain_straight_outside_palace": True,
+            "xiang_can_cross_river": True,
+            "xiang_gain_jump_two_outside_river": True,
+            "ma_can_straight_three": True,
+            "pawn_resurrection_enabled": True,
+            "pawn_promotion_enabled": True,
+            "pawn_backward_at_base_enabled": True,
+            "pawn_full_movement_at_base_enabled": True
+        })
 
     def get_all_settings(self):
         """获取所有设置"""
