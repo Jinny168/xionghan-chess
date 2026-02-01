@@ -3,7 +3,7 @@ import pygame
 
 from program.controllers.game_config_manager import (
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO,
-    PANEL_BORDER, PANEL_COLOR
+    PANEL_BORDER, PANEL_COLOR, game_config
 )
 from program.ui.avatar import Avatar
 from program.ui.button import Button
@@ -198,8 +198,14 @@ class ReplayScreen:
         board_x = self.left_panel_width + 50  # 从左侧面板右侧开始
         board_y = 50  # 顶部边距
 
-        # 创建ChessBoard实例并绘制
-        temp_board = ChessBoard(board_width, self.screen_height, board_x, board_y)
+        # 创建ChessBoard实例并绘制 - 使用traditional_mode配置
+        temp_board = ChessBoard(
+            board_width, 
+            self.screen_height, 
+            board_x, 
+            board_y,
+            traditional_mode=game_config.get_setting('traditional_mode', False)  # 从配置获取是否使用传统模式
+        )
         # 安全地传递game_state，如果它有必要的方法则传递，否则只传递pieces
         if hasattr(self.game_state, 'get_resurrection_positions'):
             temp_board.draw(screen, self.game_state.pieces, self.game_state)

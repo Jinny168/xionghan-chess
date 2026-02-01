@@ -312,7 +312,7 @@ def is_position_on_board(row, col):
     Returns:
         bool: 位置是否在棋盘范围内
     """
-    if game_config.get_setting("traditional_mode", False)():
+    if game_config.get_setting("traditional_mode", False):
         # 传统中国象棋：9列 x 10行 (0-8列, 0-9行)
         return 0 <= row < 10 and 0 <= col < 9
     else:

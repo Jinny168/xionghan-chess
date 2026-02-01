@@ -5,7 +5,7 @@ from program.utils import utils
 
 class GameRules:
     """匈汉象棋游戏规则类，负责验证移动的合法性和胜负判定"""
-
+    
     @staticmethod
     def get_piece_at(pieces, row, col):
         """获取指定位置的棋子
@@ -225,7 +225,7 @@ class GameRules:
         # 检查是否允许直走三格
         is_straight_three_move = False
 
-        if game_config.get_setting("ma_can_straight_three", True)():
+        if game_config.get_setting("ma_can_straight_three", True):
             is_straight_three_move = ((row_diff == 3 and col_diff == 0) or (row_diff == 0 and col_diff == 3))  # 直三
 
         # 马移动必须是日字或直三（如果设置允许）

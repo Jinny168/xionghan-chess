@@ -3,7 +3,7 @@ import math
 import pygame
 
 from program.controllers.game_config_manager import (
-    PANEL_BORDER, RED, BLACK, theme_manager,
+    PANEL_BORDER, RED, BLACK, theme_manager, game_config
 )
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
@@ -57,7 +57,8 @@ class NetworkGameScreen:
             self.window_width - self.left_panel_width,
             self.window_height,
             self.left_panel_width,
-            self.board_margin_top
+            self.board_margin_top,
+            traditional_mode=game_config.get_setting('traditional_mode', False)  # 从配置获取是否使用传统模式
         )
 
         button_width = 120

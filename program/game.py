@@ -40,9 +40,13 @@ class ChessGame:
         self.game_mode = game_mode
         self.player_camp = player_camp
 
-        # 如果有传入特定设置，更新全局配置
+        # 应用游戏设置到配置管理器
         if game_settings:
+            # 更新全局配置
             game_config.update_settings(game_settings)
+        else:
+            # 如果没有传入特定设置，使用当前全局配置
+            game_settings = game_config.get_all_settings()
 
         # 初始化游戏状态
         self.game_state = GameState()
@@ -51,16 +55,8 @@ class ChessGame:
         from program.controllers.ai_manager import AIManager
         self.ai_manager = AIManager.get_instance(game_mode, player_camp, game_settings)
 
-        # 根据游戏配置选择正确的界面
-        if game_config.get_setting("traditional_mode", False):
-            # print ("[DEBUG] 正在使用传统模式")
-            from ui.traditional_game_screen import TraditionalGameScreen
-            self.game_screen = TraditionalGameScreen(self.window_width, self.window_height, game_mode, player_camp)
-        else:
-            # print ("[DEBUG] 正在使用匈汉模式")
-            # print(f"traditional_mode= {game_config.get_setting('traditional_mode', False)}")
-            # print(f"classic_mode= {game_config.get_setting('classic_mode', False)}")
-            self.game_screen = GameScreen(self.window_width, self.window_height, game_mode, player_camp)
+        # 根据游戏配置选择正确的界面 - 现在GameScreen会根据配置自动选择棋盘类型
+        self.game_screen = GameScreen(self.window_width, self.window_height, game_mode, player_camp)
 
         # 选中的棋子
         self.selected_piece = None

@@ -1041,3 +1041,7 @@ class GameState:
         except Exception as e:
             print(f"导入棋局失败: {str(e)}")
             return False
+
+    def update_pieces_positions(self, new_pieces):
+        """更新棋子位置，用于AI算法模拟移动时恢复棋盘状态"""
+        self.pieces = new_pieces[:]

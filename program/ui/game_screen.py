@@ -1,10 +1,11 @@
 """游戏主界面UI管理模块"""
 import math
+
 import pygame
 
 from program.controllers.game_config_manager import (
     LEFT_PANEL_WIDTH_RATIO, BOARD_MARGIN_TOP_RATIO,
-    BLACK, RED, theme_manager
+    BLACK, RED, theme_manager, game_config
 )
 from program.controllers.taunts_manager import taunt_manager
 from program.ui.avatar import Avatar
@@ -457,11 +458,13 @@ class GameScreen:
             self.left_panel_overlay_cache = None
 
         # 更新棋盘 - 整体右移，确保不被菜单遮挡
+        # 根据配置中的traditional_mode来决定是否使用传统象棋模式
         self.board = ChessBoard(
             self.window_width - self.left_panel_width - 40,  # 增加更多右边距
             self.window_height,
             self.left_panel_width + 30,  # 棋盘起始位置右移更多
-            adjusted_board_margin_top  # 使用调整后的顶部边距
+            adjusted_board_margin_top,  # 使用调整后的顶部边距
+            traditional_mode=game_config.get_setting('traditional_mode', False)  # 从配置获取是否使用传统模式
         )
 
         # 更新操作面板位置

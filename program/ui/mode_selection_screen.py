@@ -439,8 +439,8 @@ class ModeSelectionScreen:
                             game_config.set_setting("traditional_mode", True)
                             game_config.set_setting("classic_mode", False)
                             print("已选择传统象棋模式")
-                            print(f"traditional_mode={ game_config.get_setting("traditional_mode", True) }")
-                            print(f"classic_mode={ game_config.get_setting("classic_mode", False) }")
+                            print(f"traditional_mode={game_config.get_setting('traditional_mode', True)}")
+                            print(f"classic_mode={game_config.get_setting('classic_mode', False)}")
                         elif selected_game_mode == "经典匈汉":
                             # 设置经典匈汉模式，启用经典模式，禁用传统模式
                             from program.controllers.game_config_manager import game_config

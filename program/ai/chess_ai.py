@@ -1,6 +1,9 @@
 # 添加MCTS和神经网络相关导入
-from program.ai.mcts_ai import MCTSAI
-from program.ai.traditional_ai import TraditionalAI
+from program.ai.xionghan_chess_mcts_ai import XionghanChessMctsAI
+
+# 导入传统AI和传统中国象棋AI
+from program.ai.xionghan_chess_search_ai import XionghanChessSearchAI
+from program.ai.chinese_chess_search_ai import ChineseChessSearchAI
 
 try:
     from program.ai.mcts.mcts import MCTSPlayer
@@ -11,6 +14,9 @@ try:
 except ImportError:
     MCTS_AVAILABLE = False
     print("Warning: MCTS modules not available. Only traditional algorithms will be supported.")
+
+from program.controllers.game_config_manager import game_config
+
 
 class ChessAI:
     """匈汉象棋AI类，支持多种算法，包括传统搜索算法和MCTS+神经网络"""
@@ -27,18 +33,35 @@ class ChessAI:
         self.algorithm = algorithm.lower()
         self.ai_color = ai_color
 
-        # 根据算法类型创建相应的AI实例
+        # 检查是否为传统象棋模式
+        is_traditional_mode = game_config.get_setting("traditional_mode", False)
+        
+        # 根据游戏模式和算法类型创建相应的AI实例
         if self.algorithm in ['negamax', 'minimax', 'alpha-beta']:
-            self.ai_impl = TraditionalAI(algorithm, difficulty, ai_color)
-        elif self.algorithm == 'mcts':
-            if MCTS_AVAILABLE:
-                self.ai_impl = MCTSAI(ai_color, model_file, n_playout=1000)
+            if is_traditional_mode:
+                # 传统象棋模式下使用专门的传统中国象棋AI
+                self.ai_impl = ChineseChessSearchAI(algorithm, difficulty, ai_color)
             else:
-                print("Warning: MCTS not available, falling back to negamax")
-                self.ai_impl = TraditionalAI("negamax", difficulty, ai_color)
+                # 匈汉象棋模式下使用通用的传统AI
+                self.ai_impl = XionghanChessSearchAI(algorithm, difficulty, ai_color)
+        elif self.algorithm == 'mcts':
+            if MCTS_AVAILABLE and not is_traditional_mode:
+                # MCTS仅在匈汉象棋模式下可用
+                self.ai_impl = XionghanChessMctsAI(ai_color, model_file, n_playout=1000)
+            else:
+                if is_traditional_mode:
+                    print("Warning: MCTS not supported in traditional chess mode, falling back to traditional Chinese chess AI")
+                    self.ai_impl = ChineseChessSearchAI("negamax", difficulty, ai_color)
+                else:
+                    print("Warning: MCTS not available, falling back to traditional Hungarian-Chinese chess AI")
+                    self.ai_impl = XionghanChessSearchAI("negamax", difficulty, ai_color)
         else:
-            print(f"Unknown algorithm {algorithm}, defaulting to negamax")
-            self.ai_impl = TraditionalAI("negamax", difficulty, ai_color)
+            if is_traditional_mode:
+                print(f"Unknown algorithm {algorithm}, defaulting to traditional Chinese chess AI")
+                self.ai_impl = ChineseChessSearchAI("negamax", difficulty, ai_color)
+            else:
+                print(f"Unknown algorithm {algorithm}, defaulting to traditional Hungarian-Chinese chess AI")
+                self.ai_impl = XionghanChessSearchAI("negamax", difficulty, ai_color)
 
     def get_move_async(self, game_state):
         """异步获取AI的最佳走法，启动多线程计算
