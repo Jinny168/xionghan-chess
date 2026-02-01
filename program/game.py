@@ -23,6 +23,7 @@ from controllers.game_config_manager import (
 class ChessGame:
     def __init__(self, game_mode=MODE_PVP, player_camp=CAMP_RED, game_settings=None):
         """初始化游戏"""
+        self.ai_timeout_processed = None
         self.history_max_visible_lines = 15
         self.history_scroll_y = None
         self.clock = None
@@ -76,16 +77,16 @@ class ChessGame:
         self.stats_dialog = None
         self.about_screen = None
 
-        
+
         # 音效管理器（包含背景音乐功能）
         self.sound_manager = sound_manager
         # 启动背景音乐
         self.sound_manager.toggle_music_style()  # 设置为QQ风格，如果需要FC风格，可以再次调用toggle_music_style()
-        
+
         # 将军/绝杀提示管理器
         from program.controllers.check_checkmate_tip_manager import CheckCheckmateTipManager
         self.check_checkmate_tip_manager = CheckCheckmateTipManager()
-        
+
 
     def init_window(self):
         """初始化窗口"""
@@ -99,10 +100,10 @@ class ChessGame:
     def make_move(self, move):
         """执行走法"""
         from_row, from_col, to_row, to_col = move
-        
+
         # 检查目标位置是否有棋子（吃子）
         captured_piece = self.game_state.get_piece_at(to_row, to_col)
-        
+
         self.game_state.move_piece(from_row, from_col, to_row, to_col)
 
         # 更新棋盘上的棋子位置
@@ -120,7 +121,7 @@ class ChessGame:
         # 注意：这里需要在移动完成后立即检查，以确保状态正确
         # 使用统一的声音管理器方法
         self.sound_manager.check_and_play_game_sound(self.game_state)
-        
+
         # 检查游戏是否结束
         if self.game_state.game_over:
             print(f"[DEBUG] 游戏结束检测到! 胜者: {self.game_state.winner}")
@@ -175,11 +176,11 @@ class ChessGame:
         total_time = self.game_state.total_time
         red_time = self.game_state.red_time
         black_time = self.game_state.black_time
-        
+
         print(f"[DEBUG] 显示游戏结束弹窗: {message}")
 
         self.popup = PopupDialog(400, 320, message, total_time, red_time, black_time)  # 增加高度以适应更多信息
-        
+
         # 根据胜负播放相应的音效
         if self.game_mode == MODE_PVC:  # 人机模式
             if self.player_camp == winner:  # 玩家获胜
@@ -199,6 +200,12 @@ class ChessGame:
         self.confirm_dialog = None
         self.stats_dialog = None  # 重置统计数据对话框
         self.ai_manager.reset_ai_state()
+        self.ai_timeout_processed = False  # 重置AI超时处理标记
+
+        # 重置步数计数器
+        from program.controllers.step_counter import step_counter
+        step_counter.reset()
+
         if self.ai_manager.is_ai_turn(self.game_state.player_turn):
             pygame.time.set_timer(pygame.USEREVENT + 1, 800)  # 延迟800毫秒后AI行动
             self.ai_manager.start_ai_thinking()

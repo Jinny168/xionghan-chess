@@ -1042,6 +1042,56 @@ class GameState:
             print(f"导入棋局失败: {str(e)}")
             return False
 
-    def update_pieces_positions(self, new_pieces):
-        """更新棋子位置，用于AI算法模拟移动时恢复棋盘状态"""
-        self.pieces = new_pieces[:]
+    def clone(self):
+        """创建游戏状态的深度拷贝，用于AI搜索算法中模拟移动而不影响真实游戏状态
+
+        Returns:
+            GameState: 游戏状态的完整拷贝
+        """
+        import copy
+
+        # 创建新的游戏状态实例
+        cloned_state = GameState.__new__(GameState)
+
+        # 深拷贝棋子列表及其状态
+        cloned_state.pieces = []
+        for piece in self.pieces:
+            cloned_piece = copy.deepcopy(piece)
+            cloned_state.pieces.append(cloned_piece)
+
+        # 复制基本属性
+        cloned_state.player_turn = self.player_turn
+        cloned_state.game_over = self.game_over
+        cloned_state.winner = self.winner
+        cloned_state.is_check = self.is_check
+        cloned_state.check_animation_time = self.check_animation_time
+        cloned_state.move_history = [move[:] for move in self.move_history]  # 浅拷贝历史记录
+        cloned_state.captured_pieces = {
+            "red": [copy.deepcopy(piece) for piece in self.captured_pieces["red"]],
+            "black": [copy.deepcopy(piece) for piece in self.captured_pieces["black"]]
+        }
+
+        # 复制时间相关信息
+        cloned_state.start_time = self.start_time
+        cloned_state.total_time = self.total_time
+        cloned_state.red_time = self.red_time
+        cloned_state.black_time = self.black_time
+        cloned_state.current_turn_start_time = self.current_turn_start_time
+
+        # 复制升变相关信息
+        cloned_state.needs_promotion = self.needs_promotion
+        cloned_state.promotion_pawn = copy.deepcopy(self.promotion_pawn) if self.promotion_pawn else None
+        cloned_state.available_promotion_pieces = [copy.deepcopy(piece) for piece in self.available_promotion_pieces]
+        cloned_state.just_completed_promotion = self.just_completed_promotion
+
+        # 复制局面历史记录
+        cloned_state.board_position_history = self.board_position_history[:]
+        cloned_state.repetition_count = self.repetition_count.copy()
+
+        # 复制统计数据
+        cloned_state.moves_count = self.moves_count
+
+        # 复制尉照面追踪
+        cloned_state.facing_pairs = [(copy.deepcopy(wei), copy.deepcopy(target)) for wei, target in self.facing_pairs]
+
+        return cloned_state
