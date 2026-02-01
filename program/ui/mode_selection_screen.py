@@ -23,7 +23,8 @@ class BackgroundManager:
                 "assets/pics/4.jpg",   # 预设背景图1
                 "assets/pics/3.jpg",   # 预设背景图2
                 "assets/pics/2.jpg",   # 预设背景图3
-                "assets/pics/1.jpg"    # 预设背景图4
+                "assets/pics/1.jpg",   # 预设背景图4
+                "assets/pics/5.jpg"  # 预设背景图5
             ],
             "default_bg_color": (200, 200, 200),  # 背景图加载失败时的默认纯色
             "button_style": {
@@ -89,6 +90,7 @@ class ModeSelectionScreen:
         self.background_image = None
         self.background_surface = None
         self.background_images = [
+            "assets/pics/5.jpg",
             "assets/pics/4.jpg",
             "assets/pics/3.jpg",
             "assets/pics/2.jpg",
@@ -156,7 +158,8 @@ class ModeSelectionScreen:
                     alt_paths = [
                         utils.resource_path("assets/pics/3.jpg"),
                         utils.resource_path("assets/pics/2.jpg"),
-                        utils.resource_path("assets/pics/1.jpg")
+                        utils.resource_path("assets/pics/1.jpg"),
+                        utils.resource_path("assets/pics/5.jpg")
                     ]
                     for path in alt_paths:
                         if os.path.exists(path):

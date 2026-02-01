@@ -82,6 +82,7 @@ def create_spec_file():
         ("assets/2.jpg", "assets"),
         ("assets/3.jpg", "assets"),
         ("assets/4.jpg", "assets"),
+        ("assets/5.jpg", "assets"),
     ]
     for image in required_images:
         if image not in images_datas:
