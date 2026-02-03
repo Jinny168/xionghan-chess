@@ -31,36 +31,6 @@ class ChessPiece:
         self.row = row
         self.col = col
 
-
-def should_include_piece(piece_class_name):
-    """根据设置决定是否包含特定棋子"""
-    # 将棋子类名转换为配置键名
-    piece_name_map = {
-        'Ju': 'ju_appear',
-        'Ma': 'ma_appear',
-        'Xiang': 'xiang_appear',
-        'Shi': 'shi_appear',
-        'King': 'king_appear',  # 将/帅总是登场
-        'Pao': 'pao_appear',
-        'Pawn': 'pawn_appear',
-        'Wei': 'wei_appear',
-        'She': 'she_appear',
-        'Lei': 'lei_appear',
-        'Jia': 'jia_appear',
-        'Ci': 'ci_appear',
-        'Dun': 'dun_appear',
-        'Xun': 'xun_appear'
-    }
-    
-    setting_key = piece_name_map.get(piece_class_name, 'king_appear')  # 默认为将/帅设置
-    
-    # 将/帅必须登场，不接受配置更改
-    if piece_class_name == 'King':
-        return True
-    else:
-        return game_config.get_setting(setting_key, True)
-
-
 # 传统棋子
 class Ju(ChessPiece):
     """車/俥"""
@@ -175,9 +145,54 @@ class Xun(ChessPiece):
         super().__init__(color, name, row, col)
 
 
+
+class PieceFactory:
+    """棋子工厂类，用于根据名称创建棋子"""
+    
+    # 棋子名称到类的映射
+    NAME_TO_CLASS_MAP = {
+        # 黑方棋子
+        '汗': King, '車': Ju, '馬': Ma, '象': Xiang, '士': Shi, '砲': Pao, '卒': Pawn,
+        '衛': Wei, '䠶': She, '礌': Lei, '胄': Jia, '伺': Ci, '碷': Dun, '廵': Xun,
+        # 红方棋子
+        '漢': King, '俥': Ju, '傌': Ma, '相': Xiang, '仕': Shi, '炮': Pao, '兵': Pawn,
+        '尉': Wei, '射': She, '檑': Lei, '甲': Jia, '刺': Ci, '楯': Dun, '巡': Xun
+    }
+
+    @classmethod
+    def create_piece_by_name(cls, name, color, row, col):
+        """根据棋子名称创建棋子实例
+        
+        Args:
+            name (str): 棋子名称
+            color (str): 棋子颜色
+            row (int): 行坐标
+            col (int): 列坐标
+            
+        Returns:
+            ChessPiece: 棋子实例，如果找不到对应名称则返回None
+        """
+        if name in cls.NAME_TO_CLASS_MAP:
+            piece_class = cls.NAME_TO_CLASS_MAP[name]
+            return piece_class(color, row, col)
+        return None
+
+    @classmethod
+    def get_piece_class_by_name(cls,name):
+        """根据棋子名称获取对应的棋子类
+
+        Args:
+            name (str): 棋子名称
+
+        Returns:
+            class: 棋子类
+        """
+
+        return cls.NAME_TO_CLASS_MAP.get(name)
+
 def create_initial_pieces():
     """创建匈汉象棋初始布局的所有棋子
-    
+
     Returns:
         list: 所有棋子的列表
     """
@@ -188,7 +203,7 @@ def create_initial_pieces():
     traditional_mode = game_config.get_setting("traditional_mode", False)
     # 检查是否启用经典模式 - 直接从配置获取最新设置
     classic_mode = game_config.get_setting("classic_mode", False)
-    
+
     if traditional_mode:
         # 传统中国象棋布局 - 9x10棋盘
         # 黑方（下方）
@@ -211,7 +226,7 @@ def create_initial_pieces():
         pieces.append(Pawn("black", 3, 4))
         pieces.append(Pawn("black", 3, 6))
         pieces.append(Pawn("black", 3, 8))
-        
+
         # 红方（上方）
         # 第9行 - 底线
         pieces.append(Ju("red", 9, 0))
@@ -236,23 +251,23 @@ def create_initial_pieces():
         # 经典模式布局 - 只包含传统象棋棋子及新增的射\檑\巡
         black_pieces_config = [
             # 第0行 - 黑方底线
-            (She, 0, 0), (She, 0, 12), (Ju, 0, 10),(Ju, 0, 2),(Lei, 0, 4), (Lei, 0, 8),
+            (She, 0, 0), (She, 0, 12), (Ju, 0, 10), (Ju, 0, 2), (Lei, 0, 4), (Lei, 0, 8),
             # 第1行
-             (Ma, 1, 3), (Xiang, 1, 4), (Shi, 1, 5), (King, 1, 6), (Shi, 1, 7), (Xiang, 1, 8), (Ma, 1, 9),
+            (Ma, 1, 3), (Xiang, 1, 4), (Shi, 1, 5), (King, 1, 6), (Shi, 1, 7), (Xiang, 1, 8), (Ma, 1, 9),
             # 第3行
             (Pao, 3, 1), (Pao, 3, 11),  # 炮在第三行两侧
             # 第4行
             (Pawn, 4, 0), (Pawn, 4, 2), (Pawn, 4, 4), (Pawn, 4, 6),
-            (Pawn, 4, 8), (Pawn, 4, 10), (Pawn, 4, 12) , # 兵在第四行间隔排列
+            (Pawn, 4, 8), (Pawn, 4, 10), (Pawn, 4, 12),  # 兵在第四行间隔排列
             # 第5行
-            (Xun, 5, 0), (Xun, 5, 12)# 黑方巡在最边缘
+            (Xun, 5, 0), (Xun, 5, 12)  # 黑方巡在最边缘
         ]
 
         red_pieces_config = [
             # 第12行 - 红方底线
             (She, 12, 0), (She, 12, 12),
             (Lei, 12, 4), (Lei, 12, 8),
-             (Ju, 12, 10),(Ju, 12, 2),
+            (Ju, 12, 10), (Ju, 12, 2),
             # 第11行
             (Ma, 11, 3), (Xiang, 11, 4), (Shi, 11, 5),
             (King, 11, 6), (Shi, 11, 7), (Xiang, 11, 8), (Ma, 11, 9),
@@ -261,17 +276,17 @@ def create_initial_pieces():
             (Pao, 9, 1), (Pao, 9, 11),  # 炮在第九行两侧
             # 第8行
             (Pawn, 8, 0), (Pawn, 8, 2), (Pawn, 8, 4), (Pawn, 8, 6),
-            (Pawn, 8, 8), (Pawn, 8, 10), (Pawn, 8, 12) , # 兵在第八行间隔排列
+            (Pawn, 8, 8), (Pawn, 8, 10), (Pawn, 8, 12),  # 兵在第八行间隔排列
             # 第7行
-            (Xun, 7, 0), (Xun, 7, 12)# 红方廵在最边缘
+            (Xun, 7, 0), (Xun, 7, 12)  # 红方廵在最边缘
         ]
-        
+
         # 添加黑方棋子，根据设置决定是否添加
         for piece_class, row, col in black_pieces_config:
             # 在经典模式下，只包含特定棋子
             if piece_class in [Ju, Ma, Xiang, Shi, King, Pao, Pawn, She, Lei, Xun]:
                 pieces.append(piece_class("black", row, col))
-        
+
         # 添加红方棋子，根据设置决定是否添加
         for piece_class, row, col in red_pieces_config:
             # 在经典模式下，只包含特定棋子
@@ -313,7 +328,7 @@ def create_initial_pieces():
             # 第7行
             (Xun, 7, 0), (Xun, 7, 12)
         ]
-        
+
         # 添加黑方棋子，根据设置决定是否添加
         for piece_class, row, col in black_pieces_config:
             # 原始模式根据设置决定是否包含棋子
@@ -328,34 +343,30 @@ def create_initial_pieces():
 
     return pieces
 
-
-class PieceFactory:
-    """棋子工厂类，用于根据名称创建棋子"""
-    
-    # 棋子名称到类的映射
-    NAME_TO_CLASS_MAP = {
-        # 黑方棋子
-        '汗': King, '車': Ju, '馬': Ma, '象': Xiang, '士': Shi, '砲': Pao, '卒': Pawn,
-        '衛': Wei, '䠶': She, '礌': Lei, '胄': Jia, '伺': Ci, '碷': Dun, '廵': Xun,
-        # 红方棋子
-        '漢': King, '俥': Ju, '傌': Ma, '相': Xiang, '仕': Shi, '炮': Pao, '兵': Pawn,
-        '尉': Wei, '射': She, '檑': Lei, '甲': Jia, '刺': Ci, '楯': Dun, '巡': Xun
+def should_include_piece(piece_class_name):
+    """根据设置决定是否包含特定棋子"""
+    # 将棋子类名转换为配置键名
+    piece_name_map = {
+        'Ju': 'ju_appear',
+        'Ma': 'ma_appear',
+        'Xiang': 'xiang_appear',
+        'Shi': 'shi_appear',
+        'King': 'king_appear',  # 将/帅总是登场
+        'Pao': 'pao_appear',
+        'Pawn': 'pawn_appear',
+        'Wei': 'wei_appear',
+        'She': 'she_appear',
+        'Lei': 'lei_appear',
+        'Jia': 'jia_appear',
+        'Ci': 'ci_appear',
+        'Dun': 'dun_appear',
+        'Xun': 'xun_appear'
     }
-    
-    @classmethod
-    def create_piece_by_name(cls, name, color, row, col):
-        """根据棋子名称创建棋子实例
-        
-        Args:
-            name (str): 棋子名称
-            color (str): 棋子颜色
-            row (int): 行坐标
-            col (int): 列坐标
-            
-        Returns:
-            ChessPiece: 棋子实例，如果找不到对应名称则返回None
-        """
-        if name in cls.NAME_TO_CLASS_MAP:
-            piece_class = cls.NAME_TO_CLASS_MAP[name]
-            return piece_class(color, row, col)
-        return None
+
+    setting_key = piece_name_map.get(piece_class_name, 'king_appear')  # 默认为将/帅设置
+
+    # 将/帅必须登场，不接受配置更改
+    if piece_class_name == 'King':
+        return True
+    else:
+        return game_config.get_setting(setting_key, True)

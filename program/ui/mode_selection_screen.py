@@ -1,6 +1,5 @@
 import os
 import sys
-import glob
 
 import pygame
 
@@ -10,8 +9,8 @@ from program.controllers.game_config_manager import (
 )
 from program.controllers.sound_manager import sound_manager
 from program.ui.button import Button, StyledButton
-from program.utils import tools, utils
-from program.utils.utils import load_font, draw_background
+from program.utils import tools
+from program.utils.tools import load_font, draw_background
 
 
 class BackgroundManager:
@@ -38,7 +37,7 @@ class BackgroundManager:
 
     def scan_background_images(self):
         """扫描背景图片目录，获取所有图片文件"""
-        pics_dir = utils.resource_path(self.pics_dir)
+        pics_dir = tools.resource_path(self.pics_dir)
         image_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tga', '.webp')
         
         if os.path.exists(pics_dir):
@@ -57,7 +56,7 @@ class BackgroundManager:
                 return None
             
             bg_path = self.background_config["images"][index % len(self.background_config["images"])]
-            bg_full_path = utils.resource_path(bg_path)
+            bg_full_path = tools.resource_path(bg_path)
             if os.path.exists(bg_full_path):
                 background = pygame.image.load(bg_full_path).convert()
                 return background
@@ -150,12 +149,12 @@ class ModeSelectionScreen:
                 self.current_bg_index = (self.current_bg_index + 1) % len(self.background_manager.background_config["images"])
             self.background_image = self.background_manager.load_background(self.current_bg_index)
         else:
-            # 原来的加载方式（保留向后兼容）
+            # 原来加载方式（保留向后兼容）
             background_images = [
                 "assets/pics/5.jpg",
-                "assets/pics/2.jpg",
+                "assets/pics/4.jpg",
                 "assets/pics/3.jpg",
-                "assets/pics/1.jpg",
+                "assets/pics/2.jpg",
                 "assets/pics/1.jpg"
             ]
             
@@ -163,7 +162,7 @@ class ModeSelectionScreen:
                 bg_path = background_images[self.current_bg_index]
                 try:
                     # 使用resource_path处理资源路径
-                    bg_full_path = utils.resource_path(bg_path)
+                    bg_full_path = tools.resource_path(bg_path)
                     if os.path.exists(bg_full_path):
                         self.background_image = pygame.image.load(bg_full_path).convert()
                     else:
@@ -175,16 +174,16 @@ class ModeSelectionScreen:
             else:
                 # 如果超出范围，尝试加载默认背景
                 try:
-                    bg_path = utils.resource_path("assets/pics/2.jpg")
+                    bg_path = tools.resource_path("assets/pics/2.jpg")
                     if os.path.exists(bg_path):
                         self.background_image = pygame.image.load(bg_path).convert()
                     else:
                         # 尝试其他常见背景图片路径
                         alt_paths = [
-                            utils.resource_path("assets/pics/3.jpg"),
-                            utils.resource_path("assets/pics/1.jpg"),
-                            utils.resource_path("assets/pics/1.jpg"),
-                            utils.resource_path("assets/pics/5.jpg")
+                            tools.resource_path("assets/pics/3.jpg"),
+                            tools.resource_path("assets/pics/1.jpg"),
+                            tools.resource_path("assets/pics/1.jpg"),
+                            tools.resource_path("assets/pics/5.jpg")
                         ]
                         for path in alt_paths:
                             if os.path.exists(path):
@@ -203,9 +202,9 @@ class ModeSelectionScreen:
             # 原来的切换方式（保留向后兼容）
             background_images = [
                 "assets/pics/5.jpg",
-                "assets/pics/2.jpg",
+                "assets/pics/4.jpg",
                 "assets/pics/3.jpg",
-                "assets/pics/1.jpg",
+                "assets/pics/2.jpg",
                 "assets/pics/1.jpg"
             ]
             # 循环切换背景图索引
@@ -219,10 +218,6 @@ class ModeSelectionScreen:
         base_width = 360
         scale_factor = self.window_width / base_width
 
-        # 按钮尺寸 - 缩小按钮尺寸
-        button_width = max(int(80 * scale_factor), 80)  # 基准80px (原100px)
-        button_height = max(int(35 * scale_factor), 35)  # 基准35px (原40px)
-        button_spacing = max(int(12 * scale_factor), 12)  # 基准12px (原15px)
         center_x = self.window_width // 2
         center_y = self.window_height // 2 - 30  # 调整中心位置
 
@@ -231,7 +226,7 @@ class ModeSelectionScreen:
         arrow_button_height = 50
         game_mode_center_y = 250  # 游戏模式选择的位置
         current_game_mode = self.game_mode_options[self.current_game_mode_index]
-        from program.utils.utils import load_font
+
         game_mode_font = load_font(32, bold=True)
         game_mode_text = game_mode_font.render(current_game_mode, True, GOLD)
         game_mode_text_x = center_x - game_mode_text.get_width() // 2
@@ -378,7 +373,6 @@ class ModeSelectionScreen:
     def update_settings_menu_animation(self, dt):
         """更新设置菜单动画"""
         if self.animation_direction != 0:
-            # 动画速度：每秒1单位
             animation_speed = dt * 2.0  # 2秒完成整个动画
 
             if self.animation_direction == 1:  # 打开
@@ -700,14 +694,13 @@ class ModeSelectionScreen:
 
         # 绘制设置菜单
         if self.show_settings_menu or self.settings_menu_opening or self.settings_menu_closing:
-            # 计算菜单透明度和位置动画
-            alpha = min(255, int(200 * self.settings_menu_animation_progress))
+            # 计算菜单位置动画
             vertical_offset = int(
                 10 * (1 - self.settings_menu_animation_progress)) if self.animation_direction == 1 else 0
 
             for i, (button, _) in enumerate(self.settings_menu_items):
                 # 计算每个菜单项的显示进度
-                item_progress = max(0, min(1.0,self.settings_menu_animation_progress * 4.0 - i * 0.25))
+                item_progress = max(0.0, min(1.0, self.settings_menu_animation_progress * 4.0 - i * 0.25))
                 if item_progress > 0:
                     # 绘制半透明背景
                     menu_surface = pygame.Surface((button.rect.width, button.rect.height))

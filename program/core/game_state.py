@@ -4,9 +4,9 @@ import program.utils.tools as tools
 from program.controllers.game_config_manager import game_config
 from program.controllers.statistics_manager import statistics_manager
 from program.controllers.step_counter import step_counter
-from program.core.chess_pieces import create_initial_pieces, King, Jia, Ci, Dun, Pawn, Wei
+from program.core.chess_pieces import create_initial_pieces, King, Jia, Ci, Dun, Pawn, Wei, PieceFactory
 from program.core.game_rules import GameRules
-from program.utils.utils import print_board
+from program.utils.tools import print_board
 
 
 class GameState:
@@ -941,7 +941,7 @@ class GameState:
                             # 字符表示棋子
                             if row_str[i] in fen_piece_map:
                                 color, name = fen_piece_map[row_str[i]]
-                                piece_class = tools.get_piece_class_by_name(name)
+                                piece_class = PieceFactory.get_piece_class_by_name(name)
                                 if piece_class:
                                     piece = piece_class(color, row_idx, col_idx)
                                     self.pieces.append(piece)
@@ -996,7 +996,7 @@ class GameState:
                             if row_str[i] in fen_piece_map:
                                 color, name = fen_piece_map[row_str[i]]
                                 # 根据颜色和名称创建对应的棋子类
-                                piece_class = tools.get_piece_class_by_name(name)
+                                piece_class = PieceFactory.get_piece_class_by_name(name)
                                 if piece_class:
                                     piece = piece_class(color, row_idx, col_idx)
                                     self.pieces.append(piece)

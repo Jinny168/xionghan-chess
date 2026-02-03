@@ -481,7 +481,7 @@ class ThemeManager:
 
             config['theme'] = theme
             with open(self.theme_config_file, 'w', encoding='utf-8') as f:
-                json.dump(config, f, ensure_ascii=False, indent=4)
+                json.dump(config, f, ensure_ascii=False, indent=4)  # type: ignore
 
             self.current_theme = theme
             return True
@@ -599,7 +599,7 @@ class GameConfigManager:
             os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
             
             with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(self.settings, f, ensure_ascii=False, indent=4)
+                json.dump(self.settings, f, ensure_ascii=False, indent=4)  # type: ignore
             
             return True
         except Exception as e:

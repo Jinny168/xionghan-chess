@@ -1,7 +1,7 @@
 """匈汉象棋游戏规则查看器 - 支持翻页功能"""
 
 import pygame
-from program.utils.utils import load_font, draw_background
+from program.utils.tools import load_font, draw_background
 from program.ui.button import Button
 
 

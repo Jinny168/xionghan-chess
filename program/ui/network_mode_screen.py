@@ -9,7 +9,7 @@ from program.controllers.game_config_manager import (
 from program.controllers.sound_manager import sound_manager
 from program.ui.button import StyledButton
 from program.utils import tools
-from program.utils.utils import load_font, draw_background
+from program.utils.tools import load_font, draw_background
 
 
 class NetworkModeScreen:

@@ -2,18 +2,66 @@ import pygame
 
 from program.controllers.game_config_manager import BLACK, RED, POPUP_BG
 from program.ui.button import Button
-from program.utils.utils import load_font
-from program.controllers.statistics_manager import statistics_manager
+from program.utils.tools import load_font
+from program.utils.tools import draw_background
+
+class BaseDialog:
+    """对话框基类，包含通用的绘制和事件处理逻辑"""
+    
+    def __init__(self):
+        self.overlay_surface = None
+        self.x = 0
+        self.y = 0
+    
+    def _draw_background(self, screen, window_width, window_height):
+        """绘制半透明背景"""
+        if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
+            self.overlay_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
+        self.overlay_surface.fill((0, 0, 0, 128))  # 半透明黑色
+        screen.blit(self.overlay_surface, (0, 0))
+    
+    def _draw_dialog_frame(self, screen, width, height):
+        """绘制对话框框架"""
+        # 绘制弹窗主体
+        pygame.draw.rect(screen, POPUP_BG, (self.x, self.y, width, height))
+        pygame.draw.rect(screen, BLACK, (self.x, self.y, width, height), 3)
+        
+        # 添加装饰边框
+        inner_margin = 10
+        pygame.draw.rect(
+            screen, 
+            (180, 180, 180), 
+            (self.x + inner_margin, self.y + inner_margin, 
+             width - 2*inner_margin, height - 2*inner_margin), 
+            2
+        )
+    
+    def _draw_title(self, screen, window_width, title_text, font_size=36, y_offset=40):
+        """绘制标题文本"""
+        font_big = load_font(font_size)
+        text_surface = font_big.render(title_text, True, BLACK)
+        text_rect = text_surface.get_rect(center=(window_width//2, self.y + y_offset))
+        screen.blit(text_surface, text_rect)
+    
+    def _draw_message(self, screen, window_width, message, font_size=24, start_y_offset=90, line_height=30):
+        """绘制消息文本（支持换行）"""
+        font = load_font(font_size)
+        lines = message.split('\n')
+        start_y = self.y + start_y_offset
+        
+        for i, line in enumerate(lines):
+            text_surface = font.render(line, True, BLACK)
+            text_rect = text_surface.get_rect(center=(window_width//2, start_y + i * line_height))
+            screen.blit(text_surface, text_rect)
 
 
-class AudioSettingsDialog:
+class AudioSettingsDialog(BaseDialog):
     """音效设置对话框"""
-    def __init__(self, width, height, sound_manager):
+    def __init__(self, sound_manager):
+        super().__init__()
         self.width = 600  # 增加对话框宽度以更好地容纳所有元素
         self.height = 400  # 进一步增加对话框高度以适应新添加的音乐风格切换选项
         self.sound_manager = sound_manager  # 音效管理器引用
-        self.x = 0
-        self.y = 0
         
         # 音量值 (0.0 - 1.0)
         self.music_volume = sound_manager.music_volume
@@ -31,9 +79,6 @@ class AudioSettingsDialog:
         self.ok_button = Button(0, 0, self.button_width, self.button_height, "确定")
         self.cancel_button = Button(0, 0, self.button_width, self.button_height, "取消")
         self.reset_button = Button(0, 0, self.button_width, self.button_height, "重置")
-        
-        # 预创建覆盖层表面
-        self.overlay_surface = None
 
     def draw(self, screen):
         # 获取当前窗口尺寸
@@ -53,31 +98,10 @@ class AudioSettingsDialog:
         self.reset_button.update_position(buttons_start_x + self.button_width + self.button_spacing, button_y)
         self.cancel_button.update_position(buttons_start_x + 2 * (self.button_width + self.button_spacing), button_y)
         
-        # 绘制半透明背景
-        if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
-            self.overlay_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
-        self.overlay_surface.fill((0, 0, 0, 128))  # 半透明黑色
-        screen.blit(self.overlay_surface, (0, 0))
-        
-        # 绘制弹窗主体
-        pygame.draw.rect(screen, POPUP_BG, (self.x, self.y, self.width, self.height))
-        pygame.draw.rect(screen, BLACK, (self.x, self.y, self.width, self.height), 3)
-        
-        # 添加装饰边框
-        inner_margin = 10
-        pygame.draw.rect(
-            screen, 
-            (180, 180, 180), 
-            (self.x + inner_margin, self.y + inner_margin, 
-             self.width - 2*inner_margin, self.height - 2*inner_margin), 
-            2
-        )
-        
-        # 绘制标题文本
-        font_big = load_font(36)
-        text_surface = font_big.render("音效设置", True, BLACK)
-        text_rect = text_surface.get_rect(center=(window_width//2, self.y + 40))
-        screen.blit(text_surface, text_rect)
+        # 绘制背景和框架
+        self._draw_background(screen, window_width, window_height)
+        self._draw_dialog_frame(screen, self.width, self.height)
+        self._draw_title(screen, window_width, "音效设置")
         
         # 绘制音量调节说明
         font_medium = load_font(24)
@@ -197,7 +221,7 @@ class AudioSettingsDialog:
             # 检查是否点击/拖动音乐音量条
             music_bar_y = self.y + 105
             # 检查是否在音量条的Y范围内，允许一定的容错
-            if (music_bar_y - 10 <= mouse_pos[1] <= music_bar_y + 20 + 10):
+            if music_bar_y - 10 <= mouse_pos[1] <= music_bar_y + 20 + 10:
                 # 检查是否在音量条的X范围内或鼠标按键被按下（允许拖动超出边界）
                 if (bar_x - 10 <= mouse_pos[0] <= bar_x + bar_width + 10) or pygame.mouse.get_pressed()[0]:
                     # 计算音量，限制在条形范围内
@@ -209,7 +233,7 @@ class AudioSettingsDialog:
             # 检查是否点击/拖动音效音量条
             sound_bar_y = self.y + 185
             # 检查是否在音量条的Y范围内，允许一定的容错
-            if (sound_bar_y - 10 <= mouse_pos[1] <= sound_bar_y + 20 + 10):
+            if sound_bar_y - 10 <= mouse_pos[1] <= sound_bar_y + 20 + 10:
                 # 检查是否在音量条的X范围内或鼠标按键被按下（允许拖动超出边界）
                 if (bar_x - 10 <= mouse_pos[0] <= bar_x + bar_width + 10) or pygame.mouse.get_pressed()[0]:
                     # 计算音量，限制在条形范围内
@@ -220,8 +244,9 @@ class AudioSettingsDialog:
 
         return None  # 对话框保持打开状态
 
-class PopupDialog:
+class PopupDialog(BaseDialog):
     def __init__(self, width, height, message, total_time=0, red_time=0, black_time=0):
+        super().__init__()
         # 增加默认宽度以更好地显示内容
         self.width = width if width != 400 else 500  # 默认从400增加到500
         self.height = height
@@ -229,10 +254,6 @@ class PopupDialog:
         self.total_time = total_time
         self.red_time = red_time
         self.black_time = black_time
-        
-        # 计算弹窗位置 - 会在绘制时动态计算
-        self.x = 0
-        self.y = 0
         
         # 创建按钮
         button_width = 100  # 减小按钮宽度以适应更多按钮
@@ -245,9 +266,6 @@ class PopupDialog:
         self.replay_button = Button(0, 0, button_width, button_height, "复盘")
         self.export_button = Button(0, 0, button_width, button_height, "导出对局")
         self.return_button = Button(0, 0, button_width, button_height, "返回")
-        
-        # 预创建覆盖层表面
-        self.overlay_surface = None
         
     def draw(self, screen):
         # 获取当前窗口尺寸
@@ -267,31 +285,10 @@ class PopupDialog:
         self.export_button.update_position(start_x + 2 * (self.button_width + 10), button_y)
         self.return_button.update_position(start_x + 3 * (self.button_width + 10), button_y)
         
-        # 绘制半透明背景
-        if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
-            self.overlay_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
-        self.overlay_surface.fill((0, 0, 0, 128))  # 半透明黑色
-        screen.blit(self.overlay_surface, (0, 0))
-        
-        # 绘制弹窗主体
-        pygame.draw.rect(screen, POPUP_BG, (self.x, self.y, self.width, self.height))
-        pygame.draw.rect(screen, BLACK, (self.x, self.y, self.width, self.height), 3)
-        
-        # 添加装饰边框
-        inner_margin = 10
-        pygame.draw.rect(
-            screen, 
-            (180, 180, 180), 
-            (self.x + inner_margin, self.y + inner_margin, 
-             self.width - 2*inner_margin, self.height - 2*inner_margin), 
-            2
-        )
-        
-        # 绘制标题文本
-        font_big = load_font(40)
-        text_surface = font_big.render("游戏结束", True, BLACK)
-        text_rect = text_surface.get_rect(center=(window_width//2, self.y + 50))
-        screen.blit(text_surface, text_rect)
+        # 绘制背景和框架
+        self._draw_background(screen, window_width, window_height)
+        self._draw_dialog_frame(screen, self.width, self.height)
+        self._draw_title(screen, window_width, "游戏结束", font_size=40, y_offset=50)
         
         # 绘制结果文本
         font = load_font(32)
@@ -303,9 +300,8 @@ class PopupDialog:
         if "平局" in self.message or "和" in self.message:
             # 尝试获取和棋原因（如果game_state可用）
             try:
-                # 这里需要在调用处传递game_state或和棋原因
                 pass
-            except:
+            except AttributeError:
                 pass
         
         # 绘制时间信息
@@ -369,29 +365,23 @@ class PopupDialog:
         return None  # 无操作
 
 
-class NotificationDialog:
+class NotificationDialog(BaseDialog):
     """通知对话框，用于显示操作结果"""
     
     def __init__(self, width, height, message, duration=2000):  # duration单位为毫秒
+        super().__init__()
         self.width = width
         self.height = height
         self.message = message
         self.duration = duration  # 显示时长
         self.start_time = pygame.time.get_ticks()  # 开始显示的时间
         
-        # 计算弹窗位置 - 会在绘制时动态计算
-        self.x = 0
-        self.y = 0
-        
         # 按钮尺寸
-        button_width = 100
-        button_height = 40
+        self.button_width = 100
+        self.button_height = 40
         
         # 确认按钮
-        self.ok_button = Button(0, 0, button_width, button_height, "确定")
-        
-        # 预创建覆盖层表面
-        self.overlay_surface = None
+        self.ok_button = Button(0, 0, self.button_width, self.button_height, "确定")
     
     def draw(self, screen):
         # 获取当前窗口尺寸
@@ -406,43 +396,11 @@ class NotificationDialog:
         button_x = self.x + (self.width - self.button_width) // 2
         self.ok_button.update_position(button_x, button_y)
         
-        # 绘制半透明背景
-        if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
-            self.overlay_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
-        self.overlay_surface.fill((0, 0, 0, 128))  # 半透明黑色
-        screen.blit(self.overlay_surface, (0, 0))
-        
-        # 绘制弹窗主体
-        pygame.draw.rect(screen, POPUP_BG, (self.x, self.y, self.width, self.height))
-        pygame.draw.rect(screen, BLACK, (self.x, self.y, self.width, self.height), 3)
-        
-        # 添加装饰边框
-        inner_margin = 10
-        pygame.draw.rect(
-            screen, 
-            (180, 180, 180), 
-            (self.x + inner_margin, self.y + inner_margin, 
-             self.width - 2*inner_margin, self.height - 2*inner_margin), 
-            2
-        )
-        
-        # 绘制标题文本
-        font_big = load_font(36)
-        text_surface = font_big.render("提示", True, BLACK)
-        text_rect = text_surface.get_rect(center=(window_width//2, self.y + 40))
-        screen.blit(text_surface, text_rect)
-        
-        # 绘制消息文本
-        font = load_font(24)
-        # 处理消息换行显示
-        lines = self.message.split('\n')
-        line_height = 30
-        start_y = self.y + 90
-        
-        for i, line in enumerate(lines):
-            text_surface = font.render(line, True, BLACK)
-            text_rect = text_surface.get_rect(center=(window_width//2, start_y + i * line_height))
-            screen.blit(text_surface, text_rect)
+        # 绘制背景和框架
+        self._draw_background(screen, window_width, window_height)
+        self._draw_dialog_frame(screen, self.width, self.height)
+        self._draw_title(screen, window_width, "提示")
+        self._draw_message(screen, window_width, self.message)
         
         # 绘制按钮
         self.ok_button.draw(screen)
@@ -472,15 +430,12 @@ class NotificationDialog:
         current_time = pygame.time.get_ticks()
         return current_time - self.start_time > self.duration
 
-class ConfirmDialog:
+class ConfirmDialog(BaseDialog):
     def __init__(self, width, height, message):
+        super().__init__()
         self.width = width
         self.height = height
         self.message = message
-        
-        # 计算弹窗位置 - 会在绘制时动态计算
-        self.x = 0
-        self.y = 0
         
         # 按钮尺寸
         self.button_width = 120
@@ -494,9 +449,6 @@ class ConfirmDialog:
         # 结果
         self.result = None  # None = 未选择, True = 确认, False = 取消
         
-        # 预创建覆盖层表面
-        self.overlay_surface = None
-        
     def draw(self, screen):
         # 获取当前窗口尺寸
         window_width, window_height = screen.get_size()
@@ -514,43 +466,11 @@ class ConfirmDialog:
         cancel_y = self.y + self.height - self.button_height - 20
         self.cancel_button.update_position(cancel_x, cancel_y)
         
-        # 绘制半透明背景
-        if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
-            self.overlay_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
-        self.overlay_surface.fill((0, 0, 0, 128))  # 半透明黑色
-        screen.blit(self.overlay_surface, (0, 0))
-        
-        # 绘制弹窗主体
-        pygame.draw.rect(screen, POPUP_BG, (self.x, self.y, self.width, self.height))
-        pygame.draw.rect(screen, BLACK, (self.x, self.y, self.width, self.height), 3)
-        
-        # 添加装饰边框
-        inner_margin = 10
-        pygame.draw.rect(
-            screen, 
-            (180, 180, 180), 
-            (self.x + inner_margin, self.y + inner_margin, 
-             self.width - 2*inner_margin, self.height - 2*inner_margin), 
-            2
-        )
-        
-        # 绘制标题文本
-        font_big = load_font(36)
-        text_surface = font_big.render("确认", True, BLACK)
-        text_rect = text_surface.get_rect(center=(window_width//2, self.y + 40))
-        screen.blit(text_surface, text_rect)
-        
-        # 绘制确认信息文本
-        font = load_font(24)
-        # 处理消息换行显示
-        lines = self.message.split('\n')
-        line_height = 30
-        start_y = self.y + 90
-        
-        for i, line in enumerate(lines):
-            text_surface = font.render(line, True, BLACK)
-            text_rect = text_surface.get_rect(center=(window_width//2, start_y + i * line_height))
-            screen.blit(text_surface, text_rect)
+        # 绘制背景和框架
+        self._draw_background(screen, window_width, window_height)
+        self._draw_dialog_frame(screen, self.width, self.height)
+        self._draw_title(screen, window_width, "确认")
+        self._draw_message(screen, window_width, self.message)
         
         # 绘制按钮
         self.confirm_button.draw(screen)
@@ -576,17 +496,14 @@ class ConfirmDialog:
         
         return self.result
 
-class PawnResurrectionDialog:
+class PawnResurrectionDialog(BaseDialog):
     """兵/卒复活确认对话框"""
     def __init__(self, width, height, player_color, position):
+        super().__init__()
         self.width = width
         self.height = height
         self.player_color = player_color
         self.position = position  # (row, col)
-        
-        # 计算弹窗位置
-        self.x = 0
-        self.y = 0
         
         # 按钮尺寸
         self.button_width = 120
@@ -599,9 +516,6 @@ class PawnResurrectionDialog:
         
         # 结果
         self.result = None  # None = 未选择, True = 确认, False = 取消
-        
-        # 预创建覆盖层表面
-        self.overlay_surface = None
     
     def draw(self, screen):
         # 获取当前窗口尺寸
@@ -620,45 +534,14 @@ class PawnResurrectionDialog:
         cancel_y = self.y + self.height - self.button_height - 20
         self.cancel_button.update_position(cancel_x, cancel_y)
         
-        # 绘制半透明背景
-        if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
-            self.overlay_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
-        self.overlay_surface.fill((0, 0, 0, 128))  # 半透明黑色
-        screen.blit(self.overlay_surface, (0, 0))
-        
-        # 绘制弹窗主体
-        pygame.draw.rect(screen, POPUP_BG, (self.x, self.y, self.width, self.height))
-        pygame.draw.rect(screen, BLACK, (self.x, self.y, self.width, self.height), 3)
-        
-        # 添加装饰边框
-        inner_margin = 10
-        pygame.draw.rect(
-            screen, 
-            (180, 180, 180), 
-            (self.x + inner_margin, self.y + inner_margin, 
-             self.width - 2*inner_margin, self.height - 2*inner_margin), 
-            2
-        )
-        
-        # 绘制标题文本
-        font_big = load_font(36)
-        text_surface = font_big.render("兵卒复活确认", True, BLACK)
-        text_rect = text_surface.get_rect(center=(window_width//2, self.y + 40))
-        screen.blit(text_surface, text_rect)
+        # 绘制背景和框架
+        self._draw_background(screen, window_width, window_height)
+        self._draw_dialog_frame(screen, self.width, self.height)
+        self._draw_title(screen, window_width, "兵卒复活确认")
         
         # 绘制确认信息文本
-        font = load_font(24)
         message = "是否消耗本次走子机会，在当前位置复活1个兵/卒？"
-        
-        # 处理消息换行显示
-        lines = [message[i:i+30] for i in range(0, len(message), 30)]  # 每行最多30个字符
-        line_height = 30
-        start_y = self.y + 90
-        
-        for i, line in enumerate(lines):
-            text_surface = font.render(line, True, BLACK)
-            text_rect = text_surface.get_rect(center=(window_width//2, start_y + i * line_height))
-            screen.blit(text_surface, text_rect)
+        self._draw_message(screen, window_width, message, start_y_offset=90, line_height=30)
         
         # 绘制按钮
         self.confirm_button.draw(screen)
@@ -684,19 +567,16 @@ class PawnResurrectionDialog:
         
         return self.result
 
-class PromotionDialog:
+class PromotionDialog(BaseDialog):
     """兵卒冲底升变选择对话框"""
     def __init__(self, width, height, player_color, position, captured_pieces):
+        super().__init__()
         self.width = width
         self.height = height
         self.player_color = player_color
         self.position = position  # (row, col)
         self.captured_pieces = captured_pieces  # 阵亡棋子列表
         self.selected_piece_index = None  # 选中的阵亡棋子索引
-        
-        # 计算弹窗位置
-        self.x = 0
-        self.y = 0
         
         # 按钮尺寸
         self.button_width = 120
@@ -710,9 +590,6 @@ class PromotionDialog:
         # 结果
         self.result = None  # None = 未选择, (True, index) = 确认并选择的索引, False = 取消
         self.selected_index = None  # 选中的棋子索引
-        
-        # 预创建覆盖层表面
-        self.overlay_surface = None
         
         # 列表滚动
         self.scroll_offset = 0
@@ -735,31 +612,10 @@ class PromotionDialog:
         cancel_y = self.y + self.height - self.button_height - 20
         self.cancel_button.update_position(cancel_x, cancel_y)
         
-        # 绘制半透明背景
-        if self.overlay_surface is None or self.overlay_surface.get_size() != (window_width, window_height):
-            self.overlay_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
-        self.overlay_surface.fill((0, 0, 0, 128))  # 半透明黑色
-        screen.blit(self.overlay_surface, (0, 0))
-        
-        # 绘制弹窗主体
-        pygame.draw.rect(screen, POPUP_BG, (self.x, self.y, self.width, self.height))
-        pygame.draw.rect(screen, BLACK, (self.x, self.y, self.width, self.height), 3)
-        
-        # 添加装饰边框
-        inner_margin = 10
-        pygame.draw.rect(
-            screen, 
-            (180, 180, 180), 
-            (self.x + inner_margin, self.y + inner_margin, 
-             self.width - 2*inner_margin, self.height - 2*inner_margin), 
-            2
-        )
-        
-        # 绘制标题文本
-        font_big = load_font(36)
-        text_surface = font_big.render("升变选择", True, BLACK)
-        text_rect = text_surface.get_rect(center=(window_width//2, self.y + 40))
-        screen.blit(text_surface, text_rect)
+        # 绘制背景和框架
+        self._draw_background(screen, window_width, window_height)
+        self._draw_dialog_frame(screen, self.width, self.height)
+        self._draw_title(screen, window_width, "升变选择")
         
         # 绘制提示信息文本
         font = load_font(20)
@@ -907,7 +763,7 @@ class StatisticsDialog:
         screen_width, screen_height = screen.get_size()
 
         # 绘制背景
-        from program.utils.utils import draw_background
+
         draw_background(screen)
 
         # 绘制标题

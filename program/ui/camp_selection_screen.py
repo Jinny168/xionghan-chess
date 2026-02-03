@@ -9,7 +9,7 @@ from program.controllers.game_config_manager import (
 from program.controllers.sound_manager import sound_manager
 from program.ui.button import StyledButton
 from program.utils import tools
-from program.utils.utils import load_font, draw_background
+from program.utils.tools import load_font, draw_background
 
 
 class CampSelectionScreen:
@@ -23,6 +23,7 @@ class CampSelectionScreen:
         self.window_width = DEFAULT_WINDOW_WIDTH
         self.window_height = DEFAULT_WINDOW_HEIGHT
         self.is_fullscreen = False
+        self.windowed_size = None
         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
         pygame.display.set_caption("匈汉象棋 - 选择阵营")
 
@@ -58,8 +59,6 @@ class CampSelectionScreen:
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
         # 按钮尺寸
-        button_width = 40
-        button_height = 60
         arrow_button_width = 50
         arrow_button_height = 50
         confirm_button_width = 120
@@ -70,7 +69,7 @@ class CampSelectionScreen:
 
         # 计算阵营选择箭头位置 - 基于文本中心对齐
         current_camp = self.camp_options[self.current_camp_index]
-        from program.utils.utils import load_font
+
         camp_font = load_font(32, bold=True)
         camp_text = camp_font.render(current_camp, True, GOLD)
         camp_text_x = center_x - camp_text.get_width() // 2

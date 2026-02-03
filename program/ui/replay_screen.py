@@ -8,7 +8,7 @@ from program.controllers.game_config_manager import (
 from program.ui.avatar import Avatar
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
-from program.utils.utils import load_font, draw_background
+from program.utils.tools import load_font, draw_background
 
 
 class ReplayScreen:
@@ -21,6 +21,18 @@ class ReplayScreen:
             game_state: 游戏状态对象
             replay_controller: 复盘控制器
         """
+        self.red_avatar = None
+        self.black_avatar = None
+        self.dragging_progress = None
+        self.progress_bar_height = None
+        self.progress_bar_width = None
+        self.progress_bar_y = None
+        self.progress_bar_x = None
+        self.next_button = None
+        self.end_button = None
+        self.return_button = None
+        self.previous_button = None
+        self.beginning_button = None
         self.game_state = game_state
         self.controller = replay_controller
         
@@ -201,7 +213,7 @@ class ReplayScreen:
         # 创建ChessBoard实例并绘制 - 使用traditional_mode配置
         temp_board = ChessBoard(
             board_width, 
-            self.screen_height, 
+            board_height, 
             board_x, 
             board_y,
             traditional_mode=game_config.get_setting('traditional_mode', False)  # 从配置获取是否使用传统模式

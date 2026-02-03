@@ -12,7 +12,7 @@ from program.ui.avatar import Avatar
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
 from program.ui.dialogs import AudioSettingsDialog
-from program.utils.utils import load_font, draw_background
+from program.utils.tools import load_font, draw_background
 
 
 class MenuItem:
@@ -339,7 +339,83 @@ def draw_info_panel(screen, game_state):
         screen.blit(text_surface, text_rect)
 
 
-class GameScreen:
+class BaseGameScreen:
+    """游戏界面基类，包含通用的UI绘制方法"""
+    
+    @staticmethod
+    def draw_captured_pieces(screen, game_state, window_width):
+        """绘制双方阵亡棋子"""
+        # 绘制标题
+        title_font = load_font(20, bold=True)
+        red_title = title_font.render("红方阵亡:", True, RED)
+        black_title = title_font.render("黑方阵亡:", True, BLACK)
+
+        # 将阵亡棋子信息移到右侧
+        right_panel_x = window_width - 250  # 右侧边栏起始x坐标
+        screen.blit(red_title, (right_panel_x, 60))
+        screen.blit(black_title, (right_panel_x, 180))
+
+        # 定义颜色和位置配置
+        configurations = [
+            {"color": "red", "x_start": right_panel_x, "y_start": 90, "text_color": RED},
+            {"color": "black", "x_start": right_panel_x, "y_start": 210, "text_color": BLACK}
+        ]
+
+        # 绘制阵亡棋子
+        for config in configurations:
+            x, y = config["x_start"], config["y_start"]
+            for piece in game_state.captured_pieces[config["color"]]:
+                piece_text = title_font.render(piece.name, True, config["text_color"])
+                # 减小右边距，提供更多空间给棋子显示
+                if x + piece_text.get_width() > window_width - 40:
+                    x = config["x_start"]
+                    y += 25
+                screen.blit(piece_text, (x, y))
+                x += piece_text.get_width() + 5
+                
+    @staticmethod
+    def draw_move_history(screen, game_state, window_width):
+        """绘制棋谱历史记录"""
+        # 只显示最近的棋谱记录
+        if hasattr(game_state, 'move_history') and game_state.move_history:
+            # 绘制标题
+            title_font = load_font(20, bold=True)
+            history_title = title_font.render("棋谱历史:", True, BLACK)
+            screen.blit(history_title, (window_width - 250, 300))
+
+            # 显示最近的10条记录
+            recent_moves = game_state.move_history[-10:]
+            start_y = 330  # 起始y坐标
+            line_spacing = 25  # 行间距
+
+            for i, move_record in enumerate(recent_moves):
+                # 处理新旧格式的历史记录
+                if len(move_record) >= 8:  # 新格式：包含甲/胄吃子信息和刺兑子信息
+                    piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces, ci_captured_pieces = move_record
+                elif len(move_record) >= 7:  # 新格式：包含甲/胄吃子信息
+                    piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces = move_record
+                else:  # 旧格式：6个元素
+                    piece, from_row, from_col, to_row, to_col, captured_piece = move_record
+
+                # 生成棋谱记号
+                from program.utils import tools
+                notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
+
+                # 计算正确编号，避免负数
+                move_index = max(0, len(game_state.move_history) - 10) + i + 1
+
+                # 根据玩家颜色确定文字颜色
+                if piece.color == "red":
+                    move_text = f"{move_index}. {notation}"
+                    text_surface = load_font(16).render(move_text, True, RED)
+                else:
+                    text_surface = load_font(16).render(f"{move_index}. {notation}", True, BLACK)
+
+                # 绘制文本
+                screen.blit(text_surface, (window_width - 250, start_y + i * line_spacing))
+
+
+class GameScreen(BaseGameScreen):
     """管理游戏主界面的UI组件和绘制逻辑"""
     
     def __init__(self, window_width, window_height, game_mode, player_camp):
@@ -507,12 +583,12 @@ class GameScreen:
             # 绘制背景到缓存Surface
             draw_background(self.left_panel_surface_cache, theme_colors["panel"])
             
-            # 应用更美观的渐变效果或纹理覆盖
+            # 应用更美观渐变效果或纹理覆盖
             overlay = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
             # 创建渐变效果，使左侧面板更具层次感
             for y in range(self.window_height):
                 # 根据y位置计算透明度，创建垂直渐变效果
-                alpha = 20 + int(10 * abs(math.sin(y / 100.0)))  # 轻微的垂直变化
+                alpha = 20 + int(10 * abs(math.sin(y / 100.0)))  # 轻微垂直变化
                 overlay_color = (255, 255, 255, alpha)
                 pygame.draw.line(overlay, overlay_color, (0, y), (self.left_panel_width, y))
             
@@ -678,10 +754,10 @@ class GameScreen:
                     70))
 
         # 绘制 captured pieces（阵亡棋子）
-        self.draw_captured_pieces(screen, game_state)
+        self.draw_captured_pieces(screen, game_state, self.window_width)
 
         # 绘制棋谱历史记录
-        self.draw_move_history(screen, game_state)
+        self.draw_move_history(screen, game_state, self.window_width)
 
         # 绘制菜单
         self.option_menu.draw(screen)
@@ -818,7 +894,7 @@ class GameScreen:
             elif self.audio_settings_button.is_clicked(mouse_pos, event):
                 # 打开音效设置对话框
                 from program.ui.dialogs import AudioSettingsDialog
-                game.audio_settings_dialog = AudioSettingsDialog(600, 400, game.sound_manager)
+                game.audio_settings_dialog = AudioSettingsDialog(game.sound_manager)
             
 
 
@@ -852,7 +928,7 @@ class GameScreen:
             game_io_controller.export_game(game_state)
             return "handled"
         elif option_result == "音效设置":
-            game.audio_settings_dialog = AudioSettingsDialog(600, 400, game.sound_manager)
+            game.audio_settings_dialog = AudioSettingsDialog(game.sound_manager)
             return "handled"
         elif option_result == "窗口切换":
             game.toggle_fullscreen()
@@ -923,76 +999,6 @@ class GameScreen:
         # 不再绘制音效和全屏按钮，因为它们的功能已整合到菜单中
         # 保留此方法以备将来可能的其他按钮使用
         pass
-
-    def draw_captured_pieces(self, screen, game_state):
-        """绘制双方阵亡棋子"""
-        # 绘制标题
-        title_font = load_font(20, bold=True)
-        red_title = title_font.render("红方阵亡:", True, RED)
-        black_title = title_font.render("黑方阵亡:", True, BLACK)
-
-        # 将阵亡棋子信息移到右侧
-        right_panel_x = self.window_width - 250  # 右侧边栏起始x坐标
-        screen.blit(red_title, (right_panel_x, 60))
-        screen.blit(black_title, (right_panel_x, 180))
-
-        # 定义颜色和位置配置
-        configurations = [
-            {"color": "red", "x_start": right_panel_x, "y_start": 90, "text_color": RED},
-            {"color": "black", "x_start": right_panel_x, "y_start": 210, "text_color": BLACK}
-        ]
-
-        # 绘制阵亡棋子
-        for config in configurations:
-            x, y = config["x_start"], config["y_start"]
-            for piece in game_state.captured_pieces[config["color"]]:
-                piece_text = title_font.render(piece.name, True, config["text_color"])
-                # 减小右边距，提供更多空间给棋子显示
-                if x + piece_text.get_width() > self.window_width - 40:
-                    x = config["x_start"]
-                    y += 25
-                screen.blit(piece_text, (x, y))
-                x += piece_text.get_width() + 5
-
-    def draw_move_history(self, screen, game_state):
-        """绘制棋谱历史记录"""
-        # 只显示最近的棋谱记录
-        if hasattr(game_state, 'move_history') and game_state.move_history:
-            # 绘制标题
-            title_font = load_font(20, bold=True)
-            history_title = title_font.render("棋谱历史:", True, BLACK)
-            screen.blit(history_title, (self.window_width - 250, 300))
-
-            # 显示最近的10条记录
-            recent_moves = game_state.move_history[-10:]
-            start_y = 330  # 起始y坐标
-            line_spacing = 25  # 行间距
-
-            for i, move_record in enumerate(recent_moves):
-                # 处理新旧格式的历史记录
-                if len(move_record) >= 8:  # 新格式：包含甲/胄吃子信息和刺兑子信息
-                    piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces, ci_captured_pieces = move_record
-                elif len(move_record) >= 7:  # 新格式：包含甲/胄吃子信息
-                    piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces = move_record
-                else:  # 旧格式：6个元素
-                    piece, from_row, from_col, to_row, to_col, captured_piece = move_record
-
-                # 生成棋谱记号
-                from program.utils import tools
-                notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
-
-                # 计算正确编号，避免负数
-                move_index = max(0, len(game_state.move_history) - 10) + i + 1
-
-                # 根据玩家颜色确定文字颜色
-                if piece.color == "red":
-                    move_text = f"{move_index}. {notation}"
-                    text_surface = load_font(16).render(move_text, True, RED)
-                else:
-                    text_surface = load_font(16).render(f"{move_index}. {notation}", True, BLACK)
-
-                # 绘制文本
-                screen.blit(text_surface, (self.window_width - 250, start_y + i * line_spacing))
 
     def handle_undo(self, game):
         """处理悔棋操作"""

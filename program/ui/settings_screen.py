@@ -1,6 +1,6 @@
 import pygame
 
-from program.utils.utils import load_font
+from program.utils.tools import load_font
 from program.utils.tools import draw_category
 from program.ui.scrollbar import ScrollBar
 from program.ui.button import Button
@@ -599,6 +599,13 @@ class SettingsScreen:
         
         # 巡棋子分类
         xun_items = self.create_xun_items()
+        draw_category(
+            self.screen, self.category_background_color, self.category_border_color,
+            self.category_padding, self.category_title_height, self.category_title_font,
+            self.CHECKBOX_SIZE, self.scroll_y, self.window_width,
+            self.option_font, self.desc_font, self.draw_piece_icon,
+            "巡", "巡", xun_items, y_offset
+        )
 
 
         # 取消裁剪区域
@@ -816,9 +823,6 @@ class SettingsScreen:
                 if text == "巡登场":
                     self.piece_settings["xun"]["appear"] = not self.piece_settings["xun"]["appear"]
                 return  # 处理完后直接返回，避免其他检测
-            
-            # 计算下一个分类的y位置
-            next_y_pos = next_y_pos + len(xun_items) * 60 + self.category_title_height + 2 * self.category_padding + self.category_spacing
             
 
 
