@@ -9,8 +9,6 @@ SOUND_PATHS = {
     'move': os.path.join("assets/sounds", "move.wav"),  # 旧走子音效
     'capture': os.path.join("assets/sounds", "capture.wav"),  # 旧吃子音效
     'select': os.path.join("assets/sounds", "select.wav"),  # 旧选子音效
-    'jiangjun_voice': os.path.join("assets/sounds", "jiangjun.wav"),  # 旧将军音效，女声版
-    'juesha_voice': os.path.join("assets/sounds", "juesha.wav"),  # 旧绝杀音效，女声版
     'victory': os.path.join("assets/sounds", "fc_victory_sound.wav"),  # 默认使用fc风格的胜利音效
     'defeat': os.path.join("assets/sounds", "fc_defeat_sound.wav"),  # 默认使用fc风格的失败音效
     'qq_victory': os.path.join("assets/sounds", "qq_victory_sound.wav"),  # QQ风格的胜利音效
