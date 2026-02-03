@@ -23,6 +23,7 @@ class CampSelectionScreen:
         self.window_width = DEFAULT_WINDOW_WIDTH
         self.window_height = DEFAULT_WINDOW_HEIGHT
         self.is_fullscreen = False
+        self.windowed_size = None
         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
         pygame.display.set_caption("匈汉象棋 - 选择阵营")
 
@@ -58,8 +59,6 @@ class CampSelectionScreen:
     def update_layout(self):
         """根据当前窗口尺寸更新布局"""
         # 按钮尺寸
-        button_width = 40
-        button_height = 60
         arrow_button_width = 50
         arrow_button_height = 50
         confirm_button_width = 120

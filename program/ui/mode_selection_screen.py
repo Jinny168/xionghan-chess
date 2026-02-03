@@ -218,10 +218,6 @@ class ModeSelectionScreen:
         base_width = 360
         scale_factor = self.window_width / base_width
 
-        # 按钮尺寸 - 缩小按钮尺寸
-        button_width = max(int(80 * scale_factor), 80)  # 基准80px (原100px)
-        button_height = max(int(35 * scale_factor), 35)  # 基准35px (原40px)
-        button_spacing = max(int(12 * scale_factor), 12)  # 基准12px (原15px)
         center_x = self.window_width // 2
         center_y = self.window_height // 2 - 30  # 调整中心位置
 
@@ -698,8 +694,7 @@ class ModeSelectionScreen:
 
         # 绘制设置菜单
         if self.show_settings_menu or self.settings_menu_opening or self.settings_menu_closing:
-            # 计算菜单透明度和位置动画
-            alpha = min(255, int(200 * self.settings_menu_animation_progress))
+            # 计算菜单位置动画
             vertical_offset = int(
                 10 * (1 - self.settings_menu_animation_progress)) if self.animation_direction == 1 else 0
 

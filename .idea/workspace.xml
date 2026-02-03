@@ -5,8 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="修复warning">
+      <change beforePath="$PROJECT_DIR$/program/controllers/game_config_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/game_config_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/camp_selection_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/camp_selection_screen.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/ui/mode_selection_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/mode_selection_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/network_connect_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/network_connect_screen.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -389,15 +390,7 @@
       <workItem from="1769782485432" duration="8685000" />
       <workItem from="1769835119128" duration="10965000" />
       <workItem from="1769907379242" duration="7962000" />
-      <workItem from="1770123050154" duration="3661000" />
-    </task>
-    <task id="LOCAL-00108" summary="拆分screen">
-      <option name="closed" value="true" />
-      <created>1769521934166</created>
-      <option name="number" value="00108" />
-      <option name="presentableId" value="LOCAL-00108" />
-      <option name="project" value="LOCAL" />
-      <updated>1769521934166</updated>
+      <workItem from="1770123050154" duration="4006000" />
     </task>
     <task id="LOCAL-00109" summary="拆分screen">
       <option name="closed" value="true" />
@@ -783,7 +776,15 @@
       <option name="project" value="LOCAL" />
       <updated>1770126104703</updated>
     </task>
-    <option name="localTasksCounter" value="157" />
+    <task id="LOCAL-00157" summary="修复warning">
+      <option name="closed" value="true" />
+      <created>1770126739376</created>
+      <option name="number" value="00157" />
+      <option name="presentableId" value="LOCAL-00157" />
+      <option name="project" value="LOCAL" />
+      <updated>1770126739376</updated>
+    </task>
+    <option name="localTasksCounter" value="158" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -927,7 +928,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/program/ui/mode_selection_screen.py</url>
-          <line>505</line>
+          <line>501</line>
           <option name="timeStamp" value="114" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
