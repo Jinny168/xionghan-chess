@@ -186,14 +186,10 @@ v1.0.0
         """处理事件"""
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.prev_button.is_clicked(mouse_pos, event) and self.current_page > 0:
-                self.current_page -= 1
-                self._update_page_info()
-                self._create_navigation_buttons()  # 重新创建按钮以适应可能的窗口大小变化
+                self._change_page(-1)
                 return "prev"
             elif self.next_button.is_clicked(mouse_pos, event) and self.current_page < len(self.pages) - 1:
-                self.current_page += 1
-                self._update_page_info()
-                self._create_navigation_buttons()  # 重新创建按钮以适应可能的窗口大小变化
+                self._change_page(1)
                 return "next"
             elif self.back_button.is_clicked(mouse_pos, event):
                 return "back"
@@ -201,19 +197,21 @@ v1.0.0
         # 键盘事件
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT and self.current_page > 0:
-                self.current_page -= 1
-                self._update_page_info()
-                self._create_navigation_buttons()
+                self._change_page(-1)
                 return "prev"
             elif event.key == pygame.K_RIGHT and self.current_page < len(self.pages) - 1:
-                self.current_page += 1
-                self._update_page_info()
-                self._create_navigation_buttons()
+                self._change_page(1)
                 return "next"
             elif event.key == pygame.K_ESCAPE:
                 return "back"
         
         return None
+    
+    def _change_page(self, direction):
+        """改变页面并更新相关状态"""
+        self.current_page += direction
+        self._update_page_info()
+        self._create_navigation_buttons()  # 重新创建按钮以适应可能的窗口大小变化
     
     def _update_page_info(self):
         """更新页面信息文本"""

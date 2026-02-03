@@ -47,7 +47,7 @@ class ScrollBar:
                     else:
                         # 向下滚动
                         self.scroll_pos = min(max(0, self.content_height - self.height), self.scroll_pos + self.height // 2)
-                    # 根据新的滚动位置更新滑块位置
+                    # 根据新滚动位置更新滑块位置
                     self._update_slider_position()
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             self.dragging = False
@@ -57,7 +57,7 @@ class ScrollBar:
             new_y = max(self.y, min(new_y, self.y + self.height - self.slider_height))
             self.slider_y = new_y
             # 更新滚动位置，基于滑块的新位置
-            if self.height > self.slider_height and self.content_height > self.height:
+            if self.slider_height < self.height < self.content_height:
                 ratio = (new_y - self.y) / (self.height - self.slider_height)
                 self.scroll_pos = int(ratio * (self.content_height - self.height))
                 # 确保滚动位置在有效范围内

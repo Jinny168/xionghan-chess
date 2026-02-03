@@ -3,11 +3,10 @@ import math
 import pygame
 
 from program.controllers.game_config_manager import (
-    PANEL_BORDER, RED, BLACK, theme_manager, game_config
+    RED, BLACK, theme_manager, game_config
 )
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
-from program.ui.game_screen import BaseGameScreen
 from program.utils.utils import load_font, draw_background
 
 
@@ -154,12 +153,12 @@ class NetworkGameScreen:
         # 绘制主题背景
         draw_background(left_panel_surface, theme_colors["panel"])
         
-        # 应用更美观的渐变效果或纹理覆盖
+        # 应用更美观渐变效果或纹理覆盖
         overlay = pygame.Surface((self.left_panel_width, self.window_height), pygame.SRCALPHA)
         # 创建渐变效果，使左侧面板更具层次感
         for y in range(self.window_height):
             # 根据y位置计算透明度，创建垂直渐变效果
-            alpha = 20 + int(10 * abs(math.sin(y / 100.0)))  # 轻微的垂直变化
+            alpha = 20 + int(10 * abs(math.sin(y / 100.0)))  # 轻微垂直变化
             overlay_color = (255, 255, 255, alpha)
             pygame.draw.line(overlay, overlay_color, (0, y), (self.left_panel_width, y))
         

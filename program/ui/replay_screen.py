@@ -213,7 +213,7 @@ class ReplayScreen:
         # 创建ChessBoard实例并绘制 - 使用traditional_mode配置
         temp_board = ChessBoard(
             board_width, 
-            self.screen_height, 
+            board_height, 
             board_x, 
             board_y,
             traditional_mode=game_config.get_setting('traditional_mode', False)  # 从配置获取是否使用传统模式

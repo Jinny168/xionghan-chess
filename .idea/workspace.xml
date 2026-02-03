@@ -4,21 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="更新md文件">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/assets/docs/statistics.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/statistics.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/assets/docs/theme_config.json" beforeDir="false" afterPath="$PROJECT_DIR$/program/assets/docs/theme_config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/controllers/game_io_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/controllers/game_io_controller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/core/chess_pieces.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/chess_pieces.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/core/game_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/core/game_state.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/lan/network_game.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/lan/network_game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/dialogs.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/dialogs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/ui/game_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/game_screen.py" afterDir="false" />
+    <list default="true" id="3b7e872c-f6d6-430d-890b-5c07040d1b8e" name="更改" comment="修复warning">
+      <change beforePath="$PROJECT_DIR$/program/ui/about_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/about_screen.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/ui/network_game_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/network_game_screen.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/program/ui/replay_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/replay_screen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/utils/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/tools.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/program/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/utils/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/scrollbar.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/scrollbar.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/program/ui/settings_screen.py" beforeDir="false" afterPath="$PROJECT_DIR$/program/ui/settings_screen.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -401,15 +392,7 @@
       <workItem from="1769782485432" duration="8685000" />
       <workItem from="1769835119128" duration="10965000" />
       <workItem from="1769907379242" duration="7962000" />
-      <workItem from="1770123050154" duration="2285000" />
-    </task>
-    <task id="LOCAL-00105" summary="拆分ai">
-      <option name="closed" value="true" />
-      <created>1769519413115</created>
-      <option name="number" value="00105" />
-      <option name="presentableId" value="LOCAL-00105" />
-      <option name="project" value="LOCAL" />
-      <updated>1769519413115</updated>
+      <workItem from="1770123050154" duration="2775000" />
     </task>
     <task id="LOCAL-00106" summary="优化converter">
       <option name="closed" value="true" />
@@ -795,7 +778,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769937151127</updated>
     </task>
-    <option name="localTasksCounter" value="154" />
+    <task id="LOCAL-00154" summary="修复warning">
+      <option name="closed" value="true" />
+      <created>1770125380063</created>
+      <option name="number" value="00154" />
+      <option name="presentableId" value="LOCAL-00154" />
+      <option name="project" value="LOCAL" />
+      <updated>1770125380064</updated>
+    </task>
+    <option name="localTasksCounter" value="155" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -839,7 +830,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="修复了utils中的小error" />
     <MESSAGE value="修复了ai_manager中的小error" />
     <MESSAGE value="修复了tools中的小error" />
     <MESSAGE value="继续修复error" />
@@ -864,7 +854,8 @@
     <MESSAGE value="增加白天/夜晚主题，增加切换背景" />
     <MESSAGE value="合并中象、匈汉逻辑" />
     <MESSAGE value="更新md文件" />
-    <option name="LAST_COMMIT_MESSAGE" value="更新md文件" />
+    <MESSAGE value="修复warning" />
+    <option name="LAST_COMMIT_MESSAGE" value="修复warning" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
