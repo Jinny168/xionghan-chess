@@ -152,9 +152,9 @@ class ModeSelectionScreen:
             # 原来加载方式（保留向后兼容）
             background_images = [
                 "assets/pics/5.jpg",
-                "assets/pics/2.jpg",
+                "assets/pics/4.jpg",
                 "assets/pics/3.jpg",
-                "assets/pics/1.jpg",
+                "assets/pics/2.jpg",
                 "assets/pics/1.jpg"
             ]
             
@@ -202,9 +202,9 @@ class ModeSelectionScreen:
             # 原来的切换方式（保留向后兼容）
             background_images = [
                 "assets/pics/5.jpg",
-                "assets/pics/2.jpg",
+                "assets/pics/4.jpg",
                 "assets/pics/3.jpg",
-                "assets/pics/1.jpg",
+                "assets/pics/2.jpg",
                 "assets/pics/1.jpg"
             ]
             # 循环切换背景图索引
