@@ -1,6 +1,6 @@
 from program.core.chess_pieces import ChessPiece, Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Jia, Ci, Dun, Xun
 from program.controllers.game_config_manager import game_config
-from program.utils import utils
+from program.utils import tools
 
 
 class GameRules:
@@ -43,7 +43,7 @@ class GameRules:
             return False
 
         # 检查目标位置是否在棋盘范围内
-        if not utils.is_position_on_board(to_row, to_col):
+        if not tools.is_position_on_board(to_row, to_col):
             return False
 
         # 检查目标位置是否有己方棋子
@@ -587,7 +587,7 @@ class GameRules:
     def _is_valid_traditional_king_move(pieces, color, from_row, from_col, to_row, to_col):
         """检查传统中国象棋将/帅的移动是否合法"""
         # 检查是否在棋盘范围内
-        if not utils.is_position_on_board(to_row, to_col):
+        if not tools.is_position_on_board(to_row, to_col):
             return False
 
         # 检查目标位置是否有己方棋子
@@ -669,7 +669,7 @@ class GameRules:
     def _is_valid_xionghan_king_move(pieces, color, from_row, from_col, to_row, to_col):
         """检查匈汉象棋汉/汗的移动是否合法"""
         # 检查是否在棋盘范围内
-        if not utils.is_position_on_board(to_row, to_col):
+        if not tools.is_position_on_board(to_row, to_col):
             return False
 
         # 检查目标位置是否有己方棋子
@@ -829,7 +829,7 @@ class GameRules:
             return False
 
         # 检查是否在棋盘范围内
-        if not utils.is_position_on_board(to_row, to_col):
+        if not tools.is_position_on_board(to_row, to_col):
             return False
 
         if game_config.get_setting("traditional_mode", False):
@@ -1037,7 +1037,7 @@ class GameRules:
             return False  # 目标位置不为空，无法跳跃
 
         # 检查目标位置是否在棋盘范围内
-        if not utils.is_position_on_board(to_row, to_col):
+        if not tools.is_position_on_board(to_row, to_col):
             return False
 
         # 不能原地不动
@@ -1765,7 +1765,7 @@ class GameRules:
                     # 只有斜向移动
                     if abs(dr) == abs(dc) and (dr != 0 and dc != 0):
                         to_row, to_col = piece.row + dr, piece.col + dc
-                        if utils.is_position_on_board(to_row, to_col):  # 在棋盘范围内
+                        if tools.is_position_on_board(to_row, to_col):  # 在棋盘范围内
                             if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
                                 # 检查目标位置是否有对方棋子（可吃子）
                                 target = GameRules.get_piece_at(pieces, to_row, to_col)
@@ -1778,7 +1778,7 @@ class GameRules:
             for dr, dc in directions:
                 # 沿着方向一直移动直到边界或遇到障碍
                 current_row, current_col = piece.row + dr, piece.col + dc
-                while utils.is_position_on_board(current_row, current_col):
+                while tools.is_position_on_board(current_row, current_col):
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, current_row, current_col):
                         target = GameRules.get_piece_at(pieces, current_row, current_col)
                         if target and target.color != piece.color:
@@ -1796,7 +1796,7 @@ class GameRules:
             for dr, dc in directions:
                 # 沿着方向一直移动直到边界或遇到障碍
                 current_row, current_col = piece.row + dr, piece.col + dc
-                while utils.is_position_on_board(current_row, current_col):
+                while tools.is_position_on_board(current_row, current_col):
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, current_row, current_col):
                         target = GameRules.get_piece_at(pieces, current_row, current_col)
                         if target and target.color != piece.color:
@@ -1809,7 +1809,7 @@ class GameRules:
                                 # 炮可以越过一个棋子后继续移动，直到遇到第二个棋子
                                 current_row += dr
                                 current_col += dc
-                                while utils.is_position_on_board(current_row, current_col):
+                                while tools.is_position_on_board(current_row, current_col):
                                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, current_row,
                                                                current_col):
                                         target2 = GameRules.get_piece_at(pieces, current_row, current_col)
@@ -1833,7 +1833,7 @@ class GameRules:
             for dr, dc in directions:
                 # 沿着方向一直移动直到边界或遇到障碍
                 current_row, current_col = piece.row + dr, piece.col + dc
-                while utils.is_position_on_board(current_row, current_col):
+                while tools.is_position_on_board(current_row, current_col):
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, current_row, current_col):
                         target = GameRules.get_piece_at(pieces, current_row, current_col)
                         if target and target.color != piece.color:
@@ -1860,7 +1860,7 @@ class GameRules:
 
             for dr, dc in knight_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
-                if utils.is_position_on_board(to_row, to_col):  # 在棋盘范围内
+                if tools.is_position_on_board(to_row, to_col):  # 在棋盘范围内
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
                         target = GameRules.get_piece_at(pieces, to_row, to_col)
                         if target and target.color != piece.color:
@@ -1898,7 +1898,7 @@ class GameRules:
 
             for dr, dc in elephant_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
-                if utils.is_position_on_board(to_row, to_col):  # 在棋盘范围内
+                if tools.is_position_on_board(to_row, to_col):  # 在棋盘范围内
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
                         target = GameRules.get_piece_at(pieces, to_row, to_col)
                         if target and target.color != piece.color:
@@ -1931,7 +1931,7 @@ class GameRules:
 
             for dr, dc in advisor_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
-                if utils.is_position_on_board(to_row, to_col):  # 在棋盘范围内
+                if tools.is_position_on_board(to_row, to_col):  # 在棋盘范围内
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
                         target = GameRules.get_piece_at(pieces, to_row, to_col)
                         if target and target.color != piece.color:
@@ -1989,7 +1989,7 @@ class GameRules:
 
             for dr, dc in king_moves:
                 to_row, to_col = piece.row + dr, piece.col + dc
-                if utils.is_position_on_board(to_row, to_col):  # 在棋盘范围内
+                if tools.is_position_on_board(to_row, to_col):  # 在棋盘范围内
                     if GameRules.is_valid_move(pieces, piece, piece.row, piece.col, to_row, to_col):
                         target = GameRules.get_piece_at(pieces, to_row, to_col)
                         if target and target.color != piece.color:
@@ -2405,7 +2405,7 @@ class GameRules:
             bool: 移动后是否会被将军
         """
         # 使用虚拟移动工具函数
-        from program.utils.utils import virtual_move
+        from program.utils.tools import virtual_move
         return virtual_move(pieces, piece, to_row, to_col, GameRules.is_check, piece.color)
 
     @staticmethod

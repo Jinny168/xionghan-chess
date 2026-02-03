@@ -2,7 +2,7 @@ import math
 
 import pygame
 
-from program.utils.utils import load_font
+from program.utils.tools import load_font
 from program.controllers.game_config_manager import get_piece_color, get_piece_text_color, theme_manager, THEME_CONFIG
 
 

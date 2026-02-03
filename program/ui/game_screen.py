@@ -12,7 +12,7 @@ from program.ui.avatar import Avatar
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
 from program.ui.dialogs import AudioSettingsDialog
-from program.utils.utils import load_font, draw_background
+from program.utils.tools import load_font, draw_background
 
 
 class MenuItem:

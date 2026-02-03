@@ -12,7 +12,7 @@ from program.controllers.game_config_manager import DEFAULT_WINDOW_WIDTH, DEFAUL
 from program.lan.network_game import NetworkChessGame
 from program.lan.xhlan import SimpleAPI
 from program.ui.button import StyledButton
-from program.utils.utils import load_font, draw_gradient_background
+from program.utils.tools import load_font, draw_gradient_background
 
 
 class NetworkConnectScreen:

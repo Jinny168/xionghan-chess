@@ -8,7 +8,7 @@ from program.controllers.game_config_manager import (
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
 from program.ui.game_screen import BaseGameScreen
-from program.utils.utils import load_font, draw_background
+from program.utils.tools import load_font, draw_background
 
 
 class NetworkGameScreen(BaseGameScreen):

@@ -9,8 +9,8 @@ from program.controllers.game_config_manager import (
 )
 from program.controllers.sound_manager import sound_manager
 from program.ui.button import Button, StyledButton
-from program.utils import tools, utils
-from program.utils.utils import load_font, draw_background
+from program.utils import tools
+from program.utils.tools import load_font, draw_background
 
 
 class BackgroundManager:
@@ -37,7 +37,7 @@ class BackgroundManager:
 
     def scan_background_images(self):
         """扫描背景图片目录，获取所有图片文件"""
-        pics_dir = utils.resource_path(self.pics_dir)
+        pics_dir = tools.resource_path(self.pics_dir)
         image_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tga', '.webp')
         
         if os.path.exists(pics_dir):
@@ -56,7 +56,7 @@ class BackgroundManager:
                 return None
             
             bg_path = self.background_config["images"][index % len(self.background_config["images"])]
-            bg_full_path = utils.resource_path(bg_path)
+            bg_full_path = tools.resource_path(bg_path)
             if os.path.exists(bg_full_path):
                 background = pygame.image.load(bg_full_path).convert()
                 return background
@@ -162,7 +162,7 @@ class ModeSelectionScreen:
                 bg_path = background_images[self.current_bg_index]
                 try:
                     # 使用resource_path处理资源路径
-                    bg_full_path = utils.resource_path(bg_path)
+                    bg_full_path = tools.resource_path(bg_path)
                     if os.path.exists(bg_full_path):
                         self.background_image = pygame.image.load(bg_full_path).convert()
                     else:
@@ -174,16 +174,16 @@ class ModeSelectionScreen:
             else:
                 # 如果超出范围，尝试加载默认背景
                 try:
-                    bg_path = utils.resource_path("assets/pics/2.jpg")
+                    bg_path = tools.resource_path("assets/pics/2.jpg")
                     if os.path.exists(bg_path):
                         self.background_image = pygame.image.load(bg_path).convert()
                     else:
                         # 尝试其他常见背景图片路径
                         alt_paths = [
-                            utils.resource_path("assets/pics/3.jpg"),
-                            utils.resource_path("assets/pics/1.jpg"),
-                            utils.resource_path("assets/pics/1.jpg"),
-                            utils.resource_path("assets/pics/5.jpg")
+                            tools.resource_path("assets/pics/3.jpg"),
+                            tools.resource_path("assets/pics/1.jpg"),
+                            tools.resource_path("assets/pics/1.jpg"),
+                            tools.resource_path("assets/pics/5.jpg")
                         ]
                         for path in alt_paths:
                             if os.path.exists(path):
@@ -226,7 +226,7 @@ class ModeSelectionScreen:
         arrow_button_height = 50
         game_mode_center_y = 250  # 游戏模式选择的位置
         current_game_mode = self.game_mode_options[self.current_game_mode_index]
-        from program.utils.utils import load_font
+
         game_mode_font = load_font(32, bold=True)
         game_mode_text = game_mode_font.render(current_game_mode, True, GOLD)
         game_mode_text_x = center_x - game_mode_text.get_width() // 2

@@ -1,6 +1,6 @@
 import pygame
 
-from program.utils.utils import load_font
+from program.utils.tools import load_font
 from program.utils.tools import draw_category
 from program.ui.scrollbar import ScrollBar
 from program.ui.button import Button

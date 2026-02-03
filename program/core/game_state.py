@@ -6,7 +6,7 @@ from program.controllers.statistics_manager import statistics_manager
 from program.controllers.step_counter import step_counter
 from program.core.chess_pieces import create_initial_pieces, King, Jia, Ci, Dun, Pawn, Wei, PieceFactory
 from program.core.game_rules import GameRules
-from program.utils.utils import print_board
+from program.utils.tools import print_board
 
 
 class GameState:

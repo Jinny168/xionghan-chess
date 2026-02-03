@@ -5,7 +5,7 @@
 
 import pygame
 import math
-from program.utils.utils import load_font
+from program.utils.tools import load_font
 
 
 class CheckCheckmateTipManager:

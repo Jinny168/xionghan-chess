@@ -543,10 +543,7 @@ class NetworkChessGame(ChessGame):
             
             # 恢复棋子位置
             from program.core.chess_pieces import PieceFactory
-            
-            # 保存当前的游戏状态（暂未使用，保留以备将来扩展）
-            # old_player_turn = self.game_state.player_turn
-            # old_captured_pieces = self.game_state.captured_pieces.copy()
+
             
             # 重新创建棋盘状态
             self.game_state.pieces.clear()

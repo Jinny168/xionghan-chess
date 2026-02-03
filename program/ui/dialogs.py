@@ -2,8 +2,8 @@ import pygame
 
 from program.controllers.game_config_manager import BLACK, RED, POPUP_BG
 from program.ui.button import Button
-from program.utils.utils import load_font
-
+from program.utils.tools import load_font
+from program.utils.tools import draw_background
 
 class BaseDialog:
     """对话框基类，包含通用的绘制和事件处理逻辑"""
@@ -763,7 +763,7 @@ class StatisticsDialog:
         screen_width, screen_height = screen.get_size()
 
         # 绘制背景
-        from program.utils.utils import draw_background
+
         draw_background(screen)
 
         # 绘制标题

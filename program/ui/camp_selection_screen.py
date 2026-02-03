@@ -9,7 +9,7 @@ from program.controllers.game_config_manager import (
 from program.controllers.sound_manager import sound_manager
 from program.ui.button import StyledButton
 from program.utils import tools
-from program.utils.utils import load_font, draw_background
+from program.utils.tools import load_font, draw_background
 
 
 class CampSelectionScreen:
@@ -69,7 +69,7 @@ class CampSelectionScreen:
 
         # 计算阵营选择箭头位置 - 基于文本中心对齐
         current_camp = self.camp_options[self.current_camp_index]
-        from program.utils.utils import load_font
+
         camp_font = load_font(32, bold=True)
         camp_text = camp_font.render(current_camp, True, GOLD)
         camp_text_x = center_x - camp_text.get_width() // 2
