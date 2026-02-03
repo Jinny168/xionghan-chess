@@ -329,7 +329,7 @@ class NetworkChessGame(ChessGame):
             else:
                 try:
                     self.sound_manager.play_sound('drop')
-                except:
+                except (AttributeError, KeyError):
                     pass
 
             # 更新头像状态
@@ -390,8 +390,8 @@ class NetworkChessGame(ChessGame):
 
     def perform_restart(self):
         """执行重新开始游戏"""
-        # 保存当前的玩家阵营
-        current_player_camp = self.player_camp
+        # 保存当前的玩家阵营（暂未使用，保留以备将来扩展）
+        # current_player_camp = self.player_camp
         
         self._reset_common_game_state()
         
@@ -433,8 +433,8 @@ class NetworkChessGame(ChessGame):
         """执行悔棋操作"""
         # 悔棋操作只回退当前玩家的一步
         if len(self.game_state.move_history) >= 1:
-            # 记录悔棋前的最后移动玩家，这个信息对于权限控制很重要
-            original_last_moved_player = self.last_moved_player
+            # 记录悔棋前的最后移动玩家（暂未使用，保留以备将来扩展）
+            # original_last_moved_player = self.last_moved_player
             
             # 只回退一步（当前玩家的上一步）
             # 注意：每次调用undo_move会自动切换玩家回合
@@ -544,9 +544,9 @@ class NetworkChessGame(ChessGame):
             # 恢复棋子位置
             from program.core.chess_pieces import PieceFactory
             
-            # 保存当前的游戏状态
-            old_player_turn = self.game_state.player_turn
-            old_captured_pieces = self.game_state.captured_pieces.copy()
+            # 保存当前的游戏状态（暂未使用，保留以备将来扩展）
+            # old_player_turn = self.game_state.player_turn
+            # old_captured_pieces = self.game_state.captured_pieces.copy()
             
             # 重新创建棋盘状态
             self.game_state.pieces.clear()
@@ -773,7 +773,7 @@ class NetworkChessGame(ChessGame):
                             
                             # 跳过后续事件处理，防止同时处理其他操作
                             continue
-                elif hasattr(self, 'confirm_dialog') and self.confirm_dialog:
+                elif hasattr(self, 'confirm_dialog') and self.confirm_dialog is not None:
                     result = self.confirm_dialog.handle_event(event, mouse_pos)
                     if result is not None:
                         if result:
@@ -875,49 +875,9 @@ class NetworkChessGame(ChessGame):
                         pass
                     # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
                     continue  # 跳过后续的事件处理，防止同时处理其他操作
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    # 检查是否点击了悔棋按钮
-                    if (hasattr(self.game_screen, 'undo_button') and 
-                        self.game_screen.undo_button and 
-                        self.game_screen.undo_button.is_clicked(mouse_pos, event) and
-                        hasattr(self.game_screen.undo_button, 'enabled') and 
-                        self.game_screen.undo_button.enabled):
-                        # 发送悔棋请求
-                        if not self.undo_requested:  # 避免重复请求
-                            self.undo_requested = True
-                            XiangqiNetworkGame.send_undo_request()
-                    
-                    # 检查是否点击了重来按钮
-                    elif (hasattr(self.game_screen, 'restart_button') and 
-                          self.game_screen.restart_button and 
-                          self.game_screen.restart_button.is_clicked(mouse_pos, event)):
-                        # 发送重来请求
-                        if not self.restart_requested:  # 避免重复请求
-                            self.restart_requested = True
-                            XiangqiNetworkGame.send_restart_request()
-                    
-                    # 检查是否点击了全屏按钮
-                    elif hasattr(self.game_screen, 'fullscreen_button') and self.game_screen.fullscreen_button.is_clicked(mouse_pos, event):
-                        self.toggle_fullscreen()
-                    
-                    # 检查是否点击了音效设置按钮
-                    elif hasattr(self.game_screen, 'audio_settings_button') and self.game_screen.audio_settings_button.is_clicked(mouse_pos, event):
-                        from program.ui.dialogs import AudioSettingsDialog
-                        self.audio_settings_dialog = AudioSettingsDialog(self.sound_manager)
-
-                    # 检查是否点击了退出游戏按钮
-                    elif hasattr(self.game_screen, 'exit_button') and self.game_screen.exit_button and self.game_screen.exit_button.is_clicked(mouse_pos, event):
-                        # 检查是否已经存在确认对话框，避免重复创建
-                        if self.confirm_dialog is None:
-                            # 显示确认对话框确认退出游戏
-                            self.confirm_dialog = ConfirmDialog(
-                                400, 200, "是否要退出网络对局？\n这将视为认输。"
-                            )
-                            self.confirm_dialog.type = "exit_game"  # 标记为退出游戏对话框
-
-                    # 处理棋盘点击
-                    elif not self.game_state.game_over:
-                        self.handle_click(mouse_pos)
+                # 调用handle_event方法处理鼠标点击事件
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    self.handle_click(mouse_pos)
 
             # 更新按钮的悬停状态
             self.game_screen.update_button_states(mouse_pos)
