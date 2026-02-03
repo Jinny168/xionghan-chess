@@ -35,24 +35,15 @@ def create_spec_file():
     # 确保必要的声音文件存在
     required_sounds = [
         ("sounds/check.wav", "sounds"),
-        ("sounds/move.wav", "sounds"),
-        ("sounds/capture.wav", "sounds"),
         ("sounds/button.wav", "sounds"),
         ("sounds/choose.wav", "sounds"),
-        ("sounds/defeat.wav", "sounds"),
         ("sounds/drop.wav", "sounds"),
         ("sounds/eat.wav", "sounds"),
-        ("sounds/jiangjun.wav", "sounds"),
-        ("sounds/juesha.wav", "sounds"),
-        ("sounds/select.wav", "sounds"),
-        ("sounds/victory.wav", "sounds"),
         ("sounds/warn.wav", "sounds"),
         ("sounds/fc_background_sound.wav", "sounds"),
         ("sounds/fc_defeat_sound.wav", "sounds"),
         ("sounds/fc_victory_sound.wav", "sounds"),
         ("sounds/qq_background_sound.wav", "sounds"),
-        ("sounds/qq_defeat_sound.wav", "sounds"),
-        ("sounds/qq_victory_sound.wav", "sounds"),
     ]
     # 添加必要的声音文件（如果未通过自动收集找到）
     for sound in required_sounds:
