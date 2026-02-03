@@ -9,16 +9,18 @@ from tkinter.simpledialog import askstring
 import pygame
 
 from program.controllers.game_config_manager import DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, FPS
-from program.ui.button import Button, StyledButton
-from program.utils.utils import load_font, draw_gradient_background
-from program.lan.xhlan import SimpleAPI
 from program.lan.network_game import NetworkChessGame
+from program.lan.xhlan import SimpleAPI
+from program.ui.button import StyledButton
+from program.utils.utils import load_font, draw_gradient_background
 
 
 class NetworkConnectScreen:
     """网络连接界面"""
 
     def __init__(self):
+        self.windowed_size = None
+        self.back_button = None
         self.join_button = None
         self.host_button = None
         self.window_width = DEFAULT_WINDOW_WIDTH
@@ -112,17 +114,11 @@ class NetworkConnectScreen:
     def run_connection_process(self, mode, ip_address=None):
         """运行连接过程，显示连接状态"""
         clock = pygame.time.Clock()
-        connection_status = "正在初始化..."
-        status_messages = []
-        status_messages.append("初始化网络模块...")
+        status_messages = ["初始化网络模块..."]
 
-        # 显示连接过程界面
-        start_time = time.time()
-        max_wait_time = 30  # 最大等待时间30秒
 
         if mode == "host":
             # 作为服务器启动
-            connection_status = "正在启动服务器..."
             status_messages.append("正在启动服务器...")
 
             # 初始化API
@@ -170,7 +166,10 @@ class NetworkConnectScreen:
 
             if cancelled:
                 status_messages.append("连接被用户取消")
+                # 更新状态并显示
                 connection_status = "连接已取消，返回主菜单..."
+                self.draw_connection_status(connection_status, status_messages, mode)
+                pygame.display.flip()
                 time.sleep(1)
                 return "back_to_menu", None
                 
@@ -183,19 +182,28 @@ class NetworkConnectScreen:
                     return game.run()
                 except Exception as e:
                     status_messages.append(f"游戏启动失败: {str(e)}")
+                    # 更新状态并显示错误信息
                     connection_status = "游戏启动失败，返回主菜单..."
+                    self.draw_connection_status(connection_status, status_messages, mode)
+                    pygame.display.flip()
                     time.sleep(2)
                     return "back_to_menu", None
             else:
                 status_messages.append("等待客户端连接超时")
+                # 更新状态并显示超时信息
                 connection_status = "连接超时，请检查网络设置..."
+                self.draw_connection_status(connection_status, status_messages, mode)
+                pygame.display.flip()
                 time.sleep(3)
                 return "back_to_menu", None
 
         elif mode == "join":
             # 作为客户端连接
-            connection_status = "正在连接到服务器..."
             status_messages.append(f"正在连接到服务器: {ip_address or '127.0.0.1'}")
+            # 更新状态并显示连接信息
+            connection_status = "正在连接到服务器..."
+            self.draw_connection_status(connection_status, status_messages, mode)
+            pygame.display.flip()
 
             # 初始化API
             SimpleAPI.init('CLIENT')
@@ -239,7 +247,10 @@ class NetworkConnectScreen:
 
             if cancelled:
                 status_messages.append("连接被用户取消")
+                # 更新状态并显示
                 connection_status = "连接已取消，返回主菜单..."
+                self.draw_connection_status(connection_status, status_messages, mode)
+                pygame.display.flip()
                 time.sleep(1)
                 return "back_to_menu", None
                 
@@ -252,12 +263,18 @@ class NetworkConnectScreen:
                     return game.run()
                 except Exception as e:
                     status_messages.append(f"游戏启动失败: {str(e)}")
+                    # 更新状态并显示错误信息
                     connection_status = "游戏启动失败，返回主菜单..."
+                    self.draw_connection_status(connection_status, status_messages, mode)
+                    pygame.display.flip()
                     time.sleep(2)
                     return "back_to_menu", None
             else:
                 status_messages.append(f"无法连接到服务器: {ip_address or '127.0.0.1'}")
+                # 更新状态并显示连接失败信息
                 connection_status = "连接失败，请检查IP地址和网络..."
+                self.draw_connection_status(connection_status, status_messages, mode)
+                pygame.display.flip()
                 time.sleep(3)
                 return "back_to_menu", None
 
@@ -318,17 +335,14 @@ class NetworkConnectScreen:
         cancel_button_y = self.window_height - 100  # 底部位置
         
         if self.cancel_button is None:
-            self.cancel_button = Button(
+            self.cancel_button = StyledButton(
                 cancel_button_x,
                 cancel_button_y,
                 button_width,
                 button_height,
                 "取消连接",
                 22,
-                bg_color=(180, 70, 70),
-                hover_color=(220, 100, 100),
-                text_color=(255, 255, 255),
-                border_radius=10
+                corner_radius=10
             )
         else:
             # 更新按钮位置（以防窗口大小改变）

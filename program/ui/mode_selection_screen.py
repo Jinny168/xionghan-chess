@@ -1,6 +1,5 @@
 import os
 import sys
-import glob
 
 import pygame
 
@@ -150,7 +149,7 @@ class ModeSelectionScreen:
                 self.current_bg_index = (self.current_bg_index + 1) % len(self.background_manager.background_config["images"])
             self.background_image = self.background_manager.load_background(self.current_bg_index)
         else:
-            # 原来的加载方式（保留向后兼容）
+            # 原来加载方式（保留向后兼容）
             background_images = [
                 "assets/pics/5.jpg",
                 "assets/pics/2.jpg",
@@ -378,7 +377,6 @@ class ModeSelectionScreen:
     def update_settings_menu_animation(self, dt):
         """更新设置菜单动画"""
         if self.animation_direction != 0:
-            # 动画速度：每秒1单位
             animation_speed = dt * 2.0  # 2秒完成整个动画
 
             if self.animation_direction == 1:  # 打开
@@ -707,7 +705,7 @@ class ModeSelectionScreen:
 
             for i, (button, _) in enumerate(self.settings_menu_items):
                 # 计算每个菜单项的显示进度
-                item_progress = max(0, min(1.0,self.settings_menu_animation_progress * 4.0 - i * 0.25))
+                item_progress = max(0.0, min(1.0, self.settings_menu_animation_progress * 4.0 - i * 0.25))
                 if item_progress > 0:
                     # 绘制半透明背景
                     menu_surface = pygame.Surface((button.rect.width, button.rect.height))
