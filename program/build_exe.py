@@ -34,16 +34,16 @@ def create_spec_file():
     sounds_datas = collect_resource_files(".", "assets/sounds", [".wav", ".mp3"])
     # 确保必要的声音文件存在
     required_sounds = [
-        ("sounds/check.wav", "sounds"),
-        ("sounds/button.wav", "sounds"),
-        ("sounds/choose.wav", "sounds"),
-        ("sounds/drop.wav", "sounds"),
-        ("sounds/eat.wav", "sounds"),
-        ("sounds/warn.wav", "sounds"),
-        ("sounds/fc_background_sound.wav", "sounds"),
-        ("sounds/fc_defeat_sound.wav", "sounds"),
-        ("sounds/fc_victory_sound.wav", "sounds"),
-        ("sounds/qq_background_sound.wav", "sounds"),
+        ("assets/sounds/check.wav", "sounds"),
+        ("assets/sounds/button.wav", "sounds"),
+        ("assets/sounds/choose.wav", "sounds"),
+        ("assets/sounds/drop.wav", "sounds"),
+        ("assets/sounds/eat.wav", "sounds"),
+        ("assets/sounds/warn.wav", "sounds"),
+        ("assets/sounds/fc_background_sound.wav", "sounds"),
+        ("assets/sounds/fc_defeat_sound.wav", "sounds"),
+        ("assets/sounds/fc_victory_sound.wav", "sounds"),
+        ("assets/sounds/qq_background_sound.wav", "sounds"),
     ]
     # 添加必要的声音文件（如果未通过自动收集找到）
     for sound in required_sounds:
@@ -52,28 +52,28 @@ def create_spec_file():
 
     # 收集字体文件
     fonts_datas = collect_resource_files(".", "assets/fonts", [".ttf", ".ttc"])
-    # 确保必要的字体文件存在
+    # 确保必要的字体文件存在 - 修正路径为assets/fonts
     required_fonts = [
-        ("fonts/fangsong.ttf", "fonts"),
-        ("fonts/kaiti.ttf", "fonts"),
-        ("fonts/msyh.ttc", "fonts"),
-        ("fonts/simhei.ttf", "fonts"),
-        ("fonts/simkai.ttf", "fonts"),
-        ("fonts/xingkai.ttf", "fonts")
+        ("assets/fonts/fangsong.ttf", "assets/fonts"),
+        ("assets/fonts/kaiti.ttf", "assets/fonts"),
+        ("assets/fonts/msyh.ttc", "assets/fonts"),
+        ("assets/fonts/simhei.ttf", "assets/fonts"),
+        ("assets/fonts/simkai.ttf", "assets/fonts"),
+        ("assets/fonts/xingkai.ttf", "assets/fonts")
     ]
     for font in required_fonts:
         if font not in fonts_datas:
             fonts_datas.append(font)
 
-    # 收集图像资源文件
+    # 收集图像资源文件 - 修正重复项
     images_datas = collect_resource_files(".", "assets", [".jpg", ".png", ".gif", ".bmp"])
-    # 确保必要的图像文件存在
+    # 确保必要的图像文件存在 - 移除重复项
     required_images = [
-        ("assets/1.jpg", "assets"),
-        ("assets/1.jpg", "assets"),
-        ("assets/3.jpg", "assets"),
-        ("assets/2.jpg", "assets"),
-        ("assets/5.jpg", "assets"),
+        ("assets/pics/1.jpg", "assets"),
+        ("assets/pics/2.jpg", "assets"),
+        ("assets/pics/3.jpg", "assets"),
+        ("assets/pics/4.jpg", "assets"),
+        ("assets/pics/5.jpg", "assets"),
     ]
     for image in required_images:
         if image not in images_datas:
@@ -81,15 +81,15 @@ def create_spec_file():
 
     # 收集配置和帮助文档
     doc_datas = [
-        ("ui/help.md", "ui"),
-        ("ui/about.md", "ui"),
+        ("assets/docs/help.md", "assets"),
+        ("assets/docs/about.md", "assets"),
         ("../README.md", "."),  # 从program目录向上一级回到项目根目录
     ]
 
     # 收集JSON配置文件
     json_datas = [
-        ("config/taunts.json", "config"),
-        ("config/statistics.json", "config"),
+        ("assets/docs/taunts.json", "assets"),
+        ("assets/docs/statistics.json", "assets"),
     ]
 
     # 收集AI模型文件（如果有）
@@ -98,7 +98,7 @@ def create_spec_file():
     # 收集所有数据文件
     datas = sounds_datas + fonts_datas + images_datas + doc_datas + json_datas + ai_datas
 
-    # 定义游戏模块列表（不包含深度学习框架相关模块）
+    # 定义游戏模块列表 - 更新为整合后的工具模块
     program_modules = [
         'program.game',
         'program.main',
@@ -127,8 +127,8 @@ def create_spec_file():
         'program.ui.button',
         'program.ui.scrollbar',
         'program.ui.avatar',
-        'program.utils.utils',
-        'program.utils.tools',
+        # 更新为整合后的工具模块
+        'program.utils.game_utils',
         'program.lan.network_game',
         'program.lan.xhlan',
         'program.ai.chess_ai',
