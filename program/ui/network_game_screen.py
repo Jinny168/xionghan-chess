@@ -7,10 +7,11 @@ from program.controllers.game_config_manager import (
 )
 from program.ui.button import Button
 from program.ui.chess_board import ChessBoard
+from program.ui.game_screen import BaseGameScreen
 from program.utils.utils import load_font, draw_background
 
 
-class NetworkGameScreen:
+class NetworkGameScreen(BaseGameScreen):
     """网络对战模式的UI界面类"""
 
     def __init__(self, window_width, window_height, game_mode, player_camp):

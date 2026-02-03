@@ -9,7 +9,7 @@ from tkinter.simpledialog import askstring
 import pygame
 
 from program.controllers.game_config_manager import DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, FPS
-from program.ui.button import Button
+from program.ui.button import Button, StyledButton
 from program.utils.utils import load_font, draw_gradient_background
 from program.lan.xhlan import SimpleAPI
 from program.lan.network_game import NetworkChessGame
@@ -19,6 +19,8 @@ class NetworkConnectScreen:
     """网络连接界面"""
 
     def __init__(self):
+        self.join_button = None
+        self.host_button = None
         self.window_width = DEFAULT_WINDOW_WIDTH
         self.window_height = DEFAULT_WINDOW_HEIGHT
         self.is_fullscreen = False
@@ -41,43 +43,34 @@ class NetworkConnectScreen:
         center_y = self.window_height // 2 - 30
 
         # 创建按钮 - 使用更现代的颜色方案
-        self.host_button = Button(
+        self.host_button = StyledButton(
             center_x - button_width // 2,
             center_y - button_height - button_spacing,
             button_width,
             button_height,
             "创建房间",
             28,
-            bg_color=(70, 130, 180),  # Steel Blue
-            hover_color=(100, 149, 237),  # Cornflower Blue
-            text_color=(255, 255, 255),
-            border_radius=15
+            corner_radius=15
         )
 
-        self.join_button = Button(
+        self.join_button = StyledButton(
             center_x - button_width // 2,
             center_y,
             button_width,
             button_height,
             "加入房间",
             28,
-            bg_color=(50, 150, 50),  # Green
-            hover_color=(34, 139, 34),  # Forest Green
-            text_color=(255, 255, 255),
-            border_radius=15
+            corner_radius=15
         )
 
-        self.back_button = Button(
+        self.back_button = StyledButton(
             center_x - button_width // 2,
             center_y + button_height + button_spacing,
             button_width,
             button_height,
             "返回",
             28,
-            bg_color=(180, 70, 70),  # Reddish
-            hover_color=(220, 100, 100),
-            text_color=(255, 255, 255),
-            border_radius=15
+            corner_radius=15
         )
 
     def toggle_fullscreen(self):
@@ -107,7 +100,8 @@ class NetworkConnectScreen:
         # 更新布局
         self.update_layout()
 
-    def show_ip_input_dialog(self):
+    @staticmethod
+    def show_ip_input_dialog():
         """显示IP输入对话框"""
         root = Tk()
         root.withdraw()  # 隐藏主窗口
