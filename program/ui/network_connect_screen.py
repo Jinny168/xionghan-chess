@@ -346,8 +346,7 @@ class NetworkConnectScreen:
             )
         else:
             # 更新按钮位置（以防窗口大小改变）
-            self.cancel_button.x = cancel_button_x
-            self.cancel_button.y = cancel_button_y
+            self.cancel_button.update_position(cancel_button_x, cancel_button_y)
             
         # 绘制取消按钮
         self.cancel_button.draw(self.screen)
@@ -441,8 +440,8 @@ class NetworkConnectScreen:
         icon_font = load_font(36)
         server_icon = icon_font.render("🏠", True, (70, 130, 180))
         client_icon = icon_font.render("👤", True, (50, 150, 50))
-        self.screen.blit(server_icon, (self.window_width//2 - 180, self.host_button.y + 10))
-        self.screen.blit(client_icon, (self.window_width//2 - 180, self.join_button.y + 10))
+        self.screen.blit(server_icon, (self.window_width//2 - 180, self.host_button.rect.y + 10))
+        self.screen.blit(client_icon, (self.window_width//2 - 180, self.join_button.rect.y + 10))
 
         # 绘制按钮
         self.host_button.draw(self.screen)
