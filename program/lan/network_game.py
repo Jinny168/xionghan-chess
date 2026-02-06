@@ -63,6 +63,9 @@ class NetworkChessGame(ChessGame):
         # 使用专门的网络对战界面
         self.game_screen = NetworkGameScreen(self.window_width, self.window_height, self.game_mode, self.player_camp)
         
+        # 确保悔棋按钮初始状态正确
+        self.update_undo_button_state()
+        
         # 更新全屏按钮的文本以反映当前状态
         self.game_screen.update_fullscreen_button_text(self.is_fullscreen)
 
@@ -653,14 +656,16 @@ class NetworkChessGame(ChessGame):
                     print("[DEBUG] 已发送悔棋请求")
                 button_clicked = True
                     
-            # 检查是否点击了重来按钮
+            # 检查是否点击了重来按钮（任何时候都可以点击）
             elif (hasattr(self.game_screen, 'restart_button') and 
                   self.game_screen.restart_button and 
                   self.game_screen.restart_button.is_clicked(mouse_pos, event)):
-                # 发送重来请求
+                print(f"[DEBUG] 重来按钮被点击，当前游戏状态 - 回合: {self.game_state.player_turn}, 游戏结束: {self.game_state.game_over}")
+                # 发送重来请求（不限制在玩家回合）
                 if not self.restart_requested:  # 避免重复请求
                     self.restart_requested = True
                     XiangqiNetworkGame.send_restart_request()
+                    print("[DEBUG] 已发送重来请求")
                 button_clicked = True
                     
             # 检查是否点击了全屏按钮
@@ -710,7 +715,6 @@ class NetworkChessGame(ChessGame):
                     return "back_to_menu"
                 
                 # 调用统一的事件处理方法
-                print(f"[DEBUG] 主循环调用handle_event处理事件类型: {event.type}")
                 self.handle_event(event, mouse_pos)
 
                 # 处理各种事件
@@ -895,8 +899,6 @@ class NetworkChessGame(ChessGame):
                         pass
                     # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
                     continue  # 跳过后续的事件处理，防止同时处理其他操作
-                # 按钮点击事件已在上面的MOUSEBUTTONDOWN处理中完成
-                # 这里不需要额外处理
 
             # 更新按钮的悬停状态
             self.game_screen.update_button_states(mouse_pos)
@@ -933,16 +935,18 @@ class NetworkChessGame(ChessGame):
             print("对手同意悔棋，执行悔棋操作")
             # 执行悔棋操作
             self.perform_undo()
-            # 重置悔棋请求状态
-            self.undo_requested = False
-            self.processing_undo_request = False
         else:
             print("对手拒绝悔棋请求")
-            # 重置悔棋请求状态
-            self.undo_requested = False
-            self.processing_undo_request = False
             # 可以显示提示信息
             pass
+        
+        # 无论同意还是拒绝，都要重置悔棋请求状态
+        self.undo_requested = False
+        self.processing_undo_request = False
+        print(f"[DEBUG] 悔棋状态已重置 - undo_requested: {self.undo_requested}, processing_undo_request: {self.processing_undo_request}")
+        
+        # 立即更新悔棋按钮状态
+        self.update_undo_button_state()
     
     def request_restart_confirmation(self):
         """请求本地玩家确认是否同意重新开始"""
@@ -1005,7 +1009,7 @@ class NetworkChessGame(ChessGame):
             # 1. 游戏未结束
             # 2. 不在处理悔棋请求中
             # 3. 不在重来后等待状态同步期间
-            # 4. 允许任何时候请求悔棋（即使不是当前回合）
+            # 4. 任何时候都可以请求悔棋（即使不是当前回合）
             game_not_over = not self.game_state.game_over
             not_processing_undo = not hasattr(self, 'processing_undo_request') or not self.processing_undo_request
             not_just_restarted = not hasattr(self, 'just_restarted') or not self.just_restarted
@@ -1014,13 +1018,20 @@ class NetworkChessGame(ChessGame):
             # 不再严格限制必须是最后移动的玩家才能悔棋
             can_request_undo = True
             
-            # 悔棋按钮在游戏进行中且不在处理状态时始终可用
-            self.game_screen.undo_button.enabled = (
+            # 悔棋按钮在游戏进行中且不在处理状态时可用
+            new_enabled_state = (
                 game_not_over and 
                 not_processing_undo and 
                 not_just_restarted and 
                 can_request_undo
             )
+            
+            # 只有状态发生变化时才更新（避免不必要的重绘）
+            if self.game_screen.undo_button.enabled != new_enabled_state:
+                print(f"[DEBUG] 悔棋按钮状态更新: {self.game_screen.undo_button.enabled} -> {new_enabled_state}")
+                print(f"[DEBUG] 状态详情 - 游戏未结束: {game_not_over}, 未处理悔棋: {not_processing_undo}, 未重来: {not_just_restarted}")
+                
+            self.game_screen.undo_button.enabled = new_enabled_state
 
     def update_avatars(self):
         """更新头像状态 - 网络对战模式特化版本"""
