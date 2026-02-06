@@ -96,7 +96,9 @@ class NetworkChessGame(ChessGame):
 
     def handle_click(self, pos):
         """处理鼠标点击事件 - 网络对战专用"""
+        print(f"[DEBUG] handle_click 被调用，点击位置: {pos}")
         if self.game_state.game_over:
+            print("[DEBUG] 游戏已结束，不处理点击")
             return
 
         # 如果刚重来过，等待状态同步完成
@@ -632,16 +634,24 @@ class NetworkChessGame(ChessGame):
 
         # 处理鼠标点击
         if event.type == pygame.MOUSEBUTTONDOWN:
+            print(f"[DEBUG] handle_event处理鼠标点击，位置: {mouse_pos}")
+            print(f"[DEBUG] 当前游戏状态 - 回合: {self.game_state.player_turn}, 本地玩家: {self.player_camp}, 游戏结束: {self.game_state.game_over}")
+            # 首先检查是否点击了UI按钮（优先级最高）
+            button_clicked = False
+            
             # 检查是否点击了悔棋按钮
             if (hasattr(self.game_screen, 'undo_button') and 
                 self.game_screen.undo_button and 
                 self.game_screen.undo_button.is_clicked(mouse_pos, event) and
                 hasattr(self.game_screen.undo_button, 'enabled') and 
                 self.game_screen.undo_button.enabled):
+                print(f"[DEBUG] 悔棋按钮被点击，当前回合: {self.game_state.player_turn}, 本地玩家: {self.player_camp}")
                 # 发送悔棋请求
                 if not self.undo_requested:  # 避免重复请求
                     self.undo_requested = True
                     XiangqiNetworkGame.send_undo_request()
+                    print("[DEBUG] 已发送悔棋请求")
+                button_clicked = True
                     
             # 检查是否点击了重来按钮
             elif (hasattr(self.game_screen, 'restart_button') and 
@@ -651,15 +661,18 @@ class NetworkChessGame(ChessGame):
                 if not self.restart_requested:  # 避免重复请求
                     self.restart_requested = True
                     XiangqiNetworkGame.send_restart_request()
+                button_clicked = True
                     
             # 检查是否点击了全屏按钮
             elif hasattr(self.game_screen, 'fullscreen_button') and self.game_screen.fullscreen_button.is_clicked(mouse_pos, event):
                 self.toggle_fullscreen()
+                button_clicked = True
             
             # 检查是否点击了音效设置按钮
             elif hasattr(self.game_screen, 'audio_settings_button') and self.game_screen.audio_settings_button.is_clicked(mouse_pos, event):
                 from program.ui.dialogs import AudioSettingsDialog
                 self.audio_settings_dialog = AudioSettingsDialog(self.sound_manager)
+                button_clicked = True
 
             # 检查是否点击了退出游戏按钮
             elif hasattr(self.game_screen, 'exit_button') and self.game_screen.exit_button and self.game_screen.exit_button.is_clicked(mouse_pos, event):
@@ -670,10 +683,16 @@ class NetworkChessGame(ChessGame):
                         400, 200, "是否要退出网络对局？\n这将视为认输。"
                     )
                     self.confirm_dialog.type = "exit_game"  # 标记为退出游戏对话框
+                button_clicked = True
 
-            # 处理棋盘点击
-            elif not self.game_state.game_over:
+            # 如果没有点击任何按钮，且游戏未结束，则处理棋盘点击
+            if not button_clicked and not self.game_state.game_over:
+                print(f"[DEBUG] 准备处理棋盘点击，button_clicked={button_clicked}")
                 self.handle_click(mouse_pos)
+            elif button_clicked:
+                print(f"[DEBUG] 已处理按钮点击，跳过棋盘处理")
+            elif self.game_state.game_over:
+                print(f"[DEBUG] 游戏已结束，跳过棋盘处理")
 
     def run(self):
         """网络对战游戏主循环"""
@@ -689,6 +708,10 @@ class NetworkChessGame(ChessGame):
                         pass
                     self.sound_manager.stop_background_music()
                     return "back_to_menu"
+                
+                # 调用统一的事件处理方法
+                print(f"[DEBUG] 主循环调用handle_event处理事件类型: {event.type}")
+                self.handle_event(event, mouse_pos)
 
                 # 处理各种事件
                 if hasattr(self, 'promotion_dialog') and self.promotion_dialog is not None:
@@ -872,9 +895,8 @@ class NetworkChessGame(ChessGame):
                         pass
                     # 不管返回什么结果，都要跳过后续的事件处理，防止同时处理其他操作
                     continue  # 跳过后续的事件处理，防止同时处理其他操作
-                # 调用handle_event方法处理鼠标点击事件
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.handle_click(mouse_pos)
+                # 按钮点击事件已在上面的MOUSEBUTTONDOWN处理中完成
+                # 这里不需要额外处理
 
             # 更新按钮的悬停状态
             self.game_screen.update_button_states(mouse_pos)
@@ -983,22 +1005,21 @@ class NetworkChessGame(ChessGame):
             # 1. 游戏未结束
             # 2. 不在处理悔棋请求中
             # 3. 不在重来后等待状态同步期间
-            # 4. 本地玩家有权悔棋（根据最后移动玩家判断）
+            # 4. 允许任何时候请求悔棋（即使不是当前回合）
             game_not_over = not self.game_state.game_over
             not_processing_undo = not hasattr(self, 'processing_undo_request') or not self.processing_undo_request
             not_just_restarted = not hasattr(self, 'just_restarted') or not self.just_restarted
             
-            # 判断本地玩家是否可以悔棋：
-            # 1. 本地玩家是最后移动的玩家（最常见的情况）
-            # 2. 特殊情况：游戏开始时红方先走，但还没有移动过
-            can_undo = (self.last_moved_player == self.player_camp)
+            # 网络对战中，任何时候都可以请求悔棋，由对手决定是否同意
+            # 不再严格限制必须是最后移动的玩家才能悔棋
+            can_request_undo = True
             
-            # 悔棋按钮在本地玩家有权悔棋且不在处理状态时可用
+            # 悔棋按钮在游戏进行中且不在处理状态时始终可用
             self.game_screen.undo_button.enabled = (
                 game_not_over and 
                 not_processing_undo and 
                 not_just_restarted and 
-                can_undo
+                can_request_undo
             )
 
     def update_avatars(self):

@@ -8,15 +8,15 @@
     "total_time_played": 0,
     "pieces_captured": {
         "ju": 0,
-        "ma": 0,
+        "ma": 1,
         "xiang": 0,
         "shi": 0,
         "king": 0,
-        "pao": 0,
-        "pawn": 0,
+        "pao": 2,
+        "pawn": 6,
         "wei": 0,
         "she": 0,
-        "lei": 0,
+        "lei": 1,
         "jia": 0,
         "ci": 0,
         "dun": 0,
@@ -40,5 +40,5 @@
         }
     },
     "last_played": "",
-    "total_moves_made": 3
+    "total_moves_made": 37
 }
