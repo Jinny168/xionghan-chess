@@ -7,13 +7,13 @@
     },
     "total_time_played": 0,
     "pieces_captured": {
-        "ju": 9,
+        "ju": 0,
         "ma": 0,
         "xiang": 0,
-        "shi": 7,
+        "shi": 0,
         "king": 0,
         "pao": 0,
-        "pawn": 27,
+        "pawn": 0,
         "wei": 0,
         "she": 0,
         "lei": 0,
@@ -23,8 +23,8 @@
         "xun": 0
     },
     "fastest_win": {
-        "red": null,
-        "black": null
+        "red": Infinity,
+        "black": Infinity
     },
     "longest_game": 0,
     "favorite_piece": {
@@ -40,5 +40,5 @@
         }
     },
     "last_played": "",
-    "total_moves_made": 210
+    "total_moves_made": 0
 }

@@ -899,25 +899,31 @@ class StatisticsDialog:
             'xun': '巡/廵'
         }
 
-        # 分两列显示棋子统计
+        # 分四列显示棋子统计（动态调整列数）
         captured_stats = stats['pieces_captured']
         items = list(captured_stats.items())
-        half = len(items) // 2 + len(items) % 2
+        num_columns = min(4, len(items))  # 动态调整列数
+        column_width = screen_width // num_columns  # 每列宽度
+
+        # 计算实际行数
+        rows_per_column = (len(items) + num_columns - 1) // num_columns  # 向上取整
 
         for i, (piece_type, count) in enumerate(items):
             piece_name = piece_names.get(piece_type, piece_type)
             text = self.normal_font.render(f"{piece_name}: {count}", True, (0, 0, 0))
 
-            if i < half:
-                # 第一列
-                screen.blit(text, (70, y_pos + i * line_height))
-            else:
-                # 第二列
-                screen.blit(text, (screen_width // 2 + 50, y_pos + (i - half) * line_height))
+            # 计算当前项所在的列和行
+            column_index = i // rows_per_column
+            row_index = i % rows_per_column
 
-        # 计算最后一行的位置
-        last_row = max(half, len(items) - half)
-        y_pos += last_row * line_height + 20
+            # 计算绘制位置
+            x_pos = 50 + column_index * column_width
+            y_draw_pos = y_pos + row_index * line_height
+
+            screen.blit(text, (x_pos, y_draw_pos))
+
+        # 更新 y_pos
+        y_pos += rows_per_column * line_height+20
 
         # 最快胜利记录
         section_title = self.section_font.render("最快胜利记录:", True, (0, 0, 0))
@@ -927,9 +933,9 @@ class StatisticsDialog:
         fastest_red = stats['fastest_win']['red']
         fastest_black = stats['fastest_win']['black']
 
-        if fastest_red != float('inf'):
+        if fastest_red  is not None and fastest_red != float('inf'):
             fastest_red_text = self.normal_font.render(
-                f"红方最快胜利: {fastest_red:.1f}秒 ({int(fastest_red // 60)}:{int(fastest_red % 60):02d})", True,
+                f"红方最快胜利: {fastest_red:.1f}秒 ({int(fastest_red // 60)}:{int(fastest_red % 60):02d})" , True,
                 (180, 30, 30))  # 红色
         else:
             fastest_red_text = self.normal_font.render("红方最快胜利: 无", True, (180, 30, 30))  # 红色
@@ -948,9 +954,17 @@ class StatisticsDialog:
 
         # 最长游戏记录
         longest_game = stats['longest_game']
-        longest_game_text = self.normal_font.render(
-            f"最长单局时长: {longest_game:.1f}秒 ({int(longest_game // 60)}:{int(longest_game % 60):02d})", True,
-            (0, 0, 0))
+        if longest_game is not None and longest_game != float('inf'):
+            # 如果有最长游戏记录，则格式化显示时间
+            minutes = int(longest_game // 60)
+            seconds = int(longest_game % 60)
+            text = f"最长单局时长: {longest_game:.1f}秒 ({minutes}:{seconds:02d})"
+        else:
+            # 如果没有数据，则显示“暂无数据”
+            text = "最长单局时长: 暂无数据"
+
+        # 渲染文本并绘制到屏幕上
+        longest_game_text = self.normal_font.render(text, True, (0, 0, 0))
         screen.blit(longest_game_text, (70, y_pos))
         y_pos += line_height + 15
 
