@@ -903,7 +903,13 @@ class GameState:
             fen_board = parts[0]
             fen_player = parts[1]
 
-            if game_config.get_setting("traditional_mode", False):
+            # 自动识别FEN格式类型
+            rows = fen_board.split('/')
+            is_traditional_chess = self._detect_chess_type(rows)
+            
+            print(f"自动识别为{'传统中国象棋' if is_traditional_chess else '匈汉象棋'}")
+            game_config.set_setting("traditional_mode", is_traditional_chess)
+            if is_traditional_chess:
                 # 传统中国象棋的FEN映射
                 fen_piece_map = {
                     # 小写为黑方，大写为红方
@@ -951,7 +957,7 @@ class GameState:
                         print(f"传统象棋FEN格式错误：第{row_idx}行列数不正确")
                         return False
             else:
-                # 原有的匈汉象棋处理逻辑
+                # 匈汉象棋的FEN映射
                 fen_piece_map = {
                     # 小写为黑方，大写为红方
                     'k': ('black', '汗'),  # 黑方将/帅
@@ -972,7 +978,7 @@ class GameState:
                 # 从FEN解析棋盘（匈汉象棋：13x13）
                 rows = fen_board.split('/')
                 if len(rows) != 13:
-                    print("FEN格式错误：棋盘行数不正确")
+                    print("FEN格式错误：匈汉象棋棋盘行数应为13")
                     return False
 
                 # 清空当前棋子
@@ -1005,6 +1011,9 @@ class GameState:
                     if col_idx != 13:
                         print(f"FEN格式错误：第{row_idx}行列数不正确，实际为{col_idx}，期望为13")
                         return False
+
+            # 注意：不要恢复原始的传统模式设置，保持FEN文件中检测到的正确模式
+            # game_config.set_setting("traditional_mode", origin_traditional_mode)
 
             # 设置当前玩家
             self.player_turn = 'red' if fen_player.lower() in ['r', 'red'] else 'black'
@@ -1041,6 +1050,86 @@ class GameState:
         except Exception as e:
             print(f"导入棋局失败: {str(e)}")
             return False
+    
+    def _detect_chess_type(self, rows):
+        """自动检测FEN字符串对应的棋种类型
+        
+        Args:
+            rows (list): FEN字符串按'/'分割后的行列表
+            
+        Returns:
+            bool: True表示传统中国象棋，False表示匈汉象棋
+        """
+        row_count = len(rows)
+        
+        # 首先根据行数判断
+        if row_count == 10:
+            # 10行很可能是传统中国象棋
+            # 进一步验证列数（传统象棋应该是9列）
+            for row in rows:
+                col_count = self._count_columns(row)
+                if col_count != 9:
+                    break
+            else:
+                # 所有行都是9列，确认是传统中国象棋
+                return True
+        elif row_count == 13:
+            # 13行很可能是匈汉象棋
+            # 进一步验证列数（匈汉象棋应该是13列）
+            for row in rows:
+                col_count = self._count_columns(row)
+                if col_count != 13:
+                    break
+            else:
+                # 所有行都是13列，确认是匈汉象棋
+                return False
+        
+        # 如果行数既不是10也不是13，根据内容特征判断
+        # 检查是否包含匈汉象棋特有的棋子字符
+        fen_string = '/'.join(rows)
+        hungarian_pieces = ['w', 's', 'l', 'j', 'i', 'u', 'x', 'W', 'S', 'L', 'J', 'I', 'U', 'X']
+        
+        has_hungarian_pieces = any(piece in fen_string for piece in hungarian_pieces)
+        if has_hungarian_pieces:
+            return False  # 包含匈汉特有棋子，是匈汉象棋
+        
+        # 检查传统象棋特有特征
+        # 传统象棋通常有明确的九宫格布局特征
+        traditional_features = ['k', 'K', 'r', 'R', 'n', 'N', 'b', 'B', 'a', 'A', 'c', 'C', 'p', 'P']
+        has_traditional_pieces = any(piece in fen_string.lower() for piece in traditional_features)
+        
+        if has_traditional_pieces and not has_hungarian_pieces:
+            # 只有传统象棋棋子，没有匈汉特有棋子
+            return True
+        
+        # 默认情况下，如果没有明确特征，根据行数判断
+        # 更倾向于认为是匈汉象棋（因为是主要游戏模式）
+        return False
+    
+    def _count_columns(self, row_str):
+        """计算FEN行中的列数
+        
+        Args:
+            row_str (str): FEN行字符串
+            
+        Returns:
+            int: 列数
+        """
+        col_count = 0
+        i = 0
+        while i < len(row_str):
+            if row_str[i].isdigit():
+                # 数字表示连续的空位
+                num_str = ""
+                while i < len(row_str) and row_str[i].isdigit():
+                    num_str += row_str[i]
+                    i += 1
+                col_count += int(num_str)
+            else:
+                # 棋子字符占一列
+                col_count += 1
+                i += 1
+        return col_count
 
     def clone(self):
         """创建游戏状态的深度拷贝，用于AI搜索算法中模拟移动而不影响真实游戏状态

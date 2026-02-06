@@ -11,7 +11,7 @@ from ui.rules_screen import RulesScreen
 from ui.settings_screen import SettingsScreen
 from ui.dialogs import StatisticsDialog
 from lan.xhlan import SimpleAPI
-
+from program.ui.dialogs import ToastNotification
 # 初始化PyGame
 pygame.init()
 pygame.mixer.init()  # 初始化音频模块
@@ -32,13 +32,25 @@ def main():
             settings_result = settings_screen.run()
 
             if settings_result == "back":
-                # 返回到模式选择界面
+                # 用户选择返回，不保存设置，直接回到模式选择界面
                 mode_screen = ModeSelectionScreen()
                 game_mode = mode_screen.run()
                 continue
+            elif settings_result == "confirm":
+                # 创建提示通知
+                toast = ToastNotification("设置已生效", duration=2000)
+                toast.prepare(pygame.display.get_surface())
+                # 显示提示
+                toast.draw(pygame.display.get_surface())
+                pygame.display.flip()
+                # 等待提示显示完成
+                while not toast.is_expired():
+                    pygame.time.wait(10)  # 短暂等待，避免占用过多CPU
+                # 继续留在设置界面
+                continue
             else:
-                # 保存设置并返回到模式选择界面
-                # 这里可以保存设置到全局变量或文件
+                # 处理意外情况，安全回退到模式选择
+                print(f"警告：未知的设置结果 {settings_result}，回退到模式选择")
                 mode_screen = ModeSelectionScreen()
                 game_mode = mode_screen.run()
                 continue

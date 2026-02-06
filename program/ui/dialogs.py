@@ -365,6 +365,61 @@ class PopupDialog(BaseDialog):
         return None  # 无操作
 
 
+class ToastNotification:
+    """轻量级提示通知组件，用于显示短暂的提示信息"""
+    
+    def __init__(self, message, duration=2000, bg_color=(255, 255, 200), text_color=(0, 128, 0)):
+        self.message = message
+        self.duration = duration  # 显示时长（毫秒）
+        self.bg_color = bg_color  # 背景颜色
+        self.text_color = text_color  # 文字颜色
+        self.border_color = (200, 200, 100)  # 边框颜色
+        self.start_time = pygame.time.get_ticks()
+        self.font = None
+        self.text_surface = None
+        self.background_surface = None
+        self.position = None
+        
+    def prepare(self, screen):
+        """准备提示组件，计算尺寸和位置"""
+        if not self.font:
+            from program.utils.tools import load_font
+            self.font = load_font(24, bold=True)
+            self.text_surface = self.font.render(self.message, True, self.text_color)
+            
+            # 创建背景surface
+            padding = 20
+            self.background_surface = pygame.Surface(
+                (self.text_surface.get_width() + padding * 2, 
+                 self.text_surface.get_height() + padding)
+            )
+            self.background_surface.fill(self.bg_color)
+            pygame.draw.rect(self.background_surface, self.border_color, 
+                           self.background_surface.get_rect(), 2)
+            self.background_surface.blit(self.text_surface, (padding, padding//2))
+            
+            # 计算位置（屏幕中央偏上）
+            screen_width, screen_height = screen.get_size()
+            self.position = (
+                (screen_width - self.background_surface.get_width()) // 2,
+                screen_height // 3
+            )
+    
+    def draw(self, screen):
+        """绘制提示信息"""
+        if not self.background_surface:
+            self.prepare(screen)
+        screen.blit(self.background_surface, self.position)
+        
+    def is_expired(self):
+        """检查是否已过期"""
+        return pygame.time.get_ticks() - self.start_time > self.duration
+    
+    def reset_timer(self):
+        """重置计时器"""
+        self.start_time = pygame.time.get_ticks()
+
+
 class NotificationDialog(BaseDialog):
     """通知对话框，用于显示操作结果"""
     
