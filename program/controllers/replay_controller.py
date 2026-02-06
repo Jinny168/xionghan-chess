@@ -90,8 +90,11 @@ class ReplayController:
         if not self.history_states:
             self.history_states = [copy.deepcopy(temp_game_state)]
         
-        self.current_step = len(self.history_states) - 1  # 默认跳转到最后一步
+        self.current_step = 0  # 默认跳转到开局第一步
         self.max_steps = len(self.history_states) - 1
+        
+        # 应用初始状态
+        self._apply_state(self.history_states[0])
         
         self.is_replay_mode = True
     
