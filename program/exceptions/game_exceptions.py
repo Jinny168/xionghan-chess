@@ -58,8 +58,8 @@ class InvalidTurnError(GameStateError):
 class MoveError(ChessGameError):
     """移动相关错误基类"""
     
-    def __init__(self, message: str = "移动错误"):
-        super().__init__(message, error_code="MOVE_ERROR")
+    def __init__(self, message: str = "移动错误", error_code: str = "MOVE_ERROR"):
+        super().__init__(message, error_code=error_code)
 
 
 class InvalidMoveError(MoveError):
@@ -106,8 +106,8 @@ class SelfCheckError(MoveError):
 class BoardError(ChessGameError):
     """棋盘相关错误基类"""
     
-    def __init__(self, message: str = "棋盘错误"):
-        super().__init__(message, error_code="BOARD_ERROR")
+    def __init__(self, message: str = "棋盘错误", error_code: str = "BOARD_ERROR"):
+        super().__init__(message, error_code=error_code)
 
 
 class PositionOutOfBoundsError(BoardError):
@@ -136,8 +136,8 @@ class PositionOccupiedError(BoardError):
 class RuleError(ChessGameError):
     """规则相关错误基类"""
     
-    def __init__(self, message: str = "规则错误"):
-        super().__init__(message, error_code="RULE_ERROR")
+    def __init__(self, message: str = "规则错误", error_code: str = "RULE_ERROR"):
+        super().__init__(message, error_code=error_code)
 
 
 class PromotionError(RuleError):
@@ -159,8 +159,8 @@ class ResurrectionError(RuleError):
 class AIError(ChessGameError):
     """AI相关错误基类"""
     
-    def __init__(self, message: str = "AI错误"):
-        super().__init__(message, error_code="AI_ERROR")
+    def __init__(self, message: str = "AI错误", error_code: str = "AI_ERROR"):
+        super().__init__(message, error_code=error_code)
 
 
 class AITimeoutError(AIError):
@@ -184,8 +184,8 @@ class AINotInitializedError(AIError):
 class ResourceError(ChessGameError):
     """资源相关错误基类"""
     
-    def __init__(self, message: str = "资源错误"):
-        super().__init__(message, error_code="RESOURCE_ERROR")
+    def __init__(self, message: str = "资源错误", error_code: str = "RESOURCE_ERROR"):
+        super().__init__(message, error_code=error_code)
 
 
 class ResourceLoadError(ResourceError):
@@ -227,8 +227,8 @@ class SoundNotFoundError(ResourceLoadError):
 class ConfigError(ChessGameError):
     """配置相关错误基类"""
     
-    def __init__(self, message: str = "配置错误"):
-        super().__init__(message, error_code="CONFIG_ERROR")
+    def __init__(self, message: str = "配置错误", error_code: str = "CONFIG_ERROR"):
+        super().__init__(message, error_code=error_code)
 
 
 class ConfigFileNotFoundError(ConfigError):
@@ -256,8 +256,8 @@ class InvalidConfigValueError(ConfigError):
 class NetworkError(ChessGameError):
     """网络相关错误基类"""
     
-    def __init__(self, message: str = "网络错误"):
-        super().__init__(message, error_code="NETWORK_ERROR")
+    def __init__(self, message: str = "网络错误", error_code: str = "NETWORK_ERROR"):
+        super().__init__(message, error_code=error_code)
 
 
 class ConnectionFailedError(NetworkError):
@@ -295,8 +295,8 @@ class NetworkTimeoutError(NetworkError):
 class SaveLoadError(ChessGameError):
     """保存/加载错误基类"""
     
-    def __init__(self, message: str = "保存/加载错误"):
-        super().__init__(message, error_code="SAVE_LOAD_ERROR")
+    def __init__(self, message: str = "保存/加载错误", error_code: str = "SAVE_LOAD_ERROR"):
+        super().__init__(message, error_code=error_code)
 
 
 class SaveGameError(SaveLoadError):
