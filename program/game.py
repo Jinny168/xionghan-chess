@@ -1,4 +1,5 @@
 import sys
+from typing import Optional, Tuple, Any, Dict
 
 import pygame
 
@@ -20,8 +21,17 @@ from controllers.game_config_manager import (
 
 
 class ChessGame:
-    def __init__(self, game_mode=MODE_PVP, player_camp=CAMP_RED, game_settings=None):
-        """初始化游戏"""
+    """象棋游戏主类，负责管理游戏流程和状态"""
+    
+    def __init__(self, game_mode: str = MODE_PVP, player_camp: str = CAMP_RED, game_settings: Optional[Dict[str, Any]] = None):
+        """
+        初始化游戏
+        
+        Args:
+            game_mode: 游戏模式 (PVP/PVC)
+            player_camp: 玩家阵营 (red/black)
+            game_settings: 游戏设置字典
+        """
         self.ai_timeout_processed = None
         self.history_max_visible_lines = 15
         self.history_scroll_y = None
@@ -87,7 +97,7 @@ class ChessGame:
         self.check_checkmate_tip_manager = CheckCheckmateTipManager()
 
 
-    def init_window(self):
+    def init_window(self) -> None:
         """初始化窗口"""
         self.window_width = DEFAULT_WINDOW_WIDTH
         self.window_height = DEFAULT_WINDOW_HEIGHT
@@ -96,8 +106,13 @@ class ChessGame:
         pygame.display.set_caption("匈汉象棋")
         self.clock = pygame.time.Clock()
 
-    def make_move(self, move):
-        """执行走法"""
+    def make_move(self, move: Tuple[int, int, int, int]) -> None:
+        """
+        执行走法
+        
+        Args:
+            move: 移动元组 (from_row, from_col, to_row, to_col)
+        """
         from_row, from_col, to_row, to_col = move
 
         # 检查目标位置是否有棋子（吃子）
@@ -115,17 +130,6 @@ class ChessGame:
         piece = self.game_state.get_piece_at(to_row, to_col)
         if piece:
             self.last_move_notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
-
-        # 检查将军/绝杀状态并播放相应音效
-        # 注意：这里需要在移动完成后立即检查，以确保状态正确
-        # 使用统一的声音管理器方法
-        self.sound_manager.check_and_play_game_sound(self.game_state)
-
-        # 检查游戏是否结束
-        if self.game_state.game_over:
-            print(f"[DEBUG] 游戏结束检测到! 胜者: {self.game_state.winner}")
-            self.show_game_over_popup()
-            return
 
         # 播放音效
         # 优先处理绝杀情况，因为绝杀时is_check和is_checkmate都为True
@@ -149,11 +153,6 @@ class ChessGame:
             self.sound_manager.play_sound('eat')
         else:
             self.sound_manager.play_sound('drop')
-
-        # 检查将军/绝杀状态并播放相应音效
-        # 注意：这里需要在移动完成后立即检查，以确保状态正确
-        # 使用统一的声音管理器方法
-        self.sound_manager.check_and_play_game_sound(self.game_state)
 
         # 如果是人机对战，启动AI
         if self.ai_manager.is_ai_turn(self.game_state.player_turn):
