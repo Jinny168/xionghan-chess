@@ -70,18 +70,16 @@ class ReplayController:
         
         # 逐步执行历史中的每一步
         for move_record in self.game_state.move_history:
-            # 执行移动
+            # 执行移动（使用轻量级模拟）
             if len(move_record) >= 8:  # 包含甲/胄吃子信息和刺兑子信息
                 piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces, ci_captured_pieces = move_record
-                temp_game_state.move_piece(from_row, from_col, to_row, to_col)
-                # 由于move_piece会自动添加到历史，我们需要确保历史状态正确
-                # 我们只需要继续执行下一步
+                self._simulate_move(temp_game_state, from_row, from_col, to_row, to_col)
             elif len(move_record) >= 7:  # 包含甲/胄吃子信息
                 piece, from_row, from_col, to_row, to_col, captured_piece, jia_captured_pieces = move_record
-                temp_game_state.move_piece(from_row, from_col, to_row, to_col)
+                self._simulate_move(temp_game_state, from_row, from_col, to_row, to_col)
             else:  # 旧格式
                 piece, from_row, from_col, to_row, to_col, captured_piece = move_record
-                temp_game_state.move_piece(from_row, from_col, to_row, to_col)
+                self._simulate_move(temp_game_state, from_row, from_col, to_row, to_col)
             
             # 将执行该步的状态添加到历史
             self.history_states.append(copy.deepcopy(temp_game_state))

@@ -187,11 +187,11 @@ class AIManager:
         return False  # 表示游戏未结束
     
     @staticmethod
-    def move_after(game_state, best_move):
-        """执行AI移动后的处理
+    def move_after(chess_game, best_move):
+        """执行AI移动后的处理（使用命令模式）
         
         Args:
-            game_state: 当前游戏状态
+            chess_game: ChessGame实例
             best_move: AI选择的移动
             
         Returns:
@@ -200,25 +200,34 @@ class AIManager:
         from_pos, to_pos = best_move
         from_row, from_col = from_pos
         to_row, to_col = to_pos
-        # 执行移动
-        game_state.move_piece(from_row, from_col, to_row, to_col)
+        
+        # 使用命令模式执行移动（跳过音效和AI触发）
+        success = chess_game._execute_move_with_command_pattern(
+            (from_row, from_col, to_row, to_col),
+            skip_sound=True,  # AI走子不播放音效
+            skip_ai_trigger=True  # 避免递归触发AI
+        )
+        
+        if not success:
+            return None
+        
         # 记录上一步走法
         last_move = (from_row, from_col, to_row, to_col)
         # 生成上一步走法的中文表示
-        piece = game_state.get_piece_at(to_row, to_col)
+        piece = chess_game.game_state.get_piece_at(to_row, to_col)
         if piece:
             from program.utils import tools
             last_move_notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
             # 更新游戏状态中的上一步走法记录
-            game_state.last_move = last_move
-            game_state.last_move_notation = last_move_notation
+            chess_game.last_move = last_move
+            chess_game.last_move_notation = last_move_notation
         return from_pos, to_pos
     
-    def process_async_ai_computation(self, game_state):
+    def process_async_ai_computation(self, chess_game):
         """处理异步AI计算并执行移动
         
         Args:
-            game_state: 当前游戏状态
+            chess_game: ChessGame实例
             
         Returns:
             tuple: (move, game_ended) AI移动和游戏是否结束的元组
@@ -227,9 +236,9 @@ class AIManager:
         move = self.process_async_ai_result()
 
         if move:
-            self.move_after(game_state, move)
+            self.move_after(chess_game, move)
             # 检查游戏是否结束
-            game_ended = game_state.game_over
+            game_ended = chess_game.game_state.game_over
             return move, game_ended
 
         return None, False

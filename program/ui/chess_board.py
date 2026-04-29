@@ -869,7 +869,11 @@ class ChessBoard:
 
             # 已选择棋子，尝试移动
             captured_piece = game_state.get_piece_at(row, col)
-            move_successful = game_state.move_piece(sel_row, sel_col, row, col)
+            move_successful = game_instance._execute_move_with_command_pattern(
+                (sel_row, sel_col, row, col),
+                skip_sound=False,  # 播放音效
+                skip_ai_trigger=False  # 允许AI触发（PVC模式需要）
+            )
 
             if move_successful:
                 print(f"[DEBUG] 移动成功: {sel_row},{sel_col} -> {row},{col}")
@@ -892,6 +896,13 @@ class ChessBoard:
                 piece = game_state.get_piece_at(row, col)
                 if piece:
                     game_instance.last_move_notation = tools.generate_move_notation(piece, sel_row, sel_col, row, col)
+                else:
+                    # 如果目标位置没有棋子（可能被甲/胄连线吃子或刺兑子移除），使用移动的棋子
+                    moving_piece = game_state.get_piece_at(sel_row, sel_col)
+                    if moving_piece:
+                        game_instance.last_move_notation = tools.generate_move_notation(moving_piece, sel_row, sel_col, row, col)
+                    else:
+                        game_instance.last_move_notation = "未知走法"
 
                 # 播放选子音效（当选择棋子时）
                 if game_instance.selected_piece and not captured_piece:

@@ -6,6 +6,13 @@ import pygame
 from controllers.game_config_manager import game_config
 from controllers.sound_manager import sound_manager
 from core.game_state import GameState
+from core import (
+    BoardManager,
+    MoveValidator,
+    HistoryManager,
+    CommandInvoker,
+    GameComponentFactory,
+)
 from ui.dialogs import PopupDialog, AudioSettingsDialog, StatisticsDialog
 from ui.game_screen import GameScreen
 from utils import tools
@@ -60,6 +67,16 @@ class ChessGame:
 
         # 初始化游戏状态
         self.game_state = GameState()
+        
+        # 初始化核心组件（使用工厂模式）
+        self.component_factory = GameComponentFactory()
+        components = self.component_factory.create_complete_game_components()
+        
+        self.board_manager = components['board_manager']
+        self.history_manager = components['history_manager']
+        self.command_invoker = components['command_invoker']
+        self.state_machine = components['state_machine']
+        self._create_move_validator = components['move_validator']
 
         # 初始化AI管理器（如果需要）
         from program.controllers.ai_manager import AIManager
@@ -108,56 +125,114 @@ class ChessGame:
 
     def make_move(self, move: Tuple[int, int, int, int]) -> None:
         """
-        执行走法
+        执行走法（使用完整的命令模式）
         
         Args:
             move: 移动元组 (from_row, from_col, to_row, to_col)
         """
+        self._execute_move_with_command_pattern(move)
+    
+    def _execute_move_with_command_pattern(self, move: Tuple[int, int, int, int], 
+                                          skip_sound: bool = False,
+                                          skip_ai_trigger: bool = False) -> bool:
+        """
+        使用命令模式执行走子（内部方法，可被其他模块调用）
+        
+        Args:
+            move: 移动元组 (from_row, from_col, to_row, to_col)
+            skip_sound: 是否跳过音效播放
+            skip_ai_trigger: 是否跳过AI触发
+            
+        Returns:
+            bool: 是否执行成功
+        """
+        from program.core.commands import MoveData
+        from program.core.xionghan_move_command import XionghanMoveCommand
+        
         from_row, from_col, to_row, to_col = move
-
-        # 检查目标位置是否有棋子（吃子）
+        
+        # 获取棋子
+        piece = self.game_state.get_piece_at(from_row, from_col)
+        if not piece:
+            return False
+        
+        # 检查是否是当前玩家的棋子
+        if piece.color != self.game_state.player_turn:
+            return False
+        
+        # 创建移动验证器
+        validator = self._create_move_validator(self.game_state.player_turn)
+        
+        # 验证移动合法性
+        if not validator.is_valid_move(piece, from_row, from_col, to_row, to_col):
+            return False
+        
+        # 检查目标位置的棋子（吃子）
         captured_piece = self.game_state.get_piece_at(to_row, to_col)
-
-        self.game_state.move_piece(from_row, from_col, to_row, to_col)
-
-        # 更新棋盘上的棋子位置
-        # 棋子位置已在game_state中更新，无需单独更新棋盘
-
+        
+        # 使用命令模式执行走子
+        move_data = MoveData(
+            piece=piece,
+            from_row=from_row,
+            from_col=from_col,
+            to_row=to_row,
+            to_col=to_col,
+            captured_piece=captured_piece
+        )
+        
+        command = XionghanMoveCommand(move_data, self.game_state)
+        success = self.command_invoker.execute_command(command)
+        
+        if not success:
+            return False
+        
+        # 记录历史（XionghanMoveCommand已经处理了所有逻辑）
+        self.history_manager.record_move(
+            piece=piece,
+            from_row=from_row,
+            from_col=from_col,
+            to_row=to_row,
+            to_col=to_col,
+            captured_piece=captured_piece
+        )
+        
         # 更新上一步走法记录
         self.last_move = move
+        
         # 生成走法的中文表示
-        from_row, from_col, to_row, to_col = move
-        piece = self.game_state.get_piece_at(to_row, to_col)
         if piece:
             self.last_move_notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)
 
-        # 播放音效
-        # 优先处理绝杀情况，因为绝杀时is_check和is_checkmate都为True
-        if self.game_state.is_checkmate():
-            print("[DEBUG] 检测到绝杀，播放绝杀音效")
-            # 绝杀时播放更明显的音效
-            try:
-                self.sound_manager.play_sound('defeat')  # 播放失败音效
-            except (AttributeError, Exception):
-                # 如果没有特定音效，播放警告音效
-                self.sound_manager.play_sound('warn')
-        elif self.game_state.is_check:
-            # 普通将军情况，播放将军音效
-            self.sound_manager.play_sound('warn')# 使用将军语音
-            try:
-                self.sound_manager.play_sound('capture')  # 播放旧版音效
-            except (AttributeError, Exception):
-                pass
-        # 检查是否有棋子被吃掉
-        elif captured_piece:
-            self.sound_manager.play_sound('eat')
-        else:
-            self.sound_manager.play_sound('drop')
+        # 播放音效（可选）
+        if not skip_sound:
+            # 优先处理绝杀情况，因为绝杀时is_check和is_checkmate都为True
+            if self.game_state.is_checkmate():
+                print("[DEBUG] 检测到绝杀，播放绝杀音效")
+                # 绝杀时播放更明显的音效
+                try:
+                    self.sound_manager.play_sound('defeat')  # 播放失败音效
+                except (AttributeError, Exception):
+                    # 如果没有特定音效，播放警告音效
+                    self.sound_manager.play_sound('warn')
+            elif self.game_state.is_check:
+                # 普通将军情况，播放将军音效
+                self.sound_manager.play_sound('warn')# 使用将军语音
+                try:
+                    self.sound_manager.play_sound('capture')  # 播放旧版音效
+                except (AttributeError, Exception):
+                    pass
+            # 检查是否有棋子被吃掉
+            elif captured_piece:
+                self.sound_manager.play_sound('eat')
+            else:
+                self.sound_manager.play_sound('drop')
 
-        # 如果是人机对战，启动AI
-        if self.ai_manager.is_ai_turn(self.game_state.player_turn):
+        # 如果是人机对战，启动AI（可选）
+        if not skip_ai_trigger and self.ai_manager.is_ai_turn(self.game_state.player_turn):
             self.ai_manager.start_ai_thinking()
             pygame.time.set_timer(pygame.USEREVENT, 1000)  # 1秒后启动AI
+        
+        return True
 
 
 
@@ -186,6 +261,31 @@ class ChessGame:
             elif winner is not None:  # AI获胜
                 self.sound_manager.play_defeat_sound()
             # 平局时不播放音效
+
+    def undo_move(self):
+        """
+        悔棋（使用新的HistoryManager）
+        
+        Returns:
+            bool: 是否成功悔棋
+        """
+        if not self.history_manager.can_undo():
+            return False
+        
+        # 委托给GameState执行实际悔棋（保持向后兼容）
+        success = self.game_state.undo_move()
+        
+        if success:
+            # 同步更新HistoryManager
+            self.history_manager.pop_last_move()
+            self.history_manager.undo_board_position()
+            
+            # 重置相关状态
+            self.last_move = None
+            self.last_move_notation = ""
+            self.selected_piece = None
+        
+        return success
 
     def restart_game(self):
         """重新开始游戏"""
@@ -229,10 +329,34 @@ class ChessGame:
         return self.game_screen.handle_event(event, mouse_pos, self)
 
     def run(self):
-        """游戏主循环 - 统一的游戏循环处理PVP和PVC模式"""
+        """游戏主循环 - 统一的游戏循环处理PVP和PVC模式（集成状态机）"""
+        # 初始化状态机到游戏运行状态
+        self.state_machine.transition_to(self.state_machine.current_state)  # 保持当前状态
+        
         while True:
             mouse_pos = pygame.mouse.get_pos()
             current_time = pygame.time.get_ticks()
+            
+            # 根据状态机执行不同的逻辑
+            current_phase = self.state_machine.get_current_state()
+            
+            # 检查游戏是否结束，自动转换状态
+            if self.game_state.game_over and not self.state_machine.is_in_state(self.state_machine.__class__.__dict__.get('GAME_OVER')):
+                from program.core.game_state_machine import GamePhase
+                if self.state_machine.can_transition_to(GamePhase.GAME_OVER):
+                    self.state_machine.transition_to(GamePhase.GAME_OVER)
+            
+            # AI思考状态检查
+            if self.ai_manager.ai_thinking:
+                from program.core.game_state_machine import GamePhase
+                if not self.state_machine.is_in_state(GamePhase.THINKING):
+                    if self.state_machine.can_transition_to(GamePhase.THINKING):
+                        self.state_machine.transition_to(GamePhase.THINKING)
+            else:
+                from program.core.game_state_machine import GamePhase
+                if self.state_machine.is_in_state(GamePhase.THINKING):
+                    if self.state_machine.can_transition_to(GamePhase.GAME_RUNNING):
+                        self.state_machine.transition_to(GamePhase.GAME_RUNNING)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:

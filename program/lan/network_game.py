@@ -178,7 +178,11 @@ class NetworkChessGame(ChessGame):
 
             # 已选择棋子，尝试移动
             captured_piece = self.game_state.get_piece_at(row, col)
-            move_successful = self.game_state.move_piece(sel_row, sel_col, row, col)
+            move_successful = self._execute_move_with_command_pattern(
+                (sel_row, sel_col, row, col),
+                skip_sound=False,  # 播放音效
+                skip_ai_trigger=True  # 跳过AI触发（网络对战不需要）
+            )
 
             if move_successful:
                 print(f"[DEBUG] 移动成功: {sel_row},{sel_col} -> {row},{col}")
@@ -311,7 +315,11 @@ class NetworkChessGame(ChessGame):
             return
         
         # 执行对手的移动
-        success = self.game_state.move_piece(from_row, from_col, to_row, to_col)
+        success = self._execute_move_with_command_pattern(
+            (from_row, from_col, to_row, to_col),
+            skip_sound=False,  # 播放音效
+            skip_ai_trigger=True  # 跳过AI触发
+        )
         if success:
             print(f"[DEBUG] 对手移动成功执行: {from_row},{from_col} -> {to_row},{to_col}")
             

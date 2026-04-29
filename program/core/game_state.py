@@ -87,253 +87,13 @@ class GameState:
         """更新尉照面关系"""
         self.facing_pairs = []
         for piece in self.pieces:
+            # 防御性检查：确保piece不为None
+            if piece is None:
+                continue
             if isinstance(piece, Wei) and GameRules.is_facing_enemy(piece, self.pieces):
                 facing_target = GameRules.get_facing_piece(piece, self.pieces)
                 if facing_target:
                     self.facing_pairs.append((piece, facing_target))
-
-    def move_piece(self, from_row, from_col, to_row, to_col):
-        """移动棋子
-        
-        Args:
-            from_row (int): 起始行
-            from_col (int): 起始列
-            to_row (int): 目标行
-            to_col (int): 目标列
-            
-        Returns:
-            bool: 移动是否成功
-        """
-        # 获取要移动的棋子
-        piece = self.get_piece_at(from_row, from_col)
-        if not piece or piece.color != self.player_turn:
-            return False
-
-        # 更新尉照面关系，然后再检查移动是否合法
-        self.update_facing_pairs()
-        if not GameRules.is_valid_move(self.pieces, piece, from_row, from_col, to_row, to_col):
-            return False
-
-        # 检查移动后是否会导致自己被将军（送将）
-        if GameRules.would_be_in_check_after_move(self.pieces, piece, to_row, to_col):
-            return False
-
-        # 获取目标位置的棋子（如果有）
-        captured_piece = self.get_piece_at(to_row, to_col)
-
-        # 记录移动历史 - 暂时不包括甲/胄连线吃子和刺兑子（因为需要在移动后检测）
-        # 先创建临时记录
-        temp_move_record = (
-            piece,
-            from_row,
-            from_col,
-            to_row,
-            to_col,
-            captured_piece
-        )
-
-        # 更新当前玩家的用时
-        current_time = time.time()
-        elapsed = max(0.0, current_time - self.current_turn_start_time)  # 确保elapsed不为负数
-        if self.player_turn == "red":
-            self.red_time += elapsed
-        else:
-            self.black_time += elapsed
-
-        # 如果有棋子被吃掉（直接移动到目标位置的棋子），移除它并记录到阵亡列表
-        if captured_piece:
-
-            self.pieces.remove(captured_piece)
-            self.captured_pieces[captured_piece.color].append(captured_piece)
-
-            piece_type = captured_piece.__class__.__name__.lower()
-            statistics_manager.update_pieces_captured(piece_type, 1)
-
-            # 如果吃掉的是对方将/帅/汉/汗，游戏结束
-            if isinstance(captured_piece, King):
-                self.game_over = True
-                self.winner = piece.color
-                # 更新游戏总时长
-                self.total_time = max(0.0, current_time - self.start_time)
-                return True
-
-        # 执行移动
-        piece.move_to(to_row, to_col)
-
-        # 打印当前棋局状态
-        print_board(self.pieces, [step_counter.get_step()], show_step=True)
-
-        # 增加步数计数器
-        step_counter.increment()
-
-        # 处理甲/胄的特殊吃子规则（移动后检查）- 这是关键步骤
-        jia_captured_pieces = []
-        if isinstance(piece, Jia):
-            # 查找所有被吃掉的敌方棋子 - 在棋子移动到新位置后检查
-            jia_captured_pieces = GameRules.find_jia_capture_moves(self.pieces, piece)
-
-        # 处理刺的兑子规则
-        ci_captured_pieces = []  # 记录刺兑子时涉及的棋子
-        if isinstance(piece, Ci):
-            # 检查移动前起始位置的反方向一格是否有敌棋（兑子条件）
-            row_diff = to_row - from_row
-            col_diff = to_col - from_col
-
-            # 计算起始位置的反方向
-            reverse_row = from_row - row_diff
-            reverse_col = from_col - col_diff
-
-            # 检查反方向位置是否在棋盘范围内
-            if GameState.is_position_on_board(reverse_row, reverse_col):
-                reverse_piece = GameRules.get_piece_at(self.pieces, reverse_row, reverse_col)
-                # 如果反方向有敌方棋子，则进行兑子（双方都阵亡）
-                if reverse_piece and reverse_piece.color != piece.color:
-                    # 检查反方向的棋子是否是盾（盾不可被兑子）
-                    if not isinstance(reverse_piece, Dun):
-                        # 检查移动的刺是否与敌方盾相邻（8邻域），如果是则不能触发兑子
-                        shield_nearby = False
-                        for p in self.pieces:
-                            if isinstance(p, Dun) and p.color != piece.color:
-                                # 检查该敌方盾是否与移动的刺相邻（8邻域）
-                                row_diff_to_dun = abs(p.row - to_row)  # 检查移动后的位置
-                                col_diff_to_dun = abs(p.col - to_col)
-                                if row_diff_to_dun <= 1 and col_diff_to_dun <= 1 and (
-                                        row_diff_to_dun != 0 or col_diff_to_dun != 0):
-                                    shield_nearby = True
-                                    break
-
-                        if not shield_nearby:
-                            # 执行兑子：移除刺和反方向的敌棋
-                            if piece in self.pieces:
-                                self.pieces.remove(piece)
-                                self.captured_pieces[piece.color].append(piece)
-                                ci_captured_pieces.append(piece)  # 记录刺自身（虽然它不是被吃掉的，但参与了兑子）
-                            # 移除反方向的敌方棋子
-                            if reverse_piece in self.pieces:
-                                self.pieces.remove(reverse_piece)
-                                self.captured_pieces[reverse_piece.color].append(reverse_piece)
-                                ci_captured_pieces.append(reverse_piece)  # 记录被兑掉的敌方棋子
-
-                                # 如果吃掉的是对方将/帅/汉/汗，游戏结束
-                                if isinstance(reverse_piece, King):
-                                    self.game_over = True
-                                    self.winner = piece.color
-                                    # 更新游戏总时长
-                                    current_time = time.time()
-                                    self.total_time = max(0.0, current_time - self.start_time)
-                                    # 现在将完整的记录添加到历史中，包括甲/胄吃子信息和刺兑子信息
-                                    self.move_history.append(temp_move_record + (
-                                    jia_captured_pieces[:], ci_captured_pieces[:]))  # 添加甲/胄吃子信息和刺兑子信息
-                                    return True
-
-                            # 由于刺和敌棋都被移除了，无需继续处理
-                            # 切换玩家
-                            opponent_color = "black" if self.player_turn == "red" else "red"
-
-                            # 检查是否将军
-                            self.is_check = GameRules.is_check(self.pieces, opponent_color)
-                            if self.is_check:
-                                # 设置将军动画计时器
-                                self.check_animation_time = current_time
-
-                            # 检查是否将死或获胜
-                            game_over, winner = GameRules.is_game_over(self.pieces, self.player_turn)
-
-                            if game_over:
-                                self.game_over = True
-                                self.winner = winner
-                                # 更新游戏总时长
-                                self.total_time = max(0.0, current_time - self.start_time)
-                            else:
-                                # 切换玩家回合
-                                self.player_turn = opponent_color
-                                # 重置当前回合开始时间
-                                self.current_turn_start_time = current_time
-
-                            # 现在将完整的记录添加到历史中，包括甲/胄吃子信息和刺兑子信息
-                            self.move_history.append(
-                                temp_move_record + (jia_captured_pieces[:], ci_captured_pieces[:]))  # 添加甲/胄吃子信息和刺兑子信息
-
-                            return True
-
-        # 现在将完整的记录添加到历史中
-        self.move_history.append(temp_move_record + (jia_captured_pieces[:], ci_captured_pieces[:]))  # 添加甲/胄吃子信息和刺兑子信息
-
-        # 更新走子计数
-        self.moves_count += 1
-        statistics_manager.update_total_moves(1)
-
-        # 实际移除甲/胄连线吃掉的棋子
-        for captured in jia_captured_pieces:
-            if captured in self.pieces:
-                self.pieces.remove(captured)
-                self.captured_pieces[captured.color].append(captured)
-
-                # 直接使用类名作为统计类型
-                piece_type = captured_piece.__class__.__name__.lower()
-
-                # 更新统计数据
-                statistics_manager.update_pieces_captured(piece_type, 1)
-
-                # 如果吃掉的是对方将/帅/汉/汗，游戏结束
-                if isinstance(captured, King):
-                    self.game_over = True
-                    self.winner = piece.color
-                    # 更新游戏总时长
-                    current_time = time.time()
-                    self.total_time = max(0.0, current_time - self.start_time)
-                    return True
-
-        # 检查兵/卒是否到达对方底线，触发升变
-        if (isinstance(piece, Pawn) and tools.is_pawn_at_opponent_base(piece, to_row) and
-                game_config.get_setting("pawn_promotion_enabled", True)):
-            print(f"[DEBUG] 兵到达对方底线: {piece.color}兵从({from_row},{from_col})移动到({to_row},{to_col})")
-            # 标记需要进行升变，但实际升变将在游戏主循环中处理
-            self.needs_promotion = True
-            self.promotion_pawn = piece
-            self.available_promotion_pieces = self.get_available_promotion_pieces(piece.color)
-
-            # 不立即切换玩家回合，等待升变完成后再切换
-        else:
-            # 重置升变标志
-            self.needs_promotion = False
-            self.promotion_pawn = None
-            self.available_promotion_pieces = []
-
-            # 切换玩家
-            opponent_color = "black" if self.player_turn == "red" else "red"
-
-            # 检查是否将军（在检查游戏结束之前）
-            self.is_check = GameRules.is_check(self.pieces, opponent_color)
-            if self.is_check:
-                # 设置将军动画计时器
-                self.check_animation_time = current_time
-                print(f"[DEBUG] 检测到将军状态，被将军方: {opponent_color}")
-
-            # 检查是否将死或获胜
-            game_over, winner = GameRules.is_game_over(self.pieces, self.player_turn)
-
-            if game_over:
-                self.game_over = True
-                self.winner = winner
-                # 更新游戏总时长
-                self.total_time = max(0.0, current_time - self.start_time)
-                # 更新统计数据
-                statistics_manager.update_games_played(1)
-                statistics_manager.update_game_result(winner, self.total_time)
-            else:
-                # 检查是否和棋
-                if self.is_draw():
-                    self.game_over = True
-                    self.winner = None  # 和棋没有获胜方
-
-                # 切换玩家回合
-                self.player_turn = opponent_color
-                # 重置当前回合开始时间
-                self.current_turn_start_time = current_time
-                print(f"[DEBUG] 移动后切换玩家: {opponent_color}")
-
-        return True
 
     def handle_captured_piece(self, captured_piece, current_time=time.time()):
         """处理被吃掉的棋子
@@ -456,6 +216,9 @@ class GameState:
 
         # 恢复甲/胄连线吃掉的棋子
         for captured in jia_captured_pieces:
+            # 防御性检查：确保captured不为None
+            if captured is None:
+                continue
             if captured not in self.pieces:  # 避免重复添加
                 self.pieces.append(captured)
                 # 从阵亡列表中移除
@@ -464,6 +227,9 @@ class GameState:
 
         # 恢复刺兑子中失去的棋子
         for captured in ci_captured_pieces:
+            # 防御性检查：确保captured不为None
+            if captured is None:
+                continue
             if captured not in self.pieces:  # 避免重复添加
                 self.pieces.append(captured)
                 # 从阵亡列表中移除
@@ -617,6 +383,9 @@ class GameState:
         """
         count = 0
         for piece in self.pieces:
+            # 防御性检查：确保piece不为None
+            if piece is None:
+                continue
             if isinstance(piece, Pawn) and piece.color == color:
                 count += 1
         return count
@@ -660,7 +429,7 @@ class GameState:
             return False
 
         # 检查是否有阵亡的兵/卒可以复活
-        has_dead_pawn = any(isinstance(piece, Pawn) and piece.color == color for piece in self.captured_pieces[color])
+        has_dead_pawn = any(piece is not None and isinstance(piece, Pawn) and piece.color == color for piece in self.captured_pieces[color])
         if not has_dead_pawn and alive_pawns >= 6:  # 如果没有阵亡兵卒，且在局数量已经>=6，则无法复活
             return False
 
@@ -685,6 +454,9 @@ class GameState:
         # 从阵亡棋子列表中找到一个兵/卒并移除
         # 从阵亡列表中移除一个兵/卒
         for i, captured_piece in enumerate(self.captured_pieces[color][:]):  # 使用副本遍历
+            # 防御性检查：确保captured_piece不为None
+            if captured_piece is None:
+                continue
             if isinstance(captured_piece, Pawn) and captured_piece.color == color:
                 # 从阵亡棋子列表中移除这个兵/卒
                 self.captured_pieces[color].remove(captured_piece)
@@ -707,7 +479,7 @@ class GameState:
             list: 可升变的阵亡棋子列表
         """
         # 过滤掉兵/卒，因为升变是将兵/卒变成其他阵亡棋子
-        return [piece for piece in self.captured_pieces[color] if not isinstance(piece, Pawn)]
+        return [piece for piece in self.captured_pieces[color] if piece is not None and not isinstance(piece, Pawn)]
 
     def reset(self):
         """重置游戏状态"""
@@ -809,6 +581,9 @@ class GameState:
 
             # 只将传统象棋棋子放置到棋盘上
             for piece in self.pieces:
+                # 防御性检查：确保piece不为None
+                if piece is None:
+                    continue
                 # 只处理传统象棋的棋子
                 if piece.name in ['汗',
                                   '車', '馬', '象', '士', '砲', '卒',
@@ -855,6 +630,9 @@ class GameState:
 
             # 将棋子放置到棋盘上
             for piece in self.pieces:
+                # 防御性检查：确保piece不为None
+                if piece is None:
+                    continue
                 board[piece.row][piece.col] = piece.name
 
             # 将棋盘转换为FEN格式
@@ -1145,6 +923,9 @@ class GameState:
         # 深拷贝棋子列表及其状态
         cloned_state.pieces = []
         for piece in self.pieces:
+            # 防御性检查：确保piece不为None
+            if piece is None:
+                continue
             cloned_piece = copy.deepcopy(piece)
             cloned_state.pieces.append(cloned_piece)
 
