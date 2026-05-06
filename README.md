@@ -1,76 +1,125 @@
-README.md
 # 匈汉象棋 (XiongHan Chess)
 
-一个融合了中国传统象棋与中国古代匈奴与东汉历史文化元素的创新象棋变体游戏，基于PyGame开发，支持双人对战、人机对战和智能AI对弈。
+一个融合了中国传统象棋与中国古代匈奴与东汉历史文化元素的创新象棋变体游戏，支持桌面端和Web端双平台。
 
-## 🎮 项目概述
+## 📁 项目结构
 
-匈汉象棋是一款独特的中国象棋变体，采用13×13的扩展棋盘，不仅保留了传统象棋的经典元素，还加入了体现中国古代匈奴与东汉历史文化特色的全新棋子和规则，为玩家带来前所未有的策略体验。
+本项目包含两个独立的子项目：
 
-## ✨ 核心特性
-
-### 🎲 丰富的游戏模式
-- **双人对战 (PVP)**: 本地双人竞技，增进友谊与智慧碰撞
-- **人机对战 (PVC)**: 配备多个难度级别的AI对手，适合练习与挑战
-- **网络对战**: 支持局域网多人对战，与好友远程博弈
-
-### 🧠 智能AI系统
-- **传统AI**: 基于Negamax算法，结合Alpha-Beta剪枝、历史启发和MVV-LVA启发技术
-- **MCTS AI**: 蒙特卡洛树搜索算法，支持PaddlePaddle和PyTorch深度学习框架
-- **高级评估**: 综合考虑棋子价值、位置优势、控制范围、安全性等多重因素
-
-### 🎯 特色游戏机制
-- **扩展棋盘**: 13×13网格，包含楚河汉界标识和九宫格区域
-- **独特棋子**: 除传统棋子外，新增尉、射、檑、甲、刺、盾、巡等特色棋子
-- **智能提示**: 高亮显示选中棋子的所有可行移动位置
-- **轨迹追踪**: 可视化展示上一步移动的起点与终点
-- **主题切换**: 支持多种UI主题，包括白天、夜晚、QQ象棋、JJ象棋等
-
-### 🔧 实用功能
-- **棋谱记录**: 支持传统中文棋谱格式记录（如"炮二平五"、"马8进7"）
-- **悔棋系统**: 支持双人模式和人机模式下的悔棋操作
-- **音效系统**: 移动、吃子、将军等丰富音效反馈
-- **个性化设置**: 可调节音效、全屏模式、AI难度等多种参数
-- **游戏统计**: 记录游戏数据和胜率统计
-- **规则查看**: 内置详细游戏规则说明
-- **棋局导入导出**: 支持游戏状态的保存和加载
+```
+xionghan-chess/
+├── desktop/          # 🖥️ 桌面端应用（PyGame）
+│   ├── ai/           # AI模块（传统AI + MCTS）
+│   ├── assets/       # 资源文件（图片、音频、字体）
+│   ├── config/       # 配置文件
+│   ├── controllers/  # 控制器层
+│   ├── core/         # 核心游戏逻辑
+│   ├── docs/         # 桌面端文档和示例
+│   ├── events/       # 事件系统
+│   ├── exceptions/   # 异常定义
+│   ├── lan/          # 网络对战
+│   ├── tests/        # 单元测试
+│   ├── ui/           # 用户界面
+│   ├── utils/        # 工具函数
+│   ├── main.py       # 入口文件
+│   └── game.py       # 游戏主类
+│
+└── web/              # 🌐 Web端应用（Flask + HTML5）
+    ├── css/          # 样式文件
+    ├── docs/         # Web端文档
+    ├── js/           # JavaScript代码
+    ├── server/       # Flask后端
+    ├── images/       # 图片资源
+    ├── sounds/       # 音效文件
+    ├── index.html    # 主页
+    └── game.html     # 游戏页面
+```
 
 ## 🚀 快速开始
 
-### 环境要求
-- Python 3.6+
-- PyGame 2.0+
+### 桌面端
+
+**环境要求：**
+- Python 3.8+
+- PyGame CE 2.5+
 - NumPy
-- Redis（用于MCTS AI训练）
+- Redis（用于MCTS AI训练，可选）
 
-### 安装指南
 ```bash
-# 1. 克隆项目仓库
-git clone https://github.com/Jinny168/xionghan-chess.git
-cd xionghan-chess
+# 1. 安装依赖
+cd desktop
+pip install pygame pygame-ce numpy
+# AI相关（可选）
+pip install torch paddlepaddle
 
-# 2. 安装依赖包
-pip install -r requirements.txt
-
-# 3. 启动游戏
-python -m program.main
+# 2. 启动游戏
+python main.py
 ```
 
-## 🎲 游戏玩法
+**打包为exe：**
+```bash
+cd desktop
+python build_exe.py
+```
+
+### Web端
+
+```bash
+cd web
+start.bat  # Windows
+# 或
+./start.ps1  # PowerShell
+```
+
+访问 http://localhost:5000
+
+**Web端依赖：**
+```bash
+cd web/server
+pip install flask flask-cors flask-socketio
+```
+
+## 🎮 功能特性
+
+### 桌面端特性
+- ✅ **丰富的游戏模式**: PVP双人对战、PVC人机对战、网络联机对战
+- ✅ **智能AI系统**: 
+  - 传统AI：Negamax算法 + Alpha-Beta剪枝 + 历史启发
+  - MCTS AI：蒙特卡洛树搜索 + PyTorch/PaddlePaddle深度学习
+- ✅ **特色棋子**: 尉、射、檑、甲、刺、盾、巡等7种独特棋子
+- ✅ **扩展棋盘**: 13×13网格，包含楚河汉界和九宫格
+- ✅ **实用功能**: 棋谱记录、悔棋系统、音效控制、主题切换
+- ✅ **高级特性**: 将军提示、轨迹追踪、兵复活机制、升变系统
+
+### Web端特性
+- ✅ **跨平台支持**: 浏览器即可运行，无需安装
+- ✅ **实时对战**: WebSocket通信，支持远程联机
+- ✅ **响应式设计**: 自适应不同屏幕尺寸
+- ✅ **暗黑模式**: 主题切换并持久化保存
+- ✅ **内置聊天**: 对战时可实时交流
+- ✅ **Canvas渲染**: 流畅的游戏体验
+
+## 🎯 游戏玩法
 
 ### 基础操作
 - **选择棋子**: 点击棋子进行选中，可用移动位置将高亮显示
 - **移动棋子**: 点击目标位置完成移动
+- **取消选择**: 再次点击已选棋子
 - **特殊功能**: 
   - 悔棋按钮：撤销上一步操作
   - 设置按钮：调整游戏参数
-  - 全屏切换：F11或Alt+Enter
+  - 全屏切换：F11或Alt+Enter（桌面端）
   - 主题切换：在设置菜单中切换UI主题
 
 ### 胜负判定
 - 将军/将死对手
 - 汉/汗进入敌方九宫格
 - 特殊规则胜利条件
+
+### 快捷操作
+- **聊天发送**: 输入后按 Enter 键（Web端）
+- **窗口缩放**: 棋盘自动调整大小（Web端）
+- **刷新页面**: 保留暗黑模式偏好（Web端）
 
 ## ⚙️ 特殊规则详解
 
@@ -86,61 +135,95 @@ python -m program.main
 - 合理运用特色棋子的独特能力
 - 注意控制棋盘中心和关键位置
 
-## 📁 项目架构
+## 🧪 测试
 
-```
-program/
-├── ai/                    # AI算法实现
-│   ├── chess_ai.py        # 传统AI（Negamax）
-│   └── mcts/              # MCTS算法相关
-├── assets/                # 资源文件
-│   ├── docs/              # 文档和配置
-│   └── sounds/            # 音效资源
-├── config/                # 配置管理
-│   ├── settings.py        # 游戏设置
-│   └── config.py          # 基础配置
-├── controllers/           # 控制器
-│   ├── ai_manager.py      # AI管理
-│   ├── game_config_manager.py # 游戏配置
-│   └── sound_manager.py   # 音效管理
-├── core/                  # 核心逻辑
-│   ├── chess_pieces.py    # 棋子定义
-│   ├── game_rules.py      # 规则实现
-│   └── game_state.py      # 游戏状态
-├── lan/                   # 网络功能
-│   └── network_game.py    # 网络对战
-├── ui/                    # 用户界面
-│   ├── chess_board.py     # 棋盘渲染
-│   ├── game_screen.py     # 游戏屏幕
-│   └── dialogs.py         # 对话框
-├── utils/                 # 工具函数
-└── test/                  # 测试代码
+### 桌面端测试
+
+```bash
+cd desktop
+
+# 运行所有测试
+python -m pytest tests/ -v
+
+# 运行特定测试文件
+python -m pytest tests/test_core_components.py -v
+
+# 生成覆盖率报告
+pip install pytest-cov
+python -m pytest tests/ --cov=desktop --cov-report=html
 ```
 
-## 🔧 技术亮点
+### Web端测试
 
-### 架构设计
-- **模块化结构**: 清晰的功能分离，便于维护和扩展
-- **性能优化**: 高效的AI搜索算法和状态管理
-- **可扩展性**: 支持多种AI算法和自定义规则
+```bash
+cd web/server
+python app.py  # 手动测试
+```
 
-### 优化特性
-- **智能搜索**: Alpha-Beta剪枝大幅提升AI响应速度
-- **资源管理**: 高效的音效和图像资源加载
-- **多线程处理**: AI计算与界面渲染分离
+## 🔧 技术栈
 
-## 🌐 网络对战
+### 桌面端
+- **语言**: Python 3.8+
+- **图形库**: PyGame CE 2.5+
+- **AI框架**: PyTorch / PaddlePaddle (可选)
+- **网络**: Socket编程
+- **数据库**: Redis (MCTS训练)
 
-支持局域网多人对战，采用简化的网络协议确保稳定的游戏体验。
+### Web端
+- **前端**: HTML5 Canvas, CSS3 Flexbox, Vanilla JavaScript ES6+
+- **后端**: Flask + Flask-SocketIO + Flask-CORS
+- **通信**: WebSocket
+- **音频**: Web Audio API
 
-## 🚧 未来规划
+## 📖 更多文档
 
-- [ ] 更多AI难度级别
-- [ ] 自定义棋盘主题
-- [ ] 云存档功能
-- [ ] 移动端适配
+### 桌面端文档
+- **快速参考**: `desktop/docs/QUICK_REFERENCE.py` - API速查手册
+- **实施总结**: `desktop/docs/IMPLEMENTATION_SUMMARY.md` - 架构改进记录
+- **示例代码**: `desktop/docs/examples/new_features_demo.py` - 功能演示
+
+### Web端文档
+- **用户指南**: `web/README.md` - 使用教程和FAQ
+- **开发者文档**: `web/docs/DEVELOPER_GUIDE.md` - 技术实现和部署指南
+
+## ⚠️ 注意事项
+
+### 导入路径规范
+
+**桌面端内部导入:**
+```python
+# 方式1：相对导入（推荐）
+from .config.constants import GameConstants
+
+# 方式2：绝对导入
+from desktop.core.game_state import GameState
+```
+
+**避免跨子项目直接导入:**
+```python
+# ❌ 不推荐
+from desktop.xxx import something
+
+# ✅ 推荐：通过API或数据交换
+```
+
+### 资源路径
+
+所有资源路径相对于各自的子目录：
+- 桌面端：`desktop/assets/`
+- Web端：`web/images/`, `web/sounds/`
+
+### 独立运行
+
+桌面端和Web端可以完全独立开发和部署，互不影响。
 
 ## 🤝 贡献指南
+
+提交代码前请确保：
+- [ ] 桌面端和Web端都能正常运行
+- [ ] 所有测试通过 (`cd desktop && python -m pytest tests/`)
+- [ ] 代码符合项目规范
+- [ ] 更新了相关文档
 
 欢迎提交Issue和Pull Request来帮助改进项目。
 
@@ -153,3 +236,9 @@ program/
 - 感谢所有为中国象棋文化传承做出贡献的爱好者
 - 感谢开源社区提供的优质资源和工具
 - 本项目由个人开发者维护，感谢社区支持
+
+---
+
+**最后更新**: 2026-05-06  
+**项目状态**: ✅ 活跃开发中  
+**版本**: v2.0 (桌面端 + Web端)
