@@ -15,6 +15,15 @@ class GameController {
         this.lastMoveNotation = '';
         this.moveHistory = [];
         
+        // 复盘相关
+        this.replayController = null;
+        this.gameRecordManager = new GameRecordManager();
+        this.isReplayMode = false;
+        
+        // 嘲讽和统计管理
+        this.tauntManager = new TauntManager();
+        this.statisticsManager = new StatisticsManager();
+        
         // UI元素
         this.canvas = null;
         this.turnIndicator = null;
@@ -241,6 +250,15 @@ class GameController {
             });
         }
         
+        // 复盘按钮
+        const replayBtn = document.getElementById('btn-replay');
+        if (replayBtn) {
+            replayBtn.addEventListener('click', () => {
+                this.soundManager.playButton();
+                this.showReplayModal();
+            });
+        }
+        
         // 聊天按钮
         const chatBtn = document.getElementById('btn-chat');
         if (chatBtn) {
@@ -296,6 +314,72 @@ class GameController {
         if (closeHelp) {
             closeHelp.addEventListener('click', () => {
                 document.getElementById('help-modal').classList.add('hidden');
+            });
+        }
+        
+        // 关闭复盘侧边栏
+        const closeReplaySidebar = document.getElementById('close-replay-sidebar');
+        if (closeReplaySidebar) {
+            closeReplaySidebar.addEventListener('click', () => {
+                this.exitReplayMode();
+            });
+        }
+        
+        // 复盘按钮事件
+        const replayBeginBtn = document.getElementById('replay-begin');
+        if (replayBeginBtn) {
+            replayBeginBtn.addEventListener('click', () => {
+                if (this.replayController) {
+                    this.replayController.goToBeginning();
+                    this.updateReplayUI();
+                    this.render();
+                }
+            });
+        }
+        
+        const replayPrevBtn = document.getElementById('replay-prev');
+        if (replayPrevBtn) {
+            replayPrevBtn.addEventListener('click', () => {
+                if (this.replayController) {
+                    this.replayController.goToPrevious();
+                    this.updateReplayUI();
+                    this.render();
+                }
+            });
+        }
+        
+        const replayNextBtn = document.getElementById('replay-next');
+        if (replayNextBtn) {
+            replayNextBtn.addEventListener('click', () => {
+                if (this.replayController) {
+                    this.replayController.goToNext();
+                    this.updateReplayUI();
+                    this.render();
+                }
+            });
+        }
+        
+        const replayEndBtn = document.getElementById('replay-end');
+        if (replayEndBtn) {
+            replayEndBtn.addEventListener('click', () => {
+                if (this.replayController) {
+                    this.replayController.goToEnd();
+                    this.updateReplayUI();
+                    this.render();
+                }
+            });
+        }
+        
+        // 复盘进度条
+        const replayProgress = document.getElementById('replay-progress');
+        if (replayProgress) {
+            replayProgress.addEventListener('input', (e) => {
+                if (this.replayController) {
+                    const percentage = parseInt(e.target.value);
+                    this.replayController.setProgress(percentage);
+                    this.updateReplayUI();
+                    this.render();
+                }
             });
         }
         
@@ -526,6 +610,11 @@ class GameController {
                 const lastMove = this.gameState.moveHistory[this.gameState.moveHistory.length - 1];
                 if (lastMove.capturedPiece) {
                     this.soundManager.playCapture();
+                    // 更新吃子统计
+                    const capturedType = this.getPieceType(lastMove.capturedPiece.name);
+                    if (capturedType) {
+                        this.statisticsManager.updatePiecesCaptured(capturedType);
+                    }
                 } else {
                     this.soundManager.playMove();
                 }
@@ -682,6 +771,241 @@ class GameController {
     }
     
     /**
+     * 显示复盘侧边栏
+     */
+    showReplayModal() {
+        const sidebar = document.getElementById('replay-sidebar');
+        if (!sidebar) return;
+        
+        // 检查localStorage中是否有保存的对局记录
+        const records = this.gameRecordManager.loadAllRecords();
+        
+        if (records.length === 0) {
+            window.dialogManager.showInfo('提示', '当前没有对局记录，无法复盘');
+            return;
+        }
+        
+        // 显示侧边栏
+        sidebar.classList.remove('hidden');
+        
+        // 给body添加类，调整右上角状态区域的边距
+        document.body.classList.add('replay-active');
+        
+        // 加载对局记录列表
+        this.loadGameRecordsList();
+        
+        // 如果有当前对局历史，也初始复盘模式
+        if (this.gameState.moveHistory.length > 0) {
+            this.initReplayMode();
+        }
+    }
+    
+    /**
+     * 初始化复盘模式
+     */
+    initReplayMode() {
+        // 创建复盘控制器
+        this.replayController = ReplayController.enterReplayMode(this.gameState);
+        this.isReplayMode = true;
+        
+        // 更新UI
+        this.updateReplayUI();
+        this.render();
+        
+        console.log('进入复盘模式');
+    }
+    
+    /**
+     * 更新复盘UI
+     */
+    updateReplayUI() {
+        if (!this.replayController) return;
+        
+        const stepInfo = this.replayController.getCurrentStepInfo();
+        
+        // 更新步骤信息
+        const stepInfoElement = document.getElementById('replay-step-info');
+        if (stepInfoElement) {
+            stepInfoElement.textContent = `${stepInfo.current} / ${stepInfo.total}`;
+        }
+        
+        // 更新进度条
+        const progressElement = document.getElementById('replay-progress');
+        if (progressElement) {
+            progressElement.value = stepInfo.percentage;
+        }
+        
+        // 更新回合指示器
+        const turnText = this.gameState.playerTurn === 'red' ? '红方回合' : '黑方回合';
+        if (this.turnIndicator) {
+            this.turnIndicator.textContent = turnText + ' (复盘)';
+        }
+    }
+    
+    /**
+     * 退出复盘模式
+     */
+    exitReplayMode() {
+        if (this.replayController) {
+            // 恢复原始状态
+            this.replayController.restoreOriginalState();
+            this.replayController = null;
+            this.isReplayMode = false;
+            
+            // 隐藏侧边栏
+            const sidebar = document.getElementById('replay-sidebar');
+            if (sidebar) {
+                sidebar.classList.add('hidden');
+            }
+            
+            // 移除body的replay-active类，恢复状态区域的边距
+            document.body.classList.remove('replay-active');
+            
+            // 恢复UI
+            const turnText = this.gameState.playerTurn === 'red' ? '红方回合' : '黑方回合';
+            if (this.turnIndicator) {
+                this.turnIndicator.textContent = turnText;
+            }
+            
+            this.render();
+            console.log('退出复盘模式');
+        }
+    }
+    
+    /**
+     * 加载对局记录列表
+     */
+    loadGameRecordsList() {
+        const recordsList = document.getElementById('game-records-list');
+        if (!recordsList) return;
+        
+        const records = this.gameRecordManager.loadAllRecords();
+        
+        if (records.length === 0) {
+            recordsList.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">暂无对局记录</div>';
+            return;
+        }
+        
+        recordsList.innerHTML = '';
+        
+        records.forEach((record, index) => {
+            const recordElement = document.createElement('div');
+            recordElement.style.cssText = `
+                padding: 12px 15px;
+                border-bottom: 1px solid #eee;
+                cursor: pointer;
+                transition: background 0.2s;
+            `;
+            recordElement.onmouseover = () => recordElement.style.background = '#f5f5f5';
+            recordElement.onmouseout = () => recordElement.style.background = 'white';
+            
+            const winnerText = record.winner 
+                ? (record.winner === 'red' ? '红方胜利' : '黑方胜利')
+                : '和棋';
+            
+            const durationText = this.gameRecordManager.formatDuration(record.duration || 0);
+            const dateText = this.gameRecordManager.formatDate(record.timestamp);
+            
+            recordElement.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: bold; color: #333; margin-bottom: 4px;">
+                            第 ${index + 1} 局 - ${winnerText}
+                        </div>
+                        <div style="font-size: 12px; color: #666;">
+                            ${dateText} | ${record.movesCount} 步 | 时长 ${durationText}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-small" style="padding: 4px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" data-action="load" data-id="${record.id}">
+                            加载
+                        </button>
+                        <button class="btn-small" style="padding: 4px 12px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" data-action="delete" data-id="${record.id}">
+                            删除
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // 添加事件监听
+            recordElement.querySelector('[data-action="load"]').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.loadRecord(record.id);
+            });
+            
+            recordElement.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteRecord(record.id);
+            });
+            
+            recordsList.appendChild(recordElement);
+        });
+    }
+    
+    /**
+     * 加载指定记录
+     */
+    loadRecord(recordId) {
+        const record = this.gameRecordManager.loadRecord(recordId);
+        if (!record) {
+            window.dialogManager.showError('加载失败', '找不到对局记录');
+            return;
+        }
+        
+        // 从记录恢复游戏状态
+        const success = this.gameRecordManager.restoreFromRecord(record, this.gameState);
+        
+        if (success) {
+            // 重新初始化复盘控制器
+            this.initReplayMode();
+            
+            window.dialogManager.showInfo('提示', '对局记录加载成功');
+            this.render();
+        } else {
+            window.dialogManager.showError('加载失败', '无法从记录恢复游戏状态');
+        }
+    }
+    
+    /**
+     * 删除对局记录
+     */
+    deleteRecord(recordId) {
+        window.dialogManager.showConfirm(
+            '删除记录',
+            '确定要删除这局记录吗？',
+            () => {
+                const success = this.gameRecordManager.deleteRecord(recordId);
+                if (success) {
+                    window.dialogManager.showInfo('提示', '记录已删除');
+                    // 重新加载列表
+                    this.loadGameRecordsList();
+                } else {
+                    window.dialogManager.showError('删除失败', '无法删除记录');
+                }
+            },
+            () => {}
+        );
+    }
+    
+    /**
+     * 保存当前对局记录
+     */
+    saveCurrentGameRecord() {
+        if (this.gameState.moveHistory.length === 0) {
+            return; // 没有移动记录，不保存
+        }
+        
+        const recordId = this.gameRecordManager.saveGameRecord(
+            this.gameState, 
+            this.isOnline ? 'online' : 'local'
+        );
+        
+        if (recordId) {
+            console.log('对局记录已保存:', recordId);
+        }
+    }
+    
+    /**
      * 处理游戏结束
      */
     handleGameEnd() {
@@ -689,10 +1013,29 @@ class GameController {
             ? `${this.gameState.winner === 'red' ? '红方' : '黑方'}胜利！`
             : '和棋';
         
+        // 保存对局记录
+        this.saveCurrentGameRecord();
+        
+        // 更新统计数据
+        const { redTime, blackTime } = this.gameState.getTimes();
+        const gameDuration = redTime + blackTime;
+        
+        this.statisticsManager.updateGamesPlayed();
+        this.statisticsManager.updateGameResult(
+            this.gameState.winner || 'draw',
+            gameDuration
+        );
+        this.statisticsManager.updateTotalMoves(this.gameState.movesCount);
+        
         // 播放游戏结束音效
         if (this.gameState.winner) {
             if (this.gameState.winner === this.playerCamp) {
                 this.soundManager.playVictory();
+                // 胜利时随机显示嘲讽语句
+                setTimeout(() => {
+                    const taunt = this.tauntManager.getRandomTaunt();
+                    window.dialogManager.showInfo(' 胜利！', taunt);
+                }, 500);
             } else {
                 this.soundManager.playDefeat();
             }
@@ -704,14 +1047,17 @@ class GameController {
         // 显示游戏结束对话框
         window.dialogManager.showConfirm(
             '游戏结束',
-            `<h2 style="color: ${this.gameState.winner === 'red' ? '#d32f2f' : '#333'}">${winnerText}</h2><p>是否重新开始？</p>`,
+            `<h2 style="color: ${this.gameState.winner === 'red' ? '#d32f2f' : '#333'}">${winnerText}</h2><p>是否复盘或重新开始？</p>`,
             () => {
-                this.newGame();
+                // 复盘
+                this.showReplayModal();
             },
             () => {
-                // 返回主页
-                window.location.href = '/';
-            }
+                // 重新开始
+                this.newGame();
+            },
+            '复盘',
+            '重新开始'
         );
     }
     
@@ -726,11 +1072,14 @@ class GameController {
             
             // 更新样式
             if (this.gameState.playerTurn === 'red') {
-                this.turnIndicator.style.color = '#b41e1e';
+                this.turnIndicator.className = 'turn-text red-turn';
             } else {
-                this.turnIndicator.style.color = '#212121';
+                this.turnIndicator.className = 'turn-text black-turn';
             }
         }
+        
+        // 更新头像
+        this.updatePlayerAvatar();
         
         // 更新步数
         if (this.stepCount) {
@@ -748,6 +1097,26 @@ class GameController {
         const undoBtn = document.getElementById('btn-regret');
         if (undoBtn) {
             undoBtn.disabled = this.gameState.moveHistory.length === 0;
+        }
+    }
+    
+    /**
+     * 更新玩家头像
+     */
+    updatePlayerAvatar() {
+        const avatarContainer = document.getElementById('current-player-avatar');
+        if (!avatarContainer) return;
+        
+        const avatarImg = avatarContainer.querySelector('img');
+        if (!avatarImg) return;
+        
+        // 根据当前回合切换头像
+        if (this.gameState.playerTurn === 'red') {
+            avatarImg.src = 'images/avatars/red-avatar.png';
+            avatarImg.alt = '红方';
+        } else {
+            avatarImg.src = 'images/avatars/black-avatar.png';
+            avatarImg.alt = '黑方';
         }
     }
     
@@ -887,7 +1256,11 @@ class GameController {
             
         const isDark = body.classList.contains('dark-mode');
         if (darkModeBtn) {
-            darkModeBtn.textContent = isDark ? '️' : '🌙';
+            // 只更新图标，不替换整个文本内容
+            const btnIcon = darkModeBtn.querySelector('.btn-icon');
+            if (btnIcon) {
+                btnIcon.textContent = isDark ? '🌙' : '☀️';
+            }
         }
             
         // 保存用户偏好
@@ -1225,6 +1598,43 @@ class GameController {
                 hasGameState: !!this.gameState
             });
         }
+    }
+    
+    /**
+     * 获取棋子类型（用于统计）
+     */
+    getPieceType(pieceName) {
+        // 棋子名称到统计类型的映射
+        const typeMap = {
+            '車': 'ju',
+            '马': 'ma',
+            '馬': 'ma',
+            '相': 'xiang',
+            '象': 'xiang',
+            '士': 'shi',
+            '仕': 'shi',
+            '将': 'king',
+            '帥': 'king',
+            '帅': 'king',
+            '炮': 'pao',
+            '砲': 'pao',
+            '兵': 'pawn',
+            '卒': 'pawn',
+            '尉': 'wei',
+            '衛': 'wei',
+            '射': 'she',
+            '䠶': 'she',
+            '檑': 'lei',
+            '礌': 'lei',
+            '甲': 'jia',
+            '胄': 'jia',
+            '刺': 'ci',
+            '盾': 'dun',
+            '巡': 'xun',
+            '廵': 'xun'
+        };
+        
+        return typeMap[pieceName] || null;
     }
 }
 

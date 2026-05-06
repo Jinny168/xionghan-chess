@@ -87,18 +87,24 @@ class ChessBoardRenderer {
      * 设置棋子样式
      */
     setPieceStyle(style) {
-        console.log(`切换棋子样式: ${style}`);
+        console.log(`切换棋子样式: ${this.pieceStyle} -> ${style}`);
+        
+        // 如果样式相同，不需要重新加载
+        if (this.pieceStyle === style) {
+            console.log('样式未改变，跳过重新加载');
+            return;
+        }
+        
         this.pieceStyle = style;
+        
         // 清空之前的图片缓存
         this.pieceImages = {};
         this.imagesLoaded = false;
-        // 重新加载棋子图片
+        
+        // 重新加载棋子图片（加载完成后会自动重绘）
         this.loadPieceImages();
-        // 立即重绘棋盘（图片加载完成后会自动再次重绘）
-        if (window.game && window.game.renderer) {
-            window.game.render();
-        }
-        console.log(`棋子样式已切换为: ${style}`);
+        
+        console.log(`棋子样式已切换为: ${style}，等待图片加载...`);
     }
     
     /**
@@ -106,6 +112,8 @@ class ChessBoardRenderer {
      * 棋子名称使用拼音：hong(红)/hei(黑) + 棋子类型拼音
      */
     loadPieceImages() {
+        console.log(`开始加载${this.pieceStyle}风格棋子图片...`);
+        
         // 棋子图片文件名使用拼音命名：红方(hong)/黑方(hei) + 棋子类型
         const pieceNames = [
             'honghan', 'hongshi', 'hongxiang', 'hongche', 'hongma', 'hongpao', 'hongbing',
@@ -115,7 +123,11 @@ class ChessBoardRenderer {
         ];
         
         let loadedCount = 0;
+        let errorCount = 0;
         const totalCount = pieceNames.length;
+        
+        // 使用时间戳绕过浏览器缓存
+        const cacheBuster = Date.now();
         
         pieceNames.forEach(name => {
             const img = new Image();
@@ -131,26 +143,42 @@ class ChessBoardRenderer {
                 imagePath = `images/pieces/traditional/${name}.png`;
             }
             
-            img.src = imagePath;
+            // 添加缓存破坏参数
+            const imageUrlWithCache = `${imagePath}?v=${cacheBuster}`;
             
             img.onload = () => {
                 this.pieceImages[name] = img;
                 loadedCount++;
                 
-                if (loadedCount === totalCount) {
+                if (loadedCount + errorCount === totalCount) {
                     this.imagesLoaded = true;
-                    console.log(`✅ 所有棋子图片加载完成 (${this.pieceStyle}风格)`);
-                    // 重新绘制棋盘
+                    console.log(`✅ ${this.pieceStyle}风格棋子图片加载完成: ${loadedCount}/${totalCount}成功, ${errorCount}失败`);
+                    
+                    // 所有图片加载完成后，重绘棋盘
+                    if (window.game && window.game.renderer) {
+                        window.game.render();
+                        console.log('棋盘已重绘');
+                    }
+                }
+            };
+            
+            img.onerror = () => {
+                errorCount++;
+                console.error(`❌ 无法加载棋子图片: ${imagePath}`);
+                
+                if (loadedCount + errorCount === totalCount) {
+                    this.imagesLoaded = true;
+                    console.warn(`⚠️ ${this.pieceStyle}风格棋子图片部分加载失败: ${loadedCount}/${totalCount}成功, ${errorCount}失败`);
+                    
+                    // 即使有失败也要重绘
                     if (window.game && window.game.renderer) {
                         window.game.render();
                     }
                 }
             };
             
-            img.onerror = () => {
-                console.error(`❌ 无法加载棋子图片: ${imagePath}`);
-                loadedCount++;
-            };
+            // 最后设置src，确保事件监听器已绑定
+            img.src = imageUrlWithCache;
         });
     }
     

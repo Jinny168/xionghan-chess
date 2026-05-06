@@ -6,11 +6,18 @@
     <link rel="icon" href="data:;base64,=">
     <title>匈汉象棋 - 主页</title>
     <!-- 外部样式表 -->
-    <link rel="stylesheet" href="css/index.css?v=1">
+    <link rel="stylesheet" href="css/index.css?v=6">
 </head>
 <body>
     <!-- 背景装饰 -->
-    <div class="bg-decoration"></div>
+    <div class="bg-decoration" id="bg-decoration"></div>
+    
+    <!-- 背景图片切换按钮 -->
+    <div class="bg-switcher" id="bg-switcher">
+        <button class="bg-switch-btn" id="bg-prev" title="上一张背景">◀</button>
+        <span class="bg-indicator" id="bg-indicator">1 / 5</span>
+        <button class="bg-switch-btn" id="bg-next" title="下一张背景">▶</button>
+    </div>
 
     <!-- 加载动画 -->
     <div class="loading-overlay" id="loading-overlay">
@@ -81,6 +88,52 @@
     <div class="copyright">© 2026 靳中原</div>
 
     <script>
+        // 背景图片管理
+        const backgrounds = [
+            'images/backgrounds/1.jpg',
+            'images/backgrounds/2.jpg',
+            'images/backgrounds/3.jpg',
+            'images/backgrounds/4.jpg',
+            'images/backgrounds/5.jpg'
+        ];
+        let currentBgIndex = parseInt(localStorage.getItem('bgIndex')) || 0;
+        
+        /**
+         * 设置背景图片
+         */
+        function setBackground(index) {
+            if (index < 0) index = backgrounds.length - 1;
+            if (index >= backgrounds.length) index = 0;
+            
+            currentBgIndex = index;
+            const bgElement = document.getElementById('bg-decoration');
+            const indicator = document.getElementById('bg-indicator');
+            
+            bgElement.style.backgroundImage = `url('${backgrounds[index]}')`;
+            bgElement.style.backgroundSize = 'cover';
+            bgElement.style.backgroundPosition = 'center';
+            bgElement.style.opacity = '0.3';
+            
+            indicator.textContent = `${index + 1} / ${backgrounds.length}`;
+            
+            // 保存到localStorage
+            localStorage.setItem('bgIndex', index);
+        }
+        
+        /**
+         * 上一张背景
+         */
+        function prevBackground() {
+            setBackground(currentBgIndex - 1);
+        }
+        
+        /**
+         * 下一张背景
+         */
+        function nextBackground() {
+            setBackground(currentBgIndex + 1);
+        }
+        
         /**
          * 选择模式（卡片点击效果）
          */
@@ -270,6 +323,13 @@
         // 页面加载完成后的初始化
         window.addEventListener('load', () => {
             console.log('匈汉象棋主页加载完成');
+            
+            // 初始化背景图片
+            setBackground(currentBgIndex);
+            
+            // 绑定背景切换按钮
+            document.getElementById('bg-prev').addEventListener('click', prevBackground);
+            document.getElementById('bg-next').addEventListener('click', nextBackground);
         });
     </script>
 </body>

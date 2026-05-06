@@ -496,14 +496,17 @@ def cleanup_loop():
 
 # ==================== 启动服务器 ====================
 if __name__ == '__main__':
-    print('=' * 50)
-    print('Xionghan Chess Web Server Started')
-    print(f'URL: http://localhost:5000')
-    print(f'Async Mode: {async_mode}')
-    print(f'Room Timeout: {ROOM_TIMEOUT}s')
-    print(f'IP Rate Limit: {MAX_CONNECTIONS_PER_IP} connections')
-    print(f'Static Cache: {STATIC_CACHE_TIMEOUT}s')
-    print('=' * 50)
+    # 只在非重载器进程中打印启动信息
+    import os
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        print('=' * 50)
+        print('Xionghan Chess Web Server Started')
+        print(f'URL: http://localhost:5000')
+        print(f'Async Mode: {async_mode}')
+        print(f'Room Timeout: {ROOM_TIMEOUT}s')
+        print(f'IP Rate Limit: {MAX_CONNECTIONS_PER_IP} connections')
+        print(f'Static Cache: {STATIC_CACHE_TIMEOUT}s')
+        print('=' * 50)
     
     # 启动后台清理任务
     socketio.start_background_task(cleanup_loop)

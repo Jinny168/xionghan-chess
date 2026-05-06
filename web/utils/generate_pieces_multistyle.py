@@ -136,13 +136,13 @@ def create_modern_piece(name, text, text_color):
     else:
         bg_color = (40, 40, 40)   # 现代黑
     
-    # 外圈
+    # 外圈（彩色背景）
     draw.ellipse(
         [center-radius-5, center-radius-5, center+radius+5, center+radius+5],
         fill=bg_color
     )
     
-    # 内圈（白色）
+    # 内圈（白色，比外圈小5像素）
     draw.ellipse(
         [center-radius, center-radius, center+radius, center+radius],
         fill=(255, 255, 255)
@@ -160,11 +160,11 @@ def create_modern_piece(name, text, text_color):
     tx = center - tw//2 - bbox[0]
     ty = center - th//2 - bbox[1]
 
-    # 文字颜色
+    # 文字颜色（使用与外圈相同的颜色，形成对比）
     if 'hong' in name:
-        text_fill = (220, 50, 50)
+        text_fill = (220, 50, 50)  # 红色文字
     else:
-        text_fill = (40, 40, 40)
+        text_fill = (40, 40, 40)   # 黑色文字
 
     draw.text((tx, ty), text, fill=text_fill, font=font)
 
