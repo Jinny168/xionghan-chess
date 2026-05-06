@@ -1,20 +1,21 @@
 /**
- * 匈汉象棋 - 游戏页面样式
+ * 匈汉象棋 - 对战界面样式
+ * 采用现代游戏UI设计模式
  */
 
-/* ========== 全局样式 ========== */
+/* ========== 全局重置 ========== */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: "Microsoft YaHei", sans-serif;
 }
 
 body {
-    background: #f3f4f6;
-    height: 100vh;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
     overflow: hidden;
-    transition: background 0.3s, color 0.3s;
+    height: 100vh;
+    width: 100vw;
+    background: #1a1a2e;
 }
 
 /* 背景装饰 */
@@ -28,538 +29,238 @@ body {
     opacity: 0.15;
     background-size: cover;
     background-position: center;
-    transition: opacity 0.5s ease;
     z-index: 0;
 }
 
-/* 背景切换器 */
-.bg-switcher {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 30px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 100;
-    backdrop-filter: blur(10px);
-}
-
-.bg-switch-btn {
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
-}
-
-.bg-switch-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.6);
-}
-
-.bg-switch-btn:active {
-    transform: scale(0.95);
-}
-
-.bg-indicator {
-    font-size: 13px;
-    color: #333;
-    font-weight: 500;
-    min-width: 45px;
-    text-align: center;
-}
-
-/* 暗黑模式 */
-body.dark-mode {
-    background: #1a1a1a;
-    color: #e0e0e0;
-}
-
-/* ========== 主容器 - 垂直布局 ========== */
-.main-container {
+/* ========== 游戏主布局 ========== */
+.game-layout {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    overflow: hidden;
+    width: 100vw;
     position: relative;
     z-index: 1;
 }
 
-/* ========== 顶部工具栏 - 优化版 ========== */
-.top-toolbar {
-    height: auto;
-    min-height: 60px;
-    background: #fff;
-    border-bottom: 1px solid #e0e0e0;
+/* ========== 顶部工具栏 ========== */
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 60px;
+    background: linear-gradient(180deg, rgba(30, 30, 50, 0.95) 0%, rgba(20, 20, 40, 0.9) 100%);
+    backdrop-filter: blur(10px);
+    padding: 0 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
+    z-index: 100;
+}
+
+/* 左侧区域 */
+.top-bar-left {
     display: flex;
     align-items: center;
-    padding: 0.8vh 16px;
-    gap: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    flex-shrink: 0;
-    flex-wrap: wrap;
+    gap: 20px;
+    flex: 1;
 }
 
-body.dark-mode .top-toolbar {
-    background: #2d2d2d;
-    border-bottom-color: #444;
-}
-
-/* Logo和品牌 */
-.toolbar-brand {
+.logo-area {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding-right: 12px;
+    gap: 10px;
     flex-shrink: 0;
 }
 
-.toolbar-logo {
-    width: clamp(28px, 3vw, 40px);
-    height: clamp(28px, 3vw, 40px);
+.logo {
+    width: 40px;
+    height: 40px;
     object-fit: contain;
 }
 
-.toolbar-title {
-    font-size: clamp(14px, 1.5vw, 18px);
+.game-name {
+    font-size: 22px;
     font-weight: bold;
-    color: #333;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
     white-space: nowrap;
 }
 
-body.dark-mode .toolbar-title {
-    color: #e0e0e0;
-}
-
-/* 按钮组 */
-.toolbar-group {
+.toolbar-buttons {
     display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
+    gap: 8px;
+    flex-wrap: nowrap;
 }
 
-.toolbar-btn {
-    min-width: clamp(50px, 6vw, 80px);
-    height: clamp(36px, 4vh, 48px);
-    border: none;
-    background: transparent;
+.tool-btn {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
+    color: #fff;
+    font-size: 14px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 0 clamp(4px, 0.5vw, 12px);
     transition: all 0.2s;
-    color: #666;
-    font-size: clamp(11px, 1.2vw, 14px);
-    font-weight: 500;
     white-space: nowrap;
 }
 
-.toolbar-btn:hover {
-    background: #f0f0f0;
-    color: #333;
+.tool-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-body.dark-mode .toolbar-btn {
-    color: #aaa;
+.tool-btn:active {
+    transform: translateY(0);
 }
 
-body.dark-mode .toolbar-btn:hover {
-    background: #3d3d3d;
-    color: #e0e0e0;
-}
-
-.btn-icon {
-    font-size: clamp(16px, 1.8vw, 20px);
-    line-height: 1;
-}
-
-.btn-text {
-    white-space: nowrap;
-}
-
-.toolbar-divider {
-    width: 1px;
-    height: clamp(24px, 3vh, 40px);
-    background: #e0e0e0;
-    margin: 0 4px;
-    flex-shrink: 0;
-}
-
-body.dark-mode .toolbar-divider {
-    background: #444;
-}
-
-/* 状态区域 */
-.toolbar-status {
-    margin-left: auto;
+/* 右侧区域 */
+.top-bar-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 20px;
     flex-shrink: 0;
 }
 
-/* 当复盘侧边栏打开时，为状态区域添加右边距 */
-body.replay-active .toolbar-status {
-    padding-right: 330px;
-    transition: padding-right 0.3s ease;
-}
-
-/* 玩家头像 */
-.player-avatar {
-    width: clamp(32px, 4vw, 48px);
-    height: clamp(32px, 4vw, 48px);
-    border-radius: 50%;
-    overflow: hidden;
-    border: 2px solid #e0e0e0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.player-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-body.dark-mode .player-avatar {
-    border-color: #555;
-}
-
-/* 回合信息 */
-.turn-info {
+.game-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.player-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
 }
 
 .turn-text {
-    font-size: clamp(12px, 1.3vw, 16px);
+    font-size: 16px;
     font-weight: bold;
-    white-space: nowrap;
+    color: #ff6b6b;
+    text-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
 }
 
-.red-turn {
-    color: #b41e1e;
-}
-
-.black-turn {
-    color: #333;
-}
-
-body.dark-mode .black-turn {
-    color: #e0e0e0;
-}
-
-.game-stats {
+.game-stats-bar {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: clamp(10px, 1.1vw, 13px);
-    color: #666;
+    gap: 8px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
 }
 
-body.dark-mode .game-stats {
-    color: #aaa;
-}
-
-.stat-item {
-    white-space: nowrap;
+.stat-value {
+    color: #ffd700;
+    font-weight: bold;
 }
 
 .stat-divider {
-    color: #ccc;
+    color: rgba(255, 255, 255, 0.3);
 }
 
-body.dark-mode .stat-divider {
-    color: #666;
+.utility-buttons {
+    display: flex;
+    gap: 8px;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-    .top-toolbar {
-        padding: 0.5vh 8px;
-        gap: 6px;
-    }
-    
-    .toolbar-btn {
-        min-width: 40px;
-        padding: 0 4px;
-    }
-    
-    .btn-text {
-        display: none;
-    }
-    
-    .toolbar-divider {
-        margin: 0 2px;
-    }
-}
-
-/* ========== 棋盘容器 - 完全居中 ========== */
-.board-container {
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    padding: 2vh 2vw;
+.icon-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100%;
-    flex: 1;
-    min-height: 0; /* 允许flex子项缩小 */
 }
 
-body.dark-mode .board-container {
-    background: #2d2d2d;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+/* ========== 棋盘主体区域 ========== */
+.board-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.board-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: min(90vw, 90vh);
+    max-height: min(90vw, 90vh);
 }
 
 canvas {
     display: block;
+    width: 100%;
+    height: 100%;
     max-width: 100%;
     max-height: 100%;
-    width: auto;
-    height: auto;
-    /* 优化Canvas渲染质量 */
-    image-rendering: -webkit-optimize-contrast;
+    object-fit: contain;
     image-rendering: crisp-edges;
     image-rendering: pixelated;
-    /* 启用硬件加速 */
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    /* 确保棋盘最大化显示 */
-    object-fit: contain;
-}
-
-/* ========== 按钮样式 ========== */
-button {
-    padding: 10px 16px;
-    font-size: 14px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-weight: 500;
-}
-
-button:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-}
-
-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* 主按钮 */
-.btn-primary {
-    background: #2f54eb;
-    color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-    background: #1e36b3;
-}
-
-/* 危险按钮 */
-.btn-danger {
-    background: #ff4d4f;
-    color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-    background: #d13033;
-}
-
-/* 次要按钮 */
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-    background: #5a6268;
-}
-
-/* 按钮组 */
-.button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.button-row {
-    display: flex;
-    gap: 10px;
-}
-
-.button-row button {
-    flex: 1;
-}
-
-/* ========== 棋谱记录 ========== */
-.move-history {
-    height: 200px;
-    overflow-y: auto;
-    background: #f5f5f5;
-    border-radius: 8px;
-    padding: 10px;
-    font-size: 13px;
-}
-
-body.dark-mode .move-history {
-    background: #1a1a1a;
-}
-
-.move-item {
-    padding: 5px 0;
-    border-bottom: 1px solid #eee;
-}
-
-body.dark-mode .move-item {
-    border-bottom-color: #444;
-}
-
-/* ========== 聊天区域 ========== */
-.chat-messages {
-    height: 150px;
-    overflow-y: auto;
-    background: #f5f5f5;
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 10px;
-    font-size: 13px;
-    color: #555;
-}
-
-body.dark-mode .chat-messages {
-    background: #1a1a1a;
-    color: #aaa;
-}
-
-.chat-input-area {
-    display: flex;
-    gap: 8px;
-}
-
-.chat-input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 13px;
-}
-
-body.dark-mode .chat-input {
-    background: #1a1a1a;
-    border-color: #444;
-    color: #e0e0e0;
-}
-
-.btn-send {
-    background: #4CAF50;
-    color: white;
-    padding: 8px 16px;
-}
-
-.btn-send:hover {
-    background: #45a049;
+    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.4));
 }
 
 /* ========== 将军提示 ========== */
 #check-alert {
-    display: none;
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(255, 0, 0, 0.95);
+    background: rgba(255, 0, 0, 0.9);
     color: white;
-    padding: 30px 60px;
-    border-radius: 15px;
+    padding: 20px 40px;
+    border-radius: 12px;
     font-size: 32px;
     font-weight: bold;
+    box-shadow: 0 8px 32px rgba(255, 0, 0, 0.5);
+    animation: alertPulse 1s ease-in-out infinite;
     z-index: 1000;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-    animation: pulse 1s ease-in-out infinite;
+    pointer-events: none;
+    display: none;
 }
 
-@keyframes pulse {
+@keyframes alertPulse {
     0%, 100% { transform: translate(-50%, -50%) scale(1); }
-    50% { transform: translate(-50%, -50%) scale(1.1); }
+    50% { transform: translate(-50%, -50%) scale(1.05); }
 }
 
-/* ========== 滚动条样式 ========== */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-body.dark-mode ::-webkit-scrollbar-track {
-    background: #2d2d2d;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
-/* ========== 响应式设计 ========== */
-@media (max-width: 900px) {
-    .top-toolbar {
-        height: 40px;
-        padding: 0 8px;
-        gap: 4px;
-    }
-    
-    .toolbar-btn {
-        width: 32px;
-        height: 32px;
-        font-size: 16px;
-    }
-    
-    .board-container {
-        padding: 10px;
-    }
-}
-
-/* ========== 模态对话框样式 ========== */
+/* ========== 对话框通用样式 ========== */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    backdrop-filter: blur(5px);
 }
 
 .modal-overlay.hidden {
@@ -569,139 +270,109 @@ body.dark-mode ::-webkit-scrollbar-track {
 .modal-dialog {
     background: white;
     border-radius: 12px;
-    padding: 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     max-width: 600px;
     width: 90%;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    max-height: 80vh;
     overflow: hidden;
+    animation: modalSlideIn 0.3s ease-out;
 }
 
-body.dark-mode .modal-dialog {
-    background: #2d2d2d;
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 20px;
     border-bottom: 1px solid #e0e0e0;
-}
-
-body.dark-mode .modal-header {
-    border-bottom-color: #444;
 }
 
 .modal-header h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 24px;
     color: #333;
-}
-
-body.dark-mode .modal-header h2 {
-    color: #e0e0e0;
 }
 
 .modal-close {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: 28px;
     cursor: pointer;
     color: #999;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
+    line-height: 1;
+    transition: color 0.2s;
 }
 
 .modal-close:hover {
-    background: #f0f0f0;
     color: #333;
-}
-
-body.dark-mode .modal-close:hover {
-    background: #3d3d3d;
-    color: #e0e0e0;
 }
 
 .modal-body {
     padding: 20px;
+    overflow-y: auto;
+    max-height: calc(80vh - 80px);
 }
 
-/* ========== 复盘模式样式 ========== */
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* ========== 复盘侧边栏 ========== */
 .replay-sidebar {
     position: fixed;
     top: 0;
     right: 0;
-    width: 320px;
+    width: 360px;
     height: 100vh;
-    background: #fff;
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    background: white;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
     z-index: 1000;
     display: flex;
     flex-direction: column;
     transition: transform 0.3s ease;
 }
 
-body.dark-mode .replay-sidebar {
-    background: #2d2d2d;
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
-}
-
 .replay-sidebar.hidden {
     transform: translateX(100%);
+    pointer-events: none;
 }
 
 .replay-sidebar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 20px;
     border-bottom: 1px solid #e0e0e0;
-    background: #f5f5f5;
-}
-
-body.dark-mode .replay-sidebar-header {
-    background: #3d3d3d;
-    border-bottom-color: #555;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
 }
 
 .replay-sidebar-header h3 {
     margin: 0;
-    font-size: 18px;
-    color: #333;
-}
-
-body.dark-mode .replay-sidebar-header h3 {
-    color: #e0e0e0;
+    font-size: 20px;
 }
 
 .replay-close-btn {
-    width: 32px;
-    height: 32px;
+    background: none;
     border: none;
-    background: transparent;
-    color: #666;
-    font-size: 24px;
+    color: white;
+    font-size: 28px;
     cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s;
-}
-
-.replay-close-btn:hover {
-    background: #e0e0e0;
-    color: #333;
-}
-
-body.dark-mode .replay-close-btn {
-    color: #aaa;
-}
-
-body.dark-mode .replay-close-btn:hover {
-    background: #4d4d4d;
-    color: #e0e0e0;
+    line-height: 1;
 }
 
 .replay-sidebar-body {
@@ -712,51 +383,27 @@ body.dark-mode .replay-close-btn:hover {
 
 .replay-controls {
     margin-bottom: 24px;
-    padding: 16px;
-    background: #f5f5f5;
-    border-radius: 8px;
-}
-
-body.dark-mode .replay-controls {
-    background: #3d3d3d;
 }
 
 .replay-buttons {
-    display: flex;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
     margin-bottom: 16px;
-    flex-wrap: wrap;
 }
 
 .replay-btn {
-    flex: 1;
-    min-width: 70px;
-    padding: 8px 12px;
-    border: none;
+    padding: 12px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
     border-radius: 6px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
     cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 14px;
     transition: all 0.2s;
-    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
-    white-space: nowrap;
 }
 
 .replay-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.5);
-}
-
-.replay-btn:active {
-    transform: translateY(0);
-}
-
-.replay-btn:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-    box-shadow: none;
+    background: #e0e0e0;
 }
 
 .replay-progress-bar {
@@ -766,31 +413,20 @@ body.dark-mode .replay-controls {
 }
 
 .progress-label {
-    font-size: 13px;
+    font-size: 14px;
     color: #666;
     white-space: nowrap;
-}
-
-body.dark-mode .progress-label {
-    color: #aaa;
 }
 
 #replay-progress {
     flex: 1;
     height: 6px;
-    cursor: pointer;
 }
 
 .step-info {
     font-size: 13px;
-    color: #666;
-    min-width: 60px;
-    text-align: right;
+    color: #999;
     white-space: nowrap;
-}
-
-body.dark-mode .step-info {
-    color: #aaa;
 }
 
 .game-records-section h4 {
@@ -799,113 +435,148 @@ body.dark-mode .step-info {
     color: #333;
 }
 
-body.dark-mode .game-records-section h4 {
-    color: #e0e0e0;
-}
-
 .game-records-list {
-    max-height: 400px;
+    max-height: 300px;
     overflow-y: auto;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-}
-
-body.dark-mode .game-records-list {
-    border-color: #555;
-}
-
-.record-item {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-body.dark-mode .record-item {
-    border-bottom-color: #444;
-}
-
-.record-item:hover {
-    background: #f5f5f5;
-}
-
-body.dark-mode .record-item:hover {
-    background: #3d3d3d;
-}
-
-.record-item:last-child {
-    border-bottom: none;
-}
-
-.record-item-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-}
-
-.record-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.record-title {
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 4px;
-    font-size: 14px;
-}
-
-body.dark-mode .record-title {
-    color: #e0e0e0;
-}
-
-.record-meta {
-    font-size: 12px;
-    color: #666;
-}
-
-body.dark-mode .record-meta {
-    color: #aaa;
-}
-
-.record-actions {
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.btn-load {
-    background: #4CAF50;
-    color: white;
-}
-
-.btn-delete {
-    background: #f44336;
-    color: white;
-}
-
-.btn-small {
-    padding: 4px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-
-.btn-small:hover {
-    opacity: 0.9;
-    transform: scale(1.05);
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
 }
 
 .no-records {
-    color: #999;
-    text-align: center;
     padding: 20px;
+    text-align: center;
+    color: #999;
 }
 
-body.dark-mode .no-records {
-    color: #777;
+/* ========== 暗黑模式 ========== */
+body.dark-mode {
+    background: #0a0a1a;
+}
+
+body.dark-mode .top-bar {
+    background: linear-gradient(180deg, rgba(10, 10, 20, 0.95) 0%, rgba(5, 5, 15, 0.9) 100%);
+}
+
+body.dark-mode .tool-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .tool-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .icon-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .icon-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .modal-dialog {
+    background: #1a1a2e;
+    color: #fff;
+}
+
+body.dark-mode .modal-header {
+    border-bottom-color: #333;
+}
+
+body.dark-mode .modal-header h2 {
+    color: #fff;
+}
+
+body.dark-mode .modal-close {
+    color: #999;
+}
+
+body.dark-mode .modal-close:hover {
+    color: #fff;
+}
+
+body.dark-mode .replay-sidebar {
+    background: #1a1a2e;
+    color: #fff;
+}
+
+body.dark-mode .replay-sidebar-header {
+    background: linear-gradient(135deg, #5a4fcf 0%, #6b3fa0 100%);
+}
+
+body.dark-mode .replay-btn {
+    background: #2a2a3e;
+    border-color: #444;
+    color: #fff;
+}
+
+body.dark-mode .replay-btn:hover {
+    background: #3a3a4e;
+}
+
+body.dark-mode .game-records-section h4 {
+    color: #fff;
+}
+
+body.dark-mode .game-records-list {
+    border-color: #444;
+}
+
+/* ========== 响应式设计 ========== */
+@media (max-width: 1024px) {
+    .toolbar-buttons {
+        display: none;
+    }
+    
+    .top-bar-left {
+        gap: 10px;
+    }
+    
+    .game-name {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 768px) {
+    .top-bar {
+        height: 50px;
+        padding: 0 10px;
+    }
+    
+    .logo {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .game-name {
+        font-size: 16px;
+    }
+    
+    .avatar {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .turn-text {
+        font-size: 14px;
+    }
+    
+    .game-stats-bar {
+        font-size: 12px;
+    }
+    
+    .utility-buttons {
+        gap: 4px;
+    }
+    
+    .icon-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+    
+    .replay-sidebar {
+        width: 100%;
+    }
 }

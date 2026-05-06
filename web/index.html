@@ -5,68 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:;base64,=">
     <title>匈汉象棋 - 主页</title>
-    <!-- 外部样式表 -->
-    <link rel="stylesheet" href="css/index.css?v=6">
+    <link rel="stylesheet" href="css/index.css?v=7">
 </head>
 <body>
-    <!-- 背景装饰 -->
+    <!-- 背景 -->
     <div class="bg-decoration" id="bg-decoration"></div>
     
-    <!-- 背景图片切换按钮 -->
-    <div class="bg-switcher" id="bg-switcher">
-        <button class="bg-switch-btn" id="bg-prev" title="上一张背景">◀</button>
-        <span class="bg-indicator" id="bg-indicator">1 / 5</span>
-        <button class="bg-switch-btn" id="bg-next" title="下一张背景">▶</button>
-    </div>
-
-    <!-- 加载动画 -->
-    <div class="loading-overlay" id="loading-overlay">
-        <div class="loading-spinner"></div>
-    </div>
-
     <!-- 主容器 -->
-    <div class="main-container">
+    <div class="home-container">
         <!-- 标题区域 -->
-        <div class="title-section">
+        <div class="title-area">
+            <div class="logo-wrapper">
+                <img src="images/logo/icon.ico" alt="匈汉象棋" class="main-logo">
+            </div>
             <h1 class="game-title">匈汉象棋</h1>
             <p class="subtitle">传承经典 · 创新对弈</p>
         </div>
 
-        <!-- 模式选择 -->
-        <div class="mode-selection">
-            <!-- 单机双人对战 -->
-            <div class="mode-card" onclick="selectMode('local')">
-                <div class="mode-icon">👥</div>
-                <h2 class="mode-title">单机双人对战</h2>
-                <p class="mode-description">
+        <!-- 模式选择卡片 -->
+        <div class="mode-cards">
+            <!-- 单机模式 -->
+            <div class="mode-card local-mode">
+                <div class="card-icon">👥</div>
+                <h2 class="card-title">单机双人对战</h2>
+                <p class="card-desc">
                     在同一台设备上进行双人对弈<br>
                     适合面对面切磋棋艺<br>
                     无需网络连接
                 </p>
-                <button class="mode-button" onclick="startLocalGame(event)">
+                <button class="card-btn primary" onclick="startLocalGame(event)">
                     开始游戏
                 </button>
             </div>
 
-            <!-- 联机双人对战 -->
-            <div class="mode-card" onclick="selectMode('online')">
-                <div class="mode-icon">🌐</div>
-                <h2 class="mode-title">联机双人对战</h2>
-                <p class="mode-description">
+            <!-- 联机模式 -->
+            <div class="mode-card online-mode">
+                <div class="card-icon">🌐</div>
+                <h2 class="card-title">联机双人对战</h2>
+                <p class="card-desc">
                     通过网络与好友远程对弈<br>
                     输入房间号即可加入游戏<br>
                     支持实时聊天互动
                 </p>
-                <button class="mode-button" onclick="showRoomInput(event)">
+                <button class="card-btn primary" onclick="showRoomInput(event)">
                     加入房间
                 </button>
-                <button class="mode-button" style="margin-top: 0.5rem; background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);" onclick="createRoom(event)">
+                <button class="card-btn secondary" onclick="createRoom(event)">
                     创建房间
                 </button>
                 
-                <!-- 房间号输入区域 -->
-                <div class="room-input-section" id="room-input-section">
-                    <div class="room-input-group">
+                <!-- 房间号输入 -->
+                <div class="room-input-box" id="room-input-section">
+                    <div class="input-group">
                         <input 
                             type="text" 
                             class="room-input" 
@@ -74,18 +64,23 @@
                             placeholder="输入房间号"
                             maxlength="8"
                         >
-                        <button class="join-button" onclick="joinRoom()">
-                            加入
-                        </button>
+                        <button class="join-btn" onclick="joinRoom()">加入</button>
                     </div>
-                    <div class="error-message" id="error-message"></div>
+                    <div class="error-msg" id="error-message"></div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- 版权信息 -->
-    <div class="copyright">© 2026 靳中原</div>
+        <!-- 背景切换器 -->
+        <div class="bg-switcher" id="bg-switcher">
+            <button class="switch-btn" id="bg-prev" title="上一张">◀</button>
+            <span class="bg-indicator" id="bg-indicator">1 / 5</span>
+            <button class="switch-btn" id="bg-next" title="下一张">▶</button>
+        </div>
+
+        <!-- 版权信息 -->
+        <div class="copyright">© 2026 靳中原</div>
+    </div>
 
     <script>
         // 背景图片管理
@@ -98,9 +93,6 @@
         ];
         let currentBgIndex = parseInt(localStorage.getItem('bgIndex')) || 0;
         
-        /**
-         * 设置背景图片
-         */
         function setBackground(index) {
             if (index < 0) index = backgrounds.length - 1;
             if (index >= backgrounds.length) index = 0;
@@ -112,225 +104,148 @@
             bgElement.style.backgroundImage = `url('${backgrounds[index]}')`;
             bgElement.style.backgroundSize = 'cover';
             bgElement.style.backgroundPosition = 'center';
-            bgElement.style.opacity = '0.3';
+            bgElement.style.opacity = '0.4';
             
             indicator.textContent = `${index + 1} / ${backgrounds.length}`;
             
-            // 保存到localStorage
             localStorage.setItem('bgIndex', index);
         }
         
-        /**
-         * 上一张背景
-         */
         function prevBackground() {
             setBackground(currentBgIndex - 1);
         }
         
-        /**
-         * 下一张背景
-         */
         function nextBackground() {
             setBackground(currentBgIndex + 1);
         }
         
-        /**
-         * 选择模式（卡片点击效果）
-         */
         function selectMode(mode) {
-            // 可以在这里添加卡片选中效果
             console.log('选择模式:', mode);
         }
 
-        /**
-         * 开始单机游戏
-         */
         function startLocalGame(event) {
             event.stopPropagation();
             
-            showLoading();
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+            `;
             
-            // 延迟跳转，显示加载动画
+            const spinner = document.createElement('div');
+            spinner.style.cssText = `
+                width: 50px;
+                height: 50px;
+                border: 4px solid rgba(255,255,255,0.3);
+                border-top-color: #ffd700;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            `;
+            
+            const style = document.createElement('style');
+            style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+            document.head.appendChild(style);
+            
+            overlay.appendChild(spinner);
+            document.body.appendChild(overlay);
+            
             setTimeout(() => {
                 window.location.href = '/game.html?mode=local';
             }, 500);
         }
 
-        /**
-         * 显示房间号输入框
-         */
         function showRoomInput(event) {
             event.stopPropagation();
-            
             const inputSection = document.getElementById('room-input-section');
             inputSection.classList.toggle('active');
             
             if (inputSection.classList.contains('active')) {
-                // 聚焦到输入框
                 setTimeout(() => {
                     document.getElementById('room-id-input').focus();
                 }, 100);
             }
         }
 
-        /**
-         * 创建房间
-         */
         function createRoom(event) {
             event.stopPropagation();
             
-            showLoading();
-            
-            // 调用API创建房间
             fetch('/api/create_room', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mode: 'xionghan' })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    hideLoading();
-                    // 显示房间号并提示用户
                     const roomId = data.roomId;
-                    window.dialogManager.showInfo(
-                        '房间创建成功',
-                        `房间号: ${roomId}\n\n请将此房间号分享给好友，然后点击“加入房间”按钮输入房间号即可开始游戏。`,
-                        () => {
-                            // 自动填充房间号
-                            const inputSection = document.getElementById('room-input-section');
-                            const input = document.getElementById('room-id-input');
-                            input.value = roomId;
-                            if (!inputSection.classList.contains('active')) {
-                                inputSection.classList.add('active');
-                            }
-                            input.focus();
-                            input.select();
-                        }
-                    );
+                    alert(`房间创建成功！\n\n房间号: ${roomId}\n\n请将此房间号分享给好友，然后点击"加入房间"输入房间号即可开始游戏。`);
                 } else {
-                    hideLoading();
-                    showError('创建房间失败: ' + (data.error || '未知错误'));
+                    alert('创建房间失败: ' + (data.error || '未知错误'));
                 }
             })
             .catch(error => {
-                hideLoading();
-                showError('连接服务器失败，请检查网络');
-                console.error('创建房间失败:', error);
+                alert('网络错误: ' + error.message);
             });
         }
 
-        /**
-         * 加入房间
-         */
         function joinRoom() {
-            const roomIdInput = document.getElementById('room-id-input');
-            const roomId = roomIdInput.value.trim();
-            const errorMessage = document.getElementById('error-message');
+            const roomId = document.getElementById('room-id-input').value.trim();
+            const errorMsg = document.getElementById('error-message');
             
-            // 验证房间号
             if (!roomId) {
-                showError('请输入房间号');
+                errorMsg.textContent = '请输入房间号';
+                errorMsg.classList.add('show');
                 return;
             }
             
-            if (roomId.length !== 8) {
-                showError('房间号必须为8位字符');
-                return;
-            }
+            errorMsg.classList.remove('show');
             
-            // 隐藏错误信息
-            errorMessage.classList.remove('active');
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+            `;
             
-            // 显示加载动画
-            showLoading();
+            const spinner = document.createElement('div');
+            spinner.style.cssText = `
+                width: 50px;
+                height: 50px;
+                border: 4px solid rgba(255,255,255,0.3);
+                border-top-color: #ffd700;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            `;
             
-            // 验证房间是否存在
-            verifyRoom(roomId)
-                .then(exists => {
-                    if (exists) {
-                        // 房间存在，跳转到游戏页面
-                        window.location.href = `/game.html?mode=online&roomId=${roomId}`;
-                    } else {
-                        hideLoading();
-                        showError('房间不存在或已满');
-                    }
-                })
-                .catch(error => {
-                    hideLoading();
-                    showError('连接服务器失败，请检查网络');
-                    console.error('验证房间失败:', error);
-                });
-        }
-
-        /**
-         * 验证房间是否存在
-         */
-        async function verifyRoom(roomId) {
-            try {
-                const response = await fetch(`/api/room_status/${roomId}`);
-                const data = await response.json();
-                
-                if (data.success && data.players < 2) {
-                    return true;
-                }
-                return false;
-            } catch (error) {
-                console.error('验证房间失败:', error);
-                throw error;
-            }
-        }
-
-        /**
-         * 显示错误信息
-         */
-        function showError(message) {
-            const errorMessage = document.getElementById('error-message');
-            errorMessage.textContent = message;
-            errorMessage.classList.add('active');
+            const style = document.createElement('style');
+            style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+            document.head.appendChild(style);
             
-            // 3秒后自动隐藏
+            overlay.appendChild(spinner);
+            document.body.appendChild(overlay);
+            
             setTimeout(() => {
-                errorMessage.classList.remove('active');
-            }, 3000);
+                window.location.href = `/game.html?mode=online&room=${roomId}`;
+            }, 500);
         }
 
-        /**
-         * 显示加载动画
-         */
-        function showLoading() {
-            document.getElementById('loading-overlay').classList.add('active');
-        }
-
-        /**
-         * 隐藏加载动画
-         */
-        function hideLoading() {
-            document.getElementById('loading-overlay').classList.remove('active');
-        }
-
-        /**
-         * 监听回车键
-         */
-        document.getElementById('room-id-input').addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                joinRoom();
-            }
-        });
-
-        // 页面加载完成后的初始化
         window.addEventListener('load', () => {
-            console.log('匈汉象棋主页加载完成');
-            
-            // 初始化背景图片
             setBackground(currentBgIndex);
-            
-            // 绑定背景切换按钮
-            document.getElementById('bg-prev').addEventListener('click', prevBackground);
-            document.getElementById('bg-next').addEventListener('click', nextBackground);
         });
+        
+        document.getElementById('bg-prev').addEventListener('click', prevBackground);
+        document.getElementById('bg-next').addEventListener('click', nextBackground);
     </script>
 </body>
 </html>
