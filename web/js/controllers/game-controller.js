@@ -180,6 +180,15 @@ class GameController {
             this.handleCanvasClick(e);
         });
         
+        // 返回主页按钮
+        const homeBtn = document.getElementById('btn-home');
+        if (homeBtn) {
+            homeBtn.addEventListener('click', () => {
+                this.soundManager.playButton();
+                this.goBackToHome();
+            });
+        }
+        
         // 悔棋按钮 - 支持多种ID命名
         const undoBtn = document.getElementById('btn-undo') || document.getElementById('btn-regret');
         if (undoBtn) {
@@ -298,20 +307,52 @@ class GameController {
             });
         }
         
-        // 设置对话框 - 切换音乐按钮
+        // 设置对话框 - 恢复默认按钮
+        const btnResetSettings = document.getElementById('btn-reset-settings');
+        if (btnResetSettings) {
+            btnResetSettings.addEventListener('click', () => {
+                this.resetSettings();
+            });
+        }
+        
+        // 设置对话框 - 背景音乐开关
         const btnToggleMusic = document.getElementById('btn-toggle-music');
         if (btnToggleMusic) {
             btnToggleMusic.addEventListener('click', () => {
-                const musicStatus = document.getElementById('music-status');
-                if (musicStatus) {
-                    if (musicStatus.textContent === '开启') {
-                        this.soundManager.stopBackgroundMusic();
-                        musicStatus.textContent = '关闭';
-                    } else {
-                        this.soundManager.playBackgroundMusic();
-                        musicStatus.textContent = '开启';
-                    }
-                }
+                this.toggleBackgroundMusic();
+            });
+        }
+        
+        // 设置对话框 - 切换音乐风格
+        const btnSwitchMusic = document.getElementById('btn-switch-music');
+        if (btnSwitchMusic) {
+            btnSwitchMusic.addEventListener('click', () => {
+                this.switchMusicStyle();
+            });
+        }
+        
+        // 设置对话框 - 音量滑块
+        const volumeSlider = document.getElementById('volume-slider');
+        if (volumeSlider) {
+            volumeSlider.addEventListener('input', (e) => {
+                const volume = parseInt(e.target.value);
+                this.updateVolume(volume);
+            });
+        }
+        
+        // 设置对话框 - 棋盘主题选择
+        const boardThemeSelect = document.getElementById('board-theme-select');
+        if (boardThemeSelect) {
+            boardThemeSelect.addEventListener('change', (e) => {
+                this.changeBoardTheme(e.target.value);
+            });
+        }
+        
+        // 设置对话框 - 棋子样式选择
+        const pieceStyleSelect = document.getElementById('piece-style-select');
+        if (pieceStyleSelect) {
+            pieceStyleSelect.addEventListener('change', (e) => {
+                this.changePieceStyle(e.target.value);
             });
         }
         
@@ -779,7 +820,35 @@ class GameController {
     showSettingsModal() {
         const modal = document.getElementById('settings-modal');
         if (modal) {
+            // 更新UI状态
+            this.updateSettingsUI();
             modal.classList.remove('hidden');
+        }
+    }
+    
+    /**
+     * 更新设置UI状态
+     */
+    updateSettingsUI() {
+        // 更新音乐状态
+        const musicStatusText = document.getElementById('music-status-text');
+        const musicStyleText = document.getElementById('music-style-text');
+        if (musicStatusText) {
+            musicStatusText.textContent = this.soundManager.musicEnabled ? '开启' : '关闭';
+        }
+        if (musicStyleText) {
+            musicStyleText.textContent = this.soundManager.currentMusicStyle === 'qq' ? 'QQ风格' : 'FC风格';
+        }
+        
+        // 更新音量
+        const volumeValue = document.getElementById('volume-value');
+        const volumeSlider = document.getElementById('volume-slider');
+        const volumePercent = Math.round(this.soundManager.volume * 100);
+        if (volumeValue) {
+            volumeValue.textContent = `${volumePercent}%`;
+        }
+        if (volumeSlider) {
+            volumeSlider.value = volumePercent;
         }
     }
     
@@ -818,13 +887,158 @@ class GameController {
             
         const isDark = body.classList.contains('dark-mode');
         if (darkModeBtn) {
-            darkModeBtn.textContent = isDark ? '☀️' : '🌙';
+            darkModeBtn.textContent = isDark ? '️' : '🌙';
         }
             
         // 保存用户偏好
         localStorage.setItem('darkMode', isDark);
             
         console.log(`暗黑模式: ${isDark ? '开启' : '关闭'}`);
+    }
+    
+    /**
+     * 返回主页
+     */
+    goBackToHome() {
+        window.dialogManager.showConfirm(
+            '返回主页',
+            '确定要返回主页吗？当前游戏进度将丢失。',
+            () => {
+                // 停止背景音乐
+                this.soundManager.stopBackgroundMusic();
+                // 返回主页
+                window.location.href = '/';
+            },
+            () => {
+                console.log('取消返回主页');
+            }
+        );
+    }
+    
+    /**
+     * 切换背景音乐
+     */
+    toggleBackgroundMusic() {
+        const musicStatusText = document.getElementById('music-status-text');
+        
+        if (this.soundManager.musicEnabled) {
+            this.soundManager.stopBackgroundMusic();
+            this.soundManager.musicEnabled = false;
+            if (musicStatusText) {
+                musicStatusText.textContent = '关闭';
+            }
+        } else {
+            this.soundManager.playBackgroundMusic();
+            this.soundManager.musicEnabled = true;
+            if (musicStatusText) {
+                musicStatusText.textContent = '开启';
+            }
+        }
+        
+        // 保存设置
+        localStorage.setItem('musicEnabled', this.soundManager.musicEnabled);
+    }
+    
+    /**
+     * 切换音乐风格
+     */
+    switchMusicStyle() {
+        const musicStyleText = document.getElementById('music-style-text');
+        const newStyle = this.soundManager.toggleMusicStyle();
+        
+        if (musicStyleText) {
+            musicStyleText.textContent = newStyle === 'qq' ? 'QQ风格' : 'FC风格';
+        }
+        
+        // 保存设置
+        localStorage.setItem('musicStyle', newStyle);
+    }
+    
+    /**
+     * 更新音量
+     */
+    updateVolume(volume) {
+        const volumeValue = document.getElementById('volume-value');
+        const volumePercent = Math.round(volume);
+        
+        if (volumeValue) {
+            volumeValue.textContent = `${volumePercent}%`;
+        }
+        
+        // 更新音效管理器音量
+        this.soundManager.setMusicVolume(volume / 100);
+        
+        // 保存设置
+        localStorage.setItem('volume', volume);
+    }
+    
+    /**
+     * 切换棋盘主题
+     */
+    changeBoardTheme(theme) {
+        console.log(`切换棋盘主题: ${theme}`);
+        
+        // 通知渲染器更新主题
+        if (this.renderer) {
+            this.renderer.setBoardTheme(theme);
+        }
+        
+        // 保存设置
+        localStorage.setItem('boardTheme', theme);
+    }
+    
+    /**
+     * 切换棋子样式
+     */
+    changePieceStyle(style) {
+        console.log(`切换棋子样式: ${style}`);
+        
+        // 通知渲染器更新棋子样式
+        if (this.renderer) {
+            this.renderer.setPieceStyle(style);
+        }
+        
+        // 保存设置
+        localStorage.setItem('pieceStyle', style);
+    }
+    
+    /**
+     * 重置设置
+     */
+    resetSettings() {
+        window.dialogManager.showConfirm(
+            '恢复默认设置',
+            '确定要恢复所有设置为默认值吗？',
+            () => {
+                // 恢复默认音量
+                this.soundManager.setMusicVolume(0.7);
+                
+                // 恢复默认棋盘主题
+                if (this.renderer) {
+                    this.renderer.setBoardTheme('classic');
+                }
+                
+                // 恢复默认棋子样式
+                if (this.renderer) {
+                    this.renderer.setPieceStyle('traditional');
+                }
+                
+                // 清除保存的设置
+                localStorage.removeItem('volume');
+                localStorage.removeItem('boardTheme');
+                localStorage.removeItem('pieceStyle');
+                localStorage.removeItem('musicEnabled');
+                localStorage.removeItem('musicStyle');
+                
+                // 更新UI
+                this.updateSettingsUI();
+                
+                window.dialogManager.showInfo('提示', '设置已恢复为默认值');
+            },
+            () => {
+                console.log('取消恢复默认设置');
+            }
+        );
     }
         
     

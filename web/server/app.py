@@ -174,7 +174,8 @@ def add_cache_headers(response):
     """为静态资源添加缓存头"""
     if request.path.startswith(('/images/', '/sounds/', '/css/', '/js/')):
         response.headers['Cache-Control'] = f'public, max-age={STATIC_CACHE_TIMEOUT}'
-        response.headers['Expires'] = datetime.datetime.utcnow() + datetime.timedelta(seconds=STATIC_CACHE_TIMEOUT)
+        # 使用时区感知的时间对象，避免弃用警告
+        response.headers['Expires'] = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=STATIC_CACHE_TIMEOUT)
     return response
 
 

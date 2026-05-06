@@ -8,6 +8,49 @@ class ChessBoardRenderer {
         this.ctx = canvas.getContext('2d');
         this.traditionalMode = traditionalMode;
         
+        // 棋盘主题配置
+        this.boardTheme = 'classic'; // 默认经典木纹
+        this.pieceStyle = 'traditional'; // 默认传统书法
+        
+        // 主题配置
+        this.themeConfig = {
+            classic: {
+                background: '#f9e8c4',
+                gridColor: '#8b4513',
+                lineColor: '#6d3c11',
+                textColor: '#8b4513',
+                textureColor: '#d4b896'
+            },
+            green: {
+                background: '#e8f5e8',
+                gridColor: '#2d5016',
+                lineColor: '#3a6b1e',
+                textColor: '#2d5016',
+                textureColor: '#a8d8a8'
+            },
+            blue: {
+                background: '#e8f4f8',
+                gridColor: '#1a5276',
+                lineColor: '#2471a3',
+                textColor: '#1a5276',
+                textureColor: '#a8d8e8'
+            },
+            purple: {
+                background: '#f3e8f7',
+                gridColor: '#6c3483',
+                lineColor: '#7d3c98',
+                textColor: '#6c3483',
+                textureColor: '#d8a8e8'
+            },
+            dark: {
+                background: '#2c2c2c',
+                gridColor: '#555555',
+                lineColor: '#666666',
+                textColor: '#aaaaaa',
+                textureColor: '#444444'
+            }
+        };
+        
         // 边距配置
         this.marginLeft = 40;
         this.marginTop = 40;
@@ -24,6 +67,30 @@ class ChessBoardRenderer {
         this.highlighted = null;
         this.possibleMoves = [];
         this.capturablePositions = [];
+    }
+    
+    /**
+     * 设置棋盘主题
+     */
+    setBoardTheme(theme) {
+        if (this.themeConfig[theme]) {
+            this.boardTheme = theme;
+            // 重新绘制棋盘
+            if (window.game) {
+                window.game.render();
+            }
+            console.log(`棋盘主题已切换为: ${theme}`);
+        }
+    }
+    
+    /**
+     * 设置棋子样式
+     */
+    setPieceStyle(style) {
+        this.pieceStyle = style;
+        // 重新加载棋子图片
+        this.loadPieceImages();
+        console.log(`棋子样式已切换为: ${style}`);
     }
     
     /**
@@ -44,7 +111,18 @@ class ChessBoardRenderer {
         
         pieceNames.forEach(name => {
             const img = new Image();
-            img.src = `images/pieces/${name}.png`;
+            
+            // 根据棋子样式选择不同目录
+            let imagePath;
+            if (this.pieceStyle === 'modern') {
+                imagePath = `images/pieces/modern/${name}.png`;
+            } else if (this.pieceStyle === 'cartoon') {
+                imagePath = `images/pieces/cartoon/${name}.png`;
+            } else {
+                imagePath = `images/pieces/${name}.png`; // 默认traditional
+            }
+            
+            img.src = imagePath;
             
             img.onload = () => {
                 this.pieceImages[name] = img;
@@ -61,7 +139,7 @@ class ChessBoardRenderer {
             };
             
             img.onerror = () => {
-                console.error(`❌ 无法加载棋子图片: ${name}.png (路径: images/pieces/${name}.png)`);
+                console.error(`❌ 无法加载棋子图片: ${imagePath}`);
                 loadedCount++;
             };
         });
@@ -225,14 +303,15 @@ class ChessBoardRenderer {
     }
     
     /**
-     * 绘制棋盘 - 参考天天象棋经典木质风格
+     * 绘制棋盘 - 根据主题配置动态生成
      */
     drawBoard() {
         const ctx = this.ctx;
+        const theme = this.themeConfig[this.boardTheme];
         
-        // 背景 - 暖棕色木质色调，参考天天象棋
+        // 背景 - 根据主题配置
         const extraBottom = this.gridSize * 0.8; // 额外底部空间
-        ctx.fillStyle = '#f9e8c4'; // 更贴近天天象棋的暖木纹色调
+        ctx.fillStyle = theme.background;
         ctx.fillRect(
             this.marginLeft - 20,
             this.marginTop - 40,
@@ -240,10 +319,10 @@ class ChessBoardRenderer {
             this.boardHeight + 40 + extraBottom
         );
         
-        // 添加浅木纹纹理效果（可选，使用低透明度线条模拟）
+        // 添加纹理效果（根据主题）
         ctx.save();
         ctx.globalAlpha = 0.08;
-        ctx.strokeStyle = '#d4b896';
+        ctx.strokeStyle = theme.textureColor;
         ctx.lineWidth = 1;
         for (let i = 0; i < this.boardWidth; i += 8) {
             ctx.beginPath();
@@ -253,8 +332,8 @@ class ChessBoardRenderer {
         }
         ctx.restore();
         
-        // 外边框 - 深棕色粗线条（天天象棋风格）
-        ctx.strokeStyle = '#8b4513';
+        // 外边框 - 根据主题配置
+        ctx.strokeStyle = theme.gridColor;
         ctx.lineWidth = 3;
         ctx.strokeRect(
             this.marginLeft,
@@ -264,18 +343,18 @@ class ChessBoardRenderer {
         );
         
         if (this.traditionalMode) {
-            this.drawTraditionalGrid();
+            this.drawTraditionalGrid(theme);
         } else {
-            this.drawXionghanGrid();
+            this.drawXionghanGrid(theme);
         }
     }
     
     /**
      * 绘制传统象棋网格
      */
-    drawTraditionalGrid() {
+    drawTraditionalGrid(theme) {
         const ctx = this.ctx;
-        ctx.strokeStyle = '#8b4513';
+        ctx.strokeStyle = theme.gridColor;
         ctx.lineWidth = 1;
         
         // 横线 (10条)
@@ -322,7 +401,7 @@ class ChessBoardRenderer {
         // 楚河汉界
         const fontFamily = 'KaiTi, STKaiti, SimSun, serif';
         ctx.font = `bold ${this.gridSize * 0.6}px ${fontFamily}`;
-        ctx.fillStyle = '#8b4513';
+        ctx.fillStyle = theme.textColor;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
@@ -334,9 +413,9 @@ class ChessBoardRenderer {
     /**
      * 绘制匈汉象棋网格 - 参考天天象棋风格
      */
-    drawXionghanGrid() {
+    drawXionghanGrid(theme) {
         const ctx = this.ctx;
-        ctx.strokeStyle = '#6d3c11'; // 浅棕色细线条，降低对比度
+        ctx.strokeStyle = theme.lineColor;
         ctx.lineWidth = 1;
         
         // 横线 (13条)，但第6行（楚河汉界）不绘制完整线
@@ -412,7 +491,7 @@ class ChessBoardRenderer {
         // 绘制“长城阴山” - 楷体，深棕色，不粗体，字号为格子的55%
         const fontFamily = 'KaiTi, STKaiti, SimSun, serif';
         ctx.font = `${this.gridSize * 0.55}px ${fontFamily}`;
-        ctx.fillStyle = '#6d3c11';
+        ctx.fillStyle = theme.textColor;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
