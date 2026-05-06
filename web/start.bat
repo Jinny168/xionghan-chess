@@ -26,9 +26,18 @@ if not exist "venv" (
 REM 激活虚拟环境
 call venv\Scripts\activate.bat
 
-REM 安装依赖
+REM 安装依赖（包括性能优化包）
 echo [信息] 安装/更新依赖...
 pip install -r requirements.txt >nul 2>&1
+
+REM 检查是否安装gevent（性能优化）
+python -c "import gevent" >nul 2>&1
+if errorlevel 1 (
+    echo.
+    echo [提示] 未检测到 gevent，建议安装以提升性能:
+    echo        pip install gevent gunicorn
+    echo.
+)
 
 echo.
 echo ========================================

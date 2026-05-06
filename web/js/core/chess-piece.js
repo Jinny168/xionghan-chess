@@ -78,7 +78,7 @@ class Shi extends ChessPiece {
 /**
  * 将/帅/汉/汗
  */
-class King extends ChessPiece {
+class Han extends ChessPiece {
     constructor(color, row, col) {
         const name = color === 'black' ? '汗' : '漢';
         super(color, name, row, col);
@@ -98,7 +98,7 @@ class Pao extends ChessPiece {
 /**
  * 兵/卒
  */
-class Pawn extends ChessPiece {
+class Bing extends ChessPiece {
     constructor(color, row, col) {
         const name = color === 'black' ? '卒' : '兵';
         super(color, name, row, col);
@@ -153,10 +153,10 @@ class Xun extends ChessPiece {
 class PieceFactory {
     static NAME_TO_CLASS_MAP = {
         // 黑方棋子
-        '汗': King, '車': Ju, '馬': Ma, '象': Xiang, '士': Shi, '砲': Pao, '卒': Pawn,
+        '汗': Han, '車': Ju, '馬': Ma, '象': Xiang, '士': Shi, '砲': Pao, '卒': Bing,
         '衛': Wei, '䠶': She, '礌': Lei, '廵': Xun,
         // 红方棋子
-        '漢': King, '俥': Ju, '傌': Ma, '相': Xiang, '仕': Shi, '炮': Pao, '兵': Pawn,
+        '漢': Han, '俥': Ju, '傌': Ma, '相': Xiang, '仕': Shi, '炮': Pao, '兵': Bing,
         '尉': Wei, '射': She, '檑': Lei, '巡': Xun
     };
     
@@ -177,7 +177,7 @@ class PieceFactory {
 // 导出类
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        ChessPiece, Ju, Ma, Xiang, Shi, King, Pao, Pawn, 
+        ChessPiece, Ju, Ma, Xiang, Shi, Han, Bing, Pao, 
         Wei, She, Lei, Xun, PieceFactory,
         BOARD_SIZE, TRADITIONAL_BOARD_ROWS, TRADITIONAL_BOARD_COLS
     };
@@ -190,9 +190,9 @@ if (typeof window !== 'undefined') {
     window.Ma = Ma;
     window.Xiang = Xiang;
     window.Shi = Shi;
-    window.King = King;
+    window.Han = Han;
+    window.Bing = Bing;
     window.Pao = Pao;
-    window.Pawn = Pawn;
     window.Wei = Wei;
     window.She = She;
     window.Lei = Lei;

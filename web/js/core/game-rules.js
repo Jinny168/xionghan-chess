@@ -104,11 +104,11 @@ class GameRules {
             return this.isValidXiangMove(pieces, piece.color, fromRow, fromCol, toRow, toCol);
         } else if (piece instanceof Shi) {
             return this.isValidShiMove(pieces, piece.color, fromRow, fromCol, toRow, toCol);
-        } else if (piece instanceof King) {
+        } else if (piece instanceof Han) {
             return this.isValidKingMove(pieces, piece.color, fromRow, fromCol, toRow, toCol);
         } else if (piece instanceof Pao) {
             return this.isValidPaoMove(pieces, fromRow, fromCol, toRow, toCol);
-        } else if (piece instanceof Pawn) {
+        } else if (piece instanceof Bing) {
             return this.isValidPawnMove(pieces, piece.color, fromRow, fromCol, toRow, toCol);
         } else if (piece instanceof Wei) {
             return this.isValidWeiMove(pieces, fromRow, fromCol, toRow, toCol);
@@ -395,11 +395,19 @@ class GameRules {
         if (color === 'red') {
             // 红方汉进入黑方九宫(1-3行, 5-7列)获胜
             if (toRow >= 1 && toRow <= 3 && toCol >= 5 && toCol <= 7) {
+                // 检查是否会导致将帅照面（送将）
+                if (this.wouldCauseKingsFacing(pieces, color, fromRow, fromCol, toRow, toCol)) {
+                    return false; // 不能送将
+                }
                 return true;
             }
         } else {
             // 黑方汗进入红方九宫(9-11行, 5-7列)获胜
             if (toRow >= 9 && toRow <= 11 && toCol >= 5 && toCol <= 7) {
+                // 检查是否会导致将帅照面（送将）
+                if (this.wouldCauseKingsFacing(pieces, color, fromRow, fromCol, toRow, toCol)) {
+                    return false; // 不能送将
+                }
                 return true;
             }
         }
@@ -439,8 +447,8 @@ class GameRules {
         }
         
         // 查找双方的将帅
-        const redKing = pieces.find(p => p instanceof King && p.color === 'red');
-        const blackKing = pieces.find(p => p instanceof King && p.color === 'black');
+        const redKing = pieces.find(p => p instanceof Han && p.color === 'red');
+        const blackKing = pieces.find(p => p instanceof Han && p.color === 'black');
         
         let kingsFacing = false;
         
@@ -1056,7 +1064,7 @@ class GameRules {
      */
     static isCheck(pieces, color) {
         // 找到己方的将/帅
-        const king = pieces.find(p => p instanceof King && p.color === color);
+        const king = pieces.find(p => p instanceof Han && p.color === color);
         if (!king) return false;
         
         // 检查对方是否有棋子可以攻击到将/帅

@@ -6,19 +6,45 @@
 import datetime
 import time
 import uuid
+import logging
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, make_response
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room
 
+# 创建Flask应用，启用静态文件缓存
 app = Flask(__name__, static_folder='..', static_url_path='')
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+# SocketIO配置优化：使用gevent或eventlet提升性能（如果已安装）
+try:
+    import gevent
+    async_mode = 'gevent'
+except ImportError:
+    try:
+        import eventlet
+        async_mode = 'eventlet'
+    except ImportError:
+        async_mode = 'threading'
+
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode=async_mode,
+    ping_timeout=60,
+    ping_interval=25,
+    max_http_buffer_size=1e6
+)
 
 # ==================== 配置 ====================
 ROOM_TIMEOUT = 3600  # 房间超时时间（秒）
 MAX_CONNECTIONS_PER_IP = 5  # 每个IP最大连接数
 MOVE_RATE_LIMIT = 100  # 移动频率限制（毫秒）
+STATIC_CACHE_TIMEOUT = 31536000  # 静态文件缓存时间（1年，秒）
+
+# 配置日志级别
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.WARNING)
 
 # ==================== 全局状态 ====================
 rooms = {}
@@ -143,16 +169,34 @@ def rate_limit_check(sid, interval_ms=MOVE_RATE_LIMIT):
 
 
 # ==================== HTTP路由 ====================
+@app.after_request
+def add_cache_headers(response):
+    """为静态资源添加缓存头"""
+    if request.path.startswith(('/images/', '/sounds/', '/css/', '/js/')):
+        response.headers['Cache-Control'] = f'public, max-age={STATIC_CACHE_TIMEOUT}'
+        # 使用时区感知的时间对象，避免弃用警告
+        response.headers['Expires'] = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=STATIC_CACHE_TIMEOUT)
+    return response
+
+
 @app.route('/')
 def index():
     """主页 - 模式选择页面"""
-    return send_from_directory(app.static_folder, 'index.html')
+    response = make_response(send_from_directory(app.static_folder, 'index.html'))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 @app.route('/game.html')
 def game_page():
     """游戏页面"""
-    return send_from_directory(app.static_folder, 'game.html')
+    response = make_response(send_from_directory(app.static_folder, 'game.html'))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 @app.route('/api/create_room', methods=['POST'])
@@ -234,14 +278,17 @@ def handle_connect():
         emit('error', {'message': '连接数过多'})
         return False
     
-    print(f'客户端连接: {request.sid} (IP: {client_ip})')
+    # 只在debug模式打印连接信息
+    if app.debug:
+        print(f'客户端连接: {request.sid} (IP: {client_ip})')
     emit('connected', {'sid': request.sid})
 
 
 @socketio.on('disconnect')
 def handle_disconnect():
     """客户端断开"""
-    print(f'客户端断开: {request.sid}')
+    if app.debug:
+        print(f'客户端断开: {request.sid}')
     
     client_ip = request.remote_addr
     if client_ip in connection_count:
@@ -449,14 +496,29 @@ def cleanup_loop():
 
 # ==================== 启动服务器 ====================
 if __name__ == '__main__':
-    print('=' * 50)
-    print('Xionghan Chess Web Server Started')
-    print('URL: http://localhost:5000')
-    print(f'Room Timeout: {ROOM_TIMEOUT}s')
-    print(f'IP Rate Limit: {MAX_CONNECTIONS_PER_IP} connections')
-    print('=' * 50)
+    # 只在非重载器进程中打印启动信息
+    import os
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        print('=' * 50)
+        print('Xionghan Chess Web Server Started')
+        print(f'URL: http://localhost:5000')
+        print(f'Async Mode: {async_mode}')
+        print(f'Room Timeout: {ROOM_TIMEOUT}s')
+        print(f'IP Rate Limit: {MAX_CONNECTIONS_PER_IP} connections')
+        print(f'Static Cache: {STATIC_CACHE_TIMEOUT}s')
+        print('=' * 50)
     
     # 启动后台清理任务
     socketio.start_background_task(cleanup_loop)
     
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
+    # 生产环境建议关闭debug模式
+    debug_mode = True  # 开发时设为True，生产环境设为False
+    
+    socketio.run(
+        app,
+        host='0.0.0.0',
+        port=5000,
+        debug=debug_mode,
+        allow_unsafe_werkzeug=True,
+        log_output=debug_mode  # 只在debug模式输出日志
+    )

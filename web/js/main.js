@@ -28,13 +28,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.querySelector('.board-container');
     if (canvas && container) {
         // 根据容器大小自适应设置Canvas尺寸
+        let resizeTimer;
         const updateCanvasSize = () => {
-            const containerWidth = container.clientWidth - 80; // 减去padding (40*2)
-            const containerHeight = container.clientHeight - 80;
-            const size = Math.min(containerWidth, containerHeight, 1200); // 最大1200px，更充分利用空间
-            canvas.width = size;
-            canvas.height = size;
-            console.log(`Canvas尺寸设置为: ${size}x${size}`);
+            // 清除之前的定时器
+            clearTimeout(resizeTimer);
+            // 使用requestAnimationFrame优化性能
+            resizeTimer = setTimeout(() => {
+                requestAnimationFrame(() => {
+                    const containerWidth = container.clientWidth - 80; // 减去padding (40*2)
+                    const containerHeight = container.clientHeight - 80;
+                    const size = Math.min(containerWidth, containerHeight, 1200); // 最大1200px，更充分利用空间
+                    canvas.width = size;
+                    canvas.height = size;
+                    console.log(`Canvas尺寸设置为: ${size}x${size}`);
+                    
+                    // 如果游戏已初始化，重新渲染
+                    if (window.game && window.game.renderer) {
+                        window.game.renderer.calculateDimensions();
+                        window.game.render();
+                    }
+                });
+            }, 150); // 150ms防抖延迟
         };
         
         // 初始设置

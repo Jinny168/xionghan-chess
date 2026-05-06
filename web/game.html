@@ -1,446 +1,69 @@
-<!DOCTYPE html>
+1<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:;base64,=">
     <title>匈汉象棋</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Microsoft YaHei", sans-serif;
-        }
-
-        body {
-            background: #f3f4f6;
-            height: 100vh;
-            overflow: hidden;
-            transition: background 0.3s, color 0.3s;
-        }
-
-        /* 暗黑模式 */
-        body.dark-mode {
-            background: #1a1a1a;
-            color: #e0e0e0;
-        }
-
-        /* 主容器 - 垂直布局 */
-        .main-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* 顶部工具栏 - PyCharm风格 */
-        .top-toolbar {
-            height: 48px;
-            background: #fff;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            align-items: center;
-            padding: 0 16px;
-            gap: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            flex-shrink: 0;
-        }
-
-        body.dark-mode .top-toolbar {
-            background: #2d2d2d;
-            border-bottom-color: #444;
-        }
-
-        .toolbar-btn {
-            width: 36px;
-            height: 36px;
-            border: none;
-            background: transparent;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            transition: all 0.2s;
-            color: #666;
-        }
-
-        .toolbar-btn:hover {
-            background: #f0f0f0;
-            color: #333;
-        }
-
-        body.dark-mode .toolbar-btn {
-            color: #aaa;
-        }
-
-        body.dark-mode .toolbar-btn:hover {
-            background: #3d3d3d;
-            color: #e0e0e0;
-        }
-
-        .toolbar-divider {
-            width: 1px;
-            height: 24px;
-            background: #e0e0e0;
-            margin: 0 8px;
-        }
-
-        body.dark-mode .toolbar-divider {
-            background: #444;
-        }
-
-        /* 棋盘容器 - 完全居中 */
-        .board-container {
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            padding: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-            flex: 1;
-        }
-
-        body.dark-mode .board-container {
-            background: #2d2d2d;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        }
-
-        canvas {
-            display: block;
-            max-width: 100%;
-            max-height: 100%;
-            width: auto;
-            height: auto;
-        }
-
-        /* 按钮样式 */
-        button {
-            padding: 10px 16px;
-            font-size: 14px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-        }
-
-        button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* 主按钮 */
-        .btn-primary {
-            background: #2f54eb;
-            color: white;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: #1e36b3;
-        }
-
-        /* 危险按钮 */
-        .btn-danger {
-            background: #ff4d4f;
-            color: white;
-        }
-
-        .btn-danger:hover:not(:disabled) {
-            background: #d13033;
-        }
-
-        /* 次要按钮 */
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            background: #5a6268;
-        }
-
-        /* 按钮组 */
-        .button-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .button-row {
-            display: flex;
-            gap: 10px;
-        }
-
-        .button-row button {
-            flex: 1;
-        }
-
-        /* 棋谱记录 */
-        .move-history {
-            height: 200px;
-            overflow-y: auto;
-            background: #f5f5f5;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 13px;
-        }
-
-        body.dark-mode .move-history {
-            background: #1a1a1a;
-        }
-
-        .move-item {
-            padding: 5px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        body.dark-mode .move-item {
-            border-bottom-color: #444;
-        }
-
-        /* 聊天区域 */
-        .chat-messages {
-            height: 150px;
-            overflow-y: auto;
-            background: #f5f5f5;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-            font-size: 13px;
-            color: #555;
-        }
-
-        body.dark-mode .chat-messages {
-            background: #1a1a1a;
-            color: #aaa;
-        }
-
-        .chat-input-area {
-            display: flex;
-            gap: 8px;
-        }
-
-        .chat-input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 13px;
-        }
-
-        body.dark-mode .chat-input {
-            background: #1a1a1a;
-            border-color: #444;
-            color: #e0e0e0;
-        }
-
-        .btn-send {
-            background: #4CAF50;
-            color: white;
-            padding: 8px 16px;
-        }
-
-        .btn-send:hover {
-            background: #45a049;
-        }
-
-        /* 将军提示 */
-        #check-alert {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 0, 0, 0.95);
-            color: white;
-            padding: 30px 60px;
-            border-radius: 15px;
-            font-size: 32px;
-            font-weight: bold;
-            z-index: 1000;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-            animation: pulse 1s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.1); }
-        }
-
-        /* 滚动条样式 */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-
-        body.dark-mode ::-webkit-scrollbar-track {
-            background: #2d2d2d;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-
-        /* 响应式设计 */
-        @media (max-width: 900px) {
-            .top-toolbar {
-                height: 40px;
-                padding: 0 8px;
-                gap: 4px;
-            }
-            
-            .toolbar-btn {
-                width: 32px;
-                height: 32px;
-                font-size: 16px;
-            }
-            
-            .board-container {
-                padding: 10px;
-            }
-        }
-
-        /* 模态对话框样式 */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal-overlay.hidden {
-            display: none;
-        }
-
-        .modal-dialog {
-            background: white;
-            border-radius: 12px;
-            padding: 0;
-            max-width: 600px;
-            width: 90%;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        }
-
-        body.dark-mode .modal-dialog {
-            background: #2d2d2d;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 20px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        body.dark-mode .modal-header {
-            border-bottom-color: #444;
-        }
-
-        .modal-header h2 {
-            margin: 0;
-            font-size: 18px;
-            color: #333;
-        }
-
-        body.dark-mode .modal-header h2 {
-            color: #e0e0e0;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #999;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-        }
-
-        .modal-close:hover {
-            background: #f0f0f0;
-            color: #333;
-        }
-
-        body.dark-mode .modal-close:hover {
-            background: #3d3d3d;
-            color: #e0e0e0;
-        }
-
-        .modal-body {
-            padding: 20px;
-        }
-    </style>
+    <link rel="stylesheet" href="css/game.css?v=5">
 </head>
 <body>
-    <!-- 主容器 -->
-    <div class="main-container">
-        <!-- 顶部工具栏 - PyCharm风格 -->
-        <div class="top-toolbar">
-            <!-- 游戏控制图标 -->
-            <button class="toolbar-btn" id="btn-new-game" title="新的对局">🎮</button>
-            <button class="toolbar-btn" id="btn-regret" title="悔棋">↩️</button>
-            <button class="toolbar-btn" id="btn-restart" title="重新开始">🔄</button>
-            <button class="toolbar-btn" id="btn-surrender" title="认输">🏳️</button>
-            
-            <div class="toolbar-divider"></div>
-            
-            <!-- 设置与帮助图标 -->
-            <button class="toolbar-btn" id="btn-settings" title="游戏设置">⚙️</button>
-            <button class="toolbar-btn" id="btn-help" title="帮助说明">❓</button>
-            <button class="toolbar-btn" id="btn-dark-mode" title="暗黑模式">☀️</button>
-            <button class="toolbar-btn" id="btn-move-history" title="棋谱记录">📋</button>
-            <button class="toolbar-btn" id="btn-chat" title="聊天">💬</button>
-            
-            <div class="toolbar-divider"></div>
-            
-            <!-- 回合信息 -->
-            <div style="margin-left: auto; display: flex; align-items: center; gap: 16px; font-size: 14px;">
-                <span id="turn-indicator" style="font-weight: bold; color: #b41e1e;">红方回合</span>
-                <span style="color: #666;">步数: <span id="step-count">0</span></span>
-                <span style="color: #666;">时长: <span id="total-time">00:00</span></span>
+    <!-- 背景装饰 -->
+    <div class="bg-decoration" id="bg-decoration"></div>
+    
+    <!-- 游戏主容器 -->
+    <div class="game-layout">
+        <!-- 顶部工具栏 -->
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <div class="logo-area">
+                    <img src="images/logo/icon.ico" alt="Logo" class="logo">
+                    <h1 class="game-name">匈汉象棋</h1>
+                </div>
+                
+                <div class="toolbar-buttons">
+                    <button class="tool-btn" id="btn-home" title="返回主页">🏠 主页</button>
+                    <button class="tool-btn" id="btn-new-game" title="新对局">🎮 新对局</button>
+                    <button class="tool-btn" id="btn-regret" title="悔棋">↩️ 悔棋</button>
+                    <button class="tool-btn" id="btn-restart" title="重新开始">🔄 重开</button>
+                    <button class="tool-btn" id="btn-surrender" title="认输">🏳️ 认输</button>
+                </div>
             </div>
-        </div>
-
-        <!-- 棋盘容器 - 完全居中 -->
-        <div class="board-container">
-            <canvas id="chess-board" width="700" height="700"></canvas>
-        </div>
+            
+            <div class="top-bar-right">
+                <div class="game-info">
+                    <div class="player-indicator" id="player-indicator">
+                        <img src="images/avatars/red-avatar.png" alt="红方" class="avatar">
+                        <span id="turn-text" class="turn-text">红方回合</span>
+                    </div>
+                    <div class="game-stats-bar">
+                        <span class="stat">第 <span id="step-count" class="stat-value">0</span> 步</span>
+                        <span class="stat-divider">|</span>
+                        <span class="stat">用时 <span id="total-time" class="stat-value">00:00</span></span>
+                    </div>
+                </div>
+                
+                <div class="utility-buttons">
+                    <button class="icon-btn" id="btn-settings" title="设置">⚙️</button>
+                    <button class="icon-btn" id="btn-help" title="帮助">❓</button>
+                    <button class="icon-btn" id="btn-dark-mode" title="主题">🌙</button>
+                    <button class="icon-btn" id="btn-move-history" title="棋谱">📋</button>
+                    <button class="icon-btn" id="btn-replay" title="复盘"></button>
+                    <button class="icon-btn" id="btn-chat" title="聊天">💬</button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- 棋盘区域 - 主体 -->
+        <main class="board-area">
+            <div class="board-wrapper">
+                <canvas id="chess-board" width="1400" height="1400"></canvas>
+            </div>
+        </main>
     </div>
 
     <!-- 将军提示 -->
-    <div id="check-alert">️ 将军！</div>
+    <div id="check-alert">⚠️ 将军！</div>
 
     <!-- 棋谱记录对话框 -->
     <div id="move-history-modal" class="modal-overlay hidden">
@@ -452,6 +75,35 @@
             <div class="modal-body">
                 <div id="move-history-content" class="move-history" style="height: 400px;">
                     <div style="color: #999; text-align: center; padding: 20px;">暂无走棋记录</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 复盘侧边栏 -->
+    <div id="replay-sidebar" class="replay-sidebar hidden">
+        <div class="replay-sidebar-header">
+            <h3>🎬 复盘模式</h3>
+            <button class="replay-close-btn" id="close-replay-sidebar">&times;</button>
+        </div>
+        <div class="replay-sidebar-body">
+            <div class="replay-controls">
+                <div class="replay-buttons">
+                    <button class="replay-btn" id="replay-begin" title="开局">⏮ 开局</button>
+                    <button class="replay-btn" id="replay-prev" title="上一步">◀ 上一步</button>
+                    <button class="replay-btn" id="replay-next" title="下一步">下一步 ▶</button>
+                    <button class="replay-btn" id="replay-end" title="终局">终局 ⏭</button>
+                </div>
+                <div class="replay-progress-bar">
+                    <span class="progress-label">进度:</span>
+                    <input type="range" id="replay-progress" min="0" max="100" value="0">
+                    <span id="replay-step-info" class="step-info">0 / 0</span>
+                </div>
+            </div>
+            <div class="game-records-section">
+                <h4>📚 对局记录</h4>
+                <div id="game-records-list" class="game-records-list">
+                    <div class="no-records">暂无对局记录</div>
                 </div>
             </div>
         </div>
@@ -478,24 +130,64 @@
 
     <!-- 设置对话框 -->
     <div id="settings-modal" class="modal-overlay hidden">
-        <div class="modal-dialog">
+        <div class="modal-dialog" style="max-width: 650px;">
             <div class="modal-header">
-                <h2>️ 游戏设置</h2>
+                <h2>⚙️ 游戏设置</h2>
                 <button class="modal-close" id="close-settings">&times;</button>
             </div>
             <div class="modal-body">
-                <div style="text-align: left; line-height: 2;">
-                    <p><strong>音效设置：</strong></p>
-                    <p>• 背景音乐: <span id="music-status">开启</span></p>
-                    <p>• 音效音量: <span id="sound-status">70%</span></p>
-                    <br>
-                    <p><strong>棋盘设置：</strong></p>
-                    <p>• 棋盘主题: 经典木纹</p>
-                    <p>• 棋子样式: 传统书法</p>
+                <div style="margin-bottom: 24px;">
+                    <h3 style="margin-bottom: 12px; color: #333; font-size: 16px;"> 音效设置</h3>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 500;">背景音乐:</span>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn-primary" id="btn-toggle-music" style="padding: 6px 12px; font-size: 13px;">
+                                    <span id="music-status-text">开启</span>
+                                </button>
+                                <button class="btn-secondary" id="btn-switch-music" style="padding: 6px 12px; font-size: 13px; background: #6c757d;">
+                                    <span id="music-style-text">FC风格</span>
+                                </button>
+                            </div>
+                        </label>
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 500;">音效音量:</span>
+                            <span id="volume-value" style="color: #666; min-width: 40px;">70%</span>
+                        </label>
+                        <input type="range" id="volume-slider" min="0" max="100" value="70" 
+                               style="width: 100%; height: 6px; cursor: pointer;">
+                    </div>
+                </div>
+                <div style="margin-bottom: 24px;">
+                    <h3 style="margin-bottom: 12px; color: #333; font-size: 16px;">🎨 棋盘设置</h3>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 500;">棋盘主题:</span>
+                            <select id="board-theme-select" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; cursor: pointer;">
+                                <option value="classic">经典木纹</option>
+                                <option value="green">翠绿草原</option>
+                                <option value="blue">海洋蓝调</option>
+                                <option value="purple">紫晶梦幻</option>
+                                <option value="dark">暗黑模式</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div>
+                        <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 500;">棋子样式:</span>
+                            <select id="piece-style-select" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; cursor: pointer;">
+                                <option value="traditional">传统书法</option>
+                                <option value="modern">现代简约</option>
+                                <option value="cartoon">卡通风格</option>
+                            </select>
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid #e0e0e0; display: flex; justify-content: flex-end; gap: 10px;">
-                <button class="btn-secondary" id="btn-toggle-music" style="padding: 8px 16px; border: none; border-radius: 6px; background: #f0f0f0; cursor: pointer; font-size: 14px;">切换音乐</button>
+                <button class="btn-secondary" id="btn-reset-settings" style="padding: 8px 16px; border: 1px solid #d32f2f; border-radius: 6px; background: #fff; color: #d32f2f; cursor: pointer; font-size: 14px; font-weight: 500;">恢复默认</button>
                 <button class="btn-primary" id="btn-close-settings" style="padding: 8px 16px; border: none; border-radius: 6px; background: #4CAF50; color: white; cursor: pointer; font-size: 14px;">关闭</button>
             </div>
         </div>
@@ -515,9 +207,9 @@
                     <p>• 再次点击已选中的棋子可取消选择</p>
                     <br>
                     <h3 style="margin-bottom: 10px;">📋 按钮说明</h3>
-                    <p>• <strong>新的对局</strong>: 开始全新游戏</p>
+                    <p>• <strong>新对局</strong>: 开始全新游戏</p>
                     <p>• <strong>悔棋</strong>: 撤销上一步操作</p>
-                    <p>• <strong>重新开始</strong>: 重置当前棋盘</p>
+                    <p>• <strong>重开</strong>: 重置当前棋盘</p>
                     <p>• <strong>认输</strong>: 主动结束本局</p>
                     <br>
                     <h3 style="margin-bottom: 10px;">⚙️ 其他功能</h3>
@@ -536,18 +228,47 @@
         </div>
     </div>
 
-
-
-    <!-- JavaScript文件 - 按依赖顺序加载 -->
-    <script src="js/core/chess-piece.js?v=11"></script>
-    <script src="js/core/game-rules.js?v=11"></script>
-    <script src="js/core/game-state.js?v=11"></script>
-    <script src="js/ui/chess-board-renderer.js?v=11"></script>
-    <script src="js/ui/dialog-manager.js?v=11"></script>
-    <script src="js/network/websocket-client.js?v=11"></script>
-    <script src="js/controllers/sound-manager.js?v=11"></script>
-    <script src="js/controllers/avatar-manager.js?v=11"></script>
-    <script src="js/controllers/game-controller.js?v=11"></script>
-    <script src="js/main.js?v=11"></script>
+    <script>
+        const backgrounds = [
+            'images/backgrounds/1.jpg',
+            'images/backgrounds/2.jpg',
+            'images/backgrounds/3.jpg',
+            'images/backgrounds/4.jpg',
+            'images/backgrounds/5.jpg'
+        ];
+        let currentBgIndex = parseInt(localStorage.getItem('bgIndex')) || 0;
+        
+        function setBackground(index) {
+            if (index < 0) index = backgrounds.length - 1;
+            if (index >= backgrounds.length) index = 0;
+            
+            currentBgIndex = index;
+            const bgElement = document.getElementById('bg-decoration');
+            
+            bgElement.style.backgroundImage = `url('${backgrounds[index]}')`;
+            bgElement.style.backgroundSize = 'cover';
+            bgElement.style.backgroundPosition = 'center';
+            
+            localStorage.setItem('bgIndex', index);
+        }
+        
+        window.addEventListener('load', () => {
+            setBackground(currentBgIndex);
+        });
+    </script>
+    <script src="js/core/chess-piece.js?v=5"></script>
+    <script src="js/core/game-rules.js?v=5"></script>
+    <script src="js/core/game-state.js?v=5"></script>
+    <script src="js/ui/chess-board-renderer.js?v=5"></script>
+    <script src="js/ui/dialog-manager.js?v=5"></script>
+    <script src="js/network/websocket-client.js?v=5"></script>
+    <script src="js/controllers/sound-manager.js?v=5"></script>
+    <script src="js/controllers/avatar-manager.js?v=5"></script>
+    <script src="js/controllers/taunt-manager.js?v=5"></script>
+    <script src="js/controllers/statistics-manager.js?v=5"></script>
+    <script src="js/controllers/game-record-manager.js?v=5"></script>
+    <script src="js/controllers/replay-controller.js?v=5"></script>
+    <script src="js/controllers/game-controller.js?v=5"></script>
+    <script src="js/main.js?v=5"></script>
 </body>
 </html>

@@ -35,57 +35,57 @@ class GameState {
     }
     
     setupTraditionalLayout() {
-        const { Ju, Ma, Xiang, Shi, King, Pao, Pawn } = window;
+        const { Ju, Ma, Xiang, Shi, Han, Pao, Bing } = window;
         
         // 黑方
         this.pieces.push(new Ju('black', 0, 0));
         this.pieces.push(new Ma('black', 0, 1));
         this.pieces.push(new Xiang('black', 0, 2));
         this.pieces.push(new Shi('black', 0, 3));
-        this.pieces.push(new King('black', 0, 4));
+        this.pieces.push(new Han('black', 0, 4));
         this.pieces.push(new Shi('black', 0, 5));
         this.pieces.push(new Xiang('black', 0, 6));
         this.pieces.push(new Ma('black', 0, 7));
         this.pieces.push(new Ju('black', 0, 8));
         this.pieces.push(new Pao('black', 2, 1));
         this.pieces.push(new Pao('black', 2, 7));
-        this.pieces.push(new Pawn('black', 3, 0));
-        this.pieces.push(new Pawn('black', 3, 2));
-        this.pieces.push(new Pawn('black', 3, 4));
-        this.pieces.push(new Pawn('black', 3, 6));
-        this.pieces.push(new Pawn('black', 3, 8));
+        this.pieces.push(new Bing('black', 3, 0));
+        this.pieces.push(new Bing('black', 3, 2));
+        this.pieces.push(new Bing('black', 3, 4));
+        this.pieces.push(new Bing('black', 3, 6));
+        this.pieces.push(new Bing('black', 3, 8));
         
         // 红方
         this.pieces.push(new Ju('red', 9, 0));
         this.pieces.push(new Ma('red', 9, 1));
         this.pieces.push(new Xiang('red', 9, 2));
         this.pieces.push(new Shi('red', 9, 3));
-        this.pieces.push(new King('red', 9, 4));
+        this.pieces.push(new Han('red', 9, 4));
         this.pieces.push(new Shi('red', 9, 5));
         this.pieces.push(new Xiang('red', 9, 6));
         this.pieces.push(new Ma('red', 9, 7));
         this.pieces.push(new Ju('red', 9, 8));
         this.pieces.push(new Pao('red', 7, 1));
         this.pieces.push(new Pao('red', 7, 7));
-        this.pieces.push(new Pawn('red', 6, 0));
-        this.pieces.push(new Pawn('red', 6, 2));
-        this.pieces.push(new Pawn('red', 6, 4));
-        this.pieces.push(new Pawn('red', 6, 6));
-        this.pieces.push(new Pawn('red', 6, 8));
+        this.pieces.push(new Bing('red', 6, 0));
+        this.pieces.push(new Bing('red', 6, 2));
+        this.pieces.push(new Bing('red', 6, 4));
+        this.pieces.push(new Bing('red', 6, 6));
+        this.pieces.push(new Bing('red', 6, 8));
     }
     
     setupXionghanLayout() {
-        const { Ju, Ma, Xiang, Shi, King, Pao, Pawn, Wei, She, Lei, Xun } = window;
+        const { Ju, Ma, Xiang, Shi, Han, Pao, Bing, Wei, She, Lei, Xun } = window;
         
         // 黑方布局（已移除甲/胄、刺/伺、盾/碷）
         const blackPieces = [
             [She, 0, 0], [She, 0, 12],
             [Lei, 0, 4], [Lei, 0, 8], [Wei, 0, 6],
             [Ju, 1, 2], [Ma, 1, 3], [Xiang, 1, 4], [Shi, 1, 5],
-            [King, 1, 6], [Shi, 1, 7], [Xiang, 1, 8], [Ma, 1, 9], [Ju, 1, 10],
+            [Han, 1, 6], [Shi, 1, 7], [Xiang, 1, 8], [Ma, 1, 9], [Ju, 1, 10],
             [Pao, 3, 1], [Pao, 3, 11],
-            [Pawn, 4, 0], [Pawn, 4, 2], [Pawn, 4, 4], [Pawn, 4, 6],
-            [Pawn, 4, 8], [Pawn, 4, 10], [Pawn, 4, 12],
+            [Bing, 4, 0], [Bing, 4, 2], [Bing, 4, 4], [Bing, 4, 6],
+            [Bing, 4, 8], [Bing, 4, 10], [Bing, 4, 12],
             [Xun, 5, 0], [Xun, 5, 12]
         ];
         
@@ -98,10 +98,10 @@ class GameState {
             [She, 12, 0], [She, 12, 12],
             [Lei, 12, 4], [Lei, 12, 8], [Wei, 12, 6],
             [Ju, 11, 2], [Ma, 11, 3], [Xiang, 11, 4], [Shi, 11, 5],
-            [King, 11, 6], [Shi, 11, 7], [Xiang, 11, 8], [Ma, 11, 9], [Ju, 11, 10],
+            [Han, 11, 6], [Shi, 11, 7], [Xiang, 11, 8], [Ma, 11, 9], [Ju, 11, 10],
             [Pao, 9, 1], [Pao, 9, 11],
-            [Pawn, 8, 0], [Pawn, 8, 2], [Pawn, 8, 4], [Pawn, 8, 6],
-            [Pawn, 8, 8], [Pawn, 8, 10], [Pawn, 8, 12],
+            [Bing, 8, 0], [Bing, 8, 2], [Bing, 8, 4], [Bing, 8, 6],
+            [Bing, 8, 8], [Bing, 8, 10], [Bing, 8, 12],
             [Xun, 7, 0], [Xun, 7, 12]
         ];
         
@@ -153,7 +153,7 @@ class GameState {
             this.capturedPieces[capturedPiece.color].push(capturedPiece);
             
             // 检查是否吃掉对方将/帅
-            if (capturedPiece instanceof window.King) {
+            if (capturedPiece instanceof window.Han) {
                 this.gameOver = true;
                 this.winner = piece.color;
             }

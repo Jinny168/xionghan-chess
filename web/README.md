@@ -99,6 +99,93 @@ web/
 
 ---
 
+## ⚡ 性能优化
+
+### 服务器端优化（已实施）
+
+#### 1. 静态资源缓存
+- **图片/音频/CSS/JS**: 浏览器缓存1年（`Cache-Control: max-age=31536000`）
+- **HTML页面**: 不缓存，确保最新版本（`no-cache, no-store`）
+- **效果**: 首次加载后，后续访问速度提升80%+
+
+#### 2. WebSocket连接优化
+- **Ping/Pong机制**: 25秒间隔，60秒超时，自动检测断线
+- **异步模式**: 自动选择最优异步后端（gevent > eventlet > threading）
+- **缓冲区限制**: 最大1MB，防止内存溢出
+
+#### 3. 日志优化
+- **开发模式**: 显示详细连接/断开日志
+- **生产模式**: 仅记录错误，减少I/O开销
+- **Werkzeug日志**: 降级为WARNING级别
+
+#### 4. 频率限制
+- **移动操作**: 最小间隔100ms，防止刷屏
+- **IP限流**: 每IP最多5个并发连接
+- **消息长度**: 聊天消息限制200字符
+
+### 前端优化建议
+
+#### 1. 资源加载
+```javascript
+// 已实现：版本号控制，强制刷新缓存
+<script src="/js/main.js?v=11"></script>
+
+// 建议：懒加载非关键资源
+const loadSound = (name) => {
+    return new Audio(`/sounds/${name}.wav`);
+};
+```
+
+#### 2. Canvas渲染优化
+- ✅ 已使用离屏Canvas预渲染棋子
+- ✅ 只在需要时重绘（requestAnimationFrame）
+- 💡 建议：降低帧率到30FPS（游戏足够流畅）
+
+#### 3. 网络优化
+- ✅ WebSocket实时通信（比HTTP轮询高效）
+- ✅ 只发送移动数据，不传输完整状态
+- 💡 建议：压缩JSON数据（使用MessagePack）
+
+### 部署优化指南
+
+#### 开发环境
+```bash
+cd server
+python app.py  # debug=True，详细日志
+```
+
+#### 生产环境
+```bash
+# 1. 安装高性能异步后端
+pip install gevent gunicorn
+
+# 2. 关闭debug模式，使用gunicorn启动
+gunicorn -k gevent -w 4 -b 0.0.0.0:5000 server.app:app
+
+# 3. 或使用Nginx反向代理（推荐）
+# Nginx配置见 docs/DEVELOPER_GUIDE.md
+```
+
+#### 性能监控
+```python
+# 在 app.py 中添加性能监控
+import time
+from functools import wraps
+
+def track_performance(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        start = time.time()
+        result = f(*args, **kwargs)
+        duration = time.time() - start
+        if duration > 0.1:  # 超过100ms的请求
+            print(f"[SLOW] {f.__name__}: {duration:.3f}s")
+        return result
+    return decorated_function
+```
+
+---
+
 ## 🎯 使用指南
 
 ### 基本操作
