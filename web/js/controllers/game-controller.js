@@ -509,8 +509,14 @@ class GameController {
         if (this.isOnline && this.gameState.playerTurn !== this.playerCamp) return;
         
         const rect = this.canvas.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
+        
+        // 计算缩放比例：Canvas内部尺寸 / CSS显示尺寸
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        
+        // 转换点击坐标到Canvas内部坐标
+        const mouseX = (event.clientX - rect.left) * scaleX;
+        const mouseY = (event.clientY - rect.top) * scaleY;
         
         const pos = this.renderer.getGridPosition(mouseX, mouseY);
         if (!pos) return;
@@ -1256,11 +1262,8 @@ class GameController {
             
         const isDark = body.classList.contains('dark-mode');
         if (darkModeBtn) {
-            // 只更新图标，不替换整个文本内容
-            const btnIcon = darkModeBtn.querySelector('.btn-icon');
-            if (btnIcon) {
-                btnIcon.textContent = isDark ? '🌙' : '☀️';
-            }
+            // 直接更新按钮文本内容
+            darkModeBtn.textContent = isDark ? '☀️' : '🌙';
         }
             
         // 保存用户偏好
