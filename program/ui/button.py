@@ -58,6 +58,7 @@ class StyledButton:
         self.font = load_font(font_size)
         self.is_hovered = False
         self.corner_radius = corner_radius  # 圆角半径
+        self.enabled = True  # 按钮启用状态
 
     def draw(self, screen):
         # 定义颜色

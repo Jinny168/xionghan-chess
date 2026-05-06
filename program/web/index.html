@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:;base64,=">
+    <title>匈汉象棋 - 主页</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', 'KaiTi', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* 背景装饰 */
+        .bg-decoration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.1;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.3) 0%, transparent 50%);
+        }
+
+        /* 主容器 */
+        .main-container {
+            text-align: center;
+            z-index: 1;
+            max-width: 900px;
+            width: 90%;
+        }
+
+        /* 标题区域 */
+        .title-section {
+            margin-bottom: 3rem;
+        }
+
+        .game-title {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 
+                0 0 20px rgba(255, 215, 0, 0.5),
+                0 0 40px rgba(255, 215, 0, 0.3),
+                3px 3px 6px rgba(0, 0, 0, 0.3);
+            margin-bottom: 1rem;
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            from {
+                text-shadow: 
+                    0 0 20px rgba(255, 215, 0, 0.5),
+                    0 0 40px rgba(255, 215, 0, 0.3),
+                    3px 3px 6px rgba(0, 0, 0, 0.3);
+            }
+            to {
+                text-shadow: 
+                    0 0 30px rgba(255, 215, 0, 0.8),
+                    0 0 60px rgba(255, 215, 0, 0.5),
+                    3px 3px 6px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 模式选择卡片 */
+        .mode-selection {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+
+        .mode-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2.5rem;
+            width: 350px;
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .mode-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.2);
+        }
+
+        .mode-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .mode-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .mode-description {
+            font-size: 1rem;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .mode-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .mode-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        /* 联机模式输入框 */
+        .room-input-section {
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        .room-input-section.active {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .room-input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .room-input {
+            flex: 1;
+            padding: 0.8rem 1.2rem;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .room-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .join-button {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .join-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        /* 版权信息 */
+        .copyright {
+            position: fixed;
+            bottom: 2rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 2.5rem;
+            }
+
+            .subtitle {
+                font-size: 1.2rem;
+            }
+
+            .mode-selection {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .mode-card {
+                width: 100%;
+                max-width: 350px;
+            }
+        }
+
+        /* 加载动画 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffd700;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 错误提示 */
+        .error-message {
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景装饰 -->
+    <div class="bg-decoration"></div>
+
+    <!-- 加载动画 -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 标题区域 -->
+        <div class="title-section">
+            <h1 class="game-title">匈汉象棋</h1>
+            <p class="subtitle">传承经典 · 创新对弈</p>
+        </div>
+
+        <!-- 模式选择 -->
+        <div class="mode-selection">
+            <!-- 单机双人对战 -->
+            <div class="mode-card" onclick="selectMode('local')">
+                <div class="mode-icon">👥</div>
+                <h2 class="mode-title">单机双人对战</h2>
+                <p class="mode-description">
+                    在同一台设备上进行双人对弈<br>
+                    适合面对面切磋棋艺<br>
+                    无需网络连接
+                </p>
+                <button class="mode-button" onclick="startLocalGame(event)">
+                    开始游戏
+                </button>
+            </div>
+
+            <!-- 联机双人对战 -->
+            <div class="mode-card" onclick="selectMode('online')">
+                <div class="mode-icon">🌐</div>
+                <h2 class="mode-title">联机双人对战</h2>
+                <p class="mode-description">
+                    通过网络与好友远程对弈<br>
+                    输入房间号即可加入游戏<br>
+                    支持实时聊天互动
+                </p>
+                <button class="mode-button" onclick="showRoomInput(event)">
+                    加入房间
+                </button>
+                <button class="mode-button" style="margin-top: 0.5rem; background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);" onclick="createRoom(event)">
+                    创建房间
+                </button>
+                
+                <!-- 房间号输入区域 -->
+                <div class="room-input-section" id="room-input-section">
+                    <div class="room-input-group">
+                        <input 
+                            type="text" 
+                            class="room-input" 
+                            id="room-id-input" 
+                            placeholder="输入房间号"
+                            maxlength="8"
+                        >
+                        <button class="join-button" onclick="joinRoom()">
+                            加入
+                        </button>
+                    </div>
+                    <div class="error-message" id="error-message"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 版权信息 -->
+    <div class="copyright">© 2026 靳中原</div>
+
+    <script>
+        /**
+         * 选择模式（卡片点击效果）
+         */
+        function selectMode(mode) {
+            // 可以在这里添加卡片选中效果
+            console.log('选择模式:', mode);
+        }
+
+        /**
+         * 开始单机游戏
+         */
+        function startLocalGame(event) {
+            event.stopPropagation();
+            
+            showLoading();
+            
+            // 延迟跳转，显示加载动画
+            setTimeout(() => {
+                window.location.href = '/game.html?mode=local';
+            }, 500);
+        }
+
+        /**
+         * 显示房间号输入框
+         */
+        function showRoomInput(event) {
+            event.stopPropagation();
+            
+            const inputSection = document.getElementById('room-input-section');
+            inputSection.classList.toggle('active');
+            
+            if (inputSection.classList.contains('active')) {
+                // 聚焦到输入框
+                setTimeout(() => {
+                    document.getElementById('room-id-input').focus();
+                }, 100);
+            }
+        }
+
+        /**
+         * 创建房间
+         */
+        function createRoom(event) {
+            event.stopPropagation();
+            
+            showLoading();
+            
+            // 调用API创建房间
+            fetch('/api/create_room', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ mode: 'xionghan' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    hideLoading();
+                    // 显示房间号并提示用户
+                    const roomId = data.roomId;
+                    window.dialogManager.showInfo(
+                        '房间创建成功',
+                        `房间号: ${roomId}\n\n请将此房间号分享给好友，然后点击“加入房间”按钮输入房间号即可开始游戏。`,
+                        () => {
+                            // 自动填充房间号
+                            const inputSection = document.getElementById('room-input-section');
+                            const input = document.getElementById('room-id-input');
+                            input.value = roomId;
+                            if (!inputSection.classList.contains('active')) {
+                                inputSection.classList.add('active');
+                            }
+                            input.focus();
+                            input.select();
+                        }
+                    );
+                } else {
+                    hideLoading();
+                    showError('创建房间失败: ' + (data.error || '未知错误'));
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showError('连接服务器失败，请检查网络');
+                console.error('创建房间失败:', error);
+            });
+        }
+
+        /**
+         * 加入房间
+         */
+        function joinRoom() {
+            const roomIdInput = document.getElementById('room-id-input');
+            const roomId = roomIdInput.value.trim();
+            const errorMessage = document.getElementById('error-message');
+            
+            // 验证房间号
+            if (!roomId) {
+                showError('请输入房间号');
+                return;
+            }
+            
+            if (roomId.length !== 8) {
+                showError('房间号必须为8位字符');
+                return;
+            }
+            
+            // 隐藏错误信息
+            errorMessage.classList.remove('active');
+            
+            // 显示加载动画
+            showLoading();
+            
+            // 验证房间是否存在
+            verifyRoom(roomId)
+                .then(exists => {
+                    if (exists) {
+                        // 房间存在，跳转到游戏页面
+                        window.location.href = `/game.html?mode=online&roomId=${roomId}`;
+                    } else {
+                        hideLoading();
+                        showError('房间不存在或已满');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    showError('连接服务器失败，请检查网络');
+                    console.error('验证房间失败:', error);
+                });
+        }
+
+        /**
+         * 验证房间是否存在
+         */
+        async function verifyRoom(roomId) {
+            try {
+                const response = await fetch(`/api/room_status/${roomId}`);
+                const data = await response.json();
+                
+                if (data.success && data.players < 2) {
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('验证房间失败:', error);
+                throw error;
+            }
+        }
+
+        /**
+         * 显示错误信息
+         */
+        function showError(message) {
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                errorMessage.classList.remove('active');
+            }, 3000);
+        }
+
+        /**
+         * 显示加载动画
+         */
+        function showLoading() {
+            document.getElementById('loading-overlay').classList.add('active');
+        }
+
+        /**
+         * 隐藏加载动画
+         */
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.remove('active');
+        }
+
+        /**
+         * 监听回车键
+         */
+        document.getElementById('room-id-input').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                joinRoom();
+            }
+        });
+
+        // 页面加载完成后的初始化
+        window.addEventListener('load', () => {
+            console.log('匈汉象棋主页加载完成');
+        });
+    </script>
+</body>
+</html>
