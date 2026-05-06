@@ -174,7 +174,11 @@ def toggle_fullscreen(window_width, window_height, is_fullscreen, windowed_size=
     return new_screen, new_window_width, new_window_height, new_is_fullscreen, new_windowed_size
 
 def generate_move_notation(piece, from_row, from_col, to_row, to_col):
-    """生成走法的中文表示，如"炮二平五"、"马8进7"等"""
+    """生成走法的中文表示，如“炮二平五”、“马8进7”等"""
+    
+    # 安全检查：确保piece不为None
+    if piece is None:
+        return "未知走法"
 
     piece_name = piece.name  # 直接使用棋子名称
 

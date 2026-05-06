@@ -25,6 +25,7 @@ nosetests.xml
 coverage.xml
 *.cover
 *.log
+logs/
 .hypothesis/
 
 # IDE 相关
@@ -44,5 +45,4 @@ Icon?
 # 临时文件
 *.tmp
 *.temp
-*~
 \#*\#

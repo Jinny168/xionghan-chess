@@ -187,23 +187,16 @@ class NetworkGameScreen(BaseGameScreen):
 
         # 绘制悔棋按钮、重来按钮、退出按钮、全屏按钮和音效设置按钮
         # 注意：在网络对战模式中，我们不绘制返回按钮
-        if hasattr(self, 'undo_button'):
-            # 根据按钮的启用状态绘制不同外观
-            if hasattr(self.undo_button, 'enabled') and not self.undo_button.enabled:
-                # 创建一个半透明的灰色覆盖层，使按钮看起来被禁用
-                temp_surface = pygame.Surface((self.undo_button.rect.width, self.undo_button.rect.height), pygame.SRCALPHA)
-                self.undo_button.draw(temp_surface)  # 先绘制按钮
-                temp_surface.fill((128, 128, 128, 128), special_flags=pygame.BLEND_RGBA_MULT)  # 应用灰色遮罩
-                screen.blit(temp_surface, (self.undo_button.rect.x, self.undo_button.rect.y))
-            else:
-                self.undo_button.draw(screen)
-        if hasattr(self, 'restart_button'):
+        # 悔棋按钮总是绘制，但根据启用状态显示不同外观
+        if hasattr(self, 'undo_button') and self.undo_button:
+            self.undo_button.draw(screen)
+        if hasattr(self, 'restart_button') and self.restart_button:
             self.restart_button.draw(screen)
-        if hasattr(self, 'exit_button'):
+        if hasattr(self, 'exit_button') and self.exit_button:
             self.exit_button.draw(screen)
-        if hasattr(self, 'fullscreen_button'):
+        if hasattr(self, 'fullscreen_button') and self.fullscreen_button:
             self.fullscreen_button.draw(screen)
-        if hasattr(self, 'audio_settings_button'):
+        if hasattr(self, 'audio_settings_button') and self.audio_settings_button:
             self.audio_settings_button.draw(screen)
 
         # 绘制玩家头像

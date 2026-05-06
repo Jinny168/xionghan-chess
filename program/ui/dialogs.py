@@ -365,6 +365,61 @@ class PopupDialog(BaseDialog):
         return None  # 无操作
 
 
+class ToastNotification:
+    """轻量级提示通知组件，用于显示短暂的提示信息"""
+    
+    def __init__(self, message, duration=2000, bg_color=(255, 255, 200), text_color=(0, 128, 0)):
+        self.message = message
+        self.duration = duration  # 显示时长（毫秒）
+        self.bg_color = bg_color  # 背景颜色
+        self.text_color = text_color  # 文字颜色
+        self.border_color = (200, 200, 100)  # 边框颜色
+        self.start_time = pygame.time.get_ticks()
+        self.font = None
+        self.text_surface = None
+        self.background_surface = None
+        self.position = None
+        
+    def prepare(self, screen):
+        """准备提示组件，计算尺寸和位置"""
+        if not self.font:
+            from program.utils.tools import load_font
+            self.font = load_font(24, bold=True)
+            self.text_surface = self.font.render(self.message, True, self.text_color)
+            
+            # 创建背景surface
+            padding = 20
+            self.background_surface = pygame.Surface(
+                (self.text_surface.get_width() + padding * 2, 
+                 self.text_surface.get_height() + padding)
+            )
+            self.background_surface.fill(self.bg_color)
+            pygame.draw.rect(self.background_surface, self.border_color, 
+                           self.background_surface.get_rect(), 2)
+            self.background_surface.blit(self.text_surface, (padding, padding//2))
+            
+            # 计算位置（屏幕中央偏上）
+            screen_width, screen_height = screen.get_size()
+            self.position = (
+                (screen_width - self.background_surface.get_width()) // 2,
+                screen_height // 3
+            )
+    
+    def draw(self, screen):
+        """绘制提示信息"""
+        if not self.background_surface:
+            self.prepare(screen)
+        screen.blit(self.background_surface, self.position)
+        
+    def is_expired(self):
+        """检查是否已过期"""
+        return pygame.time.get_ticks() - self.start_time > self.duration
+    
+    def reset_timer(self):
+        """重置计时器"""
+        self.start_time = pygame.time.get_ticks()
+
+
 class NotificationDialog(BaseDialog):
     """通知对话框，用于显示操作结果"""
     
@@ -844,25 +899,31 @@ class StatisticsDialog:
             'xun': '巡/廵'
         }
 
-        # 分两列显示棋子统计
+        # 分四列显示棋子统计（动态调整列数）
         captured_stats = stats['pieces_captured']
         items = list(captured_stats.items())
-        half = len(items) // 2 + len(items) % 2
+        num_columns = min(4, len(items))  # 动态调整列数
+        column_width = screen_width // num_columns  # 每列宽度
+
+        # 计算实际行数
+        rows_per_column = (len(items) + num_columns - 1) // num_columns  # 向上取整
 
         for i, (piece_type, count) in enumerate(items):
             piece_name = piece_names.get(piece_type, piece_type)
             text = self.normal_font.render(f"{piece_name}: {count}", True, (0, 0, 0))
 
-            if i < half:
-                # 第一列
-                screen.blit(text, (70, y_pos + i * line_height))
-            else:
-                # 第二列
-                screen.blit(text, (screen_width // 2 + 50, y_pos + (i - half) * line_height))
+            # 计算当前项所在的列和行
+            column_index = i // rows_per_column
+            row_index = i % rows_per_column
 
-        # 计算最后一行的位置
-        last_row = max(half, len(items) - half)
-        y_pos += last_row * line_height + 20
+            # 计算绘制位置
+            x_pos = 50 + column_index * column_width
+            y_draw_pos = y_pos + row_index * line_height
+
+            screen.blit(text, (x_pos, y_draw_pos))
+
+        # 更新 y_pos
+        y_pos += rows_per_column * line_height+20
 
         # 最快胜利记录
         section_title = self.section_font.render("最快胜利记录:", True, (0, 0, 0))
@@ -872,9 +933,9 @@ class StatisticsDialog:
         fastest_red = stats['fastest_win']['red']
         fastest_black = stats['fastest_win']['black']
 
-        if fastest_red != float('inf'):
+        if fastest_red  is not None and fastest_red != float('inf'):
             fastest_red_text = self.normal_font.render(
-                f"红方最快胜利: {fastest_red:.1f}秒 ({int(fastest_red // 60)}:{int(fastest_red % 60):02d})", True,
+                f"红方最快胜利: {fastest_red:.1f}秒 ({int(fastest_red // 60)}:{int(fastest_red % 60):02d})" , True,
                 (180, 30, 30))  # 红色
         else:
             fastest_red_text = self.normal_font.render("红方最快胜利: 无", True, (180, 30, 30))  # 红色
@@ -893,9 +954,17 @@ class StatisticsDialog:
 
         # 最长游戏记录
         longest_game = stats['longest_game']
-        longest_game_text = self.normal_font.render(
-            f"最长单局时长: {longest_game:.1f}秒 ({int(longest_game // 60)}:{int(longest_game % 60):02d})", True,
-            (0, 0, 0))
+        if longest_game is not None and longest_game != float('inf'):
+            # 如果有最长游戏记录，则格式化显示时间
+            minutes = int(longest_game // 60)
+            seconds = int(longest_game % 60)
+            text = f"最长单局时长: {longest_game:.1f}秒 ({minutes}:{seconds:02d})"
+        else:
+            # 如果没有数据，则显示“暂无数据”
+            text = "最长单局时长: 暂无数据"
+
+        # 渲染文本并绘制到屏幕上
+        longest_game_text = self.normal_font.render(text, True, (0, 0, 0))
         screen.blit(longest_game_text, (70, y_pos))
         y_pos += line_height + 15
 
