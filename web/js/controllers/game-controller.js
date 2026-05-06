@@ -1010,6 +1010,8 @@ class GameController {
             '恢复默认设置',
             '确定要恢复所有设置为默认值吗？',
             () => {
+                console.log('开始恢复默认设置...');
+                
                 // 恢复默认音量
                 this.soundManager.setMusicVolume(0.7);
                 
@@ -1030,9 +1032,21 @@ class GameController {
                 localStorage.removeItem('musicEnabled');
                 localStorage.removeItem('musicStyle');
                 
-                // 更新UI
+                // 更新UI显示
                 this.updateSettingsUI();
                 
+                // 更新下拉框的选中值
+                const boardThemeSelect = document.getElementById('board-theme-select');
+                if (boardThemeSelect) {
+                    boardThemeSelect.value = 'classic';
+                }
+                
+                const pieceStyleSelect = document.getElementById('piece-style-select');
+                if (pieceStyleSelect) {
+                    pieceStyleSelect.value = 'traditional';
+                }
+                
+                console.log('设置已恢复为默认值');
                 window.dialogManager.showInfo('提示', '设置已恢复为默认值');
             },
             () => {

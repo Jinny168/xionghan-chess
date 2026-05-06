@@ -1,4 +1,4 @@
-ie/**
+/**
  * 棋盘渲染器 - 使用Canvas绘制棋盘和棋子
  */
 
@@ -87,9 +87,17 @@ class ChessBoardRenderer {
      * 设置棋子样式
      */
     setPieceStyle(style) {
+        console.log(`切换棋子样式: ${style}`);
         this.pieceStyle = style;
+        // 清空之前的图片缓存
+        this.pieceImages = {};
+        this.imagesLoaded = false;
         // 重新加载棋子图片
         this.loadPieceImages();
+        // 立即重绘棋盘（图片加载完成后会自动再次重绘）
+        if (window.game && window.game.renderer) {
+            window.game.render();
+        }
         console.log(`棋子样式已切换为: ${style}`);
     }
     
