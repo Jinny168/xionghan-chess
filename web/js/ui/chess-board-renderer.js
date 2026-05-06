@@ -1,4 +1,4 @@
-/**
+ie/**
  * 棋盘渲染器 - 使用Canvas绘制棋盘和棋子
  */
 
@@ -119,7 +119,8 @@ class ChessBoardRenderer {
             } else if (this.pieceStyle === 'cartoon') {
                 imagePath = `images/pieces/cartoon/${name}.png`;
             } else {
-                imagePath = `images/pieces/${name}.png`; // 默认traditional
+                // traditional - 从traditional子目录加载
+                imagePath = `images/pieces/traditional/${name}.png`;
             }
             
             img.src = imagePath;
@@ -130,7 +131,7 @@ class ChessBoardRenderer {
                 
                 if (loadedCount === totalCount) {
                     this.imagesLoaded = true;
-                    console.log('✅ 所有棋子图片加载完成');
+                    console.log(`✅ 所有棋子图片加载完成 (${this.pieceStyle}风格)`);
                     // 重新绘制棋盘
                     if (window.game && window.game.renderer) {
                         window.game.render();

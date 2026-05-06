@@ -1,4 +1,4 @@
-/**
+gg/**
  * 对话框管理器
  */
 
@@ -106,8 +106,8 @@ class DialogManager {
                     ${message}
                 </div>
                 <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid #e0e0e0; display: flex; justify-content: flex-end; gap: 10px;">
-                    <button class="btn-secondary" id="temp-dialog-cancel" style="padding: 8px 16px; border: none; border-radius: 6px; background: #f0f0f0; cursor: pointer; font-size: 14px;">${cancelText}</button>
-                    <button class="btn-primary" id="temp-dialog-confirm" style="padding: 8px 16px; border: none; border-radius: 6px; background: #2f54eb; color: white; cursor: pointer; font-size: 14px;">${confirmText}</button>
+                    <button class="btn-secondary" id="temp-dialog-cancel" style="padding: 8px 16px; border: 1px solid #6c757d; border-radius: 6px; background: #fff; color: #6c757d; cursor: pointer; font-size: 14px; font-weight: 500;">${cancelText}</button>
+                    <button class="btn-primary" id="temp-dialog-confirm" style="padding: 8px 16px; border: none; border-radius: 6px; background: #2f54eb; color: white; cursor: pointer; font-size: 14px; font-weight: 500;">${confirmText}</button>
                 </div>
             </div>
         `;
@@ -201,7 +201,7 @@ class DialogManager {
                     ${message}
                 </div>
                 <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid #e0e0e0; display: flex; justify-content: flex-end;">
-                    <button class="btn-primary" id="temp-dialog-ok" style="padding: 8px 16px; border: none; border-radius: 6px; background: #2f54eb; color: white; cursor: pointer; font-size: 14px;">确定</button>
+                    <button class="btn-primary" id="temp-dialog-ok" style="padding: 8px 16px; border: none; border-radius: 6px; background: #2f54eb; color: white; cursor: pointer; font-size: 14px; font-weight: 500;">确定</button>
                 </div>
             </div>
         `;
