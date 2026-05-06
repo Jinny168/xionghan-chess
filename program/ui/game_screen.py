@@ -397,6 +397,10 @@ class BaseGameScreen:
                 else:  # 旧格式：6个元素
                     piece, from_row, from_col, to_row, to_col, captured_piece = move_record
 
+                # 跳过无效的棋谱记录（piece为None的情况）
+                if piece is None:
+                    continue
+
                 # 生成棋谱记号
                 from program.utils import tools
                 notation = tools.generate_move_notation(piece, from_row, from_col, to_row, to_col)

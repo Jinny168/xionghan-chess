@@ -178,7 +178,11 @@ class NetworkChessGame(ChessGame):
 
             # 已选择棋子，尝试移动
             captured_piece = self.game_state.get_piece_at(row, col)
-            move_successful = self.game_state.move_piece(sel_row, sel_col, row, col)
+            move_successful = self._execute_move_with_command_pattern(
+                (sel_row, sel_col, row, col),
+                skip_sound=False,  # 播放音效
+                skip_ai_trigger=True  # 跳过AI触发（网络对战不需要）
+            )
 
             if move_successful:
                 print(f"[DEBUG] 移动成功: {sel_row},{sel_col} -> {row},{col}")
@@ -311,7 +315,11 @@ class NetworkChessGame(ChessGame):
             return
         
         # 执行对手的移动
-        success = self.game_state.move_piece(from_row, from_col, to_row, to_col)
+        success = self._execute_move_with_command_pattern(
+            (from_row, from_col, to_row, to_col),
+            skip_sound=False,  # 播放音效
+            skip_ai_trigger=True  # 跳过AI触发
+        )
         if success:
             print(f"[DEBUG] 对手移动成功执行: {from_row},{from_col} -> {to_row},{to_col}")
             
@@ -1005,6 +1013,14 @@ class NetworkChessGame(ChessGame):
         if (hasattr(self, 'game_screen') and 
             hasattr(self.game_screen, 'undo_button') and 
             self.game_screen.undo_button):
+            
+            # 添加详细的调试信息
+            print(f"[DEBUG] 悔棋按钮状态检查 - 角色: {'主机' if self.is_host else '客户端'}")
+            print(f"[DEBUG] 当前游戏状态 - 游戏结束: {self.game_state.game_over}")
+            print(f"[DEBUG] 状态标志 - processing_undo_request: {getattr(self, 'processing_undo_request', 'NOT_SET')}")
+            print(f"[DEBUG] 状态标志 - just_restarted: {getattr(self, 'just_restarted', 'NOT_SET')}")
+            print(f"[DEBUG] 当前玩家回合: {self.game_state.player_turn}, 本地玩家阵营: {self.player_camp}")
+            
             # 悔棋按钮的启用条件：
             # 1. 游戏未结束
             # 2. 不在处理悔棋请求中
@@ -1026,12 +1042,16 @@ class NetworkChessGame(ChessGame):
                 can_request_undo
             )
             
+            print(f"[DEBUG] 计算结果 - game_not_over: {game_not_over}, not_processing_undo: {not_processing_undo}, not_just_restarted: {not_just_restarted}")
+            print(f"[DEBUG] 最终按钮状态: {new_enabled_state}")
+            
             # 只有状态发生变化时才更新（避免不必要的重绘）
             if self.game_screen.undo_button.enabled != new_enabled_state:
                 print(f"[DEBUG] 悔棋按钮状态更新: {self.game_screen.undo_button.enabled} -> {new_enabled_state}")
-                print(f"[DEBUG] 状态详情 - 游戏未结束: {game_not_over}, 未处理悔棋: {not_processing_undo}, 未重来: {not_just_restarted}")
                 
             self.game_screen.undo_button.enabled = new_enabled_state
+        else:
+            print(f"[DEBUG] 警告：找不到悔棋按钮或游戏屏幕")
 
     def update_avatars(self):
         """更新头像状态 - 网络对战模式特化版本"""

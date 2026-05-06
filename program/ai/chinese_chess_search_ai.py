@@ -698,9 +698,9 @@ class ChineseChessSearchAI:
         moves = self._get_all_possible_moves(game_state, player_color)
 
         for move in moves:
-            # 执行移动
+            # 执行移动（优化：直接修改棋子位置，避免完整验证）
             original_pieces = self._copy_pieces(game_state.pieces)
-            game_state.move_piece(move[0], move[1], move[2], move[3])
+            self._simulate_move(game_state, move)
 
             value, _ = self._negamax(game_state, depth - 1, -color)
             value = -value  # Negamax的关键：翻转值
@@ -727,9 +727,9 @@ class ChineseChessSearchAI:
             max_eval = float('-inf')
             moves = self._get_all_possible_moves(game_state, self.ai_color)
             for move in moves:
-                # 执行移动
+                # 执行移动（优化：直接修改棋子位置）
                 original_pieces = self._copy_pieces(game_state.pieces)
-                game_state.move_piece(move[0], move[1], move[2], move[3])
+                self._simulate_move(game_state, move)
 
                 eval_score, _ = self._alpha_beta(game_state, depth - 1, alpha, beta, False)
 
@@ -750,9 +750,9 @@ class ChineseChessSearchAI:
             opponent_color = "black" if self.ai_color == "red" else "red"
             moves = self._get_all_possible_moves(game_state, opponent_color)
             for move in moves:
-                # 执行移动
+                # 执行移动（优化：直接修改棋子位置）
                 original_pieces = self._copy_pieces(game_state.pieces)
-                game_state.move_piece(move[0], move[1], move[2], move[3])
+                self._simulate_move(game_state, move)
 
                 eval_score, _ = self._alpha_beta(game_state, depth - 1, alpha, beta, True)
 
@@ -813,6 +813,41 @@ class ChineseChessSearchAI:
             new_piece = copy.copy(piece)
             copied_pieces.append(new_piece)
         return copied_pieces
+    
+    def _simulate_move(self, game_state, move):
+        """
+        模拟走子（用于AI搜索，不执行完整验证）
+        
+        Args:
+            game_state: 游戏状态
+            move: 移动元组 (from_row, from_col, to_row, to_col)
+        """
+        from_row, from_col, to_row, to_col = move
+        
+        # 获取要移动的棋子
+        piece = None
+        for p in game_state.pieces:
+            if p.row == from_row and p.col == from_col:
+                piece = p
+                break
+        
+        if not piece:
+            return
+        
+        # 检查目标位置是否有棋子（吃子）
+        target_piece = None
+        for p in game_state.pieces:
+            if p.row == to_row and p.col == to_col:
+                target_piece = p
+                break
+        
+        # 如果有棋子被吃掉，从棋盘中移除
+        if target_piece:
+            game_state.pieces.remove(target_piece)
+        
+        # 移动棋子到新位置
+        piece.row = to_row
+        piece.col = to_col
 
     def _minimax_move(self, pieces, current_player, depth=2):
         """使用minimax算法计算最佳移动"""

@@ -38,6 +38,10 @@ class GameRules:
         Returns:
             bool: 移动是否合法
         """
+        # 防御性检查：确保piece不为None
+        if piece is None:
+            return False
+        
         # 检查起始位置是否正确
         if piece.row != from_row or piece.col != from_col:
             return False
@@ -58,10 +62,17 @@ class GameRules:
 
         # 检查盾的特殊效果：与己方盾横竖斜相连的敌方棋子禁止执行吃子操作
         # 如果移动的棋子是敌方棋子，并且与己方盾相邻，则不能吃子
-        if target_piece and piece.color != GameRules.get_piece_at(pieces, from_row, from_col).color:
+        if target_piece:
+            # 直接使用传入的piece参数，不需要重新查找
+            # 注意：此时piece就是移动的棋子，直接用它的color属性
+            opponent_color = "black" if piece.color == "red" else "red"
+            
             # 检查移动的敌方棋子是否与某个己方盾相邻
             for p in pieces:
-                if isinstance(p, Dun) and p.color == GameRules.get_piece_at(pieces, from_row, from_col).color:
+                # 防御性检查：确保p不为None
+                if p is None:
+                    continue
+                if isinstance(p, Dun) and p.color == piece.color:
                     # 检查该己方盾是否与移动的敌方棋子相邻（8邻域）
                     row_diff = abs(p.row - from_row)
                     col_diff = abs(p.col - from_col)
@@ -73,6 +84,9 @@ class GameRules:
         # 如果移动的棋子与敌方盾相邻，则不能吃子（丧失攻击能力）
         if target_piece:  # 如果是吃子移动
             for p in pieces:
+                # 防御性检查：确保p不为None
+                if p is None:
+                    continue
                 if isinstance(p, Dun) and p.color != piece.color:  # 找到敌方盾
                     # 检查移动的棋子是否与敌方盾相邻（8邻域）
                     row_diff = abs(p.row - from_row)
@@ -96,6 +110,9 @@ class GameRules:
         # 正确的逻辑是：如果敌方棋子与己方盾相邻，则该敌方棋子不能吃子
         if target_piece:  # 如果是吃子移动
             for p in pieces:
+                # 防御性检查：确保p不为None
+                if p is None:
+                    continue
                 if isinstance(p, Dun) and p.color != target_piece.color:  # 找到与目标棋子颜色不同的盾（即己方盾）
                     # 检查目标棋子（被吃的棋子）是否与己方盾相邻
                     row_diff = abs(p.row - to_row)
@@ -106,6 +123,9 @@ class GameRules:
 
         # 检查是否有被尉/衛照面限制的棋子
         for p in pieces:
+            # 防御性检查：确保p不为None
+            if p is None:
+                continue
             # 检查是否是被尉/衛照面的敌方棋子
             if isinstance(p, Wei) and GameRules.is_facing_enemy(p, pieces):
                 facing_target = GameRules.get_facing_piece(p, pieces)
@@ -119,15 +139,15 @@ class GameRules:
         elif isinstance(piece, Ma):
             return GameRules.is_valid_ma_move(pieces, from_row, from_col, to_row, to_col)
         elif isinstance(piece, Xiang):
-            return GameRules.is_valid_xiang_move(pieces, piece.color, from_row, from_col, to_row, to_col)
+            return GameRules.is_valid_xiang_move(pieces, piece.color if piece else None, from_row, from_col, to_row, to_col)
         elif isinstance(piece, Shi):
-            return GameRules.is_valid_shi_move(piece.color, from_row, from_col, to_row, to_col)
+            return GameRules.is_valid_shi_move(piece.color if piece else None, from_row, from_col, to_row, to_col)
         elif isinstance(piece, King):
-            return GameRules.is_valid_king_move(pieces, piece.color, from_row, from_col, to_row, to_col)
+            return GameRules.is_valid_king_move(pieces, piece.color if piece else None, from_row, from_col, to_row, to_col)
         elif isinstance(piece, Pao):
             return GameRules.is_valid_pao_move(pieces, from_row, from_col, to_row, to_col)
         elif isinstance(piece, Pawn):
-            return GameRules.is_valid_pawn_move(pieces, piece.color, from_row, from_col, to_row, to_col)
+            return GameRules.is_valid_pawn_move(pieces, piece.color if piece else None, from_row, from_col, to_row, to_col)
         elif isinstance(piece, Wei):
             return GameRules.is_valid_wei_move(pieces, from_row, from_col, to_row, to_col)
         elif isinstance(piece, She):
@@ -137,7 +157,7 @@ class GameRules:
         elif isinstance(piece, Jia):
             return GameRules.is_valid_jia_move(pieces, from_row, from_col, to_row, to_col)
         elif isinstance(piece, Ci):
-            return GameRules.is_valid_ci_move(pieces, piece.color, from_row, from_col, to_row, to_col)
+            return GameRules.is_valid_ci_move(pieces, piece.color if piece else None, from_row, from_col, to_row, to_col)
         elif isinstance(piece, Dun):
             return GameRules.is_valid_dun_move(pieces, from_row, from_col, to_row, to_col)
         elif isinstance(piece, Xun):
@@ -154,7 +174,10 @@ class GameRules:
 
         # 检查目标位置是否有己方棋子
         target_piece = GameRules.get_piece_at(pieces, to_row, to_col)
-        if target_piece and target_piece.color == GameRules.get_piece_at(pieces, from_row, from_col).color:
+        from_piece = GameRules.get_piece_at(pieces, from_row, from_col)
+        if from_piece is None:  # 防御性检查
+            return False
+        if target_piece and target_piece.color == from_piece.color:
             return False
 
         # 检查路径上是否有其他棋子
@@ -216,7 +239,10 @@ class GameRules:
 
         # 检查目标位置是否有己方棋子
         target_piece = GameRules.get_piece_at(pieces, to_row, to_col)
-        if target_piece and target_piece.color == GameRules.get_piece_at(pieces, from_row, from_col).color:
+        from_piece = GameRules.get_piece_at(pieces, from_row, from_col)
+        if from_piece is None:  # 防御性检查
+            return False
+        if target_piece and target_piece.color == from_piece.color:
             return False
 
         # 检查基本移动规则：日字
@@ -2352,6 +2378,9 @@ class GameRules:
         # 找出该方的将/帅
         king = None
         for piece in pieces:
+            # 防御性检查：确保piece不为None
+            if piece is None:
+                continue
             if isinstance(piece, King) and piece.color == color:
                 king = piece
                 break
@@ -2361,6 +2390,9 @@ class GameRules:
 
         # 检查对方每个棋子是否能攻击到将/帅
         for piece in pieces:
+            # 防御性检查：确保piece不为None
+            if piece is None:
+                continue
             if piece.color != color:  # 对方棋子
                 # 根据棋子类型使用相应的攻击检测方法
                 if isinstance(piece, Ju):  # 车
@@ -2425,6 +2457,9 @@ class GameRules:
 
         # 检查该方是否有任何合法移动可以解除将军
         for piece in pieces:
+            # 防御性检查：确保piece不为None
+            if piece is None:
+                continue
             if piece.color == color:  # 该方的棋子
                 # 尝试所有可能的移动
                 if game_config.get_setting("traditional_mode", False):
@@ -2464,6 +2499,9 @@ class GameRules:
         """
         # 检查是否有汉/汗进入敌方九宫
         for piece in pieces:
+            # 防御性检查：确保piece不为None
+            if piece is None:
+                continue
             if isinstance(piece, King):
 
                 if game_config.get_setting("traditional_mode", False):
@@ -2487,6 +2525,9 @@ class GameRules:
 
         # 找到双方的将/帅
         for piece in pieces:
+            # 防御性检查：确保piece不为None
+            if piece is None:
+                continue
             if isinstance(piece, King):
                 if piece.color == "red":
                     red_king = piece
@@ -2519,6 +2560,9 @@ class GameRules:
         # 找出对方的将/帅
         opponent_king = None
         for piece in pieces:
+            # 防御性检查：确保piece不为None
+            if piece is None:
+                continue
             if isinstance(piece, King) and piece.color == opponent_color:
                 opponent_king = piece
                 break
@@ -2532,6 +2576,9 @@ class GameRules:
             # 检查对方是否有合法移动可以解除将军
             has_valid_move = False
             for piece in pieces:
+                # 防御性检查：确保piece不为None
+                if piece is None:
+                    continue
                 if piece.color == opponent_color:
 
                     if game_config.get_setting("traditional_mode", False):
