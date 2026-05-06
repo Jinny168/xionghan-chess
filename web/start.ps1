@@ -28,9 +28,19 @@ if (-Not (Test-Path "venv")) {
 # 激活虚拟环境
 & .\venv\Scripts\Activate.ps1
 
-# 安装依赖
+# 安装依赖（包括性能优化包）
 Write-Host "[信息] 安装/更新依赖..." -ForegroundColor Yellow
 pip install -r requirements.txt | Out-Null
+
+# 检查是否安装gevent（性能优化）
+try {
+    python -c "import gevent" 2>$null
+} catch {
+    Write-Host "" 
+    Write-Host "[提示] 未检测到 gevent，建议安装以提升性能:" -ForegroundColor Yellow
+    Write-Host "       pip install gevent gunicorn" -ForegroundColor Cyan
+    Write-Host ""
+}
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan

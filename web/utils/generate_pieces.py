@@ -39,7 +39,7 @@ PIECES = {
 # 图片尺寸配置 - 参考主流平台，棋子更大更清晰
 IMAGE_SIZE = 160        # 棋子图片尺寸（从120增加到160）
 PIECE_RADIUS = 68       # 棋子半径（从50增加到68）
-OUTPUT_DIR = 'C:/Users/27415/PycharmProjects/xionghan-chess/program/web/images/pieces'
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'images', 'pieces')
 
 def create_piece_base(size, radius):
     """创建棋子基础 - 3D立体效果，完全不透明"""
