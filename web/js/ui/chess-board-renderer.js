@@ -487,13 +487,28 @@ class ChessBoardRenderer {
             const x = this.marginLeft + col * this.gridSize;
             const lineLength = 8;
             
-            // 绘制十字标记
-            ctx.beginPath();
-            ctx.moveTo(x - lineLength, separatorY);
-            ctx.lineTo(x + lineLength, separatorY);
-            ctx.stroke();
+            // 绘制横向标记 - 边缘位置只绘制内部半边
+            if (col === 0) {
+                // 左边缘：只绘制右半边
+                ctx.beginPath();
+                ctx.moveTo(x, separatorY);
+                ctx.lineTo(x + lineLength, separatorY);
+                ctx.stroke();
+            } else if (col === 12) {
+                // 右边缘：只绘制左半边
+                ctx.beginPath();
+                ctx.moveTo(x - lineLength, separatorY);
+                ctx.lineTo(x, separatorY);
+                ctx.stroke();
+            } else {
+                // 中间位置：绘制完整横线
+                ctx.beginPath();
+                ctx.moveTo(x - lineLength, separatorY);
+                ctx.lineTo(x + lineLength, separatorY);
+                ctx.stroke();
+            }
             
-            // 左右短线（非边缘列）
+            // 纵向短线（非边缘列）
             if (col > 0 && col < 12) {
                 ctx.beginPath();
                 ctx.moveTo(x, separatorY - lineLength);
@@ -537,6 +552,9 @@ class ChessBoardRenderer {
         
         // 绘制兵、炮位置标记
         this.drawPositionMarks(ctx);
+        
+        // 绘制星点标记（射的移动限制点）
+        this.drawStarPoints(ctx);
         
         // 绘制列标识
         this.drawColumnLabels(ctx);
@@ -695,6 +713,30 @@ class ChessBoardRenderer {
      */
     setCapturablePositions(positions) {
         this.capturablePositions = positions;
+    }
+    
+    /**
+     * 绘制星点标记（射的移动限制点）
+     * 星点是坐标为3的倍数的位置：(0,0), (0,3), (0,6), (0,9), (3,0), (3,3)等
+     * 注意：不标注棋盘边缘的星点（row=0, row=12, col=0, col=12）
+     */
+    drawStarPoints(ctx) {
+        // 星点颜色 - 使用淡红色，与棋盘背景形成对比但不突兀
+        ctx.fillStyle = 'rgba(180, 30, 30, 0.4)';
+        
+        // 遍历所有星点（坐标为3的倍数），但排除边缘
+        for (let row = 3; row <= 9; row += 3) {  // 从3开始，到9结束，排除0和12
+            for (let col = 3; col <= 9; col += 3) {  // 从3开始，到9结束，排除0和12
+                const x = this.marginLeft + col * this.gridSize;
+                const y = this.marginTop + row * this.gridSize;
+                
+                // 绘制小圆点作为星点标记
+                const radius = this.gridSize * 0.08; // 半径为格子尺寸的8%
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
     }
     
     /**

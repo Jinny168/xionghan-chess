@@ -67,8 +67,8 @@ body {
 }
 
 .main-logo {
-    width: clamp(60px, 8vw, 100px);
-    height: clamp(60px, 8vw, 100px);
+    width: clamp(60px, 5vw, 80px);
+    height: clamp(60px, 5vw, 80px);
     object-fit: contain;
     filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
     animation: logoFloat 3s ease-in-out infinite;
@@ -123,9 +123,9 @@ body {
 .mode-card {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: clamp(20px, 3vw, 40px);
-    width: clamp(280px, 35vw, 500px);
+    border-radius: 16px;
+    padding: clamp(16px, 1.5vw, 24px);
+    width: clamp(260px, 20vw, 340px);
     box-shadow: 
         0 10px 40px rgba(0, 0, 0, 0.3),
         0 0 0 1px rgba(255, 255, 255, 0.2);
@@ -135,7 +135,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: clamp(10px, 2vh, 20px);
+    gap: clamp(8px, 1vh, 12px);
 }
 
 .mode-card::before {
@@ -156,13 +156,13 @@ body {
 }
 
 .card-icon {
-    font-size: clamp(40px, 6vw, 80px);
+    font-size: clamp(36px, 3vw, 48px);
     line-height: 1;
-    margin-bottom: 1vh;
+    margin-bottom: 0.8vh;
 }
 
 .card-title {
-    font-size: clamp(1.2rem, 2.5vw, 2rem);
+    font-size: clamp(1.1rem, 1.8vw, 1.5rem);
     font-weight: bold;
     color: #333;
     margin: 0;
@@ -170,23 +170,23 @@ body {
 }
 
 .card-desc {
-    font-size: clamp(0.85rem, 1.2vw, 1rem);
+    font-size: clamp(0.8rem, 1vw, 0.9rem);
     color: #666;
-    line-height: 1.6;
+    line-height: 1.5;
     text-align: center;
     margin: 0;
 }
 
 .card-btn {
-    padding: clamp(10px, 1.5vh, 16px) clamp(20px, 3vw, 40px);
+    padding: clamp(8px, 1vh, 12px) clamp(16px, 2vw, 28px);
     border: none;
-    border-radius: 8px;
-    font-size: clamp(14px, 1.2vw, 16px);
+    border-radius: 6px;
+    font-size: clamp(13px, 1vw, 14px);
     font-weight: bold;
     cursor: pointer;
     transition: all 0.2s;
     width: 100%;
-    max-width: 250px;
+    max-width: 200px;
 }
 
 .card-btn.primary {
