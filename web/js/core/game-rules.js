@@ -20,7 +20,9 @@ class GameRules {
             elephantCrossRiver: false,
             kingOutPalace: false,
             kingPalaceEightDirection: false,  // 默认关闭，等同传统将帅
-            kingKeepEightDirection: false
+            kingKeepEightDirection: false,
+            pawnFastMove: true,         // 默认开启，兵可以快速移动
+            pawnResurrection: false     // 默认关闭，兵不能复活
         };
     }
     
@@ -666,6 +668,15 @@ class GameRules {
         
         // 规则4：大于一格必须向前直走
         if (distance > 1 && colDiff !== 0) return false;
+        
+        // 获取规则配置：是否允许快速移动
+        const config = this.getRuleConfig();
+        const allowFastMove = config.pawnFastMove !== undefined ? config.pawnFastMove : true;
+        
+        // 如果不允许快速移动，则限制最多只能走一格
+        if (!allowFastMove && distance > 1) {
+            return false;
+        }
         
         // 规则5：检查路径阻挡（仅大于一格时需要）
         if (distance > 1) {

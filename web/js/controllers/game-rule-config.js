@@ -12,7 +12,9 @@ class GameRuleConfig {
             elephantCrossRiver: false,  // 相/象可以跨越长城
             kingOutPalace: false,       // 汉/汗可以出九宫
             kingPalaceEightDirection: false,  // 汉/汗在九宫内保持8方向能力（默认关闭，等同传统将帅）
-            kingKeepEightDirection: false  // 汉/汗出了九宫后保持8方向能力
+            kingKeepEightDirection: false,  // 汉/汗出了九宫后保持8方向能力
+            pawnFastMove: true,         // 兵可以快速移动（向前多格，不吃子）
+            pawnResurrection: false     // 兵可以复活（在出生点重新生成）
         };
         
         // 当前配置
@@ -174,6 +176,26 @@ class GameRuleConfig {
             });
         }
         
+        // 兵可以快速移动
+        const pawnFastMoveCheckbox = document.getElementById('rule-pawn-fast-move');
+        if (pawnFastMoveCheckbox) {
+            pawnFastMoveCheckbox.checked = this.get('pawnFastMove');
+            pawnFastMoveCheckbox.addEventListener('change', (e) => {
+                this.set('pawnFastMove', e.target.checked);
+                console.log(`♟️ 兵快速移动规则: ${e.target.checked ? '开启' : '关闭'}`);
+            });
+        }
+        
+        // 兵可以复活
+        const pawnResurrectionCheckbox = document.getElementById('rule-pawn-resurrection');
+        if (pawnResurrectionCheckbox) {
+            pawnResurrectionCheckbox.checked = this.get('pawnResurrection');
+            pawnResurrectionCheckbox.addEventListener('change', (e) => {
+                this.set('pawnResurrection', e.target.checked);
+                console.log(`♟️ 兵复活规则: ${e.target.checked ? '开启' : '关闭'}`);
+            });
+        }
+        
         // 恢复默认按钮
         const resetBtn = document.getElementById('btn-reset-settings');
         if (resetBtn) {
@@ -226,6 +248,12 @@ class GameRuleConfig {
         if (kingDirectionCheckbox) {
             kingDirectionCheckbox.checked = this.get('kingKeepEightDirection');
         }
+        
+        const pawnFastMoveCheckbox = document.getElementById('rule-pawn-fast-move');
+        if (pawnFastMoveCheckbox) pawnFastMoveCheckbox.checked = this.get('pawnFastMove');
+        
+        const pawnResurrectionCheckbox = document.getElementById('rule-pawn-resurrection');
+        if (pawnResurrectionCheckbox) pawnResurrectionCheckbox.checked = this.get('pawnResurrection');
     }
 }
 
