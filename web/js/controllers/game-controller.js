@@ -528,6 +528,23 @@ class GameController {
         
         const { row, col } = pos;
         
+        // 检查是否点击了空的兵出生点（生成兵）
+        if (!this.selectedPiece) {
+            const clickedPiece = this.gameState.getPieceAt(row, col);
+            
+            // 如果该位置为空且是己方兵的出生点，尝试生成兵
+            if (!clickedPiece && this.gameState.isBingSpawnPoint(row, col, this.gameState.playerTurn)) {
+                // 检查是否启用了兵复活规则
+                const ruleConfig = window.GameRules ? window.GameRules.getRuleConfig() : {};
+                if (ruleConfig.pawnResurrection) {
+                    this.trySpawnBing(row, col);
+                    return;
+                } else {
+                    console.log('兵复活规则未开启');
+                }
+            }
+        }
+        
         if (this.selectedPiece) {
             // 已有选中的棋子
             const clickedPiece = this.gameState.getPieceAt(row, col);
@@ -650,6 +667,63 @@ class GameController {
                 // 检查将军/绝杀状态
                 this.soundManager.checkAndPlayGameSound(this.gameState);
             }
+        }
+        
+        this.render();
+    }
+    
+    /**
+     * 尝试在指定位置生成兵
+     */
+    trySpawnBing(row, col) {
+        // 执行生成兵
+        const success = this.gameState.spawnBing(row, col);
+        
+        if (success) {
+            console.log(`成功在 (${row}, ${col}) 生成兵`);
+            
+            // 记录最后移动（特殊标记）
+            this.gameState.lastMove = [null, null, row, col];
+            
+            // 生成走法记谱
+            this.lastMoveNotation = `生成兵(${row},${col})`;
+            this.addMoveToHistory(this.lastMoveNotation);
+            
+            // 如果在线，发送生成操作
+            if (this.isOnline) {
+                this.network.send({
+                    type: 'spawn_bing',
+                    data: { row, col }
+                });
+            }
+            
+            // 更新UI
+            this.updateUI();
+            
+            // 播放音效
+            this.soundManager.playMove();
+            
+            // 检查将军
+            if (this.gameState.inCheck) {
+                this.soundManager.playCheck();
+                this.showCheckAlert();
+            } else {
+                this.hideCheckAlert();
+            }
+            
+            // 清除选择
+            this.selectedPiece = null;
+            this.renderer.clearHighlights();
+            
+            // 检查游戏结束
+            if (this.gameState.gameOver) {
+                this.handleGameEnd();
+            } else {
+                // 检查将军/绝杀状态
+                this.soundManager.checkAndPlayGameSound(this.gameState);
+            }
+        } else {
+            console.log('无法在该位置生成兵');
         }
         
         this.render();

@@ -315,6 +315,7 @@ class ChessBoardRenderer {
     draw(pieces, gameState) {
         this.clear();
         this.drawBoard();
+        this.drawBingSpawnPoints(gameState);
         this.drawPossibleMoves();
         this.drawCapturablePositions();
         this.drawPieces(pieces);
@@ -648,6 +649,45 @@ class ChessBoardRenderer {
         ctx.beginPath();
         ctx.arc(toX, toY, this.gridSize * 0.45, 0, Math.PI * 2);
         ctx.stroke();
+    }
+    
+    /**
+     * 绘制兵出生点标记（空的出生点显示半透明圆圈）
+     */
+    drawBingSpawnPoints(gameState) {
+        if (!gameState || !gameState.bingSpawnPoints) return;
+        
+        // 检查是否启用了兵复活规则
+        const ruleConfig = window.GameRules ? window.GameRules.getRuleConfig() : {};
+        if (!ruleConfig.pawnResurrection) return;
+        
+        const ctx = this.ctx;
+        const currentTurn = gameState.playerTurn;
+        
+        // 获取当前玩家的出生点
+        const spawnPoints = gameState.bingSpawnPoints[currentTurn];
+        if (!spawnPoints) return;
+        
+        // 遍历所有出生点，如果为空则显示标记
+        spawnPoints.forEach(([row, col]) => {
+            // 检查该位置是否有棋子
+            const piece = gameState.getPieceAt(row, col);
+            if (!piece) {
+                // 空位置，绘制半透明圆圈提示
+                const x = this.marginLeft + col * this.gridSize;
+                const y = this.marginTop + row * this.gridSize;
+                
+                ctx.save();
+                ctx.globalAlpha = 0.3;
+                ctx.strokeStyle = currentTurn === 'red' ? '#ff0000' : '#000000';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]); // 虚线
+                ctx.beginPath();
+                ctx.arc(x, y, this.gridSize * 0.35, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+        });
     }
     
     /**
