@@ -185,6 +185,53 @@
                         </label>
                     </div>
                 </div>
+                <div style="margin-bottom: 24px;">
+                    <h3 style="margin-bottom: 12px; color: #333; font-size: 16px;">🎯 自定义规则</h3>
+                    <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="rule-horse-straight-three" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-weight: 500;">马可以走“直三”（日字+直三）</span>
+                            </label>
+                            <p style="margin: 4px 0 0 28px; font-size: 12px; color: #666;">默认关闭，开启后马除了日字还可以走直线3格</p>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="rule-advisor-out-palace" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-weight: 500;">仕/士可以出九宫</span>
+                            </label>
+                            <p style="margin: 4px 0 0 28px; font-size: 12px; color: #666;">默认关闭，开启后仕/士不再受九宫限制</p>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="rule-elephant-cross-river" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-weight: 500;">相/象可以跨越长城进入敌阵</span>
+                            </label>
+                            <p style="margin: 4px 0 0 28px; font-size: 12px; color: #666;">默认关闭，开启后相/象可以过河</p>
+                        </div>
+                        <div>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="rule-king-out-palace" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-weight: 500;">汉/汗可以出九宫</span>
+                            </label>
+                            <p style="margin: 4px 0 0 28px; font-size: 12px; color: #666;">默认关闭，开启后汉/汗不再受九宫限制</p>
+                        </div>
+                        <div style="margin-top: 12px; padding-left: 28px; border-left: 2px solid #ddd;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="rule-king-palace-eight-direction" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-weight: 500;">九宫内保持8方向移动能力</span>
+                            </label>
+                            <p style="margin: 4px 0 0 28px; font-size: 12px; color: #666;">默认关闭（等同传统将帅），开启后九宫内可以斜向移动</p>
+                        </div>
+                        <div style="margin-top: 12px; padding-left: 28px; border-left: 2px solid #ddd;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="rule-king-keep-eight-direction" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-weight: 500;">出了九宫后保持8方向移动能力</span>
+                            </label>
+                            <p style="margin: 4px 0 0 28px; font-size: 12px; color: #666;">默认关闭，关闭后出了九宫只能直线移动（4方向）</p>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid #e0e0e0; display: flex; justify-content: flex-end; gap: 10px;">
                 <button class="btn-secondary" id="btn-reset-settings" style="padding: 8px 16px; border: 1px solid #d32f2f; border-radius: 6px; background: #fff; color: #d32f2f; cursor: pointer; font-size: 14px; font-weight: 500;">恢复默认</button>
@@ -268,6 +315,7 @@
     <script src="js/controllers/statistics-manager.js?v=7"></script>
     <script src="js/controllers/game-record-manager.js?v=7"></script>
     <script src="js/controllers/replay-controller.js?v=7"></script>
+    <script src="js/controllers/game-rule-config.js?v=1"></script>
     <script src="js/controllers/game-controller.js?v=7"></script>
     <script src="js/main.js?v=7"></script>
 </body>

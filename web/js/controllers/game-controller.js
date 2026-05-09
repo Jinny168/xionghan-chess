@@ -8,6 +8,7 @@ class GameController {
         this.renderer = null;
         this.soundManager = null;
         this.avatarManager = null;
+        this.ruleConfig = null;  // 游戏规则配置管理器
         
         this.selectedPiece = null;
         this.playerCamp = 'red'; // 单机模式下双方都可操作
@@ -83,6 +84,10 @@ class GameController {
         // 初始化管理器
         this.soundManager = new SoundManager();
         this.avatarManager = new AvatarManager();
+        this.ruleConfig = new GameRuleConfig();  // 初始化规则配置管理器
+        
+        // 绑定规则配置UI
+        this.ruleConfig.bindUI();
         
         // 设置头像样式配置(匈汉象棋)
         const avatarStyle = {
