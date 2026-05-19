@@ -17,10 +17,8 @@ PIECES = {
     'hongma': ('傌', '#d42a2a'),       # 马
     'hongpao': ('炮', '#d42a2a'),      # 炮
     'hongbing': ('兵', '#d42a2a'),     # 兵
-    'hongwei': ('尉', '#d42a2a'),      # 尉
     'hongshe': ('射', '#d42a2a'),      # 射
     'honglei': ('檑', '#d42a2a'),      # 檑
-    'hongxun': ('巡', '#d42a2a'),      # 巡
     
     # 黑方棋子
     'heihan': ('汗', '#1a1a1a'),       # 汗王 - 深黑色
@@ -30,10 +28,8 @@ PIECES = {
     'heima': ('馬', '#1a1a1a'),        # 马
     'heipao': ('砲', '#1a1a1a'),       # 炮
     'heibing': ('卒', '#1a1a1a'),      # 卒
-    'heiwei': ('衛', '#1a1a1a'),       # 衛
     'heishe': ('䠶', '#1a1a1a'),       # '': She, '礌': Lei
     'heilei': ('礌', '#1a1a1a'),       # 礌
-    'heixun': ('廵', '#1a1a1a'),       # 廵
 }
 
 # 图片尺寸配置 - 参考主流平台，棋子更大更清晰

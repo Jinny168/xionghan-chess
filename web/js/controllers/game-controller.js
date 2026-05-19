@@ -1702,18 +1702,10 @@ class GameController {
             '砲': 'pao',
             '兵': 'pawn',
             '卒': 'pawn',
-            '尉': 'wei',
-            '衛': 'wei',
             '射': 'she',
             '䠶': 'she',
             '檑': 'lei',
-            '礌': 'lei',
-            '甲': 'jia',
-            '胄': 'jia',
-            '刺': 'ci',
-            '盾': 'dun',
-            '巡': 'xun',
-            '廵': 'xun'
+            '礌': 'lei'
         };
         
         return typeMap[pieceName] || null;
