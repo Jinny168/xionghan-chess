@@ -174,7 +174,10 @@
 
         function createRoom(event) {
             event.stopPropagation();
-            
+                    
+            // 显示加载提示
+            showLoading('正在创建房间...');
+                    
             fetch('/api/create_room', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -182,37 +185,164 @@
             })
             .then(response => response.json())
             .then(data => {
+                hideLoading();
                 if (data.success) {
                     const roomId = data.roomId;
-                    alert(`房间创建成功！\n\n房间号: ${roomId}\n\n请将此房间号分享给好友，然后点击"加入房间"输入房间号即可开始游戏。`);
+                            
+                    // 复制到剪贴板
+                    copyToClipboard(roomId);
+                            
+                    // 显示成功信息
+                    showRoomCreatedDialog(roomId);
                 } else {
-                    alert('创建房间失败: ' + (data.error || '未知错误'));
+                    alert('❌ 创建房间失败: ' + (data.error || '未知错误'));
                 }
             })
             .catch(error => {
-                alert('网络错误: ' + error.message);
+                hideLoading();
+                alert('❌ 网络错误: ' + error.message);
+            });
+        }
+                
+        /**
+         * 复制到剪贴板
+         */
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    console.log('✅ 房间号已复制到剪贴板');
+                }).catch(err => {
+                    console.warn('⚠️ 复制失败:', err);
+                });
+            }
+        }
+                
+        /**
+         * 显示房间创建成功对话框
+         */
+        function showRoomCreatedDialog(roomId) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+            `;
+                    
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 10px;
+                text-align: center;
+                max-width: 400px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            `;
+                    
+            dialog.innerHTML = `
+                <h2 style="color: #4CAF50; margin-bottom: 20px;">✅ 房间创建成功！</h2>
+                <p style="font-size: 16px; margin-bottom: 15px;">房间号：</p>
+                <div style="
+                    font-size: 32px;
+                    font-weight: bold;
+                    color: #2196F3;
+                    padding: 15px;
+                    background: #f0f0f0;
+                    border-radius: 5px;
+                    margin: 15px 0;
+                    letter-spacing: 3px;
+                ">${roomId}</div>
+                <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                    💡 房间号已自动复制到剪贴板<br>
+                    请将此房间号分享给好友
+                </p>
+                <button onclick="this.closest('div').parentElement.remove()" style="
+                    padding: 10px 30px;
+                    background: #4CAF50;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 16px;
+                ">确定</button>
+            `;
+                    
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+                    
+            // 点击背景关闭
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.remove();
+                }
             });
         }
 
         function joinRoom() {
-            const roomId = document.getElementById('room-id-input').value.trim();
+            const roomId = document.getElementById('room-id-input').value.trim().toUpperCase();
             const errorMsg = document.getElementById('error-message');
             
             if (!roomId) {
-                errorMsg.textContent = '请输入房间号';
+                errorMsg.textContent = '❌ 请输入房间号';
+                errorMsg.classList.add('show');
+                return;
+            }
+            
+            if (roomId.length !== 8) {
+                errorMsg.textContent = '❌ 房间号格式不正确（应为8位）';
                 errorMsg.classList.add('show');
                 return;
             }
             
             errorMsg.classList.remove('show');
             
+            // 显示加载动画
+            showLoading('正在加入房间...');
+            
+            // 检查房间是否存在
+            fetch(`/api/room_status/${roomId}`)
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    if (data.success) {
+                        if (data.players >= 2) {
+                            errorMsg.textContent = '❌ 房间已满';
+                            errorMsg.classList.add('show');
+                        } else {
+                            // 跳转到游戏页面
+                            setTimeout(() => {
+                                window.location.href = `/game.html?mode=online&room=${roomId}`;
+                            }, 300);
+                        }
+                    } else {
+                        errorMsg.textContent = '❌ 房间不存在';
+                        errorMsg.classList.add('show');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    errorMsg.textContent = '❌ 网络错误: ' + error.message;
+                    errorMsg.classList.add('show');
+                });
+        }
+        
+        /**
+         * 显示加载动画
+         */
+        function showLoading(message) {
             const overlay = document.createElement('div');
+            overlay.id = 'loading-overlay';
             overlay.style.cssText = `
                 position: fixed;
                 top: 0; left: 0;
                 width: 100%; height: 100%;
                 background: rgba(0,0,0,0.7);
                 display: flex;
+                flex-direction: column;
                 align-items: center;
                 justify-content: center;
                 z-index: 9999;
@@ -228,16 +358,31 @@
                 animation: spin 0.8s linear infinite;
             `;
             
+            const text = document.createElement('div');
+            text.textContent = message || '加载中...';
+            text.style.cssText = `
+                color: white;
+                margin-top: 20px;
+                font-size: 16px;
+            `;
+            
             const style = document.createElement('style');
             style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
             document.head.appendChild(style);
             
             overlay.appendChild(spinner);
+            overlay.appendChild(text);
             document.body.appendChild(overlay);
-            
-            setTimeout(() => {
-                window.location.href = `/game.html?mode=online&room=${roomId}`;
-            }, 500);
+        }
+        
+        /**
+         * 隐藏加载动画
+         */
+        function hideLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
         }
 
         window.addEventListener('load', () => {

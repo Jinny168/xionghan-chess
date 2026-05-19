@@ -76,7 +76,7 @@ class Shi extends ChessPiece {
 }
 
 /**
- * 将/帅/汉/汗
+ * 漢/汗
  */
 class Han extends ChessPiece {
     constructor(color, row, col) {
@@ -105,15 +105,7 @@ class Bing extends ChessPiece {
     }
 }
 
-/**
- * 尉/衛
- */
-class Wei extends ChessPiece {
-    constructor(color, row, col) {
-        const name = color === 'black' ? '衛' : '尉';
-        super(color, name, row, col);
-    }
-}
+
 
 /**
  * 射/䠶
@@ -135,17 +127,7 @@ class Lei extends ChessPiece {
     }
 }
 
-// 已移除: 甲/胄(Jia)、刺/伺(Ci)、盾/碷(Dun)
 
-/**
- * 巡/廵
- */
-class Xun extends ChessPiece {
-    constructor(color, row, col) {
-        const name = color === 'black' ? '廵' : '巡';
-        super(color, name, row, col);
-    }
-}
 
 /**
  * 棋子工厂
@@ -154,10 +136,10 @@ class PieceFactory {
     static NAME_TO_CLASS_MAP = {
         // 黑方棋子
         '汗': Han, '車': Ju, '馬': Ma, '象': Xiang, '士': Shi, '砲': Pao, '卒': Bing,
-        '衛': Wei, '䠶': She, '礌': Lei, '廵': Xun,
+        '䠶': She, '礌': Lei,
         // 红方棋子
         '漢': Han, '俥': Ju, '傌': Ma, '相': Xiang, '仕': Shi, '炮': Pao, '兵': Bing,
-        '尉': Wei, '射': She, '檑': Lei, '巡': Xun
+        '射': She, '檑': Lei
     };
     
     static createPieceByName(name, color, row, col) {
@@ -178,7 +160,7 @@ class PieceFactory {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         ChessPiece, Ju, Ma, Xiang, Shi, Han, Bing, Pao, 
-        Wei, She, Lei, Xun, PieceFactory,
+        She, Lei, PieceFactory,
         BOARD_SIZE, TRADITIONAL_BOARD_ROWS, TRADITIONAL_BOARD_COLS
     };
 }
@@ -193,11 +175,9 @@ if (typeof window !== 'undefined') {
     window.Han = Han;
     window.Bing = Bing;
     window.Pao = Pao;
-    window.Wei = Wei;
     window.She = She;
     window.Lei = Lei;
-    // 已移除: window.Jia, window.Ci, window.Dun
-    window.Xun = Xun;
+    // 已移除: window.Jia, window.Ci, window.Dun, window.Wei, window.Xun
     window.PieceFactory = PieceFactory;
     window.BOARD_SIZE = BOARD_SIZE;
     window.TRADITIONAL_BOARD_ROWS = TRADITIONAL_BOARD_ROWS;

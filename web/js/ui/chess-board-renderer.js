@@ -117,9 +117,9 @@ class ChessBoardRenderer {
         // 棋子图片文件名使用拼音命名：红方(hong)/黑方(hei) + 棋子类型
         const pieceNames = [
             'honghan', 'hongshi', 'hongxiang', 'hongche', 'hongma', 'hongpao', 'hongbing',
-            'hongshe', 'honglei', 'hongwei', 'hongxun',
+            'hongshe', 'honglei',
             'heihan', 'heishi', 'heixiang', 'heiche', 'heima', 'heipao', 'heibing',
-            'heishe', 'heilei', 'heiwei', 'heixun'
+            'heishe', 'heilei'
         ];
         
         let loadedCount = 0;
@@ -201,9 +201,7 @@ class ChessBoardRenderer {
             '兵': 'bing', '卒': 'bing',
             // 匈汉象棋特殊棋子
             '射': 'she', '䠶': 'she',
-            '檑': 'lei', '礌': 'lei',
-            '尉': 'wei', '衛': 'wei',
-            '巡': 'xun', '廵': 'xun'
+            '檑': 'lei', '礌': 'lei'
         };
         
         const typeName = typeMap[piece.name];

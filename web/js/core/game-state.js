@@ -33,13 +33,11 @@ class GameState {
             
             // 中等棋子
             '檑': 400, '礌': 400,
-            '尉': 350, '衛': 350,
             '傌': 400, '馬': 400,
             '射': 330, '䠶': 330,
             
             // 弱子
             '相': 260, '象': 260,
-            '巡': 280, '廵': 280,
             '仕': 200, '士': 200,
             
             // 兵卒（基础值，实际应动态调整）
@@ -99,38 +97,36 @@ class GameState {
     }
     
     setupXionghanLayout() {
-        const { Ju, Ma, Xiang, Shi, Han, Pao, Bing, Wei, She, Lei, Xun } = window;
+        const { Ju, Ma, Xiang, Shi, Han, Pao, Bing, She, Lei } = window;
         
-        // 黑方布局（已移除甲/胄、刺/伺、盾/碷）
+        // 黑方布局（已移除甲/胄、刺/伺、盾/碷、尉/衛、巡/廵）
         // 调整：车移到第0行，与礌、射同行；移除边缘的兵（col=0和col=12）
         const blackPieces = [
             [She, 0, 0], [She, 0, 12],
-            [Lei, 0, 4], [Lei, 0, 8], [Wei, 0, 6],
+            [Lei, 0, 4], [Lei, 0, 8],
             [Ju, 0, 2], [Ju, 0, 10],  // 车移到第0行，与礌、射同行
             [Ma, 1, 3], [Xiang, 1, 4], [Shi, 1, 5],
             [Han, 1, 6], [Shi, 1, 7], [Xiang, 1, 8], [Ma, 1, 9],
             [Pao, 3, 1], [Pao, 3, 11],
             [Bing, 4, 2], [Bing, 4, 4], [Bing, 4, 6],
-            [Bing, 4, 8], [Bing, 4, 10],  // 移除边缘的兵（col=0和col=12）
-            [Xun, 5, 0], [Xun, 5, 12]
+            [Bing, 4, 8], [Bing, 4, 10]  // 移除边缘的兵（col=0和col=12）
         ];
         
         blackPieces.forEach(([PieceClass, row, col]) => {
             this.pieces.push(new PieceClass('black', row, col));
         });
         
-        // 红方布局（已移除甲/胄、刺/伺、盾/碷）
+        // 红方布局（已移除甲/胄、刺/伺、盾/碷、尉/衛、巡/廵）
         // 调整：车移到第12行，与礌、射同行；移除边缘的兵（col=0和col=12）
         const redPieces = [
             [She, 12, 0], [She, 12, 12],
-            [Lei, 12, 4], [Lei, 12, 8], [Wei, 12, 6],
+            [Lei, 12, 4], [Lei, 12, 8],
             [Ju, 12, 2], [Ju, 12, 10],  // 车移到第12行，与礌、射同行
             [Ma, 11, 3], [Xiang, 11, 4], [Shi, 11, 5],
             [Han, 11, 6], [Shi, 11, 7], [Xiang, 11, 8], [Ma, 11, 9],
             [Pao, 9, 1], [Pao, 9, 11],
             [Bing, 8, 2], [Bing, 8, 4], [Bing, 8, 6],
-            [Bing, 8, 8], [Bing, 8, 10],  // 移除边缘的兵（col=0和col=12）
-            [Xun, 7, 0], [Xun, 7, 12]
+            [Bing, 8, 8], [Bing, 8, 10]  // 移除边缘的兵（col=0和col=12）
         ];
         
         redPieces.forEach(([PieceClass, row, col]) => {
@@ -668,11 +664,9 @@ class GameState {
             '俥': 900, '車': 900,
             '炮': 450, '砲': 450,
             '檑': 400, '礌': 400,
-            '尉': 350, '衛': 350,
             '傌': 400, '馬': 400,
             '射': 330, '䠶': 330,
             '相': 260, '象': 260,
-            '巡': 280, '廵': 280,
             '仕': 200, '士': 200,
             '兵': 100, '卒': 100
         };

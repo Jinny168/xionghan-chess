@@ -101,17 +101,6 @@ class GameRules {
             return false;
         }
         
-        // 检查尉的照面限制：如果移动的棋子被敌方尉照面，则不允许移动
-        for (const p of pieces) {
-            if (p instanceof Wei && p.color !== piece.color) {
-                // 直接检查当前移动的棋子是否被这个尉照面
-                if (this.isPieceFacingWei(piece, p, pieces)) {
-                    // 被尉照面的敌方棋子禁止移动
-                    return false;
-                }
-            }
-        }
-        
         // 检查将帅照面限制：任何棋子移动后如果导致将帅照面，则不允许移动
         if (this.wouldCauseKingsFacing(pieces, piece.color, fromRow, fromCol, toRow, toCol)) {
             return false;
@@ -132,15 +121,11 @@ class GameRules {
             return this.isValidPaoMove(pieces, fromRow, fromCol, toRow, toCol);
         } else if (piece instanceof Bing) {
             return this.isValidPawnMove(pieces, piece.color, fromRow, fromCol, toRow, toCol);
-        } else if (piece instanceof Wei) {
-            return this.isValidWeiMove(pieces, fromRow, fromCol, toRow, toCol);
         } else if (piece instanceof She) {
             return this.isValidSheMove(pieces, fromRow, fromCol, toRow, toCol);
         } else if (piece instanceof Lei) {
             return this.isValidLeiMove(pieces, fromRow, fromCol, toRow, toCol);
-        // 已移除: Jia, Ci, Dun
-        } else if (piece instanceof Xun) {
-            return this.isValidXunMove(pieces, fromRow, fromCol, toRow, toCol);
+        // 已移除: Jia, Ci, Dun, Wei, Xun
         }
         
         return false;
@@ -735,173 +720,7 @@ class GameRules {
         return false;
     }
 
-    /**
-     * 尉/衛的移动规则（匈汉象棋，已削弱）
-     * 1. 类似炮的移动方式（横向、纵向、斜向）
-     * 2. 必须贴身跨越一个棋子才能移动（起点与被跨越棋子相邻）
-     * 3. 落点必须紧邻被跨越的棋子（被跨越棋子与落点相邻）
-     * 4. 不能吃子，只能移动到空位
-     * 5. 被其照面的敌方棋子禁止移动和攻击
-     */
-    static isValidWeiMove(pieces, fromRow, fromCol, toRow, toCol) {
-        const rowDiff = toRow - fromRow;
-        const colDiff = toCol - fromCol;
-        const absRowDiff = Math.abs(rowDiff);
-        const absColDiff = Math.abs(colDiff);
-        
-        // 必须是横向、纵向或斜向移动
-        if (!(rowDiff === 0 || colDiff === 0 || absRowDiff === absColDiff)) {
-            return false;
-        }
-        
-        // 不能原地不动
-        if (absRowDiff === 0 && absColDiff === 0) {
-            return false;
-        }
-        
-        // 检查目标位置是否有棋子（尉不能吃子）
-        const targetPiece = this.getPieceAt(pieces, toRow, toCol);
-        if (targetPiece) {
-            return false;
-        }
-        
-        // 计算移动方向和步数
-        const stepRow = rowDiff === 0 ? 0 : (rowDiff > 0 ? 1 : -1);
-        const stepCol = colDiff === 0 ? 0 : (colDiff > 0 ? 1 : -1);
-        const steps = Math.max(absRowDiff, absColDiff);
-        
-        // 削弱规则：总步数必须为2（贴身跨越 + 紧邻落点）
-        if (steps !== 2) {
-            return false;
-        }
-        
-        // 检查中间位置（第1步）必须有且仅有一个棋子（被跨越的棋子）
-        const middleRow = fromRow + stepRow;
-        const middleCol = fromCol + stepCol;
-        const middlePiece = this.getPieceAt(pieces, middleRow, middleCol);
-        
-        // 中间位置必须有棋子（被跨越的棋子）
-        if (!middlePiece) {
-            return false;
-        }
-        
-        // 满足条件：贴身跨越一个棋子，落点紧邻被跨越的棋子
-        return true;
-    }
-    
-    /**
-     * 检查尉是否照面某个敌方棋子
-     * 尉的照面规则：如果尉和敌方棋子之间没有其他棋子，则形成照面
-     */
-    static isWeiFacing(piece, pieces) {
-        if (!piece || piece.name !== '尉' && piece.name !== '衛') {
-            return false;
-        }
-        
-        const enemyColor = piece.color === 'red' ? 'black' : 'red';
-        
-        // 检查四个方向：上、下、左、右
-        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-        
-        for (const [dr, dc] of directions) {
-            let checkRow = piece.row + dr;
-            let checkCol = piece.col + dc;
-            
-            // 沿该方向查找
-            while (checkRow >= 0 && checkRow < 13 && checkCol >= 0 && checkCol < 13) {
-                const checkPiece = this.getPieceAt(pieces, checkRow, checkCol);
-                
-                if (checkPiece) {
-                    // 找到第一个棋子
-                    if (checkPiece.color === enemyColor) {
-                        // 是敌方棋子，形成照面
-                        return true;
-                    } else {
-                        // 是己方棋子，不形成照面，停止检查该方向
-                        break;
-                    }
-                }
-                
-                checkRow += dr;
-                checkCol += dc;
-            }
-        }
-        
-        return false;
-    }
-    
-    /**
-     * 检查特定棋子是否被尉照面
-     * @param {Object} targetPiece - 目标棋子
-     * @param {Object} weiPiece - 尉棋子
-     * @param {Array} pieces - 棋盘上所有棋子
-     * @returns {boolean} 如果目标棋子被尉照面返回true
-     */
-    static isPieceFacingWei(targetPiece, weiPiece, pieces) {
-        if (!targetPiece || !weiPiece) return false;
-        
-        // 检查四个方向
-        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-        
-        for (const [dr, dc] of directions) {
-            let checkRow = weiPiece.row + dr;
-            let checkCol = weiPiece.col + dc;
-            
-            // 沿该方向查找，直到找到目标棋子或遇到阻挡
-            while (checkRow >= 0 && checkRow < 13 && checkCol >= 0 && checkCol < 13) {
-                // 如果到达目标位置，说明被照面
-                if (checkRow === targetPiece.row && checkCol === targetPiece.col) {
-                    return true;
-                }
-                
-                const checkPiece = this.getPieceAt(pieces, checkRow, checkCol);
-                
-                if (checkPiece) {
-                    // 遇到其他棋子（不是目标棋子），说明被阻挡
-                    break;
-                }
-                
-                checkRow += dr;
-                checkCol += dc;
-            }
-        }
-        
-        return false;
-    }
-    
-    /**
-     * 获取被尉照面的敌方棋子
-     */
-    static getWeiFacingPiece(weiPiece, pieces) {
-        if (!weiPiece) return null;
-        
-        const enemyColor = weiPiece.color === 'red' ? 'black' : 'red';
-        
-        // 检查四个方向
-        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-        
-        for (const [dr, dc] of directions) {
-            let checkRow = weiPiece.row + dr;
-            let checkCol = weiPiece.col + dc;
-            
-            while (checkRow >= 0 && checkRow < 13 && checkCol >= 0 && checkCol < 13) {
-                const checkPiece = this.getPieceAt(pieces, checkRow, checkCol);
-                
-                if (checkPiece) {
-                    if (checkPiece.color === enemyColor) {
-                        return checkPiece; // 返回被照面的敌方棋子
-                    } else {
-                        break; // 遇到己方棋子，停止
-                    }
-                }
-                
-                checkRow += dr;
-                checkCol += dc;
-            }
-        }
-        
-        return null;
-    }
+
     
     /**
      * 射/䠶的移动规则（匈汉象棋）
@@ -1091,88 +910,7 @@ class GameRules {
     }
     
 
-    
-    /**
-     * 巡/廵的移动规则（匈汉象棋）
-     * 1. 移动：可以走任意偶数格直线（2、4、6…），无阻挡
-     * 2. 吃子：必须隔1个格吃子（走2格，吃第2格的子），中间不能有棋子阻挡（类似塞象眼）
-     * 3. 削弱：上下方向（纵向）不能吃子，只保留左右方向（横向）的吃子能力
-     */
-    static isValidXunMove(pieces, fromRow, fromCol, toRow, toCol) {
-        const rowDiff = toRow - fromRow;
-        const colDiff = toCol - fromCol;
-        const absRowDiff = Math.abs(rowDiff);
-        const absColDiff = Math.abs(colDiff);
-        
-        // 必须是直线移动（横向或纵向）
-        if (!(absRowDiff === 0 || absColDiff === 0)) {
-            return false;
-        }
-        
-        // 不能原地不动
-        if (absRowDiff === 0 && absColDiff === 0) {
-            return false;
-        }
-        
-        // 计算移动距离
-        const distance = absRowDiff + absColDiff;
-        
-        // 检查目标位置
-        const targetPiece = this.getPieceAt(pieces, toRow, toCol);
-        
-        if (targetPiece) {
-            // 吃子情况
-            
-            // 削弱：上下方向（纵向）不能吃子
-            if (absColDiff === 0 && absRowDiff > 0) {
-                return false; // 纵向移动，不能吃子
-            }
-            
-            // 左右方向（横向）吃子：必须隔1格吃子（走2格）
-            if (distance !== 2) {
-                return false; // 吃子时必须走2格
-            }
-            
-            // 检查中间是否有棋子（类似塞象眼）
-            const midRow = fromRow + rowDiff / 2;
-            const midCol = fromCol + colDiff / 2;
-            if (this.getPieceAt(pieces, midRow, midCol)) {
-                return false; // 中间有棋子，不能吃子
-            }
-            
-            // 可以吃子（横向）
-            return true;
-        } else {
-            // 移动到空位：必须是偶数格
-            if (distance % 2 !== 0) {
-                return false; // 必须是偶数格
-            }
-            
-            // 检查路径上是否有阻挡
-            if (absRowDiff > 0) {
-                // 纵向移动
-                const step = rowDiff > 0 ? 1 : -1;
-                for (let i = 1; i < absRowDiff; i++) {
-                    const checkRow = fromRow + step * i;
-                    if (this.getPieceAt(pieces, checkRow, fromCol)) {
-                        return false; // 路径上有阻挡
-                    }
-                }
-            } else {
-                // 横向移动
-                const step = colDiff > 0 ? 1 : -1;
-                for (let i = 1; i < absColDiff; i++) {
-                    const checkCol = fromCol + step * i;
-                    if (this.getPieceAt(pieces, fromRow, checkCol)) {
-                        return false; // 路径上有阻挡
-                    }
-                }
-            }
-            
-            // 可以移动到空位
-            return true;
-        }
-    }
+
     
     /**
      * 计算所有可能的移动位置
