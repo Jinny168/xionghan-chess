@@ -137,52 +137,91 @@ class GameController {
      * 初始化网络连接
      */
     initializeNetwork(roomId) {
-        console.log(`正在连接房间: ${roomId}`);
+        console.log(`🚀 正在连接房间: ${roomId}`);
         
-        // 创建WebSocket客户端
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        // 创建Socket.IO客户端
+        const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
         const host = window.location.host;
-        const wsUrl = `${protocol}//${host}`;
+        const serverUrl = `${protocol}//${host}`;
         
-        this.network = new WebSocketClient(wsUrl);
+        this.network = new WebSocketClient(serverUrl);
         
         // 注册事件回调
+        this.network.on('joined', (data) => {
+            console.log(`✅ 成功加入房间，阵营: ${data.camp}`);
+            this.playerCamp = data.camp;
+            
+            if (data.opponentConnected) {
+                console.log('👥 对手已连接，准备开始游戏');
+            } else {
+                console.log('⏳ 等待对手连接...');
+                window.dialogManager.showInfo('等待对手连接...', 3000);
+            }
+        });
+        
+        this.network.on('game_start', (data) => {
+            console.log('🎮 游戏开始！', data);
+            window.dialogManager.showSuccess('游戏开始！您执' + (this.playerCamp === 'red' ? '红' : '黑'));
+        });
+        
         this.network.on('opponent_move', (data) => {
+            console.log('📥 收到对手移动:', data);
             this.handleOpponentMove(data);
         });
         
         this.network.on('game_over', (data) => {
+            console.log('🏁 游戏结束:', data);
             this.handleNetworkGameOver(data);
         });
         
         this.network.on('chat_message', (data) => {
+            console.log('💬 收到聊天消息:', data);
             this.addChatMessage(data.player || '对手', data.message);
         });
         
         this.network.on('undo_request', (data) => {
+            console.log('↩️ 收到悔棋请求:', data);
             this.handleUndoRequest(data);
         });
         
         this.network.on('undo_response', (data) => {
+            console.log('↩️ 收到悔棋响应:', data);
             this.handleUndoResponse(data);
         });
         
-        this.network.on('player_disconnected', () => {
+        this.network.on('restart_request', (data) => {
+            console.log('🔄 收到重新开始请求:', data);
+            this.handleRestartRequest(data);
+        });
+        
+        this.network.on('game_restart', (data) => {
+            console.log('🔄 游戏重新开始');
+            this.resetGame();
+        });
+        
+        this.network.on('player_disconnected', (data) => {
+            console.log('⚠️ 对手断开连接:', data);
             window.dialogManager.showError('对手已断开连接');
         });
         
-        // 连接服务器
-        this.network.connect();
+        this.network.on('error', (data) => {
+            console.error('❌ 网络错误:', data);
+            window.dialogManager.showError(data.message || '网络错误');
+        });
         
-        // 加入房间
-        setTimeout(() => {
-            if (this.network.isConnected()) {
-                this.network.send({
-                    type: 'join_game_room',
-                    data: { roomId: roomId }
-                });
-            }
-        }, 500);
+        // 连接服务器并加入房间
+        this.network.connect()
+            .then(() => {
+                console.log('✅ Socket.IO连接成功');
+                // 延迟一下再发送加入房间请求，确保连接稳定
+                setTimeout(() => {
+                    this.network.joinGameRoom(roomId);
+                }, 300);
+            })
+            .catch((error) => {
+                console.error('❌ 连接失败:', error);
+                window.dialogManager.showError('无法连接到服务器，请检查网络连接');
+            });
     }
     
     /**
@@ -1661,6 +1700,27 @@ class GameController {
         } else {
             window.dialogManager.showInfo('提示', '对手拒绝了你的悔棋请求');
         }
+    }
+    
+    /**
+     * 处理重新开始请求
+     */
+    handleRestartRequest(data) {
+        console.log('收到重新开始请求:', data);
+        window.dialogManager.showConfirm(
+            '重新开始请求',
+            '对手请求重新开始游戏，是否同意？',
+            () => {
+                // 同意重新开始
+                this.network.send('restart_response', { accepted: true });
+                window.dialogManager.showInfo('提示', '游戏将重新开始...');
+            },
+            () => {
+                // 拒绝重新开始
+                this.network.send('restart_response', { accepted: false });
+                window.dialogManager.showInfo('提示', '已拒绝对手的重新开始请求');
+            }
+        );
     }
     
     /**
