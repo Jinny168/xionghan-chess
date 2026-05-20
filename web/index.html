@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:;base64,=">
     <title>匈汉象棋 - 主页</title>
-    <link rel="stylesheet" href="css/index.css?v=8">
+    <link rel="stylesheet" href="css/index.css?v=9">
 </head>
 <body>
     <!-- 背景 -->
@@ -305,7 +305,13 @@
             
             // 检查房间是否存在
             fetch(`/api/room_status/${roomId}`)
-                .then(response => response.json())
+                .then(response => {
+                    // 404是正常的，表示房间不存在
+                    if (response.status === 404) {
+                        return { success: false, error: '房间不存在' };
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     hideLoading();
                     if (data.success) {
@@ -319,7 +325,7 @@
                             }, 300);
                         }
                     } else {
-                        errorMsg.textContent = '❌ 房间不存在';
+                        errorMsg.textContent = '❌ ' + (data.error || '房间不存在');
                         errorMsg.classList.add('show');
                     }
                 })

@@ -65,6 +65,7 @@ class GameRoom:
         self.game_started = False
         self.game_state = None  # 服务端游戏状态（用于验证）
         self.move_history = []  # 移动历史
+        self.current_turn = 'red'  # 当前回合，红方先手
         
     def add_player(self, sid):
         """添加玩家到房间"""
@@ -113,6 +114,10 @@ class GameRoom:
         TODO: 集成完整的游戏规则验证
         目前做基础验证，后续可扩展
         """
+        # 验证是否是该玩家的回合
+        if player_camp != self.current_turn:
+            return False, '不是你的回合'
+        
         # 基础验证：坐标在范围内
         if self.mode == 'traditional':
             if not (0 <= to_row <= 9 and 0 <= to_col <= 8):
@@ -128,6 +133,9 @@ class GameRoom:
             'camp': player_camp,
             'timestamp': time.time()
         })
+        
+        # 切换回合
+        self.current_turn = 'black' if self.current_turn == 'red' else 'red'
         
         return True, None
 
@@ -199,6 +207,27 @@ def game_page():
     return response
 
 
+@app.route('/socket.io/socket.io.js')
+def socket_io_client():
+    """提供Socket.IO客户端库"""
+    import socketio
+    # 从python-socketio包中获取客户端库路径
+    import os
+    socketio_path = os.path.dirname(socketio.__file__)
+    client_js_path = os.path.join(socketio_path, 'static', 'socket.io.min.js')
+    
+    if os.path.exists(client_js_path):
+        response = make_response(send_from_directory(
+            os.path.join(socketio_path, 'static'),
+            'socket.io.min.js'
+        ))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
+    else:
+        # 如果找不到，返回错误
+        return jsonify({'error': 'Socket.IO client library not found'}), 404
+
+
 @app.route('/api/create_room', methods=['POST'])
 def create_room():
     """创建游戏房间"""
@@ -222,13 +251,22 @@ def create_room():
 @app.route('/api/join_room/<room_id>', methods=['POST'])
 def join_room_api(room_id):
     """加入游戏房间"""
-    if room_id not in rooms:
+    # 大小写不敏感查找
+    room_id_lower = room_id.lower()
+    matched_room_id = None
+    
+    for rid in rooms.keys():
+        if rid.lower() == room_id_lower:
+            matched_room_id = rid
+            break
+    
+    if not matched_room_id:
         return jsonify({
             'success': False,
             'error': '房间不存在'
         }), 404
     
-    room = rooms[room_id]
+    room = rooms[matched_room_id]
     if room.is_full():
         return jsonify({
             'success': False,
@@ -252,13 +290,22 @@ def join_room_api(room_id):
 @app.route('/api/room_status/<room_id>', methods=['GET'])
 def room_status(room_id):
     """获取房间状态"""
-    if room_id not in rooms:
+    # 大小写不敏感查找
+    room_id_lower = room_id.lower()
+    matched_room_id = None
+    
+    for rid in rooms.keys():
+        if rid.lower() == room_id_lower:
+            matched_room_id = rid
+            break
+    
+    if not matched_room_id:
         return jsonify({'success': False, 'error': '房间不存在'}), 404
     
-    room = rooms[room_id]
+    room = rooms[matched_room_id]
     return jsonify({
         'success': True,
-        'roomId': room_id,
+        'roomId': matched_room_id,
         'mode': room.mode,
         'players': len(room.players),
         'started': room.game_started,
@@ -288,16 +335,18 @@ def handle_connect():
 def handle_disconnect():
     """客户端断开"""
     if app.debug:
-        print(f'客户端断开: {request.sid}')
+        print(f'🔴 客户端断开: {request.sid} (IP: {request.remote_addr})')
     
     client_ip = request.remote_addr
     if client_ip in connection_count:
         connection_count[client_ip] -= 1
     
-    # 从房间中移除玩家
+    # 从所有房间中移除该玩家
     for room_id, room in list(rooms.items()):
-        opponent = room.get_opponent(request.sid)
-        if opponent:
+        # 检查该玩家是否在这个房间
+        player_in_room = any(p['sid'] == request.sid for p in room.players)
+        
+        if player_in_room:
             room.remove_player(request.sid)
             
             # 通知对手玩家离开
@@ -308,6 +357,8 @@ def handle_disconnect():
             # 如果房间为空,删除房间
             if not room.players:
                 del rooms[room_id]
+                if app.debug:
+                    print(f'️ 房间 {room_id} 已删除（空房间）')
             break
 
 
@@ -316,18 +367,32 @@ def handle_join_game_room(data):
     """加入游戏房间(SocketIO)"""
     room_id = data.get('roomId')
     
-    if room_id not in rooms:
+    # 大小写不敏感查找
+    room_id_lower = room_id.lower()
+    matched_room_id = None
+    
+    for rid in rooms.keys():
+        if rid.lower() == room_id_lower:
+            matched_room_id = rid
+            break
+    
+    if not matched_room_id:
         emit('error', {'message': '房间不存在'})
         return
     
-    room = rooms[room_id]
+    room = rooms[matched_room_id]
     success, result = room.add_player(request.sid)
     
     if success:
         join_room(room_id)
+        
+        # 判断是否是房主（第一个加入的玩家）
+        is_host = len(room.players) == 1
+        
         emit('joined', {
             'roomId': room_id,
             'camp': result,
+            'isHost': is_host,
             'opponentConnected': room.is_full()
         })
         
@@ -336,14 +401,12 @@ def handle_join_game_room(data):
             room.game_started = True
             room.update_activity()
             
-            # 通知红方
-            red_player = room.players[0]
+            # 通知两个玩家游戏开始
             emit('game_start', {
-                'opponentCamp': 'black',
                 'mode': room.mode
             }, room=room_id)
             
-            print(f'游戏开始: 房间 {room_id}, 模式: {room.mode}')
+            print(f'🎮 游戏开始: 房间 {room_id}, 模式: {room.mode}')
     else:
         emit('error', {'message': result})
 
@@ -435,6 +498,7 @@ def handle_restart_response(data):
     if room_id and data.get('accepted'):
         room = rooms[room_id]
         room.move_history = []
+        room.current_turn = 'red'  # 重置回合为红方
         room.update_activity()
         
         emit('game_restart', {}, room=room_id)

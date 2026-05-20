@@ -24,37 +24,18 @@ class WebSocketClient {
             try {
                 // 检查Socket.IO是否已加载
                 if (typeof io === 'undefined') {
-                    console.error('Socket.IO库未加载，尝试动态加载...');
-                    this.loadSocketIO().then(() => {
-                        this.initializeSocket(resolve, reject);
-                    }).catch(reject);
-                } else {
-                    this.initializeSocket(resolve, reject);
+                    console.error(' Socket.IO库未加载，请检查HTML中是否包含socket.io.js');
+                    reject(new Error('Socket.IO库未加载'));
+                    return;
                 }
+                
+                console.log('✅ Socket.IO库已加载，版本:', io.version || '未知');
+                this.initializeSocket(resolve, reject);
             } catch (error) {
                 console.error('WebSocket连接失败:', error);
                 reject(error);
                 this.scheduleReconnect();
             }
-        });
-    }
-    
-    /**
-     * 动态加载Socket.IO库
-     */
-    loadSocketIO() {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = '/socket.io/socket.io.js';
-            script.onload = () => {
-                console.log('Socket.IO库加载成功');
-                resolve();
-            };
-            script.onerror = () => {
-                console.error('Socket.IO库加载失败');
-                reject(new Error('无法加载Socket.IO库'));
-            };
-            document.head.appendChild(script);
         });
     }
     
@@ -71,6 +52,8 @@ class WebSocketClient {
             timeout: 10000,
             forceNew: true // 强制创建新连接，避免多窗口冲突
         });
+        
+        console.log(' Socket.IO初始化完成，服务器URL:', this.serverUrl);
         
         this.setupEventHandlers(resolve, reject);
     }

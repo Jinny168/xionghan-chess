@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:;base64,=">
     <title>匈汉象棋</title>
-    <link rel="stylesheet" href="css/game.css?v=6">
+    <link rel="stylesheet" href="css/game.css?v=7">
+    <!-- 引入Socket.IO客户端库（由Flask-SocketIO自动提供） -->
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
     <!-- 背景装饰 -->
@@ -329,15 +331,15 @@
     <script src="js/core/game-state.js?v=12"></script>
     <script src="js/ui/chess-board-renderer.js?v=12"></script>
     <script src="js/ui/dialog-manager.js?v=12"></script>
-    <script src="js/network/websocket-client.js?v=12"></script>
+    <script src="js/network/websocket-client.js?v=15"></script>
     <script src="js/controllers/sound-manager.js?v=12"></script>
     <script src="js/controllers/avatar-manager.js?v=12"></script>
-    <script src="js/controllers/taunt-manager.js?v=12"></script>
-    <script src="js/controllers/statistics-manager.js?v=12"></script>
-    <script src="js/controllers/game-record-manager.js?v=12"></script>
-    <script src="js/controllers/replay-controller.js?v=12"></script>
-    <script src="js/controllers/game-rule-config.js?v=6"></script>
-    <script src="js/controllers/game-controller.js?v=12"></script>
-    <script src="js/main.js?v=12"></script>
+    <script src="js/controllers/taunt-manager.js?v=13"></script>
+    <script src="js/controllers/statistics-manager.js?v=13"></script>
+    <script src="js/controllers/game-record-manager.js?v=13"></script>
+    <script src="js/controllers/replay-controller.js?v=13"></script>
+    <script src="js/controllers/game-rule-config.js?v=13"></script>
+    <script src="js/controllers/game-controller.js?v=13"></script>
+    <script src="js/main.js?v=14"></script>
 </body>
 </html>

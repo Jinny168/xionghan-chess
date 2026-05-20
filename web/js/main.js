@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 解析URL参数获取游戏模式
     const urlParams = new URLSearchParams(window.location.search);
     const gameMode = urlParams.get('mode') || 'local'; // 默认单机模式
-    const roomId = urlParams.get('roomId');
+    const roomId = urlParams.get('room') || urlParams.get('roomId'); // 兼容两种参数名
     
     console.log(`游戏模式: ${gameMode}, 房间号: ${roomId || '无'}`);
     
