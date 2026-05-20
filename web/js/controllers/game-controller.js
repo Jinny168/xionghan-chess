@@ -160,21 +160,21 @@ class GameController {
             
             if (this.opponentConnected) {
                 console.log('👥 对手已连接，准备开始游戏');
-                window.dialogManager.showSuccess('对手已连接，游戏即将开始！');
+                window.dialogManager.showInfo('提示', '对手已连接，游戏即将开始！');
             } else {
                 console.log('⏳ 等待对手连接...');
-                window.dialogManager.showInfo('等待对手连接...', 3000);
+                window.dialogManager.showInfo('提示', '等待对手连接...', 3000);
             }
         });
         
         this.network.on('game_start', (data) => {
-            console.log('🎮 游戏开始！', data);
+            console.log(' 游戏开始！', data);
             this.opponentConnected = true;
             this.updatePlayerInfo();
             
             const campText = this.playerCamp === 'red' ? '红' : '黑';
             const hostText = this.isHost ? '（房主）' : '（客人）';
-            window.dialogManager.showSuccess(`游戏开始！您执${campText}棋${hostText}`);
+            window.dialogManager.showInfo('游戏开始', `您执${campText}棋${hostText}`);
         });
         
         this.network.on('opponent_move', (data) => {

@@ -207,27 +207,6 @@ def game_page():
     return response
 
 
-@app.route('/socket.io/socket.io.js')
-def socket_io_client():
-    """提供Socket.IO客户端库"""
-    import socketio
-    # 从python-socketio包中获取客户端库路径
-    import os
-    socketio_path = os.path.dirname(socketio.__file__)
-    client_js_path = os.path.join(socketio_path, 'static', 'socket.io.min.js')
-    
-    if os.path.exists(client_js_path):
-        response = make_response(send_from_directory(
-            os.path.join(socketio_path, 'static'),
-            'socket.io.min.js'
-        ))
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        return response
-    else:
-        # 如果找不到，返回错误
-        return jsonify({'error': 'Socket.IO client library not found'}), 404
-
-
 @app.route('/api/create_room', methods=['POST'])
 def create_room():
     """创建游戏房间"""
