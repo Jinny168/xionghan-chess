@@ -14,7 +14,8 @@ class GameRuleConfig {
             kingPalaceEightDirection: false,  // 汉/汗在九宫内保持8方向能力（默认关闭，等同传统将帅）
             kingKeepEightDirection: false,  // 汉/汗出了九宫后保持8方向能力
             pawnFastMove: true,         // 兵可以快速移动（向前多格，不吃子）
-            pawnResurrection: false     // 兵可以复活（在出生点重新生成）
+            pawnResurrection: false,     // 兵可以复活（在出生点重新生成）
+            sheWeakMode: true           // 射使用弱化模式（默认开启，沿星点连线移动）
         };
         
         // 当前配置
@@ -34,6 +35,8 @@ class GameRuleConfig {
                 const parsed = JSON.parse(saved);
                 this.config = { ...this.defaultConfig, ...parsed };
                 console.log('✅ 已加载自定义规则配置:', this.config);
+            } else {
+                console.log('ℹ️ 未找到保存的规则配置，使用默认配置');
             }
         } catch (e) {
             console.error('❌ 加载规则配置失败:', e);
@@ -98,7 +101,7 @@ class GameRuleConfig {
             horseCheckbox.checked = this.get('horseStraightThree');
             horseCheckbox.addEventListener('change', (e) => {
                 this.set('horseStraightThree', e.target.checked);
-                console.log(`🐴 马走直三规则: ${e.target.checked ? '开启' : '关闭'}`);
+                console.log(`🐴 马走直三规则: ${e.target.checked ? '开启' : '关闭'}，当前配置:`, this.getAll());
             });
         }
         
@@ -108,7 +111,7 @@ class GameRuleConfig {
             advisorCheckbox.checked = this.get('advisorOutPalace');
             advisorCheckbox.addEventListener('change', (e) => {
                 this.set('advisorOutPalace', e.target.checked);
-                console.log(`🛡️ 仕出九宫规则: ${e.target.checked ? '开启' : '关闭'}`);
+                console.log(`🛡️ 仕出九宫规则: ${e.target.checked ? '开启' : '关闭'}，当前配置:`, this.getAll());
             });
         }
         
@@ -118,7 +121,7 @@ class GameRuleConfig {
             elephantCheckbox.checked = this.get('elephantCrossRiver');
             elephantCheckbox.addEventListener('change', (e) => {
                 this.set('elephantCrossRiver', e.target.checked);
-                console.log(`🐘 相跨河规则: ${e.target.checked ? '开启' : '关闭'}`);
+                console.log(`🐘 相跨河规则: ${e.target.checked ? '开启' : '关闭'}，当前配置:`, this.getAll());
             });
         }
         
@@ -153,7 +156,7 @@ class GameRuleConfig {
             // 监听变化
             kingCheckbox.addEventListener('change', (e) => {
                 this.set('kingOutPalace', e.target.checked);
-                console.log(`👑 汉出九宫规则: ${e.target.checked ? '开启' : '关闭'}`);
+                console.log(`👑 汉出九宫规则: ${e.target.checked ? '开启' : '关闭'}，当前配置:`, this.getAll());
                 updateDirectionCheckboxesState();
             });
         }
@@ -163,7 +166,7 @@ class GameRuleConfig {
             kingPalaceDirectionCheckbox.checked = this.get('kingPalaceEightDirection');
             kingPalaceDirectionCheckbox.addEventListener('change', (e) => {
                 this.set('kingPalaceEightDirection', e.target.checked);
-                console.log(`👑 汉宫内8方向规则: ${e.target.checked ? '开启' : '关闭'}`);
+                console.log(`👑 汉宫内8方向规则: ${e.target.checked ? '开启' : '关闭'}，当前配置:`, this.getAll());
             });
         }
         
@@ -172,7 +175,7 @@ class GameRuleConfig {
             kingDirectionCheckbox.checked = this.get('kingKeepEightDirection');
             kingDirectionCheckbox.addEventListener('change', (e) => {
                 this.set('kingKeepEightDirection', e.target.checked);
-                console.log(`👑 汉宫外8方向规则: ${e.target.checked ? '开启' : '关闭'}`);
+                console.log(`👑 汉宫外8方向规则: ${e.target.checked ? '开启' : '关闭'}，当前配置:`, this.getAll());
             });
         }
         
@@ -182,7 +185,7 @@ class GameRuleConfig {
             pawnFastMoveCheckbox.checked = this.get('pawnFastMove');
             pawnFastMoveCheckbox.addEventListener('change', (e) => {
                 this.set('pawnFastMove', e.target.checked);
-                console.log(`♟️ 兵快速移动规则: ${e.target.checked ? '开启' : '关闭'}`);
+                console.log(`♟️ 兵快速移动规则: ${e.target.checked ? '开启' : '关闭'}，当前配置:`, this.getAll());
             });
         }
         
@@ -192,7 +195,17 @@ class GameRuleConfig {
             pawnResurrectionCheckbox.checked = this.get('pawnResurrection');
             pawnResurrectionCheckbox.addEventListener('change', (e) => {
                 this.set('pawnResurrection', e.target.checked);
-                console.log(`♟️ 兵复活规则: ${e.target.checked ? '开启' : '关闭'}`);
+                console.log(`♟️ 兵复活规则: ${e.target.checked ? '开启' : '关闭'}，当前配置:`, this.getAll());
+            });
+        }
+        
+        // 射的弱化/强化模式
+        const sheWeakModeCheckbox = document.getElementById('rule-she-weak-mode');
+        if (sheWeakModeCheckbox) {
+            sheWeakModeCheckbox.checked = this.get('sheWeakMode');
+            sheWeakModeCheckbox.addEventListener('change', (e) => {
+                this.set('sheWeakMode', e.target.checked);
+                console.log(`🎯 射的移动规则: ${e.target.checked ? '弱化模式（星点连线）' : '强化模式（自由斜向）'}，当前配置:`, this.getAll());
             });
         }
         
@@ -254,6 +267,9 @@ class GameRuleConfig {
         
         const pawnResurrectionCheckbox = document.getElementById('rule-pawn-resurrection');
         if (pawnResurrectionCheckbox) pawnResurrectionCheckbox.checked = this.get('pawnResurrection');
+        
+        const sheWeakModeCheckbox = document.getElementById('rule-she-weak-mode');
+        if (sheWeakModeCheckbox) sheWeakModeCheckbox.checked = this.get('sheWeakMode');
     }
 }
 

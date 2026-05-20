@@ -99,34 +99,32 @@ class GameState {
     setupXionghanLayout() {
         const { Ju, Ma, Xiang, Shi, Han, Pao, Bing, She, Lei } = window;
         
-        // 黑方布局（已移除甲/胄、刺/伺、盾/碷、尉/衛、巡/廵）
-        // 调整：车移到第0行，与礌、射同行；移除边缘的兵（col=0和col=12）
+        // 黑方布局
         const blackPieces = [
             [She, 0, 0], [She, 0, 12],
             [Lei, 0, 4], [Lei, 0, 8],
-            [Ju, 0, 2], [Ju, 0, 10],  // 车移到第0行，与礌、射同行
+            [Ju, 0, 2], [Ju, 0, 10],
             [Ma, 1, 3], [Xiang, 1, 4], [Shi, 1, 5],
             [Han, 1, 6], [Shi, 1, 7], [Xiang, 1, 8], [Ma, 1, 9],
             [Pao, 3, 1], [Pao, 3, 11],
-            [Bing, 4, 2], [Bing, 4, 4], [Bing, 4, 6],
-            [Bing, 4, 8], [Bing, 4, 10]  // 移除边缘的兵（col=0和col=12）
+            [Bing, 4, 0], [Bing, 4, 2], [Bing, 4, 4], [Bing, 4, 6],
+            [Bing, 4, 8], [Bing, 4, 10], [Bing, 4, 12]  // 7个兵，在同一行
         ];
-        
+                
         blackPieces.forEach(([PieceClass, row, col]) => {
             this.pieces.push(new PieceClass('black', row, col));
         });
-        
-        // 红方布局（已移除甲/胄、刺/伺、盾/碷、尉/衛、巡/廵）
-        // 调整：车移到第12行，与礌、射同行；移除边缘的兵（col=0和col=12）
+                
+        // 红方布局
         const redPieces = [
             [She, 12, 0], [She, 12, 12],
             [Lei, 12, 4], [Lei, 12, 8],
-            [Ju, 12, 2], [Ju, 12, 10],  // 车移到第12行，与礌、射同行
+            [Ju, 12, 2], [Ju, 12, 10],
             [Ma, 11, 3], [Xiang, 11, 4], [Shi, 11, 5],
             [Han, 11, 6], [Shi, 11, 7], [Xiang, 11, 8], [Ma, 11, 9],
             [Pao, 9, 1], [Pao, 9, 11],
-            [Bing, 8, 2], [Bing, 8, 4], [Bing, 8, 6],
-            [Bing, 8, 8], [Bing, 8, 10]  // 移除边缘的兵（col=0和col=12）
+            [Bing, 8, 0], [Bing, 8, 2], [Bing, 8, 4], [Bing, 8, 6],
+            [Bing, 8, 8], [Bing, 8, 10], [Bing, 8, 12]  // 7个兵，在同一行
         ];
         
         redPieces.forEach(([PieceClass, row, col]) => {
@@ -135,8 +133,8 @@ class GameState {
         
         // 记录兵的出生点位置（用于生成新兵）
         this.bingSpawnPoints = {
-            'black': [[4, 2], [4, 4], [4, 6], [4, 8], [4, 10]],
-            'red': [[8, 2], [8, 4], [8, 6], [8, 8], [8, 10]]
+            'black': [[4, 0], [4, 2], [4, 4], [4, 6], [4, 8], [4, 10], [4, 12]],
+            'red': [[8, 0], [8, 2], [8, 4], [8, 6], [8, 8], [8, 10], [8, 12]]
         };
     }
     
@@ -341,16 +339,27 @@ class GameState {
      * 移动棋子
      */
     movePiece(fromRow, fromCol, toRow, toCol) {
+        console.log('=== GameState.movePiece 被调用 ===');
+        console.log('起始:', [fromRow, fromCol], '目标:', [toRow, toCol]);
+        console.log('当前回合:', this.playerTurn);
+        
         const { GameRules } = window;
         const piece = this.getPieceAt(fromRow, fromCol);
         
+        console.log('选中的棋子:', piece ? piece.name : 'null', piece ? piece.color : 'null');
+        
         if (!piece || piece.color !== this.playerTurn) {
+            console.log('❌ 移动失败：没有棋子或不是当前回合');
             return false;
         }
         
+        console.log('调用 GameRules.isValidMove...');
         if (!GameRules.isValidMove(this.pieces, piece, fromRow, fromCol, toRow, toCol)) {
+            console.log('❌ 移动失败：不符合规则');
             return false;
         }
+        
+        console.log('✅ 移动符合规则，继续检查将军...');
         
         // 检查是否会导致自己被将军（禁止送将）
         if (this.wouldBeInCheckAfterMove(piece, toRow, toCol)) {

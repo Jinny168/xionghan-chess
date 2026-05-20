@@ -755,26 +755,32 @@ class ChessBoardRenderer {
     
     /**
      * 绘制星点标记（射的移动限制点）
-     * 星点是坐标为3的倍数的位置：(0,0), (0,3), (0,6), (0,9), (3,0), (3,3)等
-     * 注意：不标注棋盘边缘的星点（row=0, row=12, col=0, col=12）
+     * 星点是特定的13个坐标点，用于限制射的移动距离
      */
     drawStarPoints(ctx) {
         // 星点颜色 - 使用淡红色，与棋盘背景形成对比但不突兀
         ctx.fillStyle = 'rgba(180, 30, 30, 0.4)';
         
-        // 遍历所有星点（坐标为3的倍数），但排除边缘
-        for (let row = 3; row <= 9; row += 3) {  // 从3开始，到9结束，排除0和12
-            for (let col = 3; col <= 9; col += 3) {  // 从3开始，到9结束，排除0和12
-                const x = this.marginLeft + col * this.gridSize;
-                const y = this.marginTop + row * this.gridSize;
-                
-                // 绘制小圆点作为星点标记
-                const radius = this.gridSize * 0.08; // 半径为格子尺寸的8%
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
+        // 定义13个星点坐标
+        const starPoints = [
+            [0, 0], [0, 6], [0, 12],
+            [3, 3], [3, 9],
+            [6, 0], [6, 6], [6, 12],
+            [9, 3], [9, 9],
+            [12, 0], [12, 6], [12, 12]
+        ];
+        
+        // 遍历所有星点并绘制
+        starPoints.forEach(([row, col]) => {
+            const x = this.marginLeft + col * this.gridSize;
+            const y = this.marginTop + row * this.gridSize;
+            
+            // 绘制小圆点作为星点标记
+            const radius = this.gridSize * 0.08; // 半径为格子尺寸的8%
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        });
     }
     
     /**
