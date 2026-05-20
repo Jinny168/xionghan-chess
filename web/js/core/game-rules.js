@@ -9,11 +9,18 @@ class GameRules {
      * @returns {Object} 规则配置对象
      */
     static getRuleConfig() {
+        console.log('=== getRuleConfig 被调用 ===');
+        console.log('window.game:', window.game);
+        console.log('window.game.ruleConfig:', window.game ? window.game.ruleConfig : 'game未定义');
+        
         // 如果window中有ruleConfig，则使用它
         if (window.game && window.game.ruleConfig) {
-            return window.game.ruleConfig.getAll();
+            const config = window.game.ruleConfig.getAll();
+            console.log('🎯 获取规则配置:', config);
+            return config;
         }
         // 否则返回默认配置
+        console.log('⚠️ 使用默认规则配置');
         return {
             horseStraightThree: false,
             advisorOutPalace: false,
@@ -22,7 +29,8 @@ class GameRules {
             kingPalaceEightDirection: false,  // 默认关闭，等同传统将帅
             kingKeepEightDirection: false,
             pawnFastMove: true,         // 默认开启，兵可以快速移动
-            pawnResurrection: false     // 默认关闭，兵不能复活
+            pawnResurrection: false,     // 默认关闭，兵不能复活
+            sheWeakMode: true           // 默认开启，射使用弱化模式（沿星点连线移动）
         };
     }
     
@@ -86,6 +94,10 @@ class GameRules {
      * @returns {boolean} 移动是否合法
      */
     static isValidMove(pieces, piece, fromRow, fromCol, toRow, toCol) {
+        console.log('=== isValidMove 被调用 ===');
+        console.log('棋子:', piece ? piece.name : 'null', '颜色:', piece ? piece.color : 'null');
+        console.log('起始位置:', [fromRow, fromCol], '目标位置:', [toRow, toCol]);
+        
         // 基本检查
         if (piece.row !== fromRow || piece.col !== fromCol) {
             return false;
@@ -114,8 +126,10 @@ class GameRules {
         } else if (piece instanceof Xiang) {
             return this.isValidXiangMove(pieces, piece.color, fromRow, fromCol, toRow, toCol);
         } else if (piece instanceof Shi) {
+            console.log('调用 isValidShiMove');
             return this.isValidShiMove(pieces, piece.color, fromRow, fromCol, toRow, toCol);
         } else if (piece instanceof Han) {
+            console.log('调用 isValidKingMove');
             return this.isValidKingMove(pieces, piece.color, fromRow, fromCol, toRow, toCol);
         } else if (piece instanceof Pao) {
             return this.isValidPaoMove(pieces, fromRow, fromCol, toRow, toCol);
@@ -234,7 +248,7 @@ class GameRules {
      * 相/象的移动规则（匈汉象棋增强版，可配置）
      * 1. 基本移动：田字走法（斜向两格），遵循塞象眼规则
      * 2. 越过长城后：获得前后左右隔一格移动吃子的能力（仍遵循塞象眼）
-     * 3. 斜向移动时不能有"夹逼"
+     * 3. 斜向移动时不能有“夹逼”
      * 4. 可配置是否允许跨越长城（默认不允许）
      */
     static isValidXiangMove(pieces, color, fromRow, fromCol, toRow, toCol) {
@@ -242,18 +256,32 @@ class GameRules {
         const colDiff = toCol - fromCol;
         const absRowDiff = Math.abs(rowDiff);
         const absColDiff = Math.abs(colDiff);
-        
+            
         // 获取规则配置
         const config = this.getRuleConfig();
-        
+        console.log('🐘 相移动规则检查 - 配置:', config, '起始:', [fromRow, fromCol], '目标:', [toRow, toCol]);
+            
         const targetPiece = this.getPieceAt(pieces, toRow, toCol);
-        
+            
         // 检查是否已越过长城（长城在第6行）
-        // 如果配置允许跨河，则始终认为已越过长城
+        // 红方初始在8-12行，黑方初始在0-4行
+        const startInOwnTerritory = (color === 'red' && fromRow >= 7) || (color === 'black' && fromRow <= 5);
+        const targetInOwnTerritory = (color === 'red' && toRow >= 7) || (color === 'black' && toRow <= 5);
+            
+        // 如果配置不允许跨河，则起始和目标都必须在己方阵地
+        if (!config.elephantCrossRiver) {
+            console.log('❌ 相不允许跨河 - 起始在己方:', startInOwnTerritory, '目标在己方:', targetInOwnTerritory);
+            if (!startInOwnTerritory || !targetInOwnTerritory) {
+                console.log('⛔ 相移动被拒绝：跨越长城');
+                return false;
+            }
+        }
+            
+        // 如果配置允许跨河，或者在己方阵地内移动
         const hasCrossedGreatWall = config.elephantCrossRiver || 
                                     (color === 'red' && fromRow <= 5) || 
                                     (color === 'black' && fromRow >= 7);
-        
+            
         // 如果已越过长城，检查是否是隔一格直线移动（吃子或移动到空位）
         if (hasCrossedGreatWall) {
             if ((absRowDiff === 2 && absColDiff === 0) || (absRowDiff === 0 && absColDiff === 2)) {
@@ -263,16 +291,16 @@ class GameRules {
                 if (this.getPieceAt(pieces, midRow, midCol)) {
                     return false; // 中间有棋子，不能移动
                 }
-                
+                    
                 // 如果是吃子，目标必须是敌方棋子
                 if (targetPiece && targetPiece.color === color) {
                     return false; // 不能吃己方棋子
                 }
-                
+                    
                 return true; // 可以吃子或移动到空位
             }
         }
-        
+            
         // 基本移动：田字走法（斜向两格）
         if (absRowDiff === 2 && absColDiff === 2) {
             // 检查塞象眼
@@ -281,17 +309,19 @@ class GameRules {
             if (this.getPieceAt(pieces, centerRow, centerCol)) {
                 return false; // 塞象眼，不能移动
             }
-            
+                
             // 检查夹逼：在中心位置检查
             const stepRow = rowDiff > 0 ? 1 : -1;
             const stepCol = colDiff > 0 ? 1 : -1;
             if (this.hasPinch(centerRow, centerCol, stepRow, stepCol, pieces)) {
                 return false; // 存在夹逼，不能移动
             }
-            
+                
+            console.log('✅ 相移动合法：田字走法');
             return true;
         }
-        
+            
+        console.log('❌ 相移动不合法：不符合任何规则');
         return false;
     }
     
@@ -310,6 +340,7 @@ class GameRules {
         
         // 获取规则配置
         const config = this.getRuleConfig();
+        console.log('️ 仕移动规则检查 - 配置:', config, '起始:', [fromRow, fromCol], '目标:', [toRow, toCol]);
         
         // 检查目标位置是否在棋盘范围内
         if (!this.isPositionOnBoard(toRow, toCol)) {
@@ -322,12 +353,15 @@ class GameRules {
             return false;
         }
         
-        // 匈汉象棋九宫位置（判断起始位置）
+        // 匈汉象棋九宫位置（判断起始位置和目标位置）
         const isInPalace = (color === 'red' && fromRow >= 9 && fromRow <= 11 && fromCol >= 5 && fromCol <= 7) ||
                           (color === 'black' && fromRow >= 1 && fromRow <= 3 && fromCol >= 5 && fromCol <= 7);
+        const isTargetInPalace = (color === 'red' && toRow >= 9 && toRow <= 11 && toCol >= 5 && toCol <= 7) ||
+                                (color === 'black' && toRow >= 1 && toRow <= 3 && toCol >= 5 && toCol <= 7);
         
         // 如果配置允许出九宫，则移除九宫限制
         if (config.advisorOutPalace) {
+            console.log('✅ 仕允许出九宫');
             // 可以移动到任意位置，但必须是一格
             if (Math.max(absRowDiff, absColDiff) !== 1) {
                 return false; // 必须走一格
@@ -349,41 +383,24 @@ class GameRules {
             return false;
         }
         
-        // 默认规则：受九宫限制
-        if (isInPalace) {
-            // 在九宫内:只能斜走一格
-            if (absRowDiff === 1 && absColDiff === 1) {
-                // 检查夹逼：虽然只移动1格，但仍需检查起点位置的夹逼
-                const stepRow = rowDiff > 0 ? 1 : -1;
-                const stepCol = colDiff > 0 ? 1 : -1;
-                // 在起点位置检查夹逼
-                if (this.hasPinch(fromRow, fromCol, stepRow, stepCol, pieces)) {
-                    return false; // 存在夹逼，不能移动
-                }
-                return true;
-            }
-            return false; // 在九宫内不能直走
-        } else {
-            // 出了九宫:可以斜走或直走一格（控制周围8格）
-            if (Math.max(absRowDiff, absColDiff) !== 1) {
-                return false; // 必须走一格
-            }
-            
-            if (absRowDiff === 1 && absColDiff === 1) {
-                // 斜走：检查夹逼
-                const stepRow = rowDiff > 0 ? 1 : -1;
-                const stepCol = colDiff > 0 ? 1 : -1;
-                // 在起点位置检查夹逼
-                if (this.hasPinch(fromRow, fromCol, stepRow, stepCol, pieces)) {
-                    return false; // 存在夹逼，不能移动
-                }
-                return true;
-            } else if ((absRowDiff === 1 && absColDiff === 0) || (absRowDiff === 0 && absColDiff === 1)) {
-                // 直走：不需要检查夹逼
-                return true;
-            }
-            return false;
+        // 默认规则：受九宫限制，起始位置和目标位置都必须在九宫内
+        console.log('❌ 仕不允许出九宫 - 起始在宫内:', isInPalace, '目标在宫内:', isTargetInPalace);
+        if (!isInPalace || !isTargetInPalace) {
+            return false; // 不允许出九宫
         }
+        
+        // 在九宫内:只能斜走一格
+        if (absRowDiff === 1 && absColDiff === 1) {
+            // 检查夹逼：虽然只移动1格，但仍需检查起点位置的夹逼
+            const stepRow = rowDiff > 0 ? 1 : -1;
+            const stepCol = colDiff > 0 ? 1 : -1;
+            // 在起点位置检查夹逼
+            if (this.hasPinch(fromRow, fromCol, stepRow, stepCol, pieces)) {
+                return false; // 存在夹逼，不能移动
+            }
+            return true;
+        }
+        return false; // 在九宫内不能直走
     }
     
     /**
@@ -415,9 +432,11 @@ class GameRules {
             return false;
         }
         
-        // 匈汉象棋九宫位置（判断起始位置）
+        // 匈汉象棋九宫位置（判断起始位置和目标位置）
         const isInPalace = (color === 'red' && fromRow >= 9 && fromRow <= 11 && fromCol >= 5 && fromCol <= 7) ||
                           (color === 'black' && fromRow >= 1 && fromRow <= 3 && fromCol >= 5 && fromCol <= 7);
+        const isTargetInPalace = (color === 'red' && toRow >= 9 && toRow <= 11 && toCol >= 5 && toCol <= 7) ||
+                                (color === 'black' && toRow >= 1 && toRow <= 3 && toCol >= 5 && toCol <= 7);
         
         // 如果配置允许出九宫
         if (config.kingOutPalace) {
@@ -448,33 +467,29 @@ class GameRules {
                 }
             }
         } else {
-            // 默认规则：受九宫限制
-            // 根据起始位置应用不同的移动规则
-            if (isInPalace) {
-                // 在九宫内：根据配置决定是8方向还是4方向
-                if (config.kingPalaceEightDirection) {
-                    // 8方向模式：可以横竖斜走一格
-                    if (Math.max(absRowDiff, absColDiff) !== 1) {
-                        return false; // 必须走一格
-                    }
-                    
-                    // 如果是斜向移动，检查夹逼
-                    if (absRowDiff === 1 && absColDiff === 1) {
-                        const stepRow = rowDiff > 0 ? 1 : -1;
-                        const stepCol = colDiff > 0 ? 1 : -1;
-                        // 在起点位置检查夹逼
-                        if (this.hasPinch(fromRow, fromCol, stepRow, stepCol, pieces)) {
-                            return false; // 存在夹逼，不能移动
-                        }
-                    }
-                } else {
-                    // 4方向模式：只能横竖走一格（类似传统将帅）
-                    if (!((absRowDiff === 1 && absColDiff === 0) || (absRowDiff === 0 && absColDiff === 1))) {
-                        return false; // 只能直线移动一格
+            // 默认规则：受九宫限制，起始位置和目标位置都必须在九宫内
+            if (!isInPalace || !isTargetInPalace) {
+                return false; // 不允许出九宫
+            }
+            
+            // 在九宫内：根据配置决定是8方向还是4方向
+            if (config.kingPalaceEightDirection) {
+                // 8方向模式：可以横竖斜走一格
+                if (Math.max(absRowDiff, absColDiff) !== 1) {
+                    return false; // 必须走一格
+                }
+                
+                // 如果是斜向移动，检查夹逼
+                if (absRowDiff === 1 && absColDiff === 1) {
+                    const stepRow = rowDiff > 0 ? 1 : -1;
+                    const stepCol = colDiff > 0 ? 1 : -1;
+                    // 在起点位置检查夹逼
+                    if (this.hasPinch(fromRow, fromCol, stepRow, stepCol, pieces)) {
+                        return false; // 存在夹逼，不能移动
                     }
                 }
             } else {
-                // 在九宫外：只能横竖走一格（4方向），失去斜走能力
+                // 4方向模式：只能横竖走一格（类似传统将帅）
                 if (!((absRowDiff === 1 && absColDiff === 0) || (absRowDiff === 0 && absColDiff === 1))) {
                     return false; // 只能直线移动一格
                 }
@@ -724,70 +739,111 @@ class GameRules {
     
     /**
      * 射/䠶的移动规则（匈汉象棋）
-     * 1. 只能斜向移动和吃子（类似斜向版的车）
-     * 2. 斜向移动时不能有"夹逼"(两侧都有棋子)
-     * 3. 最大移动距离为斜向3格
-     * 4. 不能跨越星点（路径上不能经过坐标都是3的倍数的位置）
+     * 
+     * 弱化模式（默认）：
+     * - 射可以在任何位置，但移动时只能沿着斜向方向
+     * - 单次移动的最大距离由最近的星点决定
+     * - 例如：位于(4,4)的射，向斜上方最多到(3,3)，向斜下方最多到(6,6)
+     * - 星点是移动的边界限制，而不是落点限制
+     * - 受夹逼限制
+     * 
+     * 强化模式：
+     * - 斜向移动，最多3格
+     * - 不受星点限制
+     * - 受夹逼限制
      */
     static isValidSheMove(pieces, fromRow, fromCol, toRow, toCol) {
         const rowDiff = toRow - fromRow;
         const colDiff = toCol - fromCol;
         const absRowDiff = Math.abs(rowDiff);
         const absColDiff = Math.abs(colDiff);
-        
+                
         // 必须是斜向移动（行差等于列差）
         if (absRowDiff !== absColDiff || absRowDiff === 0) {
             return false;
         }
-        
-        // 移动距离限制：最多3格
-        if (absRowDiff > 3) {
-            return false;
-        }
-        
+                
         // 检查目标位置是否在棋盘范围内
         if (toRow < 0 || toRow >= 13 || toCol < 0 || toCol >= 13) {
             return false;
         }
-        
+                
         // 检查目标位置是否有己方棋子
         const targetPiece = this.getPieceAt(pieces, toRow, toCol);
         const movingPiece = this.getPieceAt(pieces, fromRow, fromCol);
         if (targetPiece && targetPiece.color === movingPiece.color) {
             return false;
         }
-        
-        // 检查路径上是否有阻挡
+            
+        // 获取规则配置
+        const config = this.getRuleConfig();
+        const isWeakMode = config.sheWeakMode !== undefined ? config.sheWeakMode : true;
+            
+        if (isWeakMode) {
+            // 弱化模式：移动距离受最近的星点限制
+            // 计算移动方向
+            const stepRowWeak = rowDiff > 0 ? 1 : -1;
+                
+            // 找到该方向上最近的星点
+            // 星点是坐标为3的倍数的位置
+            let maxDistance = absRowDiff; // 默认最大距离
+                
+            // 计算从当前位置沿移动方向到下一个星点的距离
+            if (stepRowWeak > 0) {
+                // 向下移动，找到下一个row是3的倍数的位置
+                const nextStarRow = Math.ceil((fromRow + 1) / 3) * 3;
+                const distanceToStar = nextStarRow - fromRow;
+                maxDistance = Math.min(maxDistance, distanceToStar);
+            } else {
+                // 向上移动，找到上一个row是3的倍数的位置
+                const prevStarRow = Math.floor((fromRow - 1) / 3) * 3;
+                const distanceToStar = fromRow - prevStarRow;
+                maxDistance = Math.min(maxDistance, distanceToStar);
+            }
+                
+            // 检查实际移动距离是否超过限制
+            if (absRowDiff > maxDistance) {
+                console.log('⛔ 射移动被拒绝：超过星点限制', 
+                    `实际距离: ${absRowDiff}, 最大允许: ${maxDistance}`);
+                return false;
+            }
+        } else {
+            // 强化模式：斜向移动最多3格，不受星点限制
+            if (absRowDiff > 3) {
+                console.log('⛔ 射移动被拒绝：超过最大距离3格', `距离: ${absRowDiff}`);
+                return false;
+            }
+        }
+            
+        // 检查路径上是否有阻挡和夹逼
         const stepRow = rowDiff > 0 ? 1 : -1;
         const stepCol = colDiff > 0 ? 1 : -1;
-        
+                
         // 首先检查起点位置的夹逼（即使只移动一格也需要检查）
         if (this.hasPinch(fromRow, fromCol, stepRow, stepCol, pieces)) {
-            return false; // 起点位置存在夹逼，不能移动
+            console.log('⛔ 射移动被拒绝：起点位置存在夹逼');
+            return false;
         }
-        
-        // 然后检查路径上的阻挡、夹逼和星点跨越
+                
+        // 然后检查路径上的阻挡和夹逼
         for (let i = 1; i < absRowDiff; i++) {
             const checkRow = fromRow + i * stepRow;
             const checkCol = fromCol + i * stepCol;
-            
+                    
             // 检查是否有棋子阻挡
             if (this.getPieceAt(pieces, checkRow, checkCol)) {
-                return false; // 路径上有阻挡
+                console.log('⛔ 射移动被拒绝：路径上有阻挡', [checkRow, checkCol]);
+                return false;
             }
-            
-            // 检查是否跨越星点（路径上的中间点如果是星点，则不能跨越）
-            const isStarPoint = (row, col) => row % 3 === 0 && col % 3 === 0;
-            if (isStarPoint(checkRow, checkCol)) {
-                return false; // 不能跨越星点
-            }
-            
+                    
             // 使用通用方法检查夹逼
             if (this.hasPinch(checkRow, checkCol, stepRow, stepCol, pieces)) {
-                return false; // 存在夹逼，不能移动
+                console.log('⛔ 射移动被拒绝：路径位置存在夹逼', [checkRow, checkCol]);
+                return false;
             }
         }
-        
+                
+        console.log('✅ 射移动合法');
         // 路径畅通，可以移动或吃子
         return true;
     }

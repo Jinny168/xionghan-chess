@@ -67,6 +67,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // 暴露到全局(方便调试)
     window.game = game;
     
+    // 确保ruleConfig可以被GameRules访问
+    if (game.ruleConfig) {
+        window.game.ruleConfig = game.ruleConfig;
+        console.log('✅ 规则配置已绑定到全局');
+    }
+    
     // 显示欢迎信息
     showWelcomeMessage(gameMode, roomId);
 });
