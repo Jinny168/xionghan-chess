@@ -9,5 +9,8 @@ eventlet==0.35.1
 # CORS 支持
 Flask-CORS==4.0.0
 
+# 缓存与状态管理
+redis==5.0.1
+
 # 生产环境推荐（可选）
 # gunicorn==21.2.0  # WSGI HTTP 服务器

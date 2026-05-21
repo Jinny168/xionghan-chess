@@ -7,14 +7,50 @@ import datetime
 import time
 import uuid
 import logging
+import json
 
 from flask import Flask, request, jsonify, send_from_directory, make_response
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room
+from socketio import RedisManager
+import redis
 
 # 创建Flask应用，启用静态文件缓存
 app = Flask(__name__, static_folder='..', static_url_path='')
 CORS(app)
+
+# Redis 连接配置
+# 支持从环境变量读取配置（Docker 部署）
+import os
+redis_host = os.environ.get('REDIS_HOST', 'localhost')
+redis_port = int(os.environ.get('REDIS_PORT', '6379'))
+redis_password = os.environ.get('REDIS_PASSWORD', '')
+redis_db = int(os.environ.get('REDIS_DB', '0'))
+
+try:
+    redis_kwargs = {
+        'host': redis_host,
+        'port': redis_port,
+        'db': redis_db,
+        'decode_responses': True,
+        'socket_connect_timeout': 5,
+        'socket_timeout': 5
+    }
+    
+    if redis_password:
+        redis_kwargs['password'] = redis_password
+    
+    redis_client = redis.Redis(**redis_kwargs)
+    redis_client.ping()
+    print(f'✅ Redis 连接成功 ({redis_host}:{redis_port})')
+    if redis_password:
+        print('🔒 已启用密码认证')
+    USE_REDIS = True
+except (redis.ConnectionError, redis.AuthenticationError) as e:
+    print(f'⚠️ Redis 连接失败: {e}')
+    print('⚠️ 回退到内存模式（数据将在重启后丢失）')
+    redis_client = None
+    USE_REDIS = False
 
 # SocketIO配置优化：使用gevent或eventlet提升性能（如果已安装）
 try:
@@ -27,14 +63,24 @@ except ImportError:
     except ImportError:
         async_mode = 'threading'
 
-socketio = SocketIO(
-    app,
-    cors_allowed_origins="*",
-    async_mode=async_mode,
-    ping_timeout=60,
-    ping_interval=25,
-    max_http_buffer_size=1e6
-)
+# Socket.IO Redis 适配器（如果 Redis 可用）
+socketio_kwargs = {
+    'cors_allowed_origins': "*",
+    'async_mode': async_mode,
+    'ping_timeout': 60,
+    'ping_interval': 25,
+    'max_http_buffer_size': 1e6
+}
+
+if USE_REDIS:
+    # Socket.IO Redis 管理器连接字符串
+    if redis_password:
+        redis_url = f'redis://:{redis_password}@{redis_host}:{redis_port}/{redis_db}'
+    else:
+        redis_url = f'redis://{redis_host}:{redis_port}/{redis_db}'
+    socketio_kwargs['client_manager'] = RedisManager(redis_url)
+
+socketio = SocketIO(app, **socketio_kwargs)
 
 # ==================== 配置 ====================
 ROOM_TIMEOUT = 3600  # 房间超时时间（秒）
@@ -42,30 +88,107 @@ MAX_CONNECTIONS_PER_IP = 5  # 每个IP最大连接数
 MOVE_RATE_LIMIT = 100  # 移动频率限制（毫秒）
 STATIC_CACHE_TIMEOUT = 31536000  # 静态文件缓存时间（1年，秒）
 
+# Redis 键前缀
+REDIS_PREFIX = 'xionghan_chess:'
+ROOM_KEY_PREFIX = f'{REDIS_PREFIX}room:'
+PLAYER_ROOM_KEY_PREFIX = f'{REDIS_PREFIX}player_room:'
+IP_CONN_KEY = f'{REDIS_PREFIX}ip_connections'
+MOVE_TIME_KEY = f'{REDIS_PREFIX}move_times'
+
 # 配置日志级别
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.WARNING)
 
-# ==================== 全局状态 ====================
-rooms = {}
+# ==================== 存储层 ====================
+# 房间存储（内存/Redis 混合模式）
+rooms = {}  # 内存缓存
 connection_count = {}  # IP连接计数
 last_move_time = {}  # 玩家最后移动时间
 
 
+def redis_get(key):
+    """从 Redis 获取数据"""
+    if USE_REDIS and redis_client:
+        try:
+            data = redis_client.get(key)
+            return json.loads(data) if data else None
+        except Exception as e:
+            print(f'⚠️ Redis GET 错误: {e}')
+    return None
+
+
+def redis_set(key, value, expire=None):
+    """向 Redis 存储数据"""
+    if USE_REDIS and redis_client:
+        try:
+            redis_client.set(key, json.dumps(value), ex=expire)
+            return True
+        except Exception as e:
+            print(f'⚠️ Redis SET 错误: {e}')
+    return False
+
+
+def redis_delete(key):
+    """从 Redis 删除数据"""
+    if USE_REDIS and redis_client:
+        try:
+            redis_client.delete(key)
+            return True
+        except Exception as e:
+            print(f'️ Redis DELETE 错误: {e}')
+    return False
+
+
 # ==================== 游戏房间模型 ====================
 class GameRoom:
-    """游戏房间类 - 参考桌面版network_game.py实现"""
+    """游戏房间类 - 支持 Redis 持久化"""
     
     def __init__(self, room_id, mode='xionghan'):
         self.room_id = room_id
         self.mode = mode  # 'xionghan' 或 'traditional'
         self.players = []  # [{'sid': xxx, 'camp': 'red/black', 'ready': False}]
-        self.created_at = datetime.datetime.now()
+        self.created_at = datetime.datetime.now().isoformat()
         self.last_activity = time.time()
         self.game_started = False
         self.game_state = None  # 服务端游戏状态（用于验证）
         self.move_history = []  # 移动历史
         self.current_turn = 'red'  # 当前回合，红方先手
+        self.save_to_redis()
+        
+    def save_to_redis(self):
+        """将房间状态保存到 Redis"""
+        data = {
+            'room_id': self.room_id,
+            'mode': self.mode,
+            'players': self.players,
+            'created_at': self.created_at,
+            'last_activity': self.last_activity,
+            'game_started': self.game_started,
+            'move_history': self.move_history,
+            'current_turn': self.current_turn
+        }
+        redis_set(f'{ROOM_KEY_PREFIX}{self.room_id}', data, expire=ROOM_TIMEOUT * 2)
+        
+        # 保存玩家到房间的映射
+        for player in self.players:
+            redis_set(f'{PLAYER_ROOM_KEY_PREFIX}{player["sid"]}', self.room_id, expire=ROOM_TIMEOUT * 2)
+        
+    def load_from_redis(room_id):
+        """从 Redis 加载房间状态"""
+        data = redis_get(f'{ROOM_KEY_PREFIX}{room_id}')
+        if not data:
+            return None
+        
+        room = GameRoom.__new__(GameRoom)
+        room.room_id = data['room_id']
+        room.mode = data['mode']
+        room.players = data['players']
+        room.created_at = data['created_at']
+        room.last_activity = data['last_activity']
+        room.game_started = data['game_started']
+        room.move_history = data['move_history']
+        room.current_turn = data['current_turn']
+        return room
         
     def add_player(self, sid):
         """添加玩家到房间"""
@@ -75,12 +198,16 @@ class GameRoom:
         camp = 'red' if len(self.players) == 0 else 'black'
         self.players.append({'sid': sid, 'camp': camp, 'ready': False})
         self.update_activity()
+        self.save_to_redis()
         return True, camp
     
     def remove_player(self, sid):
         """移除玩家"""
         self.players = [p for p in self.players if p['sid'] != sid]
         self.update_activity()
+        self.save_to_redis()
+        # 删除玩家到房间的映射
+        redis_delete(f'{PLAYER_ROOM_KEY_PREFIX}{sid}')
         
     def get_player_camp(self, sid):
         """获取玩家阵营"""
@@ -107,6 +234,7 @@ class GameRoom:
     def update_activity(self):
         """更新活动时间"""
         self.last_activity = time.time()
+        self.save_to_redis()
     
     def validate_move(self, from_row, from_col, to_row, to_col, player_camp):
         """
@@ -137,42 +265,95 @@ class GameRoom:
         # 切换回合
         self.current_turn = 'black' if self.current_turn == 'red' else 'red'
         
+        self.save_to_redis()
         return True, None
 
 
 # ==================== 辅助函数 ====================
 def get_player_room(sid):
     """获取玩家所在的房间ID"""
+    # 优先从 Redis 查询
+    if USE_REDIS:
+        room_id = redis_get(f'{PLAYER_ROOM_KEY_PREFIX}{sid}')
+        if room_id:
+            return room_id
+    
+    # 回退到内存查询
     for room_id, room in rooms.items():
         if any(p['sid'] == sid for p in room.players):
             return room_id
     return None
 
 
+def get_room(room_id):
+    """获取房间对象（优先从内存，其次从 Redis）"""
+    # 优先从内存获取
+    if room_id in rooms:
+        return rooms[room_id]
+    
+    # 从 Redis 加载
+    if USE_REDIS:
+        room = GameRoom.load_from_redis(room_id)
+        if room:
+            rooms[room_id] = room  # 缓存到内存
+            return room
+    
+    return None
+
+
 def get_player_camp(sid):
     """获取玩家的阵营"""
-    for room in rooms.values():
-        for player in room.players:
-            if player['sid'] == sid:
-                return player['camp']
+    room_id = get_player_room(sid)
+    if room_id:
+        room = get_room(room_id)
+        if room:
+            return room.get_player_camp(sid)
     return None
 
 
 def cleanup_timeout_rooms():
     """清理超时房间"""
-    timeout_rooms = [rid for rid, room in rooms.items() if room.is_timeout()]
-    for rid in timeout_rooms:
-        del rooms[rid]
-    return len(timeout_rooms)
+    cleaned = 0
+    
+    if USE_REDIS:
+        # 从 Redis 扫描所有房间
+        for key in redis_client.scan_iter(f'{ROOM_KEY_PREFIX}*'):
+            room_id = key.replace(ROOM_KEY_PREFIX, '')
+            data = redis_get(key)
+            if data and (time.time() - data.get('last_activity', 0)) > ROOM_TIMEOUT:
+                redis_delete(key)
+                # 清理玩家映射
+                for player in data.get('players', []):
+                    redis_delete(f'{PLAYER_ROOM_KEY_PREFIX}{player["sid"]}')
+                cleaned += 1
+                if room_id in rooms:
+                    del rooms[room_id]
+    else:
+        # 内存模式
+        timeout_rooms = [rid for rid, room in rooms.items() if room.is_timeout()]
+        for rid in timeout_rooms:
+            del rooms[rid]
+            cleaned += 1
+    
+    return cleaned
 
 
 def rate_limit_check(sid, interval_ms=MOVE_RATE_LIMIT):
     """频率限制检查"""
     current_time = time.time() * 1000  # 毫秒
-    if sid in last_move_time:
-        if current_time - last_move_time[sid] < interval_ms:
+    
+    if USE_REDIS:
+        last_time = redis_client.hget(MOVE_TIME_KEY, sid)
+        if last_time and (current_time - float(last_time)) < interval_ms:
             return False
-    last_move_time[sid] = current_time
+        redis_client.hset(MOVE_TIME_KEY, sid, current_time)
+        redis_client.expire(MOVE_TIME_KEY, 3600)  # 1小时过期
+    else:
+        if sid in last_move_time:
+            if current_time - last_move_time[sid] < interval_ms:
+                return False
+        last_move_time[sid] = current_time
+    
     return True
 
 
@@ -226,7 +407,8 @@ def create_room():
         return jsonify({'success': False, 'error': '无效的游戏模式'}), 400
     
     room_id = str(uuid.uuid4())[:8]
-    rooms[room_id] = GameRoom(room_id, mode)
+    room = GameRoom(room_id, mode)
+    rooms[room_id] = room  # 缓存到内存
     
     return jsonify({
         'success': True,
@@ -243,10 +425,18 @@ def join_room_api(room_id):
     room_id_lower = room_id.lower()
     matched_room_id = None
     
-    for rid in rooms.keys():
-        if rid.lower() == room_id_lower:
-            matched_room_id = rid
-            break
+    # 优先从 Redis 查找
+    if USE_REDIS:
+        for key in redis_client.scan_iter(f'{ROOM_KEY_PREFIX}*'):
+            rid = key.replace(ROOM_KEY_PREFIX, '')
+            if rid.lower() == room_id_lower:
+                matched_room_id = rid
+                break
+    else:
+        for rid in rooms.keys():
+            if rid.lower() == room_id_lower:
+                matched_room_id = rid
+                break
     
     if not matched_room_id:
         return jsonify({
@@ -254,7 +444,13 @@ def join_room_api(room_id):
             'error': '房间不存在'
         }), 404
     
-    room = rooms[matched_room_id]
+    room = get_room(matched_room_id)
+    if not room:
+        return jsonify({
+            'success': False,
+            'error': '房间不存在'
+        }), 404
+    
     if room.is_full():
         return jsonify({
             'success': False,
@@ -359,16 +555,28 @@ def handle_join_game_room(data):
     room_id_lower = room_id.lower()
     matched_room_id = None
     
-    for rid in rooms.keys():
-        if rid.lower() == room_id_lower:
-            matched_room_id = rid
-            break
+    # 优先从 Redis 查找
+    if USE_REDIS:
+        for key in redis_client.scan_iter(f'{ROOM_KEY_PREFIX}*'):
+            rid = key.replace(ROOM_KEY_PREFIX, '')
+            if rid.lower() == room_id_lower:
+                matched_room_id = rid
+                break
+    else:
+        for rid in rooms.keys():
+            if rid.lower() == room_id_lower:
+                matched_room_id = rid
+                break
     
     if not matched_room_id:
         emit('error', {'message': '房间不存在'})
         return
     
-    room = rooms[matched_room_id]
+    room = get_room(matched_room_id)
+    if not room:
+        emit('error', {'message': '房间不存在'})
+        return
+    
     success, result = room.add_player(request.sid)
     
     if success:
@@ -420,7 +628,12 @@ def handle_move(data):
         emit('error', {'message': '不在房间中'})
         return
     
-    room = rooms[room_id]
+    room = get_room(room_id)
+    if not room:
+        print(f' 房间不存在: {room_id}')
+        emit('error', {'message': '房间不存在'})
+        return
+    
     if not room.game_started:
         print(f'❌ 游戏未开始: {room_id}')
         emit('error', {'message': '游戏未开始'})
@@ -494,13 +707,14 @@ def handle_restart_request():
 def handle_restart_response(data):
     """重新开始响应"""
     room_id = get_player_room(request.sid)
-    if room_id and data.get('accepted'):
-        room = rooms[room_id]
-        room.move_history = []
-        room.current_turn = 'red'  # 重置回合为红方
-        room.update_activity()
-        
-        emit('game_restart', {}, room=room_id)
+    if room_id:
+        room = get_room(room_id)
+        if room and data.get('accepted'):
+            room.move_history = []
+            room.current_turn = 'red'  # 重置回合为红方
+            room.update_activity()
+            
+            emit('game_restart', {}, room=room_id)
 
 
 @socketio.on('resign')
@@ -508,14 +722,15 @@ def handle_resign():
     """认输"""
     room_id = get_player_room(request.sid)
     if room_id:
-        room = rooms[room_id]
-        winner_camp = 'black' if get_player_camp(request.sid) == 'red' else 'red'
-        
-        emit('game_over', {
-            'winner': winner_camp,
-            'reason': 'resign',
-            'moveCount': len(room.move_history)
-        }, room=room_id)
+        room = get_room(room_id)
+        if room:
+            winner_camp = 'black' if get_player_camp(request.sid) == 'red' else 'red'
+            
+            emit('game_over', {
+                'winner': winner_camp,
+                'reason': 'resign',
+                'moveCount': len(room.move_history)
+            }, room=room_id)
 
 
 @socketio.on('chat')
@@ -544,7 +759,9 @@ def handle_ping():
     """心跳检测"""
     room_id = get_player_room(request.sid)
     if room_id:
-        rooms[room_id].update_activity()
+        room = get_room(room_id)
+        if room:
+            room.update_activity()
     emit('pong')
 
 

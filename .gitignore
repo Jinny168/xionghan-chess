@@ -46,3 +46,9 @@ Icon?
 *.tmp
 *.temp
 \#*\#
+
+# Docker
+.env
+docker-compose.override.yml
+docker/nginx/ssl/*.pem
+docker/nginx/ssl/*.key
