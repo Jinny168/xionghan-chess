@@ -24,15 +24,38 @@ xionghan-chess/
 │   ├── main.py       # 入口文件
 │   └── game.py       # 游戏主类
 │
-└── web/              # 🌐 Web端应用（Flask + HTML5）
-    ├── css/          # 样式文件
-    ├── docs/         # Web端文档
-    ├── js/           # JavaScript代码
-    ├── server/       # Flask后端
-    ├── images/       # 图片资源
-    ├── sounds/       # 音效文件
-    ├── index.html    # 主页
-    └── game.html     # 游戏页面
+├── web/              # 🌐 Web端应用（Flask + HTML5）
+│   ├── css/          # 样式文件
+│   ├── docs/         # Web端文档
+│   ├── js/           # JavaScript代码
+│   ├── server/       # Flask后端
+│   ├── images/       # 图片资源
+│   ├── sounds/       # 音效文件
+│   ├── index.html    # 主页
+│   └── game.html     # 游戏页面
+│
+├── docker/           # 🐳 Docker 部署配置
+│   ├── Dockerfile             # 容器镜像定义
+│   ├── docker-compose.yml     # 多服务编排
+│   ├── .env.example           # 环境变量模板
+│   ├── .dockerignore          # 构建忽略文件
+│   ├── nginx/                 # Nginx 配置
+│   ├── docker-start.bat       # Windows 启动脚本
+│   ├── docker-start.ps1       # PowerShell 启动脚本
+│   ├── deploy.sh              # Linux 一键部署脚本
+│   ├── check_deploy.sh        # 环境检查脚本
+│   └── README.md              # Docker 配置说明
+│
+├── docs/             # 📚 项目文档中心
+│   ├── README.md                      # 文档索引
+│   ├── DOCKER_DEPLOY.md              # Docker 部署指南
+│   ├── LINUX_DEPLOY_GUIDE.md         # Linux 部署教程
+│   └── README_DOCKER.md              # Docker 快速参考
+│
+├── README.md           # 项目总览
+├── requirements.txt    # Python 依赖
+├── .gitignore          # Git 忽略配置
+└── .gitattributes      # Git 属性配置
 ```
 
 ## 🚀 快速开始
@@ -177,14 +200,23 @@ python app.py  # 手动测试
 
 ## 📖 更多文档
 
+### 📚 文档中心
+所有文档已整理到 `docs/` 目录，请访问 [docs/README.md](docs/README.md) 查看完整文档索引。
+
+**快速导航：**
+- 🚀 **新手部署**: [docs/LINUX_DEPLOY_GUIDE.md](docs/LINUX_DEPLOY_GUIDE.md) - Linux 虚拟机部署教程（小白版）
+- 🐳 **Docker 部署**: [docs/DOCKER_DEPLOY.md](docs/DOCKER_DEPLOY.md) - Docker 完整部署指南
+- ⚡ **快速参考**: [docs/README_DOCKER.md](docs/README_DOCKER.md) - Docker 快速开始
+- 💻 **开发指南**: [web/docs/DEVELOPER_GUIDE.md](web/docs/DEVELOPER_GUIDE.md) - 开发者技术文档
+
 ### 桌面端文档
 - **快速参考**: `desktop/docs/QUICK_REFERENCE.py` - API速查手册
 - **实施总结**: `desktop/docs/IMPLEMENTATION_SUMMARY.md` - 架构改进记录
 - **示例代码**: `desktop/docs/examples/new_features_demo.py` - 功能演示
 
 ### Web端文档
-- **用户指南**: `web/README.md` - 使用教程和FAQ
-- **开发者文档**: `web/docs/DEVELOPER_GUIDE.md` - 技术实现和部署指南
+- **用户指南**: [web/README.md](web/README.md) - 使用教程和FAQ
+- **开发者文档**: [web/docs/DEVELOPER_GUIDE.md](web/docs/DEVELOPER_GUIDE.md) - 技术实现和部署指南
 
 ## ⚠️ 注意事项
 

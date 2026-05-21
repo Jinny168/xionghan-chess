@@ -12,6 +12,8 @@ class GameController {
         
         this.selectedPiece = null;
         this.playerCamp = 'red'; // 单机模式下双方都可操作
+        this.isHost = false; // 是否是房主
+        this.opponentConnected = false; // 对手是否已连接
         
         this.lastMoveNotation = '';
         this.moveHistory = [];
@@ -150,22 +152,35 @@ class GameController {
         this.network.on('joined', (data) => {
             console.log(`✅ 成功加入房间，阵营: ${data.camp}`);
             this.playerCamp = data.camp;
+            this.isHost = data.isHost || false; // 是否是房主
+            this.opponentConnected = data.opponentConnected || false;
             
-            if (data.opponentConnected) {
+            // 显示玩家信息
+            this.updatePlayerInfo();
+            
+            if (this.opponentConnected) {
                 console.log('👥 对手已连接，准备开始游戏');
+                window.dialogManager.showInfo('提示', '对手已连接，游戏即将开始！');
             } else {
                 console.log('⏳ 等待对手连接...');
-                window.dialogManager.showInfo('等待对手连接...', 3000);
+                window.dialogManager.showInfo('提示', '等待对手连接...', 3000);
             }
         });
         
         this.network.on('game_start', (data) => {
-            console.log('🎮 游戏开始！', data);
-            window.dialogManager.showSuccess('游戏开始！您执' + (this.playerCamp === 'red' ? '红' : '黑'));
+            console.log(' 游戏开始！', data);
+            this.opponentConnected = true;
+            this.updatePlayerInfo();
+            
+            const campText = this.playerCamp === 'red' ? '红' : '黑';
+            const hostText = this.isHost ? '（房主）' : '（客人）';
+            window.dialogManager.showInfo('游戏开始', `您执${campText}棋${hostText}`);
         });
         
         this.network.on('opponent_move', (data) => {
-            console.log('📥 收到对手移动:', data);
+            console.log('📥📥 收到对手移动事件:', data);
+            console.log('🎯 当前玩家阵营:', this.playerCamp);
+            console.log(' 当前回合:', this.gameState.playerTurn);
             this.handleOpponentMove(data);
         });
         
@@ -201,6 +216,8 @@ class GameController {
         
         this.network.on('player_disconnected', (data) => {
             console.log('⚠️ 对手断开连接:', data);
+            this.opponentConnected = false;
+            this.updatePlayerInfo();
             window.dialogManager.showError('对手已断开连接');
         });
         
@@ -666,6 +683,7 @@ class GameController {
             
             // 如果在线，发送移动
             if (this.isOnline) {
+                console.log(' 发送移动到服务器:', { fromRow, fromCol, toRow, toCol });
                 this.network.sendMove(fromRow, fromCol, toRow, toCol);
             }
             
@@ -1189,8 +1207,18 @@ class GameController {
      * 更新UI
      */
     updateUI() {
-        // 更新回合指示器
-        const turnText = this.gameState.playerTurn === 'red' ? '红方回合' : '黑方回合';
+        // 更新回合指示器（在线模式显示“你的回合”或“对手回合”）
+        let turnText;
+        if (this.isOnline) {
+            if (this.gameState.playerTurn === this.playerCamp) {
+                turnText = this.gameState.playerTurn === 'red' ? '你的回合（红方）' : '你的回合（黑方）';
+            } else {
+                turnText = this.gameState.playerTurn === 'red' ? '对手回合（红方）' : '对手回合（黑方）';
+            }
+        } else {
+            turnText = this.gameState.playerTurn === 'red' ? '红方回合' : '黑方回合';
+        }
+        
         if (this.turnIndicator) {
             this.turnIndicator.textContent = turnText;
             
@@ -1221,6 +1249,33 @@ class GameController {
         const undoBtn = document.getElementById('btn-regret');
         if (undoBtn) {
             undoBtn.disabled = this.gameState.moveHistory.length === 0;
+        }
+    }
+    
+    /**
+     * 更新玩家信息显示（在线模式）
+     */
+    updatePlayerInfo() {
+        if (!this.isOnline) return;
+        
+        const campText = this.playerCamp === 'red' ? '红方' : '黑方';
+        const hostText = this.isHost ? '（房主）' : '（客人）';
+        const statusText = this.opponentConnected ? '已连接' : '等待中';
+        
+        console.log(`👤 玩家信息: ${campText}${hostText}, 对手状态: ${statusText}`);
+        
+        // 更新UI上的玩家信息显示
+        const turnText = document.getElementById('turn-text');
+        if (turnText) {
+            const baseText = this.gameState.playerTurn === this.playerCamp ? '你的回合' : '对手回合';
+            turnText.textContent = `${baseText}（${campText}${hostText}）`;
+        }
+        
+        // 更新头像
+        const avatarImg = document.querySelector('#player-indicator .avatar');
+        if (avatarImg) {
+            avatarImg.src = this.playerCamp === 'red' ? 'images/avatars/red-avatar.png' : 'images/avatars/black-avatar.png';
+            avatarImg.alt = campText;
         }
     }
     
@@ -1626,15 +1681,33 @@ class GameController {
      * 处理对手移动
      */
     handleOpponentMove(data) {
-        console.log('对手移动:', data);
+        console.log('🔄🔄 开始处理对手移动:', data);
+        console.log('📊 移动前 - 步数:', this.gameState.moveHistory.length);
         
         const { fromRow, fromCol, toRow, toCol } = data;
         
         // 执行移动
-        this.gameState.movePiece(fromRow, fromCol, toRow, toCol);
+        const success = this.gameState.movePiece(fromRow, fromCol, toRow, toCol);
+        
+        if (!success) {
+            console.error('❌ 对手移动执行失败');
+            return;
+        }
+        
+        console.log('✅ 移动执行成功');
         
         // 记录最后移动
         this.gameState.lastMove = [fromRow, fromCol, toRow, toCol];
+        
+        // 生成走法记谱并添加到历史
+        const piece = this.gameState.getPieceAt(toRow, toCol);
+        if (piece) {
+            const notation = this.generateMoveNotation(piece, fromRow, fromCol, toRow, toCol);
+            this.lastMoveNotation = notation;
+            this.addMoveToHistory(notation);
+            console.log(' 记录对手走法:', notation);
+            console.log('📊 移动后 - 步数:', this.gameState.moveHistory.length);
+        }
         
         // 更新UI
         this.updateUI();
@@ -1646,9 +1719,20 @@ class GameController {
         if (this.gameState.inCheck) {
             this.soundManager.playCheck();
             this.showCheckAlert();
+        } else {
+            this.hideCheckAlert();
+        }
+        
+        // 检查游戏结束
+        if (this.gameState.gameOver) {
+            this.handleGameEnd();
+        } else {
+            // 检查将军/绝杀状态
+            this.soundManager.checkAndPlayGameSound(this.gameState);
         }
         
         // 渲染棋盘
+        console.log('🎨 渲染棋盘...');
         this.render();
     }
     

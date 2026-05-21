@@ -117,19 +117,19 @@ class DialogManager {
         // 绑定事件
         overlay.querySelector('#temp-dialog-confirm').addEventListener('click', () => {
             overlay.remove();
-            if (onConfirm) onConfirm();
+            if (onConfirm && typeof onConfirm === 'function') onConfirm();
         });
         
         overlay.querySelector('#temp-dialog-cancel').addEventListener('click', () => {
             overlay.remove();
-            if (onCancel) onCancel();
+            if (onCancel && typeof onCancel === 'function') onCancel();
         });
         
         // 点击背景关闭
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 overlay.remove();
-                if (onCancel) onCancel();
+                if (onCancel && typeof onCancel === 'function') onCancel();
             }
         });
     }
@@ -211,14 +211,14 @@ class DialogManager {
         // 绑定事件
         overlay.querySelector('#temp-dialog-ok').addEventListener('click', () => {
             overlay.remove();
-            if (onClose) onClose();
+            if (onClose && typeof onClose === 'function') onClose();
         });
         
         // 点击背景关闭
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 overlay.remove();
-                if (onClose) onClose();
+                if (onClose && typeof onClose === 'function') onClose();
             }
         });
     }

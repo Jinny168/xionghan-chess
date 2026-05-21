@@ -5,7 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:;base64,=">
     <title>匈汉象棋</title>
-    <link rel="stylesheet" href="css/game.css?v=6">
+    <link rel="stylesheet" href="css/game.css?v=7">
+    <!-- 引入Socket.IO客户端库（使用多个CDN备用） -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        // 如果主CDN加载失败，尝试备用CDN
+        if (typeof io === 'undefined') {
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"><\/script>');
+        }
+        // 如果两个CDN都失败，尝试从本地服务器加载
+        if (typeof io === 'undefined') {
+            document.write('<script src="/socket.io.min.js"><\/script>');
+        }
+    </script>
 </head>
 <body>
     <!-- 背景装饰 -->
@@ -329,15 +341,15 @@
     <script src="js/core/game-state.js?v=12"></script>
     <script src="js/ui/chess-board-renderer.js?v=12"></script>
     <script src="js/ui/dialog-manager.js?v=12"></script>
-    <script src="js/network/websocket-client.js?v=12"></script>
+    <script src="js/network/websocket-client.js?v=15"></script>
     <script src="js/controllers/sound-manager.js?v=12"></script>
     <script src="js/controllers/avatar-manager.js?v=12"></script>
-    <script src="js/controllers/taunt-manager.js?v=12"></script>
-    <script src="js/controllers/statistics-manager.js?v=12"></script>
-    <script src="js/controllers/game-record-manager.js?v=12"></script>
-    <script src="js/controllers/replay-controller.js?v=12"></script>
-    <script src="js/controllers/game-rule-config.js?v=6"></script>
-    <script src="js/controllers/game-controller.js?v=12"></script>
-    <script src="js/main.js?v=12"></script>
+    <script src="js/controllers/taunt-manager.js?v=13"></script>
+    <script src="js/controllers/statistics-manager.js?v=13"></script>
+    <script src="js/controllers/game-record-manager.js?v=13"></script>
+    <script src="js/controllers/replay-controller.js?v=13"></script>
+    <script src="js/controllers/game-rule-config.js?v=13"></script>
+    <script src="js/controllers/game-controller.js?v=16"></script>
+    <script src="js/main.js?v=14"></script>
 </body>
 </html>
