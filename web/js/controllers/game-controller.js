@@ -178,7 +178,9 @@ class GameController {
         });
         
         this.network.on('opponent_move', (data) => {
-            console.log('📥 收到对手移动:', data);
+            console.log('📥📥 收到对手移动事件:', data);
+            console.log('🎯 当前玩家阵营:', this.playerCamp);
+            console.log(' 当前回合:', this.gameState.playerTurn);
             this.handleOpponentMove(data);
         });
         
@@ -681,6 +683,7 @@ class GameController {
             
             // 如果在线，发送移动
             if (this.isOnline) {
+                console.log(' 发送移动到服务器:', { fromRow, fromCol, toRow, toCol });
                 this.network.sendMove(fromRow, fromCol, toRow, toCol);
             }
             
@@ -1678,15 +1681,33 @@ class GameController {
      * 处理对手移动
      */
     handleOpponentMove(data) {
-        console.log('对手移动:', data);
+        console.log('🔄🔄 开始处理对手移动:', data);
+        console.log('📊 移动前 - 步数:', this.gameState.moveHistory.length);
         
         const { fromRow, fromCol, toRow, toCol } = data;
         
         // 执行移动
-        this.gameState.movePiece(fromRow, fromCol, toRow, toCol);
+        const success = this.gameState.movePiece(fromRow, fromCol, toRow, toCol);
+        
+        if (!success) {
+            console.error('❌ 对手移动执行失败');
+            return;
+        }
+        
+        console.log('✅ 移动执行成功');
         
         // 记录最后移动
         this.gameState.lastMove = [fromRow, fromCol, toRow, toCol];
+        
+        // 生成走法记谱并添加到历史
+        const piece = this.gameState.getPieceAt(toRow, toCol);
+        if (piece) {
+            const notation = this.generateMoveNotation(piece, fromRow, fromCol, toRow, toCol);
+            this.lastMoveNotation = notation;
+            this.addMoveToHistory(notation);
+            console.log(' 记录对手走法:', notation);
+            console.log('📊 移动后 - 步数:', this.gameState.moveHistory.length);
+        }
         
         // 更新UI
         this.updateUI();
@@ -1698,9 +1719,20 @@ class GameController {
         if (this.gameState.inCheck) {
             this.soundManager.playCheck();
             this.showCheckAlert();
+        } else {
+            this.hideCheckAlert();
+        }
+        
+        // 检查游戏结束
+        if (this.gameState.gameOver) {
+            this.handleGameEnd();
+        } else {
+            // 检查将军/绝杀状态
+            this.soundManager.checkAndPlayGameSound(this.gameState);
         }
         
         // 渲染棋盘
+        console.log('🎨 渲染棋盘...');
         this.render();
     }
     

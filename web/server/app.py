@@ -207,6 +207,15 @@ def game_page():
     return response
 
 
+@app.route('/socket.io.min.js')
+def socket_io_client():
+    """提供Socket.IO客户端库（本地备用）"""
+    # 尝试从多个CDN下载并缓存，或者直接返回错误让浏览器使用备用CDN
+    from flask import redirect
+    # 重定向到可靠的CDN
+    return redirect('https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js', code=302)
+
+
 @app.route('/api/create_room', methods=['POST'])
 def create_room():
     """创建游戏房间"""
@@ -363,19 +372,20 @@ def handle_join_game_room(data):
     success, result = room.add_player(request.sid)
     
     if success:
-        join_room(room_id)
+        # 使用匹配到的房间 ID（保持原始大小写）
+        join_room(matched_room_id)
         
         # 判断是否是房主（第一个加入的玩家）
         is_host = len(room.players) == 1
         
         emit('joined', {
-            'roomId': room_id,
+            'roomId': matched_room_id,
             'camp': result,
             'isHost': is_host,
             'opponentConnected': room.is_full()
         })
         
-        # 如果房间已满,通知两个玩家开始游戏
+        # 如果房间已满，通知两个玩家开始游戏
         if room.is_full():
             room.game_started = True
             room.update_activity()
@@ -383,9 +393,9 @@ def handle_join_game_room(data):
             # 通知两个玩家游戏开始
             emit('game_start', {
                 'mode': room.mode
-            }, room=room_id)
+            }, room=matched_room_id)
             
-            print(f'🎮 游戏开始: 房间 {room_id}, 模式: {room.mode}')
+            print(f'🎮 游戏开始: 房间 {matched_room_id}, 模式: {room.mode}')
     else:
         emit('error', {'message': result})
 
@@ -396,23 +406,29 @@ def handle_move(data):
     处理棋子移动
     参考桌面版：需要服务端验证移动合法性
     """
+    print(f'📥 收到移动请求: {data} from {request.sid}')
+    
     # 频率限制
     if not rate_limit_check(request.sid):
+        print(f'❌ 频率限制: {request.sid}')
         emit('error', {'message': '操作过于频繁'})
         return
     
     room_id = get_player_room(request.sid)
     if not room_id:
+        print(f'❌ 不在房间中: {request.sid}')
         emit('error', {'message': '不在房间中'})
         return
     
     room = rooms[room_id]
     if not room.game_started:
+        print(f'❌ 游戏未开始: {room_id}')
         emit('error', {'message': '游戏未开始'})
         return
     
     # 验证是否是当前玩家的回合
     player_camp = get_player_camp(request.sid)
+    print(f'🎯 玩家阵营: {player_camp}, 当前回合: {room.current_turn}')
     # TODO: 添加回合验证逻辑
     
     # 提取移动数据
@@ -422,19 +438,23 @@ def handle_move(data):
     to_col = data.get('toCol')
     
     if None in [from_row, from_col, to_row, to_col]:
+        print(f'❌ 移动数据不完整: {data}')
         emit('error', {'message': '移动数据不完整'})
         return
     
     # 服务端验证移动合法性
     valid, error_msg = room.validate_move(from_row, from_col, to_row, to_col, player_camp)
     if not valid:
+        print(f'❌ 移动验证失败: {error_msg}')
         emit('error', {'message': error_msg})
         return
     
+    print(f'✅ 移动验证通过，广播给对手')
     room.update_activity()
     
     # 广播给对手
     emit('opponent_move', data, room=room_id, include_self=False)
+    print(f'📤 已广播 opponent_move 到房间 {room_id}')
     
     # TODO: 检查是否将军/将死
 
