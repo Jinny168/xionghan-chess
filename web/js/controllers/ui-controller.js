@@ -124,6 +124,48 @@ class UIController {
                 }
             });
         }
+        
+        // 设置对话框 - 背景音乐开关
+        const btnToggleMusic = document.getElementById('btn-toggle-music');
+        if (btnToggleMusic && handlers.onToggleMusic) {
+            btnToggleMusic.addEventListener('click', handlers.onToggleMusic);
+        }
+        
+        // 设置对话框 - 切换音乐风格
+        const btnSwitchMusic = document.getElementById('btn-switch-music');
+        if (btnSwitchMusic && handlers.onSwitchMusic) {
+            btnSwitchMusic.addEventListener('click', handlers.onSwitchMusic);
+        }
+        
+        // 设置对话框 - 音量滑块
+        const volumeSlider = document.getElementById('volume-slider');
+        if (volumeSlider && handlers.onVolumeChange) {
+            volumeSlider.addEventListener('input', (e) => {
+                handlers.onVolumeChange(parseInt(e.target.value));
+            });
+        }
+        
+        // 设置对话框 - 棋盘主题选择
+        const boardThemeSelect = document.getElementById('board-theme-select');
+        if (boardThemeSelect && handlers.onBoardThemeChange) {
+            boardThemeSelect.addEventListener('change', (e) => {
+                handlers.onBoardThemeChange(e.target.value);
+            });
+        }
+        
+        // 设置对话框 - 棋子样式选择
+        const pieceStyleSelect = document.getElementById('piece-style-select');
+        if (pieceStyleSelect && handlers.onPieceStyleChange) {
+            pieceStyleSelect.addEventListener('change', (e) => {
+                handlers.onPieceStyleChange(e.target.value);
+            });
+        }
+        
+        // 设置对话框 - 恢复默认按钮
+        const btnResetSettings = document.getElementById('btn-reset-settings');
+        if (btnResetSettings && handlers.onResetSettings) {
+            btnResetSettings.addEventListener('click', handlers.onResetSettings);
+        }
     }
 
     /**

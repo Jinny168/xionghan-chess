@@ -261,14 +261,18 @@ class GameState {
      * 在指定的出生点生成一个兵（消耗一次走子机会）
      * @param {number} row - 行坐标
      * @param {number} col - 列坐标
+     * @param {string} camp - 阵营颜色（可选，不传则使用当前玩家回合；网络对战中可显式指定）
      * @returns {boolean} 是否成功生成
      */
-    spawnBing(row, col) {
+    spawnBing(row, col, camp = null) {
+        // 确定阵营：优先使用传入的camp参数，否则使用当前玩家回合
+        const actualCamp = camp || this.playerTurn;
+        
         // 检查是否是当前玩家的回合
         if (this.gameOver) return false;
         
         // 检查该位置是否是合法的兵出生点
-        const spawnPoints = this.bingSpawnPoints[this.playerTurn];
+        const spawnPoints = this.bingSpawnPoints[actualCamp];
         if (!spawnPoints) return false;
         
         const isValidSpawnPoint = spawnPoints.some(([r, c]) => r === row && c === col);
@@ -280,7 +284,7 @@ class GameState {
         
         // 创建新兵
         const { Bing } = window;
-        const newBing = new Bing(this.playerTurn, row, col);
+        const newBing = new Bing(actualCamp, row, col);
         this.pieces.push(newBing);
         
         // 记录移动历史（特殊移动类型：生成兵）

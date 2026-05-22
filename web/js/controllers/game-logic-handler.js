@@ -106,13 +106,13 @@ class GameLogicHandler {
      * 尝试复活兵
      * @param {number} row - 行
      * @param {number} col - 列
-     * @returns {Object} {success, message}
+     * @returns {Object} {success, message, piece}
      */
     trySpawnBing(row, col) {
         // 获取规则配置
         const config = this.ruleConfig.getConfig();
         
-        if (!config.bingRespawnEnabled) {
+        if (!config.pawnResurrection) {
             return { success: false, message: '兵复活功能已禁用' };
         }
 
@@ -122,17 +122,19 @@ class GameLogicHandler {
             return { success: false, message: '不满足复活条件' };
         }
 
-        // 执行复活
-        const spawnedPiece = this.gameState.spawnBing(row, col, this.gameState.playerTurn);
+        // 执行复活（GameState.spawnBing内部会自动使用当前玩家回合）
+        const success = this.gameState.spawnBing(row, col);
         
-        if (spawnedPiece) {
+        if (success) {
+            const spawnedPiece = this.gameState.getPieceAt(row, col);
+            
             this.events.emit('piece:spawned', {
                 piece: spawnedPiece.name,
                 position: { row, col },
-                camp: this.gameState.playerTurn
+                camp: this.gameState.playerTurn === 'red' ? 'black' : 'red' // 注意：已切换回合
             });
             
-            return { success: true, message: '兵复活成功' };
+            return { success: true, message: '兵复活成功', piece: spawnedPiece };
         }
 
         return { success: false, message: '复活失败' };

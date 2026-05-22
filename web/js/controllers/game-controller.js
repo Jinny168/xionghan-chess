@@ -130,7 +130,14 @@ class GameController {
             onChat: () => this.showChatModal(),
             onSettings: () => this.showSettingsModal(),
             onHelp: () => this.showHelpModal(),
-            onChatSend: () => this.sendChatMessage()
+            onChatSend: () => this.sendChatMessage(),
+            // 设置对话框事件
+            onToggleMusic: () => this.toggleBackgroundMusic(),
+            onSwitchMusic: () => this.switchMusicStyle(),
+            onVolumeChange: (volume) => this.updateVolume(volume),
+            onBoardThemeChange: (theme) => this.changeBoardTheme(theme),
+            onPieceStyleChange: (style) => this.changePieceStyle(style),
+            onResetSettings: () => this.resetSettings()
         });
         
         // 监听游戏事件
@@ -210,8 +217,20 @@ class GameController {
                 if (ruleConfig.pawnResurrection) {
                     const result = this.logicHandler.trySpawnBing(pos.row, pos.col);
                     if (result.success) {
-                        this.render();
+                        this.soundManager.playMove();
+                        this.updateUI();
+                        
+                        // 检查将军
+                        if (this.gameState.inCheck) {
+                            this.soundManager.playCheck();
+                            this.uiController.updateCheckAlert(true);
+                        } else {
+                            this.uiController.updateCheckAlert(false);
+                        }
+                    } else {
+                        window.dialogManager.showInfo('提示', result.message);
                     }
+                    this.render();
                     return;
                 }
             }
@@ -531,6 +550,108 @@ class GameController {
         if (modal) {
             modal.classList.remove('hidden');
         }
+    }
+    
+    /**
+     * 切换背景音乐
+     */
+    toggleBackgroundMusic() {
+        if (this.soundManager.musicEnabled) {
+            this.soundManager.stopBackgroundMusic();
+            this.soundManager.musicEnabled = false;
+        } else {
+            this.soundManager.playBackgroundMusic();
+            this.soundManager.musicEnabled = true;
+        }
+        localStorage.setItem('musicEnabled', this.soundManager.musicEnabled);
+        this.updateSettingsUI();
+    }
+    
+    /**
+     * 切换音乐风格
+     */
+    switchMusicStyle() {
+        const newStyle = this.soundManager.toggleMusicStyle();
+        localStorage.setItem('musicStyle', newStyle);
+        this.updateSettingsUI();
+    }
+    
+    /**
+     * 更新音量
+     * @param {number} volume - 音量百分比 0-100
+     */
+    updateVolume(volume) {
+        this.soundManager.setMusicVolume(volume / 100);
+        localStorage.setItem('volume', volume);
+    }
+    
+    /**
+     * 切换棋盘主题
+     * @param {string} theme - 主题名称
+     */
+    changeBoardTheme(theme) {
+        if (this.renderer) {
+            this.renderer.setBoardTheme(theme);
+        }
+        localStorage.setItem('boardTheme', theme);
+    }
+    
+    /**
+     * 切换棋子样式
+     * @param {string} style - 样式名称
+     */
+    changePieceStyle(style) {
+        if (this.renderer) {
+            this.renderer.setPieceStyle(style);
+        }
+        localStorage.setItem('pieceStyle', style);
+    }
+    
+    /**
+     * 重置设置
+     */
+    resetSettings() {
+        window.dialogManager.showConfirm(
+            '恢复默认设置',
+            '确定要恢复所有设置为默认值吗？',
+            () => {
+                // 恢复默认音量
+                this.soundManager.setMusicVolume(0.7);
+                
+                // 恢复默认棋盘主题
+                if (this.renderer) {
+                    this.renderer.setBoardTheme('classic');
+                }
+                
+                // 恢复默认棋子样式
+                if (this.renderer) {
+                    this.renderer.setPieceStyle('traditional');
+                }
+                
+                // 清除保存的设置
+                localStorage.removeItem('volume');
+                localStorage.removeItem('boardTheme');
+                localStorage.removeItem('pieceStyle');
+                localStorage.removeItem('musicEnabled');
+                localStorage.removeItem('musicStyle');
+                
+                // 更新UI显示
+                this.updateSettingsUI();
+                
+                // 更新下拉框的选中值
+                const boardThemeSelect = document.getElementById('board-theme-select');
+                if (boardThemeSelect) {
+                    boardThemeSelect.value = 'classic';
+                }
+                
+                const pieceStyleSelect = document.getElementById('piece-style-select');
+                if (pieceStyleSelect) {
+                    pieceStyleSelect.value = 'traditional';
+                }
+                
+                window.dialogManager.showInfo('提示', '设置已恢复为默认值');
+            }
+        );
     }
     
     /**
