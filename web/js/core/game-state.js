@@ -46,6 +46,9 @@ class GameState {
         
         // 初始化棋子
         this.initializePieces();
+        
+        // 初始化后检查将军状态(开局不应该将军)
+        this.checkInitialState();
     }
     
     /**
@@ -54,6 +57,16 @@ class GameState {
     initializePieces() {
         // 匈汉象棋布局
         this.setupXionghanLayout();
+    }
+    
+    /**
+     * 检查初始状态(确保开局不会误判将军)
+     */
+    checkInitialState() {
+        const { GameRules } = window;
+        if (GameRules && GameRules.isCheck) {
+            this.inCheck = GameRules.isCheck(this.pieces, this.playerTurn);
+        }
     }
     
     setupTraditionalLayout() {
@@ -667,6 +680,12 @@ class GameState {
         this.currentTurnStartTime = Date.now();
         this.movesCount = 0;
         
+        // 重置将军状态
+        this.inCheck = false;
+        this.checkWarningShown = false;
+        this.consecutiveChecks = 0;
+        this.lastCheckBy = null;
+        
         // 重置棋子价值配置
         this.pieceValues = {
             '漢': 10000, '汗': 10000,
@@ -681,6 +700,9 @@ class GameState {
         };
         
         this.initializePieces();
+        
+        // 重新检查初始状态
+        this.checkInitialState();
         
         // 重新设置兵的出生点
         this.bingSpawnPoints = {

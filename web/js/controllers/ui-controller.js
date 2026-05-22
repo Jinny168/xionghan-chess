@@ -79,6 +79,11 @@ class UIController {
     bindEvents(handlers) {
         this.initElements();
         
+        // 初始化隐藏将军提示
+        if (this.elements.checkAlert) {
+            this.elements.checkAlert.style.display = 'none';
+        }
+        
         // Canvas点击事件
         if (this.elements.canvas) {
             this.elements.canvas.addEventListener('click', (e) => {
@@ -163,7 +168,8 @@ class UIController {
         this.updateTurnIndicator(gameState.playerTurn);
         this.updateStepCount(stats.stepCount || 0);
         this.updateTotalTime(stats.totalTime || 0);
-        this.updateCheckAlert(gameState.isCheck);
+        // 注意：使用inCheck而不是isCheck（inCheck是状态，isCheck是方法）
+        this.updateCheckAlert(gameState.inCheck);
     }
 
     /**
