@@ -69,7 +69,9 @@ socketio_kwargs = {
     'async_mode': async_mode,
     'ping_timeout': 60,
     'ping_interval': 25,
-    'max_http_buffer_size': 1e6
+    'max_http_buffer_size': 1e6,
+    'logger': False,  # 禁用Socket.IO日志
+    'engineio_logger': False  # 禁用Engine.IO日志
 }
 
 if USE_REDIS:
@@ -98,6 +100,24 @@ MOVE_TIME_KEY = f'{REDIS_PREFIX}move_times'
 # 配置日志级别
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.WARNING)
+
+# 抑制BrokenPipeError日志（客户端断开连接时的正常现象）
+class IgnoreBrokenPipeFilter(logging.Filter):
+    """过滤掉BrokenPipeError警告"""
+    def filter(self, record):
+        msg = record.getMessage()
+        # 忽略客户端断开连接相关的错误
+        if 'BrokenPipeError' in msg or 'Errno 32' in msg or 'Connection reset by peer' in msg:
+            return False
+        return True
+
+# 应用到werkzeug日志
+log.addFilter(IgnoreBrokenPipeFilter())
+
+# 应用到eventlet日志
+import eventlet
+eventlet_log = logging.getLogger('eventlet')
+eventlet_log.addFilter(IgnoreBrokenPipeFilter())
 
 # ==================== 存储层 ====================
 # 房间存储（内存/Redis 混合模式）
@@ -361,8 +381,14 @@ def rate_limit_check(sid, interval_ms=MOVE_RATE_LIMIT):
 @app.after_request
 def add_cache_headers(response):
     """为静态资源添加缓存头"""
-    if request.path.startswith(('/images/', '/sounds/', '/css/', '/js/')):
-        response.headers['Cache-Control'] = f'public, max-age={STATIC_CACHE_TIMEOUT}'
+    # HTML页面不缓存
+    if request.path.endswith('.html') or request.path == '/':
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    # 静态资源长期缓存
+    elif request.path.startswith(('/images/', '/sounds/', '/css/', '/js/')):
+        response.headers['Cache-Control'] = f'public, max-age={STATIC_CACHE_TIMEOUT}, immutable'
         # 使用时区感知的时间对象，避免弃用警告
         response.headers['Expires'] = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=STATIC_CACHE_TIMEOUT)
     return response
@@ -614,34 +640,41 @@ def handle_move(data):
     处理棋子移动
     参考桌面版：需要服务端验证移动合法性
     """
-    print(f'📥 收到移动请求: {data} from {request.sid}')
+    # 只在debug模式打印移动日志
+    if app.debug:
+        print(f'📥 收到移动请求: {data} from {request.sid}')
     
     # 频率限制
     if not rate_limit_check(request.sid):
-        print(f'❌ 频率限制: {request.sid}')
+        if app.debug:
+            print(f'❌ 频率限制: {request.sid}')
         emit('error', {'message': '操作过于频繁'})
         return
     
     room_id = get_player_room(request.sid)
     if not room_id:
-        print(f'❌ 不在房间中: {request.sid}')
+        if app.debug:
+            print(f'❌ 不在房间中: {request.sid}')
         emit('error', {'message': '不在房间中'})
         return
     
     room = get_room(room_id)
     if not room:
-        print(f' 房间不存在: {room_id}')
+        if app.debug:
+            print(f'⚠️ 房间不存在: {room_id}')
         emit('error', {'message': '房间不存在'})
         return
     
     if not room.game_started:
-        print(f'❌ 游戏未开始: {room_id}')
+        if app.debug:
+            print(f'❌ 游戏未开始: {room_id}')
         emit('error', {'message': '游戏未开始'})
         return
     
     # 验证是否是当前玩家的回合
     player_camp = get_player_camp(request.sid)
-    print(f'🎯 玩家阵营: {player_camp}, 当前回合: {room.current_turn}')
+    if app.debug:
+        print(f'🎯 玩家阵营: {player_camp}, 当前回合: {room.current_turn}')
     # TODO: 添加回合验证逻辑
     
     # 提取移动数据
@@ -651,23 +684,27 @@ def handle_move(data):
     to_col = data.get('toCol')
     
     if None in [from_row, from_col, to_row, to_col]:
-        print(f'❌ 移动数据不完整: {data}')
+        if app.debug:
+            print(f'❌ 移动数据不完整: {data}')
         emit('error', {'message': '移动数据不完整'})
         return
     
     # 服务端验证移动合法性
     valid, error_msg = room.validate_move(from_row, from_col, to_row, to_col, player_camp)
     if not valid:
-        print(f'❌ 移动验证失败: {error_msg}')
+        if app.debug:
+            print(f'❌ 移动验证失败: {error_msg}')
         emit('error', {'message': error_msg})
         return
     
-    print(f'✅ 移动验证通过，广播给对手')
+    if app.debug:
+        print(f'✅ 移动验证通过，广播给对手')
     room.update_activity()
     
     # 广播给对手
     emit('opponent_move', data, room=room_id, include_self=False)
-    print(f'📤 已广播 opponent_move 到房间 {room_id}')
+    if app.debug:
+        print(f'📤 已广播 opponent_move 到房间 {room_id}')
     
     # TODO: 检查是否将军/将死
 
@@ -791,8 +828,8 @@ if __name__ == '__main__':
     # 启动后台清理任务
     socketio.start_background_task(cleanup_loop)
     
-    # 生产环境建议关闭debug模式
-    debug_mode = True  # 开发时设为True，生产环境设为False
+    # 生产环境关闭debug模式
+    debug_mode = os.environ.get('FLASK_ENV') != 'production'
     
     socketio.run(
         app,
@@ -800,5 +837,6 @@ if __name__ == '__main__':
         port=5000,
         debug=debug_mode,
         allow_unsafe_werkzeug=True,
-        log_output=debug_mode  # 只在debug模式输出日志
+        log_output=debug_mode,  # 只在debug模式输出日志
+        use_reloader=False  # 生产环境禁用重载器
     )
