@@ -122,8 +122,8 @@ class GameLogicHandler {
             return { success: false, message: '不满足复活条件' };
         }
 
-        // 执行复活（GameState.spawnBing内部会自动使用当前玩家回合）
-        const success = this.gameState.spawnBing(row, col);
+        // 执行复活（传入当前玩家回合作为阵营参数，网络对战中可显式指定）
+        const success = this.gameState.spawnBing(row, col, this.gameState.playerTurn);
         
         if (success) {
             const spawnedPiece = this.gameState.getPieceAt(row, col);
