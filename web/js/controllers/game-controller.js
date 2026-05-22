@@ -267,6 +267,9 @@ class GameController {
                 this.uiController.clearSelection();
                 this.renderer.clearHighlights();
                 
+                // 更新UI显示（回合指示器等）
+                this.updateUI();
+                
                 // 移动成功后只需要渲染一次(在函数末尾)
                 if (result.moveData && result.moveData.gameOver) {
                     this.handleGameEnd();

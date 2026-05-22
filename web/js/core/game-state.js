@@ -411,19 +411,19 @@ class GameState {
         // 清除缓存（棋盘状态已改变）
         this._movesCache = {};
         
-        // 切换玩家
+        // 切换回合
         if (!this.gameOver) {
             const previousPlayer = this.playerTurn;
             this.playerTurn = this.playerTurn === 'red' ? 'black' : 'red';
             this.currentTurnStartTime = Date.now();
             
-            // 检查对方是否被将军
+            // 检查对方是否被将军（现在playerTurn已切换为对方）
             this.inCheck = GameRules.isCheck(this.pieces, this.playerTurn);
             
             // 将军逻辑处理
             if (this.inCheck) {
                 this.consecutiveChecks++;
-                this.lastCheckBy = previousPlayer;
+                this.lastCheckBy = previousPlayer; // 上一个移动方将军
                 
                 // 禁止连将：如果连续将军超过3次，判违规
                 if (this.consecutiveChecks > 3) {
@@ -435,10 +435,10 @@ class GameState {
                 this.lastCheckBy = null;
             }
             
-            // 检查是否将死或困毙
+            // 检查是否将死或困毙（现在playerTurn是对方）
             if (this.isCheckmate()) {
                 this.gameOver = true;
-                this.winner = previousPlayer;
+                this.winner = previousPlayer; // 上一个移动方胜利
             }
         }
         

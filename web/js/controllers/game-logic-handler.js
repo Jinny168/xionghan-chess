@@ -73,29 +73,28 @@ class GameLogicHandler {
         // 触发移动事件
         this.events.emit('piece:moved', moveData);
 
-        // 检查将军
-        const isCheck = this.gameState.isCheck(this.gameState.playerTurn);
+        // 检查将军（movePiece中已切换回合并设置inCheck）
+        const isCheck = this.gameState.inCheck;
         if (isCheck) {
+            // playerTurn已被movePiece切换为对方，inCheck表示对方是否被将军
             this.events.emit('check:detected', { camp: this.gameState.playerTurn });
         }
 
-        // 检查绝杀
-        const isCheckmate = this.gameState.isCheckmate(this.gameState.playerTurn);
-        if (isCheckmate) {
+        // 检查绝杀（movePiece中已检查并设置gameOver）
+        if (this.gameState.gameOver && this.gameState.winner) {
             this.events.emit('checkmate:detected', { 
-                winner: piece.camp,
+                winner: this.gameState.winner,
                 loser: this.gameState.playerTurn
             });
             
             return {
                 success: true,
                 message: '绝杀！',
-                moveData: { ...moveData, gameOver: true, winner: piece.camp }
+                moveData: { ...moveData, gameOver: true, winner: this.gameState.winner }
             };
         }
 
-        // 切换回合
-        this.switchTurn();
+        // 注意：回合切换已在 game-state.movePiece() 中完成，这里不再重复切换
 
         return {
             success: true,
