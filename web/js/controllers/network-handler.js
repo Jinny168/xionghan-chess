@@ -189,7 +189,8 @@ class NetworkHandler {
             return false;
         }
         
-        this.network.send('player_move', moveData);
+        // 注意：服务端监听的是'move'事件，不是'player_move'
+        this.network.send('move', moveData);
         return true;
     }
 

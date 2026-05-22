@@ -267,6 +267,17 @@ class GameController {
                 this.uiController.clearSelection();
                 this.renderer.clearHighlights();
                 
+                // 如果是在线模式，发送移动到服务端
+                if (this.isOnline && this.networkHandler) {
+                    const moveData = {
+                        fromRow: selectedPos.row,
+                        fromCol: selectedPos.col,
+                        toRow: pos.row,
+                        toCol: pos.col
+                    };
+                    this.networkHandler.sendMove(moveData);
+                }
+                
                 // 更新UI显示（回合指示器等）
                 this.updateUI();
                 
@@ -319,7 +330,14 @@ class GameController {
      * 处理对手移动
      */
     handleOpponentMove(data) {
+        console.log('📥 收到对手移动数据:', data);
+        
         const { fromRow, fromCol, toRow, toCol } = data;
+        
+        if (fromRow === undefined || fromCol === undefined || toRow === undefined || toCol === undefined) {
+            console.error('❌ 移动数据不完整:', data);
+            return;
+        }
         
         // 在临时状态上执行移动以更新显示
         const piece = this.gameState.getPieceAt(fromRow, fromCol);
@@ -349,6 +367,8 @@ class GameController {
             }
             
             this.render();
+        } else {
+            console.error('❌ 找不到移动的棋子:', fromRow, fromCol);
         }
     }
     
