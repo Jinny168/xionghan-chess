@@ -108,8 +108,29 @@ class UIController {
         // 关闭按钮
         this.bindButton('closeMoveHistory', () => this.togglePanel('moveHistoryPanel', false));
         this.bindButton('closeChat', () => this.togglePanel('chatPanel', false));
+        
+        // closeSettings和closeHelp是侧边栏的关闭按钮(如果有的话)
         this.bindButton('closeSettings', () => this.togglePanel('settingsPanel', false));
         this.bindButton('closeHelp', () => this.togglePanel('helpPanel', false));
+        
+        // 设置对话框右上角×按钮 - 关闭模态对话框
+        const closeSettingsModal = document.getElementById('close-settings-modal');
+        if (closeSettingsModal) {
+            closeSettingsModal.addEventListener('click', () => {
+                const modal = document.getElementById('settings-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
+        
+        // 帮助对话框右上角×按钮
+        const closeHelpModal = document.getElementById('close-help-modal');
+        if (closeHelpModal) {
+            closeHelpModal.addEventListener('click', () => {
+                const modal = document.getElementById('help-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
+        
         this.bindButton('closeReplaySidebar', () => this.togglePanel('replaySidebar', false));
 
         // 聊天发送
@@ -165,6 +186,24 @@ class UIController {
         const btnResetSettings = document.getElementById('btn-reset-settings');
         if (btnResetSettings && handlers.onResetSettings) {
             btnResetSettings.addEventListener('click', handlers.onResetSettings);
+        }
+        
+        // 设置对话框 - 关闭按钮（底部）
+        const btnCloseSettings = document.getElementById('btn-close-settings');
+        if (btnCloseSettings) {
+            btnCloseSettings.addEventListener('click', () => {
+                const modal = document.getElementById('settings-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
+        
+        // 帮助对话框 - 关闭按钮（底部）
+        const btnCloseHelp = document.getElementById('btn-close-help');
+        if (btnCloseHelp) {
+            btnCloseHelp.addEventListener('click', () => {
+                const modal = document.getElementById('help-modal');
+                if (modal) modal.classList.add('hidden');
+            });
         }
     }
 
