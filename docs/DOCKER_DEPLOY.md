@@ -261,7 +261,7 @@ docker system prune -a --volumes
 ```bash
 # 使用 Let's Encrypt（免费）
 docker run -it --rm \
-  -v ./docker/nginx/ssl:/etc/letsencrypt \
+  -v ./docker/config/nginx/ssl:/etc/letsencrypt \
   certbot/certbot certonly \
   --standalone \
   -d your-domain.com
@@ -269,7 +269,7 @@ docker run -it --rm \
 
 #### 配置 Nginx
 
-编辑 `docker/nginx/nginx.conf`，取消注释 HTTPS 部分：
+编辑 `docker/config/nginx/nginx.conf`，取消注释 HTTPS 部分：
 
 ```nginx
 server {

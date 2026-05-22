@@ -17,7 +17,7 @@
 - [web/docs/DEVELOPER_GUIDE.md](../web/docs/DEVELOPER_GUIDE.md) - 开发者指南
 
 ### 配置文件
-- [docker/.env.example](../docker/.env.example) - Docker 环境变量模板
+- [docker/config/.env.example](../docker/config/.env.example) - Docker 环境变量模板
 - [web/docs/taunts.json](../web/docs/taunts.json) - 嘲讽语句配置
 
 ## 🚀 快速导航
