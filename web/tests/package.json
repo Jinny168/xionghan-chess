@@ -1,0 +1,24 @@
+{
+  "name": "xionghan-chess-tests",
+  "version": "1.0.0",
+  "description": "匈汉象棋控制器架构集成测试",
+  "main": "test-controllers-node.js",
+  "scripts": {
+    "test": "node test-controllers-node.js",
+    "test:watch": "node --watch test-controllers-node.js",
+    "test:coverage": "node --experimental-test-coverage test-controllers-node.js",
+    "test:verbose": "node test-controllers-node.js --verbose"
+  },
+  "keywords": [
+    "chess",
+    "testing",
+    "integration"
+  ],
+  "author": "Xionghan Chess Team",
+  "license": "MIT",
+  "devDependencies": {
+    "jsdom": "^23.0.0",
+    "chai": "^5.0.0",
+    "mocha": "^10.2.0"
+  }
+}

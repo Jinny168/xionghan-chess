@@ -28,16 +28,22 @@ class EventDispatcher {
     /**
      * 移除事件监听器
      * @param {string} eventName - 事件名称
-     * @param {Function} callback - 回调函数
+     * @param {Function} callback - 回调函数（可选，不传则移除该事件的所有监听器）
      */
-    off(eventName, callback) {
+    off(eventName, callback = null) {
         if (!this.listeners.has(eventName)) return;
         
-        const listeners = this.listeners.get(eventName);
-        const index = listeners.findIndex(l => l.callback === callback);
-        
-        if (index !== -1) {
-            listeners.splice(index, 1);
+        if (callback === null) {
+            // 如果没有提供callback，移除该事件的所有监听器
+            this.listeners.delete(eventName);
+        } else {
+            // 否则只移除匹配的监听器
+            const listeners = this.listeners.get(eventName);
+            const index = listeners.findIndex(l => l.callback === callback);
+            
+            if (index !== -1) {
+                listeners.splice(index, 1);
+            }
         }
     }
 

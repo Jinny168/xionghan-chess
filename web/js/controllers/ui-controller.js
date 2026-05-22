@@ -188,15 +188,27 @@ class UIController {
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
         
-        // 计算格子大小和偏移
-        const boardSize = Math.min(this.canvas.width, this.canvas.height);
-        const margin = boardSize * 0.08;
-        const playableSize = boardSize - 2 * margin;
-        this.cellSize = playableSize / 12; // 13x13棋盘有12个间隔
+        // 调试日志
+        console.log(' getCanvasPosition:', {
+            canvasSize: `${this.canvas.width}x${this.canvas.height}`,
+            displaySize: `${rect.width.toFixed(0)}x${rect.height.toFixed(0)}`,
+            clickPos: `(${x.toFixed(0)}, ${y.toFixed(0)})`
+        });
+        
+        // 使用渲染器中的margin和gridSize进行坐标转换
+        // 注意：这里需要与chess-board-renderer中的calculateDimensions保持一致
+        const marginLeft = 40; // 与main.js中的设置一致
+        const marginTop = 40;
+        
+        // 计算实际棋盘区域
+        const boardWidth = rect.width - 2 * marginLeft;
+        const gridSize = boardWidth / 12; // 13x13棋盘有12个间隔
         
         // 转换为棋盘坐标
-        const col = Math.round((x - margin) / this.cellSize);
-        const row = Math.round((y - margin) / this.cellSize);
+        const col = Math.round((x - marginLeft) / gridSize);
+        const row = Math.round((y - marginTop) / gridSize);
+        
+        console.log('🎯 转换结果:', { row, col, gridSize: gridSize.toFixed(2) });
         
         return { row, col };
     }

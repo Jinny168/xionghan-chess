@@ -1,39 +1,23 @@
 @echo off
 chcp 65001 >nul
-echo ========================================
-echo   控制器架构测试 - 快速启动
-echo ========================================
+echo ============================================================
+echo 🧪 运行匈汉象棋控制器测试
+echo ============================================================
 echo.
 
-echo [1/2] 检查Node.js环境...
-where node >nul 2>nul
-if %errorlevel% neq 0 (
-    echo ❌ 未检测到Node.js，请先安装Node.js
-    pause
-    exit /b 1
+REM 检查node_modules是否存在
+if not exist "node_modules" (
+    echo ⚠️ 未检测到依赖，先安装依赖...
+    echo.
+    call install-and-test.bat
+    if %errorlevel% neq 0 exit /b 1
 )
-echo ✅ Node.js已安装
+
+echo 开始运行测试...
 echo.
 
-echo [2/2] 运行单元测试...
-cd /d "%~dp0"
 node test-controllers-node.js
 
-if %errorlevel% equ 0 (
-    echo.
-    echo ========================================
-    echo   ✅ 所有测试通过！
-    echo ========================================
-    echo.
-    echo 提示: 如需查看可视化测试界面，请运行:
-    echo   start test-controllers.html
-    echo.
-) else (
-    echo.
-    echo ========================================
-    echo   ❌ 部分测试失败，请检查错误信息
-    echo ========================================
-    echo.
-)
-
+echo.
+echo ============================================================
 pause

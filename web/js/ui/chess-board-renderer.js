@@ -273,6 +273,12 @@ class ChessBoardRenderer {
         const width = this.canvas.width;
         const height = this.canvas.height;
         
+        console.log('📐 calculateDimensions:', {
+            canvasSize: `${width}x${height}`,
+            marginLeft: this.marginLeft,
+            marginTop: this.marginTop
+        });
+        
         if (this.traditionalMode) {
             // 传统象棋：9x10棋盘，宽高比9:10
             this.boardWidth = width - 2 * this.marginLeft;
@@ -284,6 +290,12 @@ class ChessBoardRenderer {
             this.boardHeight = this.boardWidth; // 正方形棋盘
             this.gridSize = this.boardWidth / 12;
         }
+        
+        console.log('📊 棋盘尺寸计算:', {
+            boardWidth: this.boardWidth,
+            boardHeight: this.boardHeight,
+            gridSize: this.gridSize
+        });
         
         // 确保不超出画布
         if (this.boardHeight > height - 2 * this.marginTop) {
@@ -297,6 +309,14 @@ class ChessBoardRenderer {
                 this.boardWidth = this.boardHeight; // 正方形棋盘，宽高相等
                 this.gridSize = this.boardWidth / 12;
             }
+        }
+        
+        // 最终检查：确保gridSize为正数
+        if (this.gridSize <= 0) {
+            console.error('❌ gridSize计算异常! 使用默认值');
+            this.gridSize = 80; // 默认值
+            this.boardWidth = this.gridSize * 12;
+            this.boardHeight = this.boardWidth;
         }
     }
     
@@ -770,6 +790,12 @@ class ChessBoardRenderer {
             [12, 0], [12, 6], [12, 12]
         ];
         
+        // 保护性检查：确保gridSize为正数
+        if (this.gridSize <= 0) {
+            console.warn('⚠️ gridSize为负数或0，跳过星点绘制:', this.gridSize);
+            return;
+        }
+        
         // 遍历所有星点并绘制
         starPoints.forEach(([row, col]) => {
             const x = this.marginLeft + col * this.gridSize;
@@ -777,9 +803,13 @@ class ChessBoardRenderer {
             
             // 绘制小圆点作为星点标记
             const radius = this.gridSize * 0.08; // 半径为格子尺寸的8%
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.fill();
+            
+            // 再次确保半径为正数
+            if (radius > 0) {
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
         });
     }
     

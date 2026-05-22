@@ -4,6 +4,76 @@
 
 本项目包含两套测试系统，用于验证重构后的控制器架构：
 
+---
+
+## 🌟 推荐: Node.js完整测试（功能最全面）
+
+### 快速开始（3步完成）
+
+#### 步骤1: 安装Node.js
+
+访问官网下载: https://nodejs.org/
+- 选择 **LTS版本** (长期支持版)
+- 双击安装包，一路点击"Next"
+- 完成后重启命令行
+
+验证安装:
+```cmd
+node --version
+npm --version
+```
+
+#### 步骤2: 一键安装依赖
+
+```cmd
+cd C:\Users\27415\PycharmProjects\xionghan-chess\web\tests
+install-and-test.bat
+```
+
+或手动执行:
+```cmd
+npm install
+```
+
+#### 步骤3: 运行测试
+
+```cmd
+# 方法1: 使用批处理脚本
+run-tests.bat
+
+# 方法2: 使用npm命令
+npm test
+
+# 方法3: 直接执行
+node test-controllers-node.js
+```
+
+### Node.js测试特性
+
+✅ **15个完整测试套件**，覆盖所有核心模块:
+- EventDispatcher事件分发器
+- GameState游戏状态
+- GameLogicHandler游戏逻辑
+- UIController界面控制
+- NetworkHandler网络通信
+- ReplayManager复盘管理
+- GameController主控制器
+- SoundManager音效管理
+- GameRuleConfig规则配置
+- ChessBoardRenderer棋盘渲染
+- GameRecordManager对局记录
+- 多事件监听器协作
+- once一次性事件
+- 事件驱动通信机制
+- 兵复活接口(spawnBing)
+
+✅ **自动化依赖管理** - package.json统一管理
+✅ **多种测试模式** - 基础/监听/覆盖率/详细输出
+✅ **详细的错误报告** - 精确定位问题位置
+✅ **持续集成支持** - GitHub Actions兼容
+
+📖 **详细文档**: [README_NODEJS_TESTS.md](README_NODEJS_TESTS.md)
+
 ### 1. 浏览器集成测试
 **文件**: `test-controllers.html` + `test-controllers-integration.js`
 
