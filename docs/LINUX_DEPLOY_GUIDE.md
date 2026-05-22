@@ -212,15 +212,8 @@ docker run hello-world
 #### 在 Linux 上克隆项目
 
 ```bash
-# 创建项目目录
-mkdir -p ~/projects
-cd ~/projects
 
-# 克隆项目（替换为你的仓库地址）
-git clone <你的Git仓库地址> xionghan-chess
 
-# 进入项目目录
-cd xionghan-chess
 ```
 
 如果没有 Git 仓库，使用方法二。

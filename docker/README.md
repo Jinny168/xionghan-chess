@@ -2,54 +2,65 @@
 
 本目录包含雄汉象棋的 Docker 部署相关文件和脚本。
 
-## 📁 文件说明
+## 📁 目录结构
 
-### 核心配置文件
-- `Dockerfile` - Flask 应用容器镜像定义
-- `docker-compose.yml` - 多服务编排配置
-- `.env.example` - 环境变量模板
-- `.dockerignore` - Docker 构建忽略文件
-
-### Nginx 配置
-- `nginx/nginx.conf` - Nginx 反向代理配置
-
-### 部署脚本
-- `docker-start.bat` - Windows 批处理启动脚本
-- `docker-start.ps1` - PowerShell 启动脚本（推荐）
-- `deploy.sh` - Linux 一键部署脚本
-- `check_deploy.sh` - Linux 环境检查脚本
+```
+docker/
+├── config/                    # 配置文件
+│   ├── Dockerfile            # Flask 应用容器镜像定义
+│   ├── docker-compose.yml    # 多服务编排配置
+│   ├── .env.example          # 环境变量模板
+│   ├── .dockerignore         # Docker 构建忽略文件
+│   └── nginx/
+│       └── nginx.conf        # Nginx 反向代理配置
+├── scripts/                   # 部署脚本
+│   ├── windows/              # Windows 脚本
+│   │   ├── docker-start.bat  # 批处理启动脚本
+│   │   └── docker-start.ps1  # PowerShell 启动脚本（推荐）
+│   └── linux/                # Linux 脚本
+│       ├── deploy.sh         # 一键部署脚本
+│       └── check-env.sh      # 环境检查脚本
+└── README.md                 # 本说明文档
+```
 
 ## 🚀 快速开始
 
 ### Windows 用户
 
 ```powershell
+# 进入 docker 目录
+cd docker
+
 # 复制环境变量配置
-copy .env.example .env
+copy config\.env.example config\.env
 
 # 编辑配置（修改密码）
-notepad .env
+notepad config\.env
 
 # 一键启动
+cd scripts\windows
 .\docker-start.ps1
 ```
 
 ### Linux 用户
 
 ```bash
+# 进入 docker 目录
+cd docker
+
 # 复制环境变量配置
-cp .env.example .env
+cp config/.env.example config/.env
 
 # 编辑配置（修改密码）
-nano .env
+nano config/.env
 
 # 运行环境检查
-chmod +x check_deploy.sh
-./check_deploy.sh
+chmod +x scripts/linux/check-env.sh
+./scripts/linux/check-env.sh
 
 # 一键部署
-chmod +x deploy.sh
-sudo ./deploy.sh
+chmod +x scripts/linux/deploy.sh
+sudo ./scripts/linux/deploy.sh
 ```
 
 ## 📖 详细文档
@@ -63,20 +74,23 @@ sudo ./deploy.sh
 ## 🔧 常用命令
 
 ```bash
+# 进入 docker 目录
+cd docker
+
 # 启动服务
-docker-compose up -d
+docker-compose -f config/docker-compose.yml up -d
 
 # 查看日志
-docker-compose logs -f
+docker-compose -f config/docker-compose.yml logs -f
 
 # 停止服务
-docker-compose down
+docker-compose -f config/docker-compose.yml down
 
 # 更新代码
-docker-compose up -d --build
+docker-compose -f config/docker-compose.yml up -d --build
 
 # 查看状态
-docker-compose ps
+docker-compose -f config/docker-compose.yml ps
 ```
 
 ## ⚙️ 架构说明

@@ -27,10 +27,10 @@ echo [成功] Docker Compose 已安装
 echo.
 
 REM 检查 .env 文件
-if not exist .env (
+if not exist ..\config\.env (
     echo [警告] 未找到 .env 文件，正在从 .env.example 复制...
-    copy .env.example .env
-    echo [提示] 请编辑 .env 文件修改密码配置
+    copy ..\config\.env.example ..\config\.env
+    echo [提示] 请编辑 config\.env 文件修改密码配置
     echo.
 )
 
@@ -44,11 +44,11 @@ set /p MODE="请输入选项 (1/2): "
 if "%MODE%"=="1" (
     echo.
     echo [信息] 启动开发模式...
-    docker compose up -d redis web
+    docker compose -f ../config/docker-compose.yml up -d redis web
 ) else if "%MODE%"=="2" (
     echo.
     echo [信息] 启动生产模式...
-    docker compose --profile production up -d
+    docker compose -f ../config/docker-compose.yml --profile production up -d
 ) else (
     echo [错误] 无效选项
     pause
@@ -61,7 +61,7 @@ echo   部署完成！
 echo ========================================
 echo.
 echo 服务状态:
-docker compose ps
+docker compose -f ../config/docker-compose.yml ps
 echo.
 echo 访问地址:
 echo   - 直接访问: http://localhost:5000

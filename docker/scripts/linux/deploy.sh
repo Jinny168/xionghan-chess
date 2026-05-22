@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 
 # 获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR/../.."
 
 echo -e "${BLUE}提示：本脚本将自动完成以下操作：${NC}"
 echo "  1. 检查系统环境"
@@ -125,13 +125,13 @@ echo ""
 # ==================== 步骤 4：配置环境变量 ====================
 echo -e "${BLUE}[步骤 4/5] 配置环境变量...${NC}"
 
-if [ ! -f .env ]; then
+if [ ! -f config/.env ]; then
     echo "创建 .env 配置文件..."
-    cp .env.example .env
+    cp config/.env.example config/.env
     
     # 生成随机密码
     RANDOM_PASSWORD=$(openssl rand -base64 12 2>/dev/null || head /dev/urandom | tr -dc A-Za-z0-9 | head -c 12)
-    sed -i "s/REDIS_PASSWORD=.*/REDIS_PASSWORD=${RANDOM_PASSWORD}/" .env
+    sed -i "s/REDIS_PASSWORD=.*/REDIS_PASSWORD=${RANDOM_PASSWORD}/" config/.env
     
     echo -e "${GREEN}已创建 .env 文件${NC}"
     echo -e "${YELLOW}Redis 密码: ${RANDOM_PASSWORD}${NC}"
@@ -143,16 +143,16 @@ fi
 # 显示当前配置
 echo ""
 echo "当前配置："
-grep -v "^#" .env | grep -v "^$"
+grep -v "^#" config/.env | grep -v "^$"
 echo ""
 
 read -p "是否需要修改配置？(y/n): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "使用 nano 编辑器打开 .env 文件"
+    echo "使用 nano 编辑器打开 config/.env 文件"
     echo "修改完成后按 Ctrl+O 保存，Ctrl+X 退出"
     read -p "按回车键继续..."
-    nano .env
+    nano config/.env
 fi
 echo ""
 
@@ -160,7 +160,7 @@ echo ""
 echo -e "${BLUE}[步骤 5/5] 启动服务...${NC}"
 
 echo "正在拉取镜像并启动服务..."
-docker-compose up -d
+docker-compose -f config/docker-compose.yml up -d
 
 echo ""
 echo -e "${GREEN}服务启动完成！${NC}"
@@ -172,7 +172,7 @@ sleep 5
 
 # 检查服务状态
 echo "服务状态："
-docker-compose ps
+docker-compose -f config/docker-compose.yml ps
 echo ""
 
 # 获取 IP 地址
@@ -186,10 +186,10 @@ echo "  - HTTP: http://${IP_ADDRESS}"
 echo "  - 直接访问: http://${IP_ADDRESS}:5000"
 echo ""
 echo "管理命令："
-echo "  - 查看日志: docker-compose logs -f"
-echo "  - 停止服务: docker-compose down"
-echo "  - 重启服务: docker-compose restart"
-echo "  - 更新代码: git pull && docker-compose up -d --build"
+echo "  - 查看日志: docker-compose -f config/docker-compose.yml logs -f"
+echo "  - 停止服务: docker-compose -f config/docker-compose.yml down"
+echo "  - 重启服务: docker-compose -f config/docker-compose.yml restart"
+echo "  - 更新代码: git pull && docker-compose -f config/docker-compose.yml up -d --build"
 echo ""
 echo "重要提示："
 echo "  - Redis 密码已保存到 .env 文件"
@@ -204,5 +204,5 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo ""
     echo "按 Ctrl+C 退出日志查看"
     echo ""
-    docker-compose logs -f
+    docker-compose -f config/docker-compose.yml logs -f
 fi
