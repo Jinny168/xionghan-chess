@@ -4,7 +4,8 @@ Flask==3.0.0
 # WebSocket 支持
 Flask-SocketIO==5.3.6
 python-socketio==5.10.0
-eventlet==0.35.1
+# eventlet==0.35.1  # 已弃用，开发环境不需要
+# gevent>=23.9.0    # 生产环境(Linux)可选
 
 # CORS 支持
 Flask-CORS==4.0.0

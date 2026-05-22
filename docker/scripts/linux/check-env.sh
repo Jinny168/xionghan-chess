@@ -18,6 +18,10 @@ PASS=0
 FAIL=0
 WARN=0
 
+# 获取脚本所在目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$SCRIPT_DIR/../.."
+
 # 检查函数
 check_pass() {
     echo -e "${GREEN}✓${NC} $1"
@@ -79,30 +83,29 @@ echo ""
 
 # 4. 检查项目文件
 echo "[4/8] 检查项目文件..."
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
+if [ -f "$PROJECT_DIR/config/docker-compose.yml" ]; then
     check_pass "docker-compose.yml 存在"
 else
     check_fail "docker-compose.yml 不存在"
 fi
 
-if [ -f "$SCRIPT_DIR/Dockerfile" ]; then
+if [ -f "$PROJECT_DIR/config/Dockerfile" ]; then
     check_pass "Dockerfile 存在"
 else
     check_fail "Dockerfile 不存在"
 fi
 
-if [ -f "$SCRIPT_DIR/.env" ]; then
+if [ -f "$PROJECT_DIR/config/.env" ]; then
     check_pass ".env 配置文件存在"
     
     # 检查是否使用默认密码
-    if grep -q "REDIS_PASSWORD=XionghanChess2024" "$SCRIPT_DIR/.env"; then
+    if grep -q "REDIS_PASSWORD=XionghanChess2024" "$PROJECT_DIR/config/.env"; then
         check_warn "检测到使用默认密码，建议修改"
     fi
 else
     check_fail ".env 配置文件不存在"
-    echo "   执行: cp .env.example .env 并编辑"
+    echo "   执行: cp config/.env.example config/.env 并编辑"
 fi
 echo ""
 
@@ -178,9 +181,9 @@ if [ $FAIL -eq 0 ]; then
     echo -e "${GREEN}✓ 环境检查通过，可以开始部署！${NC}"
     echo ""
     echo "下一步："
-    echo "  1. 确认 .env 配置正确"
-    echo "  2. 执行: docker-compose up -d"
-    echo "  3. 查看日志: docker-compose logs -f"
+    echo "  1. 确认 config/.env 配置正确"
+    echo "  2. 执行: docker-compose -f config/docker-compose.yml up -d"
+    echo "  3. 查看日志: docker-compose -f config/docker-compose.yml logs -f"
 else
     echo -e "${RED}✗ 发现 $FAIL 个问题，请先解决后再部署${NC}"
 fi
@@ -193,11 +196,11 @@ if [ $FAIL -eq 0 ] && [ $WARN -eq 0 ]; then
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo ""
         echo "启动服务..."
-        cd "$SCRIPT_DIR"
-        docker-compose up -d
+        cd "$PROJECT_DIR"
+        docker-compose -f config/docker-compose.yml up -d
         echo ""
         echo "查看服务状态："
-        docker-compose ps
+        docker-compose -f config/docker-compose.yml ps
         echo ""
         echo "访问地址：http://$(hostname -I | awk '{print $1}')"
     fi

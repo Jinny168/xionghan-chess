@@ -1,121 +1,78 @@
 /**
- * 游戏主控制器 - 匈汉象棋
+ * 游戏主控制器 - 匈汉象棋（重构版）
+ * 职责：协调各子控制器，管理游戏生命周期
  */
 
 class GameController {
     constructor() {
+        // 核心状态
         this.gameState = null;
         this.renderer = null;
+        
+        // 事件分发器
+        this.events = new EventDispatcher();
+        
+        // 子控制器
+        this.logicHandler = null;
+        this.networkHandler = null;
+        this.uiController = null;
+        this.replayManager = null;
+        
+        // 辅助管理器
         this.soundManager = null;
         this.avatarManager = null;
-        this.ruleConfig = null;  // 游戏规则配置管理器
+        this.ruleConfig = null;
+        this.tauntManager = null;
+        this.statisticsManager = null;
         
-        this.selectedPiece = null;
-        this.playerCamp = 'red'; // 单机模式下双方都可操作
-        this.isHost = false; // 是否是房主
-        this.opponentConnected = false; // 对手是否已连接
-        
-        this.lastMoveNotation = '';
-        this.moveHistory = [];
-        
-        // 复盘相关
-        this.replayController = null;
-        this.gameRecordManager = new GameRecordManager();
+        // 游戏配置
+        this.playerCamp = 'red';
+        this.isOnline = false;
         this.isReplayMode = false;
         
-        // 嘲讽和统计管理
-        this.tauntManager = new TauntManager();
-        this.statisticsManager = new StatisticsManager();
-        
-        // UI元素
+        // Canvas引用
         this.canvas = null;
-        this.turnIndicator = null;
-        this.checkAlert = null;
-        this.moveList = null;
-        this.stepCount = null;
-        this.totalTime = null;
-        
-        // 网络相关（预留）
-        this.isOnline = false;
-        this.network = null;
-    }
-    
-    /**
-     * 初始化DOM元素
-     */
-    initDOMElements() {
-        // 棋盘Canvas
-        this.canvas = document.getElementById('chess-board');
-        
-        // 回合指示器
-        this.turnIndicator = document.getElementById('turn-indicator');
-        
-        // 将军提示
-        this.checkAlert = document.getElementById('check-alert');
-        
-        // 步数显示
-        this.stepCount = document.getElementById('step-count');
-        
-        // 总时间显示
-        this.totalTime = document.getElementById('total-time');
-        
-        // 棋谱列表
-        this.moveList = document.getElementById('move-history');
     }
     
     /**
      * 初始化游戏
      */
     init(options = {}) {
-        // 解析游戏模式
         const gameMode = options.mode || 'local';
         const roomId = options.roomId;
         
-        // 匈汉象棋模式(固定)
-        this.playerCamp = 'red'; // 单机模式，固定为红方视角
-        
-        // 初始化DOM元素
-        this.initDOMElements();
+        // 初始化Canvas
+        this.canvas = document.getElementById('chess-board');
         
         // 初始化游戏状态
         this.gameState = new GameState();
         
-        // 初始化渲染器(匈汉象棋13x13棋盘)
+        // 初始化渲染器
         this.renderer = new ChessBoardRenderer(this.canvas, false);
         
-        // 初始化管理器
-        this.soundManager = new SoundManager();
-        this.avatarManager = new AvatarManager();
-        this.ruleConfig = new GameRuleConfig();  // 初始化规则配置管理器
-        
-        // 绑定规则配置UI
+        // 初始化规则配置
+        this.ruleConfig = new GameRuleConfig();
         this.ruleConfig.bindUI();
         
-        // 设置头像样式配置(匈汉象棋)
-        const avatarStyle = {
-            colors: {
-                red: ['#ff6b6b', '#c92a2a'],
-                black: ['#495057', '#212529']
-            }
-        };
-        this.avatarManager.setAvatarStyle(avatarStyle);
+        // 初始化子控制器
+        this.initializeControllers();
         
-        // 设置音效音量
-        this.soundManager.setMusicVolume(0.7);
+        // 初始化辅助管理器
+        this.initializeManagers();
         
-        // 绑定事件
-        this.bindEvents();
+        // 绑定事件处理
+        this.bindEventHandlers();
         
         // 如果是在线模式，初始化网络
         if (gameMode === 'online' && roomId) {
             this.isOnline = true;
-            this.initializeNetwork(roomId);
+            this.networkHandler.initialize(roomId);
         }
         
-        // 开始游戏循环
+        // 启动游戏循环
         this.startGameLoop();
         
-        // 初始绘制
+        // 初始渲染
         this.render();
         
         // 播放背景音乐
@@ -125,7 +82,126 @@ class GameController {
     }
     
     /**
-     * 启动游戏循环（计时器等）
+     * 初始化子控制器
+     */
+    initializeControllers() {
+        console.log('🎮 初始化子控制器...');
+        console.log('  Canvas元素:', this.canvas ? this.canvas.id : '未找到');
+        console.log('  Canvas尺寸:', this.canvas ? `${this.canvas.width}x${this.canvas.height}` : 'N/A');
+        
+        this.logicHandler = new GameLogicHandler(this.gameState, this.ruleConfig, this.events);
+        this.networkHandler = new NetworkHandler(this.events);
+        this.uiController = new UIController(this.canvas, this.events);
+        this.uiController.initElements();
+        
+        console.log('  UIController.canvas:', this.uiController.canvas ? this.uiController.canvas.id : '未找到');
+        console.log('  UIController.elements.canvas:', this.uiController.elements.canvas ? this.uiController.elements.canvas.id : '未找到');
+        
+        this.replayManager = new ReplayManager(this);
+        this.replayManager.init();
+        
+        console.log('✅ 子控制器初始化完成');
+    }
+    
+    /**
+     * 初始化辅助管理器
+     */
+    initializeManagers() {
+        this.soundManager = new SoundManager();
+        this.avatarManager = new AvatarManager();
+        this.tauntManager = new TauntManager();
+        this.statisticsManager = new StatisticsManager();
+        
+        this.avatarManager.setAvatarStyle({
+            colors: {
+                red: ['#ff6b6b', '#c92a2a'],
+                black: ['#495057', '#212529']
+            }
+        });
+        
+        this.soundManager.setMusicVolume(0.7);
+    }
+    
+    /**
+     * 绑定事件处理器
+     */
+    bindEventHandlers() {
+        // 绑定UI事件
+        this.uiController.bindEvents({
+            onCanvasClick: (pos) => this.handleCanvasClick(pos),
+            onHome: () => this.goBackToHome(),
+            onUndo: () => this.undo(),
+            onRestart: () => this.restart(),
+            onSurrender: () => this.resign(),
+            onNewGame: () => this.newGame(),
+            onDarkMode: () => this.uiController.toggleDarkMode(),
+            onMoveHistory: () => this.showMoveHistoryModal(),
+            onReplay: () => this.replayManager.showReplaySidebar(),
+            onChat: () => this.showChatModal(),
+            onSettings: () => this.showSettingsModal(),
+            onHelp: () => this.showHelpModal(),
+            onChatSend: () => this.sendChatMessage(),
+            // 设置对话框事件
+            onToggleMusic: () => this.toggleBackgroundMusic(),
+            onSwitchMusic: () => this.switchMusicStyle(),
+            onVolumeChange: (volume) => this.updateVolume(volume),
+            onBoardThemeChange: (theme) => this.changeBoardTheme(theme),
+            onPieceStyleChange: (style) => this.changePieceStyle(style),
+            onResetSettings: () => this.resetSettings()
+        });
+        
+        // 监听游戏事件
+        this.events.on('piece:moved', () => {
+            this.soundManager.playMove();
+            this.updateUI();
+        });
+        
+        this.events.on('piece:captured', (data) => {
+            this.soundManager.playCapture();
+            const capturedType = this.getPieceType(data.capturedPiece);
+            if (capturedType) {
+                this.statisticsManager.updatePiecesCaptured(capturedType);
+            }
+        });
+        
+        this.events.on('check:detected', () => {
+            this.soundManager.playCheck();
+            this.uiController.updateCheckAlert(true);
+        });
+        
+        this.events.on('checkmate:detected', () => {
+            this.handleGameEnd();
+        });
+        
+        this.events.on('turn:changed', () => {
+            this.updateUI();
+        });
+        
+        this.events.on('game:reset', () => {
+            this.updateUI();
+            this.render();
+        });
+        
+        // 监听网络事件
+        this.events.on('opponent:move', (data) => {
+            this.handleOpponentMove(data);
+        });
+        
+        this.events.on('chat:message', (data) => {
+            this.addChatMessage(data.player || '对手', data.message);
+        });
+        
+        this.events.on('undo:request', () => {
+            this.handleUndoRequest();
+        });
+        
+        this.events.on('restart:request', () => {
+            this.handleRestartRequest();
+        });
+    }
+    
+    /**
+     * 启动游戏循环
      */
     startGameLoop() {
         setInterval(() => {
@@ -136,725 +212,163 @@ class GameController {
     }
     
     /**
-     * 初始化网络连接
+     * 处理Canvas点击
      */
-    initializeNetwork(roomId) {
-        console.log(`🚀 正在连接房间: ${roomId}`);
+    handleCanvasClick(pos) {
+        console.log('👆 Canvas点击:', pos);
         
-        // 创建Socket.IO客户端
-        const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-        const host = window.location.host;
-        const serverUrl = `${protocol}//${host}`;
-        
-        this.network = new WebSocketClient(serverUrl);
-        
-        // 注册事件回调
-        this.network.on('joined', (data) => {
-            console.log(`✅ 成功加入房间，阵营: ${data.camp}`);
-            this.playerCamp = data.camp;
-            this.isHost = data.isHost || false; // 是否是房主
-            this.opponentConnected = data.opponentConnected || false;
-            
-            // 显示玩家信息
-            this.updatePlayerInfo();
-            
-            if (this.opponentConnected) {
-                console.log('👥 对手已连接，准备开始游戏');
-                window.dialogManager.showInfo('提示', '对手已连接，游戏即将开始！');
-            } else {
-                console.log('⏳ 等待对手连接...');
-                window.dialogManager.showInfo('提示', '等待对手连接...', 3000);
-            }
-        });
-        
-        this.network.on('game_start', (data) => {
-            console.log(' 游戏开始！', data);
-            this.opponentConnected = true;
-            this.updatePlayerInfo();
-            
-            const campText = this.playerCamp === 'red' ? '红' : '黑';
-            const hostText = this.isHost ? '（房主）' : '（客人）';
-            window.dialogManager.showInfo('游戏开始', `您执${campText}棋${hostText}`);
-        });
-        
-        this.network.on('opponent_move', (data) => {
-            console.log('📥📥 收到对手移动事件:', data);
-            console.log('🎯 当前玩家阵营:', this.playerCamp);
-            console.log(' 当前回合:', this.gameState.playerTurn);
-            this.handleOpponentMove(data);
-        });
-        
-        this.network.on('game_over', (data) => {
-            console.log('🏁 游戏结束:', data);
-            this.handleNetworkGameOver(data);
-        });
-        
-        this.network.on('chat_message', (data) => {
-            console.log('💬 收到聊天消息:', data);
-            this.addChatMessage(data.player || '对手', data.message);
-        });
-        
-        this.network.on('undo_request', (data) => {
-            console.log('↩️ 收到悔棋请求:', data);
-            this.handleUndoRequest(data);
-        });
-        
-        this.network.on('undo_response', (data) => {
-            console.log('↩️ 收到悔棋响应:', data);
-            this.handleUndoResponse(data);
-        });
-        
-        this.network.on('restart_request', (data) => {
-            console.log('🔄 收到重新开始请求:', data);
-            this.handleRestartRequest(data);
-        });
-        
-        this.network.on('game_restart', (data) => {
-            console.log('🔄 游戏重新开始');
-            this.resetGame();
-        });
-        
-        this.network.on('player_disconnected', (data) => {
-            console.log('⚠️ 对手断开连接:', data);
-            this.opponentConnected = false;
-            this.updatePlayerInfo();
-            window.dialogManager.showError('对手已断开连接');
-        });
-        
-        this.network.on('error', (data) => {
-            console.error('❌ 网络错误:', data);
-            window.dialogManager.showError(data.message || '网络错误');
-        });
-        
-        // 连接服务器并加入房间
-        this.network.connect()
-            .then(() => {
-                console.log('✅ Socket.IO连接成功');
-                // 延迟一下再发送加入房间请求，确保连接稳定
-                setTimeout(() => {
-                    this.network.joinGameRoom(roomId);
-                }, 300);
-            })
-            .catch((error) => {
-                console.error('❌ 连接失败:', error);
-                window.dialogManager.showError('无法连接到服务器，请检查网络连接');
-            });
-    }
-    
-    /**
-     * 绑定事件
-     */
-    bindEvents() {
-        // 棋盘点击
-        this.canvas.addEventListener('click', (e) => {
-            this.handleCanvasClick(e);
-        });
-        
-        // 返回主页按钮
-        const homeBtn = document.getElementById('btn-home');
-        if (homeBtn) {
-            homeBtn.addEventListener('click', () => {
-                this.soundManager.playButton();
-                this.goBackToHome();
-            });
+        if (this.gameState.gameOver) {
+            console.log('   游戏已结束');
+            return;
+        }
+        if (this.isOnline && this.gameState.playerTurn !== this.playerCamp) {
+            console.log('  ❌ 不是你的回合');
+            return;
         }
         
-        // 悔棋按钮 - 支持多种ID命名
-        const undoBtn = document.getElementById('btn-undo') || document.getElementById('btn-regret');
-        if (undoBtn) {
-            undoBtn.addEventListener('click', () => {
-                this.soundManager.playButton();
-                this.undo();
-            });
-        }
+        const piece = this.gameState.getPieceAt(pos.row, pos.col);
+        console.log('  选中的棋子:', piece ? `${piece.name}(${piece.color || piece.camp})` : '空');
+        console.log('  当前选中:', this.uiController.getSelectedPiece());
         
-        // 重新开始按钮 - 支持多种ID命名
-        const restartBtn = document.getElementById('btn-restart');
-        if (restartBtn) {
-            restartBtn.addEventListener('click', () => {
-                this.soundManager.playButton();
-                this.restart();
-            });
-        }
-        
-        // 认输按钮 - 支持多种ID命名
-        const surrenderBtn = document.getElementById('btn-surrender');
-        if (surrenderBtn) {
-            surrenderBtn.addEventListener('click', () => {
-                this.soundManager.playButton();
-                this.resign();
-            });
-        }
-        
-        // 导航按钮 - 新游戏
-        const newGameBtn = document.getElementById('btn-new-game');
-        if (newGameBtn) {
-            newGameBtn.addEventListener('click', () => {
-                this.soundManager.playButton();
-                this.newGame();
-            });
-        }
-        
-        // 暗黑模式按钮
-        const darkModeBtn = document.getElementById('btn-dark-mode');
-        if (darkModeBtn) {
-            darkModeBtn.addEventListener('click', () => {
-                this.toggleDarkMode();
-            });
-        }
-        
-        // 棋谱记录按钮
-        const moveHistoryBtn = document.getElementById('btn-move-history');
-        if (moveHistoryBtn) {
-            moveHistoryBtn.addEventListener('click', () => {
-                this.showMoveHistoryModal();
-            });
-        }
-        
-        // 复盘按钮
-        const replayBtn = document.getElementById('btn-replay');
-        if (replayBtn) {
-            replayBtn.addEventListener('click', () => {
-                this.soundManager.playButton();
-                this.showReplayModal();
-            });
-        }
-        
-        // 聊天按钮
-        const chatBtn = document.getElementById('btn-chat');
-        if (chatBtn) {
-            chatBtn.addEventListener('click', () => {
-                this.showChatModal();
-            });
-        }
-        
-        // 设置按钮
-        const settingsBtn = document.getElementById('btn-settings');
-        if (settingsBtn) {
-            settingsBtn.addEventListener('click', () => {
-                this.soundManager.playButton();
-                this.showSettingsModal();
-            });
-        }
-        
-        // 帮助按钮
-        const helpBtn = document.getElementById('btn-help');
-        if (helpBtn) {
-            helpBtn.addEventListener('click', () => {
-                this.soundManager.playButton();
-                this.showHelpModal();
-            });
-        }
-        
-        // 关闭棋谱对话框
-        const closeMoveHistory = document.getElementById('close-move-history');
-        if (closeMoveHistory) {
-            closeMoveHistory.addEventListener('click', () => {
-                document.getElementById('move-history-modal').classList.add('hidden');
-            });
-        }
-        
-        // 关闭聊天对话框
-        const closeChat = document.getElementById('close-chat');
-        if (closeChat) {
-            closeChat.addEventListener('click', () => {
-                document.getElementById('chat-modal').classList.add('hidden');
-            });
-        }
-        
-        // 关闭设置对话框
-        const closeSettings = document.getElementById('close-settings');
-        if (closeSettings) {
-            closeSettings.addEventListener('click', () => {
-                document.getElementById('settings-modal').classList.add('hidden');
-            });
-        }
-        
-        // 关闭帮助对话框
-        const closeHelp = document.getElementById('close-help');
-        if (closeHelp) {
-            closeHelp.addEventListener('click', () => {
-                document.getElementById('help-modal').classList.add('hidden');
-            });
-        }
-        
-        // 关闭复盘侧边栏
-        const closeReplaySidebar = document.getElementById('close-replay-sidebar');
-        if (closeReplaySidebar) {
-            closeReplaySidebar.addEventListener('click', () => {
-                this.exitReplayMode();
-            });
-        }
-        
-        // 复盘按钮事件
-        const replayBeginBtn = document.getElementById('replay-begin');
-        if (replayBeginBtn) {
-            replayBeginBtn.addEventListener('click', () => {
-                if (this.replayController) {
-                    this.replayController.goToBeginning();
-                    this.updateReplayUI();
-                    this.render();
-                }
-            });
-        }
-        
-        const replayPrevBtn = document.getElementById('replay-prev');
-        if (replayPrevBtn) {
-            replayPrevBtn.addEventListener('click', () => {
-                if (this.replayController) {
-                    this.replayController.goToPrevious();
-                    this.updateReplayUI();
-                    this.render();
-                }
-            });
-        }
-        
-        const replayNextBtn = document.getElementById('replay-next');
-        if (replayNextBtn) {
-            replayNextBtn.addEventListener('click', () => {
-                if (this.replayController) {
-                    this.replayController.goToNext();
-                    this.updateReplayUI();
-                    this.render();
-                }
-            });
-        }
-        
-        const replayEndBtn = document.getElementById('replay-end');
-        if (replayEndBtn) {
-            replayEndBtn.addEventListener('click', () => {
-                if (this.replayController) {
-                    this.replayController.goToEnd();
-                    this.updateReplayUI();
-                    this.render();
-                }
-            });
-        }
-        
-        // 复盘进度条
-        const replayProgress = document.getElementById('replay-progress');
-        if (replayProgress) {
-            replayProgress.addEventListener('input', (e) => {
-                if (this.replayController) {
-                    const percentage = parseInt(e.target.value);
-                    this.replayController.setProgress(percentage);
-                    this.updateReplayUI();
-                    this.render();
-                }
-            });
-        }
-        
-        // 设置对话框 - 关闭按钮
-        const btnCloseSettings = document.getElementById('btn-close-settings');
-        if (btnCloseSettings) {
-            btnCloseSettings.addEventListener('click', () => {
-                document.getElementById('settings-modal').classList.add('hidden');
-            });
-        }
-        
-        // 设置对话框 - 恢复默认按钮
-        const btnResetSettings = document.getElementById('btn-reset-settings');
-        if (btnResetSettings) {
-            btnResetSettings.addEventListener('click', () => {
-                this.resetSettings();
-            });
-        }
-        
-        // 设置对话框 - 背景音乐开关
-        const btnToggleMusic = document.getElementById('btn-toggle-music');
-        if (btnToggleMusic) {
-            btnToggleMusic.addEventListener('click', () => {
-                this.toggleBackgroundMusic();
-            });
-        }
-        
-        // 设置对话框 - 切换音乐风格
-        const btnSwitchMusic = document.getElementById('btn-switch-music');
-        if (btnSwitchMusic) {
-            btnSwitchMusic.addEventListener('click', () => {
-                this.switchMusicStyle();
-            });
-        }
-        
-        // 设置对话框 - 音量滑块
-        const volumeSlider = document.getElementById('volume-slider');
-        if (volumeSlider) {
-            volumeSlider.addEventListener('input', (e) => {
-                const volume = parseInt(e.target.value);
-                this.updateVolume(volume);
-            });
-        }
-        
-        // 设置对话框 - 棋盘主题选择
-        const boardThemeSelect = document.getElementById('board-theme-select');
-        if (boardThemeSelect) {
-            boardThemeSelect.addEventListener('change', (e) => {
-                this.changeBoardTheme(e.target.value);
-            });
-        }
-        
-        // 设置对话框 - 棋子样式选择
-        const pieceStyleSelect = document.getElementById('piece-style-select');
-        if (pieceStyleSelect) {
-            pieceStyleSelect.addEventListener('change', (e) => {
-                this.changePieceStyle(e.target.value);
-            });
-        }
-        
-        // 帮助对话框 - 确定按钮
-        const btnCloseHelp = document.getElementById('btn-close-help');
-        if (btnCloseHelp) {
-            btnCloseHelp.addEventListener('click', () => {
-                document.getElementById('help-modal').classList.add('hidden');
-            });
-        }
-        
-        // 模态对话框点击背景关闭
-        const moveHistoryModal = document.getElementById('move-history-modal');
-        if (moveHistoryModal) {
-            moveHistoryModal.addEventListener('click', (e) => {
-                if (e.target === moveHistoryModal) {
-                    moveHistoryModal.classList.add('hidden');
-                }
-            });
-        }
-        
-        const chatModal = document.getElementById('chat-modal');
-        if (chatModal) {
-            chatModal.addEventListener('click', (e) => {
-                if (e.target === chatModal) {
-                    chatModal.classList.add('hidden');
-                }
-            });
-        }
-        
-        const settingsModal = document.getElementById('settings-modal');
-        if (settingsModal) {
-            settingsModal.addEventListener('click', (e) => {
-                if (e.target === settingsModal) {
-                    settingsModal.classList.add('hidden');
-                }
-            });
-        }
-        
-        const helpModal = document.getElementById('help-modal');
-        if (helpModal) {
-            helpModal.addEventListener('click', (e) => {
-                if (e.target === helpModal) {
-                    helpModal.classList.add('hidden');
-                }
-            });
-        }
-        
-        // 聊天发送按钮（模态框内）
-        const sendChatBtnModal = document.getElementById('btn-send-modal');
-        if (sendChatBtnModal) {
-            sendChatBtnModal.addEventListener('click', () => this.sendChatMessage());
-        }
-        
-        // 聊天输入框回车发送（模态框内）
-        const chatInputModal = document.getElementById('chat-input-modal');
-        if (chatInputModal) {
-            chatInputModal.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') this.sendChatMessage();
-            });
-        }
-    }
-    
-    /**
-     * 处理棋盘点击
-     */
-    handleCanvasClick(event) {
-        // 游戏结束或不是自己的回合，忽略点击
-        if (this.gameState.gameOver) return;
-        if (this.isOnline && this.gameState.playerTurn !== this.playerCamp) return;
-        
-        const rect = this.canvas.getBoundingClientRect();
-        
-        // 计算缩放比例：Canvas内部尺寸 / CSS显示尺寸
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
-        
-        // 转换点击坐标到Canvas内部坐标
-        const mouseX = (event.clientX - rect.left) * scaleX;
-        const mouseY = (event.clientY - rect.top) * scaleY;
-        
-        const pos = this.renderer.getGridPosition(mouseX, mouseY);
-        if (!pos) return;
-        
-        const { row, col } = pos;
-        
-        // 检查是否点击了空的兵出生点（生成兵）
-        if (!this.selectedPiece) {
-            const clickedPiece = this.gameState.getPieceAt(row, col);
-            
-            // 如果该位置为空且是己方兵的出生点，尝试生成兵
-            if (!clickedPiece && this.gameState.isBingSpawnPoint(row, col, this.gameState.playerTurn)) {
-                // 检查是否启用了兵复活规则
+        // 检查是否点击了兵的出生点
+        if (!this.uiController.getSelectedPiece()) {
+            if (!piece && this.gameState.isBingSpawnPoint(pos.row, pos.col, this.gameState.playerTurn)) {
                 const ruleConfig = window.GameRules ? window.GameRules.getRuleConfig() : {};
                 if (ruleConfig.pawnResurrection) {
-                    this.trySpawnBing(row, col);
+                    const result = this.logicHandler.trySpawnBing(pos.row, pos.col);
+                    if (result.success) {
+                        this.soundManager.playMove();
+                        this.updateUI();
+                        
+                        // 检查将军
+                        if (this.gameState.inCheck) {
+                            this.soundManager.playCheck();
+                            this.uiController.updateCheckAlert(true);
+                        } else {
+                            this.uiController.updateCheckAlert(false);
+                        }
+                    } else {
+                        window.dialogManager.showInfo('提示', result.message);
+                    }
+                    this.render();
                     return;
-                } else {
-                    console.log('兵复活规则未开启');
                 }
             }
         }
         
-        if (this.selectedPiece) {
-            // 已有选中的棋子
-            const clickedPiece = this.gameState.getPieceAt(row, col);
+        // 选择或移动棋子
+        if (this.uiController.getSelectedPiece()) {
+            const selectedPos = this.uiController.getSelectedPiece();
+            console.log('  尝试移动:', selectedPos, '->', pos);
+            const result = this.logicHandler.executeMove(selectedPos, pos);
             
-            // 如果点击的是己方其他棋子，切换选中
-            if (clickedPiece && clickedPiece.color === this.gameState.playerTurn) {
-                // 如果点击的不是当前选中的棋子，切换选中
-                if (this.selectedPiece.row !== row || this.selectedPiece.col !== col) {
-                    this.selectPiece(row, col);
-                    return;
+            if (result.success) {
+                console.log('  ✅ 移动成功');
+                this.uiController.clearSelection();
+                this.renderer.clearHighlights();
+                
+                // 更新UI显示（回合指示器等）
+                this.updateUI();
+                
+                // 移动成功后只需要渲染一次(在函数末尾)
+                if (result.moveData && result.moveData.gameOver) {
+                    this.handleGameEnd();
+                    return; // 游戏结束后直接返回
+                }
+            } else {
+                console.log('  ❌ 移动失败:', result.message);
+                // 如果点击的是己方其他棋子，切换选中
+                if (piece && (piece.color === this.gameState.playerTurn || piece.camp === this.gameState.playerTurn)) {
+                    this.selectPiece(pos); // selectPiece内部已经调用了render
+                    return; // 避免重复渲染
                 }
             }
-            
-            // 否则尝试移动
-            this.tryMove(row, col);
         } else {
             // 选择棋子
-            this.selectPiece(row, col);
+            if (piece && (piece.color === this.gameState.playerTurn || piece.camp === this.gameState.playerTurn)) {
+                console.log('  ✅ 选择棋子:', piece.name);
+                this.selectPiece(pos); // selectPiece内部已经调用了render
+                return; // 避免重复渲染
+            } else {
+                console.log('  ❌ 无法选择:', piece ? (piece.color || piece.camp) : '空');
+            }
         }
+        
+        // 只在需要时渲染一次
+        this.render();
     }
     
     /**
      * 选择棋子
      */
-    selectPiece(row, col) {
-        const piece = this.gameState.getPieceAt(row, col);
-        
-        // 如果点击的是已选中的棋子，取消选中
-        if (this.selectedPiece && this.selectedPiece.row === row && this.selectedPiece.col === col) {
-            this.selectedPiece = null;
-            this.renderer.clearHighlights();
-            this.render();
-            return;
-        }
-        
-        // 如果点击的不是己方棋子，取消当前选中（而不是忽略）
-        if (!piece || piece.color !== this.gameState.playerTurn) {
-            // 如果有已选中的棋子，先取消选中
-            if (this.selectedPiece) {
-                this.selectedPiece = null;
-                this.renderer.clearHighlights();
-                this.render();
-            }
-            return;
-        }
-        
-        // 播放选择音效
+    selectPiece(pos) {
         this.soundManager.playSelect();
+        this.uiController.highlightSelectedPiece(pos);
         
-        this.selectedPiece = { row, col };
-        this.renderer.highlightPosition(row, col);
-        
-        // 计算可能移动
-        const { moves, capturable } = this.gameState.calculatePossibleMoves(row, col);
+        // 计算可移动位置(会产生很多isValidMove调用,这是正常的)
+        const { moves, capturable } = this.gameState.calculatePossibleMoves(pos.row, pos.col);
         this.renderer.setPossibleMoves(moves);
         this.renderer.setCapturablePositions(capturable);
         
-        this.render();
-    }
-    
-    /**
-     * 尝试移动
-     */
-    tryMove(toRow, toCol) {
-        if (!this.selectedPiece) return;
-        
-        const { row: fromRow, col: fromCol } = this.selectedPiece;
-        
-        // 执行移动
-        const success = this.gameState.movePiece(fromRow, fromCol, toRow, toCol);
-        
-        if (success) {
-            // 记录最后移动
-            this.gameState.lastMove = [fromRow, fromCol, toRow, toCol];
-            
-            // 生成走法记谱
-            const piece = this.gameState.getPieceAt(toRow, toCol);
-            this.lastMoveNotation = this.generateMoveNotation(piece, fromRow, fromCol, toRow, toCol);
-            this.addMoveToHistory(this.lastMoveNotation);
-            
-            // 如果在线，发送移动
-            if (this.isOnline) {
-                console.log(' 发送移动到服务器:', { fromRow, fromCol, toRow, toCol });
-                this.network.sendMove(fromRow, fromCol, toRow, toCol);
-            }
-            
-            // 更新UI
-            this.updateUI();
-            
-            // 播放音效
-            if (this.gameState.moveHistory.length > 0) {
-                const lastMove = this.gameState.moveHistory[this.gameState.moveHistory.length - 1];
-                if (lastMove.capturedPiece) {
-                    this.soundManager.playCapture();
-                    // 更新吃子统计
-                    const capturedType = this.getPieceType(lastMove.capturedPiece.name);
-                    if (capturedType) {
-                        this.statisticsManager.updatePiecesCaptured(capturedType);
-                    }
-                } else {
-                    this.soundManager.playMove();
-                }
-            }
-            
-            // 检查将军
-            if (this.gameState.inCheck) {
-                this.soundManager.playCheck();
-                this.showCheckAlert();
-            } else {
-                this.hideCheckAlert();
-            }
-            
-            // 清除选择
-            this.selectedPiece = null;
-            this.renderer.clearHighlights();
-            
-            // 检查游戏结束
-            if (this.gameState.gameOver) {
-                this.handleGameEnd();
-            } else {
-                // 检查将军/绝杀状态
-                this.soundManager.checkAndPlayGameSound(this.gameState);
-            }
-        }
+        console.log(`✅ 棋子选中: ${this.gameState.getPieceAt(pos.row, pos.col).name}, 可移动位置: ${moves.length}个`);
         
         this.render();
     }
     
     /**
-     * 尝试在指定位置生成兵
+     * 处理对手移动
      */
-    trySpawnBing(row, col) {
-        // 执行生成兵
-        const success = this.gameState.spawnBing(row, col);
+    handleOpponentMove(data) {
+        const { fromRow, fromCol, toRow, toCol } = data;
         
-        if (success) {
-            console.log(`成功在 (${row}, ${col}) 生成兵`);
-            
-            // 记录最后移动（特殊标记）
-            this.gameState.lastMove = [null, null, row, col];
-            
-            // 生成走法记谱
-            this.lastMoveNotation = `生成兵(${row},${col})`;
-            this.addMoveToHistory(this.lastMoveNotation);
-            
-            // 如果在线，发送生成操作
-            if (this.isOnline) {
-                this.network.send({
-                    type: 'spawn_bing',
-                    data: { row, col }
-                });
+        // 在临时状态上执行移动以更新显示
+        const piece = this.gameState.getPieceAt(fromRow, fromCol);
+        if (piece) {
+            const capturedPiece = this.gameState.getPieceAt(toRow, toCol);
+            if (capturedPiece) {
+                this.gameState.pieces = this.gameState.pieces.filter(p => p !== capturedPiece);
             }
             
-            // 更新UI
-            this.updateUI();
+            piece.moveTo(toRow, toCol);
+            this.gameState.playerTurn = this.gameState.playerTurn === 'red' ? 'black' : 'red';
+            this.gameState.movesCount++;
             
-            // 播放音效
+            const { GameRules } = window;
+            this.gameState.inCheck = GameRules.isCheck(this.gameState.pieces, this.gameState.playerTurn);
+            
+            this.updateUI();
             this.soundManager.playMove();
             
-            // 检查将军
             if (this.gameState.inCheck) {
                 this.soundManager.playCheck();
-                this.showCheckAlert();
-            } else {
-                this.hideCheckAlert();
+                this.uiController.updateCheckAlert(true);
             }
             
-            // 清除选择
-            this.selectedPiece = null;
-            this.renderer.clearHighlights();
-            
-            // 检查游戏结束
             if (this.gameState.gameOver) {
                 this.handleGameEnd();
-            } else {
-                // 检查将军/绝杀状态
-                this.soundManager.checkAndPlayGameSound(this.gameState);
             }
-        } else {
-            console.log('无法在该位置生成兵');
+            
+            this.render();
         }
-        
-        this.render();
-    }
-    
-    /**
-     * 新对局（重置全部状态 = 新游戏）
-     */
-    newGame() {
-        this.avatarManager.clearCache();
-        this.gameState.reset();
-        this.selectedPiece = null;
-        this.moveHistory = [];
-        this.lastMoveNotation = '';
-        this.gameState.lastMove = null;
-        
-        // 清空棋谱记录UI
-        const moveHistoryContent = document.getElementById('move-history-content');
-        if (moveHistoryContent) {
-            moveHistoryContent.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">暂无走棋记录</div>';
-        }
-        
-        // 清空聊天框
-        const chatContent = document.getElementById('chat-content');
-        if (chatContent) {
-            chatContent.innerHTML = '<p style="color: #999;">欢迎来到匈汉象棋！</p>';
-        }
-        
-        this.updateUI();
-        this.render();
-        
-        console.log('新对局已创建');
-    }
-    
-    /**
-     * 重新开始（重置当前棋盘，保留模式）
-     */
-    resetBoard() {
-        this.newGame();
-        console.log('棋盘已重置');
     }
     
     /**
      * 悔棋
      */
     undo() {
-        if (this.gameState.moveHistory.length === 0) {
-            window.dialogManager.showInfo('提示', '当前没有可以悔棋的步数');
-            return;
-        }
-        
-        // 在线模式下需要对方同意
         if (this.isOnline) {
-            this.network.sendUndoRequest();
+            this.networkHandler.requestUndo();
             window.dialogManager.showInfo('悔棋请求', '已发送悔棋请求，等待对方同意...');
             return;
         }
         
-        // 本地模式显示确认对话框
-        window.dialogManager.showConfirm(
-            '悔棋',
-            '确定要悔棋吗？',
-            () => {
-                // 确认悔棋
-                this.gameState.undoMove();
-                this.moveHistory.pop();
-                this.updateUI();
-                this.render();
-            },
-            () => {
-                // 取消悔棋
-                console.log('取消悔棋');
-            }
-        );
+        const result = this.logicHandler.undo();
+        if (result.success) {
+            this.updateUI();
+            this.render();
+        } else {
+            window.dialogManager.showInfo('提示', result.message);
+        }
     }
     
     /**
@@ -865,25 +379,14 @@ class GameController {
             '重新开始',
             '确定要重新开始游戏吗？当前游戏进度将丢失。',
             () => {
-                // 确认重新开始
+                this.logicHandler.restart();
                 this.avatarManager.clearCache();
-                
-                this.gameState.reset();
-                this.selectedPiece = null;
-                this.moveHistory = [];
-                this.lastMoveNotation = '';
-                this.gameState.lastMove = null;
-                
                 this.updateUI();
                 this.render();
                 
                 if (this.isOnline) {
-                    this.network.sendRestartRequest();
+                    this.networkHandler.requestRestart();
                 }
-            },
-            () => {
-                // 取消重新开始
-                console.log('取消重新开始');
             }
         );
     }
@@ -896,255 +399,24 @@ class GameController {
             '认输',
             '确定要认输吗？认输后本局游戏将结束。',
             () => {
-                // 确认认输
-                this.gameState.gameOver = true;
-                this.gameState.winner = this.playerCamp === 'red' ? 'black' : 'red';
+                this.logicHandler.resign(this.playerCamp);
                 this.handleGameEnd();
                 
                 if (this.isOnline) {
-                    this.network.sendResign();
+                    this.networkHandler.resign();
                 }
-            },
-            () => {
-                // 取消认输
-                console.log('取消认输');
             }
         );
     }
     
     /**
-     * 显示复盘侧边栏
+     * 新对局
      */
-    showReplayModal() {
-        const sidebar = document.getElementById('replay-sidebar');
-        if (!sidebar) return;
-        
-        // 检查localStorage中是否有保存的对局记录
-        const records = this.gameRecordManager.loadAllRecords();
-        
-        if (records.length === 0) {
-            window.dialogManager.showInfo('提示', '当前没有对局记录，无法复盘');
-            return;
-        }
-        
-        // 显示侧边栏
-        sidebar.classList.remove('hidden');
-        
-        // 给body添加类，调整右上角状态区域的边距
-        document.body.classList.add('replay-active');
-        
-        // 加载对局记录列表
-        this.loadGameRecordsList();
-        
-        // 如果有当前对局历史，也初始复盘模式
-        if (this.gameState.moveHistory.length > 0) {
-            this.initReplayMode();
-        }
-    }
-    
-    /**
-     * 初始化复盘模式
-     */
-    initReplayMode() {
-        // 创建复盘控制器
-        this.replayController = ReplayController.enterReplayMode(this.gameState);
-        this.isReplayMode = true;
-        
-        // 更新UI
-        this.updateReplayUI();
+    newGame() {
+        this.logicHandler.restart();
+        this.avatarManager.clearCache();
+        this.updateUI();
         this.render();
-        
-        console.log('进入复盘模式');
-    }
-    
-    /**
-     * 更新复盘UI
-     */
-    updateReplayUI() {
-        if (!this.replayController) return;
-        
-        const stepInfo = this.replayController.getCurrentStepInfo();
-        
-        // 更新步骤信息
-        const stepInfoElement = document.getElementById('replay-step-info');
-        if (stepInfoElement) {
-            stepInfoElement.textContent = `${stepInfo.current} / ${stepInfo.total}`;
-        }
-        
-        // 更新进度条
-        const progressElement = document.getElementById('replay-progress');
-        if (progressElement) {
-            progressElement.value = stepInfo.percentage;
-        }
-        
-        // 更新回合指示器
-        const turnText = this.gameState.playerTurn === 'red' ? '红方回合' : '黑方回合';
-        if (this.turnIndicator) {
-            this.turnIndicator.textContent = turnText + ' (复盘)';
-        }
-    }
-    
-    /**
-     * 退出复盘模式
-     */
-    exitReplayMode() {
-        if (this.replayController) {
-            // 恢复原始状态
-            this.replayController.restoreOriginalState();
-            this.replayController = null;
-            this.isReplayMode = false;
-            
-            // 隐藏侧边栏
-            const sidebar = document.getElementById('replay-sidebar');
-            if (sidebar) {
-                sidebar.classList.add('hidden');
-            }
-            
-            // 移除body的replay-active类，恢复状态区域的边距
-            document.body.classList.remove('replay-active');
-            
-            // 恢复UI
-            const turnText = this.gameState.playerTurn === 'red' ? '红方回合' : '黑方回合';
-            if (this.turnIndicator) {
-                this.turnIndicator.textContent = turnText;
-            }
-            
-            this.render();
-            console.log('退出复盘模式');
-        }
-    }
-    
-    /**
-     * 加载对局记录列表
-     */
-    loadGameRecordsList() {
-        const recordsList = document.getElementById('game-records-list');
-        if (!recordsList) return;
-        
-        const records = this.gameRecordManager.loadAllRecords();
-        
-        if (records.length === 0) {
-            recordsList.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">暂无对局记录</div>';
-            return;
-        }
-        
-        recordsList.innerHTML = '';
-        
-        records.forEach((record, index) => {
-            const recordElement = document.createElement('div');
-            recordElement.style.cssText = `
-                padding: 12px 15px;
-                border-bottom: 1px solid #eee;
-                cursor: pointer;
-                transition: background 0.2s;
-            `;
-            recordElement.onmouseover = () => recordElement.style.background = '#f5f5f5';
-            recordElement.onmouseout = () => recordElement.style.background = 'white';
-            
-            const winnerText = record.winner 
-                ? (record.winner === 'red' ? '红方胜利' : '黑方胜利')
-                : '和棋';
-            
-            const durationText = this.gameRecordManager.formatDuration(record.duration || 0);
-            const dateText = this.gameRecordManager.formatDate(record.timestamp);
-            
-            recordElement.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: bold; color: #333; margin-bottom: 4px;">
-                            第 ${index + 1} 局 - ${winnerText}
-                        </div>
-                        <div style="font-size: 12px; color: #666;">
-                            ${dateText} | ${record.movesCount} 步 | 时长 ${durationText}
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn-small" style="padding: 4px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" data-action="load" data-id="${record.id}">
-                            加载
-                        </button>
-                        <button class="btn-small" style="padding: 4px 12px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" data-action="delete" data-id="${record.id}">
-                            删除
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            // 添加事件监听
-            recordElement.querySelector('[data-action="load"]').addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.loadRecord(record.id);
-            });
-            
-            recordElement.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.deleteRecord(record.id);
-            });
-            
-            recordsList.appendChild(recordElement);
-        });
-    }
-    
-    /**
-     * 加载指定记录
-     */
-    loadRecord(recordId) {
-        const record = this.gameRecordManager.loadRecord(recordId);
-        if (!record) {
-            window.dialogManager.showError('加载失败', '找不到对局记录');
-            return;
-        }
-        
-        // 从记录恢复游戏状态
-        const success = this.gameRecordManager.restoreFromRecord(record, this.gameState);
-        
-        if (success) {
-            // 重新初始化复盘控制器
-            this.initReplayMode();
-            
-            window.dialogManager.showInfo('提示', '对局记录加载成功');
-            this.render();
-        } else {
-            window.dialogManager.showError('加载失败', '无法从记录恢复游戏状态');
-        }
-    }
-    
-    /**
-     * 删除对局记录
-     */
-    deleteRecord(recordId) {
-        window.dialogManager.showConfirm(
-            '删除记录',
-            '确定要删除这局记录吗？',
-            () => {
-                const success = this.gameRecordManager.deleteRecord(recordId);
-                if (success) {
-                    window.dialogManager.showInfo('提示', '记录已删除');
-                    // 重新加载列表
-                    this.loadGameRecordsList();
-                } else {
-                    window.dialogManager.showError('删除失败', '无法删除记录');
-                }
-            },
-            () => {}
-        );
-    }
-    
-    /**
-     * 保存当前对局记录
-     */
-    saveCurrentGameRecord() {
-        if (this.gameState.moveHistory.length === 0) {
-            return; // 没有移动记录，不保存
-        }
-        
-        const recordId = this.gameRecordManager.saveGameRecord(
-            this.gameState, 
-            this.isOnline ? 'online' : 'local'
-        );
-        
-        if (recordId) {
-            console.log('对局记录已保存:', recordId);
-        }
     }
     
     /**
@@ -1156,7 +428,7 @@ class GameController {
             : '和棋';
         
         // 保存对局记录
-        this.saveCurrentGameRecord();
+        this.replayManager.saveCurrentGameRecord();
         
         // 更新统计数据
         const { redTime, blackTime } = this.gameState.getTimes();
@@ -1169,11 +441,10 @@ class GameController {
         );
         this.statisticsManager.updateTotalMoves(this.gameState.movesCount);
         
-        // 播放游戏结束音效
+        // 播放音效
         if (this.gameState.winner) {
             if (this.gameState.winner === this.playerCamp) {
                 this.soundManager.playVictory();
-                // 胜利时随机显示嘲讽语句
                 setTimeout(() => {
                     const taunt = this.tauntManager.getRandomTaunt();
                     window.dialogManager.showInfo(' 胜利！', taunt);
@@ -1183,7 +454,6 @@ class GameController {
             }
         }
         
-        // 停止背景音乐
         this.soundManager.stopBackgroundMusic();
         
         // 显示游戏结束对话框
@@ -1191,11 +461,9 @@ class GameController {
             '游戏结束',
             `<h2 style="color: ${this.gameState.winner === 'red' ? '#d32f2f' : '#333'}">${winnerText}</h2><p>是否复盘或重新开始？</p>`,
             () => {
-                // 复盘
-                this.showReplayModal();
+                this.replayManager.showReplaySidebar();
             },
             () => {
-                // 重新开始
                 this.newGame();
             },
             '复盘',
@@ -1207,136 +475,24 @@ class GameController {
      * 更新UI
      */
     updateUI() {
-        // 更新回合指示器（在线模式显示“你的回合”或“对手回合”）
-        let turnText;
-        if (this.isOnline) {
-            if (this.gameState.playerTurn === this.playerCamp) {
-                turnText = this.gameState.playerTurn === 'red' ? '你的回合（红方）' : '你的回合（黑方）';
-            } else {
-                turnText = this.gameState.playerTurn === 'red' ? '对手回合（红方）' : '对手回合（黑方）';
-            }
-        } else {
-            turnText = this.gameState.playerTurn === 'red' ? '红方回合' : '黑方回合';
-        }
+        const stats = {
+            stepCount: this.gameState.movesCount,
+            totalTime: this.gameState.getTimes().redTime + this.gameState.getTimes().blackTime
+        };
         
-        if (this.turnIndicator) {
-            this.turnIndicator.textContent = turnText;
-            
-            // 更新样式
-            if (this.gameState.playerTurn === 'red') {
-                this.turnIndicator.className = 'turn-text red-turn';
-            } else {
-                this.turnIndicator.className = 'turn-text black-turn';
-            }
-        }
-        
-        // 更新头像
-        this.updatePlayerAvatar();
-        
-        // 更新步数
-        if (this.stepCount) {
-            this.stepCount.textContent = this.gameState.movesCount;
-        }
-        
-        // 更新时间
-        const { redTime, blackTime } = this.gameState.getTimes();
-        const totalTime = redTime + blackTime;
-        if (this.totalTime) {
-            this.totalTime.textContent = this.formatTime(totalTime);
-        }
-        
-        // 更新悔棋按钮状态
-        const undoBtn = document.getElementById('btn-regret');
-        if (undoBtn) {
-            undoBtn.disabled = this.gameState.moveHistory.length === 0;
-        }
+        this.uiController.updateUI(this.gameState, stats);
+        this.uiController.updateMoveHistory(this.logicHandler.getMoveHistory());
     }
     
     /**
-     * 更新玩家信息显示（在线模式）
+     * 渲染棋盘
      */
-    updatePlayerInfo() {
-        if (!this.isOnline) return;
-        
-        const campText = this.playerCamp === 'red' ? '红方' : '黑方';
-        const hostText = this.isHost ? '（房主）' : '（客人）';
-        const statusText = this.opponentConnected ? '已连接' : '等待中';
-        
-        console.log(`👤 玩家信息: ${campText}${hostText}, 对手状态: ${statusText}`);
-        
-        // 更新UI上的玩家信息显示
-        const turnText = document.getElementById('turn-text');
-        if (turnText) {
-            const baseText = this.gameState.playerTurn === this.playerCamp ? '你的回合' : '对手回合';
-            turnText.textContent = `${baseText}（${campText}${hostText}）`;
-        }
-        
-        // 更新头像
-        const avatarImg = document.querySelector('#player-indicator .avatar');
-        if (avatarImg) {
-            avatarImg.src = this.playerCamp === 'red' ? 'images/avatars/red-avatar.png' : 'images/avatars/black-avatar.png';
-            avatarImg.alt = campText;
+    render() {
+        if (this.renderer && this.gameState) {
+            this.renderer.render(this.gameState.pieces, this.gameState.lastMove);
         }
     }
     
-    /**
-     * 更新玩家头像
-     */
-    updatePlayerAvatar() {
-        const avatarContainer = document.getElementById('current-player-avatar');
-        if (!avatarContainer) return;
-        
-        const avatarImg = avatarContainer.querySelector('img');
-        if (!avatarImg) return;
-        
-        // 根据当前回合切换头像
-        if (this.gameState.playerTurn === 'red') {
-            avatarImg.src = 'images/avatars/red-avatar.png';
-            avatarImg.alt = '红方';
-        } else {
-            avatarImg.src = 'images/avatars/black-avatar.png';
-            avatarImg.alt = '黑方';
-        }
-    }
-    
-        
-    /**
-     * 发送聊天消息
-     */
-    sendChatMessage() {
-        const input = document.getElementById('chat-input-modal');
-        if (!input) return;
-            
-        const message = input.value.trim();
-        if (!message) return;
-            
-        this.addChatMessage('你', message);
-        input.value = '';
-            
-        // 如果是在线模式，发送消息给对手
-        if (this.isOnline && this.network) {
-            this.network.send({
-                type: 'chat_message',
-                data: { message: message }
-            });
-        }
-    }
-        
-    /**
-     * 添加聊天消息
-     */
-    addChatMessage(sender, message) {
-        const chatContent = document.getElementById('chat-content');
-        if (!chatContent) return;
-            
-        const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-        const messageElement = document.createElement('p');
-        messageElement.style.marginBottom = '5px';
-        messageElement.textContent = `[${time}] ${sender}: ${message}`;
-        chatContent.appendChild(messageElement);
-        chatContent.scrollTop = chatContent.scrollHeight;
-    }
-        
     /**
      * 显示棋谱记录对话框
      */
@@ -1346,7 +502,7 @@ class GameController {
             modal.classList.remove('hidden');
         }
     }
-        
+    
     /**
      * 显示聊天对话框
      */
@@ -1354,33 +510,56 @@ class GameController {
         const modal = document.getElementById('chat-modal');
         if (modal) {
             modal.classList.remove('hidden');
-            // 聚焦到输入框
             setTimeout(() => {
                 const input = document.getElementById('chat-input-modal');
                 if (input) input.focus();
             }, 100);
         }
     }
+    
+    /**
+     * 发送聊天消息
+     */
+    sendChatMessage() {
+        const input = document.getElementById('chat-input-modal');
+        if (!input) return;
         
+        const message = input.value.trim();
+        if (!message) return;
+        
+        this.uiController.addChatMessage('你', message, true);
+        input.value = '';
+        
+        if (this.isOnline) {
+            this.networkHandler.sendChatMessage(message);
+        }
+    }
+    
+    /**
+     * 添加聊天消息
+     */
+    addChatMessage(sender, message) {
+        this.uiController.addChatMessage(sender, message, false);
+    }
+    
     /**
      * 显示设置对话框
      */
     showSettingsModal() {
         const modal = document.getElementById('settings-modal');
         if (modal) {
-            // 更新UI状态
             this.updateSettingsUI();
             modal.classList.remove('hidden');
         }
     }
     
     /**
-     * 更新设置UI状态
+     * 更新设置UI
      */
     updateSettingsUI() {
-        // 更新音乐状态
         const musicStatusText = document.getElementById('music-status-text');
         const musicStyleText = document.getElementById('music-style-text');
+        
         if (musicStatusText) {
             musicStatusText.textContent = this.soundManager.musicEnabled ? '开启' : '关闭';
         }
@@ -1388,10 +567,10 @@ class GameController {
             musicStyleText.textContent = this.soundManager.currentMusicStyle === 'qq' ? 'QQ风格' : 'FC风格';
         }
         
-        // 更新音量
         const volumeValue = document.getElementById('volume-value');
         const volumeSlider = document.getElementById('volume-slider');
         const volumePercent = Math.round(this.soundManager.volume * 100);
+        
         if (volumeValue) {
             volumeValue.textContent = `${volumePercent}%`;
         }
@@ -1409,145 +588,59 @@ class GameController {
             modal.classList.remove('hidden');
         }
     }
-        
-    /**
-     * 显示设置（旧方法，保留兼容）
-     */
-    showSettings() {
-        this.showSettingsModal();
-    }
-        
-    /**
-     * 显示帮助（旧方法，保留兼容）
-     */
-    showHelp() {
-        this.showHelpModal();
-    }
-        
-    /**
-     * 切换暗黑模式
-     */
-    toggleDarkMode() {
-        const body = document.body;
-        const darkModeBtn = document.getElementById('btn-dark-mode');
-            
-        body.classList.toggle('dark-mode');
-            
-        const isDark = body.classList.contains('dark-mode');
-        if (darkModeBtn) {
-            // 直接更新按钮文本内容
-            darkModeBtn.textContent = isDark ? '☀️' : '🌙';
-        }
-            
-        // 保存用户偏好
-        localStorage.setItem('darkMode', isDark);
-            
-        console.log(`暗黑模式: ${isDark ? '开启' : '关闭'}`);
-    }
-    
-    /**
-     * 返回主页
-     */
-    goBackToHome() {
-        window.dialogManager.showConfirm(
-            '返回主页',
-            '确定要返回主页吗？当前游戏进度将丢失。',
-            () => {
-                // 停止背景音乐
-                this.soundManager.stopBackgroundMusic();
-                // 返回主页
-                window.location.href = '/';
-            },
-            () => {
-                console.log('取消返回主页');
-            }
-        );
-    }
     
     /**
      * 切换背景音乐
      */
     toggleBackgroundMusic() {
-        const musicStatusText = document.getElementById('music-status-text');
-        
         if (this.soundManager.musicEnabled) {
             this.soundManager.stopBackgroundMusic();
             this.soundManager.musicEnabled = false;
-            if (musicStatusText) {
-                musicStatusText.textContent = '关闭';
-            }
         } else {
             this.soundManager.playBackgroundMusic();
             this.soundManager.musicEnabled = true;
-            if (musicStatusText) {
-                musicStatusText.textContent = '开启';
-            }
         }
-        
-        // 保存设置
         localStorage.setItem('musicEnabled', this.soundManager.musicEnabled);
+        this.updateSettingsUI();
     }
     
     /**
      * 切换音乐风格
      */
     switchMusicStyle() {
-        const musicStyleText = document.getElementById('music-style-text');
         const newStyle = this.soundManager.toggleMusicStyle();
-        
-        if (musicStyleText) {
-            musicStyleText.textContent = newStyle === 'qq' ? 'QQ风格' : 'FC风格';
-        }
-        
-        // 保存设置
         localStorage.setItem('musicStyle', newStyle);
+        this.updateSettingsUI();
     }
     
     /**
      * 更新音量
+     * @param {number} volume - 音量百分比 0-100
      */
     updateVolume(volume) {
-        const volumeValue = document.getElementById('volume-value');
-        const volumePercent = Math.round(volume);
-        
-        if (volumeValue) {
-            volumeValue.textContent = `${volumePercent}%`;
-        }
-        
-        // 更新音效管理器音量
         this.soundManager.setMusicVolume(volume / 100);
-        
-        // 保存设置
         localStorage.setItem('volume', volume);
     }
     
     /**
      * 切换棋盘主题
+     * @param {string} theme - 主题名称
      */
     changeBoardTheme(theme) {
-        console.log(`切换棋盘主题: ${theme}`);
-        
-        // 通知渲染器更新主题
         if (this.renderer) {
             this.renderer.setBoardTheme(theme);
         }
-        
-        // 保存设置
         localStorage.setItem('boardTheme', theme);
     }
     
     /**
      * 切换棋子样式
+     * @param {string} style - 样式名称
      */
     changePieceStyle(style) {
-        console.log(`切换棋子样式: ${style}`);
-        
-        // 通知渲染器更新棋子样式
         if (this.renderer) {
             this.renderer.setPieceStyle(style);
         }
-        
-        // 保存设置
         localStorage.setItem('pieceStyle', style);
     }
     
@@ -1559,8 +652,6 @@ class GameController {
             '恢复默认设置',
             '确定要恢复所有设置为默认值吗？',
             () => {
-                console.log('开始恢复默认设置...');
-                
                 // 恢复默认音量
                 this.soundManager.setMusicVolume(0.7);
                 
@@ -1595,263 +686,79 @@ class GameController {
                     pieceStyleSelect.value = 'traditional';
                 }
                 
-                console.log('设置已恢复为默认值');
                 window.dialogManager.showInfo('提示', '设置已恢复为默认值');
-            },
-            () => {
-                console.log('取消恢复默认设置');
             }
         );
     }
-        
     
     /**
-     * 显示将军提示
+     * 返回主页
      */
-    showCheckAlert() {
-        if (this.checkAlert) {
-            this.checkAlert.classList.remove('hidden');
-            setTimeout(() => {
-                this.checkAlert.classList.add('hidden');
-            }, 3000);
-        }
-    }
-    
-    /**
-     * 隐藏将军提示
-     */
-    hideCheckAlert() {
-        if (this.checkAlert) {
-            this.checkAlert.classList.add('hidden');
-        }
-    }
-    
-    /**
-     * 添加到历史记录
-     */
-    addMoveToHistory(notation) {
-        this.moveHistory.push(notation);
-        
-        // 在控制台输出
-        console.log(`走法记录: ${this.moveHistory.length}. ${notation}`);
-        
-        // 更新模态框中的棋谱记录
-        const moveHistoryContent = document.getElementById('move-history-content');
-        if (moveHistoryContent) {
-            // 如果是第一次添加，清空提示文字
-            if (this.moveHistory.length === 1) {
-                moveHistoryContent.innerHTML = '';
+    goBackToHome() {
+        window.dialogManager.showConfirm(
+            '返回主页',
+            '确定要返回主页吗？当前游戏进度将丢失。',
+            () => {
+                this.soundManager.stopBackgroundMusic();
+                window.location.href = '/';
             }
-            
-            const moveItem = document.createElement('div');
-            moveItem.className = 'move-item';
-            moveItem.textContent = `${this.moveHistory.length}. ${notation}`;
-            moveHistoryContent.appendChild(moveItem);
-            
-            // 滚动到底部
-            moveHistoryContent.scrollTop = moveHistoryContent.scrollHeight;
-        }
-    }
-    
-    /**
-     * 生成走法记谱
-     */
-    generateMoveNotation(piece, fromRow, fromCol, toRow, toCol) {
-        // 简化版记谱
-        const pieceName = piece.name;
-        const action = piece.col === toCol ? '进' : piece.row === toRow ? '平' : '退';
-        const distance = Math.abs(toCol - fromCol) || Math.abs(toRow - fromRow);
-        
-        return `${pieceName}${action}${distance}`;
-    }
-    
-    /**
-     * 格式化时间
-     * @param {number} seconds - 秒数
-     * @returns {string} 格式化后的时间字符串 (MM:SS)
-     */
-    formatTime(seconds) {
-        // mins 是 minutes 的缩写，表示分钟数
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    
-    /**
-     * 处理对手移动
-     */
-    handleOpponentMove(data) {
-        console.log('🔄🔄 开始处理对手移动:', data);
-        console.log('📊 移动前 - 步数:', this.gameState.moveHistory.length);
-        
-        const { fromRow, fromCol, toRow, toCol } = data;
-        
-        // 执行移动
-        const success = this.gameState.movePiece(fromRow, fromCol, toRow, toCol);
-        
-        if (!success) {
-            console.error('❌ 对手移动执行失败');
-            return;
-        }
-        
-        console.log('✅ 移动执行成功');
-        
-        // 记录最后移动
-        this.gameState.lastMove = [fromRow, fromCol, toRow, toCol];
-        
-        // 生成走法记谱并添加到历史
-        const piece = this.gameState.getPieceAt(toRow, toCol);
-        if (piece) {
-            const notation = this.generateMoveNotation(piece, fromRow, fromCol, toRow, toCol);
-            this.lastMoveNotation = notation;
-            this.addMoveToHistory(notation);
-            console.log(' 记录对手走法:', notation);
-            console.log('📊 移动后 - 步数:', this.gameState.moveHistory.length);
-        }
-        
-        // 更新UI
-        this.updateUI();
-        
-        // 播放音效
-        this.soundManager.playMove();
-        
-        // 检查将军
-        if (this.gameState.inCheck) {
-            this.soundManager.playCheck();
-            this.showCheckAlert();
-        } else {
-            this.hideCheckAlert();
-        }
-        
-        // 检查游戏结束
-        if (this.gameState.gameOver) {
-            this.handleGameEnd();
-        } else {
-            // 检查将军/绝杀状态
-            this.soundManager.checkAndPlayGameSound(this.gameState);
-        }
-        
-        // 渲染棋盘
-        console.log('🎨 渲染棋盘...');
-        this.render();
-    }
-    
-    /**
-     * 处理网络模式游戏结束
-     */
-    handleNetworkGameOver(data) {
-        console.log('游戏结束:', data);
-        
-        this.gameState.gameOver = true;
-        this.gameState.winner = data.winner;
-        
-        this.handleGameEnd();
+        );
     }
     
     /**
      * 处理悔棋请求
      */
-    handleUndoRequest(data) {
+    handleUndoRequest() {
         window.dialogManager.showConfirm(
             '悔棋请求',
             '对手请求悔棋，是否同意？',
             () => {
-                // 同意悔棋
-                this.network.sendUndoResponse(true);
-                this.gameState.undoMove();
-                this.moveHistory.pop();
+                this.networkHandler.respondUndo(true);
+                this.logicHandler.undo();
                 this.updateUI();
                 this.render();
             },
             () => {
-                // 拒绝悔棋
-                this.network.sendUndoResponse(false);
+                this.networkHandler.respondUndo(false);
                 window.dialogManager.showInfo('提示', '已拒绝对手的悔棋请求');
             }
         );
     }
     
     /**
-     * 处理悔棋响应
-     */
-    handleUndoResponse(data) {
-        if (data.accepted) {
-            window.dialogManager.showInfo('提示', '对手同意了你的悔棋请求');
-            this.gameState.undoMove();
-            this.moveHistory.pop();
-            this.updateUI();
-            this.render();
-        } else {
-            window.dialogManager.showInfo('提示', '对手拒绝了你的悔棋请求');
-        }
-    }
-    
-    /**
      * 处理重新开始请求
      */
-    handleRestartRequest(data) {
-        console.log('收到重新开始请求:', data);
+    handleRestartRequest() {
         window.dialogManager.showConfirm(
             '重新开始请求',
             '对手请求重新开始游戏，是否同意？',
             () => {
-                // 同意重新开始
-                this.network.send('restart_response', { accepted: true });
-                window.dialogManager.showInfo('提示', '游戏将重新开始...');
+                this.networkHandler.respondRestart(true);
+                this.logicHandler.restart();
+                this.updateUI();
+                this.render();
             },
             () => {
-                // 拒绝重新开始
-                this.network.send('restart_response', { accepted: false });
+                this.networkHandler.respondRestart(false);
                 window.dialogManager.showInfo('提示', '已拒绝对手的重新开始请求');
             }
         );
     }
     
     /**
-     * 渲染棋盘
-     */
-    render() {
-        if (this.renderer && this.gameState) {
-            console.log('渲染棋盘:', {
-                piecesCount: this.gameState.pieces.length,
-                lastMove: this.gameState.lastMove,
-                canvasSize: `${this.canvas.width}x${this.canvas.height}`
-            });
-            this.renderer.render(this.gameState.pieces, this.gameState.lastMove);
-        } else {
-            console.error('渲染失败:', {
-                hasRenderer: !!this.renderer,
-                hasGameState: !!this.gameState
-            });
-        }
-    }
-    
-    /**
-     * 获取棋子类型（用于统计）
+     * 获取棋子类型
      */
     getPieceType(pieceName) {
-        // 棋子名称到统计类型的映射
         const typeMap = {
-            '車': 'ju',
-            '马': 'ma',
-            '馬': 'ma',
-            '相': 'xiang',
-            '象': 'xiang',
-            '士': 'shi',
-            '仕': 'shi',
-            '将': 'king',
-            '帥': 'king',
-            '帅': 'king',
-            '炮': 'pao',
-            '砲': 'pao',
-            '兵': 'pawn',
-            '卒': 'pawn',
-            '射': 'she',
-            '䠶': 'she',
-            '檑': 'lei',
-            '礌': 'lei'
+            '車': 'ju', '马': 'ma', '馬': 'ma',
+            '相': 'xiang', '象': 'xiang',
+            '士': 'shi', '仕': 'shi',
+            '将': 'king', '帥': 'king', '帅': 'king',
+            '炮': 'pao', '砲': 'pao',
+            '兵': 'pawn', '卒': 'pawn',
+            '射': 'she', '䠶': 'she',
+            '檑': 'lei', '礌': 'lei'
         };
-        
         return typeMap[pieceName] || null;
     }
 }

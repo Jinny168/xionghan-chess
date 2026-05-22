@@ -67,9 +67,8 @@ sudo ./scripts/linux/deploy.sh
 
 完整的部署指南请查看项目根目录的文档：
 
-- [DOCKER_DEPLOY.md](../docs/DOCKER_DEPLOY.md) - Docker 完整部署指南
-- [LINUX_DEPLOY_GUIDE.md](../docs/LINUX_DEPLOY_GUIDE.md) - Linux 虚拟机部署教程（小白版）
-- [README_DOCKER.md](../docs/README_DOCKER.md) - Docker 快速参考
+- [DEPLOY_GUIDE.md](../docs/DEPLOY_GUIDE.md) - 统一部署指南（Docker + Linux）
+- [QUICK_REFERENCE.md](../docs/QUICK_REFERENCE.md) - 快速参考卡片
 
 ## 🔧 常用命令
 

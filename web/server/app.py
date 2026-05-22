@@ -52,16 +52,10 @@ except (redis.ConnectionError, redis.AuthenticationError) as e:
     redis_client = None
     USE_REDIS = False
 
-# SocketIO配置优化：使用gevent或eventlet提升性能（如果已安装）
-try:
-    import gevent
-    async_mode = 'gevent'
-except ImportError:
-    try:
-        import eventlet
-        async_mode = 'eventlet'
-    except ImportError:
-        async_mode = 'threading'
+# SocketIO配置优化：开发环境使用threading模式，生产环境使用gevent
+# Windows开发环境推荐使用threading，避免eventlet弃用警告
+async_mode = 'threading'  # 开发环境
+# async_mode = 'gevent'   # 生产环境(Linux)
 
 # Socket.IO Redis 适配器（如果 Redis 可用）
 socketio_kwargs = {
@@ -113,11 +107,6 @@ class IgnoreBrokenPipeFilter(logging.Filter):
 
 # 应用到werkzeug日志
 log.addFilter(IgnoreBrokenPipeFilter())
-
-# 应用到eventlet日志
-import eventlet
-eventlet_log = logging.getLogger('eventlet')
-eventlet_log.addFilter(IgnoreBrokenPipeFilter())
 
 # ==================== 存储层 ====================
 # 房间存储（内存/Redis 混合模式）
@@ -813,17 +802,15 @@ def cleanup_loop():
 
 # ==================== 启动服务器 ====================
 if __name__ == '__main__':
-    # 只在非重载器进程中打印启动信息
-    import os
-    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-        print('=' * 50)
-        print('Xionghan Chess Web Server Started')
-        print(f'URL: http://localhost:5000')
-        print(f'Async Mode: {async_mode}')
-        print(f'Room Timeout: {ROOM_TIMEOUT}s')
-        print(f'IP Rate Limit: {MAX_CONNECTIONS_PER_IP} connections')
-        print(f'Static Cache: {STATIC_CACHE_TIMEOUT}s')
-        print('=' * 50)
+    # 始终打印启动信息
+    print('=' * 50)
+    print('Xionghan Chess Web Server Started')
+    print(f'URL: http://localhost:5000')
+    print(f'Async Mode: {async_mode}')
+    print(f'Room Timeout: {ROOM_TIMEOUT}s')
+    print(f'IP Rate Limit: {MAX_CONNECTIONS_PER_IP} connections')
+    print(f'Static Cache: {STATIC_CACHE_TIMEOUT}s')
+    print('=' * 50)
     
     # 启动后台清理任务
     socketio.start_background_task(cleanup_loop)

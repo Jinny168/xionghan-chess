@@ -46,6 +46,9 @@ class GameState {
         
         // 初始化棋子
         this.initializePieces();
+        
+        // 初始化后检查将军状态(开局不应该将军)
+        this.checkInitialState();
     }
     
     /**
@@ -54,6 +57,16 @@ class GameState {
     initializePieces() {
         // 匈汉象棋布局
         this.setupXionghanLayout();
+    }
+    
+    /**
+     * 检查初始状态(确保开局不会误判将军)
+     */
+    checkInitialState() {
+        const { GameRules } = window;
+        if (GameRules && GameRules.isCheck) {
+            this.inCheck = GameRules.isCheck(this.pieces, this.playerTurn);
+        }
     }
     
     setupTraditionalLayout() {
@@ -248,14 +261,18 @@ class GameState {
      * 在指定的出生点生成一个兵（消耗一次走子机会）
      * @param {number} row - 行坐标
      * @param {number} col - 列坐标
+     * @param {string} camp - 阵营颜色（可选，不传则使用当前玩家回合；网络对战中可显式指定）
      * @returns {boolean} 是否成功生成
      */
-    spawnBing(row, col) {
+    spawnBing(row, col, camp = null) {
+        // 确定阵营：优先使用传入的camp参数，否则使用当前玩家回合
+        const actualCamp = camp || this.playerTurn;
+        
         // 检查是否是当前玩家的回合
         if (this.gameOver) return false;
         
         // 检查该位置是否是合法的兵出生点
-        const spawnPoints = this.bingSpawnPoints[this.playerTurn];
+        const spawnPoints = this.bingSpawnPoints[actualCamp];
         if (!spawnPoints) return false;
         
         const isValidSpawnPoint = spawnPoints.some(([r, c]) => r === row && c === col);
@@ -267,7 +284,7 @@ class GameState {
         
         // 创建新兵
         const { Bing } = window;
-        const newBing = new Bing(this.playerTurn, row, col);
+        const newBing = new Bing(actualCamp, row, col);
         this.pieces.push(newBing);
         
         // 记录移动历史（特殊移动类型：生成兵）
@@ -391,19 +408,22 @@ class GameState {
         this.moveHistory.push(moveRecord);
         this.movesCount++;
         
-        // 切换玩家
+        // 清除缓存（棋盘状态已改变）
+        this._movesCache = {};
+        
+        // 切换回合
         if (!this.gameOver) {
             const previousPlayer = this.playerTurn;
             this.playerTurn = this.playerTurn === 'red' ? 'black' : 'red';
             this.currentTurnStartTime = Date.now();
             
-            // 检查对方是否被将军
+            // 检查对方是否被将军（现在playerTurn已切换为对方）
             this.inCheck = GameRules.isCheck(this.pieces, this.playerTurn);
             
             // 将军逻辑处理
             if (this.inCheck) {
                 this.consecutiveChecks++;
-                this.lastCheckBy = previousPlayer;
+                this.lastCheckBy = previousPlayer; // 上一个移动方将军
                 
                 // 禁止连将：如果连续将军超过3次，判违规
                 if (this.consecutiveChecks > 3) {
@@ -415,10 +435,10 @@ class GameState {
                 this.lastCheckBy = null;
             }
             
-            // 检查是否将死或困毙
+            // 检查是否将死或困毙（现在playerTurn是对方）
             if (this.isCheckmate()) {
                 this.gameOver = true;
-                this.winner = previousPlayer;
+                this.winner = previousPlayer; // 上一个移动方胜利
             }
         }
         
@@ -487,11 +507,15 @@ class GameState {
         this.winner = null;
         this.movesCount--;
         
+        // 清除缓存（棋盘状态已改变）
+        this._movesCache = {};
+        
         return true;
     }
     
     /**
      * 计算可能移动（过滤掉会导致送将的移动）
+     * 带缓存优化：如果棋盘状态未改变，直接返回缓存结果
      */
     calculatePossibleMoves(row, col) {
         const { GameRules } = window;
@@ -499,6 +523,14 @@ class GameState {
         
         if (!piece) {
             return { moves: [], capturable: [] };
+        }
+        
+        // 生成缓存键：基于棋子位置和棋盘状态哈希
+        const cacheKey = `${piece.name}_${row}_${col}_${this.movesCount}`;
+        
+        // 检查缓存
+        if (this._movesCache && this._movesCache[cacheKey]) {
+            return this._movesCache[cacheKey];
         }
         
         // 获取所有符合基本规则的移动
@@ -512,7 +544,21 @@ class GameState {
             !this.wouldBeInCheckAfterMove(piece, move.row, move.col)
         );
         
-        return { moves: validMoves, capturable: validCapturable };
+        const result = { moves: validMoves, capturable: validCapturable };
+        
+        // 缓存结果（限制缓存大小）
+        if (!this._movesCache) {
+            this._movesCache = {};
+        }
+        this._movesCache[cacheKey] = result;
+        
+        // 清理旧缓存（保留最近100个）
+        const keys = Object.keys(this._movesCache);
+        if (keys.length > 100) {
+            delete this._movesCache[keys[0]];
+        }
+        
+        return result;
     }
     
     /**
@@ -667,6 +713,12 @@ class GameState {
         this.currentTurnStartTime = Date.now();
         this.movesCount = 0;
         
+        // 重置将军状态
+        this.inCheck = false;
+        this.checkWarningShown = false;
+        this.consecutiveChecks = 0;
+        this.lastCheckBy = null;
+        
         // 重置棋子价值配置
         this.pieceValues = {
             '漢': 10000, '汗': 10000,
@@ -681,6 +733,9 @@ class GameState {
         };
         
         this.initializePieces();
+        
+        // 重新检查初始状态
+        this.checkInitialState();
         
         // 重新设置兵的出生点
         this.bingSpawnPoints = {

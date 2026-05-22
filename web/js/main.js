@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 设置Canvas尺寸（在初始化GameController之前）
     const canvas = document.getElementById('chess-board');
-    const container = document.querySelector('.board-container');
+    const container = document.querySelector('.board-wrapper');
     if (canvas && container) {
         // 根据容器大小自适应设置Canvas尺寸
         let resizeTimer;
