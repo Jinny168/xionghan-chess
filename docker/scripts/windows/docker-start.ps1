@@ -28,10 +28,10 @@ try {
 Write-Host ""
 
 # 检查 .env 文件
-if (-Not (Test-Path ".env")) {
+if (-Not (Test-Path "../config/.env")) {
     Write-Host "[警告] 未找到 .env 文件，正在从 .env.example 复制..." -ForegroundColor Yellow
-    Copy-Item ".env.example" ".env"
-    Write-Host "[提示] 请编辑 .env 文件修改密码配置" -ForegroundColor Cyan
+    Copy-Item "../config/.env.example" "../config/.env"
+    Write-Host "[提示] 请编辑 config/.env 文件修改密码配置" -ForegroundColor Cyan
     Write-Host ""
 }
 
@@ -45,11 +45,11 @@ $mode = Read-Host "请输入选项 (1/2)"
 if ($mode -eq "1") {
     Write-Host ""
     Write-Host "[信息] 启动开发模式..." -ForegroundColor Cyan
-    docker compose up -d redis web
+    docker compose -f ../config/docker-compose.yml up -d redis web
 } elseif ($mode -eq "2") {
     Write-Host ""
     Write-Host "[信息] 启动生产模式..." -ForegroundColor Cyan
-    docker compose --profile production up -d
+    docker compose -f ../config/docker-compose.yml --profile production up -d
 } else {
     Write-Host "[错误] 无效选项" -ForegroundColor Red
     Read-Host "按回车键退出"
@@ -64,7 +64,7 @@ Write-Host ""
 
 # 显示服务状态
 Write-Host "服务状态:" -ForegroundColor Yellow
-docker compose ps
+docker compose -f ../config/docker-compose.yml ps
 Write-Host ""
 
 # 显示访问地址
