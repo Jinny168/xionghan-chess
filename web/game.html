@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:;base64,=">
     <title>匈汉象棋</title>
-    <link rel="stylesheet" href="css/game.css?v=7">
+    <link rel="stylesheet" href="css/game.css?v=8">
     <!-- 引入Socket.IO客户端库（使用多个CDN备用） -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
@@ -82,7 +82,7 @@
         <div class="modal-dialog">
             <div class="modal-header">
                 <h2>📋 棋谱记录</h2>
-                <button class="modal-close" id="close-move-history">&times;</button>
+                <button class="modal-close" id="close-move-history-modal">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="move-history-content" class="move-history" style="height: 400px;">
@@ -126,7 +126,7 @@
         <div class="modal-dialog">
             <div class="modal-header">
                 <h2>💬 聊天</h2>
-                <button class="modal-close" id="close-chat">&times;</button>
+                <button class="modal-close" id="close-chat-modal">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="chat-messages" id="chat-content" style="height: 300px;">
@@ -337,9 +337,9 @@
         });
     </script>
     <script src="js/core/chess-piece.js?v=1"></script>
-    <script src="js/core/game-rules.js?v=3"></script>
-    <script src="js/core/game-state.js?v=4"></script>
-    <script src="js/ui/chess-board-renderer.js?v=2"></script>
+    <script src="js/core/game-rules.js?v=5"></script>
+    <script src="js/core/game-state.js?v=5"></script>
+    <script src="js/ui/chess-board-renderer.js?v=3"></script>
     <script src="js/ui/dialog-manager.js?v=1"></script>
     <script src="js/network/websocket-client.js?v=1"></script>
     <script src="js/controllers/sound-manager.js?v=1"></script>
@@ -347,14 +347,14 @@
     <script src="js/controllers/taunt-manager.js?v=1"></script>
     <script src="js/controllers/statistics-manager.js?v=1"></script>
     <script src="js/controllers/event-dispatcher.js?v=1"></script>
-    <script src="js/controllers/game-logic-handler.js?v=5"></script>
+    <script src="js/controllers/game-logic-handler.js?v=6"></script>
     <script src="js/controllers/network-handler.js?v=1"></script>
-    <script src="js/controllers/ui-controller.js?v=3"></script>
+    <script src="js/controllers/ui-controller.js?v=5"></script>
     <script src="js/controllers/game-record-manager.js?v=1"></script>
     <script src="js/controllers/replay-controller.js?v=1"></script>
     <script src="js/controllers/replay-manager.js?v=1"></script>
     <script src="js/controllers/game-rule-config.js?v=1"></script>
-    <script src="js/controllers/game-controller.js?v=6"></script>
+    <script src="js/controllers/game-controller.js?v=7"></script>
     <script src="js/main.js?v=4"></script>
 </body>
 </html>

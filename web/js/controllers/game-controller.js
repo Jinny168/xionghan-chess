@@ -85,22 +85,22 @@ class GameController {
      * 初始化子控制器
      */
     initializeControllers() {
-        console.log('🎮 初始化子控制器...');
-        console.log('  Canvas元素:', this.canvas ? this.canvas.id : '未找到');
-        console.log('  Canvas尺寸:', this.canvas ? `${this.canvas.width}x${this.canvas.height}` : 'N/A');
+        // console.log('🎮 初始化子控制器...');
+        // console.log('  Canvas元素:', this.canvas ? this.canvas.id : '未找到');
+        // console.log('  Canvas尺寸:', this.canvas ? `${this.canvas.width}x${this.canvas.height}` : 'N/A');
         
         this.logicHandler = new GameLogicHandler(this.gameState, this.ruleConfig, this.events);
         this.networkHandler = new NetworkHandler(this.events);
         this.uiController = new UIController(this.canvas, this.events);
         this.uiController.initElements();
         
-        console.log('  UIController.canvas:', this.uiController.canvas ? this.uiController.canvas.id : '未找到');
-        console.log('  UIController.elements.canvas:', this.uiController.elements.canvas ? this.uiController.elements.canvas.id : '未找到');
+        // console.log('  UIController.canvas:', this.uiController.canvas ? this.uiController.canvas.id : '未找到');
+        // console.log('  UIController.elements.canvas:', this.uiController.elements.canvas ? this.uiController.elements.canvas.id : '未找到');
         
         this.replayManager = new ReplayManager(this);
         this.replayManager.init();
         
-        console.log('✅ 子控制器初始化完成');
+        // console.log('✅ 子控制器初始化完成');
     }
     
     /**
@@ -215,20 +215,20 @@ class GameController {
      * 处理Canvas点击
      */
     handleCanvasClick(pos) {
-        console.log('👆 Canvas点击:', pos);
+        // console.log('👆 Canvas点击:', pos);
         
         if (this.gameState.gameOver) {
-            console.log('   游戏已结束');
+            // console.log('   游戏已结束');
             return;
         }
         if (this.isOnline && this.gameState.playerTurn !== this.playerCamp) {
-            console.log('  ❌ 不是你的回合');
+            // console.log('  ❌ 不是你的回合');
             return;
         }
         
         const piece = this.gameState.getPieceAt(pos.row, pos.col);
-        console.log('  选中的棋子:', piece ? `${piece.name}(${piece.color || piece.camp})` : '空');
-        console.log('  当前选中:', this.uiController.getSelectedPiece());
+        // console.log('  选中的棋子:', piece ? `${piece.name}(${piece.color || piece.camp})` : '空');
+        // console.log('  当前选中:', this.uiController.getSelectedPiece());
         
         // 检查是否点击了兵的出生点
         if (!this.uiController.getSelectedPiece()) {
@@ -259,11 +259,11 @@ class GameController {
         // 选择或移动棋子
         if (this.uiController.getSelectedPiece()) {
             const selectedPos = this.uiController.getSelectedPiece();
-            console.log('  尝试移动:', selectedPos, '->', pos);
+            // console.log('  尝试移动:', selectedPos, '->', pos);
             const result = this.logicHandler.executeMove(selectedPos, pos);
             
             if (result.success) {
-                console.log('  ✅ 移动成功');
+                // console.log('  ✅ 移动成功');
                 this.uiController.clearSelection();
                 this.renderer.clearHighlights();
                 
@@ -276,7 +276,7 @@ class GameController {
                     return; // 游戏结束后直接返回
                 }
             } else {
-                console.log('  ❌ 移动失败:', result.message);
+                // console.log('  ❌ 移动失败:', result.message);
                 // 如果点击的是己方其他棋子，切换选中
                 if (piece && (piece.color === this.gameState.playerTurn || piece.camp === this.gameState.playerTurn)) {
                     this.selectPiece(pos); // selectPiece内部已经调用了render
@@ -286,11 +286,11 @@ class GameController {
         } else {
             // 选择棋子
             if (piece && (piece.color === this.gameState.playerTurn || piece.camp === this.gameState.playerTurn)) {
-                console.log('  ✅ 选择棋子:', piece.name);
+                // console.log('  ✅ 选择棋子:', piece.name);
                 this.selectPiece(pos); // selectPiece内部已经调用了render
                 return; // 避免重复渲染
             } else {
-                console.log('  ❌ 无法选择:', piece ? (piece.color || piece.camp) : '空');
+                // console.log('  ❌ 无法选择:', piece ? (piece.color || piece.camp) : '空');
             }
         }
         

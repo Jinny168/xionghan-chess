@@ -40,7 +40,7 @@ class UIController {
             
             // 按钮
             homeBtn: document.getElementById('btn-home'),
-            undoBtn: document.getElementById('btn-undo'),
+            undoBtn: document.getElementById('btn-regret'),
             restartBtn: document.getElementById('btn-restart'),
             surrenderBtn: document.getElementById('btn-surrender'),
             newGameBtn: document.getElementById('btn-new-game'),
@@ -112,6 +112,24 @@ class UIController {
         // closeSettings和closeHelp是侧边栏的关闭按钮(如果有的话)
         this.bindButton('closeSettings', () => this.togglePanel('settingsPanel', false));
         this.bindButton('closeHelp', () => this.togglePanel('helpPanel', false));
+        
+        // 棋谱记录对话框右上角×按钮 - 关闭模态对话框
+        const closeMoveHistoryModal = document.getElementById('close-move-history-modal');
+        if (closeMoveHistoryModal) {
+            closeMoveHistoryModal.addEventListener('click', () => {
+                const modal = document.getElementById('move-history-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
+        
+        // 聊天对话框右上角×按钮
+        const closeChatModal = document.getElementById('close-chat-modal');
+        if (closeChatModal) {
+            closeChatModal.addEventListener('click', () => {
+                const modal = document.getElementById('chat-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
         
         // 设置对话框右上角×按钮 - 关闭模态对话框
         const closeSettingsModal = document.getElementById('close-settings-modal');
@@ -228,11 +246,11 @@ class UIController {
         const y = event.clientY - rect.top;
         
         // 调试日志
-        console.log(' getCanvasPosition:', {
-            canvasSize: `${this.canvas.width}x${this.canvas.height}`,
-            displaySize: `${rect.width.toFixed(0)}x${rect.height.toFixed(0)}`,
-            clickPos: `(${x.toFixed(0)}, ${y.toFixed(0)})`
-        });
+        // console.log(' getCanvasPosition:', {
+        //     canvasSize: `${this.canvas.width}x${this.canvas.height}`,
+        //     displaySize: `${rect.width.toFixed(0)}x${rect.height.toFixed(0)}`,
+        //     clickPos: `(${x.toFixed(0)}, ${y.toFixed(0)})`
+        // });
         
         // 使用渲染器中的margin和gridSize进行坐标转换
         // 注意：这里需要与chess-board-renderer中的calculateDimensions保持一致
@@ -247,7 +265,7 @@ class UIController {
         const col = Math.round((x - marginLeft) / gridSize);
         const row = Math.round((y - marginTop) / gridSize);
         
-        console.log('🎯 转换结果:', { row, col, gridSize: gridSize.toFixed(2) });
+        // console.log('🎯 转换结果:', { row, col, gridSize: gridSize.toFixed(2) });
         
         return { row, col };
     }

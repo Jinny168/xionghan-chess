@@ -319,11 +319,11 @@ class GameRules {
                 return false; // 存在夹逼，不能移动
             }
                 
-            console.log('✅ 相移动合法：田字走法');
+            // console.log('✅ 相移动合法：田字走法');
             return true;
         }
-            
-        console.log('❌ 相移动不合法：不符合任何规则');
+                
+        // console.log('❌ 相移动不合法：不符合任何规则');
         return false;
     }
     
@@ -805,14 +805,14 @@ class GameRules {
                 
             // 检查实际移动距离是否超过限制
             if (absRowDiff > maxDistance) {
-                console.log('⛔ 射移动被拒绝：超过星点限制', 
-                    `实际距离: ${absRowDiff}, 最大允许: ${maxDistance}`);
+                // console.log('⛔ 射移动被拒绝：超过星点限制', 
+                //     `实际距离: ${absRowDiff}, 最大允许: ${maxDistance}`);
                 return false;
             }
         } else {
             // 强化模式：斜向移动最多3格，不受星点限制
             if (absRowDiff > 3) {
-                console.log('⛔ 射移动被拒绝：超过最大距离3格', `距离: ${absRowDiff}`);
+                // console.log(' 射移动被拒绝：超过最大距离3格', `距离: ${absRowDiff}`);
                 return false;
             }
         }
@@ -823,7 +823,7 @@ class GameRules {
                 
         // 首先检查起点位置的夹逼（即使只移动一格也需要检查）
         if (this.hasPinch(fromRow, fromCol, stepRow, stepCol, pieces)) {
-            console.log('⛔ 射移动被拒绝：起点位置存在夹逼');
+            // console.log('⛔ 射移动被拒绝：起点位置存在夹逼');
             return false;
         }
                 
@@ -834,18 +834,18 @@ class GameRules {
                     
             // 检查是否有棋子阻挡
             if (this.getPieceAt(pieces, checkRow, checkCol)) {
-                console.log('⛔ 射移动被拒绝：路径上有阻挡', [checkRow, checkCol]);
+                // console.log('⛔ 射移动被拒绝：路径上有阻挡', [checkRow, checkCol]);
                 return false;
             }
                     
             // 使用通用方法检查夹逼
             if (this.hasPinch(checkRow, checkCol, stepRow, stepCol, pieces)) {
-                console.log('⛔ 射移动被拒绝：路径位置存在夹逼', [checkRow, checkCol]);
+                // console.log('⛔ 射移动被拒绝：路径位置存在夹逼', [checkRow, checkCol]);
                 return false;
             }
         }
                 
-        console.log('✅ 射移动合法');
+        // console.log('✅ 射移动合法');
         // 路径畅通，可以移动或吃子
         return true;
     }

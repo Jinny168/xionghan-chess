@@ -272,13 +272,7 @@ class ChessBoardRenderer {
     calculateDimensions() {
         const width = this.canvas.width;
         const height = this.canvas.height;
-        
-        console.log('📐 calculateDimensions:', {
-            canvasSize: `${width}x${height}`,
-            marginLeft: this.marginLeft,
-            marginTop: this.marginTop
-        });
-        
+
         if (this.traditionalMode) {
             // 传统象棋：9x10棋盘，宽高比9:10
             this.boardWidth = width - 2 * this.marginLeft;
@@ -291,11 +285,11 @@ class ChessBoardRenderer {
             this.gridSize = this.boardWidth / 12;
         }
         
-        console.log('📊 棋盘尺寸计算:', {
-            boardWidth: this.boardWidth,
-            boardHeight: this.boardHeight,
-            gridSize: this.gridSize
-        });
+        // console.log('📊 棋盘尺寸计算:', {
+        //     boardWidth: this.boardWidth,
+        //     boardHeight: this.boardHeight,
+        //     gridSize: this.gridSize
+        // });
         
         // 确保不超出画布
         if (this.boardHeight > height - 2 * this.marginTop) {
@@ -345,13 +339,13 @@ class ChessBoardRenderer {
      * 渲染棋盘（与draw方法相同，提供兼容性）
      */
     render(pieces, lastMove) {
-        console.log('ChessBoardRenderer.render 被调用:', {
-            piecesCount: pieces ? pieces.length : 0,
-            hasLastMove: !!lastMove,
-            traditionalMode: this.traditionalMode,
-            canvasSize: `${this.canvas.width}x${this.canvas.height}`,
-            gridSize: this.gridSize
-        });
+        // console.log('ChessBoardRenderer.render 被调用:', {
+        //     piecesCount: pieces ? pieces.length : 0,
+        //     hasLastMove: !!lastMove,
+        //     traditionalMode: this.traditionalMode,
+        //     canvasSize: `${this.canvas.width}x${this.canvas.height}`,
+        //     gridSize: this.gridSize
+        // });
         
         // 将lastMove转换为gameState格式
         const gameState = lastMove ? { lastMove } : null;
@@ -583,15 +577,15 @@ class ChessBoardRenderer {
      * 绘制棋子
      */
     drawPieces(pieces) {
-        console.log('绘制棋子:', pieces ? pieces.length : 0, '个');
-        if (pieces && pieces.length > 0) {
-            console.log('前3个棋子:', pieces.slice(0, 3).map(p => ({
-                name: p.name,
-                color: p.color,
-                row: p.row,
-                col: p.col
-            })));
-        }
+        // console.log('绘制棋子:', pieces ? pieces.length : 0, '个');
+        // if (pieces && pieces.length > 0) {
+        //     console.log('前3个棋子:', pieces.slice(0, 3).map(p => ({
+        //         name: p.name,
+        //         color: p.color,
+        //         row: p.row,
+        //         col: p.col
+        //     })));
+        // }
         
         pieces.forEach(piece => {
             this.drawPiece(piece);

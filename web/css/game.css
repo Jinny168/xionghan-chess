@@ -450,29 +450,51 @@ canvas {
 
 /* ========== 暗黑模式 ========== */
 body.dark-mode {
-    background: #0a0a1a;
+    background: #121212;
 }
 
+/* 顶部栏暗黑模式 - 更深的背景 */
 body.dark-mode .top-bar {
-    background: linear-gradient(180deg, rgba(10, 10, 20, 0.95) 0%, rgba(5, 5, 15, 0.9) 100%);
+    background: linear-gradient(180deg, rgba(20, 20, 35, 0.98) 0%, rgba(15, 15, 28, 0.95) 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+body.dark-mode .game-name {
+    color: #e0e0e0;
+}
+
+body.dark-mode .turn-indicator {
+    color: #b0b0b0;
+}
+
+body.dark-mode .game-stats-bar {
+    color: #909090;
+}
+
+/* 工具按钮 - 更高的对比度 */
 body.dark-mode .tool-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(40, 40, 60, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #d0d0d0;
 }
 
 body.dark-mode .tool-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(60, 60, 90, 0.9);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
 }
 
+/* 图标按钮 */
 body.dark-mode .icon-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(40, 40, 60, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #d0d0d0;
 }
 
 body.dark-mode .icon-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(60, 60, 90, 0.9);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
 }
 
 body.dark-mode .modal-dialog {

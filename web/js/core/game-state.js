@@ -356,27 +356,27 @@ class GameState {
      * 移动棋子
      */
     movePiece(fromRow, fromCol, toRow, toCol) {
-        console.log('=== GameState.movePiece 被调用 ===');
-        console.log('起始:', [fromRow, fromCol], '目标:', [toRow, toCol]);
-        console.log('当前回合:', this.playerTurn);
+        // 减少调试日志输出
+        // console.log('=== GameState.movePiece 被调用 ===');
+        // console.log('起始:', [fromRow, fromCol], '目标:', [toRow, toCol]);
         
         const { GameRules } = window;
         const piece = this.getPieceAt(fromRow, fromCol);
         
-        console.log('选中的棋子:', piece ? piece.name : 'null', piece ? piece.color : 'null');
+        // console.log('选中的棋子:', piece ? piece.name : 'null', piece ? piece.color : 'null');
         
         if (!piece || piece.color !== this.playerTurn) {
-            console.log('❌ 移动失败：没有棋子或不是当前回合');
+            // console.log('❌ 移动失败：没有棋子或不是当前回合');
             return false;
         }
         
-        console.log('调用 GameRules.isValidMove...');
+        // console.log('调用 GameRules.isValidMove...');
         if (!GameRules.isValidMove(this.pieces, piece, fromRow, fromCol, toRow, toCol)) {
-            console.log('❌ 移动失败：不符合规则');
+            // console.log('❌ 移动失败：不符合规则');
             return false;
         }
         
-        console.log('✅ 移动符合规则，继续检查将军...');
+        // console.log('✅ 移动符合规则，继续检查将军...');
         
         // 检查是否会导致自己被将军（禁止送将）
         if (this.wouldBeInCheckAfterMove(piece, toRow, toCol)) {
