@@ -413,10 +413,16 @@ class GameController {
      * 新对局
      */
     newGame() {
-        this.logicHandler.restart();
-        this.avatarManager.clearCache();
-        this.updateUI();
-        this.render();
+        window.dialogManager.showConfirm(
+            '新对局',
+            '确定要开始新对局吗？当前游戏进度将丢失。',
+            () => {
+                this.logicHandler.restart();
+                this.avatarManager.clearCache();
+                this.updateUI();
+                this.render();
+            }
+        );
     }
     
     /**

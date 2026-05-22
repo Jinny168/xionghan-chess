@@ -26,6 +26,11 @@ class NetworkHandler {
      * @param {string} roomId - 房间ID
      */
     initialize(roomId) {
+        if (!roomId) {
+            console.warn('⚠️ 房间ID为空，无法初始化网络连接');
+            return;
+        }
+        
         this.roomId = roomId;
         
         console.log(`🚀 正在连接房间: ${roomId}`);
@@ -35,13 +40,30 @@ class NetworkHandler {
         const host = window.location.host;
         const serverUrl = `${protocol}//${host}`;
         
+        // 检查WebSocketClient是否已加载
+        if (typeof WebSocketClient === 'undefined') {
+            console.error('❌ WebSocketClient类未加载，请检查HTML中是否包含websocket-client.js');
+            return;
+        }
+        
         this.network = new WebSocketClient(serverUrl);
+        
+        // 检查网络连接是否创建成功
+        if (!this.network) {
+            console.error('❌ 网络客户端创建失败');
+            return;
+        }
         
         // 注册事件回调
         this.registerEventHandlers();
         
-        // 加入房间
-        this.joinRoom(roomId);
+        // 先连接服务器，再加入房间
+        this.network.connect().then(() => {
+            console.log('✅ 服务器连接成功，加入房间');
+            this.joinRoom(roomId);
+        }).catch((error) => {
+            console.error('❌ 服务器连接失败:', error);
+        });
     }
 
     /**
@@ -144,9 +166,17 @@ class NetworkHandler {
      * @param {string} roomId
      */
     joinRoom(roomId) {
-        if (this.network) {
-            this.network.joinRoom(roomId);
+        if (!this.network) {
+            console.warn('⚠️ 网络客户端未初始化，无法加入房间');
+            return;
         }
+        
+        if (typeof this.network.joinGameRoom !== 'function') {
+            console.error('❌ 网络客户端没有joinGameRoom方法');
+            return;
+        }
+        
+        this.network.joinGameRoom(roomId);
     }
 
     /**

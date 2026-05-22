@@ -36,7 +36,7 @@ class UIController {
             totalTime: document.getElementById('total-time'),
             
             // 棋谱
-            moveList: document.getElementById('move-history'),
+            moveList: document.getElementById('move-history-content'),
             
             // 按钮
             homeBtn: document.getElementById('btn-home'),
@@ -336,6 +336,12 @@ class UIController {
         if (!this.elements.moveList) return;
         
         this.elements.moveList.innerHTML = '';
+        
+        if (!history || history.length === 0) {
+            // 没有记录时显示提示
+            this.elements.moveList.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">暂无走棋记录</div>';
+            return;
+        }
         
         history.forEach((move, index) => {
             const item = document.createElement('div');
