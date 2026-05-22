@@ -193,8 +193,8 @@ docker cp xionghan-redis:/data/dump.rdb ./backup.rdb
 
 ## 📖 更多文档
 
-- [DOCKER_DEPLOY.md](docs/DOCKER_DEPLOY.md) - 完整 Docker 部署指南
-- [LINUX_DEPLOY_GUIDE.md](docs/LINUX_DEPLOY_GUIDE.md) - Linux 虚拟机部署教程
+- [DOCKER_DEPLOY.md](../docs/DOCKER_DEPLOY.md) - 完整 Docker 部署指南
+- [LINUX_DEPLOY_GUIDE.md](../docs/LINUX_DEPLOY_GUIDE.md) - Linux 虚拟机部署教程
 
 ---
 
