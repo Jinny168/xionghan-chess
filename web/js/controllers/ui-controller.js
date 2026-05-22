@@ -36,11 +36,11 @@ class UIController {
             totalTime: document.getElementById('total-time'),
             
             // 棋谱
-            moveList: document.getElementById('move-history'),
+            moveList: document.getElementById('move-history-content'),
             
             // 按钮
             homeBtn: document.getElementById('btn-home'),
-            undoBtn: document.getElementById('btn-undo'),
+            undoBtn: document.getElementById('btn-regret'),
             restartBtn: document.getElementById('btn-restart'),
             surrenderBtn: document.getElementById('btn-surrender'),
             newGameBtn: document.getElementById('btn-new-game'),
@@ -108,8 +108,47 @@ class UIController {
         // 关闭按钮
         this.bindButton('closeMoveHistory', () => this.togglePanel('moveHistoryPanel', false));
         this.bindButton('closeChat', () => this.togglePanel('chatPanel', false));
+        
+        // closeSettings和closeHelp是侧边栏的关闭按钮(如果有的话)
         this.bindButton('closeSettings', () => this.togglePanel('settingsPanel', false));
         this.bindButton('closeHelp', () => this.togglePanel('helpPanel', false));
+        
+        // 棋谱记录对话框右上角×按钮 - 关闭模态对话框
+        const closeMoveHistoryModal = document.getElementById('close-move-history-modal');
+        if (closeMoveHistoryModal) {
+            closeMoveHistoryModal.addEventListener('click', () => {
+                const modal = document.getElementById('move-history-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
+        
+        // 聊天对话框右上角×按钮
+        const closeChatModal = document.getElementById('close-chat-modal');
+        if (closeChatModal) {
+            closeChatModal.addEventListener('click', () => {
+                const modal = document.getElementById('chat-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
+        
+        // 设置对话框右上角×按钮 - 关闭模态对话框
+        const closeSettingsModal = document.getElementById('close-settings-modal');
+        if (closeSettingsModal) {
+            closeSettingsModal.addEventListener('click', () => {
+                const modal = document.getElementById('settings-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
+        
+        // 帮助对话框右上角×按钮
+        const closeHelpModal = document.getElementById('close-help-modal');
+        if (closeHelpModal) {
+            closeHelpModal.addEventListener('click', () => {
+                const modal = document.getElementById('help-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
+        
         this.bindButton('closeReplaySidebar', () => this.togglePanel('replaySidebar', false));
 
         // 聊天发送
@@ -166,6 +205,24 @@ class UIController {
         if (btnResetSettings && handlers.onResetSettings) {
             btnResetSettings.addEventListener('click', handlers.onResetSettings);
         }
+        
+        // 设置对话框 - 关闭按钮（底部）
+        const btnCloseSettings = document.getElementById('btn-close-settings');
+        if (btnCloseSettings) {
+            btnCloseSettings.addEventListener('click', () => {
+                const modal = document.getElementById('settings-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
+        
+        // 帮助对话框 - 关闭按钮（底部）
+        const btnCloseHelp = document.getElementById('btn-close-help');
+        if (btnCloseHelp) {
+            btnCloseHelp.addEventListener('click', () => {
+                const modal = document.getElementById('help-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
     }
 
     /**
@@ -189,11 +246,11 @@ class UIController {
         const y = event.clientY - rect.top;
         
         // 调试日志
-        console.log(' getCanvasPosition:', {
-            canvasSize: `${this.canvas.width}x${this.canvas.height}`,
-            displaySize: `${rect.width.toFixed(0)}x${rect.height.toFixed(0)}`,
-            clickPos: `(${x.toFixed(0)}, ${y.toFixed(0)})`
-        });
+        // console.log(' getCanvasPosition:', {
+        //     canvasSize: `${this.canvas.width}x${this.canvas.height}`,
+        //     displaySize: `${rect.width.toFixed(0)}x${rect.height.toFixed(0)}`,
+        //     clickPos: `(${x.toFixed(0)}, ${y.toFixed(0)})`
+        // });
         
         // 使用渲染器中的margin和gridSize进行坐标转换
         // 注意：这里需要与chess-board-renderer中的calculateDimensions保持一致
@@ -208,7 +265,7 @@ class UIController {
         const col = Math.round((x - marginLeft) / gridSize);
         const row = Math.round((y - marginTop) / gridSize);
         
-        console.log('🎯 转换结果:', { row, col, gridSize: gridSize.toFixed(2) });
+        // console.log('🎯 转换结果:', { row, col, gridSize: gridSize.toFixed(2) });
         
         return { row, col };
     }
@@ -279,6 +336,12 @@ class UIController {
         if (!this.elements.moveList) return;
         
         this.elements.moveList.innerHTML = '';
+        
+        if (!history || history.length === 0) {
+            // 没有记录时显示提示
+            this.elements.moveList.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">暂无走棋记录</div>';
+            return;
+        }
         
         history.forEach((move, index) => {
             const item = document.createElement('div');

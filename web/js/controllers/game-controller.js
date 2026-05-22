@@ -85,22 +85,22 @@ class GameController {
      * 初始化子控制器
      */
     initializeControllers() {
-        console.log('🎮 初始化子控制器...');
-        console.log('  Canvas元素:', this.canvas ? this.canvas.id : '未找到');
-        console.log('  Canvas尺寸:', this.canvas ? `${this.canvas.width}x${this.canvas.height}` : 'N/A');
+        // console.log('🎮 初始化子控制器...');
+        // console.log('  Canvas元素:', this.canvas ? this.canvas.id : '未找到');
+        // console.log('  Canvas尺寸:', this.canvas ? `${this.canvas.width}x${this.canvas.height}` : 'N/A');
         
         this.logicHandler = new GameLogicHandler(this.gameState, this.ruleConfig, this.events);
         this.networkHandler = new NetworkHandler(this.events);
         this.uiController = new UIController(this.canvas, this.events);
         this.uiController.initElements();
         
-        console.log('  UIController.canvas:', this.uiController.canvas ? this.uiController.canvas.id : '未找到');
-        console.log('  UIController.elements.canvas:', this.uiController.elements.canvas ? this.uiController.elements.canvas.id : '未找到');
+        // console.log('  UIController.canvas:', this.uiController.canvas ? this.uiController.canvas.id : '未找到');
+        // console.log('  UIController.elements.canvas:', this.uiController.elements.canvas ? this.uiController.elements.canvas.id : '未找到');
         
         this.replayManager = new ReplayManager(this);
         this.replayManager.init();
         
-        console.log('✅ 子控制器初始化完成');
+        // console.log('✅ 子控制器初始化完成');
     }
     
     /**
@@ -215,20 +215,20 @@ class GameController {
      * 处理Canvas点击
      */
     handleCanvasClick(pos) {
-        console.log('👆 Canvas点击:', pos);
+        // console.log('👆 Canvas点击:', pos);
         
         if (this.gameState.gameOver) {
-            console.log('   游戏已结束');
+            // console.log('   游戏已结束');
             return;
         }
         if (this.isOnline && this.gameState.playerTurn !== this.playerCamp) {
-            console.log('  ❌ 不是你的回合');
+            // console.log('  ❌ 不是你的回合');
             return;
         }
         
         const piece = this.gameState.getPieceAt(pos.row, pos.col);
-        console.log('  选中的棋子:', piece ? `${piece.name}(${piece.color || piece.camp})` : '空');
-        console.log('  当前选中:', this.uiController.getSelectedPiece());
+        // console.log('  选中的棋子:', piece ? `${piece.name}(${piece.color || piece.camp})` : '空');
+        // console.log('  当前选中:', this.uiController.getSelectedPiece());
         
         // 检查是否点击了兵的出生点
         if (!this.uiController.getSelectedPiece()) {
@@ -259,13 +259,24 @@ class GameController {
         // 选择或移动棋子
         if (this.uiController.getSelectedPiece()) {
             const selectedPos = this.uiController.getSelectedPiece();
-            console.log('  尝试移动:', selectedPos, '->', pos);
+            // console.log('  尝试移动:', selectedPos, '->', pos);
             const result = this.logicHandler.executeMove(selectedPos, pos);
             
             if (result.success) {
-                console.log('  ✅ 移动成功');
+                // console.log('  ✅ 移动成功');
                 this.uiController.clearSelection();
                 this.renderer.clearHighlights();
+                
+                // 如果是在线模式，发送移动到服务端
+                if (this.isOnline && this.networkHandler) {
+                    const moveData = {
+                        fromRow: selectedPos.row,
+                        fromCol: selectedPos.col,
+                        toRow: pos.row,
+                        toCol: pos.col
+                    };
+                    this.networkHandler.sendMove(moveData);
+                }
                 
                 // 更新UI显示（回合指示器等）
                 this.updateUI();
@@ -276,7 +287,7 @@ class GameController {
                     return; // 游戏结束后直接返回
                 }
             } else {
-                console.log('  ❌ 移动失败:', result.message);
+                // console.log('  ❌ 移动失败:', result.message);
                 // 如果点击的是己方其他棋子，切换选中
                 if (piece && (piece.color === this.gameState.playerTurn || piece.camp === this.gameState.playerTurn)) {
                     this.selectPiece(pos); // selectPiece内部已经调用了render
@@ -286,11 +297,11 @@ class GameController {
         } else {
             // 选择棋子
             if (piece && (piece.color === this.gameState.playerTurn || piece.camp === this.gameState.playerTurn)) {
-                console.log('  ✅ 选择棋子:', piece.name);
+                // console.log('  ✅ 选择棋子:', piece.name);
                 this.selectPiece(pos); // selectPiece内部已经调用了render
                 return; // 避免重复渲染
             } else {
-                console.log('  ❌ 无法选择:', piece ? (piece.color || piece.camp) : '空');
+                // console.log('  ❌ 无法选择:', piece ? (piece.color || piece.camp) : '空');
             }
         }
         
@@ -319,7 +330,14 @@ class GameController {
      * 处理对手移动
      */
     handleOpponentMove(data) {
+        console.log('📥 收到对手移动数据:', data);
+        
         const { fromRow, fromCol, toRow, toCol } = data;
+        
+        if (fromRow === undefined || fromCol === undefined || toRow === undefined || toCol === undefined) {
+            console.error('❌ 移动数据不完整:', data);
+            return;
+        }
         
         // 在临时状态上执行移动以更新显示
         const piece = this.gameState.getPieceAt(fromRow, fromCol);
@@ -349,6 +367,8 @@ class GameController {
             }
             
             this.render();
+        } else {
+            console.error('❌ 找不到移动的棋子:', fromRow, fromCol);
         }
     }
     
@@ -413,10 +433,16 @@ class GameController {
      * 新对局
      */
     newGame() {
-        this.logicHandler.restart();
-        this.avatarManager.clearCache();
-        this.updateUI();
-        this.render();
+        window.dialogManager.showConfirm(
+            '新对局',
+            '确定要开始新对局吗？当前游戏进度将丢失。',
+            () => {
+                this.logicHandler.restart();
+                this.avatarManager.clearCache();
+                this.updateUI();
+                this.render();
+            }
+        );
     }
     
     /**

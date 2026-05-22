@@ -181,13 +181,19 @@ class GameLogicHandler {
 
         // 撤销最后一步
         const lastMove = this.moveHistory.pop();
-        this.gameState.undoLastMove();
+        
+        // 使用gameState.undoMove()方法
+        const success = this.gameState.undoMove();
+        if (!success) {
+            this.moveHistory.push(lastMove); // 撤销失败，恢复历史记录
+            return { success: false, message: '悔棋失败' };
+        }
 
         // 如果是在线模式，需要撤销两步（自己和对手）
         if (lastMove.camp !== this.gameState.playerTurn) {
             const secondLastMove = this.moveHistory.pop();
             if (secondLastMove) {
-                this.gameState.undoLastMove();
+                this.gameState.undoMove();
             }
         }
 
@@ -320,7 +326,10 @@ class GameLogicHandler {
     resign(camp) {
         const winner = camp === 'red' ? 'black' : 'red';
         
-        this.gameState.endGame(winner, 'resign');
+        // 设置游戏结束状态
+        this.gameState.gameOver = true;
+        this.gameState.winner = winner;
+        this.gameState.gameReason = 'resign';
         
         this.events.emit('game:end', {
             winner,
