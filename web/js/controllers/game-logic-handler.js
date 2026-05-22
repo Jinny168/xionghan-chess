@@ -27,12 +27,14 @@ class GameLogicHandler {
         }
 
         // 验证是否是当前回合方的棋子
-        if (piece.camp !== this.gameState.playerTurn) {
+        const pieceCamp = piece.camp || piece.color;
+        if (pieceCamp !== this.gameState.playerTurn) {
             return { success: false, message: '不是你的回合' };
         }
 
         // 验证移动合法性
-        const isValid = this.gameState.isValidMove(piece, toPos.row, toPos.col);
+        const { GameRules } = window;
+        const isValid = GameRules.isValidMove(this.gameState.pieces, piece, fromPos.row, fromPos.col, toPos.row, toPos.col);
         if (!isValid) {
             return { success: false, message: '非法移动' };
         }
@@ -261,12 +263,13 @@ class GameLogicHandler {
      * @private
      */
     createMoveSnapshot(piece, fromPos, toPos) {
+        // 简化版：只记录关键信息，不克隆整个棋盘
         return {
             piece: { ...piece },
             from: { ...fromPos },
             to: { ...toPos },
             turn: this.gameState.playerTurn,
-            boardState: this.gameState.cloneBoard()
+            capturedPiece: this.gameState.getPieceAt(toPos.row, toPos.col)
         };
     }
 

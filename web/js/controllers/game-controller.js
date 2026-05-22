@@ -227,7 +227,7 @@ class GameController {
         }
         
         const piece = this.gameState.getPieceAt(pos.row, pos.col);
-        console.log('  选中的棋子:', piece ? `${piece.name}(${piece.camp})` : '空');
+        console.log('  选中的棋子:', piece ? `${piece.name}(${piece.color || piece.camp})` : '空');
         console.log('  当前选中:', this.uiController.getSelectedPiece());
         
         // 检查是否点击了兵的出生点
@@ -267,26 +267,31 @@ class GameController {
                 this.uiController.clearSelection();
                 this.renderer.clearHighlights();
                 
+                // 移动成功后只需要渲染一次(在函数末尾)
                 if (result.moveData && result.moveData.gameOver) {
                     this.handleGameEnd();
+                    return; // 游戏结束后直接返回
                 }
             } else {
                 console.log('  ❌ 移动失败:', result.message);
                 // 如果点击的是己方其他棋子，切换选中
-                if (piece && piece.camp === this.gameState.playerTurn) {
-                    this.selectPiece(pos);
+                if (piece && (piece.color === this.gameState.playerTurn || piece.camp === this.gameState.playerTurn)) {
+                    this.selectPiece(pos); // selectPiece内部已经调用了render
+                    return; // 避免重复渲染
                 }
             }
         } else {
             // 选择棋子
-            if (piece && piece.camp === this.gameState.playerTurn) {
+            if (piece && (piece.color === this.gameState.playerTurn || piece.camp === this.gameState.playerTurn)) {
                 console.log('  ✅ 选择棋子:', piece.name);
-                this.selectPiece(pos);
+                this.selectPiece(pos); // selectPiece内部已经调用了render
+                return; // 避免重复渲染
             } else {
-                console.log('  ❌ 无法选择:', piece ? piece.camp : '空');
+                console.log('  ❌ 无法选择:', piece ? (piece.color || piece.camp) : '空');
             }
         }
         
+        // 只在需要时渲染一次
         this.render();
     }
     
@@ -297,9 +302,12 @@ class GameController {
         this.soundManager.playSelect();
         this.uiController.highlightSelectedPiece(pos);
         
+        // 计算可移动位置(会产生很多isValidMove调用,这是正常的)
         const { moves, capturable } = this.gameState.calculatePossibleMoves(pos.row, pos.col);
         this.renderer.setPossibleMoves(moves);
         this.renderer.setCapturablePositions(capturable);
+        
+        console.log(`✅ 棋子选中: ${this.gameState.getPieceAt(pos.row, pos.col).name}, 可移动位置: ${moves.length}个`);
         
         this.render();
     }

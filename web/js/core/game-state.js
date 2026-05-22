@@ -408,6 +408,9 @@ class GameState {
         this.moveHistory.push(moveRecord);
         this.movesCount++;
         
+        // 清除缓存（棋盘状态已改变）
+        this._movesCache = {};
+        
         // 切换玩家
         if (!this.gameOver) {
             const previousPlayer = this.playerTurn;
@@ -504,11 +507,15 @@ class GameState {
         this.winner = null;
         this.movesCount--;
         
+        // 清除缓存（棋盘状态已改变）
+        this._movesCache = {};
+        
         return true;
     }
     
     /**
      * 计算可能移动（过滤掉会导致送将的移动）
+     * 带缓存优化：如果棋盘状态未改变，直接返回缓存结果
      */
     calculatePossibleMoves(row, col) {
         const { GameRules } = window;
@@ -516,6 +523,14 @@ class GameState {
         
         if (!piece) {
             return { moves: [], capturable: [] };
+        }
+        
+        // 生成缓存键：基于棋子位置和棋盘状态哈希
+        const cacheKey = `${piece.name}_${row}_${col}_${this.movesCount}`;
+        
+        // 检查缓存
+        if (this._movesCache && this._movesCache[cacheKey]) {
+            return this._movesCache[cacheKey];
         }
         
         // 获取所有符合基本规则的移动
@@ -529,7 +544,21 @@ class GameState {
             !this.wouldBeInCheckAfterMove(piece, move.row, move.col)
         );
         
-        return { moves: validMoves, capturable: validCapturable };
+        const result = { moves: validMoves, capturable: validCapturable };
+        
+        // 缓存结果（限制缓存大小）
+        if (!this._movesCache) {
+            this._movesCache = {};
+        }
+        this._movesCache[cacheKey] = result;
+        
+        // 清理旧缓存（保留最近100个）
+        const keys = Object.keys(this._movesCache);
+        if (keys.length > 100) {
+            delete this._movesCache[keys[0]];
+        }
+        
+        return result;
     }
     
     /**

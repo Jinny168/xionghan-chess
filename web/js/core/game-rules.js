@@ -9,18 +9,19 @@ class GameRules {
      * @returns {Object} 规则配置对象
      */
     static getRuleConfig() {
-        console.log('=== getRuleConfig 被调用 ===');
-        console.log('window.game:', window.game);
-        console.log('window.game.ruleConfig:', window.game ? window.game.ruleConfig : 'game未定义');
+        // 减少日志输出 - 只在需要时开启
+        // console.log('=== getRuleConfig 被调用 ===');
+        // console.log('window.game:', window.game);
+        // console.log('window.game.ruleConfig:', window.game ? window.game.ruleConfig : 'game未定义');
         
         // 如果window中有ruleConfig，则使用它
         if (window.game && window.game.ruleConfig) {
             const config = window.game.ruleConfig.getAll();
-            console.log('🎯 获取规则配置:', config);
+            // console.log('🎯 获取规则配置:', config);
             return config;
         }
         // 否则返回默认配置
-        console.log('⚠️ 使用默认规则配置');
+        // console.log('⚠️ 使用默认规则配置');
         return {
             horseStraightThree: false,
             advisorOutPalace: false,
@@ -94,9 +95,10 @@ class GameRules {
      * @returns {boolean} 移动是否合法
      */
     static isValidMove(pieces, piece, fromRow, fromCol, toRow, toCol) {
-        console.log('=== isValidMove 被调用 ===');
-        console.log('棋子:', piece ? piece.name : 'null', '颜色:', piece ? piece.color : 'null');
-        console.log('起始位置:', [fromRow, fromCol], '目标位置:', [toRow, toCol]);
+        // 减少日志输出 - 只在需要时开启
+        // console.log('=== isValidMove 被调用 ===');
+        // console.log('棋子:', piece ? piece.name : 'null', '颜色:', piece ? piece.color : 'null');
+        // console.log('起始位置:', [fromRow, fromCol], '目标位置:', [toRow, toCol]);
         
         // 基本检查
         if (piece.row !== fromRow || piece.col !== fromCol) {
@@ -126,10 +128,10 @@ class GameRules {
         } else if (piece instanceof Xiang) {
             return this.isValidXiangMove(pieces, piece.color, fromRow, fromCol, toRow, toCol);
         } else if (piece instanceof Shi) {
-            console.log('调用 isValidShiMove');
+            // console.log('调用 isValidShiMove');
             return this.isValidShiMove(pieces, piece.color, fromRow, fromCol, toRow, toCol);
         } else if (piece instanceof Han) {
-            console.log('调用 isValidKingMove');
+            // console.log('调用 isValidKingMove');
             return this.isValidKingMove(pieces, piece.color, fromRow, fromCol, toRow, toCol);
         } else if (piece instanceof Pao) {
             return this.isValidPaoMove(pieces, fromRow, fromCol, toRow, toCol);
@@ -259,7 +261,7 @@ class GameRules {
             
         // 获取规则配置
         const config = this.getRuleConfig();
-        console.log('🐘 相移动规则检查 - 配置:', config, '起始:', [fromRow, fromCol], '目标:', [toRow, toCol]);
+        // console.log('🐘 相移动规则检查 - 配置:', config, '起始:', [fromRow, fromCol], '目标:', [toRow, toCol]);
             
         const targetPiece = this.getPieceAt(pieces, toRow, toCol);
             
@@ -270,9 +272,9 @@ class GameRules {
             
         // 如果配置不允许跨河，则起始和目标都必须在己方阵地
         if (!config.elephantCrossRiver) {
-            console.log('❌ 相不允许跨河 - 起始在己方:', startInOwnTerritory, '目标在己方:', targetInOwnTerritory);
+            // console.log('❌ 相不允许跨河 - 起始在己方:', startInOwnTerritory, '目标在己方:', targetInOwnTerritory);
             if (!startInOwnTerritory || !targetInOwnTerritory) {
-                console.log('⛔ 相移动被拒绝：跨越长城');
+                // console.log('⛔ 相移动被拒绝：跨越长城');
                 return false;
             }
         }
@@ -340,7 +342,7 @@ class GameRules {
         
         // 获取规则配置
         const config = this.getRuleConfig();
-        console.log('️ 仕移动规则检查 - 配置:', config, '起始:', [fromRow, fromCol], '目标:', [toRow, toCol]);
+        // console.log('️ 仕移动规则检查 - 配置:', config, '起始:', [fromRow, fromCol], '目标:', [toRow, toCol]);
         
         // 检查目标位置是否在棋盘范围内
         if (!this.isPositionOnBoard(toRow, toCol)) {
@@ -384,7 +386,7 @@ class GameRules {
         }
         
         // 默认规则：受九宫限制，起始位置和目标位置都必须在九宫内
-        console.log('❌ 仕不允许出九宫 - 起始在宫内:', isInPalace, '目标在宫内:', isTargetInPalace);
+        // console.log('❌ 仕不允许出九宫 - 起始在宫内:', isInPalace, '目标在宫内:', isTargetInPalace);
         if (!isInPalace || !isTargetInPalace) {
             return false; // 不允许出九宫
         }
