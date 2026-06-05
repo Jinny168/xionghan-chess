@@ -7,20 +7,26 @@ class TauntManager {
         // 默认使用 docs 目录下的 taunts.json
         this.tauntsUrl = tauntsUrl || 'docs/taunts.json';
         this.taunts = [];
-        this.isLoaded = false;
+
         
         // 异步加载嘲讽语句
-        this.loadTaunts();
+        this.loadTaunts().catch(error => {
+            console.error('加载嘲讽语句失败:', error);
+        });
     }
     
     /**
      * 从配置文件加载嘲讽语句列表
+     * @returns {Promise<void>}
      */
     async loadTaunts() {
         try {
             const response = await fetch(this.tauntsUrl);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                console.warn(`警告: HTTP ${response.status} 错误，使用默认语句`);
+                this.taunts = ['是我天下无敌啦！'];
+
+                return;
             }
             
             const taunts = await response.json();
@@ -28,23 +34,22 @@ class TauntManager {
             // 确保返回的是数组
             if (Array.isArray(taunts)) {
                 this.taunts = taunts;
-                this.isLoaded = true;
+
                 console.log(`成功加载 ${this.taunts.length} 条嘲讽语句`);
             } else {
                 console.warn(`警告: ${this.tauntsUrl} 中的嘲讽语句格式不正确，应为数组格式`);
                 this.taunts = ['是我天下无敌啦！']; // 默认嘲讽语句
-                this.isLoaded = true;
+
             }
         } catch (error) {
             console.warn(`警告: 加载嘲讽语句时出错: ${error.message}，使用默认语句`);
             this.taunts = ['是我天下无敌啦！'];
-            this.isLoaded = true;
+
         }
     }
     
     /**
      * 获取一个随机的嘲讽语句
-     * 
      * @returns {string} 随机选择的嘲讽语句，如果没有可用语句则返回默认语句
      */
     getRandomTaunt() {
@@ -54,53 +59,6 @@ class TauntManager {
         } else {
             return '是我天下无敌啦！';
         }
-    }
-    
-    /**
-     * 添加新的嘲讽语句
-     * @param {string} taunt - 要添加的嘲讽语句
-     * @internal 内部方法，供扩展功能使用
-     * @suppress {unusedPrivateMembers}
-     */
-    // eslint-disable-next-line no-unused-vars
-    addTaunt(taunt) {
-        if (taunt && !this.taunts.includes(taunt)) {
-            this.taunts.push(taunt);
-            console.log(`已添加嘲讽语句: ${taunt}`);
-        }
-    }
-    
-    /**
-     * 重新加载嘲讽语句配置文件
-     * @internal 内部方法，供刷新配置使用
-     * @suppress {unusedPrivateMembers}
-     */
-    // eslint-disable-next-line no-unused-vars
-    async refreshTaunts() {
-        this.isLoaded = false;
-        await this.loadTaunts();
-    }
-    
-    /**
-     * 获取所有嘲讽语句
-     * @returns {Array} 嘲讽语句数组
-     * @internal 内部方法，供调试和显示使用
-     * @suppress {unusedPrivateMembers}
-     */
-    // eslint-disable-next-line no-unused-vars
-    getAllTaunts() {
-        return [...this.taunts];
-    }
-    
-    /**
-     * 获取嘲讽语句数量
-     * @returns {number} 嘲讽语句数量
-     * @internal 内部方法，供状态查询使用
-     * @suppress {unusedPrivateMembers}
-     */
-    // eslint-disable-next-line no-unused-vars
-    getTauntCount() {
-        return this.taunts.length;
     }
 }
 
