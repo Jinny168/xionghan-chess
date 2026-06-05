@@ -4,25 +4,8 @@
 
 class GameState {
     constructor() {
-        this.pieces = [];
-        this.playerTurn = 'red';
-        this.gameOver = false;
-        this.winner = null;
-        this.moveHistory = [];
-        this.capturedPieces = { red: [], black: [] };
-        this.redTime = 0;
-        this.blackTime = 0;
-        this.currentTurnStartTime = Date.now();
-        this.movesCount = 0;
-        
-        // 将军相关
-        this.inCheck = false;       // 当前是否被将军
-        this.checkWarningShown = false; // 将军提示是否已显示
-        this.consecutiveChecks = 0; // 连续将军次数（用于禁止连将）
-        this.lastCheckBy = null;    // 最后一次将军的玩家
-        
-        // 棋子价值配置（平衡型方案）
-        this.pieceValues = this.getDefaultPieceValues();
+        // 初始化所有状态
+        this.reset();
         
         // 初始化棋子
         this.initializePieces();
@@ -30,34 +13,6 @@ class GameState {
         // 初始化后检查将军状态(开局不应该将军)
         this.checkInitialState();
     }
-    
-    /**
-     * 获取默认棋子价值配置
-     * @returns {Object} 棋子价值配置对象
-     */
-    getDefaultPieceValues() {
-        return {
-            // 将帅
-            '漢': 10000, '汗': 10000,
-            
-            // 强子
-            '俥': 900, '車': 900,
-            '炮': 450, '砲': 450,
-            
-            // 中等棋子
-            '檑': 400, '礌': 400,
-            '傌': 400, '馬': 400,
-            '射': 330, '䠶': 330,
-            
-            // 弱子
-            '相': 260, '象': 260,
-            '仕': 200, '士': 200,
-            
-            // 兵卒（基础值，实际应动态调整）
-            '兵': 100, '卒': 100
-        };
-    }
-    
     /**
      * 初始化棋子布局
      */
@@ -125,103 +80,15 @@ class GameState {
         const { GameRules } = window;
         return GameRules.getPieceAt(this.pieces, row, col);
     }
-    
     /**
-     * 获取棋子的基础价值
-     * @param {Object} piece - 棋子对象
-     * @returns {number} 棋子价值
+     * 切换玩家回合
+     * @private
      */
-    getPieceValue(piece) {
-        if (!piece) return 0;
-        return this.pieceValues[piece.name] || 0;
-    }
-    
-    /**
-     * 获取棋子的动态价值（考虑位置、状态等因素）
-     * @param {Object} piece - 棋子对象
-     * @returns {number} 动态价值
-     */
-    getDynamicPieceValue(piece) {
-        if (!piece) return 0;
-        
-        let value = this.getPieceValue(piece);
-        
-        // 兵/卒的动态价值
-        if (piece instanceof window.Bing) {
-            value = this.getPawnDynamicValue(piece);
-        }
-        // 相/象的动态价值
-        else if (piece instanceof window.Xiang) {
-            value = this.getXiangDynamicValue(piece);
-        }
-        // 仕/士的动态价值
-        else if (piece instanceof window.Shi) {
-            value = this.getShiDynamicValue(piece);
-        }
-        
-        return value;
-    }
-    
-    /**
-     * 计算兵/卒的动态价值
-     */
-    getPawnDynamicValue(pawn) {
-        let baseValue = 100;
-        
-        // 过河加成
-        const hasCrossedRiver = (pawn.color === 'red' && pawn.row <= 5) ||
-                                (pawn.color === 'black' && pawn.row >= 7);
-        if (hasCrossedRiver) {
-            baseValue += 20;
-        }
-        
-        // 接近九宫加成
-        let distanceToPalace;
-        if (pawn.color === 'red') {
-            distanceToPalace = Math.max(0, pawn.row - 3); // 黑方九宫在1-3行
-        } else {
-            distanceToPalace = Math.max(0, 9 - pawn.row); // 红方九宫在9-11行
-        }
-        
-        if (distanceToPalace < 4) {
-            baseValue += (4 - distanceToPalace) * 10;
-        }
-        
-        return baseValue;
-    }
-    
-    /**
-     * 计算相/象的动态价值
-     */
-    getXiangDynamicValue(xiang) {
-        let baseValue = 260;
-        
-        // 越河后获得横竖吃子能力
-        const hasCrossedGreatWall = (xiang.color === 'red' && xiang.row <= 5) ||
-                                    (xiang.color === 'black' && xiang.row >= 7);
-        if (hasCrossedGreatWall) {
-            baseValue += 40; // 提升到300
-        }
-        
-        return baseValue;
-    }
-    
-    /**
-     * 计算仕/士的动态价值
-     */
-    getShiDynamicValue(shi) {
-        let baseValue = 200;
-        
-        // 检查是否在九宫内
-        const isInPalace = (shi.color === 'red' && shi.row >= 9 && shi.row <= 11 && shi.col >= 5 && shi.col <= 7) ||
-                          (shi.color === 'black' && shi.row >= 1 && shi.row <= 3 && shi.col >= 5 && shi.col <= 7);
-        
-        // 出九宫后获得直走能力
-        if (!isInPalace) {
-            baseValue += 50; // 提升到250
-        }
-        
-        return baseValue;
+    switchTurn() {
+        const previousPlayer = this.playerTurn;
+        this.playerTurn = this.playerTurn === 'red' ? 'black' : 'red';
+        this.currentTurnStartTime = Date.now();
+        return previousPlayer;
     }
     
     /**
@@ -255,47 +122,22 @@ class GameState {
         this.pieces.push(newBing);
         
         // 记录移动历史（特殊移动类型：生成兵）
-        const moveRecord = {
+        this.moveHistory.push({
             piece: newBing,
-            fromRow: null,  // 特殊标记：生成操作
+            fromRow: null,
             fromCol: null,
             toRow: row,
             toCol: col,
             capturedPiece: null,
             wasInCheck: this.inCheck,
-            isSpawn: true  // 标记为生成操作
-        };
-        this.moveHistory.push(moveRecord);
+            isSpawn: true
+        });
         this.movesCount++;
         
-        // 切换玩家
-        const previousPlayer = this.playerTurn;
-        this.playerTurn = this.playerTurn === 'red' ? 'black' : 'red';
-        this.currentTurnStartTime = Date.now();
-        
-        // 检查对方是否被将军
-        const { GameRules } = window;
-        this.inCheck = GameRules.isCheck(this.pieces, this.playerTurn);
-        
-        // 将军逻辑处理
-        if (this.inCheck) {
-            this.consecutiveChecks++;
-            this.lastCheckBy = previousPlayer;
-            
-            // 禁止连将：如果连续将军超过3次，判违规
-            if (this.consecutiveChecks > 3) {
-                console.warn('⚠️ 连续将军超过3次，判违规');
-            }
-        } else {
-            this.consecutiveChecks = 0;
-            this.lastCheckBy = null;
-        }
-        
-        // 检查是否将死或困毙
-        if (this.isCheckmate()) {
-            this.gameOver = true;
-            this.winner = previousPlayer;
-        }
+        // 切换回合并检查状态
+        const previousPlayer = this.switchTurn();
+        this.updateCheckState(null, previousPlayer);
+        this.checkEndGame(previousPlayer);
         
         return true;
     }
@@ -378,47 +220,38 @@ class GameState {
         // 清除缓存（棋盘状态已改变）
         this._movesCache = {};
         
-        // 切换回合
+        // 切换回合并检查状态
         if (!this.gameOver) {
-            const previousPlayer = this.playerTurn;
-            this.playerTurn = this.playerTurn === 'red' ? 'black' : 'red';
-            this.currentTurnStartTime = Date.now();
-            
-            // 检查对方是否被将军（现在playerTurn已切换为对方）
-            this.inCheck = GameRules.isCheck(this.pieces, this.playerTurn);
-            
-            // 将军逻辑处理
-            if (this.inCheck) {
-                this.consecutiveChecks++;
-                this.lastCheckBy = previousPlayer; // 上一个移动方将军
-                
-                // 禁止连将：如果连续将军超过3次，判违规
-                if (this.consecutiveChecks > 3) {
-                    console.warn('⚠️ 连续将军超过3次，判违规');
-                    // TODO: 实现判负逻辑
-                }
-            } else {
-                this.consecutiveChecks = 0;
-                this.lastCheckBy = null;
-            }
-            
-            // 检查是否将死或困毙（现在playerTurn是对方）
-            if (this.isCheckmate()) {
-                this.gameOver = true;
-                this.winner = previousPlayer; // 上一个移动方胜利
-            }
+            const previousPlayer = this.switchTurn();
+            this.updateCheckState(piece, previousPlayer);
+            this.checkEndGame(previousPlayer);
         }
         
         return true;
     }
     
     /**
-     * 检查移动后是否会被将军
+     * 检查游戏是否结束（将死或困毙）
+     * @param {string} previousPlayer - 上一个移动的玩家
+     * @private
      */
-    wouldBeInCheckAfterMove(piece, toRow, toCol) {
+    checkEndGame(previousPlayer) {
+        if (this.isCheckmate()) {
+            this.gameOver = true;
+            this.winner = previousPlayer;
+        }
+    }
+    
+    /**
+     * 模拟移动并检查是否被将军
+     * @param {Object} piece - 棋子
+     * @param {number} toRow - 目标行
+     * @param {number} toCol - 目标列
+     * @returns {boolean} 是否会被将军
+     * @private
+     */
+    simulateMoveAndCheck(piece, toRow, toCol) {
         const { GameRules } = window;
-        
-        // 模拟移动
         const originalRow = piece.row;
         const originalCol = piece.col;
         const capturedPiece = this.getPieceAt(toRow, toCol);
@@ -442,6 +275,13 @@ class GameState {
     }
     
     /**
+     * 检查移动后是否会被将军
+     */
+    wouldBeInCheckAfterMove(piece, toRow, toCol) {
+        return this.simulateMoveAndCheck(piece, toRow, toCol);
+    }
+    
+    /**
      * 撤销移动
      */
     undoMove() {
@@ -450,18 +290,16 @@ class GameState {
         }
         
         const lastMove = this.moveHistory.pop();
-        const { piece, fromRow, fromCol, toRow, toCol, capturedPiece, isSpawn } = lastMove;
+        const { piece, fromRow, fromCol, capturedPiece, isSpawn } = lastMove;
         
         // 如果是生成兵的操作，需要移除生成的兵
         if (isSpawn) {
             // 从棋子列表中移除该兵
             this.pieces = this.pieces.filter(p => p !== piece);
-            // 不需要恢复被吃的棋子
         } else {
-            // 普通移动
+            // 普通移动：恢复位置并恢复被吃的棋子
             piece.moveTo(fromRow, fromCol);
             
-            // 恢复被吃的棋子
             if (capturedPiece) {
                 this.pieces.push(capturedPiece);
                 this.capturedPieces[capturedPiece.color].pop();
@@ -542,8 +380,6 @@ class GameState {
      * 困毙：未被将军 + 无合法移动 → 判负
      */
     isCheckmate() {
-        const { GameRules } = window;
-        
         // 检查所有己方棋子是否有任何合法移动
         const currentPieces = this.pieces.filter(p => p.color === this.playerTurn);
         let hasValidMove = false;
@@ -559,27 +395,8 @@ class GameState {
                 // 如果被将军，需要检查是否有移动能解将
                 if (this.inCheck) {
                     for (const move of [...moves, ...capturable]) {
-                        // 临时执行移动
-                        const originalRow = piece.row;
-                        const originalCol = piece.col;
-                        const targetPiece = this.getPieceAt(move.row, move.col);
-                        
-                        piece.moveTo(move.row, move.col);
-                        if (targetPiece) {
-                            this.pieces = this.pieces.filter(p => p !== targetPiece);
-                        }
-                        
-                        // 检查是否仍被将军
-                        const stillInCheck = GameRules.isCheck(this.pieces, this.playerTurn);
-                        
-                        // 恢复状态
-                        piece.moveTo(originalRow, originalCol);
-                        if (targetPiece) {
-                            this.pieces.push(targetPiece);
-                        }
-                        
-                        // 如果有移动能解将，不是将死
-                        if (!stillInCheck) {
+                        // 使用模拟移动检查是否能解将
+                        if (!this.simulateMoveAndCheck(piece, move.row, move.col)) {
                             return false;
                         }
                     }
@@ -631,45 +448,36 @@ class GameState {
         return { redTime, blackTime };
     }
     
-    /**
-     * 序列化状态(用于网络传输)
-     * @deprecated 当前未使用，保留以备后用
-     */
-    serialize() {
-        return {
-            pieces: this.pieces.map(p => ({
-                name: p.name,
-                color: p.color,
-                row: p.row,
-                col: p.col
-            })),
-            playerTurn: this.playerTurn,
-            gameOver: this.gameOver,
-            winner: this.winner,
-            movesCount: this.movesCount
-        };
-    }
+
     
     /**
-     * 从序列化数据恢复状态
-     * @deprecated 当前未使用，保留以备后用
+     * 更新将军状态（提取公共逻辑）
+     * @private
      */
-    deserialize(data) {
-        const { PieceFactory } = window;
+    updateCheckState(piece, previousPlayer) {
+        const { GameRules } = window;
+        this.inCheck = GameRules.isCheck(this.pieces, this.playerTurn);
         
-        this.pieces = data.pieces.map(p => 
-            PieceFactory.createPieceByName(p.name, p.color, p.row, p.col)
-        );
-        this.playerTurn = data.playerTurn;
-        this.gameOver = data.gameOver;
-        this.winner = data.winner;
-        this.movesCount = data.movesCount;
+        if (this.inCheck) {
+            this.consecutiveChecks++;
+            this.lastCheckBy = previousPlayer;
+            
+            // 禁止连将：如果连续将军超过3次，判违规
+            if (this.consecutiveChecks > 3) {
+                console.warn('⚠️ 连续将军超过3次，判违规');
+                // TODO: 实现判负逻辑
+            }
+        } else {
+            this.consecutiveChecks = 0;
+            this.lastCheckBy = null;
+        }
     }
     
     /**
      * 重置游戏
      */
     reset() {
+        // 重置基本状态
         this.pieces = [];
         this.playerTurn = 'red';
         this.gameOver = false;
@@ -680,50 +488,18 @@ class GameState {
         this.blackTime = 0;
         this.currentTurnStartTime = Date.now();
         this.movesCount = 0;
-            
+        
         // 重置将军状态
         this.inCheck = false;
         this.checkWarningShown = false;
         this.consecutiveChecks = 0;
         this.lastCheckBy = null;
-            
-        // 重置棋子价值配置
-        this.pieceValues = this.getDefaultPieceValues();
-            
-        this.initializePieces();
-            
-        // 重新检查初始状态
-        this.checkInitialState();
-            
-        // 重新设置兵的出生点
-        this.bingSpawnPoints = {
-            'black': [[4, 2], [4, 4], [4, 6], [4, 8], [4, 10]],
-            'red': [[8, 2], [8, 4], [8, 6], [8, 8], [8, 10]]
-        };
+        
+        // 清除缓存
+        this._movesCache = {};
     }
     
-    /**
-     * 评估局面分数（正分对红方有利，负分对黑方有利）
-     * @param {string} perspective - 评估视角 ('red' 或 'black')
-     * @returns {number} 局面分数
-     * @deprecated 当前未使用，保留以备后用
-     */
-    evaluate(perspective = 'red') {
-        let score = 0;
-        
-        for (const piece of this.pieces) {
-            // 使用动态价值评估
-            const pieceValue = this.getDynamicPieceValue(piece);
-            
-            if (piece.color === perspective) {
-                score += pieceValue;
-            } else {
-                score -= pieceValue;
-            }
-        }
-        
-        return score;
-    }
+
 }
 
 // 浏览器全局导出
