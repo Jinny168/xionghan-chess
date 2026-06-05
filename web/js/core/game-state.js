@@ -10,7 +10,6 @@ class GameState {
         this.winner = null;
         this.moveHistory = [];
         this.capturedPieces = { red: [], black: [] };
-        this.startTime = Date.now();
         this.redTime = 0;
         this.blackTime = 0;
         this.currentTurnStartTime = Date.now();
@@ -23,7 +22,21 @@ class GameState {
         this.lastCheckBy = null;    // 最后一次将军的玩家
         
         // 棋子价值配置（平衡型方案）
-        this.pieceValues = {
+        this.pieceValues = this.getDefaultPieceValues();
+        
+        // 初始化棋子
+        this.initializePieces();
+        
+        // 初始化后检查将军状态(开局不应该将军)
+        this.checkInitialState();
+    }
+    
+    /**
+     * 获取默认棋子价值配置
+     * @returns {Object} 棋子价值配置对象
+     */
+    getDefaultPieceValues() {
+        return {
             // 将帅
             '漢': 10000, '汗': 10000,
             
@@ -43,12 +56,6 @@ class GameState {
             // 兵卒（基础值，实际应动态调整）
             '兵': 100, '卒': 100
         };
-        
-        // 初始化棋子
-        this.initializePieces();
-        
-        // 初始化后检查将军状态(开局不应该将军)
-        this.checkInitialState();
     }
     
     /**
@@ -68,47 +75,7 @@ class GameState {
             this.inCheck = GameRules.isCheck(this.pieces, this.playerTurn);
         }
     }
-    
-    setupTraditionalLayout() {
-        const { Ju, Ma, Xiang, Shi, Han, Pao, Bing } = window;
-        
-        // 黑方
-        this.pieces.push(new Ju('black', 0, 0));
-        this.pieces.push(new Ma('black', 0, 1));
-        this.pieces.push(new Xiang('black', 0, 2));
-        this.pieces.push(new Shi('black', 0, 3));
-        this.pieces.push(new Han('black', 0, 4));
-        this.pieces.push(new Shi('black', 0, 5));
-        this.pieces.push(new Xiang('black', 0, 6));
-        this.pieces.push(new Ma('black', 0, 7));
-        this.pieces.push(new Ju('black', 0, 8));
-        this.pieces.push(new Pao('black', 2, 1));
-        this.pieces.push(new Pao('black', 2, 7));
-        this.pieces.push(new Bing('black', 3, 0));
-        this.pieces.push(new Bing('black', 3, 2));
-        this.pieces.push(new Bing('black', 3, 4));
-        this.pieces.push(new Bing('black', 3, 6));
-        this.pieces.push(new Bing('black', 3, 8));
-        
-        // 红方
-        this.pieces.push(new Ju('red', 9, 0));
-        this.pieces.push(new Ma('red', 9, 1));
-        this.pieces.push(new Xiang('red', 9, 2));
-        this.pieces.push(new Shi('red', 9, 3));
-        this.pieces.push(new Han('red', 9, 4));
-        this.pieces.push(new Shi('red', 9, 5));
-        this.pieces.push(new Xiang('red', 9, 6));
-        this.pieces.push(new Ma('red', 9, 7));
-        this.pieces.push(new Ju('red', 9, 8));
-        this.pieces.push(new Pao('red', 7, 1));
-        this.pieces.push(new Pao('red', 7, 7));
-        this.pieces.push(new Bing('red', 6, 0));
-        this.pieces.push(new Bing('red', 6, 2));
-        this.pieces.push(new Bing('red', 6, 4));
-        this.pieces.push(new Bing('red', 6, 6));
-        this.pieces.push(new Bing('red', 6, 8));
-    }
-    
+
     setupXionghanLayout() {
         const { Ju, Ma, Xiang, Shi, Han, Pao, Bing, She, Lei } = window;
         
@@ -261,7 +228,7 @@ class GameState {
      * 在指定的出生点生成一个兵（消耗一次走子机会）
      * @param {number} row - 行坐标
      * @param {number} col - 列坐标
-     * @param {string} camp - 阵营颜色（可选，不传则使用当前玩家回合；网络对战中可显式指定）
+     * @param {string|null} camp - 阵营颜色（可选，不传则使用当前玩家回合；网络对战中可显式指定）
      * @returns {boolean} 是否成功生成
      */
     spawnBing(row, col, camp = null) {
@@ -337,7 +304,7 @@ class GameState {
      * 检查指定位置是否是兵的出生点
      * @param {number} row - 行坐标
      * @param {number} col - 列坐标
-     * @param {string} color - 颜色（可选，不传则检查所有出生点）
+     * @param {string|null} color - 颜色（可选，不传则检查所有出生点）
      * @returns {boolean}
      */
     isBingSpawnPoint(row, col, color = null) {
@@ -489,9 +456,9 @@ class GameState {
         if (isSpawn) {
             // 从棋子列表中移除该兵
             this.pieces = this.pieces.filter(p => p !== piece);
-            // 不需要恢复被吃的棋子（生成时不会有吃子）
+            // 不需要恢复被吃的棋子
         } else {
-            // 普通移动：移回原位置
+            // 普通移动
             piece.moveTo(fromRow, fromCol);
             
             // 恢复被吃的棋子
@@ -666,6 +633,7 @@ class GameState {
     
     /**
      * 序列化状态(用于网络传输)
+     * @deprecated 当前未使用，保留以备后用
      */
     serialize() {
         return {
@@ -684,6 +652,7 @@ class GameState {
     
     /**
      * 从序列化数据恢复状态
+     * @deprecated 当前未使用，保留以备后用
      */
     deserialize(data) {
         const { PieceFactory } = window;
@@ -707,36 +676,25 @@ class GameState {
         this.winner = null;
         this.moveHistory = [];
         this.capturedPieces = { red: [], black: [] };
-        this.startTime = Date.now();
         this.redTime = 0;
         this.blackTime = 0;
         this.currentTurnStartTime = Date.now();
         this.movesCount = 0;
-        
+            
         // 重置将军状态
         this.inCheck = false;
         this.checkWarningShown = false;
         this.consecutiveChecks = 0;
         this.lastCheckBy = null;
-        
+            
         // 重置棋子价值配置
-        this.pieceValues = {
-            '漢': 10000, '汗': 10000,
-            '俥': 900, '車': 900,
-            '炮': 450, '砲': 450,
-            '檑': 400, '礌': 400,
-            '傌': 400, '馬': 400,
-            '射': 330, '䠶': 330,
-            '相': 260, '象': 260,
-            '仕': 200, '士': 200,
-            '兵': 100, '卒': 100
-        };
-        
+        this.pieceValues = this.getDefaultPieceValues();
+            
         this.initializePieces();
-        
+            
         // 重新检查初始状态
         this.checkInitialState();
-        
+            
         // 重新设置兵的出生点
         this.bingSpawnPoints = {
             'black': [[4, 2], [4, 4], [4, 6], [4, 8], [4, 10]],
@@ -748,6 +706,7 @@ class GameState {
      * 评估局面分数（正分对红方有利，负分对黑方有利）
      * @param {string} perspective - 评估视角 ('red' 或 'black')
      * @returns {number} 局面分数
+     * @deprecated 当前未使用，保留以备后用
      */
     evaluate(perspective = 'red') {
         let score = 0;
@@ -765,11 +724,6 @@ class GameState {
         
         return score;
     }
-}
-
-// 导出
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = GameState;
 }
 
 // 浏览器全局导出
