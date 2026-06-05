@@ -28,7 +28,6 @@ class GameController {
         // 游戏配置
         this.playerCamp = 'red';
         this.isOnline = false;
-        this.isReplayMode = false;
         
         // Canvas引用
         this.canvas = null;
@@ -441,7 +440,8 @@ class GameController {
                 if (this.isOnline) {
                     this.networkHandler.requestRestart();
                 }
-            }
+            },
+            null
         );
     }
     
@@ -459,7 +459,8 @@ class GameController {
                 if (this.isOnline) {
                     this.networkHandler.resign();
                 }
-            }
+            },
+            null
         );
     }
     
@@ -475,7 +476,8 @@ class GameController {
                 this.avatarManager.clearCache();
                 this.updateUI();
                 this.render();
-            }
+            },
+            null
         );
     }
     
@@ -681,7 +683,7 @@ class GameController {
      */
     updateVolume(volume) {
         this.soundManager.setMusicVolume(volume / 100);
-        localStorage.setItem('volume', volume);
+        localStorage.setItem('volume', String(volume));
     }
     
     /**
@@ -749,7 +751,8 @@ class GameController {
                 }
                 
                 window.dialogManager.showInfo('提示', '设置已恢复为默认值');
-            }
+            },
+            null
         );
     }
     
@@ -763,7 +766,8 @@ class GameController {
             () => {
                 this.soundManager.stopBackgroundMusic();
                 window.location.href = '/';
-            }
+            },
+            null
         );
     }
     
