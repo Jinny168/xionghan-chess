@@ -183,6 +183,12 @@ class GameController {
         });
         
         // 监听网络事件
+        this.events.on('opponent:joined', (data) => {
+            console.log(' 对手加入:', data);
+            this.playerCamp = data.camp;
+            console.log(`🎯 我的阵营: ${this.playerCamp === 'red' ? '红方' : '黑方'}, ${data.isHost ? '房主' : '客人'}`);
+        });
+        
         this.events.on('opponent:move', (data) => {
             this.handleOpponentMove(data);
         });
@@ -339,34 +345,62 @@ class GameController {
             return;
         }
         
-        // 在临时状态上执行移动以更新显示
+        // 在本地状态上执行移动以同步显示
         const piece = this.gameState.getPieceAt(fromRow, fromCol);
         if (piece) {
             const capturedPiece = this.gameState.getPieceAt(toRow, toCol);
+            
+            // 如果有吃子，移除被吃的棋子
             if (capturedPiece) {
                 this.gameState.pieces = this.gameState.pieces.filter(p => p !== capturedPiece);
+                this.gameState.capturedPieces[capturedPiece.color].push(capturedPiece);
             }
             
+            // 移动棋子
             piece.moveTo(toRow, toCol);
-            this.gameState.playerTurn = this.gameState.playerTurn === 'red' ? 'black' : 'red';
+            
+            // 记录移动历史
+            const moveRecord = {
+                piece: piece,
+                fromRow: fromRow,
+                fromCol: fromCol,
+                toRow: toRow,
+                toCol: toCol,
+                capturedPiece: capturedPiece,
+                wasInCheck: this.gameState.inCheck
+            };
+            this.gameState.moveHistory.push(moveRecord);
             this.gameState.movesCount++;
             
+            // 切换回合
+            this.gameState.playerTurn = this.gameState.playerTurn === 'red' ? 'black' : 'red';
+            
+            // 检查是否将军
             const { GameRules } = window;
             this.gameState.inCheck = GameRules.isCheck(this.gameState.pieces, this.gameState.playerTurn);
             
+            // 更新UI显示
             this.updateUI();
             this.soundManager.playMove();
             
             if (this.gameState.inCheck) {
                 this.soundManager.playCheck();
                 this.uiController.updateCheckAlert(true);
+            } else {
+                this.uiController.updateCheckAlert(false);
             }
             
-            if (this.gameState.gameOver) {
+            // 检查是否将死
+            if (this.gameState.isCheckmate()) {
+                this.gameState.gameOver = true;
+                this.gameState.winner = this.playerCamp; // 对方被将死，我方胜利
                 this.handleGameEnd();
             }
             
+            // 重新渲染棋盘
             this.render();
+            
+            console.log('✅ 对手移动已同步，当前回合:', this.gameState.playerTurn);
         } else {
             console.error('❌ 找不到移动的棋子:', fromRow, fromCol);
         }
@@ -506,7 +540,9 @@ class GameController {
             totalTime: this.gameState.getTimes().redTime + this.gameState.getTimes().blackTime
         };
         
-        this.uiController.updateUI(this.gameState, stats);
+        // 联机模式下传入playerCamp，显示“我的回合”或“对手回合”
+        const camp = this.isOnline ? this.playerCamp : null;
+        this.uiController.updateUI(this.gameState, stats, camp);
         this.uiController.updateMoveHistory(this.logicHandler.getMoveHistory());
     }
     

@@ -30,7 +30,7 @@ class UIController {
             canvas: document.getElementById('chess-board'),
             
             // 状态显示
-            turnIndicator: document.getElementById('turn-indicator'),
+            turnIndicator: document.getElementById('turn-text'),
             checkAlert: document.getElementById('check-alert'),
             stepCount: document.getElementById('step-count'),
             totalTime: document.getElementById('total-time'),
@@ -274,9 +274,10 @@ class UIController {
      * 更新UI显示
      * @param {Object} gameState - 游戏状态
      * @param {Object} stats - 统计信息
+     * @param {string} playerCamp - 玩家阵营(online模式)
      */
-    updateUI(gameState, stats = {}) {
-        this.updateTurnIndicator(gameState.playerTurn);
+    updateUI(gameState, stats = {}, playerCamp = null) {
+        this.updateTurnIndicator(gameState.playerTurn, playerCamp);
         this.updateStepCount(stats.stepCount || 0);
         this.updateTotalTime(stats.totalTime || 0);
         // 注意：使用inCheck而不是isCheck（inCheck是状态，isCheck是方法）
@@ -285,10 +286,22 @@ class UIController {
 
     /**
      * 更新回合指示器
+     * @param {string} turn - 当前回合 'red' 或 'black'
+     * @param {string} playerCamp - 玩家自己的阵营
      */
-    updateTurnIndicator(turn) {
+    updateTurnIndicator(turn, playerCamp = null) {
         if (this.elements.turnIndicator) {
-            const turnText = turn === 'red' ? '红方回合' : '黑方回合';
+            let turnText;
+            
+            // 如果是在线模式，显示“我的回合”或“对手回合”
+            if (playerCamp) {
+                const isMyTurn = turn === playerCamp;
+                turnText = isMyTurn ? ' 我的回合' : ' 对手回合';
+            } else {
+                // 单机模式
+                turnText = turn === 'red' ? '红方回合' : '黑方回合';
+            }
+            
             this.elements.turnIndicator.textContent = turnText;
             this.elements.turnIndicator.className = `turn-indicator ${turn}`;
         }

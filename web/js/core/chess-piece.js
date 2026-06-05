@@ -22,16 +22,17 @@ class ChessPiece {
         this.col = col;
     }
     
+    /**
+     * 移动棋子到指定位置
+     * @param {number} row - 目标行
+     * @param {number} col - 目标列
+     */
     moveTo(row, col) {
         if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) {
             throw new Error('棋子移动位置必须在棋盘范围内');
         }
         this.row = row;
         this.col = col;
-    }
-    
-    clone() {
-        return new ChessPiece(this.color, this.name, this.row, this.col);
     }
 }
 
@@ -133,6 +134,10 @@ class Lei extends ChessPiece {
  * 棋子工厂
  */
 class PieceFactory {
+    /**
+     * 棋子名称到类的映射表
+     * @type {Object<string, typeof ChessPiece>}
+     */
     static NAME_TO_CLASS_MAP = {
         // 黑方棋子
         '汗': Han, '車': Ju, '馬': Ma, '象': Xiang, '士': Shi, '砲': Pao, '卒': Bing,
@@ -142,6 +147,14 @@ class PieceFactory {
         '射': She, '檑': Lei
     };
     
+    /**
+     * 根据名称创建棋子
+     * @param {string} name - 棋子名称
+     * @param {string} color - 棋子颜色 ('red' 或 'black')
+     * @param {number} row - 行坐标
+     * @param {number} col - 列坐标
+     * @returns {Object|null} 棋子对象
+     */
     static createPieceByName(name, color, row, col) {
         const PieceClass = this.NAME_TO_CLASS_MAP[name];
         if (!PieceClass) {
@@ -150,19 +163,6 @@ class PieceFactory {
         }
         return new PieceClass(color, row, col);
     }
-    
-    static getPieceClassByName(name) {
-        return this.NAME_TO_CLASS_MAP[name];
-    }
-}
-
-// 导出类
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        ChessPiece, Ju, Ma, Xiang, Shi, Han, Bing, Pao, 
-        She, Lei, PieceFactory,
-        BOARD_SIZE, TRADITIONAL_BOARD_ROWS, TRADITIONAL_BOARD_COLS
-    };
 }
 
 // 浏览器全局导出
