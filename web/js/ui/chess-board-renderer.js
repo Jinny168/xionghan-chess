@@ -60,7 +60,6 @@ class ChessBoardRenderer {
         
         // 加载棋子图片
         this.pieceImages = {};
-        this.imagesLoaded = false;
         this.loadPieceImages();
         
         // 高亮和提示
@@ -99,7 +98,6 @@ class ChessBoardRenderer {
         
         // 清空之前的图片缓存
         this.pieceImages = {};
-        this.imagesLoaded = false;
         
         // 重新加载棋子图片（加载完成后会自动重绘）
         this.loadPieceImages();
@@ -151,7 +149,6 @@ class ChessBoardRenderer {
                 loadedCount++;
                 
                 if (loadedCount + errorCount === totalCount) {
-                    this.imagesLoaded = true;
                     console.log(`✅ ${this.pieceStyle}风格棋子图片加载完成: ${loadedCount}/${totalCount}成功, ${errorCount}失败`);
                     
                     // 所有图片加载完成后，重绘棋盘
@@ -167,7 +164,6 @@ class ChessBoardRenderer {
                 console.error(`❌ 无法加载棋子图片: ${imagePath}`);
                 
                 if (loadedCount + errorCount === totalCount) {
-                    this.imagesLoaded = true;
                     console.warn(`⚠️ ${this.pieceStyle}风格棋子图片部分加载失败: ${loadedCount}/${totalCount}成功, ${errorCount}失败`);
                     
                     // 即使有失败也要重绘
@@ -280,28 +276,26 @@ class ChessBoardRenderer {
             this.gridSize = this.boardWidth / 8;
         } else {
             // 匈汉象棋：13x13棋盘，正方形
-            this.boardWidth = width - 2 * this.marginLeft;
-            this.boardHeight = this.boardWidth; // 正方形棋盘
-            this.gridSize = this.boardWidth / 12;
+            const boardSize = width - 2 * this.marginLeft;
+            this.boardWidth = boardSize;
+            this.boardHeight = boardSize;
+            this.gridSize = boardSize / 12;
         }
-        
-        // console.log('📊 棋盘尺寸计算:', {
-        //     boardWidth: this.boardWidth,
-        //     boardHeight: this.boardHeight,
-        //     gridSize: this.gridSize
-        // });
         
         // 确保不超出画布
         if (this.boardHeight > height - 2 * this.marginTop) {
-            this.boardHeight = height - 2 * this.marginTop;
+            const maxHeight = height - 2 * this.marginTop;
             if (this.traditionalMode) {
-                // 根据高度重新计算宽度，保持9:10比例
-                this.boardWidth = this.boardHeight * 9 / 10;
+                // 根据高度重新计算宽度，保持9:10的比例
+                this.boardHeight = maxHeight;
+                this.boardWidth = maxHeight * 9 / 10;
                 this.gridSize = this.boardWidth / 8;
             } else {
                 // 正方形棋盘，宽高相等
-                this.boardWidth = this.boardHeight; // 正方形棋盘，宽高相等
-                this.gridSize = this.boardWidth / 12;
+                const squareSize = maxHeight;
+                this.boardWidth = squareSize;
+                this.boardHeight = squareSize;
+                this.gridSize = squareSize / 12;
             }
         }
         
@@ -309,8 +303,9 @@ class ChessBoardRenderer {
         if (this.gridSize <= 0) {
             console.error('❌ gridSize计算异常! 使用默认值');
             this.gridSize = 80; // 默认值
-            this.boardWidth = this.gridSize * 12;
-            this.boardHeight = this.boardWidth;
+            const boardSize = this.gridSize * 12;
+            this.boardWidth = boardSize;
+            this.boardHeight = boardSize;
         }
     }
     
@@ -720,29 +715,7 @@ class ChessBoardRenderer {
         ctx.stroke();
     }
     
-    /**
-     * 获取鼠标点击的网格位置
-     */
-    getGridPosition(mouseX, mouseY) {
-        const col = Math.round((mouseX - this.marginLeft) / this.gridSize);
-        const row = Math.round((mouseY - this.marginTop) / this.gridSize);
-        
-        const maxRow = this.traditionalMode ? 9 : 12;
-        const maxCol = this.traditionalMode ? 8 : 12;
-        
-        if (row >= 0 && row <= maxRow && col >= 0 && col <= maxCol) {
-            return { row, col };
-        }
-        
-        return null;
-    }
-    
-    /**
-     * 设置高亮
-     */
-    highlightPosition(row, col) {
-        this.highlighted = [row, col];
-    }
+
     
     /**
      * 清除高亮
