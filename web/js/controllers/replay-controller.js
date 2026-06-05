@@ -18,7 +18,7 @@ class ReplayController {
         this.maxSteps = 0;
         
         // 复盘模式标志
-        this.isReplayMode = false;
+
         
         // 原始游戏状态（用于恢复）
         this.originalState = null;
@@ -48,7 +48,7 @@ class ReplayController {
         
         // 逐步执行历史中的每一步
         for (const moveRecord of this.gameState.moveHistory) {
-            const { piece, fromRow, fromCol, toRow, toCol, capturedPiece } = moveRecord;
+            const { fromRow, fromCol, toRow, toCol, capturedPiece } = moveRecord;
             
             // 在临时状态上执行移动
             const tempPiece = tempGameState.getPieceAt(fromRow, fromCol);
@@ -86,7 +86,7 @@ class ReplayController {
         // 应用初始状态
         this.applyState(this.historyStates[0]);
         
-        this.isReplayMode = true;
+
     }
     
     /**
@@ -136,19 +136,6 @@ class ReplayController {
         }
         return false;
     }
-    
-    /**
-     * 跳转到指定步骤
-     */
-    jumpToStep(step) {
-        if (step >= 0 && step < this.historyStates.length) {
-            this.currentStep = step;
-            this.applyState(this.historyStates[step]);
-            return true;
-        }
-        return false;
-    }
-    
     /**
      * 获取复盘进度百分比
      */
@@ -181,7 +168,7 @@ class ReplayController {
     restoreOriginalState() {
         if (this.originalState) {
             this.copyGameState(this.originalState, this.gameState);
-            this.isReplayMode = false;
+
             return true;
         }
         return false;
@@ -242,11 +229,12 @@ class ReplayController {
     
     /**
      * 复制棋子
+     * @param {Object} piece - 源棋子对象
+     * @returns {Object} 新棋子对象
      */
     copyPiece(piece) {
         const { PieceFactory } = window;
-        const newPiece = PieceFactory.createPieceByName(piece.name, piece.color, piece.row, piece.col);
-        return newPiece;
+        return PieceFactory.createPieceByName(piece.name, piece.color, piece.row, piece.col);
     }
     
     /**

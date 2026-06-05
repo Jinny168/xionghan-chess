@@ -189,7 +189,8 @@ class NetworkHandler {
             return false;
         }
         
-        // 注意：服务端监听的是'move'事件，不是'player_move'
+        // 注意：服务端监听的是move事件，不是player_move
+        // eslint-disable-next-line spellcheck/spell-checker
         this.network.send('move', moveData);
         return true;
     }
@@ -300,53 +301,6 @@ class NetworkHandler {
             this.network.disconnect();
             this.isConnected = false;
         }
-    }
-
-    /**
-     * 获取网络状态
-     * @returns {Object}
-     */
-    getStatus() {
-        return {
-            isConnected: this.isConnected,
-            roomId: this.roomId,
-            playerCamp: this.playerCamp,
-            isHost: this.isHost,
-            opponentConnected: this.opponentConnected,
-            reconnectAttempts: this.reconnectAttempts
-        };
-    }
-
-    /**
-     * 检查是否已连接
-     * @returns {boolean}
-     */
-    isNetworkConnected() {
-        return this.isConnected;
-    }
-
-    /**
-     * 获取玩家阵营
-     * @returns {string|null}
-     */
-    getPlayerCamp() {
-        return this.playerCamp;
-    }
-
-    /**
-     * 检查是否是房主
-     * @returns {boolean}
-     */
-    getIsHost() {
-        return this.isHost;
-    }
-
-    /**
-     * 检查对手是否已连接
-     * @returns {boolean}
-     */
-    isOpponentConnected() {
-        return this.opponentConnected;
     }
 }
 

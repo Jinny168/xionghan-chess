@@ -85,20 +85,6 @@ class GameRecordManager {
             return false;
         }
     }
-    
-    /**
-     * 清空所有记录
-     */
-    clearAllRecords() {
-        try {
-            localStorage.removeItem(this.storageKey);
-            return true;
-        } catch (error) {
-            console.error('清空对局记录失败:', error);
-            return false;
-        }
-    }
-    
     /**
      * 从记录恢复到游戏状态
      */
