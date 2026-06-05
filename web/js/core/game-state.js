@@ -75,6 +75,9 @@ class GameState {
     
     /**
      * 获取指定位置的棋子
+     * @param {number} row - 行坐标
+     * @param {number} col - 列坐标
+     * @returns {Object|null} 棋子对象
      */
     getPieceAt(row, col) {
         const { GameRules } = window;
@@ -163,6 +166,11 @@ class GameState {
     
     /**
      * 移动棋子
+     * @param {number} fromRow - 起始行
+     * @param {number} fromCol - 起始列
+     * @param {number} toRow - 目标行
+     * @param {number} toCol - 目标列
+     * @returns {boolean} 是否移动成功
      */
     movePiece(fromRow, fromCol, toRow, toCol) {
         // 减少调试日志输出
@@ -170,6 +178,7 @@ class GameState {
         // console.log('起始:', [fromRow, fromCol], '目标:', [toRow, toCol]);
         
         const { GameRules } = window;
+        /** @type {Object} 棋子对象 */
         const piece = this.getPieceAt(fromRow, fromCol);
         
         // console.log('选中的棋子:', piece ? piece.name : 'null', piece ? piece.color : 'null');
@@ -213,6 +222,7 @@ class GameState {
             }
         }
         
+        /** @type {Object} 棋子对象，具有 moveTo 方法 */
         piece.moveTo(toRow, toCol);
         this.moveHistory.push(moveRecord);
         this.movesCount++;
@@ -321,9 +331,13 @@ class GameState {
     /**
      * 计算可能移动（过滤掉会导致送将的移动）
      * 带缓存优化：如果棋盘状态未改变，直接返回缓存结果
+     * @param {number} row - 行坐标
+     * @param {number} col - 列坐标
+     * @returns {{moves: Array, capturable: Array}} 可移动位置
      */
     calculatePossibleMoves(row, col) {
         const { GameRules } = window;
+        /** @type {Object} 棋子对象 */
         const piece = this.getPieceAt(row, col);
         
         if (!piece) {
