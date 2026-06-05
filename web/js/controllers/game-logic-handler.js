@@ -10,7 +10,7 @@ class GameLogicHandler {
         this.events = eventDispatcher;
         
         this.moveHistory = [];
-        this.lastMoveNotation = '';
+
     }
 
     /**
@@ -44,7 +44,7 @@ class GameLogicHandler {
         
         // 生成棋谱记号
         const notation = this.generateMoveNotation(piece, fromPos, toPos, capturedPiece);
-        this.lastMoveNotation = notation;
+
 
         // 记录到历史
         const moveData = {
@@ -208,7 +208,7 @@ class GameLogicHandler {
     restart() {
         this.gameState.reset();
         this.moveHistory = [];
-        this.lastMoveNotation = '';
+
         
         this.events.emit('game:reset');
         this.events.emit('history:updated', {
