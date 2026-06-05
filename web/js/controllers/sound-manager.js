@@ -40,9 +40,11 @@ class SoundManager {
         try {
             // 兼容不同浏览器的AudioContext实现
             // webkitAudioContext 是 Safari 等 WebKit 内核浏览器的实现
-            /** @type {AudioContext|webkitAudioContext} */
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            /** @type {typeof AudioContext} */
+            // eslint-disable-next-line no-undef
+            const AudioContextClass = window.AudioContext ; // eslint-disable-line no-undef
             if (AudioContextClass) {
+                // eslint-disable-next-line new-cap
                 this.audioContext = new AudioContextClass();
             }
         } catch (e) {
@@ -250,14 +252,6 @@ class SoundManager {
     playSelect() {
         this.play('select');
     }
-    
-    /**
-     * 播放按钮音效
-     */
-    playButton() {
-        this.play('button');
-    }
-    
     /**
      * 播放胜利音效
      */
@@ -302,37 +296,6 @@ class SoundManager {
             console.error('播放音符失败:', e);
         }
     }
-    
-    /**
-     * 设置音量
-     */
-    setVolume(volume) {
-        this.volume = Math.max(0, Math.min(1, volume));
-    }
-    
-    /**
-     * 启用/禁用音效
-     */
-    setSoundEnabled(enabled) {
-        this.soundEnabled = enabled;
-    }
-    
-    /**
-     * 检查并播放游戏音效（将军/绝杀）
-     */
-    checkAndPlayGameSound(gameState) {
-        if (!gameState) return;
-        
-        // 优先处理绝杀
-        if (gameState.isCheckmate && gameState.isCheckmate()) {
-            this.playDefeat();
-        } 
-        // 普通将军
-        else if (gameState.isCheck && gameState.isCheck()) {
-            this.playCheck();
-        }
-    }
-    
     /**
      * 播放背景音乐
      */

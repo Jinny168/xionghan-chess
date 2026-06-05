@@ -210,6 +210,12 @@ class UIController {
             btnResetSettings.addEventListener('click', handlers.onResetSettings);
         }
         
+        // 设置对话框 - 查看统计数据按钮
+        const btnViewStatistics = document.getElementById('btn-view-statistics');
+        if (btnViewStatistics && handlers.onViewStatistics) {
+            btnViewStatistics.addEventListener('click', handlers.onViewStatistics);
+        }
+        
         // 设置对话框 - 关闭按钮（底部）
         const btnCloseSettings = document.getElementById('btn-close-settings');
         if (btnCloseSettings) {

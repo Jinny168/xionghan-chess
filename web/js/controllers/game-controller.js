@@ -146,7 +146,8 @@ class GameController {
             onVolumeChange: (volume) => this.updateVolume(volume),
             onBoardThemeChange: (theme) => this.changeBoardTheme(theme),
             onPieceStyleChange: (style) => this.changePieceStyle(style),
-            onResetSettings: () => this.resetSettings()
+            onResetSettings: () => this.resetSettings(),
+            onViewStatistics: () => this.viewStatistics()
         });
         
         // 监听游戏事件
@@ -658,11 +659,14 @@ class GameController {
      */
     toggleBackgroundMusic() {
         if (this.soundManager.musicEnabled) {
+            // 关闭音乐
             this.soundManager.stopBackgroundMusic();
             this.soundManager.musicEnabled = false;
         } else {
-            this.soundManager.playBackgroundMusic();
+            // 开启音乐：先设置标志位，再播放
             this.soundManager.musicEnabled = true;
+            // 传入当前音乐风格
+            this.soundManager.playBackgroundMusic(this.soundManager.currentMusicStyle);
         }
         localStorage.setItem('musicEnabled', this.soundManager.musicEnabled);
         this.updateSettingsUI();
@@ -754,6 +758,13 @@ class GameController {
             },
             null
         );
+    }
+    
+    /**
+     * 查看统计数据
+     */
+    viewStatistics() {
+        this.statisticsManager.showStatisticsDialog();
     }
     
     /**
