@@ -9,11 +9,6 @@ class GameRules {
      * @returns {Object} 规则配置对象
      */
     static getRuleConfig() {
-        // 减少日志输出 - 只在需要时开启
-        // console.log('=== getRuleConfig 被调用 ===');
-        // console.log('window.game:', window.game);
-        // console.log('window.game.ruleConfig:', window.game ? window.game.ruleConfig : 'game未定义');
-        
         // 如果window中有ruleConfig，则使用它
         if (window.game && window.game.ruleConfig) {
             const config = window.game.ruleConfig.getAll();
@@ -95,11 +90,6 @@ class GameRules {
      * @returns {boolean} 移动是否合法
      */
     static isValidMove(pieces, piece, fromRow, fromCol, toRow, toCol) {
-        // 减少日志输出 - 只在需要时开启
-        // console.log('=== isValidMove 被调用 ===');
-        // console.log('棋子:', piece ? piece.name : 'null', '颜色:', piece ? piece.color : 'null');
-        // console.log('起始位置:', [fromRow, fromCol], '目标位置:', [toRow, toCol]);
-        
         // 基本检查
         if (piece.row !== fromRow || piece.col !== fromCol) {
             return false;

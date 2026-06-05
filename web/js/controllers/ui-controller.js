@@ -30,7 +30,7 @@ class UIController {
             canvas: document.getElementById('chess-board'),
             
             // 状态显示
-            turnIndicator: document.getElementById('turn-indicator'),
+            turnIndicator: document.getElementById('turn-text'),
             checkAlert: document.getElementById('check-alert'),
             stepCount: document.getElementById('step-count'),
             totalTime: document.getElementById('total-time'),
