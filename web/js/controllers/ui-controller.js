@@ -14,11 +14,6 @@ class UIController {
         // 状态
         this.selectedPiece = null;
         this.isDarkMode = false;
-        
-        // Canvas相关
-        this.cellSize = 0;
-        this.offsetX = 0;
-        this.offsetY = 0;
     }
 
     /**
@@ -284,7 +279,7 @@ class UIController {
      * 更新UI显示
      * @param {Object} gameState - 游戏状态
      * @param {Object} stats - 统计信息
-     * @param {string} playerCamp - 玩家阵营(online模式)
+     * @param {string|null} playerCamp - 玩家阵营(online模式)
      */
     updateUI(gameState, stats = {}, playerCamp = null) {
         this.updateTurnIndicator(gameState.playerTurn, playerCamp);
@@ -297,7 +292,7 @@ class UIController {
     /**
      * 更新回合指示器
      * @param {string} turn - 当前回合 'red' 或 'black'
-     * @param {string} playerCamp - 玩家自己的阵营
+     * @param {string|null} playerCamp - 玩家自己的阵营
      */
     updateTurnIndicator(turn, playerCamp = null) {
         if (this.elements.turnIndicator) {
@@ -431,20 +426,10 @@ class UIController {
         this.elements.chatMessages.appendChild(msgDiv);
         this.elements.chatMessages.scrollTop = this.elements.chatMessages.scrollHeight;
     }
-
-    /**
-     * 清空聊天输入框
-     */
-    clearChatInput() {
-        if (this.elements.chatInput) {
-            this.elements.chatInput.value = '';
-        }
-    }
-
     /**
      * 切换面板显示
      * @param {string} panelName - 面板名称
-     * @param {boolean} show - 是否显示
+     * @param {boolean|null} show - 是否显示（null表示切换）
      */
     togglePanel(panelName, show = null) {
         const panel = this.elements[panelName];
@@ -461,7 +446,7 @@ class UIController {
 
     /**
      * 切换暗黑模式
-     * @param {boolean} enabled
+     * @param {boolean|null} enabled - 是否启用（null表示切换）
      */
     toggleDarkMode(enabled = null) {
         if (enabled === null) {
@@ -485,15 +470,6 @@ class UIController {
         // 保存偏好
         localStorage.setItem('darkMode', this.isDarkMode);
     }
-
-    /**
-     * 恢复暗黑模式设置
-     */
-    restoreDarkMode() {
-        const saved = localStorage.getItem('darkMode') === 'true';
-        this.toggleDarkMode(saved);
-    }
-
     /**
      * 选中棋子高亮
      * @param {Object} pos - 位置 {row, col}
@@ -514,8 +490,11 @@ class UIController {
 
     /**
      * 显示加载状态
-     * @param {string} message
+     * @param {string} message - 加载提示消息
+     * @internal 内部方法，供扩展功能使用
+     * @suppress {unusedPrivateMembers}
      */
+    // eslint-disable-next-line no-unused-vars
     showLoading(message = '加载中...') {
         const overlay = document.createElement('div');
         overlay.id = 'loading-overlay';
@@ -529,7 +508,10 @@ class UIController {
 
     /**
      * 隐藏加载状态
+     * @internal 内部方法，供扩展功能使用
+     * @suppress {unusedPrivateMembers}
      */
+    // eslint-disable-next-line no-unused-vars
     hideLoading() {
         const overlay = document.getElementById('loading-overlay');
         if (overlay) {
