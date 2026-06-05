@@ -35,6 +35,10 @@ class UIController {
             stepCount: document.getElementById('step-count'),
             totalTime: document.getElementById('total-time'),
             
+            // 头像
+            avatarRed: document.getElementById('avatar-red'),
+            avatarBlack: document.getElementById('avatar-black'),
+            
             // 棋谱
             moveList: document.getElementById('move-history-content'),
             
@@ -292,8 +296,8 @@ class UIController {
     updateTurnIndicator(turn, playerCamp = null) {
         if (this.elements.turnIndicator) {
             let turnText;
-            
-            // 如果是在线模式，显示“我的回合”或“对手回合”
+                
+            // 如果是在线模式，显示"我的回合"或"对手回合"
             if (playerCamp) {
                 const isMyTurn = turn === playerCamp;
                 turnText = isMyTurn ? ' 我的回合' : ' 对手回合';
@@ -301,9 +305,44 @@ class UIController {
                 // 单机模式
                 turnText = turn === 'red' ? '红方回合' : '黑方回合';
             }
-            
+                
             this.elements.turnIndicator.textContent = turnText;
             this.elements.turnIndicator.className = `turn-indicator ${turn}`;
+        }
+            
+        // 更新头像显示
+        this.updateAvatarDisplay(turn);
+    }
+        
+    /**
+     * 更新头像显示（根据当前回合高亮对应头像）
+     * @param {string} turn - 当前回合 'red' 或 'black'
+     */
+    updateAvatarDisplay(turn) {
+        if (!this.elements.avatarRed || !this.elements.avatarBlack) {
+            return;
+        }
+            
+        if (turn === 'red') {
+            // 红方回合：显示红方头像，隐藏黑方头像
+            this.elements.avatarRed.style.display = 'block';
+            this.elements.avatarBlack.style.display = 'none';
+                
+            // 添加高亮效果
+            this.elements.avatarRed.style.borderColor = '#ffd700';
+            this.elements.avatarRed.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.5)';
+            this.elements.avatarBlack.style.borderColor = '#ddd';
+            this.elements.avatarBlack.style.boxShadow = 'none';
+        } else {
+            // 黑方回合：显示黑方头像，隐藏红方头像
+            this.elements.avatarRed.style.display = 'none';
+            this.elements.avatarBlack.style.display = 'block';
+                
+            // 添加高亮效果
+            this.elements.avatarBlack.style.borderColor = '#ffd700';
+            this.elements.avatarBlack.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.5)';
+            this.elements.avatarRed.style.borderColor = '#ddd';
+            this.elements.avatarRed.style.boxShadow = 'none';
         }
     }
 

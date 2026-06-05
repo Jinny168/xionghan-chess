@@ -140,6 +140,12 @@ body {
     border-radius: 50%;
     border: 2px solid #ffd700;
     box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.avatar:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
 }
 
 .turn-text {
