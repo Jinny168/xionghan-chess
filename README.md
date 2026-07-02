@@ -110,7 +110,7 @@ pip install flask flask-cors flask-socketio
   - 传统AI：Negamax算法 + Alpha-Beta剪枝 + 历史启发
   - MCTS AI：蒙特卡洛树搜索 + PyTorch/PaddlePaddle深度学习
 - ✅ **特色棋子**: 尉、射、檑、甲、刺、盾、巡等7种独特棋子
-- ✅ **扩展棋盘**: 13×13网格，包含楚河汉界和九宫格
+- ✅ **扩展棋盘**: 13×13 的网格，包含楚河汉界和九宫格
 - ✅ **实用功能**: 棋谱记录、悔棋系统、音效控制、主题切换
 - ✅ **高级特性**: 将军提示、轨迹追踪、兵复活机制、升变系统
 
@@ -204,9 +204,9 @@ python app.py  # 手动测试
 所有文档已整理到 `docs/` 目录，请访问 [docs/README.md](docs/README.md) 查看完整文档索引。
 
 **快速导航：**
-- 🚀 **新手部署**: [docs/LINUX_DEPLOY_GUIDE.md](docs/LINUX_DEPLOY_GUIDE.md) - Linux 虚拟机部署教程（小白版）
-- 🐳 **Docker 部署**: [docs/DOCKER_DEPLOY.md](docs/DOCKER_DEPLOY.md) - Docker 完整部署指南
-- ⚡ **快速参考**: [docs/README_DOCKER.md](docs/README_DOCKER.md) - Docker 快速开始
+- 🚀 **部署指南**: [docs/DEPLOY_GUIDE.md](docs/DEPLOY_GUIDE.md) - 项目部署教程
+- 🐳 **Docker 部署**: [docker/README.md](docker/README.md) - Docker 完整部署指南
+- ⚡ **Docker 快速参考**: [docker/INDEX.md](docker/INDEX.md) - Docker 快速开始
 - 💻 **开发指南**: [web/docs/DEVELOPER_GUIDE.md](web/docs/DEVELOPER_GUIDE.md) - 开发者技术文档
 
 ### 桌面端文档
@@ -223,21 +223,14 @@ python app.py  # 手动测试
 ### 导入路径规范
 
 **桌面端内部导入:**
-```python
-# 方式1：相对导入（推荐）
-from .config.constants import GameConstants
 
-# 方式2：绝对导入
-from desktop.core.game_state import GameState
-```
+- 方式1：相对导入（推荐）：`from .config.constants import GameConstants`
+- 方式2：绝对导入：`from desktop.core.game_state import GameState`
 
 **避免跨子项目直接导入:**
-```python
-# ❌ 不推荐
-from desktop.xxx import something
 
-# ✅ 推荐：通过API或数据交换
-```
+- ❌ 不推荐：`from desktop.xxx import something`
+- ✅ 推荐：通过 API 或数据交换
 
 ### 资源路径
 

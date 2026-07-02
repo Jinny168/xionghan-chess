@@ -9,7 +9,7 @@ class ReplayManager {
         this.gameState = null;
         this.replayController = null;
         this.gameRecordManager = new GameRecordManager();
-        this.isReplayMode = false;
+
         
         // UI元素引用
         this.sidebar = null;
@@ -165,7 +165,7 @@ class ReplayManager {
     initReplayMode() {
         // 创建复盘控制器
         this.replayController = ReplayController.enterReplayMode(this.gameState);
-        this.isReplayMode = true;
+
         
         // 更新UI
         this.updateReplayUI();
@@ -207,7 +207,7 @@ class ReplayManager {
             // 恢复原始状态
             this.replayController.restoreOriginalState();
             this.replayController = null;
-            this.isReplayMode = false;
+
             
             // 隐藏侧边栏
             if (this.sidebar) {

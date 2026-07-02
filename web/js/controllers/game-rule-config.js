@@ -92,6 +92,28 @@ class GameRuleConfig {
     }
     
     /**
+     * 更新汉/汗方向选项的启用状态
+     * @param {HTMLInputElement} kingCheckbox - 汉出九宫复选框
+     * @param {HTMLInputElement} kingDirectionCheckbox - 汉宫外8个方向复选框
+     * @private
+     */
+    updateKingDirectionCheckboxState(kingCheckbox, kingDirectionCheckbox) {
+        if (kingDirectionCheckbox) {
+            if (kingCheckbox.checked) {
+                // 允许出九宫时，启用第二个选项
+                kingDirectionCheckbox.disabled = false;
+                kingDirectionCheckbox.parentElement.style.opacity = '1';
+                kingDirectionCheckbox.parentElement.style.cursor = 'pointer';
+            } else {
+                // 不允许出九宫时，禁用第二个选项
+                kingDirectionCheckbox.disabled = true;
+                kingDirectionCheckbox.parentElement.style.opacity = '0.5';
+                kingDirectionCheckbox.parentElement.style.cursor = 'not-allowed';
+            }
+        }
+    }
+    
+    /**
      * 绑定UI控件
      */
     bindUI() {
@@ -135,19 +157,7 @@ class GameRuleConfig {
             
             // 根据第一个选项的状态更新第二个和第三个选项的启用状态
             const updateDirectionCheckboxesState = () => {
-                if (kingDirectionCheckbox) {
-                    if (kingCheckbox.checked) {
-                        // 允许出九宫时，启用第二个选项
-                        kingDirectionCheckbox.disabled = false;
-                        kingDirectionCheckbox.parentElement.style.opacity = '1';
-                        kingDirectionCheckbox.parentElement.style.cursor = 'pointer';
-                    } else {
-                        // 不允许出九宫时，禁用第二个选项
-                        kingDirectionCheckbox.disabled = true;
-                        kingDirectionCheckbox.parentElement.style.opacity = '0.5';
-                        kingDirectionCheckbox.parentElement.style.cursor = 'not-allowed';
-                    }
-                }
+                this.updateKingDirectionCheckboxState(kingCheckbox, kingDirectionCheckbox);
             };
             
             // 初始设置状态
@@ -241,17 +251,7 @@ class GameRuleConfig {
             kingCheckbox.checked = this.get('kingOutPalace');
             
             // 更新第二个选项的状态
-            if (kingDirectionCheckbox) {
-                if (kingCheckbox.checked) {
-                    kingDirectionCheckbox.disabled = false;
-                    kingDirectionCheckbox.parentElement.style.opacity = '1';
-                    kingDirectionCheckbox.parentElement.style.cursor = 'pointer';
-                } else {
-                    kingDirectionCheckbox.disabled = true;
-                    kingDirectionCheckbox.parentElement.style.opacity = '0.5';
-                    kingDirectionCheckbox.parentElement.style.cursor = 'not-allowed';
-                }
-            }
+            this.updateKingDirectionCheckboxState(kingCheckbox, kingDirectionCheckbox);
         }
         
         if (kingPalaceDirectionCheckbox) {

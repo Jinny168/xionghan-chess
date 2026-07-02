@@ -100,14 +100,14 @@ class DialogManager {
             <div class="modal-dialog" style="max-width: 400px;">
                 <div class="modal-header">
                     <h2>${title}</h2>
-                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+                    <button class="modal-close" data-close-btn>&times;</button>
                 </div>
                 <div class="modal-body" style="padding: 20px; line-height: 1.6;">
                     ${message}
                 </div>
                 <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid #e0e0e0; display: flex; justify-content: flex-end; gap: 10px;">
-                    <button class="btn-secondary" id="temp-dialog-cancel" style="padding: 8px 16px; border: 1px solid #6c757d; border-radius: 6px; background: #fff; color: #6c757d; cursor: pointer; font-size: 14px; font-weight: 500;">${cancelText}</button>
-                    <button class="btn-primary" id="temp-dialog-confirm" style="padding: 8px 16px; border: none; border-radius: 6px; background: #2f54eb; color: white; cursor: pointer; font-size: 14px; font-weight: 500;">${confirmText}</button>
+                    <button class="btn-secondary" data-cancel-btn style="padding: 8px 16px; border: 1px solid #6c757d; border-radius: 6px; background: #fff; color: #6c757d; cursor: pointer; font-size: 14px; font-weight: 500;">${cancelText}</button>
+                    <button class="btn-primary" data-confirm-btn style="padding: 8px 16px; border: none; border-radius: 6px; background: #2f54eb; color: white; cursor: pointer; font-size: 14px; font-weight: 500;">${confirmText}</button>
                 </div>
             </div>
         `;
@@ -115,12 +115,17 @@ class DialogManager {
         document.body.appendChild(overlay);
         
         // 绑定事件
-        overlay.querySelector('#temp-dialog-confirm').addEventListener('click', () => {
+        overlay.querySelector('[data-confirm-btn]').addEventListener('click', () => {
             overlay.remove();
             if (onConfirm && typeof onConfirm === 'function') onConfirm();
         });
         
-        overlay.querySelector('#temp-dialog-cancel').addEventListener('click', () => {
+        overlay.querySelector('[data-cancel-btn]').addEventListener('click', () => {
+            overlay.remove();
+            if (onCancel && typeof onCancel === 'function') onCancel();
+        });
+        
+        overlay.querySelector('[data-close-btn]').addEventListener('click', () => {
             overlay.remove();
             if (onCancel && typeof onCancel === 'function') onCancel();
         });
@@ -195,13 +200,13 @@ class DialogManager {
             <div class="modal-dialog" style="max-width: 400px;">
                 <div class="modal-header">
                     <h2>${title}</h2>
-                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+                    <button class="modal-close" data-close-btn>&times;</button>
                 </div>
                 <div class="modal-body" style="padding: 20px; line-height: 1.6;">
                     ${message}
                 </div>
                 <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid #e0e0e0; display: flex; justify-content: flex-end;">
-                    <button class="btn-primary" id="temp-dialog-ok" style="padding: 8px 16px; border: none; border-radius: 6px; background: #2f54eb; color: white; cursor: pointer; font-size: 14px; font-weight: 500;">确定</button>
+                    <button class="btn-primary" data-ok-btn style="padding: 8px 16px; border: none; border-radius: 6px; background: #2f54eb; color: white; cursor: pointer; font-size: 14px; font-weight: 500;">确定</button>
                 </div>
             </div>
         `;
@@ -209,7 +214,12 @@ class DialogManager {
         document.body.appendChild(overlay);
         
         // 绑定事件
-        overlay.querySelector('#temp-dialog-ok').addEventListener('click', () => {
+        overlay.querySelector('[data-ok-btn]').addEventListener('click', () => {
+            overlay.remove();
+            if (onClose && typeof onClose === 'function') onClose();
+        });
+        
+        overlay.querySelector('[data-close-btn]').addEventListener('click', () => {
             overlay.remove();
             if (onClose && typeof onClose === 'function') onClose();
         });
@@ -248,28 +258,6 @@ class DialogManager {
     showError(message, onClose) {
         this.showInfo('错误', message, onClose);
     }
-    
-    /**
-     * 显示自定义内容
-     * @param {string} title - 对话框标题
-     * @param {string} htmlContent - 自定义HTML内容
-     * @param {string} footerHtml - 底部按钮HTML
-     * @param {Object} callbacks - 回调函数对象
-     * @param {Function} [callbacks.onMount] - 对话框挂载后的回调函数，接收modalBody参数
-     */
-    showCustom(title, htmlContent, footerHtml, callbacks = {}) {
-        this.modalTitle.textContent = title;
-        this.modalBody.innerHTML = htmlContent;
-        this.modalFooter.innerHTML = footerHtml;
-        
-        // 执行回调绑定事件
-        if (callbacks.onMount) {
-            callbacks.onMount(this.modalBody);
-        }
-        
-        this.open();
-    }
-    
     /**
      * 打开对话框
      */

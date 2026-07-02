@@ -28,7 +28,6 @@ class GameController {
         // 游戏配置
         this.playerCamp = 'red';
         this.isOnline = false;
-        this.isReplayMode = false;
         
         // Canvas引用
         this.canvas = null;
@@ -147,7 +146,8 @@ class GameController {
             onVolumeChange: (volume) => this.updateVolume(volume),
             onBoardThemeChange: (theme) => this.changeBoardTheme(theme),
             onPieceStyleChange: (style) => this.changePieceStyle(style),
-            onResetSettings: () => this.resetSettings()
+            onResetSettings: () => this.resetSettings(),
+            onViewStatistics: () => this.viewStatistics()
         });
         
         // 监听游戏事件
@@ -441,7 +441,8 @@ class GameController {
                 if (this.isOnline) {
                     this.networkHandler.requestRestart();
                 }
-            }
+            },
+            null
         );
     }
     
@@ -459,7 +460,8 @@ class GameController {
                 if (this.isOnline) {
                     this.networkHandler.resign();
                 }
-            }
+            },
+            null
         );
     }
     
@@ -475,7 +477,8 @@ class GameController {
                 this.avatarManager.clearCache();
                 this.updateUI();
                 this.render();
-            }
+            },
+            null
         );
     }
     
@@ -656,11 +659,14 @@ class GameController {
      */
     toggleBackgroundMusic() {
         if (this.soundManager.musicEnabled) {
+            // 关闭音乐
             this.soundManager.stopBackgroundMusic();
             this.soundManager.musicEnabled = false;
         } else {
-            this.soundManager.playBackgroundMusic();
+            // 开启音乐：先设置标志位，再播放
             this.soundManager.musicEnabled = true;
+            // 传入当前音乐风格
+            this.soundManager.playBackgroundMusic(this.soundManager.currentMusicStyle);
         }
         localStorage.setItem('musicEnabled', this.soundManager.musicEnabled);
         this.updateSettingsUI();
@@ -681,7 +687,7 @@ class GameController {
      */
     updateVolume(volume) {
         this.soundManager.setMusicVolume(volume / 100);
-        localStorage.setItem('volume', volume);
+        localStorage.setItem('volume', String(volume));
     }
     
     /**
@@ -749,8 +755,16 @@ class GameController {
                 }
                 
                 window.dialogManager.showInfo('提示', '设置已恢复为默认值');
-            }
+            },
+            null
         );
+    }
+    
+    /**
+     * 查看统计数据
+     */
+    viewStatistics() {
+        this.statisticsManager.showStatisticsDialog();
     }
     
     /**
@@ -763,7 +777,8 @@ class GameController {
             () => {
                 this.soundManager.stopBackgroundMusic();
                 window.location.href = '/';
-            }
+            },
+            null
         );
     }
     

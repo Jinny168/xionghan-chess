@@ -182,23 +182,6 @@ class StatisticsManager {
         this.data.totalMovesMade += increment;
         this.saveStatistics();
     }
-    
-    /**
-     * 获取所有统计数据
-     */
-    getStatistics() {
-        return { ...this.data };
-    }
-    
-    /**
-     * 重置所有统计数据
-     */
-    resetStatistics() {
-        this.data = this.getDefaultStatistics();
-        this.saveStatistics();
-        console.log('统计数据已重置');
-    }
-    
     /**
      * 获取格式化后的统计报告
      */
@@ -249,6 +232,161 @@ class StatisticsManager {
             totalMoves: stats.totalMovesMade,
             lastPlayed: stats.lastPlayed ? new Date(stats.lastPlayed).toLocaleString('zh-CN') : '从未'
         };
+    }
+    
+    /**
+     * 生成HTML格式的统计报告（用于展示）
+     * @returns {string} HTML字符串
+     */
+    generateStatisticsHTML() {
+        const report = this.getStatisticsReport();
+        const stats = this.data;
+        
+        // 棋子名称映射
+        const pieceNames = {
+            ju: '車', ma: '马', xiang: '相/象', shi: '士/仕', king: '将/帅',
+            pao: '炮', pawn: '兵/卒', wei: '尉/卫', she: '射', lei: '檑',
+            jia: '甲', ci: '刺', dun: '盾', xun: '巡'
+        };
+        
+        let html = `
+            <div class="statistics-container" style="padding: 20px; line-height: 1.8;">
+                <!-- 总体数据 -->
+                <div class="stat-section">
+                    <h3 style="color: #2f54eb; margin-bottom: 15px;">📊 总体数据</h3>
+                    <div class="stat-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <div class="stat-item"><strong>总游戏数：</strong>${report.totalGames} 局</div>
+                        <div class="stat-item"><strong>总走子数：</strong>${report.totalMoves} 步</div>
+                        <div class="stat-item"><strong>总游戏时长：</strong>${report.totalTime}</div>
+                        <div class="stat-item"><strong>最长单局：</strong>${report.longestGame}</div>
+                    </div>
+                </div>
+                
+                <!-- 胜率统计 -->
+                <div class="stat-section" style="margin-top: 20px;">
+                    <h3 style="color: #2f54eb; margin-bottom: 15px;">🏆 胜率统计</h3>
+                    <div class="stat-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <div class="stat-item" style="color: #d32f2f;"><strong>红方胜利：</strong>${stats.gamesWon.red} 次 (${report.winRate.red})</div>
+                        <div class="stat-item"><strong>黑方胜利：</strong>${stats.gamesWon.black} 次 (${report.winRate.black})</div>
+                        <div class="stat-item"><strong>平局：</strong>${stats.gamesWon.draw} 次 (${report.winRate.draw})</div>
+                    </div>
+                </div>
+                
+                <!-- 连胜记录 -->
+                <div class="stat-section" style="margin-top: 20px;">
+                    <h3 style="color: #2f54eb; margin-bottom: 15px;">🔥 连胜记录</h3>
+                    <div class="stat-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <div class="stat-item"><strong>红方最高连胜：</strong>${report.maxStreak.red} 局</div>
+                        <div class="stat-item"><strong>黑方最高连胜：</strong>${report.maxStreak.black} 局</div>
+                        <div class="stat-item" style="color: #d32f2f;"><strong>红方当前连胜：</strong>${report.currentStreak.red} 局</div>
+                        <div class="stat-item"><strong>黑方当前连胜：</strong>${report.currentStreak.black} 局</div>
+                    </div>
+                </div>
+                
+                <!-- 最快胜利 -->
+                <div class="stat-section" style="margin-top: 20px;">
+                    <h3 style="color: #2f54eb; margin-bottom: 15px;">⚡ 最快胜利</h3>
+                    <div class="stat-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <div class="stat-item" style="color: #d32f2f;"><strong>红方最快胜利：</strong>${report.fastestWin.red}</div>
+                        <div class="stat-item"><strong>黑方最快胜利：</strong>${report.fastestWin.black}</div>
+                    </div>
+                </div>
+                
+                <!-- 被吃棋子统计 -->
+                <div class="stat-section" style="margin-top: 20px;">
+                    <h3 style="color: #2f54eb; margin-bottom: 15px;">♟️ 被吃棋子统计</h3>
+                    <div class="stat-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+        `;
+        
+        // 添加棋子统计
+        Object.entries(stats.piecesCaptured).forEach(([piece, count]) => {
+            if (count > 0) {
+                const pieceName = pieceNames[piece] || piece;
+                html += `<div class="stat-item"><strong>${pieceName}：</strong>${count} 个</div>`;
+            }
+        });
+        
+        html += `
+                    </div>
+                </div>
+                
+                <!-- 最后游戏时间 -->
+                <div class="stat-section" style="margin-top: 20px;">
+                    <h3 style="color: #2f54eb; margin-bottom: 15px;">🕒 最近游戏</h3>
+                    <div class="stat-item"><strong>最后游戏时间：</strong>${report.lastPlayed}</div>
+                </div>
+            </div>
+        `;
+        
+        return html;
+    }
+    
+    /**
+     * 显示统计数据对话框
+     */
+    showStatisticsDialog() {
+        const html = this.generateStatisticsHTML();
+        
+        window.dialogManager.showConfirm(
+            '📊 游戏统计数据',
+            html,
+            () => {
+                // 确认按钮 - 导出数据
+                this.exportStatistics();
+            },
+            null,
+            '📤 导出数据',
+            '关闭'
+        );
+    }
+    
+    /**
+     * 导出统计数据为JSON文件
+     * @param {string|null} filename - 文件名（可选，默认为null）
+     */
+    exportStatistics(filename = null) {
+        try {
+            // 生成文件名
+            if (!filename) {
+                const now = new Date();
+                const dateStr = now.toISOString().replace(/[:.]/g, '-').split('T')[0];
+                filename = `xionghan_chess_stats_${dateStr}.json`;
+            }
+            
+            // 准备导出数据
+            const exportData = {
+                title: '匈汉象棋统计数据',
+                exportTime: new Date().toISOString(),
+                statistics: this.data
+            };
+            
+            // 转换为JSON字符串
+            const jsonStr = JSON.stringify(exportData, null, 2);
+            
+            // 创建Blob对象
+            const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+            
+            // 创建下载链接
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.style.display = 'none';
+            
+            // 触发下载
+            document.body.appendChild(a);
+            a.click();
+            
+            // 清理
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            console.log('✅ 统计数据已导出:', filename);
+            alert('✅ 统计数据已成功导出！');
+        } catch (error) {
+            console.error('❌ 导出统计数据失败:', error);
+            alert('❌ 导出失败：' + error.message);
+        }
     }
 }
 

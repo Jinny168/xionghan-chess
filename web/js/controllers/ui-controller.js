@@ -14,11 +14,6 @@ class UIController {
         // 状态
         this.selectedPiece = null;
         this.isDarkMode = false;
-        
-        // Canvas相关
-        this.cellSize = 0;
-        this.offsetX = 0;
-        this.offsetY = 0;
     }
 
     /**
@@ -34,6 +29,10 @@ class UIController {
             checkAlert: document.getElementById('check-alert'),
             stepCount: document.getElementById('step-count'),
             totalTime: document.getElementById('total-time'),
+            
+            // 头像
+            avatarRed: document.getElementById('avatar-red'),
+            avatarBlack: document.getElementById('avatar-black'),
             
             // 棋谱
             moveList: document.getElementById('move-history-content'),
@@ -206,6 +205,12 @@ class UIController {
             btnResetSettings.addEventListener('click', handlers.onResetSettings);
         }
         
+        // 设置对话框 - 查看统计数据按钮
+        const btnViewStatistics = document.getElementById('btn-view-statistics');
+        if (btnViewStatistics && handlers.onViewStatistics) {
+            btnViewStatistics.addEventListener('click', handlers.onViewStatistics);
+        }
+        
         // 设置对话框 - 关闭按钮（底部）
         const btnCloseSettings = document.getElementById('btn-close-settings');
         if (btnCloseSettings) {
@@ -274,7 +279,7 @@ class UIController {
      * 更新UI显示
      * @param {Object} gameState - 游戏状态
      * @param {Object} stats - 统计信息
-     * @param {string} playerCamp - 玩家阵营(online模式)
+     * @param {string|null} playerCamp - 玩家阵营(online模式)
      */
     updateUI(gameState, stats = {}, playerCamp = null) {
         this.updateTurnIndicator(gameState.playerTurn, playerCamp);
@@ -287,13 +292,13 @@ class UIController {
     /**
      * 更新回合指示器
      * @param {string} turn - 当前回合 'red' 或 'black'
-     * @param {string} playerCamp - 玩家自己的阵营
+     * @param {string|null} playerCamp - 玩家自己的阵营
      */
     updateTurnIndicator(turn, playerCamp = null) {
         if (this.elements.turnIndicator) {
             let turnText;
-            
-            // 如果是在线模式，显示“我的回合”或“对手回合”
+                
+            // 如果是在线模式，显示"我的回合"或"对手回合"
             if (playerCamp) {
                 const isMyTurn = turn === playerCamp;
                 turnText = isMyTurn ? ' 我的回合' : ' 对手回合';
@@ -301,9 +306,44 @@ class UIController {
                 // 单机模式
                 turnText = turn === 'red' ? '红方回合' : '黑方回合';
             }
-            
+                
             this.elements.turnIndicator.textContent = turnText;
             this.elements.turnIndicator.className = `turn-indicator ${turn}`;
+        }
+            
+        // 更新头像显示
+        this.updateAvatarDisplay(turn);
+    }
+        
+    /**
+     * 更新头像显示（根据当前回合高亮对应头像）
+     * @param {string} turn - 当前回合 'red' 或 'black'
+     */
+    updateAvatarDisplay(turn) {
+        if (!this.elements.avatarRed || !this.elements.avatarBlack) {
+            return;
+        }
+            
+        if (turn === 'red') {
+            // 红方回合：显示红方头像，隐藏黑方头像
+            this.elements.avatarRed.style.display = 'block';
+            this.elements.avatarBlack.style.display = 'none';
+                
+            // 添加高亮效果
+            this.elements.avatarRed.style.borderColor = '#ffd700';
+            this.elements.avatarRed.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.5)';
+            this.elements.avatarBlack.style.borderColor = '#ddd';
+            this.elements.avatarBlack.style.boxShadow = 'none';
+        } else {
+            // 黑方回合：显示黑方头像，隐藏红方头像
+            this.elements.avatarRed.style.display = 'none';
+            this.elements.avatarBlack.style.display = 'block';
+                
+            // 添加高亮效果
+            this.elements.avatarBlack.style.borderColor = '#ffd700';
+            this.elements.avatarBlack.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.5)';
+            this.elements.avatarRed.style.borderColor = '#ddd';
+            this.elements.avatarRed.style.boxShadow = 'none';
         }
     }
 
@@ -386,20 +426,10 @@ class UIController {
         this.elements.chatMessages.appendChild(msgDiv);
         this.elements.chatMessages.scrollTop = this.elements.chatMessages.scrollHeight;
     }
-
-    /**
-     * 清空聊天输入框
-     */
-    clearChatInput() {
-        if (this.elements.chatInput) {
-            this.elements.chatInput.value = '';
-        }
-    }
-
     /**
      * 切换面板显示
      * @param {string} panelName - 面板名称
-     * @param {boolean} show - 是否显示
+     * @param {boolean|null} show - 是否显示（null表示切换）
      */
     togglePanel(panelName, show = null) {
         const panel = this.elements[panelName];
@@ -416,7 +446,7 @@ class UIController {
 
     /**
      * 切换暗黑模式
-     * @param {boolean} enabled
+     * @param {boolean|null} enabled - 是否启用（null表示切换）
      */
     toggleDarkMode(enabled = null) {
         if (enabled === null) {
@@ -440,15 +470,6 @@ class UIController {
         // 保存偏好
         localStorage.setItem('darkMode', this.isDarkMode);
     }
-
-    /**
-     * 恢复暗黑模式设置
-     */
-    restoreDarkMode() {
-        const saved = localStorage.getItem('darkMode') === 'true';
-        this.toggleDarkMode(saved);
-    }
-
     /**
      * 选中棋子高亮
      * @param {Object} pos - 位置 {row, col}
@@ -469,8 +490,11 @@ class UIController {
 
     /**
      * 显示加载状态
-     * @param {string} message
+     * @param {string} message - 加载提示消息
+     * @internal 内部方法，供扩展功能使用
+     * @suppress {unusedPrivateMembers}
      */
+    // eslint-disable-next-line no-unused-vars
     showLoading(message = '加载中...') {
         const overlay = document.createElement('div');
         overlay.id = 'loading-overlay';
@@ -484,7 +508,10 @@ class UIController {
 
     /**
      * 隐藏加载状态
+     * @internal 内部方法，供扩展功能使用
+     * @suppress {unusedPrivateMembers}
      */
+    // eslint-disable-next-line no-unused-vars
     hideLoading() {
         const overlay = document.getElementById('loading-overlay');
         if (overlay) {

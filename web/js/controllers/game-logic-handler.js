@@ -10,7 +10,7 @@ class GameLogicHandler {
         this.events = eventDispatcher;
         
         this.moveHistory = [];
-        this.lastMoveNotation = '';
+
     }
 
     /**
@@ -39,15 +39,12 @@ class GameLogicHandler {
             return { success: false, message: '非法移动' };
         }
 
-        // 记录移动前的状态（用于悔棋）
-        const moveSnapshot = this.createMoveSnapshot(piece, fromPos, toPos);
-
         // 执行移动
         const capturedPiece = this.gameState.movePiece(fromPos.row, fromPos.col, toPos.row, toPos.col);
         
         // 生成棋谱记号
         const notation = this.generateMoveNotation(piece, fromPos, toPos, capturedPiece);
-        this.lastMoveNotation = notation;
+
 
         // 记录到历史
         const moveData = {
@@ -159,7 +156,7 @@ class GameLogicHandler {
             const newRow = row + dr;
             const newCol = col + dc;
             
-            if (this.gameState.isValidPosition(newRow, newCol)) {
+            if (GameRules.isPositionOnBoard(newRow, newCol)) {
                 const piece = this.gameState.getPieceAt(newRow, newCol);
                 if (piece && piece.camp === camp) {
                     connectedCount++;
@@ -211,7 +208,7 @@ class GameLogicHandler {
     restart() {
         this.gameState.reset();
         this.moveHistory = [];
-        this.lastMoveNotation = '';
+
         
         this.events.emit('game:reset');
         this.events.emit('history:updated', {
@@ -219,21 +216,6 @@ class GameLogicHandler {
             action: 'restart'
         });
     }
-
-    /**
-     * 切换回合
-     * @private
-     */
-    switchTurn() {
-        const oldTurn = this.gameState.playerTurn;
-        this.gameState.playerTurn = oldTurn === 'red' ? 'black' : 'red';
-        
-        this.events.emit('turn:changed', {
-            from: oldTurn,
-            to: this.gameState.playerTurn
-        });
-    }
-
     /**
      * 生成棋谱记号
      * @private
@@ -262,22 +244,6 @@ class GameLogicHandler {
         
         return notation;
     }
-
-    /**
-     * 创建移动快照（用于悔棋）
-     * @private
-     */
-    createMoveSnapshot(piece, fromPos, toPos) {
-        // 简化版：只记录关键信息，不克隆整个棋盘
-        return {
-            piece: { ...piece },
-            from: { ...fromPos },
-            to: { ...toPos },
-            turn: this.gameState.playerTurn,
-            capturedPiece: this.gameState.getPieceAt(toPos.row, toPos.col)
-        };
-    }
-
     /**
      * 获取移动历史
      * @returns {Array}
@@ -285,39 +251,6 @@ class GameLogicHandler {
     getMoveHistory() {
         return [...this.moveHistory];
     }
-
-    /**
-     * 清空移动历史
-     */
-    clearHistory() {
-        this.moveHistory = [];
-        this.lastMoveNotation = '';
-    }
-
-    /**
-     * 获取最后一步记号
-     * @returns {string}
-     */
-    getLastMoveNotation() {
-        return this.lastMoveNotation;
-    }
-
-    /**
-     * 检查游戏是否结束
-     * @returns {Object} {gameOver, winner, reason}
-     */
-    checkGameEnd() {
-        if (this.gameState.gameOver) {
-            return {
-                gameOver: true,
-                winner: this.gameState.winner,
-                reason: this.gameState.gameReason
-            };
-        }
-
-        return { gameOver: false };
-    }
-
     /**
      * 认输
      * @param {string} camp - 认输方 'red' 或 'black'
