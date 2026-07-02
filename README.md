@@ -223,21 +223,14 @@ python app.py  # 手动测试
 ### 导入路径规范
 
 **桌面端内部导入:**
-```text
-# 方式1：相对导入（推荐）
-from .config.constants import GameConstants
 
-# 方式2：绝对导入
-from desktop.core.game_state import GameState
-```
+- 方式1：相对导入（推荐）：`from .config.constants import GameConstants`
+- 方式2：绝对导入：`from desktop.core.game_state import GameState`
 
 **避免跨子项目直接导入:**
-```text
-# ❌ 不推荐
-from desktop.xxx import something
 
-# ✅ 推荐：通过API或数据交换
-```
+- ❌ 不推荐：`from desktop.xxx import something`
+- ✅ 推荐：通过 API 或数据交换
 
 ### 资源路径
 
