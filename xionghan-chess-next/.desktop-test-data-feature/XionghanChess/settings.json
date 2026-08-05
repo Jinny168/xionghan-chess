@@ -1,0 +1,16 @@
+{
+  "profile": "desktop_complete",
+  "difficulty": "medium",
+  "human_color": "red",
+  "sound": true,
+  "music": false,
+  "music_style": "fc",
+  "sound_volume": 70,
+  "music_volume": 40,
+  "theme": "classic",
+  "font": "system",
+  "background": "1",
+  "autosave": true,
+  "initial_minutes": 20,
+  "rule_options": {}
+}

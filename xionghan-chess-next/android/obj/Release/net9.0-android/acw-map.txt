@@ -1,0 +1,3 @@
+XionghanChessAndroid.MainActivity, XionghanChessAndroid;crc64f6f2b5806e9afa0f.MainActivity
+XionghanChessAndroid.MainActivity;crc64f6f2b5806e9afa0f.MainActivity
+xionghanchessandroid.MainActivity;crc64f6f2b5806e9afa0f.MainActivity

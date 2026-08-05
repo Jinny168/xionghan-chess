@@ -1,0 +1,10 @@
+obj\Release\net9.0-android\android-x64\aot\_Microsoft.Android.Resource.Designer.dll.so
+obj\Release\net9.0-android\android-x64\aot\XionghanChessAndroid.dll.so
+obj\Release\net9.0-android\android-x64\aot\System.Console.dll.so
+obj\Release\net9.0-android\android-x64\aot\System.Linq.dll.so
+obj\Release\net9.0-android\android-x64\aot\System.Runtime.InteropServices.dll.so
+obj\Release\net9.0-android\android-x64\aot\System.Runtime.dll.so
+obj\Release\net9.0-android\android-x64\aot\Java.Interop.dll.so
+obj\Release\net9.0-android\android-x64\aot\Mono.Android.Runtime.dll.so
+obj\Release\net9.0-android\android-x64\aot\Mono.Android.dll.so
+obj\Release\net9.0-android\android-x64\aot\System.Private.CoreLib.dll.so

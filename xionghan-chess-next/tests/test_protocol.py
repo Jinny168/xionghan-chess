@@ -1,0 +1,11 @@
+from xionghan_chess.core.protocol import Envelope, MessageType, PROTOCOL_VERSION
+
+
+def test_protocol_uses_stable_camel_case_wire_format():
+    message = Envelope(type=MessageType.MOVE, requestId="abc", roomId="R12345", revision=3,
+                       payload={"from": {"row": 1, "col": 2}, "to": {"row": 2, "col": 2}})
+    wire = message.wire()
+    assert wire["requestId"] == "abc"
+    assert wire["roomId"] == "R12345"
+    assert wire["protocolVersion"] == PROTOCOL_VERSION
+

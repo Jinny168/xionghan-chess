@@ -1,0 +1,8 @@
+{
+  "profile": "desktop_complete",
+  "difficulty": "beginner",
+  "human_color": "red",
+  "sound": true,
+  "initial_minutes": 20,
+  "rule_options": {}
+}

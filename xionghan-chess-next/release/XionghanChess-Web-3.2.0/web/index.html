@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#781f1f">
+  <title>匈汉象棋</title>
+  <link rel="icon" href="/assets/icon.ico">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="seal">匈漢</span><div><h1>匈汉象棋</h1><p id="connectionText">本地棋局</p></div></div>
+    <div class="top-actions">
+      <button class="icon-button" id="soundButton" title="音效" aria-label="切换音效">♪</button>
+      <button class="icon-button" id="settingsButton" title="规则设置" aria-label="规则设置">⚙</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="player-column">
+      <section class="player-panel black-player">
+        <div class="avatar">汗</div><div><strong>黑方</strong><span id="blackStatus">等待落座</span></div>
+        <time id="blackClock">20:00</time>
+      </section>
+      <section class="captured-panel"><h2>黑方损失</h2><div id="blackCaptured" class="captured"></div></section>
+      <section class="mode-panel">
+        <label>模式<select id="modeSelect"><option value="ai">人机对战</option><option value="online">网络对战</option></select></label>
+        <label>规则档案<select id="profileSelect"><option value="web">精简模式</option><option value="desktop_classic">经典模式</option><option value="desktop_complete">完整模式</option><option value="traditional">传统象棋</option></select></label>
+        <label>AI 难度<select id="difficultySelect"><option value="beginner">入门</option><option value="easy">初级</option><option value="medium" selected>中级</option><option value="hard">高级</option></select></label>
+        <label>执子<select id="colorSelect"><option value="red">红方先手</option><option value="black">黑方后手</option></select></label>
+        <button class="primary" id="newGameButton">新建对局</button>
+        <div class="join-row"><input id="roomInput" maxlength="6" placeholder="房间号"><button id="joinButton">加入</button></div>
+      </section>
+    </aside>
+
+    <section class="board-stage">
+      <div class="turn-ribbon" id="turnRibbon">红方行棋</div>
+      <div class="board-shell" id="boardShell">
+        <canvas id="board" aria-label="匈汉象棋棋盘"></canvas>
+        <div id="thinking" class="thinking" hidden><span></span>棋灵思考中</div>
+      </div>
+      <div class="game-actions">
+      <button id="undoButton">↶ 悔棋</button>
+        <button id="resignButton">认输</button>
+        <button id="drawButton">提和</button>
+        <button id="replayButton">复盘</button>
+      </div>
+    </section>
+
+    <aside class="record-column">
+      <section class="player-panel red-player">
+        <div class="avatar">漢</div><div><strong>红方</strong><span id="redStatus">等待落座</span></div>
+        <time id="redClock">20:00</time>
+      </section>
+      <section class="record-panel">
+        <div class="panel-title"><div class="record-tabs"><button id="showMovesButton" class="active">棋谱</button><button id="showChatButton">聊天</button></div><span id="moveCount">0 回合</span></div>
+        <ol id="moveList"></ol>
+        <div id="chatView" class="chat-view" hidden>
+          <div id="chatMessages" class="chat-messages"></div>
+          <div class="chat-quick-row"><select id="quickChatSelect"><option value="请多指教">请多指教</option><option value="好棋！">好棋</option><option value="承让">承让</option><option value="稍等一下">稍等一下</option><option value="再来一局">再来一局</option><option value="这一步，你可要想好了！">挑衅</option></select><button id="sendQuickChatButton">发送</button></div>
+          <div class="chat-input-row"><input id="chatInput" maxlength="80" placeholder="输入聊天内容"><button id="sendChatButton">发送</button></div>
+        </div>
+      </section>
+      <section class="captured-panel"><h2>红方损失</h2><div id="redCaptured" class="captured"></div></section>
+      <section class="room-card"><span>房间</span><strong id="roomCode">离线</strong><button class="icon-button" id="copyRoomButton" title="复制房间号">⧉</button></section>
+    </aside>
+  </main>
+
+  <aside id="replaySidebar" class="replay-sidebar" aria-label="复盘控制">
+    <div class="replay-header"><strong>复盘模式</strong><button class="icon-button" id="closeReplayButton" title="退出复盘" aria-label="退出复盘">×</button></div>
+    <div class="replay-toolbar">
+      <button id="replayBegin" title="回到开局">|&lt;</button><button id="replayPrev" title="上一步">&lt;</button>
+      <button id="replayNext" title="下一步">&gt;</button><button id="replayEnd" title="跳到终局">&gt;|</button>
+    </div>
+    <div class="replay-progress"><input type="range" id="replayProgress" min="0" max="0" value="0"><span id="replayStepInfo">0 / 0</span></div>
+    <ol id="replayMoves"></ol>
+    <div class="saved-replays"><div class="saved-replays-title"><strong>本地对局记录</strong><button id="saveReplayButton">保存当前</button></div><div id="savedReplayList"></div></div>
+  </aside>
+
+  <dialog id="settingsDialog">
+    <form method="dialog">
+      <div class="dialog-title"><h2>规则设置</h2><button value="cancel" class="icon-button" aria-label="关闭">×</button></div>
+      <div class="preference-options">
+        <fieldset><legend>界面外观</legend>
+          <label>字体<select id="fontSelect"><option value="system">系统无衬线</option><option value="kaiti">楷体</option><option value="songti">宋体</option><option value="serif">衬线古典</option></select></label>
+          <label>棋盘主题<select id="boardThemeSelect"><option value="classic">经典木纹</option><option value="green">翠绿草原</option><option value="blue">海洋蓝调</option><option value="purple">紫晶梦幻</option><option value="dark">暗黑模式</option></select></label>
+          <label>背景图片<select id="backgroundSelect"><option value="1">山水淡纹</option><option value="2">素雅纸纹</option><option value="3">长城远景</option><option value="4">青绿山水</option><option value="5">夜色山河</option></select></label>
+          <label>棋子样式<select id="pieceStyleSelect"><option value="traditional">传统书法</option><option value="modern">现代简约</option><option value="cartoon">卡通风格</option></select></label>
+        </fieldset>
+        <fieldset><legend>声音</legend>
+          <label class="check-label"><input type="checkbox" id="soundEnabled" checked>音效</label>
+          <label class="check-label"><input type="checkbox" id="musicEnabled" checked>背景音乐</label>
+          <label>音乐风格<select id="musicStyleSelect"><option value="fc">FC 风格</option><option value="qq">QQ 风格</option></select></label>
+          <label>音量<input type="range" id="volumeSlider" min="0" max="100" value="70"><output id="volumeValue">70%</output></label>
+        </fieldset>
+      </div>
+      <div id="ruleOptions" class="rule-options"></div>
+      <menu><button value="cancel">取消</button><button value="default" id="applySettings" class="primary">应用并重开</button></menu>
+    </form>
+  </dialog>
+  <dialog id="resultDialog"><div class="result-mark" id="resultMark">胜</div><h2 id="resultTitle"></h2><p id="resultText"></p><button id="resultRestart" class="primary">再来一局</button></dialog>
+  <div id="toast" class="toast" role="status"></div>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
