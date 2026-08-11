@@ -1,38 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import datetime
 import json
 from pathlib import Path
-from typing import Any
 
 from xionghan_chess.core.game import Game
-from xionghan_chess.core.model import GameState
+from xionghan_chess.core.storage import FORMAT_VERSION, game_document, game_from_document
 
 from .config import config_path
-
-
-FORMAT_VERSION = 1
-
-
-def game_document(game: Game) -> dict[str, Any]:
-    return {
-        "formatVersion": FORMAT_VERSION,
-        "profileId": game.profile.id,
-        "options": asdict(game.options),
-        "state": game.state.to_dict(),
-        "snapshots": list(game._snapshots),
-        "savedAt": datetime.now().isoformat(timespec="seconds"),
-    }
-
-
-def game_from_document(data: dict[str, Any]) -> Game:
-    if int(data.get("formatVersion", 0)) != FORMAT_VERSION:
-        raise ValueError("不支持的棋谱文件版本")
-    state = GameState.from_dict(data["state"])
-    game = Game.from_state(state, data.get("options", {}))
-    game._snapshots = [dict(item) for item in data.get("snapshots", [])]
-    return game
 
 
 def save_game(game: Game, path: str | Path) -> Path:

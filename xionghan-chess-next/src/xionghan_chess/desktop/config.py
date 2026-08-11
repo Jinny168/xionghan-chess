@@ -14,6 +14,7 @@ def config_path() -> Path:
 
 DEFAULTS: dict[str, Any] = {
     "profile": "desktop_complete",
+    "game_mode": "ai",
     "difficulty": "medium",
     "human_color": "red",
     "sound": True,
@@ -23,7 +24,13 @@ DEFAULTS: dict[str, Any] = {
     "music_volume": 40,
     "theme": "classic",
     "font": "system",
-    "background": "1",
+    "background": "none",
+    "piece_style": "traditional",
+    "animations": True,
+    "selection_highlight": True,
+    "legal_targets": True,
+    "capture_hints": True,
+    "countdown_seconds": 30,
     "autosave": True,
     "initial_minutes": 20,
     "rule_options": {},
