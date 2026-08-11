@@ -1,10 +1,4 @@
-adaptive-icon;obj\Release\net9.0-android\res\mipmap-anydpi-v26\appicon_round.xml
-adaptive-icon;obj\Release\net9.0-android\res\mipmap-anydpi-v26\appicon.xml
-background;obj\Release\net9.0-android\res\mipmap-anydpi-v26\appicon_round.xml
-background;obj\Release\net9.0-android\res\mipmap-anydpi-v26\appicon.xml
 color;obj\Release\net9.0-android\res\values\ic_launcher_background.xml
-foreground;obj\Release\net9.0-android\res\mipmap-anydpi-v26\appicon_round.xml
-foreground;obj\Release\net9.0-android\res\mipmap-anydpi-v26\appicon.xml
 RelativeLayout;obj\Release\net9.0-android\res\layout\activity_main.xml
 resources;obj\Release\net9.0-android\res\values\ic_launcher_background.xml
 resources;obj\Release\net9.0-android\res\values\strings.xml

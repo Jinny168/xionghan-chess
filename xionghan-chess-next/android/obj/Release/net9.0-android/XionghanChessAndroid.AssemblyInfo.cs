@@ -12,11 +12,11 @@ using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("XionghanChessAndroid")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("3.2.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("3.2.0+15b34d33ffdc921bd58399b7615ca44df29244eb")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("1.1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.1.0+40f8d6ad38ce3ced0c14bc9ad21a224d1e60f7b3")]
 [assembly: System.Reflection.AssemblyProductAttribute("XionghanChessAndroid")]
 [assembly: System.Reflection.AssemblyTitleAttribute("XionghanChessAndroid")]
-[assembly: System.Reflection.AssemblyVersionAttribute("3.2.0.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("1.1.0.0")]
 [assembly: System.Runtime.Versioning.TargetPlatformAttribute("Android35.0")]
 [assembly: System.Runtime.Versioning.SupportedOSPlatformAttribute("Android21.0")]
 

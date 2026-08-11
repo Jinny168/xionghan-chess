@@ -14,6 +14,7 @@ src/xionghan_chess/core/model.py
 src/xionghan_chess/core/profiles.py
 src/xionghan_chess/core/protocol.py
 src/xionghan_chess/core/rules.py
+src/xionghan_chess/core/storage.py
 src/xionghan_chess/desktop/__init__.py
 src/xionghan_chess/desktop/app.py
 src/xionghan_chess/desktop/audio.py
@@ -25,6 +26,8 @@ src/xionghan_chess/desktop/resources/backgrounds/2.jpg
 src/xionghan_chess/desktop/resources/backgrounds/3.jpg
 src/xionghan_chess/desktop/resources/backgrounds/4.jpg
 src/xionghan_chess/desktop/resources/backgrounds/5.jpg
+src/xionghan_chess/desktop/resources/docs/ABOUT.md
+src/xionghan_chess/desktop/resources/docs/HELP.md
 src/xionghan_chess/desktop/resources/docs/PIECE_RULES.md
 src/xionghan_chess/desktop/resources/fonts/msyh.ttc
 src/xionghan_chess/desktop/resources/fonts/simkai.ttf
@@ -43,6 +46,7 @@ src/xionghan_chess/service/app.py
 src/xionghan_chess/service/rooms.py
 tests/test_ai.py
 tests/test_desktop_storage.py
+tests/test_game.py
 tests/test_profiles.py
 tests/test_protocol.py
 tests/test_rules.py
