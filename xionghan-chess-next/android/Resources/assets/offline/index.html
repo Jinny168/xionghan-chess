@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>匈汉象棋 - 离线同机</title>
+  <link rel="stylesheet" href="offline.css">
+</head>
+<body>
+  <header class="appbar">
+    <div class="brand"><span class="seal">匈汉</span><div><strong>匈汉象棋</strong><small>离线同机</small></div></div>
+    <div class="appbar-actions">
+      <button id="retryButton" title="重新连接服务器">重连</button>
+      <button id="serverButton" title="服务器设置">服务器</button>
+    </div>
+  </header>
+  <div class="network-banner"><span id="networkMessage">服务器不可用，离线同机模式可正常使用</span></div>
+  <main>
+    <section class="controls">
+      <label>对战方式<select id="modeSelect"><option value="local">双人同机</option><option disabled>人机对战（需服务器）</option><option disabled>网络对战（需服务器）</option></select></label>
+      <label>规则模式<select id="profileSelect"></select></label>
+      <label>每方时限<select id="minutesSelect"><option value="5">5 分钟</option><option value="10">10 分钟</option><option value="20" selected>20 分钟</option><option value="30">30 分钟</option><option value="60">60 分钟</option></select></label>
+      <label>读秒提醒<select id="countdownSelect"><option value="10">最后 10 秒</option><option value="30" selected>最后 30 秒</option><option value="60">最后 60 秒</option><option value="0">关闭</option></select></label>
+      <button class="primary" id="newGameButton">开始新对局</button>
+      <details class="preferences"><summary>显示与辅助</summary><div>
+        <label>棋盘主题<select id="themeSelect"><option value="classic">经典木纹</option><option value="green">翠绿草原</option><option value="blue">海洋蓝调</option><option value="dark">暗黑模式</option></select></label>
+        <label>棋子样式<select id="pieceStyleSelect"><option value="traditional">传统书法</option><option value="modern">现代简约</option><option value="cartoon">卡通风格</option></select></label>
+        <label class="check"><input id="legalTargetsEnabled" type="checkbox" checked>显示可行落点</label>
+        <label class="check"><input id="captureHintsEnabled" type="checkbox" checked>提示可吃棋子</label>
+        <label class="check"><input id="soundEnabled" type="checkbox" checked>点击与走棋音效</label>
+        <label>音量<input id="volumeSlider" type="range" min="0" max="100" value="70"></label>
+      </div></details>
+      <div class="status"><strong id="turnText">红方行棋</strong><span id="moveCount">0 回合</span><time id="redClock">20:00</time><time id="blackClock">20:00</time></div>
+    </section>
+    <section class="board-panel">
+      <section class="board-wrap"><canvas id="board" aria-label="离线匈汉象棋棋盘"></canvas></section>
+      <section class="actions" aria-label="对局操作">
+        <button id="undoButton">悔棋</button><button id="pauseButton">暂停</button><button id="restartButton">重开</button>
+        <button id="drawButton">和棋</button><button id="resignButton">认输</button>
+        <button id="saveButton">保存</button>
+      </section>
+    </section>
+    <section class="record"><div><strong>棋谱</strong><span id="resultText"></span></div><ol id="moves"></ol></section>
+  </main>
+  <div id="toast" class="toast"></div>
+  <script src="offline.js"></script>
+</body>
+</html>
