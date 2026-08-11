@@ -10,6 +10,7 @@ src/xionghan_chess.egg-info/requires.txt
 src/xionghan_chess.egg-info/top_level.txt
 src/xionghan_chess/core/__init__.py
 src/xionghan_chess/core/ai.py
+src/xionghan_chess/core/ai_see.py
 src/xionghan_chess/core/analysis.py
 src/xionghan_chess/core/game.py
 src/xionghan_chess/core/model.py
@@ -50,6 +51,7 @@ src/xionghan_chess/service/accounts.py
 src/xionghan_chess/service/app.py
 src/xionghan_chess/service/rooms.py
 tests/test_ai.py
+tests/test_ai_optimization.py
 tests/test_desktop_storage.py
 tests/test_extensions.py
 tests/test_game.py

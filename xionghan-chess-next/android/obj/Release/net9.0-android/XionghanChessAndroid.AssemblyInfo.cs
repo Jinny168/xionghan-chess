@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("XionghanChessAndroid")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.3.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.3.0+9bbf0a1f2f524fbb1590d3d9277bee097be06f81")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.3.0+46938c175b575022eaf0d56ef9a0be6208bc6aa9")]
 [assembly: System.Reflection.AssemblyProductAttribute("XionghanChessAndroid")]
 [assembly: System.Reflection.AssemblyTitleAttribute("XionghanChessAndroid")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.3.0.0")]

@@ -30,7 +30,7 @@
 
 ## 验证
 
-- Python 自动化测试：69 项通过。
+- Python 自动化测试：79 项通过。
 - 新增测试覆盖旧悔棋请求失效、超时 revision 单次递增、升变着法枚举，以及协议模型和 WebSocket 连接层的版本拒绝。
 - Python 编译、Web/Android JavaScript 语法检查通过。
 - Android `net9.0-android` Release 编译通过，0 错误。
