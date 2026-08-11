@@ -4,6 +4,9 @@ using Android.OS;
 using Android.Views;
 using Android.Webkit;
 using Android.Widget;
+using Java.Interop;
+using System.Net.Http;
+using System.Text;
 
 namespace XionghanChessAndroid;
 
@@ -13,27 +16,91 @@ public sealed class MainActivity : Activity
     const string PreferencesName = "xionghan-chess";
     const string ServerUrlKey = "server_url";
     const string DefaultServerUrl = "http://10.0.2.2:8000/";
+    const string OfflineUrl = "file:///android_asset/offline/index.html";
+    const int OpenGameRequest = 1201;
+    const int SaveGameRequest = 1202;
     WebView? webView;
+    IValueCallback? filePathCallback;
+    string? pendingGameContent;
+    GameBridge? gameBridge;
+    readonly HttpClient healthClient = new() { Timeout = TimeSpan.FromSeconds(4) };
+    System.Threading.Timer? connectionTimer;
+    string serverUrl = DefaultServerUrl;
+    bool showingServerPage;
+    bool checkingServer;
+    int consecutiveFailures;
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-        Window.SetStatusBarColor(Android.Graphics.Color.Rgb(91, 27, 24));
+        EnterImmersiveMode();
+        ActionBar?.Hide();
         webView = new WebView(this);
         webView.Settings.JavaScriptEnabled = true;
         webView.Settings.DomStorageEnabled = true;
         webView.Settings.MediaPlaybackRequiresUserGesture = false;
         webView.Settings.AllowFileAccess = true;
         webView.Settings.MixedContentMode = MixedContentHandling.CompatibilityMode;
-        webView.SetWebViewClient(new WebViewClient());
+        webView.Settings.SetSupportZoom(false);
+        webView.Settings.BuiltInZoomControls = false;
+        webView.Settings.DisplayZoomControls = false;
+        webView.SetWebViewClient(new GameWebViewClient(this));
+        webView.SetWebChromeClient(new GameWebChromeClient(this));
+        gameBridge = new GameBridge(this);
+        webView.AddJavascriptInterface(gameBridge, "XionghanAndroid");
         webView.SetBackgroundColor(Android.Graphics.Color.Rgb(241, 223, 183));
-        webView.ClearCache(true);
+        webView.SetLayerType(LayerType.Hardware, null);
         SetContentView(webView);
 
-        var savedUrl = GetSharedPreferences(PreferencesName, FileCreationMode.Private)?.GetString(ServerUrlKey, null);
-        if (string.IsNullOrWhiteSpace(savedUrl)) ShowServerDialog(DefaultServerUrl);
-        else LoadGame(savedUrl);
+        serverUrl = NormalizeServerUrl(
+            GetSharedPreferences(PreferencesName, FileCreationMode.Private)?.GetString(ServerUrlKey, DefaultServerUrl)
+            ?? DefaultServerUrl);
+        LoadOfflineGame("离线同机模式可直接使用，正在检测服务器");
+        connectionTimer = new System.Threading.Timer(_ => _ = CheckServerAsync(), null,
+            TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10));
     }
+
+    void EnterImmersiveMode()
+    {
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.R)
+        {
+            Window.SetDecorFitsSystemWindows(false);
+            var controller = Window.InsetsController;
+            controller?.Hide(WindowInsets.Type.StatusBars() | WindowInsets.Type.NavigationBars());
+            if (controller is not null)
+                controller.SystemBarsBehavior = (int)WindowInsetsControllerBehavior.ShowTransientBarsBySwipe;
+        }
+        else
+        {
+#pragma warning disable CS0618
+            Window.DecorView.SystemUiVisibility = (StatusBarVisibility)(
+                SystemUiFlags.Fullscreen | SystemUiFlags.HideNavigation |
+                SystemUiFlags.ImmersiveSticky | SystemUiFlags.LayoutFullscreen |
+                SystemUiFlags.LayoutHideNavigation | SystemUiFlags.LayoutStable);
+#pragma warning restore CS0618
+        }
+    }
+
+    public override void OnWindowFocusChanged(bool hasFocus)
+    {
+        base.OnWindowFocusChanged(hasFocus);
+        if (hasFocus)
+        {
+            EnterImmersiveMode();
+            RequestGameRedraw();
+        }
+    }
+
+    protected override void OnResume()
+    {
+        base.OnResume();
+        EnterImmersiveMode();
+        RequestGameRedraw();
+    }
+
+    void RequestGameRedraw() => webView?.EvaluateJavascript(
+        "requestAnimationFrame(function(){document.body.classList.add('android-client');window.dispatchEvent(new Event('resize'));if(window.redrawBoard)window.redrawBoard();});",
+        null);
 
     void ShowServerDialog(string initial)
     {
@@ -44,29 +111,151 @@ public sealed class MainActivity : Activity
         container.AddView(input);
         new AlertDialog.Builder(this)
             .SetTitle("连接匈汉象棋服务")
-            .SetMessage("请输入 FastAPI 服务地址。模拟器可使用 10.0.2.2 访问开发机，手机请填写局域网或公网地址。")
+            .SetMessage("请输入 FastAPI 服务地址。离线同机对战不需要服务器；连接成功后会自动恢复人机和联网功能。")
             .SetView(container)
             .SetPositiveButton("进入", (_, _) =>
             {
                 var url = input.Text?.Trim();
                 if (string.IsNullOrWhiteSpace(url)) url = initial;
-                if (!url.EndsWith('/')) url += "/";
-                GetSharedPreferences(PreferencesName, FileCreationMode.Private)?.Edit()?.PutString(ServerUrlKey, url).Apply();
-                LoadGame(url);
+                serverUrl = NormalizeServerUrl(url);
+                GetSharedPreferences(PreferencesName, FileCreationMode.Private)?.Edit()
+                    ?.PutString(ServerUrlKey, serverUrl).Apply();
+                _ = CheckServerAsync(true);
             })
-            .SetNegativeButton("退出", (_, _) => Finish())
-            .SetCancelable(false)
+            .SetNegativeButton("继续离线", (_, _) => LoadOfflineGame("已保持离线同机模式"))
+            .SetCancelable(true)
             .Show();
     }
 
-    void LoadGame(string url)
+    static string NormalizeServerUrl(string? value)
     {
-        webView?.LoadUrl(url);
+        var url = string.IsNullOrWhiteSpace(value) ? DefaultServerUrl : value.Trim();
+        return url.EndsWith('/') ? url : url + "/";
+    }
+
+    internal void LoadOfflineGame(string message)
+    {
+        RunOnUiThread(() =>
+        {
+            showingServerPage = false;
+            webView?.LoadUrl($"{OfflineUrl}?message={Android.Net.Uri.Encode(message)}");
+        });
+    }
+
+    async Task CheckServerAsync(bool announceFailure = false)
+    {
+        if (checkingServer) return;
+        checkingServer = true;
+        try
+        {
+            using var response = await healthClient.GetAsync(new Uri(new Uri(serverUrl), "api/health"));
+            if (!response.IsSuccessStatusCode) throw new HttpRequestException($"HTTP {(int)response.StatusCode}");
+            consecutiveFailures = 0;
+            if (!showingServerPage)
+            {
+                RunOnUiThread(() =>
+                {
+                    showingServerPage = true;
+                    webView?.LoadUrl(serverUrl);
+                    Toast.MakeText(this, "服务器连接成功，在线功能已恢复", ToastLength.Short)?.Show();
+                });
+            }
+        }
+        catch
+        {
+            consecutiveFailures++;
+            if (showingServerPage && consecutiveFailures >= 2)
+                LoadOfflineGame("服务器连接中断，已切换到离线同机模式");
+            else if (announceFailure)
+                RunOnUiThread(() => Toast.MakeText(this, "服务器不可用，继续使用离线同机模式", ToastLength.Long)?.Show());
+        }
+        finally
+        {
+            checkingServer = false;
+        }
+    }
+
+    internal void OpenGameFile(IValueCallback? callback, WebChromeClient.FileChooserParams? chooserParams)
+    {
+        filePathCallback?.OnReceiveValue(null);
+        filePathCallback = callback;
+        Intent intent;
+        try
+        {
+            intent = chooserParams?.CreateIntent() ?? new Intent(Intent.ActionOpenDocument);
+        }
+        catch
+        {
+            intent = new Intent(Intent.ActionOpenDocument);
+        }
+        intent.SetType("application/json");
+        intent.AddCategory(Intent.CategoryOpenable);
+        intent.PutExtra(Intent.ExtraMimeTypes, new[] { "application/json", "application/octet-stream", "text/plain" });
+        try
+        {
+            StartActivityForResult(intent, OpenGameRequest);
+        }
+        catch (ActivityNotFoundException)
+        {
+            filePathCallback?.OnReceiveValue(null);
+            filePathCallback = null;
+            Toast.MakeText(this, "没有可用的文件选择器", ToastLength.Long)?.Show();
+        }
+    }
+
+    internal void SaveGameFile(string filename, string content)
+    {
+        pendingGameContent = content;
+        var intent = new Intent(Intent.ActionCreateDocument);
+        intent.AddCategory(Intent.CategoryOpenable);
+        intent.SetType("application/json");
+        intent.PutExtra(Intent.ExtraTitle, filename);
+        try
+        {
+            StartActivityForResult(intent, SaveGameRequest);
+        }
+        catch (ActivityNotFoundException)
+        {
+            pendingGameContent = null;
+            Toast.MakeText(this, "没有可用的文件保存器", ToastLength.Long)?.Show();
+        }
+    }
+
+    protected override void OnActivityResult(int requestCode, Result resultCode, Intent? data)
+    {
+        if (requestCode == OpenGameRequest)
+        {
+            filePathCallback?.OnReceiveValue(WebChromeClient.FileChooserParams.ParseResult((int)resultCode, data));
+            filePathCallback = null;
+            return;
+        }
+        if (requestCode == SaveGameRequest)
+        {
+            if (resultCode == Result.Ok && data?.Data is { } uri && pendingGameContent is { } content)
+            {
+                try
+                {
+                    using var stream = ContentResolver?.OpenOutputStream(uri);
+                    using var writer = new StreamWriter(stream!, new UTF8Encoding(false));
+                    writer.Write(content);
+                    Toast.MakeText(this, "棋局文件已保存", ToastLength.Short)?.Show();
+                }
+                catch (Exception exception)
+                {
+                    Toast.MakeText(this, $"保存失败：{exception.Message}", ToastLength.Long)?.Show();
+                }
+            }
+            pendingGameContent = null;
+            return;
+        }
+        base.OnActivityResult(requestCode, resultCode, data);
     }
 
     public override bool OnCreateOptionsMenu(IMenu? menu)
     {
         menu?.Add("刷新");
+        menu?.Add("离线同机");
+        menu?.Add("重新连接");
         menu?.Add("服务器设置");
         return base.OnCreateOptionsMenu(menu);
     }
@@ -78,10 +267,19 @@ public sealed class MainActivity : Activity
             webView?.Reload();
             return true;
         }
+        if (item.TitleFormatted?.ToString() == "离线同机")
+        {
+            LoadOfflineGame("已进入离线同机模式");
+            return true;
+        }
+        if (item.TitleFormatted?.ToString() == "重新连接")
+        {
+            _ = CheckServerAsync(true);
+            return true;
+        }
         if (item.TitleFormatted?.ToString() == "服务器设置")
         {
-            var current = GetSharedPreferences(PreferencesName, FileCreationMode.Private)?.GetString(ServerUrlKey, DefaultServerUrl) ?? DefaultServerUrl;
-            ShowServerDialog(current);
+            ShowServerDialog(serverUrl);
             return true;
         }
         return base.OnOptionsItemSelected(item);
@@ -91,5 +289,68 @@ public sealed class MainActivity : Activity
     {
         if (webView?.CanGoBack() == true) webView.GoBack();
         else base.OnBackPressed();
+    }
+
+    protected override void OnDestroy()
+    {
+        connectionTimer?.Dispose();
+        healthClient.Dispose();
+        base.OnDestroy();
+    }
+
+    [Android.Runtime.Preserve(AllMembers = true)]
+    sealed class GameWebViewClient(MainActivity activity) : WebViewClient
+    {
+        public override void OnPageFinished(WebView? view, string? url)
+        {
+            base.OnPageFinished(view, url);
+            activity.RequestGameRedraw();
+            if (!string.IsNullOrWhiteSpace(url) && url.StartsWith(activity.serverUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                activity.showingServerPage = true;
+                activity.consecutiveFailures = 0;
+            }
+        }
+
+        public override void OnReceivedError(WebView? view, IWebResourceRequest? request, WebResourceError? error)
+        {
+            base.OnReceivedError(view, request, error);
+            if (request?.IsForMainFrame == true && activity.showingServerPage)
+                activity.LoadOfflineGame("服务器页面无法访问，已切换到离线同机模式");
+        }
+    }
+
+    [Android.Runtime.Preserve(AllMembers = true)]
+    sealed class GameWebChromeClient(MainActivity activity) : WebChromeClient
+    {
+        public override bool OnShowFileChooser(WebView? webView, IValueCallback? filePathCallback,
+                                               FileChooserParams? fileChooserParams)
+        {
+            activity.OpenGameFile(filePathCallback, fileChooserParams);
+            return true;
+        }
+    }
+
+    [Android.Runtime.Preserve(AllMembers = true)]
+    sealed class GameBridge(MainActivity activity) : Java.Lang.Object
+    {
+        [JavascriptInterface]
+        [Export("saveGame")]
+        public void SaveGame(string filename, string content)
+        {
+            activity.RunOnUiThread(() => activity.SaveGameFile(filename, content));
+        }
+
+        [JavascriptInterface]
+        [Export("retryServer")]
+        public void RetryServer() => _ = activity.CheckServerAsync(true);
+
+        [JavascriptInterface]
+        [Export("openServerSettings")]
+        public void OpenServerSettings() => activity.RunOnUiThread(() => activity.ShowServerDialog(activity.serverUrl));
+
+        [JavascriptInterface]
+        [Export("getServerUrl")]
+        public string GetServerUrl() => activity.serverUrl;
     }
 }

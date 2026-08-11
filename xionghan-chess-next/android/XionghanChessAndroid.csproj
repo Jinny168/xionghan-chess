@@ -6,12 +6,24 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>com.xionghan.chess</ApplicationId>
-    <ApplicationVersion>2</ApplicationVersion>
-    <ApplicationDisplayVersion>3.2.0</ApplicationDisplayVersion>
+    <ApplicationVersion>3</ApplicationVersion>
+    <ApplicationDisplayVersion>1.1.0</ApplicationDisplayVersion>
     <!--
       Enables trim analyzers and full trimming during Release mode.
       To learn more, see: https://learn.microsoft.com/dotnet/core/deploying/trimming/trimming-options#trimming-granularity
     -->
     <TrimMode>full</TrimMode>
   </PropertyGroup>
+  <ItemGroup>
+    <AndroidAsset Include="Resources\assets\offline\**\*"
+                  LogicalName="offline\%(RecursiveDir)%(Filename)%(Extension)" />
+    <AndroidAsset Include="..\web\assets\sounds\choose.wav"
+                  LogicalName="offline\sounds\choose.wav" />
+    <AndroidAsset Include="..\web\assets\sounds\drop.wav"
+                  LogicalName="offline\sounds\drop.wav" />
+    <AndroidAsset Include="..\web\assets\sounds\eat.wav"
+                  LogicalName="offline\sounds\eat.wav" />
+    <AndroidAsset Include="..\web\assets\sounds\button.wav"
+                  LogicalName="offline\sounds\button.wav" />
+  </ItemGroup>
 </Project>
