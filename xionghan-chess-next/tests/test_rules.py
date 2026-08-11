@@ -76,6 +76,20 @@ def test_promotion_requires_captured_allowed_piece():
     assert result.piece_at(Position(0, 0)).type is PieceType.ROOK
 
 
+def test_legal_moves_enumerate_required_promotion_choices():
+    red, black = kings()
+    pawn = piece(PieceType.PAWN, Color.RED, 1, 0)
+    board = state(red, black, pawn)
+    board.captured[Color.RED].extend([
+        piece(PieceType.ROOK, Color.RED, 5, 5),
+        piece(PieceType.HORSE, Color.RED, 5, 6),
+    ])
+    moves = [move for move in RulesEngine(get_profile("desktop_complete")).legal_moves(board)
+             if move.source == pawn.position and move.target == Position(0, 0)]
+    assert {move.promotion for move in moves} == {PieceType.ROOK, PieceType.HORSE}
+    assert all(move.promotion is not None for move in moves)
+
+
 def test_game_undo_restores_authoritative_snapshot():
     game = Game("traditional")
     move = next(iter(game.rules.legal_moves(game.state)))

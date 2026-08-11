@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
@@ -32,7 +32,7 @@ class Envelope(BaseModel):
     room_id: str | None = Field(default=None, alias="roomId")
     revision: int | None = None
     payload: dict[str, Any] = Field(default_factory=dict)
-    protocol_version: int = Field(default=PROTOCOL_VERSION, alias="protocolVersion")
+    protocol_version: Literal[1] = Field(default=PROTOCOL_VERSION, alias="protocolVersion")
 
     model_config = {"populate_by_name": True}
 

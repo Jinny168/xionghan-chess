@@ -92,7 +92,10 @@ public sealed class MainActivity : Activity
 #pragma warning restore CS0618
             }
         }
-        catch { }
+        catch (Exception exception)
+        {
+            Android.Util.Log.Warn(nameof(MainActivity), $"Unable to enter immersive mode: {exception}");
+        }
     }
 
     public override void OnWindowFocusChanged(bool hasFocus)

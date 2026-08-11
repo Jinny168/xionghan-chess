@@ -38,6 +38,8 @@
 
 ## 验证
 
-- Python：64 项测试通过。
+- Python：79 项测试通过（含二次审计与 AI 优化回归）。
 - JavaScript：Web、Web i18n、Android 离线脚本语法检查通过。
 - 新增专项测试覆盖连接替换、AI token、PING、AI 暂停竞态、偏好合并及导入防护。
+
+二次审计后的继续整改见 [QA_AUDIT_REMEDIATION_v1.3.0.md](QA_AUDIT_REMEDIATION_v1.3.0.md)。

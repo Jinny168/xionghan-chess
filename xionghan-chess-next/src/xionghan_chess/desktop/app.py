@@ -784,8 +784,6 @@ class MainWindow(QMainWindow):
         self.config["game_mode"]=mode;save_config(self.config);self.new_game()
 
     def human_move(self, move: Move):
-        if self.network:
-            self.send_network("move",{"from":{"row":move.source.row,"col":move.source.col},"to":{"row":move.target.row,"col":move.target.col},"promotion":move.promotion.value if move.promotion else None});return
         try:
             piece=self.game.state.piece_at(move.source)
             if piece and piece.type is PieceType.PAWN and self.game.options.pawn_promotion and move.target.row in {0,self.game.profile.rows-1}:
@@ -795,6 +793,8 @@ class MainWindow(QMainWindow):
                     label,ok=QInputDialog.getItem(self,"兵卒升变","选择升变棋子",[item[0] for item in options],0,False)
                     if not ok:return
                     move=Move(move.source,move.target,next(kind for text,kind in options if text==label))
+            if self.network:
+                self.send_network("move",{"from":{"row":move.source.row,"col":move.source.col},"to":{"row":move.target.row,"col":move.target.col},"promotion":move.promotion.value if move.promotion else None});return
             record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured));self.play_sound();self.refresh();
             if not self.game.state.finished and self.config.get("game_mode","ai")=="ai":self.start_ai()
         except GameError as exc:QMessageBox.warning(self,"非法走棋",str(exc))

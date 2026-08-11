@@ -1,8 +1,24 @@
+import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.storage import game_document
 from xionghan_chess.service.app import app
+
+
+def test_websocket_rejects_unsupported_protocol_version():
+    with TestClient(app) as client:
+        created = client.post("/api/rooms", json={
+            "profileId": "traditional", "mode": "local", "playerName": "本机玩家"
+        }).json()
+        room_id, token = created["roomId"], created["token"]
+        with client.websocket_connect(f"/ws/{room_id}?token={token}") as socket:
+            socket.receive_json()
+            socket.send_json({"type": "ping", "protocolVersion": 2})
+            with pytest.raises(WebSocketDisconnect) as closed:
+                socket.receive_json()
+            assert closed.value.code == 1002
 
 
 def test_legal_move_endpoint_uses_authoritative_engine():

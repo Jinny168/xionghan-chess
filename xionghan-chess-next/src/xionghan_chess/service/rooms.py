@@ -390,8 +390,17 @@ class RoomManager:
             except Exception:
                 dead_spectators.append((token, socket))
         for token, socket in dead_spectators:
-            if room.spectator_sockets.get(token) is socket:
-                room.spectator_sockets.pop(token, None)
+                if room.spectator_sockets.get(token) is socket:
+                    room.spectator_sockets.pop(token, None)
+
+    async def tick(self, room: Room) -> None:
+        async with room.lock:
+            if room.mode not in {"ai", "local"} and len(room.seats) != 2:
+                return
+            was_finished = room.game.state.finished
+            room.game.tick()
+            if not was_finished and room.game.state.finished:
+                room.revision += 1
 
     async def cleanup(self) -> None:
         now = time.time()

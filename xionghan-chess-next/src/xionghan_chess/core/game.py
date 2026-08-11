@@ -69,6 +69,7 @@ class Game:
         next_state.history.append(record)
         next_state.turn_started_at = time.monotonic()
         next_state.pending_draw_offer = None
+        next_state.pending_undo_offer = None
         self.state = next_state
         self._record_position()
         self._settle_after_move(moving.color, move)
@@ -143,6 +144,8 @@ class Game:
         self.state.pieces.append(Piece.create(PieceType.PAWN, color, position.row, position.col))
         self.state.turn = color.opponent
         self.state.turn_started_at = time.monotonic()
+        self.state.pending_draw_offer = None
+        self.state.pending_undo_offer = None
 
     def tick(self) -> None:
         if self.state.finished or self.state.paused:

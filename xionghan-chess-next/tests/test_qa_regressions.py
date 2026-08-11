@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from xionghan_chess.core.game import GameError
+from xionghan_chess.core.model import Color
 from xionghan_chess.core.protocol import Envelope, MessageType
 from xionghan_chess.service.accounts import AccountStore
 from xionghan_chess.service.rooms import RoomManager
@@ -100,6 +101,37 @@ def test_cloud_preferences_are_merged_instead_of_replaced(tmp_path):
     store.save_preferences(account.id, {"boardTheme": "purple", "musicStyle": "qq"})
     merged = store.save_preferences(account.id, {"language": "en"})
     assert merged == {"boardTheme": "purple", "musicStyle": "qq", "language": "en"}
+
+
+def test_move_invalidates_pending_undo_offer():
+    async def scenario():
+        manager = RoomManager()
+        room, _ = await manager.create("traditional", "local", "player")
+        room.game.move(room.game.rules.legal_moves(room.game.state)[0])
+        room.game.offer_undo(Color.RED)
+        room.game.move(room.game.rules.legal_moves(room.game.state)[0])
+        assert room.game.state.pending_undo_offer is None
+        with pytest.raises(GameError):
+            room.game.respond_undo(Color.BLACK, True)
+
+    asyncio.run(scenario())
+
+
+def test_timeout_transition_increments_revision_once(monkeypatch):
+    async def scenario():
+        manager = RoomManager()
+        room, _ = await manager.create("traditional", "local", "player")
+        room.game.state.clocks_ms[room.game.state.turn] = 1
+        monkeypatch.setattr(rooms_module.time, "monotonic", lambda: 10.0)
+        room.game.state.turn_started_at = 0.0
+        revision = room.revision
+        await manager.tick(room)
+        assert room.game.state.result_reason == "timeout"
+        assert room.revision == revision + 1
+        await manager.tick(room)
+        assert room.revision == revision + 1
+
+    asyncio.run(scenario())
 
 
 def test_web_and_android_import_guards_are_present():

@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from xionghan_chess.core.ai import Difficulty
 from xionghan_chess.core.analysis import analyze_game
@@ -37,9 +37,7 @@ async def maintenance() -> None:
     while True:
         await asyncio.sleep(5)
         for room in list(manager.rooms.values()):
-            async with room.lock:
-                if room.mode in {"ai", "local"} or len(room.seats) == 2:
-                    room.game.tick()
+            await manager.tick(room)
             await manager.broadcast(room)
         await manager.cleanup()
 
@@ -253,7 +251,7 @@ async def websocket_room(websocket: WebSocket, room_id: str, token: str) -> None
         seat = await manager.connect(room, token, websocket)
         await manager.broadcast(room)
         while True:
-            envelope = Envelope.model_validate(await websocket.receive_json())
+            envelope = await receive_envelope(websocket)
             try:
                 await manager.handle(room, seat, envelope)
             except (GameError, KeyError, TypeError, ValueError) as exc:
@@ -274,7 +272,7 @@ async def websocket_spectator(websocket: WebSocket, room_id: str, token: str) ->
         room = manager.require(room_id)
         spectator = await manager.connect_spectator(room, token, websocket)
         while True:
-            envelope = Envelope.model_validate(await websocket.receive_json())
+            envelope = await receive_envelope(websocket)
             if envelope.type is not MessageType.CHAT:
                 await websocket.send_json(Envelope(type=MessageType.ERROR,
                                                    requestId=envelope.request_id,
@@ -293,6 +291,14 @@ async def websocket_spectator(websocket: WebSocket, room_id: str, token: str) ->
             await manager.disconnect_spectator(room, token, websocket)
     except GameError as exc:
         await websocket.close(code=4403, reason=str(exc))
+
+
+async def receive_envelope(websocket: WebSocket) -> Envelope:
+    try:
+        return Envelope.model_validate(await websocket.receive_json())
+    except ValidationError as exc:
+        await websocket.close(code=1002, reason="Unsupported or invalid protocol message")
+        raise WebSocketDisconnect(code=1002) from exc
 
 
 @app.post("/api/auth/register")

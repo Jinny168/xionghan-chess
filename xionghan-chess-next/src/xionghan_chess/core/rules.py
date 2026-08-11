@@ -123,9 +123,21 @@ class RulesEngine:
                 continue
             for row in range(self.profile.rows):
                 for col in range(self.profile.cols):
-                    move = Move(piece.position, Position(row, col))
-                    if self.is_legal(probe, move):
-                        result.append(move)
+                    target = Position(row, col)
+                    promotions: list[PieceType | None] = [None]
+                    if (piece.type is PieceType.PAWN and self.options.pawn_promotion
+                            and row == (0 if color is Color.RED else self.profile.rows - 1)):
+                        available = {
+                            captured.type for captured in probe.captured[color]
+                            if captured.type not in {PieceType.PAWN, PieceType.KING}
+                            and captured.type in self.enabled_piece_types
+                        }
+                        if available:
+                            promotions = sorted(available, key=lambda item: item.value)
+                    for promotion in promotions:
+                        move = Move(piece.position, target, promotion)
+                        if self.is_legal(probe, move):
+                            result.append(move)
         return result
 
     def captured_by_move(self, state: GameState, move: Move) -> tuple[Piece, ...]:

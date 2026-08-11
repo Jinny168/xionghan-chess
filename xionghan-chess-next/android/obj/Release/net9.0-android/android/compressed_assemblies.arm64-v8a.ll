@@ -21,7 +21,7 @@ target triple = "aarch64-unknown-linux-android21"
 
 @compressed_assembly_descriptors = internal dso_local global [175 x %struct.CompressedAssemblyDescriptor] [
 	%struct.CompressedAssemblyDescriptor {
-		i32 19456, ; uint32_t uncompressed_file_size
+		i32 19968, ; uint32_t uncompressed_file_size
 		i1 false, ; bool loaded
 		ptr @__compressedAssemblyData_0; uint8_t* data
 	}, ; 0: XionghanChessAndroid
@@ -897,7 +897,7 @@ target triple = "aarch64-unknown-linux-android21"
 	} ; 174: System.Private.CoreLib
 ], align 8
 
-@__compressedAssemblyData_0 = internal dso_local global [19456 x i8] zeroinitializer, align 1
+@__compressedAssemblyData_0 = internal dso_local global [19968 x i8] zeroinitializer, align 1
 @__compressedAssemblyData_1 = internal dso_local global [3584 x i8] zeroinitializer, align 1
 @__compressedAssemblyData_2 = internal dso_local global [307984 x i8] zeroinitializer, align 1
 @__compressedAssemblyData_3 = internal dso_local global [430352 x i8] zeroinitializer, align 1
