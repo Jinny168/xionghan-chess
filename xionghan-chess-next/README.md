@@ -1,9 +1,10 @@
-# 匈汉象棋 3.0
+# 匈汉象棋 1.1.0
 
 这是一个完全独立的新实现。原项目的 `desktop/`、`web/`、`docker/` 等目录不会被导入或覆盖。
 
-Android 安装与构建说明见 [docs/ANDROID.md](docs/ANDROID.md)。完整棋子规则见 [docs/PIECE_RULES.md](docs/PIECE_RULES.md)。
+Android 安装与构建说明见 [docs/ANDROID.md](docs/ANDROID.md)，Linux 服务器部署见 [docs/LINUX_DEPLOY.md](docs/LINUX_DEPLOY.md)。完整棋子规则见 [docs/PIECE_RULES.md](docs/PIECE_RULES.md)。
 原版 Desktop 功能审阅、关键代码索引和迁移状态见 [docs/DESKTOP_LEGACY_REFERENCE.md](docs/DESKTOP_LEGACY_REFERENCE.md)。
+玩家操作、棋谱和常见问题见 [docs/HELP.md](docs/HELP.md)，项目愿景与开发信息见 [docs/ABOUT.md](docs/ABOUT.md)。
 
 ```text
 xionghan-chess-next/

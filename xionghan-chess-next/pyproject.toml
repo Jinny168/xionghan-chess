@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xionghan-chess"
-version = "3.2.0"
+version = "1.1.0"
 description = "Shared-core Xionghan Chess desktop, web and server implementation"
 requires-python = ">=3.11"
 dependencies = [
