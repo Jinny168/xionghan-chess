@@ -1,7 +1,9 @@
 $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $ReleaseRoot = Join-Path $ProjectRoot "release"
-$PackageName = "XionghanChess-Web-3.2.0"
+$productName = -join [char[]](0x5308, 0x6F22, 0x8C61, 0x68CB)
+$platformName = -join [char[]](0x7F51, 0x9875, 0x7248)
+$PackageName = "$productName-1.1.0-$platformName"
 $Stage = Join-Path $ReleaseRoot $PackageName
 $Archive = Join-Path $ReleaseRoot "$PackageName.zip"
 
@@ -25,5 +27,12 @@ foreach ($name in @("pyproject.toml", "README.md")) {
     Copy-Item -LiteralPath (Join-Path $ProjectRoot $name) -Destination $Stage
 }
 
-Compress-Archive -LiteralPath $Stage -DestinationPath $Archive -CompressionLevel Optimal
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::CreateFromDirectory(
+    $Stage,
+    $Archive,
+    [System.IO.Compression.CompressionLevel]::Optimal,
+    $false
+)
+Copy-Item -LiteralPath $Archive -Destination (Join-Path $ReleaseRoot "$productName-$platformName.zip") -Force
 Write-Host "Web release completed: $Archive"
