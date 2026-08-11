@@ -23,3 +23,17 @@ def test_game_document_rejects_unknown_version():
 
     with pytest.raises(ValueError, match="版本"):
         game_from_document(data)
+
+
+def test_game_document_rejects_incomplete_replay_data():
+    game = Game("traditional")
+    game.move(game.rules.legal_moves(game.state)[0])
+    data = game_document(game)
+    data["snapshots"] = []
+
+    restored = game_from_document(data)
+    assert restored.state.to_dict() == game.state.to_dict()
+
+    data["snapshots"] = [{"profileId": "web", "pieces": []}]
+    with pytest.raises(ValueError, match="不同规则档案"):
+        game_from_document(data)

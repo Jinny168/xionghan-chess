@@ -176,13 +176,18 @@ def test_archer_star_visuals_follow_piece_appearance_setting():
     assert not RulesEngine(profile, disabled).archer_star_points
 
 
-def test_pawn_fast_move_reaches_but_does_not_cross_enemy_territory_boundary():
+def test_pawn_fast_move_reaches_enemy_territory_edge_but_does_not_cross_it():
     red, black = kings()
     pawn = piece(PieceType.PAWN, Color.RED, 8, 0)
     board = state(red, black, pawn)
     rules = RulesEngine(get_profile("desktop_complete"))
-    assert rules.pseudo_legal(board, Move(pawn.position, Position(6, 0)))
-    assert not rules.pseudo_legal(board, Move(pawn.position, Position(5, 0)))
+    assert rules.pseudo_legal(board, Move(pawn.position, Position(5, 0)))
+    assert not rules.pseudo_legal(board, Move(pawn.position, Position(4, 0)))
+
+    black_pawn = piece(PieceType.PAWN, Color.BLACK, 4, 2)
+    black_board = state(red, black, black_pawn, turn=Color.BLACK)
+    assert rules.pseudo_legal(black_board, Move(black_pawn.position, Position(7, 2)))
+    assert not rules.pseudo_legal(black_board, Move(black_pawn.position, Position(8, 2)))
 
 
 def test_pawn_fast_move_cannot_capture_or_jump_and_can_be_disabled():
@@ -192,16 +197,17 @@ def test_pawn_fast_move_cannot_capture_or_jump_and_can_be_disabled():
     blocker = piece(PieceType.CANNON, Color.BLACK, 7, 2)
     profile = get_profile("desktop_complete")
     rules = RulesEngine(profile)
+    target = piece(PieceType.HORSE, Color.BLACK, 5, 0)
     assert not rules.pseudo_legal(state(red, black, pawn, target),
                                   Move(pawn.position, target.position))
     blocked_pawn = piece(PieceType.PAWN, Color.RED, 8, 2)
     assert not rules.pseudo_legal(state(red, black, blocked_pawn, blocker),
-                                  Move(blocked_pawn.position, Position(6, 2)))
+                                  Move(blocked_pawn.position, Position(5, 2)))
     disabled = RulesEngine(profile, profile.options.merged({
         "pawn_fast_move_before_enemy_territory": False,
     }))
     assert not disabled.pseudo_legal(board := state(red, black, pawn),
-                                     Move(pawn.position, Position(6, 0)))
+                                     Move(pawn.position, Position(5, 0)))
 
 
 def test_archer_strong_mode_allows_empty_three_step_move_but_attack_requires_star():

@@ -9,3 +9,7 @@ def test_protocol_uses_stable_camel_case_wire_format():
     assert wire["roomId"] == "R12345"
     assert wire["protocolVersion"] == PROTOCOL_VERSION
 
+
+def test_pause_message_is_part_of_the_shared_protocol():
+    message = Envelope(type=MessageType.PAUSE, payload={"paused": True})
+    assert message.wire()["type"] == "pause"

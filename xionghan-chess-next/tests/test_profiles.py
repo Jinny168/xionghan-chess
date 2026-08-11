@@ -1,6 +1,6 @@
 from xionghan_chess.core.model import PieceType
 from xionghan_chess.core.game import Game
-from xionghan_chess.core.profiles import get_profile
+from xionghan_chess.core.profiles import get_profile, profile_rule_values
 
 
 def test_delivery_profiles_have_distinct_piece_sets():
@@ -50,3 +50,15 @@ def test_original_desktop_option_names_are_migrated():
     assert options.rook_appear is False
     assert options.advisor_gain_straight_outside_palace is False
     assert options.elephant_gain_jump_two_enemy_territory is False
+
+
+def test_profile_rule_values_do_not_leak_traditional_piece_disabling():
+    traditional = profile_rule_values("traditional")
+    complete = profile_rule_values("desktop_complete")
+
+    assert not traditional["archer_appear"]
+    assert not traditional["thunder_appear"]
+    assert not traditional["armor_appear"]
+    assert complete["archer_appear"]
+    assert complete["thunder_appear"]
+    assert complete["armor_appear"]
