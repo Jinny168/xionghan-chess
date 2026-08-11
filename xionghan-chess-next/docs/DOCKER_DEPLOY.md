@@ -1,5 +1,7 @@
 # Docker 部署
 
+完整的 Linux、systemd、Nginx、HTTPS 和更新维护说明见 [LINUX_DEPLOY.md](LINUX_DEPLOY.md)。
+
 ```bash
 cd xionghan-chess-next
 cp deploy/.env.example deploy/.env

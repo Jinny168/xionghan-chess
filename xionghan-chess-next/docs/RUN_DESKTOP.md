@@ -14,5 +14,5 @@ py -3.11 -m venv .venv
 powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1
 ```
 
-带版本的打包输出位于 `release/XionghanChess-3.2.0.exe`，同时生成 `release/XionghanChess.exe` 作为最新版别名。这是单文件可执行程序，不需要携带旁边的 `_internal` 目录；配置保存在
+带版本的打包输出位于 `release/匈漢象棋-1.1.0-桌面版.exe`，同时生成 `release/匈漢象棋-桌面版.exe` 作为最新版别名。这是单文件可执行程序，不需要携带旁边的 `_internal` 目录；配置保存在
 `%APPDATA%/XionghanChess/settings.json`。
