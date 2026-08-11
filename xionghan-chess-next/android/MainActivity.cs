@@ -29,56 +29,70 @@ public sealed class MainActivity : Activity
     bool showingServerPage;
     bool checkingServer;
     int consecutiveFailures;
+    string L(string zh, string en) =>
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" ? en : zh;
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-        EnterImmersiveMode();
-        ActionBar?.Hide();
-        webView = new WebView(this);
-        webView.Settings.JavaScriptEnabled = true;
-        webView.Settings.DomStorageEnabled = true;
-        webView.Settings.MediaPlaybackRequiresUserGesture = false;
-        webView.Settings.AllowFileAccess = true;
-        webView.Settings.MixedContentMode = MixedContentHandling.CompatibilityMode;
-        webView.Settings.SetSupportZoom(false);
-        webView.Settings.BuiltInZoomControls = false;
-        webView.Settings.DisplayZoomControls = false;
-        webView.SetWebViewClient(new GameWebViewClient(this));
-        webView.SetWebChromeClient(new GameWebChromeClient(this));
-        gameBridge = new GameBridge(this);
-        webView.AddJavascriptInterface(gameBridge, "XionghanAndroid");
-        webView.SetBackgroundColor(Android.Graphics.Color.Rgb(241, 223, 183));
-        webView.SetLayerType(LayerType.Hardware, null);
-        SetContentView(webView);
+        try
+        {
+            EnterImmersiveMode();
+            ActionBar?.Hide();
+            webView = new WebView(this);
+            webView.Settings.JavaScriptEnabled = true;
+            webView.Settings.DomStorageEnabled = true;
+            webView.Settings.MediaPlaybackRequiresUserGesture = false;
+            webView.Settings.AllowFileAccess = true;
+            webView.Settings.MixedContentMode = MixedContentHandling.CompatibilityMode;
+            webView.Settings.SetSupportZoom(false);
+            webView.Settings.BuiltInZoomControls = false;
+            webView.Settings.DisplayZoomControls = false;
+            webView.SetWebViewClient(new GameWebViewClient(this));
+            webView.SetWebChromeClient(new GameWebChromeClient(this));
+            gameBridge = new GameBridge(this);
+            webView.AddJavascriptInterface(gameBridge, "XionghanAndroid");
+            webView.SetBackgroundColor(Android.Graphics.Color.Rgb(241, 223, 183));
+            SetContentView(webView);
 
-        serverUrl = NormalizeServerUrl(
-            GetSharedPreferences(PreferencesName, FileCreationMode.Private)?.GetString(ServerUrlKey, DefaultServerUrl)
-            ?? DefaultServerUrl);
-        LoadOfflineGame("离线同机模式可直接使用，正在检测服务器");
-        connectionTimer = new System.Threading.Timer(_ => _ = CheckServerAsync(), null,
-            TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10));
+            serverUrl = NormalizeServerUrl(
+                GetSharedPreferences(PreferencesName, FileCreationMode.Private)?.GetString(ServerUrlKey, DefaultServerUrl)
+                ?? DefaultServerUrl);
+            LoadOfflineGame(L("离线同机模式可直接使用，正在检测服务器", "Offline pass-and-play is ready. Checking server."));
+            connectionTimer = new System.Threading.Timer(_ => _ = CheckServerAsync(), null,
+                TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10));
+        }
+        catch (Exception exception)
+        {
+            var fallback = new TextView(this) { Text = $"{L("应用启动失败，请更新 Android System WebView 后重试。", "Startup failed. Update Android System WebView and try again.")}\n\n{exception.Message}", TextSize = 18 };
+            fallback.SetPadding(48, 72, 48, 48);
+            SetContentView(fallback);
+        }
     }
 
     void EnterImmersiveMode()
     {
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.R)
+        try
         {
-            Window.SetDecorFitsSystemWindows(false);
-            var controller = Window.InsetsController;
-            controller?.Hide(WindowInsets.Type.StatusBars() | WindowInsets.Type.NavigationBars());
-            if (controller is not null)
-                controller.SystemBarsBehavior = (int)WindowInsetsControllerBehavior.ShowTransientBarsBySwipe;
-        }
-        else
-        {
+            if (Build.VERSION.SdkInt >= BuildVersionCodes.R)
+            {
+                Window.SetDecorFitsSystemWindows(false);
+                var controller = Window.InsetsController;
+                controller?.Hide(WindowInsets.Type.StatusBars() | WindowInsets.Type.NavigationBars());
+                if (controller is not null)
+                    controller.SystemBarsBehavior = (int)WindowInsetsControllerBehavior.ShowTransientBarsBySwipe;
+            }
+            else
+            {
 #pragma warning disable CS0618
-            Window.DecorView.SystemUiVisibility = (StatusBarVisibility)(
-                SystemUiFlags.Fullscreen | SystemUiFlags.HideNavigation |
-                SystemUiFlags.ImmersiveSticky | SystemUiFlags.LayoutFullscreen |
-                SystemUiFlags.LayoutHideNavigation | SystemUiFlags.LayoutStable);
+                Window.DecorView.SystemUiVisibility = (StatusBarVisibility)(
+                    SystemUiFlags.Fullscreen | SystemUiFlags.HideNavigation |
+                    SystemUiFlags.ImmersiveSticky | SystemUiFlags.LayoutFullscreen |
+                    SystemUiFlags.LayoutHideNavigation | SystemUiFlags.LayoutStable);
 #pragma warning restore CS0618
+            }
         }
+        catch { }
     }
 
     public override void OnWindowFocusChanged(bool hasFocus)
@@ -104,16 +118,16 @@ public sealed class MainActivity : Activity
 
     void ShowServerDialog(string initial)
     {
-        var input = new EditText(this) { Text = initial, Hint = "例如 http://192.168.1.10:8000/" };
+        var input = new EditText(this) { Text = initial, Hint = L("例如 http://192.168.1.10:8000/", "For example http://192.168.1.10:8000/") };
         input.SetSingleLine(true);
         var container = new LinearLayout(this) { Orientation = Orientation.Vertical };
         container.SetPadding(48, 8, 48, 0);
         container.AddView(input);
         new AlertDialog.Builder(this)
-            .SetTitle("连接匈汉象棋服务")
-            .SetMessage("请输入 FastAPI 服务地址。离线同机对战不需要服务器；连接成功后会自动恢复人机和联网功能。")
+            .SetTitle(L("连接匈汉象棋服务", "Connect to Xionghan Chess server"))
+            .SetMessage(L("请输入 FastAPI 服务地址。离线同机对战不需要服务器；连接成功后会自动恢复人机和联网功能。", "Enter the FastAPI server URL. Offline pass-and-play does not need a server; AI and online modes resume after connection."))
             .SetView(container)
-            .SetPositiveButton("进入", (_, _) =>
+            .SetPositiveButton(L("进入", "Enter"), (_, _) =>
             {
                 var url = input.Text?.Trim();
                 if (string.IsNullOrWhiteSpace(url)) url = initial;
@@ -122,7 +136,7 @@ public sealed class MainActivity : Activity
                     ?.PutString(ServerUrlKey, serverUrl).Apply();
                 _ = CheckServerAsync(true);
             })
-            .SetNegativeButton("继续离线", (_, _) => LoadOfflineGame("已保持离线同机模式"))
+            .SetNegativeButton(L("继续离线", "Stay offline"), (_, _) => LoadOfflineGame(L("已保持离线同机模式", "Staying in offline pass-and-play")))
             .SetCancelable(true)
             .Show();
     }
@@ -157,7 +171,7 @@ public sealed class MainActivity : Activity
                 {
                     showingServerPage = true;
                     webView?.LoadUrl(serverUrl);
-                    Toast.MakeText(this, "服务器连接成功，在线功能已恢复", ToastLength.Short)?.Show();
+                    Toast.MakeText(this, L("服务器连接成功，在线功能已恢复", "Server connected. Online features restored."), ToastLength.Short)?.Show();
                 });
             }
         }
@@ -165,9 +179,9 @@ public sealed class MainActivity : Activity
         {
             consecutiveFailures++;
             if (showingServerPage && consecutiveFailures >= 2)
-                LoadOfflineGame("服务器连接中断，已切换到离线同机模式");
+                LoadOfflineGame(L("服务器连接中断，已切换到离线同机模式", "Server connection lost. Switched to offline pass-and-play."));
             else if (announceFailure)
-                RunOnUiThread(() => Toast.MakeText(this, "服务器不可用，继续使用离线同机模式", ToastLength.Long)?.Show());
+                RunOnUiThread(() => Toast.MakeText(this, L("服务器不可用，继续使用离线同机模式", "Server unavailable. Continuing offline pass-and-play."), ToastLength.Long)?.Show());
         }
         finally
         {
@@ -199,7 +213,7 @@ public sealed class MainActivity : Activity
         {
             filePathCallback?.OnReceiveValue(null);
             filePathCallback = null;
-            Toast.MakeText(this, "没有可用的文件选择器", ToastLength.Long)?.Show();
+            Toast.MakeText(this, L("没有可用的文件选择器", "No file picker is available"), ToastLength.Long)?.Show();
         }
     }
 
@@ -217,7 +231,7 @@ public sealed class MainActivity : Activity
         catch (ActivityNotFoundException)
         {
             pendingGameContent = null;
-            Toast.MakeText(this, "没有可用的文件保存器", ToastLength.Long)?.Show();
+            Toast.MakeText(this, L("没有可用的文件保存器", "No file saver is available"), ToastLength.Long)?.Show();
         }
     }
 
@@ -238,11 +252,11 @@ public sealed class MainActivity : Activity
                     using var stream = ContentResolver?.OpenOutputStream(uri);
                     using var writer = new StreamWriter(stream!, new UTF8Encoding(false));
                     writer.Write(content);
-                    Toast.MakeText(this, "棋局文件已保存", ToastLength.Short)?.Show();
+                    Toast.MakeText(this, L("棋局文件已保存", "Game file saved"), ToastLength.Short)?.Show();
                 }
                 catch (Exception exception)
                 {
-                    Toast.MakeText(this, $"保存失败：{exception.Message}", ToastLength.Long)?.Show();
+                    Toast.MakeText(this, $"{L("保存失败：", "Save failed: ")}{exception.Message}", ToastLength.Long)?.Show();
                 }
             }
             pendingGameContent = null;
@@ -253,31 +267,31 @@ public sealed class MainActivity : Activity
 
     public override bool OnCreateOptionsMenu(IMenu? menu)
     {
-        menu?.Add("刷新");
-        menu?.Add("离线同机");
-        menu?.Add("重新连接");
-        menu?.Add("服务器设置");
+        menu?.Add(L("刷新", "Refresh"));
+        menu?.Add(L("离线同机", "Offline"));
+        menu?.Add(L("重新连接", "Reconnect"));
+        menu?.Add(L("服务器设置", "Server settings"));
         return base.OnCreateOptionsMenu(menu);
     }
 
     public override bool OnOptionsItemSelected(IMenuItem item)
     {
-        if (item.TitleFormatted?.ToString() == "刷新")
+        if (item.TitleFormatted?.ToString() == L("刷新", "Refresh"))
         {
             webView?.Reload();
             return true;
         }
-        if (item.TitleFormatted?.ToString() == "离线同机")
+        if (item.TitleFormatted?.ToString() == L("离线同机", "Offline"))
         {
-            LoadOfflineGame("已进入离线同机模式");
+            LoadOfflineGame(L("已进入离线同机模式", "Entered offline pass-and-play"));
             return true;
         }
-        if (item.TitleFormatted?.ToString() == "重新连接")
+        if (item.TitleFormatted?.ToString() == L("重新连接", "Reconnect"))
         {
             _ = CheckServerAsync(true);
             return true;
         }
-        if (item.TitleFormatted?.ToString() == "服务器设置")
+        if (item.TitleFormatted?.ToString() == L("服务器设置", "Server settings"))
         {
             ShowServerDialog(serverUrl);
             return true;
@@ -316,7 +330,7 @@ public sealed class MainActivity : Activity
         {
             base.OnReceivedError(view, request, error);
             if (request?.IsForMainFrame == true && activity.showingServerPage)
-                activity.LoadOfflineGame("服务器页面无法访问，已切换到离线同机模式");
+                activity.LoadOfflineGame(activity.L("服务器页面无法访问，已切换到离线同机模式", "Server page unavailable. Switched to offline pass-and-play."));
         }
     }
 

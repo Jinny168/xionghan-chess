@@ -1,6 +1,8 @@
 color;obj\Release\net9.0-android\res\values\ic_launcher_background.xml
 RelativeLayout;obj\Release\net9.0-android\res\layout\activity_main.xml
+resources;obj\Release\net9.0-android\res\values-en\strings.xml
 resources;obj\Release\net9.0-android\res\values\ic_launcher_background.xml
 resources;obj\Release\net9.0-android\res\values\strings.xml
+string;obj\Release\net9.0-android\res\values-en\strings.xml
 string;obj\Release\net9.0-android\res\values\strings.xml
 TextView;obj\Release\net9.0-android\res\layout\activity_main.xml

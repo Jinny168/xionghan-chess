@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: xionghan-chess
-Version: 1.1.0
+Version: 1.3.0
 Summary: Shared-core Xionghan Chess desktop, web and server implementation
 Requires-Python: >=3.11
 Requires-Dist: fastapi<1,>=0.116

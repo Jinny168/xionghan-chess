@@ -14,6 +14,7 @@ def config_path() -> Path:
 
 DEFAULTS: dict[str, Any] = {
     "profile": "desktop_complete",
+    "language": "zh-CN",
     "game_mode": "ai",
     "difficulty": "medium",
     "human_color": "red",
@@ -26,6 +27,10 @@ DEFAULTS: dict[str, Any] = {
     "font": "system",
     "background": "none",
     "piece_style": "traditional",
+    "flipped": False,
+    "first_move": "red",
+    "setup_slots": {},
+    "account_token": "",
     "animations": True,
     "selection_highlight": True,
     "legal_targets": True,

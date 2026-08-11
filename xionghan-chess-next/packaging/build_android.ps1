@@ -5,7 +5,7 @@ $Publish = Join-Path $ProjectRoot "android\bin\Release\net9.0-android\publish"
 $Release = Join-Path $ProjectRoot "release"
 $productName = -join [char[]](0x5308, 0x6F22, 0x8C61, 0x68CB)
 $platformName = -join [char[]](0x5B89, 0x5353, 0x7248)
-$Target = Join-Path $Release "$productName-1.1.0-$platformName.apk"
+$Target = Join-Path $Release "$productName-1.3.0-$platformName.apk"
 $AndroidSdkRoot = "C:\Program Files (x86)\Android\android-sdk"
 $Aapt2ToolPath = $null
 if (Test-Path -LiteralPath (Join-Path $AndroidSdkRoot "build-tools")) {

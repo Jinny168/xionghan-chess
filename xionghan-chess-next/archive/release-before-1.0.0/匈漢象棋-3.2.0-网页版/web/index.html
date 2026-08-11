@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#781f1f">
+  <title>匈汉象棋</title>
+  <link rel="icon" href="/assets/icon.ico">
+  <link rel="stylesheet" href="/css/app.css?v=3.2.0-3">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img class="brand-icon" src="/assets/icon.ico" alt=""><div><h1>匈汉象棋</h1><p id="connectionText">本地棋局</p></div></div>
+    <nav class="menubar" aria-label="主菜单">
+      <details class="menu"><summary>文件</summary><div class="menu-popup">
+        <button data-command="new">新建对局 <kbd>Ctrl+N</kbd></button>
+        <button data-command="save-local">保存到本机</button>
+        <button data-command="export">导出棋局 <kbd>Ctrl+S</kbd></button>
+        <button data-command="import">读取棋局 <kbd>Ctrl+O</kbd></button>
+      </div></details>
+      <details class="menu"><summary>对局</summary><div class="menu-popup">
+        <button data-command="mode-ai">人机对战</button>
+        <button data-command="mode-local">双人同机对弈</button>
+        <button data-command="mode-online">创建联机房间</button>
+        <hr><button data-command="undo">悔棋</button><button data-command="draw">提和</button><button data-command="resign">认输</button><button data-command="restart">重新开始</button>
+      </div></details>
+      <details class="menu"><summary>复盘</summary><div class="menu-popup">
+        <button data-command="replay">进入复盘</button><button data-command="replay-begin">回到开局</button><button data-command="replay-prev">上一步</button><button data-command="replay-next">下一步</button><button data-command="replay-end">跳到终局</button>
+      </div></details>
+      <details class="menu"><summary>视图</summary><div class="menu-popup">
+        <button data-command="fullscreen">全屏 <kbd>F11</kbd></button><button data-command="toggle-panels">显示/隐藏侧栏</button>
+      </div></details>
+      <details class="menu"><summary>设置</summary><div class="menu-popup">
+        <button data-command="settings">规则与外观</button><button data-command="sound">切换音效</button>
+      </div></details>
+      <details class="menu"><summary>帮助</summary><div class="menu-popup">
+        <button data-command="guide">使用帮助 <kbd>F1</kbd></button><button data-command="rules">棋子规则</button><hr><button data-command="about">关于匈汉象棋</button>
+      </div></details>
+    </nav>
+    <div class="top-actions" aria-label="快捷工具">
+      <button class="icon-button" id="newLocalButton" title="双人同机对弈" aria-label="双人同机对弈">⇄</button>
+      <button class="icon-button" id="saveGameButton" title="保存棋局" aria-label="保存棋局">▣</button>
+      <button class="icon-button" id="loadGameButton" title="读取棋局" aria-label="读取棋局">↥</button>
+      <button class="icon-button" id="replayButtonTop" title="复盘" aria-label="复盘">◀</button>
+      <button class="icon-button" id="fullscreenButton" title="全屏" aria-label="全屏">⛶</button>
+      <button class="icon-button" id="soundButton" title="音效" aria-label="切换音效">♪</button>
+      <button class="icon-button" id="settingsButton" title="规则设置" aria-label="规则设置">⚙</button>
+    </div>
+  </header>
+  <input id="gameFileInput" type="file" accept=".xhgame,.json,application/json" hidden>
+
+  <main class="workspace">
+    <aside class="player-column">
+      <section class="player-panel black-player">
+        <div class="avatar">汗</div><div><strong>黑方</strong><span id="blackStatus">等待落座</span></div>
+        <time id="blackClock">20:00</time>
+      </section>
+      <section class="captured-panel"><h2>黑方损失</h2><div id="blackCaptured" class="captured"></div></section>
+      <section class="mode-panel">
+        <label>模式<select id="modeSelect"><option value="ai">人机对战</option><option value="local">双人同机</option><option value="online">网络对战</option></select></label>
+        <label>规则档案<select id="profileSelect"><option value="web">精简模式</option><option value="desktop_classic">经典模式</option><option value="desktop_complete">完整模式</option><option value="traditional">传统象棋</option></select></label>
+        <label id="difficultyRow">AI 难度<select id="difficultySelect"><option value="beginner">入门</option><option value="easy">初级</option><option value="medium" selected>中级</option><option value="hard">高级</option></select></label>
+        <label id="colorRow">执子<select id="colorSelect"><option value="red">红方先手</option><option value="black">黑方后手</option></select></label>
+        <button class="primary" id="newGameButton">开始对局</button>
+        <div class="join-row" id="joinRow"><input id="roomInput" maxlength="6" placeholder="房间号"><button id="joinButton">加入</button></div>
+      </section>
+    </aside>
+
+    <section class="board-stage">
+      <div class="turn-ribbon" id="turnRibbon">红方行棋</div>
+      <div class="board-shell" id="boardShell">
+        <canvas id="board" aria-label="匈汉象棋棋盘"></canvas>
+        <div id="thinking" class="thinking" hidden><span></span>棋灵思考中</div>
+      </div>
+      <div class="game-actions">
+        <button id="undoButton">↶ 悔棋</button>
+        <button id="restartButton">↻ 重开</button>
+        <button id="resignButton">认输</button>
+        <button id="drawButton">提和</button>
+        <button id="replayButton">复盘</button>
+        <button id="saveLocalButton">保存</button>
+        <button id="exportButton">导出</button>
+        <button id="resurrectButton">复活兵卒</button>
+      </div>
+    </section>
+
+    <aside class="record-column">
+      <section class="player-panel red-player">
+        <div class="avatar">漢</div><div><strong>红方</strong><span id="redStatus">等待落座</span></div>
+        <time id="redClock">20:00</time>
+      </section>
+      <section class="record-panel">
+        <div class="panel-title"><div class="record-tabs"><button id="showMovesButton" class="active">棋谱</button><button id="showChatButton">聊天</button></div><span id="moveCount">0 回合</span></div>
+        <ol id="moveList"></ol>
+        <div id="chatView" class="chat-view" hidden>
+          <div id="chatMessages" class="chat-messages"></div>
+          <div class="chat-quick-row"><select id="quickChatSelect"><option value="请多指教">请多指教</option><option value="好棋！">好棋</option><option value="承让">承让</option><option value="稍等一下">稍等一下</option><option value="再来一局">再来一局</option><option value="这一步，你可要想好了！">挑衅</option></select><button id="sendQuickChatButton">发送</button></div>
+          <div class="chat-input-row"><input id="chatInput" maxlength="80" placeholder="输入聊天内容"><button id="sendChatButton">发送</button></div>
+        </div>
+      </section>
+      <section class="captured-panel"><h2>红方损失</h2><div id="redCaptured" class="captured"></div></section>
+      <section class="room-card"><span>房间</span><strong id="roomCode">离线</strong><button class="icon-button" id="copyRoomButton" title="复制房间号">⧉</button></section>
+    </aside>
+  </main>
+
+  <dialog id="replayDialog" class="replay-dialog" aria-label="棋局复盘">
+    <div class="replay-header"><div><strong>棋局复盘</strong><span id="replayTitle">当前对局</span></div><button class="icon-button" id="closeReplayButton" title="退出复盘" aria-label="退出复盘">×</button></div>
+    <div class="replay-layout">
+      <div class="replay-board-wrap"><canvas id="replayBoard" aria-label="复盘棋盘"></canvas></div>
+      <aside class="replay-controls">
+        <div class="replay-toolbar"><button id="replayBegin" title="回到开局">|&lt;</button><button id="replayPrev" title="上一步">&lt;</button><button id="replayPlay" title="播放">▶</button><button id="replayNext" title="下一步">&gt;</button><button id="replayEnd" title="跳到终局">&gt;|</button></div>
+        <div class="replay-progress"><input type="range" id="replayProgress" min="0" max="0" value="0"><span id="replayStepInfo">0 / 0</span></div>
+        <ol id="replayMoves"></ol>
+        <div class="saved-replays"><div class="saved-replays-title"><strong>本地棋谱库</strong><button id="saveReplayButton">保存当前</button></div><div id="savedReplayList"></div></div>
+      </aside>
+    </div>
+  </dialog>
+
+  <dialog id="settingsDialog">
+    <form method="dialog">
+      <div class="dialog-title"><h2>规则设置</h2><button value="cancel" class="icon-button" aria-label="关闭">×</button></div>
+      <div class="preference-options">
+        <fieldset><legend>界面外观</legend>
+          <label>字体<select id="fontSelect"><option value="system">系统无衬线</option><option value="kaiti">楷体</option><option value="songti">宋体</option><option value="serif">衬线古典</option></select></label>
+          <label>棋盘主题<select id="boardThemeSelect"><option value="classic">经典木纹</option><option value="green">翠绿草原</option><option value="blue">海洋蓝调</option><option value="purple">紫晶梦幻</option><option value="dark">暗黑模式</option></select></label>
+          <label>背景图片<select id="backgroundSelect"><option value="none">原色（无图片）</option><option value="1">山水淡纹</option><option value="2">素雅纸纹</option><option value="3">长城远景</option><option value="4">青绿山水</option><option value="5">夜色山河</option></select></label>
+          <label>棋子样式<select id="pieceStyleSelect"><option value="traditional">传统书法</option><option value="modern">现代简约</option><option value="cartoon">卡通风格</option></select></label>
+        </fieldset>
+        <fieldset><legend>声音</legend>
+          <label class="check-label"><input type="checkbox" id="soundEnabled" checked>音效</label>
+          <label class="check-label"><input type="checkbox" id="musicEnabled" checked>背景音乐</label>
+          <label>音乐风格<select id="musicStyleSelect"><option value="fc">FC 风格</option><option value="qq">QQ 风格</option></select></label>
+          <label>音量<input type="range" id="volumeSlider" min="0" max="100" value="70"><output id="volumeValue">70%</output></label>
+        </fieldset>
+      </div>
+      <div id="ruleOptions" class="rule-options"></div>
+      <menu><button value="cancel">取消</button><button value="default" id="applySettings" class="primary">应用并重开</button></menu>
+    </form>
+  </dialog>
+  <dialog id="resultDialog"><div class="result-mark" id="resultMark">胜</div><h2 id="resultTitle"></h2><p id="resultText"></p><button id="resultRestart" class="primary">再来一局</button></dialog>
+  <dialog id="helpDialog" class="text-dialog"><div class="dialog-title"><h2>匈汉象棋使用帮助</h2><button class="icon-button" data-close-dialog="helpDialog">×</button></div><div class="text-dialog-body">
+    <h3>开始对局</h3><p>可选择人机对战、双人同机或网络对战。双人同机模式会按当前轮次自动允许红黑双方在同一设备操作。</p>
+    <h3>基本操作</h3><ol><li>点击棋子进行选择。</li><li>查看高亮的合法落点和吃子提示。</li><li>点击目标位置完成移动。</li></ol>
+    <h3>棋谱与复盘</h3><p>使用“文件”菜单保存、导出或读取 <code>.xhgame</code> 棋局。复盘窗口支持跳转、逐步查看、自动播放和本地棋谱库。</p>
+    <h3>规则提示</h3><ul><li>射默认使用弱化星轨移动，加强选项可扩展其能力。</li><li>斜向路径必须逐段通过夹逼检查，仕、士、相、象等同样适用。</li><li>兵卒进入敌境前可快速行军，最大一步抵达敌境边缘。</li></ul>
+    <h3>快捷键</h3><p><code>Ctrl+N</code> 新建，<code>Ctrl+O</code> 读取，<code>Ctrl+S</code> 导出，<code>Ctrl+Z</code> 悔棋，<code>Ctrl+R</code> 复盘，<code>F11</code> 全屏。</p>
+    <h3>反馈支持</h3><p><a href="https://github.com/Jinny168/xionghan-chess/issues" target="_blank" rel="noreferrer">GitHub Issues</a> · 2741526119@qq.com</p>
+  </div></dialog>
+  <dialog id="rulesDialog" class="text-dialog"><div class="dialog-title"><h2>棋子规则</h2><button class="icon-button" data-close-dialog="rulesDialog">×</button></div><div class="text-dialog-body"><p>各棋子的详细规则、增强选项和夹逼判定可在“设置 → 规则与外观”中逐项查看和调整。</p><p>斜向移动经过的每一段入口都必须通过夹逼检查；兵卒快速行军最多抵达敌境边缘。</p></div></dialog>
+  <dialog id="aboutDialog" class="text-dialog"><div class="dialog-title"><h2>关于匈汉象棋</h2><button class="icon-button" data-close-dialog="aboutDialog">×</button></div><div class="text-dialog-body"><p><strong>版本 3.2.0</strong></p><p>匈汉象棋是一款采用 13 × 13 扩展棋盘、融合匈奴与东汉文化元素的中国象棋创新变体，在传统象棋核心博弈结构上加入特色棋子与可配置规则。</p><h3>当前版本</h3><ul><li>Windows、Web 与 Android 三端支持。</li><li>共享 Python 规则、AI、联机协议和 <code>.xhgame</code> 棋谱格式。</li><li>支持人机、双人同机、网络对战、复盘、聊天与棋谱管理。</li></ul><h3>开发信息</h3><p>开发者：靳中原<br>项目主页：<a href="https://github.com/Jinny168/xionghan-chess" target="_blank" rel="noreferrer">github.com/Jinny168/xionghan-chess</a><br>反馈邮箱：2741526119@qq.com</p><p>感谢原项目积累的规则、素材、菜单设计和玩家反馈，也感谢开源社区提供的开发工具与音频资源。</p></div></dialog>
+  <div id="toast" class="toast" role="status"></div>
+  <script type="module" src="/js/app.js?v=3.2.0-3"></script>
+</body>
+</html>

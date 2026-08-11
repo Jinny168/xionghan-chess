@@ -1,0 +1,92 @@
+[
+  {
+    "id": "beginner-forward-01",
+    "title": "兵卒初动",
+    "difficulty": "beginner",
+    "description": "熟悉匈汉棋盘上兵的前进方向。",
+    "profileId": "web",
+    "solution": [{"from": {"row": 8, "col": 0}, "to": {"row": 7, "col": 0}}],
+    "hints": ["观察红方最左侧的兵。", "红方向行号减小的方向前进。"],
+    "tags": ["基础", "兵卒"]
+  },
+  {
+    "id": "beginner-cannon-01",
+    "title": "架炮出营",
+    "difficulty": "beginner",
+    "description": "找到炮在无阻挡直线上的安全展开点。",
+    "profileId": "traditional",
+    "solution": [{"from": {"row": 7, "col": 1}, "to": {"row": 6, "col": 1}}],
+    "hints": ["炮不吃子时沿直线移动。", "向前移动一格即可。"],
+    "tags": ["基础", "炮"]
+  },
+  {
+    "id": "beginner-horse-01",
+    "title": "跃马争先",
+    "difficulty": "beginner",
+    "description": "练习马的日字移动与蹩马腿判断。",
+    "profileId": "traditional",
+    "solution": [{"from": {"row": 9, "col": 1}, "to": {"row": 7, "col": 2}}],
+    "hints": ["先检查马腿位置是否为空。", "目标位于右前方日字落点。"],
+    "tags": ["基础", "马"]
+  },
+  {
+    "id": "advanced-archer-01",
+    "title": "星轨射手",
+    "difficulty": "advanced",
+    "description": "识别射在弱化模式下可进入的相邻星轨。",
+    "profileId": "web",
+    "solution": [{"from": {"row": 12, "col": 0}, "to": {"row": 9, "col": 3}}],
+    "hints": ["射只能沿有效星轨移动。", "从角部星点沿右上轨道前进。"],
+    "tags": ["特色棋子", "射"]
+  },
+  {
+    "id": "advanced-patrol-01",
+    "title": "巡守河界",
+    "difficulty": "advanced",
+    "description": "掌握巡在指定边界上的横向调动。",
+    "profileId": "desktop_classic",
+    "solution": [{"from": {"row": 7, "col": 0}, "to": {"row": 7, "col": 2}}],
+    "hints": ["找到红方位于边界线的巡。", "沿边界横移两个交点。"],
+    "tags": ["特色棋子", "巡"]
+  },
+  {
+    "id": "advanced-center-01",
+    "title": "中兵抢渡",
+    "difficulty": "advanced",
+    "description": "用中路兵争夺长城阴山区域。",
+    "profileId": "desktop_complete",
+    "solution": [{"from": {"row": 8, "col": 6}, "to": {"row": 7, "col": 6}}],
+    "hints": ["关注中线兵。", "先控制边界入口。"],
+    "tags": ["布局", "兵卒"]
+  },
+  {
+    "id": "master-thunder-01",
+    "title": "檑动中军",
+    "difficulty": "master",
+    "description": "规划檑从底线向中路展开的第一步。",
+    "profileId": "desktop_complete",
+    "solution": [{"from": {"row": 12, "col": 4}, "to": {"row": 12, "col": 5}}],
+    "hints": ["檑可以沿直线或斜线移动。", "先沿底线靠近中军。"],
+    "tags": ["特色棋子", "檑"]
+  },
+  {
+    "id": "master-guard-01",
+    "title": "尉卫跳阵",
+    "difficulty": "master",
+    "description": "理解尉卫隔子跳跃的起跳条件。",
+    "profileId": "desktop_complete",
+    "solution": [{"from": {"row": 12, "col": 6}, "to": {"row": 10, "col": 6}}],
+    "hints": ["尉需要隔一枚棋子起跳。", "观察正前方的主帅与后续落点。"],
+    "tags": ["特色棋子", "尉"]
+  },
+  {
+    "id": "master-rook-01",
+    "title": "俥占要道",
+    "difficulty": "master",
+    "description": "在完整棋阵中寻找俥的可用直线。",
+    "profileId": "desktop_complete",
+    "solution": [{"from": {"row": 11, "col": 2}, "to": {"row": 10, "col": 2}}],
+    "hints": ["俥不能越子。", "向前一格是当前最直接的展开点。"],
+    "tags": ["布局", "俥"]
+  }
+]
