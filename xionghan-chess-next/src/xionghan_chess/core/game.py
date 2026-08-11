@@ -35,6 +35,8 @@ class Game:
     def move(self, move: Move) -> MoveRecord:
         if self.state.finished:
             raise GameError("对局已经结束")
+        if self.state.paused:
+            raise GameError("对局已暂停")
         self.tick()
         if self.state.finished:
             raise GameError("当前走棋方已超时")
@@ -67,6 +69,22 @@ class Game:
         self.state = GameState.from_dict(snapshot)
         self.state.turn_started_at = time.monotonic()
 
+    def set_paused(self, paused: bool, color: Color | None = None) -> None:
+        if self.state.finished:
+            raise GameError("对局已经结束")
+        if paused == self.state.paused:
+            return
+        if paused:
+            self.tick()
+            if self.state.finished:
+                return
+            self.state.paused = True
+            self.state.paused_by = color
+        else:
+            self.state.paused = False
+            self.state.paused_by = None
+            self.state.turn_started_at = time.monotonic()
+
     def resign(self, color: Color) -> None:
         self.state.winner = color.opponent
         self.state.result_reason = "resignation"
@@ -97,6 +115,8 @@ class Game:
             self.undo(2 if len(self._snapshots) >= 2 else 1)
 
     def resurrect_pawn(self, color: Color, position: Position) -> None:
+        if self.state.paused:
+            raise GameError("对局已暂停")
         if not self.options.pawn_resurrection or color is not self.state.turn:
             raise GameError("当前规则或回合不允许复活")
         home_row = 8 if color is Color.RED else 4
@@ -112,7 +132,7 @@ class Game:
         self.state.turn_started_at = time.monotonic()
 
     def tick(self) -> None:
-        if self.state.finished:
+        if self.state.finished or self.state.paused:
             return
         elapsed = int((time.monotonic() - self.state.turn_started_at) * 1000)
         if elapsed >= self.state.clocks_ms[self.state.turn]:

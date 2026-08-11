@@ -225,3 +225,14 @@ def get_profile(profile_id: str) -> RuleProfile:
         return PROFILES[profile_id]
     except KeyError as exc:
         raise ValueError(f"Unknown rule profile: {profile_id}") from exc
+
+
+def profile_rule_values(profile_id: str, overrides: dict[str, object] | None = None) -> dict[str, object]:
+    """Return rule values scoped to one profile without leaking disabled pieces."""
+    profile = get_profile(profile_id)
+    values = asdict(profile.options.merged(overrides))
+    for kind in PieceType:
+        if kind not in profile.enabled_piece_types:
+            values[f"{kind.value}_appear"] = False
+    values["king_appear"] = True
+    return values

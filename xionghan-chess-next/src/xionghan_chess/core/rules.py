@@ -311,8 +311,8 @@ class RulesEngine:
             return abs(dr) + abs(dc) == 1
         distance = abs(dr)
         distance_to_enemy_territory = (
-            move.source.row - middle if piece.color is Color.RED
-            else middle - move.source.row
+            move.source.row - middle + 1 if piece.color is Color.RED
+            else middle - move.source.row + 1
         )
         if self.options.pawn_fast_move_before_enemy_territory and dc == 0 and \
                 dr == forward * distance and 1 < distance <= distance_to_enemy_territory:
