@@ -132,9 +132,12 @@ class AccountStore:
     def save_preferences(self, user_id: int, preferences: dict[str, Any]) -> dict[str, Any]:
         clean = json.loads(json.dumps(preferences))
         with self._lock, self.connect() as db:
+            row = db.execute("SELECT preferences FROM users WHERE id=?", (user_id,)).fetchone()
+            current = json.loads(row[0]) if row and row[0] else {}
+            current.update(clean)
             db.execute("UPDATE users SET preferences=? WHERE id=?",
-                       (json.dumps(clean, ensure_ascii=False), user_id))
-        return clean
+                       (json.dumps(current, ensure_ascii=False), user_id))
+        return current
 
     def list_games(self, user_id: int, favorite: bool | None = None) -> list[dict[str, Any]]:
         query = "SELECT id,title,favorite,created_at,updated_at FROM cloud_games WHERE user_id=?"

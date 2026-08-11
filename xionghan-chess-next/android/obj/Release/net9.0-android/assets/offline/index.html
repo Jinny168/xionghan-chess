@@ -27,7 +27,7 @@
       <label>先手<select id="firstMoveSelect"><option value="red">默认（红先）</option><option value="black">黑先</option><option value="random">随机</option></select></label>
       <button class="primary" id="newGameButton">开始新对局</button>
       <details class="preferences"><summary>显示与辅助</summary><div>
-        <label>棋盘主题<select id="themeSelect"><option value="classic">经典木纹</option><option value="green">翠绿草原</option><option value="blue">海洋蓝调</option><option value="dark">暗黑模式</option></select></label>
+        <label>棋盘主题<select id="themeSelect"><option value="classic">经典木纹</option><option value="green">翠绿草原</option><option value="blue">海洋蓝调</option><option value="purple">紫晶梦幻</option><option value="dark">暗黑模式</option></select></label>
         <label>棋子样式<select id="pieceStyleSelect"><option value="traditional">传统书法</option><option value="modern">现代简约</option><option value="cartoon">卡通风格</option></select></label>
         <label class="check"><input id="legalTargetsEnabled" type="checkbox" checked>显示可行落点</label>
         <label class="check"><input id="captureHintsEnabled" type="checkbox" checked>提示可吃棋子</label>
@@ -41,7 +41,7 @@
       <section class="actions" aria-label="对局操作">
         <button id="undoButton">悔棋</button><button id="pauseButton">暂停</button><button id="restartButton">重开</button>
         <button id="drawButton">和棋</button><button id="resignButton">认输</button>
-        <button id="saveButton">保存</button>
+        <button id="saveButton">保存</button><button id="loadButton">读取</button><input id="gameFileInput" type="file" accept=".xhgame,.json,application/json" hidden>
       </section>
     </section>
     <section class="record"><div><strong>棋谱</strong><span id="resultText"></span></div><ol id="moves"></ol></section>

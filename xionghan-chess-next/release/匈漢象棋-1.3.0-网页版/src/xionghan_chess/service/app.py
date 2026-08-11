@@ -37,8 +37,9 @@ async def maintenance() -> None:
     while True:
         await asyncio.sleep(5)
         for room in list(manager.rooms.values()):
-            if room.mode in {"ai", "local"} or len(room.seats) == 2:
-                room.game.tick()
+            async with room.lock:
+                if room.mode in {"ai", "local"} or len(room.seats) == 2:
+                    room.game.tick()
             await manager.broadcast(room)
         await manager.cleanup()
 
@@ -192,8 +193,9 @@ async def import_room(request: ImportGameRequest) -> dict:
 async def join_room(room_id: str, request: JoinRoomRequest) -> dict:
     try:
         room, seat = await manager.join(room_id.upper(), request.player_name)
-        room.language = normalize_language(request.language)
-        room.game.language = room.language
+        async with room.lock:
+            room.language = normalize_language(request.language)
+            room.game.language = room.language
         await manager.broadcast(room)
         return {"roomId": room.id, "token": seat.token, "color": seat.color.value,
                 "snapshot": room.snapshot(seat.token)}
@@ -261,7 +263,7 @@ async def websocket_room(websocket: WebSocket, room_id: str, token: str) -> None
                                                    payload={"message": str(exc), "state": room.snapshot(token)}).wire())
     except WebSocketDisconnect:
         if "room" in locals():
-            await manager.disconnect(room, token)
+            await manager.disconnect(room, token, websocket)
     except GameError as exc:
         await websocket.close(code=4403, reason=str(exc))
 
@@ -288,7 +290,7 @@ async def websocket_spectator(websocket: WebSocket, room_id: str, token: str) ->
                                                    payload={"message": str(exc)}).wire())
     except WebSocketDisconnect:
         if "room" in locals():
-            await manager.disconnect_spectator(room, token)
+            await manager.disconnect_spectator(room, token, websocket)
     except GameError as exc:
         await websocket.close(code=4403, reason=str(exc))
 

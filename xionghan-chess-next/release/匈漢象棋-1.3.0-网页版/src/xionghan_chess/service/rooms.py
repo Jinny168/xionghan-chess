@@ -28,6 +28,7 @@ class PlayerSeat:
     display_name: str
     connected: bool = False
     disconnected_at: float | None = None
+    is_ai: bool = False
 
 
 @dataclass(slots=True)
@@ -102,7 +103,9 @@ class RoomManager:
             seat = PlayerSeat(secrets.token_urlsafe(24), player_color, player_name or t("common.player", language))
             room.seats[player_color] = seat
             if mode == "ai":
-                room.seats[player_color.opponent] = PlayerSeat("ai", player_color.opponent, "Xionghan AI" if language == "en" else "匈汉棋灵", True)
+                room.seats[player_color.opponent] = PlayerSeat(
+                    secrets.token_urlsafe(32), player_color.opponent,
+                    "Xionghan AI" if language == "en" else "匈汉棋灵", True, None, True)
             self.rooms[room_id] = room
             return room, seat
 
@@ -124,8 +127,8 @@ class RoomManager:
             room.seats[player_color] = seat
             if mode == "ai":
                 room.seats[player_color.opponent] = PlayerSeat(
-                    "ai", player_color.opponent, "Xionghan AI" if language == "en" else "匈汉棋灵", True
-                )
+                    secrets.token_urlsafe(32), player_color.opponent,
+                    "Xionghan AI" if language == "en" else "匈汉棋灵", True, None, True)
             room.game.state.turn_started_at = time.monotonic()
             self.rooms[room_id] = room
             return room, seat
@@ -152,7 +155,7 @@ class RoomManager:
 
     def seat_for(self, room: Room, token: str) -> PlayerSeat:
         seat = next((s for s in room.seats.values() if secrets.compare_digest(s.token, token)) , None)
-        if not seat:
+        if not seat or seat.is_ai:
             raise GameError(room.tr("error.invalid_token"))
         return seat
 
@@ -170,19 +173,25 @@ class RoomManager:
         if spectator is None:
             raise GameError(room.tr("error.invalid_token"))
         await websocket.accept()
-        previous = room.spectator_sockets.get(token)
+        async with room.lock:
+            previous = room.spectator_sockets.get(token)
+            room.spectator_sockets[token] = websocket
+            spectator.connected = True
         if previous:
             await previous.close(code=4001, reason=room.tr("error.account_connected"))
-        room.spectator_sockets[token] = websocket
-        spectator.connected = True
         await self.broadcast(room)
         return spectator
 
-    async def disconnect_spectator(self, room: Room, token: str) -> None:
-        room.spectator_sockets.pop(token, None)
-        spectator = room.spectators.get(token)
-        if spectator:
-            spectator.connected = False
+    async def disconnect_spectator(self, room: Room, token: str,
+                                   websocket: WebSocket | None = None) -> None:
+        async with room.lock:
+            current = room.spectator_sockets.get(token)
+            if websocket is not None and current is not websocket:
+                return
+            room.spectator_sockets.pop(token, None)
+            spectator = room.spectators.get(token)
+            if spectator:
+                spectator.connected = False
         await self.broadcast(room)
 
     async def spectator_chat(self, room: Room, spectator: Spectator, text: str) -> None:
@@ -197,29 +206,39 @@ class RoomManager:
     async def connect(self, room: Room, token: str, websocket: WebSocket) -> PlayerSeat:
         seat = self.seat_for(room, token)
         await websocket.accept()
-        previous = room.sockets.get(token)
+        async with room.lock:
+            previous = room.sockets.get(token)
+            room.sockets[token] = websocket
+            seat.connected = True
+            seat.disconnected_at = None
+            room.last_activity = time.time()
         if previous:
             await previous.close(code=4001, reason=room.tr("error.account_connected"))
-        room.sockets[token] = websocket
-        seat.connected = True
-        seat.disconnected_at = None
-        room.last_activity = time.time()
         return seat
 
-    async def disconnect(self, room: Room, token: str) -> None:
-        room.sockets.pop(token, None)
-        try:
-            seat = self.seat_for(room, token)
-        except GameError:
-            return
-        seat.connected = False
-        seat.disconnected_at = time.time()
-        room.revision += 1
+    async def disconnect(self, room: Room, token: str, websocket: WebSocket | None = None) -> None:
+        async with room.lock:
+            current = room.sockets.get(token)
+            if websocket is not None and current is not websocket:
+                return
+            room.sockets.pop(token, None)
+            try:
+                seat = self.seat_for(room, token)
+            except GameError:
+                return
+            seat.connected = False
+            seat.disconnected_at = time.time()
+            room.revision += 1
         await self.broadcast(room)
 
     async def handle(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
         async with room.lock:
-            if envelope.type is not MessageType.CHAT and envelope.revision is not None and envelope.revision != room.revision:
+            if envelope.type is MessageType.PING:
+                return
+            revision_independent = {MessageType.CHAT, MessageType.DRAW_RESPONSE,
+                                    MessageType.UNDO_RESPONSE}
+            if (envelope.type not in revision_independent and envelope.revision is not None
+                    and envelope.revision != room.revision):
                 raise GameError(room.tr("error.client_stale"))
             if envelope.type is MessageType.CHAT:
                 text = str(envelope.payload.get("text", "")).strip()
@@ -284,7 +303,7 @@ class RoomManager:
                 paused = bool(envelope.payload.get("paused", not room.game.state.paused))
                 room.game.set_paused(paused, seat.color)
                 room.revision += 1
-            elif envelope.type is not MessageType.PING:
+            else:
                 raise GameError(room.tr("error.unsupported_message"))
         if envelope.type is MessageType.CHAT:
             await self.broadcast_envelope(room, MessageType.CHAT, payload)
@@ -295,78 +314,108 @@ class RoomManager:
             await self._play_ai(room)
 
     async def _play_ai(self, room: Room) -> None:
-        state = room.game.state.clone()
-        options = room.game.options
-        ai = ChessAI(room.ai_difficulty)
+        async with room.lock:
+            if room.game.state.finished or room.game.state.paused:
+                return
+            state = room.game.state.clone()
+            options = room.game.options
+            difficulty = room.ai_difficulty
+        ai = ChessAI(difficulty)
         move = await asyncio.to_thread(ai.choose_move, Game.from_state(state, options))
         async with room.lock:
-            if move and room.game.state.turn is state.turn and room.game.state.history == state.history:
-                room.game.move(move)
-                room.revision += 1
+            if (move and not room.game.state.paused and not room.game.state.finished
+                    and room.game.state.turn is state.turn
+                    and room.game.state.history == state.history):
+                try:
+                    room.game.move(move)
+                    room.revision += 1
+                except GameError:
+                    pass
         await self.broadcast(room)
 
     async def broadcast(self, room: Room) -> None:
-        dead: list[str] = []
-        for token, socket in list(room.sockets.items()):
+        async with room.lock:
+            revision = room.revision
+            player_sockets = list(room.sockets.items())
+            spectator_sockets = list(room.spectator_sockets.items())
+            player_messages = {
+                token: Envelope(type=MessageType.STATE, roomId=room.id, revision=revision,
+                                payload=room.snapshot(token)).wire()
+                for token in room.sockets
+            }
+            spectator_message = Envelope(
+                type=MessageType.STATE, roomId=room.id, revision=revision,
+                payload=room.snapshot(None)).wire()
+        dead: list[tuple[str, WebSocket]] = []
+        for token, socket in player_sockets:
             try:
-                await socket.send_json(Envelope(type=MessageType.STATE, roomId=room.id,
-                                                revision=room.revision,
-                                                payload=room.snapshot(token)).wire())
+                await socket.send_json(player_messages[token])
             except Exception:
-                dead.append(token)
-        for token in dead:
-            room.sockets.pop(token, None)
-        dead_spectators: list[str] = []
-        for token, socket in list(room.spectator_sockets.items()):
+                dead.append((token, socket))
+        for token, socket in dead:
+            if room.sockets.get(token) is socket:
+                room.sockets.pop(token, None)
+        dead_spectators: list[tuple[str, WebSocket]] = []
+        for token, socket in spectator_sockets:
             try:
-                await socket.send_json(Envelope(type=MessageType.STATE, roomId=room.id,
-                                                revision=room.revision,
-                                                payload=room.snapshot(token)).wire())
+                await socket.send_json(spectator_message)
             except Exception:
-                dead_spectators.append(token)
-        for token in dead_spectators:
-            room.spectator_sockets.pop(token, None)
+                dead_spectators.append((token, socket))
+        for token, socket in dead_spectators:
+            if room.spectator_sockets.get(token) is socket:
+                room.spectator_sockets.pop(token, None)
 
     async def broadcast_envelope(self, room: Room, type_: MessageType,
                                  payload: dict[str, Any]) -> None:
-        dead: list[str] = []
-        for token, socket in list(room.sockets.items()):
+        revision = room.revision
+        player_sockets = list(room.sockets.items())
+        spectator_sockets = list(room.spectator_sockets.items())
+        dead: list[tuple[str, WebSocket]] = []
+        for token, socket in player_sockets:
             try:
                 await socket.send_json(Envelope(type=type_, roomId=room.id,
-                                                revision=room.revision,
+                                                revision=revision,
                                                 payload=payload).wire())
             except Exception:
-                dead.append(token)
-        for token in dead:
-            room.sockets.pop(token, None)
-        dead_spectators: list[str] = []
-        for token, socket in list(room.spectator_sockets.items()):
+                dead.append((token, socket))
+        for token, socket in dead:
+            if room.sockets.get(token) is socket:
+                room.sockets.pop(token, None)
+        dead_spectators: list[tuple[str, WebSocket]] = []
+        for token, socket in spectator_sockets:
             try:
                 await socket.send_json(Envelope(type=type_, roomId=room.id,
-                                                revision=room.revision,
+                                                revision=revision,
                                                 payload=payload).wire())
             except Exception:
-                dead_spectators.append(token)
-        for token in dead_spectators:
-            room.spectator_sockets.pop(token, None)
+                dead_spectators.append((token, socket))
+        for token, socket in dead_spectators:
+            if room.spectator_sockets.get(token) is socket:
+                room.spectator_sockets.pop(token, None)
 
     async def cleanup(self) -> None:
         now = time.time()
         stale: list[str] = []
-        for room_id, room in self.rooms.items():
-            disconnected = [s for s in room.seats.values() if s.token != "ai" and not s.connected]
-            expired_player = any(s.disconnected_at and now - s.disconnected_at > RECONNECT_GRACE_SECONDS
-                                 for s in disconnected)
-            if expired_player and not room.game.state.finished and room.mode == "online":
-                for seat in disconnected:
-                    if seat.disconnected_at and now - seat.disconnected_at > RECONNECT_GRACE_SECONDS:
-                        room.game.state.winner = seat.color.opponent
-                        room.game.state.result_reason = "disconnect_timeout"
-                        room.revision += 1
-            if room.game.state.finished and now - room.last_activity > 3600:
-                stale.append(room_id)
-        for room_id in stale:
-            self.rooms.pop(room_id, None)
+        changed: list[Room] = []
+        for room_id, room in list(self.rooms.items()):
+            async with room.lock:
+                disconnected = [s for s in room.seats.values() if not s.is_ai and not s.connected]
+                expired = [s for s in disconnected if s.disconnected_at
+                           and now - s.disconnected_at > RECONNECT_GRACE_SECONDS]
+                if expired and not room.game.state.finished and room.mode == "online":
+                    room.game.state.winner = expired[0].color.opponent
+                    room.game.state.result_reason = "disconnect_timeout"
+                    room.revision += 1
+                    changed.append(room)
+                abandoned = (room.mode in {"ai", "local"} and not room.sockets
+                             and now - room.last_activity > 1800)
+                if abandoned or (room.game.state.finished and now - room.last_activity > 3600):
+                    stale.append(room_id)
+        for room in changed:
+            await self.broadcast(room)
+        async with self._lock:
+            for room_id in stale:
+                self.rooms.pop(room_id, None)
 
     def _room_id(self) -> str:
         alphabet = string.ascii_uppercase + string.digits

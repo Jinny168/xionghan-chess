@@ -23,7 +23,7 @@ public sealed class MainActivity : Activity
     IValueCallback? filePathCallback;
     string? pendingGameContent;
     GameBridge? gameBridge;
-    readonly HttpClient healthClient = new() { Timeout = TimeSpan.FromSeconds(4) };
+    readonly HttpClient healthClient = new() { Timeout = TimeSpan.FromSeconds(3) };
     System.Threading.Timer? connectionTimer;
     string serverUrl = DefaultServerUrl;
     bool showingServerPage;
@@ -60,7 +60,7 @@ public sealed class MainActivity : Activity
                 ?? DefaultServerUrl);
             LoadOfflineGame(L("离线同机模式可直接使用，正在检测服务器", "Offline pass-and-play is ready. Checking server."));
             connectionTimer = new System.Threading.Timer(_ => _ = CheckServerAsync(), null,
-                TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10));
+                TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(6));
         }
         catch (Exception exception)
         {
@@ -309,6 +309,10 @@ public sealed class MainActivity : Activity
     {
         connectionTimer?.Dispose();
         healthClient.Dispose();
+        webView?.StopLoading();
+        webView?.RemoveJavascriptInterface("XionghanAndroid");
+        webView?.Destroy();
+        webView = null;
         base.OnDestroy();
     }
 

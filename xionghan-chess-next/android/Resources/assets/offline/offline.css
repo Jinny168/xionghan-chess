@@ -71,4 +71,4 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
   .actions{grid-template-columns:1fr 1fr}
   .actions button:last-child{grid-column:1/-1}
 }
-body[data-theme="green"]{--paper:#e4f0df;--line:#315c36}body[data-theme="blue"]{--paper:#dcebf1;--line:#285c73}body[data-theme="dark"]{--paper:#34302b;--line:#c9b58e;--ink:#f3ead7;--panel:#29241f;--panel-soft:#352f29;background:#1d1a17}body[data-theme="dark"] button,body[data-theme="dark"] select{background:#3a3229;color:#f3ead7;border-color:#75624b}
+body[data-theme="green"]{--paper:#e4f0df;--line:#315c36}body[data-theme="blue"]{--paper:#dcebf1;--line:#285c73}body[data-theme="purple"]{--paper:#eee1f2;--line:#6c3d78;--ink:#3d2942}body[data-theme="dark"]{--paper:#34302b;--line:#c9b58e;--ink:#f3ead7;--panel:#29241f;--panel-soft:#352f29;background:#1d1a17}body[data-theme="dark"] button,body[data-theme="dark"] select{background:#3a3229;color:#f3ead7;border-color:#75624b}

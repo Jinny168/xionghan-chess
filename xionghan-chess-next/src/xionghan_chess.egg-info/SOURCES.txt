@@ -56,5 +56,6 @@ tests/test_game.py
 tests/test_i18n.py
 tests/test_profiles.py
 tests/test_protocol.py
+tests/test_qa_regressions.py
 tests/test_rules.py
 tests/test_service.py

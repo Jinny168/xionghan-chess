@@ -271,6 +271,9 @@
     "resurrect_col": "请输入有效列号",
     "saved": "棋局已保存",
     "retrying": "正在重新连接服务器"
+    ,"storage_full": "本地存储空间不足，数据未保存"
+    ,"file_too_large": "文件超过 10 MB，已拒绝读取"
+    ,"invalid_puzzle": "题库结构无效"
   },
   "prompt": {
     "promotion": "选择升变棋子：{choices}",

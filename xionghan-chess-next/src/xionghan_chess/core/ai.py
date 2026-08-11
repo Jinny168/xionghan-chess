@@ -175,6 +175,7 @@ class ChessAI:
         if not game.rules.in_check(game.state, game.state.turn):
             ordered = ordered[:CONFIGS[self.difficulty].branch_limit]
         for move in ordered:
+            self._guard(deadline, cancel)
             child = Game.from_state(game.rules.apply_unchecked(game.state, move), game.options)
             score = -self._search(child, depth - 1, -beta, -alpha, deadline, cancel, ply + 1)
             if score > value:
@@ -196,7 +197,9 @@ class ChessAI:
             bound = Bound.UPPER
         elif value >= original_beta:
             bound = Bound.LOWER
-        self.transposition[key] = TTEntry(depth, value, bound, best_move)
+        previous = self.transposition.get(key)
+        if previous is None or depth >= previous.depth:
+            self.transposition[key] = TTEntry(depth, value, bound, best_move)
         return value
 
     def _quiescence(self, game: Game, alpha: float, beta: float, deadline: float,
@@ -213,7 +216,7 @@ class ChessAI:
             alpha = max(alpha, stand_pat)
 
         moves = legal if legal is not None else (
-            game.rules.legal_moves(game.state) if in_check else self._tactical_moves(game)
+            game.rules.legal_moves(game.state) if in_check else self._tactical_moves(game, deadline, cancel)
         )
         if in_check and not moves:
             return -VALUES[PieceType.KING] + ply
@@ -222,6 +225,7 @@ class ChessAI:
             if move.promotion is not None or self._capture_value(game, move) > 0
         ]
         for move in self._order(game, tactical, ply=ply):
+            self._guard(deadline, cancel)
             child = Game.from_state(game.rules.apply_unchecked(game.state, move), game.options)
             score = -self._quiescence(child, -beta, -alpha, deadline, cancel,
                                       ply + 1, remaining - 1)
@@ -230,12 +234,14 @@ class ChessAI:
             alpha = max(alpha, score)
         return alpha
 
-    def _tactical_moves(self, game: Game) -> list[Move]:
+    def _tactical_moves(self, game: Game, deadline: float,
+                        cancel: threading.Event | None) -> list[Move]:
         state = game.state
         enemies = [piece for piece in state.pieces if piece.color is state.turn.opponent]
         tactical: list[Move] = []
         seen: set[Move] = set()
         for moving in state.pieces:
+            self._guard(deadline, cancel)
             if moving.color is not state.turn:
                 continue
             for target in enemies:
@@ -257,6 +263,7 @@ class ChessAI:
                             seen.add(move)
             if moving.type in {PieceType.ARMOR, PieceType.ASSASSIN}:
                 for row in range(game.profile.rows):
+                    self._guard(deadline, cancel)
                     for col in range(game.profile.cols):
                         move = Move(moving.position, Position(row, col))
                         if move in seen or not game.rules.is_legal(state, move):
@@ -299,6 +306,8 @@ class ChessAI:
             score += 150
         if game.rules.in_check(game.state, color):
             score -= 210
+        if len(self.evaluation_cache) >= 50_000:
+            self.evaluation_cache.clear()
         self.evaluation_cache[cache_key] = score
         return score
 

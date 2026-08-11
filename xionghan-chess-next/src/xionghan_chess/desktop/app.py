@@ -712,7 +712,7 @@ class DocumentDialog(QDialog):
 
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__();load_bundled_fonts();self.config=load_config();self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False
+        super().__init__();load_bundled_fonts();self.config=load_config();self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
         icon_path = Path(__file__).resolve().parent / "resources" / "icon.ico"
         if icon_path.exists():
@@ -976,7 +976,12 @@ class MainWindow(QMainWindow):
                 display=username
                 if mode=="注册":display,_=QInputDialog.getText(self,"账号","显示名称",QLineEdit.EchoMode.Normal,username)
                 data=self.request_json(base+("/api/auth/register" if mode=="注册" else "/api/auth/login"),{"username":username,"password":password,"displayName":display},"POST")
-                self.config["account_token"]=data["token"];self.config.update({key:value for key,value in data.get("preferences",{}).items() if key in self.config});save_config(self.config);QMessageBox.information(self,"账号",f"已登录：{data['account']['displayName']}");return
+                cloud_to_desktop={"boardTheme":"theme","pageBackground":"background","pieceStyle":"piece_style","font":"font","language":"language","flipped":"flipped","musicStyle":"music_style","volume":"sound_volume","animation":"animations","selection":"selection_highlight","legalTargets":"legal_targets","captureHints":"capture_hints","autosave":"autosave","initialMinutes":"initial_minutes","countdownSeconds":"countdown_seconds"}
+                self.config["account_token"]=data["token"]
+                for cloud_key,value in data.get("preferences",{}).items():
+                    local_key=cloud_to_desktop.get(cloud_key,cloud_key)
+                    if local_key in self.config:self.config[local_key]=value
+                save_config(self.config);QMessageBox.information(self,"账号",f"已登录：{data['account']['displayName']}");return
             action,ok=QInputDialog.getItem(self,"云同步","选择操作",["上传当前棋局","同步外观偏好","查看云端棋谱","退出登录"],0,False)
             if not ok:return
             if action=="退出登录":self.request_json(base+"/api/auth/logout",{},"POST",token);self.config["account_token"]="";save_config(self.config);return
@@ -984,7 +989,8 @@ class MainWindow(QMainWindow):
                 if not self.game:return
                 self.request_json(base+"/api/me/games",{"document":game_document(self.game),"title":f"{self.game.profile.title} · {len(self.game.state.history)} 手"},"POST",token);QMessageBox.information(self,"云同步","当前棋局已上传")
             elif action=="同步外观偏好":
-                preferences={key:self.config.get(key) for key in ("theme","background","piece_style","font","language","flipped")};self.request_json(base+"/api/me/preferences",{"preferences":preferences},"PUT",token);QMessageBox.information(self,"云同步","偏好设置已同步")
+                mapping={"boardTheme":"theme","pageBackground":"background","pieceStyle":"piece_style","font":"font","language":"language","flipped":"flipped","musicStyle":"music_style","volume":"sound_volume","animation":"animations","selection":"selection_highlight","legalTargets":"legal_targets","captureHints":"capture_hints","autosave":"autosave","initialMinutes":"initial_minutes","countdownSeconds":"countdown_seconds"}
+                preferences={cloud:self.config.get(local) for cloud,local in mapping.items()};self.request_json(base+"/api/me/preferences",{"preferences":preferences},"PUT",token);QMessageBox.information(self,"云同步","偏好设置已同步")
             else:
                 games=self.request_json(base+"/api/me/games",None,"GET",token);DocumentDialog("云端棋谱","\n".join(f"{item['title']} · {'已收藏' if item['favorite'] else '未收藏'}" for item in games) or "暂无云端棋谱",self).exec()
         except Exception as exc:QMessageBox.warning(self,"云同步失败",str(exc))
@@ -1035,9 +1041,25 @@ class MainWindow(QMainWindow):
         with urllib.request.urlopen(request,timeout=8) as response:return json.loads(response.read().decode("utf-8"))
 
     def open_network(self,base,data,spectator=False):
-        self.cancel.set();self.room_id=data["roomId"];self.token=data["token"];self.spectator=spectator;self.revision=data["snapshot"]["revision"];self.apply_network_state(data["snapshot"])
-        lang=self.config.get("language","zh-CN")
-        self.network=QWebSocket();self.network.textMessageReceived.connect(self.network_message);self.network.disconnected.connect(lambda:self.statusBar().showMessage("网络已断开" if lang!="en" else "Network disconnected"));suffix="/spectate" if spectator else "";ws=base.replace("https://","wss://",1).replace("http://","ws://",1)+f"/ws/{self.room_id}{suffix}?token={self.token}";self.network.open(QUrl(ws));self.statusBar().showMessage(f"{'房间' if lang!='en' else 'Room'} {self.room_id} · {'正在连接' if lang!='en' else 'Connecting'}")
+        self.cancel.set();self.network_base=base;self.room_id=data["roomId"];self.token=data["token"];self.spectator=spectator;self.revision=data["snapshot"]["revision"];self.network_reconnect_attempts=0;self.network_closing=False;self.apply_network_state(data["snapshot"]);self._connect_network()
+
+    def _connect_network(self):
+        if not self.room_id or not self.token or not self.network_base:return
+        lang=self.config.get("language","zh-CN");suffix="/spectate" if self.spectator else "";ws=self.network_base.replace("https://","wss://",1).replace("http://","ws://",1)+f"/ws/{self.room_id}{suffix}?token={self.token}"
+        socket=QWebSocket();self.network=socket;socket.textMessageReceived.connect(self.network_message);socket.connected.connect(lambda:self._network_connected(socket));socket.disconnected.connect(lambda:self._network_disconnected(socket));socket.open(QUrl(ws));self.statusBar().showMessage(f"{'房间' if lang!='en' else 'Room'} {self.room_id} · {'正在连接' if lang!='en' else 'Connecting'}")
+
+    def _network_connected(self,socket):
+        if socket is not self.network:return
+        self.network_reconnect_attempts=0;lang=self.config.get("language","zh-CN");self.statusBar().showMessage("网络已恢复" if lang!="en" else "Network restored",5000)
+
+    def _network_disconnected(self,socket):
+        if socket is not self.network:return
+        code=int(socket.closeCode());socket.deleteLater();self.network=None;lang=self.config.get("language","zh-CN")
+        if self.network_closing or not self.room_id or code in {4001,4403,1008}:
+            self.statusBar().showMessage("网络已断开" if lang!="en" else "Network disconnected");return
+        if self.network_reconnect_attempts>=3:
+            self.statusBar().showMessage("自动重连失败，请重新加入房间" if lang!="en" else "Reconnect failed; join the room again");return
+        delay=min(8000,1200*(2**self.network_reconnect_attempts));self.network_reconnect_attempts+=1;self.statusBar().showMessage(f"{'网络中断，正在重连' if lang!='en' else 'Disconnected, reconnecting'} ({self.network_reconnect_attempts}/3)");QTimer.singleShot(delay,self._connect_network)
 
     def network_message(self,text):
         message=json.loads(text)
@@ -1047,13 +1069,15 @@ class MainWindow(QMainWindow):
             payload=message["payload"];self.chat_messages.addItem(f"{payload.get('sender','玩家')}：{payload.get('text','')}");self.chat_messages.scrollToBottom()
         elif message["type"]=="state":
             snapshot=message["payload"];game_data=snapshot["game"]
-            if game_data.get("pendingDrawOffer") and game_data["pendingDrawOffer"]!=self.config["human_color"]:self.send_network("draw_response",{"accept":QMessageBox.question(self,t("action.draw", lang),t("dialog.pending_draw", lang))==QMessageBox.StandardButton.Yes})
-            if game_data.get("pendingUndoOffer") and game_data["pendingUndoOffer"]!=self.config["human_color"]:self.send_network("undo_response",{"accept":QMessageBox.question(self,t("action.undo", lang),t("dialog.pending_undo", lang))==QMessageBox.StandardButton.Yes})
             self.apply_network_state(snapshot)
+            draw_key=(game_data.get("pendingDrawOffer"),len(game_data.get("history",[])))
+            if draw_key[0] and draw_key[0]!=self.config["human_color"] and draw_key!=self._handled_draw_offer:self._handled_draw_offer=draw_key;self.send_network("draw_response",{"accept":QMessageBox.question(self,t("action.draw", lang),t("dialog.pending_draw", lang))==QMessageBox.StandardButton.Yes})
+            undo_key=(game_data.get("pendingUndoOffer"),len(game_data.get("history",[])))
+            if undo_key[0] and undo_key[0]!=self.config["human_color"] and undo_key!=self._handled_undo_offer:self._handled_undo_offer=undo_key;self.send_network("undo_response",{"accept":QMessageBox.question(self,t("action.undo", lang),t("dialog.pending_undo", lang))==QMessageBox.StandardButton.Yes})
 
     def apply_network_state(self,snapshot):
         if not snapshot:return
-        self.revision=snapshot["revision"];self.config["human_color"]=snapshot.get("youAre") or self.config["human_color"];self.game=Game.from_state(GameState.from_dict(snapshot["game"]),snapshot["game"]["profile"]["options"],snapshot["game"].get("setup"));self.board.set_game(self.game,Color(self.config["human_color"]),False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
+        game_data=snapshot["game"];self.revision=snapshot["revision"];self.config["human_color"]=snapshot.get("youAre") or self.config["human_color"];self.game=Game.from_state(GameState.from_dict(game_data),game_data["profile"]["options"],game_data.get("setup"));replay=game_data.get("replay",[]);self.game._snapshots=[item for item in replay[:-1] if isinstance(item,dict)];self.board.set_game(self.game,Color(self.config["human_color"]),False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
         if not self.game.state.history:self._stats_recorded=False;self._autosaved=False
         lang=self.config.get("language","zh-CN")
         self.statusBar().showMessage(f"{'房间' if lang!='en' else 'Room'} {snapshot['roomId']} · {'状态版本' if lang!='en' else 'revision'} {self.revision}");self.refresh()
@@ -1072,8 +1096,8 @@ class MainWindow(QMainWindow):
         if not quick:self.chat_input.clear()
 
     def close_network(self):
-        if self.network:self.network.close();self.network.deleteLater()
-        self.network=None;self.room_id=None;self.token=None;self.spectator=False
+        self.network_closing=True;socket=self.network;self.network=None;self.room_id=None;self.token=None;self.network_base=None;self.spectator=False;self.network_reconnect_attempts=0
+        if socket:socket.close();socket.deleteLater()
         if hasattr(self,"board"):self.board.interactive=True
 
     def refresh(self):

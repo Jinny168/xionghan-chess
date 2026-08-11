@@ -271,6 +271,9 @@
     "resurrect_col": "Enter a valid column",
     "saved": "Game saved",
     "retrying": "Retrying server connection"
+    ,"storage_full": "Local storage is full; data was not saved"
+    ,"file_too_large": "Files larger than 10 MB are not accepted"
+    ,"invalid_puzzle": "Invalid puzzle structure"
   },
   "prompt": {
     "promotion": "Choose promotion piece: {choices}",
