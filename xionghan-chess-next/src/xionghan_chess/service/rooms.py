@@ -34,6 +34,7 @@ class Room:
     id: str
     game: Game
     mode: str
+    initial_minutes: int = 20
     seats: dict[Color, PlayerSeat] = field(default_factory=dict)
     sockets: dict[str, WebSocket] = field(default_factory=dict)
     revision: int = 0
@@ -44,15 +45,19 @@ class Room:
 
     def snapshot(self, token: str | None = None) -> dict[str, Any]:
         seat = next((s for s in self.seats.values() if s.token == token), None)
+        players = ([
+            {"color": Color.RED.value, "name": "本机玩家一", "connected": True},
+            {"color": Color.BLACK.value, "name": "本机玩家二", "connected": True},
+        ] if self.mode == "local" else [
+            {"color": s.color.value, "name": s.display_name, "connected": s.connected}
+            for s in self.seats.values()
+        ])
         return {
             "roomId": self.id,
             "mode": self.mode,
             "revision": self.revision,
             "youAre": seat.color.value if seat else None,
-            "players": [
-                {"color": s.color.value, "name": s.display_name, "connected": s.connected}
-                for s in self.seats.values()
-            ],
+            "players": players,
             "game": self.game.public_state(),
         }
 
@@ -73,11 +78,33 @@ class RoomManager:
             if len(self.rooms) >= self.max_rooms:
                 raise GameError("在线对局数量已达上限")
             room_id = self._room_id()
-            room = Room(room_id, Game(profile_id, options, initial_minutes), mode, ai_difficulty=difficulty)
+            room = Room(room_id, Game(profile_id, options, initial_minutes), mode,
+                        initial_minutes=initial_minutes, ai_difficulty=difficulty)
             seat = PlayerSeat(secrets.token_urlsafe(24), player_color, player_name or "玩家")
             room.seats[player_color] = seat
             if mode == "ai":
                 room.seats[player_color.opponent] = PlayerSeat("ai", player_color.opponent, "匈汉棋灵", True)
+            self.rooms[room_id] = room
+            return room, seat
+
+    async def create_from_game(self, game: Game, mode: str, player_name: str,
+                               player_color: Color = Color.RED,
+                               difficulty: Difficulty = Difficulty.MEDIUM) -> tuple[Room, PlayerSeat]:
+        async with self._lock:
+            if len(self.rooms) >= self.max_rooms:
+                raise GameError("在线对局数量已达上限")
+            room_id = self._room_id()
+            remaining = max(game.state.clocks_ms.values(), default=20 * 60_000)
+            initial_minutes = max(1, (remaining + 59_999) // 60_000)
+            room = Room(room_id, game, mode, initial_minutes=initial_minutes,
+                        ai_difficulty=difficulty)
+            seat = PlayerSeat(secrets.token_urlsafe(24), player_color, player_name or "玩家")
+            room.seats[player_color] = seat
+            if mode == "ai":
+                room.seats[player_color.opponent] = PlayerSeat(
+                    "ai", player_color.opponent, "匈汉棋灵", True
+                )
+            room.game.state.turn_started_at = time.monotonic()
             self.rooms[room_id] = room
             return room, seat
 
@@ -149,7 +176,7 @@ class RoomManager:
                 }
                 room.last_activity = time.time()
             elif envelope.type is MessageType.MOVE:
-                if room.game.state.turn is not seat.color:
+                if room.mode != "local" and room.game.state.turn is not seat.color:
                     raise GameError("现在不是你的回合")
                 source = envelope.payload.get("from", {})
                 target = envelope.payload.get("to", {})
@@ -161,27 +188,40 @@ class RoomManager:
                 room.revision += 1
                 room.last_activity = time.time()
             elif envelope.type is MessageType.RESIGN:
-                room.game.resign(seat.color)
+                resigning = room.game.state.turn if room.mode == "local" else seat.color
+                room.game.resign(resigning)
                 room.revision += 1
             elif envelope.type is MessageType.DRAW_OFFER:
-                room.game.offer_draw(seat.color)
+                if room.mode == "local":
+                    room.game.state.draw = True
+                    room.game.state.result_reason = "draw_agreement"
+                else:
+                    room.game.offer_draw(seat.color)
                 room.revision += 1
             elif envelope.type is MessageType.DRAW_RESPONSE:
                 room.game.respond_draw(seat.color, bool(envelope.payload.get("accept")))
                 room.revision += 1
             elif envelope.type is MessageType.UNDO_REQUEST:
-                room.game.offer_undo(seat.color)
+                if room.mode == "local":
+                    room.game.undo(1)
+                else:
+                    room.game.offer_undo(seat.color)
                 room.revision += 1
             elif envelope.type is MessageType.UNDO_RESPONSE:
                 room.game.respond_undo(seat.color, bool(envelope.payload.get("accept")))
                 room.revision += 1
             elif envelope.type is MessageType.RESURRECT:
-                room.game.resurrect_pawn(seat.color, Position(int(envelope.payload["row"]),
-                                                               int(envelope.payload["col"])))
+                color = room.game.state.turn if room.mode == "local" else seat.color
+                room.game.resurrect_pawn(color, Position(int(envelope.payload["row"]),
+                                                         int(envelope.payload["col"])))
                 room.revision += 1
             elif envelope.type is MessageType.RESTART:
                 profile_id = room.game.profile.id
-                room.game = Game(profile_id, envelope.payload.get("options"))
+                room.game = Game(profile_id, envelope.payload.get("options"), room.initial_minutes)
+                room.revision += 1
+            elif envelope.type is MessageType.PAUSE:
+                paused = bool(envelope.payload.get("paused", not room.game.state.paused))
+                room.game.set_paused(paused, seat.color)
                 room.revision += 1
             elif envelope.type is not MessageType.PING:
                 raise GameError("不支持的消息类型")
@@ -189,7 +229,8 @@ class RoomManager:
             await self.broadcast_envelope(room, MessageType.CHAT, payload)
             return
         await self.broadcast(room)
-        if room.mode == "ai" and not room.game.state.finished and room.game.state.turn is seat.color.opponent:
+        if (room.mode == "ai" and not room.game.state.finished and not room.game.state.paused
+                and room.game.state.turn is seat.color.opponent):
             await self._play_ai(room)
 
     async def _play_ai(self, room: Room) -> None:

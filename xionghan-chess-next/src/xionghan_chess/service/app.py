@@ -18,6 +18,7 @@ from xionghan_chess.core.profiles import PROFILES
 from xionghan_chess.core.protocol import Envelope, MessageType
 from .rooms import RoomManager
 from xionghan_chess.core.rules import archer_star_points
+from xionghan_chess.core.storage import game_from_document
 
 
 manager = RoomManager()
@@ -28,7 +29,7 @@ async def maintenance() -> None:
     while True:
         await asyncio.sleep(5)
         for room in list(manager.rooms.values()):
-            if room.mode == "ai" or len(room.seats) == 2:
+            if room.mode in {"ai", "local"} or len(room.seats) == 2:
                 room.game.tick()
             await manager.broadcast(room)
         await manager.cleanup()
@@ -43,7 +44,7 @@ async def lifespan(_: FastAPI):
         await task
 
 
-app = FastAPI(title="匈汉象棋 API", version="3.2.0", lifespan=lifespan)
+app = FastAPI(title="匈汉象棋 API", version="1.1.0", lifespan=lifespan)
 
 
 class CreateRoomRequest(BaseModel):
@@ -59,6 +60,15 @@ class CreateRoomRequest(BaseModel):
 
 class JoinRoomRequest(BaseModel):
     player_name: str = Field("玩家", alias="playerName")
+    model_config = {"populate_by_name": True}
+
+
+class ImportGameRequest(BaseModel):
+    document: dict
+    mode: str = "local"
+    player_name: str = Field("玩家", alias="playerName")
+    player_color: Color = Field(Color.RED, alias="playerColor")
+    difficulty: Difficulty = Difficulty.MEDIUM
     model_config = {"populate_by_name": True}
 
 
@@ -79,8 +89,8 @@ async def profiles() -> list[dict]:
 
 @app.post("/api/rooms")
 async def create_room(request: CreateRoomRequest) -> dict:
-    if request.mode not in {"online", "ai"}:
-        raise HTTPException(400, "mode must be online or ai")
+    if request.mode not in {"online", "ai", "local"}:
+        raise HTTPException(400, "mode must be online, ai or local")
     try:
         room, seat = await manager.create(request.profile_id, request.mode, request.player_name,
                                           request.player_color, request.difficulty, request.options,
@@ -90,6 +100,24 @@ async def create_room(request: CreateRoomRequest) -> dict:
         return {"roomId": room.id, "token": seat.token, "color": seat.color.value,
                 "snapshot": room.snapshot(seat.token)}
     except (GameError, ValueError) as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.post("/api/rooms/import")
+async def import_room(request: ImportGameRequest) -> dict:
+    if request.mode not in {"ai", "local"}:
+        raise HTTPException(400, "imported games support ai or local mode")
+    try:
+        game = game_from_document(request.document)
+        room, seat = await manager.create_from_game(
+            game, request.mode, request.player_name, request.player_color,
+            request.difficulty,
+        )
+        if request.mode == "ai" and not room.game.state.finished and room.game.state.turn is not seat.color:
+            await manager._play_ai(room)
+        return {"roomId": room.id, "token": seat.token, "color": seat.color.value,
+                "snapshot": room.snapshot(seat.token)}
+    except (GameError, ValueError, KeyError, TypeError) as exc:
         raise HTTPException(400, str(exc)) from exc
 
 
@@ -119,7 +147,9 @@ async def legal_moves(room_id: str, token: str, row: int, col: int) -> dict:
         seat = manager.seat_for(room, token)
         source = Position(row, col)
         piece = room.game.state.piece_at(source)
-        if not piece or piece.color is not seat.color or room.game.state.turn is not seat.color:
+        controlled_color = room.game.state.turn if room.mode == "local" else seat.color
+        if (room.game.state.paused or not piece or piece.color is not controlled_color
+                or room.game.state.turn is not controlled_color):
             return {"revision": room.revision, "moves": []}
         moves = [m for m in room.game.rules.legal_moves(room.game.state) if m.source == source]
         captures = {
