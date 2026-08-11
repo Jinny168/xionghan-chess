@@ -15,9 +15,7 @@
 
 ## 一、三端一致性校验与隐藏Bug报告（QA_REPORT）
 
-## 匈汉象棋 v1.3.0 三端一致性校验与隐藏Bug排查报告
-
-> 整改状态：已完成首轮 P0/P1 工程缺陷修复，详见 [QA_REMEDIATION_v1.3.0.md](QA_REMEDIATION_v1.3.0.md)。涉及规则定义的项目保留待确认。
+> 整改状态：已完成首轮 P0/P1 工程缺陷修复，详见 本文「二、缺陷整改记录（QA_REMEDIATION）」。涉及规则定义的项目保留待确认。
 
 > 生成时间：2026-08-11  |  覆盖范围：桌面端(PySide6) / Web端(FastAPI+JS) / Android端(.NET9 MAUI+WebView)
 > 校验基准：`src/xionghan_chess/core/rules.py` 规则引擎 + `docs/PIECE_RULES.md` 棋子规则 + `docs/RULES.md` 规则基线
@@ -557,8 +555,6 @@
 
 ## 二、缺陷整改记录（QA_REMEDIATION）
 
-## 匈汉象棋 v1.3.0 QA 整改记录
-
 ## 已完成
 
 | QA ID | 整改结果 |
@@ -601,16 +597,14 @@
 - JavaScript：Web、Web i18n、Android 离线脚本语法检查通过。
 - 新增专项测试覆盖连接替换、AI token、PING、AI 暂停竞态、偏好合并及导入防护。
 
-二次审计后的继续整改见 [QA_AUDIT_REMEDIATION_v1.3.0.md](QA_AUDIT_REMEDIATION_v1.3.0.md)。
+二次审计后的继续整改见 本文「四、二次审计整改记录（QA_AUDIT_REMEDIATION）」。
 
 
 ---
 
 ## 三、缺陷修复二次复核审计（QA_AUDIT）
 
-## 匈汉象棋 v1.3.0 缺陷修复二次复核审计报告
-
-> 后续整改状态见 [QA_AUDIT_REMEDIATION_v1.3.0.md](QA_AUDIT_REMEDIATION_v1.3.0.md)。
+> 后续整改状态见 本文「四、二次审计整改记录（QA_AUDIT_REMEDIATION）」。
 
 > 审计时间：2026-08-11  |  审计基准：QA_REPORT_v1.3.0.md + QA_REMEDIATION_v1.3.0.md
 > 覆盖范围：桌面端(PySide6) / Web端(FastAPI+JS) / Android端(.NET9 MAUI+WebView) / Docker部署
@@ -871,8 +865,6 @@
 
 ## 四、二次审计整改记录（QA_AUDIT_REMEDIATION）
 
-## 匈汉象棋 v1.3.0 二次审计整改记录
-
 ## 本轮完成
 
 | 审计项 | 整改结果 |
@@ -912,8 +904,6 @@
 ---
 
 ## 五、1.3.0 迭代交付说明（DELIVERY）
-
-## 匈汉象棋 1.3.0 迭代交付说明
 
 ## 1.3.0 修复摘要
 

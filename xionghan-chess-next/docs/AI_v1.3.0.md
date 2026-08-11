@@ -12,9 +12,7 @@
 
 ## 一、AI 引擎优化方案（AI_OPTIMIZATION）
 
-## 匈汉象棋 AI 引擎优化方案 v1.3.0
-
-> 实施与实测结果见 [AI_OPTIMIZATION_IMPLEMENTATION_v1.3.0.md](AI_OPTIMIZATION_IMPLEMENTATION_v1.3.0.md)。
+> 实施与实测结果见 本文「二、AI 优化实施记录（AI_OPTIMIZATION_IMPLEMENTATION）」。
 
 > 基于对局 `xionghan_20260811_215539.xhgame` 复盘分析与国际象棋 AI 领域前沿技术调研  
 > 约束：节约资源优先，可牺牲计算速度换取棋力，拒绝神经网络方案  
@@ -776,8 +774,6 @@ def test_tapered_evaluation_endgame():
 ---
 
 ## 二、AI 优化实施记录（AI_OPTIMIZATION_IMPLEMENTATION）
-
-## 匈汉象棋 AI 优化实施记录 v1.3.0
 
 ## 实施范围
 
