@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>匈汉象棋 - 大厅</title>
+  <link rel="stylesheet" href="offline.css">
+  <style>
+    .welcome { max-width: 720px; margin: 8vh auto; padding: 24px; }
+    .welcome h1 { margin: 0 0 8px; }
+    .welcome .subtitle { opacity: .72; margin-bottom: 24px; }
+    .welcome-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); }
+    .welcome-card { border: 1px solid var(--line,#70471f); padding: 18px; background: rgba(255,255,255,.18); }
+    .welcome-card h2 { margin-top: 0; font-size: 1.05rem; }
+    .welcome label { display: grid; gap: 6px; margin: 10px 0; }
+    .welcome select, .welcome button { min-height: 42px; font: inherit; }
+    .welcome button { width: 100%; cursor: pointer; }
+    .welcome .primary { margin-top: 18px; }
+    .welcome .hint { font-size: .9rem; opacity: .7; margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <main class="welcome">
+    <h1>匈汉象棋</h1>
+    <div class="subtitle">大厅 · v1.4.0</div>
+    <section class="welcome-grid">
+      <article class="welcome-card">
+        <h2>开始对局</h2>
+        <label>规则模式<select id="profileSelect"><option value="web">精简模式</option><option value="traditional">传统象棋</option><option value="desktop_complete">完整模式</option><option value="desktop_classic">经典模式</option></select></label>
+        <label>每方时限<select id="minutesSelect"><option value="5">5 分钟</option><option value="10">10 分钟</option><option value="20" selected>20 分钟</option><option value="30">30 分钟</option><option value="60">60 分钟</option></select></label>
+        <label>先手<select id="firstMoveSelect"><option value="red">红先</option><option value="black">黑先</option><option value="random">随机</option></select></label>
+        <button class="primary" id="startButton">开始对局</button>
+      </article>
+      <article class="welcome-card">
+        <h2>应用设置</h2>
+        <label>语言<select id="languageSelect"><option value="zh-CN">中文</option><option value="en">English</option></select></label>
+        <label>主题<select id="themeSelect"><option value="classic">经典木纹</option><option value="green">翠绿草原</option><option value="blue">海洋蓝调</option><option value="purple">紫晶梦幻</option><option value="dark">暗黑模式</option></select></label>
+        <button id="continueButton">继续上次设置</button>
+      </article>
+    </section>
+    <p class="hint">离线同机模式无需服务器；人机和联网模式请从在线网页端进入。</p>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    const saved = JSON.parse(sessionStorage.getItem('xh-offline-start') || '{}');
+    for (const id of ['profileSelect','minutesSelect','firstMoveSelect','languageSelect','themeSelect']) if (saved[id]) $(id).value = saved[id];
+    function start() {
+      const payload = Object.fromEntries(['profileSelect','minutesSelect','firstMoveSelect','languageSelect','themeSelect'].map(id => [id, $(id).value]));
+      sessionStorage.setItem('xh-offline-start', JSON.stringify(payload));
+      location.replace('index.html?page=game');
+    }
+    $('startButton').onclick = start;
+    $('continueButton').onclick = start;
+    $('languageSelect').onchange = () => document.documentElement.lang = $('languageSelect').value;
+  </script>
+</body>
+</html>

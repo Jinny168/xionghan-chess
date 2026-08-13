@@ -143,4 +143,30 @@ def test_web_and_android_import_guards_are_present():
     assert "items.every(validPuzzle)" in web
     assert "app.reconnectAttempts>=3" in web
     assert "loadGameDocument" in offline
+    assert "legacyFenDocument" in offline
+    assert "FEN_PIECES" in offline
+    assert "game.recorded=!!game.state.winner||!!game.state.draw" in offline
     assert 'id="gameFileInput"' in offline_html
+    assert ".fen" in offline_html
+
+
+def test_android_offline_lobby_and_game_navigation_are_present():
+    root = Path(__file__).resolve().parents[1]
+    welcome = (root / "android/Resources/assets/offline/welcome.html").read_text(encoding="utf-8")
+    offline = (root / "android/Resources/assets/offline/offline.js").read_text(encoding="utf-8")
+    activity = (root / "android/MainActivity.cs").read_text(encoding="utf-8")
+    assert "sessionStorage.setItem('xh-offline-start'" in welcome
+    assert "location.replace('index.html?page=game')" in welcome
+    assert "sessionStorage.getItem('xh-offline-start')" in offline
+    assert "OfflineWelcomeUrl" in activity
+    assert 'url.Contains("index.html"' in activity
+
+
+def test_android_selection_sound_and_puzzle_i18n_guards_are_present():
+    root = Path(__file__).resolve().parents[1]
+    offline = (root / "android/Resources/assets/offline/offline.js").read_text(encoding="utf-8")
+    locales = (root / "android/Resources/assets/offline/offline-locales.js").read_text(encoding="utf-8")
+    assert "const changed=!selected||selected.id!==piece.id" in offline
+    assert "if(changed)playSound('select')" in offline
+    assert "toast(tr('puzzleSolved'))" in offline
+    assert "puzzleSolved: 'Puzzle solved'" in locales

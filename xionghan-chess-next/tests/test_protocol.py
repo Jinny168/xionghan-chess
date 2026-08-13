@@ -18,6 +18,11 @@ def test_pause_message_is_part_of_the_shared_protocol():
     assert message.wire()["type"] == "pause"
 
 
+def test_restart_negotiation_messages_are_part_of_the_shared_protocol():
+    assert Envelope(type=MessageType.RESTART_REQUEST).wire()["type"] == "restart_request"
+    assert Envelope(type=MessageType.RESTART_RESPONSE, payload={"accept": True}).wire()["type"] == "restart_response"
+
+
 def test_unsupported_protocol_version_is_rejected():
     with pytest.raises(ValidationError):
         Envelope.model_validate({"type": "ping", "protocolVersion": PROTOCOL_VERSION + 1})

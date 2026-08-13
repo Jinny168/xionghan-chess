@@ -90,6 +90,7 @@ class GameState:
     draw: bool = False
     pending_draw_offer: Color | None = None
     pending_undo_offer: Color | None = None
+    pending_restart_offer: Color | None = None
     paused: bool = False
     paused_by: Color | None = None
     clocks_ms: dict[Color, int] = field(
@@ -131,6 +132,7 @@ class GameState:
             "draw": self.draw,
             "pendingDrawOffer": self.pending_draw_offer.value if self.pending_draw_offer else None,
             "pendingUndoOffer": self.pending_undo_offer.value if self.pending_undo_offer else None,
+            "pendingRestartOffer": self.pending_restart_offer.value if self.pending_restart_offer else None,
             "paused": self.paused,
             "pausedBy": self.paused_by.value if self.paused_by else None,
             "clocksMs": {c.value: value for c, value in self.clocks_ms.items()},
@@ -148,6 +150,7 @@ class GameState:
             draw=bool(data.get("draw", False)),
             pending_draw_offer=Color(data["pendingDrawOffer"]) if data.get("pendingDrawOffer") else None,
             pending_undo_offer=Color(data["pendingUndoOffer"]) if data.get("pendingUndoOffer") else None,
+            pending_restart_offer=Color(data["pendingRestartOffer"]) if data.get("pendingRestartOffer") else None,
             paused=bool(data.get("paused", False)),
             paused_by=Color(data["pausedBy"]) if data.get("pausedBy") else None,
             clocks_ms={Color(k): int(v) for k, v in data.get("clocksMs", {}).items()} or

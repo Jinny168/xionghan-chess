@@ -3,6 +3,8 @@ import json
 import pytest
 
 from xionghan_chess.core.game import Game
+from xionghan_chess.core.legacy import migrate_legacy_game
+from xionghan_chess.desktop import storage
 from xionghan_chess.desktop.storage import game_document, game_from_document, load_game, save_game
 
 
@@ -37,3 +39,30 @@ def test_game_document_rejects_incomplete_replay_data():
     data["snapshots"] = [{"profileId": "web", "pieces": []}]
     with pytest.raises(ValueError, match="不同规则档案"):
         game_from_document(data)
+
+
+def test_legacy_traditional_fen_is_migrated():
+    document = migrate_legacy_game("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR r")
+    assert document["formatVersion"] == 1
+    assert document["profileId"] == "traditional"
+    assert document["source"] == "legacy-fen"
+    assert len(document["state"]["pieces"]) == 32
+
+
+def test_legacy_json_wrapped_fen_loads_from_desktop(tmp_path):
+    path = tmp_path / "legacy.fen"
+    path.write_text('{"position":"4k4/9/9/9/9/9/9/9/9/4K4 b"}', encoding="utf-8")
+    game = load_game(path)
+    assert game.profile.id == "traditional"
+    assert game.state.turn.value == "black"
+
+
+def test_statistics_upgrade_old_schema_and_track_streak(tmp_path, monkeypatch):
+    monkeypatch.setattr(storage, "statistics_path", lambda: tmp_path / "statistics.json")
+    storage.statistics_path().write_text('{"games":2,"wins":1,"losses":1,"draws":0,"moves":12}', encoding="utf-8")
+    game = Game("traditional")
+    game.state.winner = game.state.turn
+    stats = storage.record_result(game, game.state.turn.value)
+    assert stats["games"] == 3
+    assert stats["winStreak"] == {"current": 1, "max": 1}
+    assert stats["perColor"][game.state.turn.value]["wins"] == 1

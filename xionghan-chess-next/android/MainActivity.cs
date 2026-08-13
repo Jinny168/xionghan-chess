@@ -16,7 +16,8 @@ public sealed class MainActivity : Activity
     const string PreferencesName = "xionghan-chess";
     const string ServerUrlKey = "server_url";
     const string DefaultServerUrl = "http://10.0.2.2:8000/";
-    const string OfflineUrl = "file:///android_asset/offline/index.html";
+    const string OfflineWelcomeUrl = "file:///android_asset/offline/welcome.html";
+    const string OfflineGameUrl = "file:///android_asset/offline/index.html?page=game";
     const int OpenGameRequest = 1201;
     const int SaveGameRequest = 1202;
     WebView? webView;
@@ -58,7 +59,7 @@ public sealed class MainActivity : Activity
             serverUrl = NormalizeServerUrl(
                 GetSharedPreferences(PreferencesName, FileCreationMode.Private)?.GetString(ServerUrlKey, DefaultServerUrl)
                 ?? DefaultServerUrl);
-            LoadOfflineGame(L("离线同机模式可直接使用，正在检测服务器", "Offline pass-and-play is ready. Checking server."));
+            LoadOfflineWelcome(L("离线同机模式可直接使用，正在检测服务器", "Offline pass-and-play is ready. Checking server."));
             connectionTimer = new System.Threading.Timer(_ => _ = CheckServerAsync(), null,
                 TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(6));
         }
@@ -139,7 +140,7 @@ public sealed class MainActivity : Activity
                     ?.PutString(ServerUrlKey, serverUrl).Apply();
                 _ = CheckServerAsync(true);
             })
-            .SetNegativeButton(L("继续离线", "Stay offline"), (_, _) => LoadOfflineGame(L("已保持离线同机模式", "Staying in offline pass-and-play")))
+            .SetNegativeButton(L("继续离线", "Stay offline"), (_, _) => LoadOfflineWelcome(L("已保持离线同机模式", "Staying in offline pass-and-play")))
             .SetCancelable(true)
             .Show();
     }
@@ -155,7 +156,16 @@ public sealed class MainActivity : Activity
         RunOnUiThread(() =>
         {
             showingServerPage = false;
-            webView?.LoadUrl($"{OfflineUrl}?message={Android.Net.Uri.Encode(message)}");
+            webView?.LoadUrl($"{OfflineGameUrl}&message={Android.Net.Uri.Encode(message)}");
+        });
+    }
+
+    internal void LoadOfflineWelcome(string message)
+    {
+        RunOnUiThread(() =>
+        {
+            showingServerPage = false;
+            webView?.LoadUrl($"{OfflineWelcomeUrl}?message={Android.Net.Uri.Encode(message)}");
         });
     }
 
@@ -182,7 +192,7 @@ public sealed class MainActivity : Activity
         {
             consecutiveFailures++;
             if (showingServerPage && consecutiveFailures >= 2)
-                LoadOfflineGame(L("服务器连接中断，已切换到离线同机模式", "Server connection lost. Switched to offline pass-and-play."));
+            LoadOfflineWelcome(L("服务器连接中断，已切换到离线同机模式", "Server connection lost. Switched to offline pass-and-play."));
             else if (announceFailure)
                 RunOnUiThread(() => Toast.MakeText(this, L("服务器不可用，继续使用离线同机模式", "Server unavailable. Continuing offline pass-and-play."), ToastLength.Long)?.Show());
         }
@@ -286,7 +296,7 @@ public sealed class MainActivity : Activity
         }
         if (item.TitleFormatted?.ToString() == L("离线同机", "Offline"))
         {
-            LoadOfflineGame(L("已进入离线同机模式", "Entered offline pass-and-play"));
+            LoadOfflineWelcome(L("已进入离线同机模式", "Entered offline pass-and-play"));
             return true;
         }
         if (item.TitleFormatted?.ToString() == L("重新连接", "Reconnect"))
@@ -304,8 +314,14 @@ public sealed class MainActivity : Activity
 
     public override void OnBackPressed()
     {
-        if (webView?.CanGoBack() == true) webView.GoBack();
-        else base.OnBackPressed();
+        var url = webView?.Url ?? string.Empty;
+        if (url.Contains("index.html", StringComparison.OrdinalIgnoreCase))
+        {
+            LoadOfflineWelcome(L("已返回大厅", "Returned to lobby"));
+            return;
+        }
+        if (webView?.CanGoBack() == true) { webView.GoBack(); return; }
+        base.OnBackPressed();
     }
 
     protected override void OnDestroy()
@@ -337,7 +353,7 @@ public sealed class MainActivity : Activity
         {
             base.OnReceivedError(view, request, error);
             if (request?.IsForMainFrame == true && activity.showingServerPage)
-                activity.LoadOfflineGame(activity.L("服务器页面无法访问，已切换到离线同机模式", "Server page unavailable. Switched to offline pass-and-play."));
+                activity.LoadOfflineWelcome(activity.L("服务器页面无法访问，已切换到离线同机模式", "Server page unavailable. Switched to offline pass-and-play."));
         }
     }
 

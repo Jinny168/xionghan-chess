@@ -73,6 +73,7 @@ class Game:
         next_state.turn_started_at = time.monotonic()
         next_state.pending_draw_offer = None
         next_state.pending_undo_offer = None
+        next_state.pending_restart_offer = None
         self.state = next_state
         self._record_position()
         self._settle_after_move(moving.color, move)
@@ -130,6 +131,17 @@ class Game:
         self.state.pending_undo_offer = None
         if accept:
             self.undo(2 if len(self._snapshots) >= 2 else 1)
+
+    def offer_restart(self, color: Color) -> None:
+        if self.state.pending_restart_offer is not None:
+            raise GameError(self._t("error.unsupported_message"))
+        self.state.pending_restart_offer = color
+
+    def respond_restart(self, color: Color, accept: bool) -> bool:
+        if self.state.pending_restart_offer is not color.opponent:
+            raise GameError(self._t("error.unsupported_message"))
+        self.state.pending_restart_offer = None
+        return accept
 
     def resurrect_pawn(self, color: Color, position: Position) -> None:
         if self.state.paused:

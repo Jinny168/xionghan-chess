@@ -19,7 +19,7 @@ from xionghan_chess.core.profiles import PROFILES
 from xionghan_chess.core.protocol import Envelope, MessageType
 from .rooms import RoomManager
 from xionghan_chess.core.rules import archer_star_points
-from xionghan_chess.core.storage import game_from_document
+from xionghan_chess.core.storage import game_from_content
 from xionghan_chess.core.storage import game_document
 from xionghan_chess.core.puzzles import load_puzzles, puzzle_by_id
 from xionghan_chess.core.setup import FirstMove, profile_slots
@@ -51,7 +51,7 @@ async def lifespan(_: FastAPI):
         await task
 
 
-app = FastAPI(title="匈汉象棋 API", version="1.3.0", lifespan=lifespan)
+app = FastAPI(title="匈汉象棋 API", version="1.4.0", lifespan=lifespan)
 
 
 class CreateRoomRequest(BaseModel):
@@ -174,7 +174,7 @@ async def import_room(request: ImportGameRequest) -> dict:
         raise HTTPException(400, "imported games support ai or local mode")
     try:
         language = normalize_language(request.language)
-        game = game_from_document(request.document)
+        game = game_from_content(request.document)
         room, seat = await manager.create_from_game(
             game, request.mode, request.player_name, request.player_color,
             request.difficulty, language,

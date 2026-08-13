@@ -7,7 +7,7 @@
 ```
 
 客户端消息：`move`、`resign`、`draw_offer`、`draw_response`、`undo_request`、
-`undo_response`、`resurrect`、`restart`、`chat`、`ping`。服务器返回 `state`、`chat` 或 `error`。
+`undo_response`、`resurrect`、`restart`、`restart_request`、`restart_response`、`chat`、`ping`。服务器返回 `state`、`chat` 或 `error`。在线模式的重新开局必须经 `restart_request` / `restart_response` 双方确认；旧客户端发送 `restart` 时，服务端会兼容地将其视为重开请求。
 
 ## 聊天与快捷短语
 
