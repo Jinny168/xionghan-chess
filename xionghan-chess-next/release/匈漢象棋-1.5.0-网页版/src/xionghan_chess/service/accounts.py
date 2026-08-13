@@ -148,7 +148,10 @@ class AccountStore:
 
     def update_profile(self, user_id: int, display_name: str, avatar_url: str) -> Account:
         display_name = display_name.strip()
-        avatar_url = normalize_avatar(avatar_url)
+        try:
+            avatar_url = normalize_avatar(avatar_url)
+        except ValueError as exc:
+            raise AccountError(str(exc)) from exc
         if not (1 <= len(display_name) <= 32):
             raise AccountError("显示名称须为 1-32 个字符")
         with self._lock, self.connect() as db:

@@ -13,6 +13,14 @@
 - 自博弈与神经网络训练流水线。
 - 用户任意本地图片上传、裁剪和服务端文件托管。
 
+## 执行结果
+
+- `pytest -q`: 92 passed，0 failed，1 条 Starlette/httpx 弃用警告。
+- Web/Android JavaScript 语法、Python compileall、locale JSON 和 `git diff --check`: 通过。
+- Windows PyInstaller 1.5.0: 构建成功。
+- Web 1.5.0 ZIP: 构建成功，包含 9 张头像和共享头像模块。
+- Android Release 1.5.0: 0 错误，保留既有 API/弃用警告；APK 包含 9 张离线头像。
+
 ## 验收结论
 
-自动化测试和构建结果在最终交付时更新。阻断标准为：头像资源缺失、旧账号不可登录、非法头像标识绕过校验、三端无法启动或安装。
+未发现阻断级缺陷，满足 v1.5.0 交付条件。旧账号、外部头像 URL 和无头像回退逻辑保持兼容。

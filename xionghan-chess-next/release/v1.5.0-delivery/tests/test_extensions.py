@@ -70,6 +70,9 @@ def test_auth_api_and_preferences_use_bearer_token(tmp_path, monkeypatch):
                              json={"displayName": "云端棋手", "avatarUrl": "https://example.com/a.png"})
         assert profile.status_code == 200
         assert profile.json()["account"]["avatarUrl"].endswith("a.png")
+        invalid = client.put("/api/me/profile", headers=headers,
+                             json={"displayName": "云端棋手", "avatarUrl": "builtin:avatar-99"})
+        assert invalid.status_code == 400
 
 
 def test_room_snapshot_carries_avatar_and_taunt_setting():
