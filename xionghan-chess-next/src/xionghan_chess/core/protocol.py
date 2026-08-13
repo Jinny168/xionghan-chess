@@ -20,6 +20,8 @@ class MessageType(StrEnum):
     UNDO_RESPONSE = "undo_response"
     RESURRECT = "resurrect"
     RESTART = "restart"
+    RESTART_REQUEST = "restart_request"
+    RESTART_RESPONSE = "restart_response"
     PAUSE = "pause"
     CHAT = "chat"
     PING = "ping"

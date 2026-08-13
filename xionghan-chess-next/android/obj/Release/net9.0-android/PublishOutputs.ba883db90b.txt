@@ -1,3 +1,0 @@
-C:\Users\27415\PycharmProjects\xionghan-chess\xionghan-chess-next\android\bin\Release\net9.0-android\publish\com.xionghan.chess-Signed.apk
-C:\Users\27415\PycharmProjects\xionghan-chess\xionghan-chess-next\android\bin\Release\net9.0-android\publish\com.xionghan.chess.apk
-C:\Users\27415\PycharmProjects\xionghan-chess\xionghan-chess-next\android\bin\Release\net9.0-android\publish\_Microsoft.Android.Resource.Designer.dll

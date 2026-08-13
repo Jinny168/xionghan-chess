@@ -143,3 +143,24 @@ def test_pause_is_synchronized_and_blocks_legal_moves():
                               "payload": {"paused": False}})
             resumed = socket.receive_json()["payload"]
             assert resumed["game"]["paused"] is False
+
+
+def test_online_restart_requires_opponent_acceptance():
+    with TestClient(app) as client:
+        red = client.post("/api/rooms", json={
+            "profileId": "traditional", "mode": "online", "playerName": "red", "playerColor": "red"
+        }).json()
+        black = client.post(f"/api/rooms/{red['roomId']}/join", json={"playerName": "black"}).json()
+        with client.websocket_connect(f"/ws/{red['roomId']}?token={red['token']}") as red_socket:
+            red_socket.receive_json()
+            with client.websocket_connect(f"/ws/{red['roomId']}?token={black['token']}") as black_socket:
+                black_state = black_socket.receive_json()["payload"]
+                red_socket.receive_json()
+                red_socket.send_json({"type": "restart_request", "revision": black_state["revision"], "protocolVersion": 1, "payload": {}})
+                requested = red_socket.receive_json()["payload"]
+                black_requested = black_socket.receive_json()["payload"]
+                assert requested["game"]["pendingRestartOffer"] == "red"
+                black_socket.send_json({"type": "restart_response", "revision": black_requested["revision"], "protocolVersion": 1, "payload": {"accept": True}})
+                restarted = black_socket.receive_json()["payload"]
+                assert restarted["game"]["pendingRestartOffer"] is None
+                assert restarted["game"]["history"] == []

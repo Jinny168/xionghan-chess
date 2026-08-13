@@ -5,6 +5,7 @@ import os
 import sys
 import threading
 import json
+import math
 import urllib.request
 from pathlib import Path
 
@@ -26,6 +27,7 @@ from xionghan_chess.core.profiles import PROFILES, profile_rule_values
 from xionghan_chess.core.puzzles import load_puzzles
 from xionghan_chess.core.setup import GameSetup, profile_slots
 from xionghan_chess.core.storage import game_document, game_from_document
+from xionghan_chess.core.taunts import taunts
 from xionghan_chess.i18n import normalize_language, t
 from .audio import DesktopAudio
 from .config import config_path, load_config, save_config
@@ -112,8 +114,10 @@ class BoardWidget(QWidget):
         self.language = "zh-CN"
         self.flipped = False
         self.animation_target: Position | None = None
+        self.animation_source: Position | None = None
         self.animation_capture = False
         self.animation_frame = 0
+        self.check_pulse_frame = 0
         self.animation_timer = QTimer(self)
         self.animation_timer.setInterval(25)
         self.animation_timer.timeout.connect(self._advance_animation)
@@ -156,17 +160,25 @@ class BoardWidget(QWidget):
         self.animations_enabled = animations
         self.update()
 
-    def animate_move(self, target: Position, capture: bool) -> None:
+    def animate_move(self, target: Position, capture: bool, source: Position | None = None) -> None:
         if not self.animations_enabled:
             return
-        self.animation_target, self.animation_capture, self.animation_frame = target, capture, 0
+        self.animation_source, self.animation_target = source, target
+        self.animation_capture, self.animation_frame = capture, 0
+        self.animation_timer.start()
+
+    def pulse_check(self) -> None:
+        self.check_pulse_frame = 0
         self.animation_timer.start()
 
     def _advance_animation(self) -> None:
         self.animation_frame += 1
         if self.animation_frame >= 14:
-            self.animation_timer.stop()
             self.animation_target = None
+            self.animation_source = None
+        self.check_pulse_frame += 1
+        if self.check_pulse_frame >= 24 and self.animation_target is None:
+            self.animation_timer.stop()
         self.update()
 
     def _controlled(self, piece) -> bool:
@@ -308,7 +320,13 @@ class BoardWidget(QWidget):
         if self.game.rules.in_check(self.game.state, self.game.state.turn):
             king = next((p for p in self.game.state.pieces if p.type is PieceType.KING and p.color is self.game.state.turn), None)
             if king:
-                self._mark(painter, king.position, left, top, cw, ch, QColor(190, 28, 28, 100), .47)
+                pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / 24)))
+                self._mark(painter, king.position, left, top, cw, ch, QColor(190, 28, 28, pulse), .47)
+                painter.save(); painter.setPen(QColor(190, 28, 28, min(255, pulse + 40)))
+                painter.setFont(QFont(UI_FONT, max(14, int(min(cw, ch) * .22)), QFont.Weight.Bold))
+                shown = self._view_position(king.position)
+                painter.drawText(QPointF(left + shown.col * cw, top + shown.row * ch - min(cw, ch) * .55), t("status.check", self.language))
+                painter.restore()
         if self.selected and self.show_selection:
             self._mark(painter, self.selected, left, top, cw, ch, QColor(221, 166, 40, 145), .48)
         for move in self.legal if self.show_legal_targets else ():
@@ -332,6 +350,19 @@ class BoardWidget(QWidget):
         if self.animation_target is None:
             return
         progress = min(1.0, self.animation_frame / 14)
+        if self.animation_source is not None:
+            source = self._view_position(self.animation_source)
+            target = self._view_position(self.animation_target)
+            sx, sy = left + source.col * cw, top + source.row * ch
+            tx, ty = left + target.col * cw, top + target.row * ch
+            angle = math.atan2(ty - sy, tx - sx)
+            head = min(cw, ch) * .18
+            painter.save(); painter.setOpacity(max(0.0, 1.0 - progress))
+            color = QColor("#9d2525" if self.animation_capture else "#315c48")
+            painter.setPen(QPen(color, max(2.0, min(cw, ch) * .06))); painter.setBrush(color)
+            painter.drawLine(QPointF(sx, sy), QPointF(tx, ty))
+            painter.drawPolygon([QPointF(tx, ty), QPointF(tx - head * math.cos(angle - .55), ty - head * math.sin(angle - .55)), QPointF(tx - head * math.cos(angle + .55), ty - head * math.sin(angle + .55))])
+            painter.restore()
         radius = min(cw, ch) * (.25 + progress * .38)
         color = QColor("#9d2525" if self.animation_capture else "#315c48")
         color.setAlphaF(max(0.0, 1.0 - progress))
@@ -432,7 +463,7 @@ class SettingsDialog(QDialog):
         self.difficulty=QComboBox();[(self.difficulty.addItem(t(f"difficulty.{value}", self.language),value)) for value in ("beginner","easy","medium","hard")]
         self.difficulty.setCurrentIndex(max(0,self.difficulty.findData(config["difficulty"])))
         self.color=QComboBox();self.color.addItem(t("option.red_first", self.language),"red");self.color.addItem(t("option.black_second", self.language),"black");self.color.setCurrentIndex(max(0,self.color.findData(config["human_color"])))
-        self.first_move=QComboBox();self.first_move.addItem("默认（红先）","red");self.first_move.addItem("黑先","black");self.first_move.addItem("随机","random");self.first_move.setCurrentIndex(max(0,self.first_move.findData(config.get("first_move","red"))))
+        self.first_move=QComboBox();self.first_move.addItem(t("desktop.first_red",self.language),"red");self.first_move.addItem(t("desktop.first_black",self.language),"black");self.first_move.addItem(t("desktop.first_random",self.language),"random");self.first_move.setCurrentIndex(max(0,self.first_move.findData(config.get("first_move","red"))))
         self.minutes=QSpinBox();self.minutes.setRange(1,180);self.minutes.setValue(config["initial_minutes"])
         self.countdown=QComboBox();[(self.countdown.addItem(t("option.last_seconds", self.language, count=value),value)) for value in (10,30,60)];self.countdown.addItem(t("option.off", self.language),0);self.countdown.setCurrentIndex(max(0,self.countdown.findData(config.get("countdown_seconds",30))))
         self.sound=QCheckBox(t("settings.sound_effects", self.language));self.sound.setChecked(config["sound"])
@@ -453,7 +484,7 @@ class SettingsDialog(QDialog):
         game_tab=QWidget();game_layout=QVBoxLayout(game_tab);game_form=QFormLayout()
         game_form.addRow(t("settings.game_mode", self.language),self.game_mode);game_form.addRow(t("settings.profile", self.language),self.profile);game_form.addRow(t("difficulty.label", self.language),self.difficulty)
         game_form.addRow(t("settings.human_color", self.language),self.color);game_form.addRow(t("settings.initial_minutes", self.language),self.minutes);game_form.addRow(t("settings.countdown", self.language),self.countdown)
-        game_form.addRow("先手",self.first_move)
+        game_form.addRow(t("desktop.first_move",self.language),self.first_move)
         game_layout.addLayout(game_form);game_layout.addWidget(self.autosave)
         tabs.addTab(game_tab,t("settings.game_tab", self.language))
 
@@ -543,11 +574,12 @@ class SettingsDialog(QDialog):
 
 class HandicapDialog(QDialog):
     def __init__(self, profile_id: str, options: dict, selected: dict | None = None, parent=None):
-        super().__init__(parent);self.setWindowTitle("登场棋子配置");self.resize(720,620)
+        lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
+        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.handicap_title",lang));self.resize(720,620)
         profile=PROFILES[profile_id];active=profile.options.merged(options);slots=profile_slots(profile,active)
         defaults={color:[slot["id"] for slot in slots if slot["color"]==color] for color in ("red","black")}
         self.selected={color:list((selected or {}).get(color,defaults[color])) for color in defaults};self.checks={}
-        layout=QVBoxLayout(self);note=QLabel("双方登场数量必须相同，主帅固定登场。");layout.addWidget(note)
+        layout=QVBoxLayout(self);note=QLabel(t("desktop.handicap_note",lang));layout.addWidget(note)
         columns=QHBoxLayout();layout.addLayout(columns,1)
         for color,title in (("red","红方"),("black","黑方")):
             group=QGroupBox(title);group_layout=QVBoxLayout(group);scroll=QScrollArea();scroll.setWidgetResizable(True);content=QWidget();items=QVBoxLayout(content)
@@ -558,7 +590,6 @@ class HandicapDialog(QDialog):
             items.addStretch();scroll.setWidget(content);group_layout.addWidget(scroll);columns.addWidget(group)
         self.counts=QLabel();layout.addWidget(self.counts)
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel|QDialogButtonBox.StandardButton.Reset)
-        lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText(t("action.confirm", lang));buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("action.cancel", lang));buttons.button(QDialogButtonBox.StandardButton.Reset).setText(t("action.reset", lang))
         buttons.accepted.connect(self._accept);buttons.rejected.connect(self.reject);buttons.button(QDialogButtonBox.StandardButton.Reset).clicked.connect(lambda:self._set_all(True));layout.addWidget(buttons);self._update_counts()
 
@@ -572,7 +603,7 @@ class HandicapDialog(QDialog):
 
     def _accept(self):
         result=self.value()
-        if len(result["red"])!=len(result["black"]):QMessageBox.warning(self,"配置无效","双方登场棋子数量必须相同");return
+        if len(result["red"])!=len(result["black"]):QMessageBox.warning(self,t("desktop.invalid_setup",self.language),t("desktop.equal_setup",self.language));return
         self.accept()
 
     def value(self):
@@ -582,7 +613,7 @@ class HandicapDialog(QDialog):
 class ReplayDialog(QDialog):
     def __init__(self, game: Game, config: dict, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("棋局复盘")
+        self.language=normalize_language(config.get("language"));self.setWindowTitle(t("dialog.replay_title",self.language))
         self.resize(960, 820)
         self.snapshots = [GameState.from_dict(item) for item in game._snapshots] + [game.state.clone()]
         self.options = asdict(game.options)
@@ -593,8 +624,8 @@ class ReplayDialog(QDialog):
         self.board.set_appearance(config.get("theme","classic"), str(config.get("background","none")),
                                   config.get("piece_style","traditional"))
         split.addWidget(self.board)
-        side=QWidget();side_layout=QVBoxLayout(side);side_layout.addWidget(QLabel("着法列表"))
-        self.moves=QListWidget();self.moves.addItem("0. 开局")
+        side=QWidget();side_layout=QVBoxLayout(side);side_layout.addWidget(QLabel(t("desktop.replay_moves",self.language)))
+        self.moves=QListWidget();self.moves.addItem(f"0. {t('desktop.opening',self.language)}")
         self.moves.addItems([f"{index}. {record.notation}" for index,record in enumerate(game.state.history,1)])
         self.moves.currentRowChanged.connect(self.set_step);side_layout.addWidget(self.moves,1)
         split.addWidget(side);split.setSizes([700,230])
@@ -602,19 +633,19 @@ class ReplayDialog(QDialog):
         for text, callback in (("|<", lambda: self.set_step(0)), ("<", lambda: self.set_step(self.slider.value()-1)), (">", lambda: self.set_step(self.slider.value()+1)), (">|", lambda: self.set_step(len(self.snapshots)-1))):
             button=QPushButton(text);button.clicked.connect(callback);controls.addWidget(button)
         self.slider=QSlider(Qt.Orientation.Horizontal);self.slider.setRange(0,len(self.snapshots)-1);self.slider.valueChanged.connect(self.show_step);controls.addWidget(self.slider,1)
-        self.play=QPushButton("播放");self.play.clicked.connect(self.toggle_play);controls.addWidget(self.play)
-        close=QPushButton("退出复盘");close.clicked.connect(self.accept);controls.addWidget(close);layout.addLayout(controls)
+        self.play=QPushButton(t("desktop.play",self.language));self.play.clicked.connect(self.toggle_play);controls.addWidget(self.play)
+        close=QPushButton(t("dialog.exit_replay",self.language));close.clicked.connect(self.accept);controls.addWidget(close);layout.addLayout(controls)
         self.timer=QTimer(self);self.timer.setInterval(900);self.timer.timeout.connect(self.next_step)
         self.set_step(len(self.snapshots)-1)
 
-        analyze=QPushButton("AI 分析");analyze.clicked.connect(self.show_analysis);controls.insertWidget(0,analyze)
+        analyze=QPushButton(t("desktop.analysis",self.language));analyze.clicked.connect(self.show_analysis);controls.insertWidget(0,analyze)
 
     def show_analysis(self):
         game=Game.from_state(self.snapshots[-1].clone(),self.options);game._snapshots=[item.to_dict() for item in self.snapshots[:-1]]
         result=analyze_game(game,Difficulty.BEGINNER,40);labels={"best":"最佳","good":"良好","inaccuracy":"欠准","mistake":"失误","blunder":"严重失误"}
         lines=["  ".join(f"{labels[key]} {value}" for key,value in result["summary"].items()),""]
         lines.extend(f"{item['ply']}. {item['notation']}  · {labels[item['quality']]}  · 损失 {item['scoreLoss']}" for item in result["moves"])
-        DocumentDialog("AI 棋局分析","\n".join(lines),self).exec()
+        DocumentDialog(t("desktop.analysis_title",self.language),"\n".join(lines),self).exec()
 
     def set_step(self, step: int) -> None:
         self.slider.setValue(max(0,min(len(self.snapshots)-1,step)))
@@ -622,29 +653,30 @@ class ReplayDialog(QDialog):
     def show_step(self, step: int) -> None:
         state=self.snapshots[step].clone(); replay=Game.from_state(state,self.options)
         self.board.set_game(replay,Color.RED,True);self.board.interactive=False
-        notation=state.history[-1].notation if state.history else "开局"
+        notation=state.history[-1].notation if state.history else t("desktop.opening",self.language)
         self.info.setText(f"第 {step} / {len(self.snapshots)-1} 步 · {notation}")
         self.moves.blockSignals(True);self.moves.setCurrentRow(step);self.moves.blockSignals(False)
 
     def toggle_play(self) -> None:
         if self.timer.isActive():
-            self.timer.stop();self.play.setText("播放")
+            self.timer.stop();self.play.setText(t("desktop.play",self.language))
         else:
             if self.slider.value() >= self.slider.maximum():self.set_step(0)
-            self.timer.start();self.play.setText("暂停")
+            self.timer.start();self.play.setText(t("action.pause",self.language))
 
     def next_step(self) -> None:
         if self.slider.value() >= self.slider.maximum():
-            self.timer.stop();self.play.setText("播放");return
+            self.timer.stop();self.play.setText(t("desktop.play",self.language));return
         self.set_step(self.slider.value()+1)
 
 
 class TrainingDialog(QDialog):
     def __init__(self, parent=None):
-        super().__init__(parent);self.setWindowTitle("残局与排局训练");self.resize(760,560);self.selected_game=None
-        layout=QVBoxLayout(self);filters=QHBoxLayout();self.level=QComboBox();self.level.addItem("入门","beginner");self.level.addItem("进阶","advanced");self.level.addItem("大师","master");filters.addWidget(self.level);import_button=QPushButton("导入题库");import_button.clicked.connect(self.import_puzzles);filters.addWidget(import_button);layout.addLayout(filters)
+        lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
+        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.training_title",lang));self.resize(760,560);self.selected_game=None
+        layout=QVBoxLayout(self);filters=QHBoxLayout();self.level=QComboBox();self.level.addItem(t("desktop.beginner",lang),"beginner");self.level.addItem(t("desktop.advanced",lang),"advanced");self.level.addItem(t("desktop.master",lang),"master");filters.addWidget(self.level);import_button=QPushButton(t("desktop.import_puzzles",lang));import_button.clicked.connect(self.import_puzzles);filters.addWidget(import_button);layout.addLayout(filters)
         self.list=QListWidget();self.list.itemDoubleClicked.connect(lambda _:self.start_selected());layout.addWidget(self.list,1)
-        actions=QHBoxLayout();self.hint=QPushButton("步骤提示");self.hint.clicked.connect(self.show_hint);start=QPushButton("开始训练");start.clicked.connect(self.start_selected);close=QPushButton("关闭");close.clicked.connect(self.reject);actions.addWidget(self.hint);actions.addStretch();actions.addWidget(start);actions.addWidget(close);layout.addLayout(actions)
+        actions=QHBoxLayout();self.hint=QPushButton(t("desktop.hint",lang));self.hint.clicked.connect(self.show_hint);start=QPushButton(t("desktop.start_training",lang));start.clicked.connect(self.start_selected);close=QPushButton(t("common.close",lang));close.clicked.connect(self.reject);actions.addWidget(self.hint);actions.addStretch();actions.addWidget(start);actions.addWidget(close);layout.addLayout(actions)
         self.level.currentIndexChanged.connect(self.reload);self.puzzles=[];self.reload()
 
     def reload(self):
@@ -655,7 +687,7 @@ class TrainingDialog(QDialog):
         row=self.list.currentRow();return self.puzzles[row] if 0<=row<len(self.puzzles) else None
 
     def show_hint(self):
-        puzzle=self.current();QMessageBox.information(self,"步骤提示",puzzle.hints[0] if puzzle and puzzle.hints else "请先选择习题")
+        puzzle=self.current();QMessageBox.information(self,t("desktop.hint",self.language),puzzle.hints[0] if puzzle and puzzle.hints else t("desktop.select_puzzle",self.language))
 
     def start_selected(self):
         puzzle=self.current()
@@ -673,7 +705,7 @@ class GameLibraryDialog(QDialog):
         self.folder.mkdir(parents=True,exist_ok=True)
         layout=QVBoxLayout(self);layout.addWidget(QLabel(f"棋谱目录：{self.folder}"))
         self.list=QListWidget();layout.addWidget(self.list,1)
-        files=sorted((*self.folder.glob("*.xhgame"),*self.folder.glob("*.json")),key=lambda path:path.stat().st_mtime,reverse=True)
+        files=sorted((*self.folder.glob("*.xhgame"),*self.folder.glob("*.fen"),*self.folder.glob("*.json")),key=lambda path:path.stat().st_mtime,reverse=True)
         for path in files:
             item=QListWidgetItem(f"{path.stem}    {path.stat().st_size//1024+1} KB")
             item.setData(Qt.ItemDataRole.UserRole,str(path));self.list.addItem(item)
@@ -712,7 +744,7 @@ class DocumentDialog(QDialog):
 
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__();load_bundled_fonts();self.config=load_config();self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False
+        super().__init__();load_bundled_fonts();self.config=load_config();self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._last_check_key=None
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
         icon_path = Path(__file__).resolve().parent / "resources" / "icon.ico"
         if icon_path.exists():
@@ -763,9 +795,7 @@ class MainWindow(QMainWindow):
         right.addWidget(self.black);right.addWidget(self.red)
         side_tabs=QTabWidget();record_page=QWidget();record_layout=QVBoxLayout(record_page);record_layout.addWidget(self.history)
         chat_page=QWidget();chat_layout=QVBoxLayout(chat_page);self.chat_messages=QListWidget();chat_layout.addWidget(self.chat_messages,1)
-        self.chat_quick=QComboBox();[(self.chat_quick.addItem(label,text)) for label,text in (
-            ("请多指教","请多指教"),("好棋","好棋！"),("承让","承让"),("稍等一下","稍等一下"),
-            ("再来一局","再来一局"),("挑衅","这一步，你可要想好了！"))]
+        self.chat_quick=QComboBox();[(self.chat_quick.addItem(text,text)) for text in taunts("random")]
         quick_send=QPushButton("发送快捷短语");quick_send.clicked.connect(lambda:self.send_chat(True));chat_layout.addWidget(self.chat_quick);chat_layout.addWidget(quick_send)
         chat_row=QHBoxLayout();self.chat_input=QLineEdit();self.chat_input.setMaxLength(80);self.chat_input.setPlaceholderText("输入聊天内容")
         self.chat_input.returnPressed.connect(self.send_chat);chat_send=QPushButton("发送");chat_send.clicked.connect(self.send_chat);chat_row.addWidget(self.chat_input,1);chat_row.addWidget(chat_send);chat_layout.addLayout(chat_row)
@@ -795,7 +825,7 @@ class MainWindow(QMainWindow):
                     move=Move(move.source,move.target,next(kind for text,kind in options if text==label))
             if self.network:
                 self.send_network("move",{"from":{"row":move.source.row,"col":move.source.col},"to":{"row":move.target.row,"col":move.target.col},"promotion":move.promotion.value if move.promotion else None});return
-            record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured));self.play_sound();self.refresh();
+            record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound();self.refresh();
             if not self.game.state.finished and self.config.get("game_mode","ai")=="ai":self.start_ai()
         except GameError as exc:QMessageBox.warning(self,"非法走棋",str(exc))
 
@@ -808,7 +838,7 @@ class MainWindow(QMainWindow):
         if cancel.is_set():return
         try:
             if move:
-                record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured));self.play_sound()
+                record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound()
         except GameError as exc:self.ai_failed(str(exc));return
         self.board.locked=False;self.refresh()
 
@@ -912,7 +942,8 @@ class MainWindow(QMainWindow):
         except Exception as exc:QMessageBox.warning(self,"导出失败",str(exc))
 
     def import_game(self):
-        path,_=QFileDialog.getOpenFileName(self,"导入棋局",str(config_path().parent / "games"),"匈汉棋谱 (*.xhgame *.json)")
+        # load_game accepts current documents and legacy .fen content.
+        path,_=QFileDialog.getOpenFileName(self,"导入棋局",str(config_path().parent / "games"),"匈汉棋谱 (*.xhgame *.fen *.json)")
         if not path:return
         self.load_game_path(Path(path))
 
@@ -933,7 +964,9 @@ class MainWindow(QMainWindow):
     def show_statistics(self):
         lang=self.config.get("language","zh-CN")
         stats=load_statistics();rate=(stats["wins"]*100/stats["games"]) if stats["games"] else 0
-        box=QMessageBox(self);box.setWindowTitle("对局统计" if lang!="en" else "Statistics");box.setText(f"{t('statistics.total_games', lang)}：{stats['games']}\n{t('statistics.wins', lang)}：{stats['wins']}  {t('statistics.losses', lang)}：{stats['losses']}  {t('statistics.draws', lang)}：{stats['draws']}\n{t('statistics.moves', lang)}：{stats['moves']}\n{t('statistics.win_rate', lang)}：{rate:.1f}%");reset=box.addButton(t("action.reset_statistics", lang),QMessageBox.ButtonRole.DestructiveRole);box.addButton(QMessageBox.StandardButton.Close);box.exec()
+        total_seconds=stats["totalTimeMs"]//1000;fastest_seconds=stats["fastestWinMs"]//1000
+        details=f"\n{t('statistics.total_time', lang)}：{total_seconds//60}:{total_seconds%60:02d}\n{t('statistics.fastest_win', lang)}：{fastest_seconds//60}:{fastest_seconds%60:02d}\n{t('statistics.max_streak', lang)}：{stats['winStreak']['max']}"
+        box=QMessageBox(self);box.setWindowTitle("对局统计" if lang!="en" else "Statistics");box.setText(f"{t('statistics.total_games', lang)}：{stats['games']}\n{t('statistics.wins', lang)}：{stats['wins']}  {t('statistics.losses', lang)}：{stats['losses']}  {t('statistics.draws', lang)}：{stats['draws']}\n{t('statistics.moves', lang)}：{stats['moves']}\n{t('statistics.win_rate', lang)}：{rate:.1f}%{details}");reset=box.addButton(t("action.reset_statistics", lang),QMessageBox.ButtonRole.DestructiveRole);box.addButton(QMessageBox.StandardButton.Close);box.exec()
         if box.clickedButton() is reset and QMessageBox.question(self,"确认" if lang!="en" else "Confirm",t("dialog.confirm_reset_stats", lang))==QMessageBox.StandardButton.Yes:reset_statistics()
 
     def show_rules(self):
@@ -1105,6 +1138,9 @@ class MainWindow(QMainWindow):
         if not self.network:self.game.tick()
         lang=self.config.get("language","zh-CN")
         state=self.game.state;self.banner.setText(t("status.game_over", lang) if state.finished else (t("status.paused", lang) if state.paused else t("status.turn", lang, color=t("common.red" if state.turn is Color.RED else "common.black", lang))))
+        check_key=(len(state.history), state.turn.value, bool(self.game.rules.in_check(state, state.turn)))
+        if check_key[2] and check_key != self._last_check_key: self.board.pulse_check()
+        self._last_check_key=check_key
         self.red.setText(f"{t('common.red', lang)}  {self._clock(state.clocks_ms[Color.RED])}");self.black.setText(f"{t('common.black', lang)}  {self._clock(state.clocks_ms[Color.BLACK])}")
         threshold=max(0,int(self.config.get("countdown_seconds",30)))*1000
         self.red.setStyleSheet("color:#b21f1f;font-weight:bold" if threshold and state.clocks_ms[Color.RED]<=threshold and not state.paused else "")

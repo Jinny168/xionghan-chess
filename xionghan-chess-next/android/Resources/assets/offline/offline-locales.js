@@ -25,7 +25,7 @@ window.XH_OFFLINE_I18N = {
     capture: '提示可吃棋子',
     sound: '点击与走棋音效',
     volume: '音量',
-    gameOver: '对局结束',
+    gameOver: '对局结束', check: '将军',
     paused: '对局已暂停',
     turn: '{color}行棋',
     red: '红方',
@@ -55,6 +55,11 @@ window.XH_OFFLINE_I18N = {
     yin: '阴 山',
     resultWin: '{color}胜',
     resultDraw: '和棋',
+    puzzleSolved: '解题成功',
+    puzzleTryAgain: '再想一想：{hint}',
+    puzzle1Title: '兵卒初动', puzzle1Hint: '红方最左侧兵向前一步',
+    puzzle2Title: '跃马争先', puzzle2Hint: '检查马腿后跃向右前方',
+    puzzle3Title: '星轨射手', puzzle3Hint: '沿右上方星轨移动',
     reasons: { checkmate: '将死', stalemate: '困毙', king_captured: '主帅被擒', palace_invasion: '攻入敌宫', resignation: '认输', timeout: '超时判负' }
   },
   en: {
@@ -83,7 +88,7 @@ window.XH_OFFLINE_I18N = {
     capture: 'Show capturable pieces',
     sound: 'Click and move sounds',
     volume: 'Volume',
-    gameOver: 'Game over',
+    gameOver: 'Game over', check: 'Check',
     paused: 'Game paused',
     turn: '{color} to move',
     red: 'Red',
@@ -113,6 +118,11 @@ window.XH_OFFLINE_I18N = {
     yin: 'Yin Mountains',
     resultWin: '{color} wins',
     resultDraw: 'Draw',
+    puzzleSolved: 'Puzzle solved',
+    puzzleTryAgain: 'Try again: {hint}',
+    puzzle1Title: 'Pawn opening', puzzle1Hint: 'Move the leftmost red pawn forward one step',
+    puzzle2Title: 'Horse initiative', puzzle2Hint: 'Check the horse leg, then jump forward-right',
+    puzzle3Title: 'Star-track archer', puzzle3Hint: 'Move along the upper-right star track',
     reasons: { checkmate: 'Checkmate', stalemate: 'Stalemate', king_captured: 'King captured', palace_invasion: 'Palace invasion', resignation: 'Resignation', timeout: 'Lost on time' }
   }
 };

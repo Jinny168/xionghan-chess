@@ -236,7 +236,7 @@ class RoomManager:
             if envelope.type is MessageType.PING:
                 return
             revision_independent = {MessageType.CHAT, MessageType.DRAW_RESPONSE,
-                                    MessageType.UNDO_RESPONSE}
+                                    MessageType.UNDO_RESPONSE, MessageType.RESTART_RESPONSE}
             if (envelope.type not in revision_independent and envelope.revision is not None
                     and envelope.revision != room.revision):
                 raise GameError(room.tr("error.client_stale"))
@@ -295,9 +295,24 @@ class RoomManager:
                                                          int(envelope.payload["col"])))
                 room.revision += 1
             elif envelope.type is MessageType.RESTART:
-                profile_id = room.game.profile.id
-                room.game = Game(profile_id, envelope.payload.get("options"), room.initial_minutes,
-                                 room.language, room.game.setup)
+                if room.mode == "online":
+                    room.game.offer_restart(seat.color)
+                else:
+                    profile_id = room.game.profile.id
+                    room.game = Game(profile_id, envelope.payload.get("options"), room.initial_minutes,
+                                     room.language, room.game.setup)
+                room.revision += 1
+            elif envelope.type is MessageType.RESTART_REQUEST:
+                if room.mode != "online":
+                    raise GameError(room.tr("error.unsupported_message"))
+                room.game.offer_restart(seat.color)
+                room.revision += 1
+            elif envelope.type is MessageType.RESTART_RESPONSE:
+                accepted = room.game.respond_restart(seat.color, bool(envelope.payload.get("accept")))
+                if accepted:
+                    profile_id = room.game.profile.id
+                    room.game = Game(profile_id, envelope.payload.get("options"), room.initial_minutes,
+                                     room.language, room.game.setup)
                 room.revision += 1
             elif envelope.type is MessageType.PAUSE:
                 paused = bool(envelope.payload.get("paused", not room.game.state.paused))

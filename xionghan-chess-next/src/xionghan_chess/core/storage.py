@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import datetime
+import json
 import time
 from typing import Any
 
 from .game import Game
+from .legacy import migrate_legacy_game
 from .model import GameState
 
 
@@ -53,3 +55,18 @@ def game_from_document(data: dict[str, Any]) -> Game:
     game._snapshots = snapshots
     game.state.turn_started_at = time.monotonic()
     return game
+
+
+def game_from_content(value: str | dict[str, Any]) -> Game:
+    """Load a current document or migrate legacy .fen content."""
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            parsed = None
+        data = parsed if isinstance(parsed, dict) else migrate_legacy_game(value)
+    else:
+        data = value
+    if int(data.get("formatVersion", 0)) != FORMAT_VERSION:
+        data = migrate_legacy_game(data)
+    return game_from_document(data)

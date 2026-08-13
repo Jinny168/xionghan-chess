@@ -1,0 +1,12 @@
+{
+  "name": "xionghan-chess-web",
+  "version": "1.4.0",
+  "private": true,
+  "description": "Static frontend for Xionghan Chess",
+  "scripts": {
+    "check": "node --check web/js/app.js && node --check web/js/i18n.js",
+    "serve": "python -m http.server 8080 --directory web"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {}
+}
