@@ -329,15 +329,21 @@ class ChessAI:
                             tactical.append(move)
                             seen.add(move)
             if moving.type in {PieceType.ARMOR, PieceType.ASSASSIN}:
-                for row in range(game.profile.rows):
+                targets = {enemy.position for enemy in enemies}
+                for enemy in enemies:
+                    for dr in (-1, 0, 1):
+                        for dc in (-1, 0, 1):
+                            targets.add(Position(enemy.position.row + dr, enemy.position.col + dc))
+                for target in targets:
                     self._guard(deadline, cancel)
-                    for col in range(game.profile.cols):
-                        move = Move(moving.position, Position(row, col))
-                        if move in seen or not game.rules.is_legal(state, move):
-                            continue
-                        if self._capture_value(game, move):
-                            tactical.append(move)
-                            seen.add(move)
+                    if not (0 <= target.row < game.profile.rows and 0 <= target.col < game.profile.cols):
+                        continue
+                    move = Move(moving.position, target)
+                    if move in seen or not game.rules.is_legal(state, move):
+                        continue
+                    if self._capture_value(game, move):
+                        tactical.append(move)
+                        seen.add(move)
         return tactical
 
     def _evaluate(self, game: Game, color: Color) -> float:

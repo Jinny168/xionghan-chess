@@ -16,6 +16,7 @@ class GameError(ValueError):
 
 
 class Game:
+    MAX_SNAPSHOTS = 512
     def __init__(self, profile: RuleProfile | str = "desktop_complete",
                  option_overrides: dict[str, object] | None = None,
                  initial_minutes: int = 20,
@@ -56,6 +57,8 @@ class Game:
         if not self.rules.is_legal(self.state, move):
             raise GameError(self._t("error.illegal_move"))
         self._snapshots.append(self.state.to_dict())
+        if len(self._snapshots) > self.MAX_SNAPSHOTS:
+            del self._snapshots[:-self.MAX_SNAPSHOTS]
         moving = self.state.piece_at(move.source)
         assert moving is not None
         before_ids = {p.id: p for p in self.state.pieces}
@@ -140,6 +143,8 @@ class Game:
         if dead is None or sum(p.type is PieceType.PAWN and p.color is color for p in self.state.pieces) >= 7:
             raise GameError(self._t("error.no_resurrect_pawn"))
         self._snapshots.append(self.state.to_dict())
+        if len(self._snapshots) > self.MAX_SNAPSHOTS:
+            del self._snapshots[:-self.MAX_SNAPSHOTS]
         self.state.captured[color].remove(dead)
         self.state.pieces.append(Piece.create(PieceType.PAWN, color, position.row, position.col))
         self.state.turn = color.opponent
