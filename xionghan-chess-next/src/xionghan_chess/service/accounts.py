@@ -23,10 +23,12 @@ class Account:
     id: int
     username: str
     display_name: str
+    avatar_url: str
     created_at: int
 
     def public(self) -> dict[str, Any]:
         return {"id": self.id, "username": self.username, "displayName": self.display_name,
+                "avatarUrl": self.avatar_url,
                 "createdAt": self.created_at}
 
 
@@ -78,6 +80,9 @@ class AccountStore:
                 CREATE INDEX IF NOT EXISTS idx_cloud_games_user_updated
                     ON cloud_games(user_id, updated_at DESC);
             """)
+            columns = {row[1] for row in db.execute("PRAGMA table_info(users)")}
+            if "avatar_url" not in columns:
+                db.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT NOT NULL DEFAULT ''")
 
     def register(self, username: str, password: str, display_name: str = "") -> tuple[Account, str]:
         username = username.strip()
@@ -94,7 +99,7 @@ class AccountStore:
                     "INSERT INTO users(username,display_name,password_hash,salt,created_at) VALUES(?,?,?,?,?)",
                     (username, display_name.strip() or username, password_hash, salt, now),
                 )
-                account = Account(cursor.lastrowid, username, display_name.strip() or username, now)
+                account = Account(cursor.lastrowid, username, display_name.strip() or username, "", now)
         except sqlite3.IntegrityError as exc:
             raise AccountError("用户名已存在") from exc
         return account, self._create_session(account.id)
@@ -138,6 +143,21 @@ class AccountStore:
             db.execute("UPDATE users SET preferences=? WHERE id=?",
                        (json.dumps(current, ensure_ascii=False), user_id))
         return current
+
+    def update_profile(self, user_id: int, display_name: str, avatar_url: str) -> Account:
+        display_name = display_name.strip()
+        avatar_url = avatar_url.strip()
+        if not (1 <= len(display_name) <= 32):
+            raise AccountError("显示名称须为 1-32 个字符")
+        if len(avatar_url) > 500 or (avatar_url and not avatar_url.startswith(("https://", "http://"))):
+            raise AccountError("头像地址须为 http/https URL，且不超过 500 个字符")
+        with self._lock, self.connect() as db:
+            db.execute("UPDATE users SET display_name=?,avatar_url=? WHERE id=?",
+                       (display_name, avatar_url, user_id))
+            row = db.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
+        if row is None:
+            raise AccountError("账号不存在")
+        return self._account(row)
 
     def list_games(self, user_id: int, favorite: bool | None = None) -> list[dict[str, Any]]:
         query = "SELECT id,title,favorite,created_at,updated_at FROM cloud_games WHERE user_id=?"
@@ -206,6 +226,7 @@ class AccountStore:
     @staticmethod
     def _account(row: sqlite3.Row) -> Account:
         return Account(int(row["id"]), str(row["username"]), str(row["display_name"]),
+                       str(row["avatar_url"] or ""),
                        int(row["created_at"]))
 
     @staticmethod

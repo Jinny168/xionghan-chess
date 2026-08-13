@@ -58,6 +58,7 @@ class CreateRoomRequest(BaseModel):
     profile_id: str = Field("web", alias="profileId")
     mode: str = "online"
     player_name: str = Field("玩家", alias="playerName")
+    avatar_url: str = Field("", alias="avatarUrl", max_length=500, pattern=r"^$|^https?://")
     player_color: Color = Field(Color.RED, alias="playerColor")
     difficulty: Difficulty = Difficulty(os.getenv("AI_DEFAULT_DIFFICULTY", "medium"))
     options: dict[str, object] = Field(default_factory=dict)
@@ -66,11 +67,13 @@ class CreateRoomRequest(BaseModel):
     first_move: FirstMove = Field(FirstMove.RED, alias="firstMove")
     red_slots: list[str] | None = Field(None, alias="redSlots")
     black_slots: list[str] | None = Field(None, alias="blackSlots")
+    taunts_enabled: bool = Field(True, alias="tauntsEnabled")
     model_config = {"populate_by_name": True}
 
 
 class JoinRoomRequest(BaseModel):
     player_name: str = Field("玩家", alias="playerName")
+    avatar_url: str = Field("", alias="avatarUrl", max_length=500, pattern=r"^$|^https?://")
     language: str = "zh-CN"
     model_config = {"populate_by_name": True}
 
@@ -94,6 +97,12 @@ class CredentialsRequest(BaseModel):
 
 class PreferencesRequest(BaseModel):
     preferences: dict[str, object] = Field(default_factory=dict)
+
+
+class ProfileRequest(BaseModel):
+    display_name: str = Field(alias="displayName", min_length=1, max_length=32)
+    avatar_url: str = Field("", alias="avatarUrl", max_length=500, pattern=r"^$|^https?://")
+    model_config = {"populate_by_name": True}
 
 
 class CloudGameRequest(BaseModel):
@@ -159,7 +168,7 @@ async def create_room(request: CreateRoomRequest) -> dict:
                                               "firstMove": request.first_move.value,
                                               "redSlots": request.red_slots,
                                               "blackSlots": request.black_slots,
-                                          })
+                                          }, request.avatar_url, request.taunts_enabled)
         if request.mode == "ai" and room.game.state.turn is not seat.color:
             await manager._play_ai(room)
         return {"roomId": room.id, "token": seat.token, "color": seat.color.value,
@@ -190,7 +199,8 @@ async def import_room(request: ImportGameRequest) -> dict:
 @app.post("/api/rooms/{room_id}/join")
 async def join_room(room_id: str, request: JoinRoomRequest) -> dict:
     try:
-        room, seat = await manager.join(room_id.upper(), request.player_name)
+        room, seat = await manager.join(room_id.upper(), request.player_name,
+                                        request.avatar_url)
         async with room.lock:
             room.language = normalize_language(request.language)
             room.game.language = room.language
@@ -341,6 +351,18 @@ async def save_cloud_preferences(request: PreferencesRequest,
     account, _ = current_account(authorization)
     return {"preferences": await asyncio.to_thread(
         accounts.save_preferences, account.id, request.preferences)}
+
+
+@app.put("/api/me/profile")
+async def save_profile(request: ProfileRequest,
+                       authorization: str | None = Header(None)) -> dict:
+    account, _ = current_account(authorization)
+    try:
+        updated = await asyncio.to_thread(accounts.update_profile, account.id,
+                                          request.display_name, request.avatar_url)
+        return {"account": updated.public()}
+    except AccountError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @app.get("/api/me/games")

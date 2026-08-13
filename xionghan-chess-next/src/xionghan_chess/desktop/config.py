@@ -35,6 +35,7 @@ DEFAULTS: dict[str, Any] = {
     "selection_highlight": True,
     "legal_targets": True,
     "capture_hints": True,
+    "taunts": True,
     "countdown_seconds": 30,
     "autosave": True,
     "initial_minutes": 20,

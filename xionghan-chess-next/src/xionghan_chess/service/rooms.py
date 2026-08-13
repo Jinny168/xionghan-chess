@@ -15,6 +15,7 @@ from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, Move, PieceType, Position
 from xionghan_chess.core.protocol import Envelope, MessageType
 from xionghan_chess.core.profiles import get_profile
+from xionghan_chess.core.taunts import choose_taunt
 from xionghan_chess.i18n import normalize_language, t
 
 
@@ -29,6 +30,7 @@ class PlayerSeat:
     connected: bool = False
     disconnected_at: float | None = None
     is_ai: bool = False
+    avatar_url: str = ""
 
 
 @dataclass(slots=True)
@@ -54,6 +56,9 @@ class Room:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     ai_difficulty: Difficulty = Difficulty.MEDIUM
     language: str = "zh-CN"
+    taunts_enabled: bool = True
+    taunt_events: set[str] = field(default_factory=set)
+    chat_history: list[dict[str, Any]] = field(default_factory=list)
 
     def tr(self, key: str, **params: object) -> str:
         return t(key, self.language, **params)
@@ -61,10 +66,13 @@ class Room:
     def snapshot(self, token: str | None = None) -> dict[str, Any]:
         seat = next((s for s in self.seats.values() if s.token == token), None)
         players = ([
-            {"color": Color.RED.value, "name": self.tr("common.local_player_one"), "connected": True},
-            {"color": Color.BLACK.value, "name": self.tr("common.local_player_two"), "connected": True},
+            {"color": Color.RED.value, "name": self.tr("common.local_player_one"),
+             "avatarUrl": "", "connected": True},
+            {"color": Color.BLACK.value, "name": self.tr("common.local_player_two"),
+             "avatarUrl": "", "connected": True},
         ] if self.mode == "local" else [
-            {"color": s.color.value, "name": s.display_name, "connected": s.connected}
+            {"color": s.color.value, "name": s.display_name, "avatarUrl": s.avatar_url,
+             "connected": s.connected}
             for s in self.seats.values()
         ])
         return {
@@ -73,6 +81,7 @@ class Room:
             "revision": self.revision,
             "youAre": seat.color.value if seat else None,
             "players": players,
+            "chatHistory": list(self.chat_history),
             "spectatorCount": sum(item.connected for item in self.spectators.values()),
             "game": self.game.public_state(),
         }
@@ -90,7 +99,8 @@ class RoomManager:
                      options: dict[str, object] | None = None,
                      initial_minutes: int = 20,
                      language: str = "zh-CN",
-                     setup: dict[str, Any] | None = None) -> tuple[Room, PlayerSeat]:
+                     setup: dict[str, Any] | None = None,
+                     avatar_url: str = "", taunts_enabled: bool = True) -> tuple[Room, PlayerSeat]:
         get_profile(profile_id)
         language = normalize_language(language)
         async with self._lock:
@@ -99,8 +109,10 @@ class RoomManager:
             room_id = self._room_id()
             room = Room(room_id, Game(profile_id, options, initial_minutes, language, setup), mode,
                         initial_minutes=initial_minutes, ai_difficulty=difficulty,
-                        language=language)
-            seat = PlayerSeat(secrets.token_urlsafe(24), player_color, player_name or t("common.player", language))
+                        language=language, taunts_enabled=taunts_enabled)
+            seat = PlayerSeat(secrets.token_urlsafe(24), player_color,
+                              player_name or t("common.player", language),
+                              avatar_url=avatar_url.strip())
             room.seats[player_color] = seat
             if mode == "ai":
                 room.seats[player_color.opponent] = PlayerSeat(
@@ -133,7 +145,8 @@ class RoomManager:
             self.rooms[room_id] = room
             return room, seat
 
-    async def join(self, room_id: str, player_name: str) -> tuple[Room, PlayerSeat]:
+    async def join(self, room_id: str, player_name: str,
+                   avatar_url: str = "") -> tuple[Room, PlayerSeat]:
         room = self.require(room_id)
         async with room.lock:
             if room.mode != "online":
@@ -141,7 +154,9 @@ class RoomManager:
             colors = [c for c in Color if c not in room.seats]
             if not colors:
                 raise GameError(room.tr("error.room_full"))
-            seat = PlayerSeat(secrets.token_urlsafe(24), colors[0], player_name or room.tr("common.player"))
+            seat = PlayerSeat(secrets.token_urlsafe(24), colors[0],
+                              player_name or room.tr("common.player"),
+                              avatar_url=avatar_url.strip())
             room.seats[seat.color] = seat
             room.game.state.turn_started_at = time.monotonic()
             room.revision += 1
@@ -324,11 +339,14 @@ class RoomManager:
             await self.broadcast_envelope(room, MessageType.CHAT, payload)
             return
         await self.broadcast(room)
+        if room.mode == "ai" and room.game.state.finished:
+            await self._broadcast_ai_taunt(room, "defeat")
         if (room.mode == "ai" and not room.game.state.finished and not room.game.state.paused
                 and room.game.state.turn is seat.color.opponent):
             await self._play_ai(room)
 
     async def _play_ai(self, room: Room) -> None:
+        scene: str | None = None
         async with room.lock:
             if room.game.state.finished or room.game.state.paused:
                 return
@@ -344,9 +362,37 @@ class RoomManager:
                 try:
                     room.game.move(move)
                     room.revision += 1
+                    if room.game.state.finished:
+                        scene = "victory"
+                    elif room.game.rules.in_check(room.game.state, room.game.state.turn):
+                        scene = "check"
+                    elif len(room.game.state.history) <= 2:
+                        scene = "opening"
                 except GameError:
                     pass
         await self.broadcast(room)
+        if scene:
+            await self._broadcast_ai_taunt(room, scene)
+
+    async def _broadcast_ai_taunt(self, room: Room, scene: str) -> None:
+        event_key = f"{scene}:{len(room.game.state.history)}"
+        if not room.taunts_enabled or event_key in room.taunt_events:
+            return
+        ai_seat = next((seat for seat in room.seats.values() if seat.is_ai), None)
+        if ai_seat is None:
+            return
+        room.taunt_events.add(event_key)
+        payload = {
+            "color": ai_seat.color.value,
+            "sender": ai_seat.display_name,
+            "text": choose_taunt(scene),
+            "quick": True,
+            "automated": True,
+            "scene": scene,
+            "timestamp": int(time.time() * 1000),
+        }
+        room.chat_history = [*room.chat_history[-19:], payload]
+        await self.broadcast_envelope(room, MessageType.CHAT, payload)
 
     async def broadcast(self, room: Room) -> None:
         async with room.lock:

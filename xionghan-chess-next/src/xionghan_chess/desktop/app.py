@@ -27,7 +27,7 @@ from xionghan_chess.core.profiles import PROFILES, profile_rule_values
 from xionghan_chess.core.puzzles import load_puzzles
 from xionghan_chess.core.setup import GameSetup, profile_slots
 from xionghan_chess.core.storage import game_document, game_from_document
-from xionghan_chess.core.taunts import taunts
+from xionghan_chess.core.taunts import choose_taunt, taunts
 from xionghan_chess.i18n import normalize_language, t
 from .audio import DesktopAudio
 from .config import config_path, load_config, save_config
@@ -479,6 +479,7 @@ class SettingsDialog(QDialog):
         self.selection_highlight=QCheckBox(t("settings.selection", self.language));self.selection_highlight.setChecked(config.get("selection_highlight",True))
         self.legal_targets=QCheckBox(t("settings.legal_targets", self.language));self.legal_targets.setChecked(config.get("legal_targets",True))
         self.capture_hints=QCheckBox(t("settings.capture_hints", self.language));self.capture_hints.setChecked(config.get("capture_hints",True))
+        self.taunts=QCheckBox("棋灵挑衅短语" if self.language!="en" else "AI taunts");self.taunts.setChecked(config.get("taunts",True))
         self.autosave=QCheckBox(t("settings.autosave_desktop", self.language));self.autosave.setChecked(config.get("autosave",True))
 
         game_tab=QWidget();game_layout=QVBoxLayout(game_tab);game_form=QFormLayout()
@@ -495,7 +496,7 @@ class SettingsDialog(QDialog):
         appearance_form.addRow(t("settings.sound_volume", self.language),self.sound_volume);appearance_form.addRow(t("settings.music", self.language),self.music)
         appearance_form.addRow(t("settings.music_style", self.language),self.music_style);appearance_form.addRow(t("settings.music_volume", self.language),self.music_volume)
         appearance_form.addRow(t("settings.animation", self.language),self.animations);appearance_form.addRow(t("settings.selection", self.language),self.selection_highlight)
-        appearance_form.addRow(t("settings.legal_targets", self.language),self.legal_targets);appearance_form.addRow(t("settings.capture_hints", self.language),self.capture_hints)
+        appearance_form.addRow(t("settings.legal_targets", self.language),self.legal_targets);appearance_form.addRow(t("settings.capture_hints", self.language),self.capture_hints);appearance_form.addRow("棋灵挑衅" if self.language!="en" else "AI taunts",self.taunts)
         tabs.addTab(appearance_tab,t("settings.appearance_tab", self.language))
 
         self._active_profile_id = config["profile"]
@@ -569,7 +570,7 @@ class SettingsDialog(QDialog):
         self._capture_profile_values()
         values=self._profile_values[self._active_profile_id]
         previous=self.parent().config if self.parent() else {}
-        return {"profile":self.profile.currentData(),"language":self.language_select.currentData(),"game_mode":self.game_mode.currentData(),"difficulty":self.difficulty.currentData(),"human_color":self.color.currentData(),"first_move":self.first_move.currentData(),"initial_minutes":self.minutes.value(),"countdown_seconds":self.countdown.currentData(),"sound":self.sound.isChecked(),"music":self.music.isChecked(),"music_style":self.music_style.currentData(),"sound_volume":self.sound_volume.value(),"music_volume":self.music_volume.value(),"theme":self.theme.currentData(),"font":self.font.currentData(),"background":self.background.currentData(),"piece_style":self.piece_style.currentData(),"flipped":previous.get("flipped",False),"setup_slots":previous.get("setup_slots",{}),"account_token":previous.get("account_token",""),"animations":self.animations.isChecked(),"selection_highlight":self.selection_highlight.isChecked(),"legal_targets":self.legal_targets.isChecked(),"capture_hints":self.capture_hints.isChecked(),"autosave":self.autosave.isChecked(),"server_url":previous.get("server_url","http://127.0.0.1:8000"),"rule_options":values}
+        return {"profile":self.profile.currentData(),"language":self.language_select.currentData(),"game_mode":self.game_mode.currentData(),"difficulty":self.difficulty.currentData(),"human_color":self.color.currentData(),"first_move":self.first_move.currentData(),"initial_minutes":self.minutes.value(),"countdown_seconds":self.countdown.currentData(),"sound":self.sound.isChecked(),"music":self.music.isChecked(),"music_style":self.music_style.currentData(),"sound_volume":self.sound_volume.value(),"music_volume":self.music_volume.value(),"theme":self.theme.currentData(),"font":self.font.currentData(),"background":self.background.currentData(),"piece_style":self.piece_style.currentData(),"flipped":previous.get("flipped",False),"setup_slots":previous.get("setup_slots",{}),"account_token":previous.get("account_token",""),"animations":self.animations.isChecked(),"selection_highlight":self.selection_highlight.isChecked(),"legal_targets":self.legal_targets.isChecked(),"capture_hints":self.capture_hints.isChecked(),"taunts":self.taunts.isChecked(),"autosave":self.autosave.isChecked(),"server_url":previous.get("server_url","http://127.0.0.1:8000"),"rule_options":values}
 
 
 class HandicapDialog(QDialog):
@@ -826,6 +827,7 @@ class MainWindow(QMainWindow):
             if self.network:
                 self.send_network("move",{"from":{"row":move.source.row,"col":move.source.col},"to":{"row":move.target.row,"col":move.target.col},"promotion":move.promotion.value if move.promotion else None});return
             record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound();self.refresh();
+            if self.game.state.finished:self.add_ai_taunt("defeat")
             if not self.game.state.finished and self.config.get("game_mode","ai")=="ai":self.start_ai()
         except GameError as exc:QMessageBox.warning(self,"非法走棋",str(exc))
 
@@ -838,9 +840,14 @@ class MainWindow(QMainWindow):
         if cancel.is_set():return
         try:
             if move:
-                record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound()
+                record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound();scene="victory" if self.game.state.finished else ("check" if self.game.rules.in_check(self.game.state,self.game.state.turn) else ("opening" if len(self.game.state.history)<=2 else None));self.add_ai_taunt(scene)
         except GameError as exc:self.ai_failed(str(exc));return
         self.board.locked=False;self.refresh()
+
+    def add_ai_taunt(self, scene):
+        if not scene or not self.config.get("taunts",True):return
+        sender="Xionghan AI" if self.config.get("language")=="en" else "匈汉棋灵"
+        self.chat_messages.addItem(f"{sender}：{choose_taunt(scene)}");self.chat_messages.scrollToBottom()
 
     def ai_failed(self,result):
         message,cancel=result if isinstance(result,tuple) else (str(result),self.cancel)
