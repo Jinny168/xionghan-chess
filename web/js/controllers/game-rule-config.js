@@ -14,8 +14,7 @@ class GameRuleConfig {
             kingPalaceEightDirection: false,  // 汉/汗在九宫内保持8方向能力（默认关闭，等同传统将帅）
             kingKeepEightDirection: false,  // 汉/汗出了九宫后保持8方向能力
             pawnFastMove: true,         // 兵可以快速移动（向前多格，不吃子）
-            pawnResurrection: false,     // 兵可以复活（在出生点重新生成）
-            sheWeakMode: true           // 射使用弱化模式（默认开启，沿星点连线移动）
+            pawnResurrection: false     // 兵可以复活（在出生点重新生成）
         };
         
         // 当前配置
@@ -215,7 +214,11 @@ class GameRuleConfig {
             sheWeakModeCheckbox.checked = this.get('sheWeakMode');
             sheWeakModeCheckbox.addEventListener('change', (e) => {
                 this.set('sheWeakMode', e.target.checked);
-                console.log(`🎯 射的移动规则: ${e.target.checked ? '弱化模式（星点连线）' : '强化模式（自由斜向）'}，当前配置:`, this.getAll());
+                if (e.target.checked) {
+                    console.log(`🎯 射：弱化模式（移动受星点边界限制）`);
+                } else {
+                    console.log(`🎯 射：强化模式（自由斜向3格，吃子需站在星点上）`);
+                }
             });
         }
         

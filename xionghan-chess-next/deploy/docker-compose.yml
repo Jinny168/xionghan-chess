@@ -1,0 +1,15 @@
+services:
+  xionghan-chess:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: xionghan-chess:3.0
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    environment:
+      PORT: ${PORT:-8000}
+      MAX_ONLINE_GAMES: ${MAX_ONLINE_GAMES:-200}
+      AI_DEFAULT_DIFFICULTY: ${AI_DEFAULT_DIFFICULTY:-medium}
+      AI_TIME_SCALE: ${AI_TIME_SCALE:-1.0}
+      RECONNECT_GRACE_SECONDS: ${RECONNECT_GRACE_SECONDS:-90}

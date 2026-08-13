@@ -692,19 +692,22 @@ class GameRules {
 
     
     /**
-     * 射/䠶的移动规则（匈汉象棋）
+     * 射/䠶的移动规则（星点系统 + 双模式）
      * 
-     * 弱化模式（默认）：
-     * - 射可以在任何位置，但移动时只能沿着斜向方向
-     * - 单次移动的最大距离由最近的星点决定
-     * - 例如：位于(4,4)的射，向斜上方最多到(3,3)，向斜下方最多到(6,6)
-     * - 星点是移动的边界限制，而不是落点限制
-     * - 受夹逼限制
+     * 弱化模式（默认，sheWeakMode=true）：
+     * - 只能沿斜向移动，不能隔子吃子
+     * - 移动距离受星点限制：
+     *   - 站在星点上：最多移动到相邻斜向星点（通常3格）
+     *   - 站在星点连线上：可在前后两个星点之间任意移动
      * 
-     * 强化模式：
-     * - 斜向移动，最多3格
-     * - 不受星点限制
-     * - 受夹逼限制
+     * 强化模式（sheWeakMode=false）：
+     * - 自由斜向移动最多3格，不受星点限制
+     * - 但攻击（吃子）必须站在星点上才能发起
+     * 
+     * 共同规则：
+     * - 星点：坐标row和col均为3的倍数
+     * - 起点和路径中间都需要通过夹逼检查
+     * - 路径上不能有棋子阻挡，吃子只能走到敌方棋子位置
      */
     static isValidSheMove(pieces, fromRow, fromCol, toRow, toCol) {
         const rowDiff = toRow - fromRow;
@@ -729,74 +732,85 @@ class GameRules {
             return false;
         }
             
+        // 计算移动方向
+        const stepRow = rowDiff > 0 ? 1 : -1;
+        const stepCol = colDiff > 0 ? 1 : -1;
+
         // 获取规则配置
         const config = this.getRuleConfig();
         const isWeakMode = config.sheWeakMode !== undefined ? config.sheWeakMode : true;
-            
+
         if (isWeakMode) {
-            // 弱化模式：移动距离受最近的星点限制
-            // 计算移动方向
-            const stepRowWeak = rowDiff > 0 ? 1 : -1;
-                
-            // 找到该方向上最近的星点
-            // 星点是坐标为3的倍数的位置
-            let maxDistance = absRowDiff; // 默认最大距离
-                
-            // 计算从当前位置沿移动方向到下一个星点的距离
-            if (stepRowWeak > 0) {
-                // 向下移动，找到下一个row是3的倍数的位置
-                const nextStarRow = Math.ceil((fromRow + 1) / 3) * 3;
-                const distanceToStar = nextStarRow - fromRow;
-                maxDistance = Math.min(maxDistance, distanceToStar);
-            } else {
-                // 向上移动，找到上一个row是3的倍数的位置
-                const prevStarRow = Math.floor((fromRow - 1) / 3) * 3;
-                const distanceToStar = fromRow - prevStarRow;
-                maxDistance = Math.min(maxDistance, distanceToStar);
+            // 弱化模式：移动距离受星点限制
+            const maxDistance = this._findNearestStarPointDistance(fromRow, fromCol, stepRow, stepCol);
+            if (maxDistance === 0) {
+                return false; // 该方向无星点，无法移动
             }
-                
-            // 检查实际移动距离是否超过限制
             if (absRowDiff > maxDistance) {
-                // console.log('⛔ 射移动被拒绝：超过星点限制', 
-                //     `实际距离: ${absRowDiff}, 最大允许: ${maxDistance}`);
-                return false;
+                return false; // 超过星点边界
             }
         } else {
-            // 强化模式：斜向移动最多3格，不受星点限制
+            // 强化模式：自由斜向移动最多3格
             if (absRowDiff > 3) {
-                // console.log(' 射移动被拒绝：超过最大距离3格', `距离: ${absRowDiff}`);
                 return false;
             }
+            // 如果要吃子（目标位置有敌方棋子），必须站在星点上
+            if (targetPiece) {
+                if (fromRow % 3 !== 0 || fromCol % 3 !== 0) {
+                    return false; // 不在星点上，不能发起攻击
+                }
+            }
         }
-            
-        // 检查路径上是否有阻挡和夹逼
-        const stepRow = rowDiff > 0 ? 1 : -1;
-        const stepCol = colDiff > 0 ? 1 : -1;
                 
-        // 首先检查起点位置的夹逼（即使只移动一格也需要检查）
+        // 起点夹逼检查
         if (this.checkDiagonalPinch(fromRow, fromCol, rowDiff, colDiff, pieces)) {
             return false;
         }
                 
-        // 检查路径上的阻挡和夹逼
+        // 路径阻挡和夹逼检查
         for (let i = 1; i < absRowDiff; i++) {
             const checkRow = fromRow + i * stepRow;
             const checkCol = fromCol + i * stepCol;
                                 
-            // 检查是否有棋子阻挡
+            // 路径阻挡（不能隔子吃子）
             if (this.getPieceAt(pieces, checkRow, checkCol)) {
                 return false;
             }
                                 
-            // 检查夹逼
+            // 路径夹逼
             if (this.hasPinch(checkRow, checkCol, stepRow, stepCol, pieces)) {
                 return false;
             }
         }
                 
-        // console.log('✅ 射移动合法');
-        // 路径畅通，可以移动或吃子
         return true;
+    }
+
+    /**
+     * 沿斜向方向查找最近星点的距离
+     * 星点：坐标row和col均为3的倍数（0, 3, 6, 9, 12）
+     * @param {number} fromRow - 起始行
+     * @param {number} fromCol - 起始列
+     * @param {number} stepRow - 行移动方向（1或-1）
+     * @param {number} stepCol - 列移动方向（1或-1）
+     * @returns {number} 到最近前方星点的距离，如果前方无星点返回0
+     */
+    static _findNearestStarPointDistance(fromRow, fromCol, stepRow, stepCol) {
+        for (let i = 1; i <= 12; i++) {
+            const r = fromRow + i * stepRow;
+            const c = fromCol + i * stepCol;
+            
+            // 越界：该方向没有星点
+            if (r < 0 || r >= 13 || c < 0 || c >= 13) {
+                return 0;
+            }
+            
+            // 找到星点
+            if (r % 3 === 0 && c % 3 === 0) {
+                return i;
+            }
+        }
+        return 0;
     }
     
     /**
