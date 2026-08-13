@@ -3,7 +3,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    image: xionghan-chess:3.0
+    image: xionghan-chess:1.4.0
     restart: unless-stopped
     ports:
       - "${PORT:-8000}:${PORT:-8000}"

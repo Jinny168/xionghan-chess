@@ -6,4 +6,6 @@ __pycache__/
 build/
 dist/
 *.spec.bak
-
+android/bin/
+android/obj/
+release/v1.4.0-delivery/
