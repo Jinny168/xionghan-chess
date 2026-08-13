@@ -15,6 +15,9 @@ const app = {
   setupSlots: {}, spectator: false, account: null, authToken: localStorage.getItem('xh-auth-token'), cloudTimer: null, puzzleSession: null, selectedPuzzle: null, customBackgrounds: new Map(),
 };
 const sounds={select:new Audio('/assets/sounds/choose.wav'),move:new Audio('/assets/sounds/drop.wav'),capture:new Audio('/assets/sounds/eat.wav'),check:new Audio('/assets/sounds/warn.wav'),win:new Audio('/assets/sounds/fc_victory_sound.wav'),lose:new Audio('/assets/sounds/fc_defeat_sound.wav'),button:new Audio('/assets/sounds/button.wav')};
+const builtinAvatars=Array.from({length:9},(_,index)=>`avatar-${String(index+1).padStart(2,'0')}`);
+function avatarUrl(value){return value?.startsWith('builtin:')?`/assets/avatars/${value.slice(8)}.webp`:value||''}
+function renderAvatarPicker(value=''){let root=$('#profileAvatarPicker');if(!root){root=document.createElement('div');root.id='profileAvatarPicker';root.className='avatar-picker';$('#profileAvatarUrl').closest('label').before(root)}root.innerHTML=[`<button type="button" data-avatar="" title="Default">Default</button>`,...builtinAvatars.map(id=>`<button type="button" data-avatar="builtin:${id}" title="${id}" style="background-image:url('/assets/avatars/${id}.webp')"></button>`)].join('');root.querySelectorAll('button').forEach(button=>button.classList.toggle('selected',button.dataset.avatar===value))}
 let backgroundMusic=null;
 const backgroundDatabase='xh-backgrounds';
 function openBackgroundDatabase(){return new Promise((resolve,reject)=>{const request=indexedDB.open(backgroundDatabase,1);request.onupgradeneeded=()=>request.result.createObjectStore('images',{keyPath:'id'});request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)})}

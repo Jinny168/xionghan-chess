@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from xionghan_chess.core.ai import Difficulty
 from xionghan_chess.core.analysis import analyze_game
+from xionghan_chess.core.avatars import normalize_avatar
 from xionghan_chess.core.game import GameError
 from xionghan_chess.core.model import Color, Position
 from xionghan_chess.core.profiles import PROFILES
@@ -58,7 +59,7 @@ class CreateRoomRequest(BaseModel):
     profile_id: str = Field("web", alias="profileId")
     mode: str = "online"
     player_name: str = Field("玩家", alias="playerName")
-    avatar_url: str = Field("", alias="avatarUrl", max_length=500, pattern=r"^$|^https?://")
+    avatar_url: str = Field("", alias="avatarUrl", max_length=500)
     player_color: Color = Field(Color.RED, alias="playerColor")
     difficulty: Difficulty = Difficulty(os.getenv("AI_DEFAULT_DIFFICULTY", "medium"))
     options: dict[str, object] = Field(default_factory=dict)
@@ -73,7 +74,7 @@ class CreateRoomRequest(BaseModel):
 
 class JoinRoomRequest(BaseModel):
     player_name: str = Field("玩家", alias="playerName")
-    avatar_url: str = Field("", alias="avatarUrl", max_length=500, pattern=r"^$|^https?://")
+    avatar_url: str = Field("", alias="avatarUrl", max_length=500)
     language: str = "zh-CN"
     model_config = {"populate_by_name": True}
 
@@ -101,7 +102,7 @@ class PreferencesRequest(BaseModel):
 
 class ProfileRequest(BaseModel):
     display_name: str = Field(alias="displayName", min_length=1, max_length=32)
-    avatar_url: str = Field("", alias="avatarUrl", max_length=500, pattern=r"^$|^https?://")
+    avatar_url: str = Field("", alias="avatarUrl", max_length=500)
     model_config = {"populate_by_name": True}
 
 
@@ -162,13 +163,14 @@ async def create_room(request: CreateRoomRequest) -> dict:
         raise HTTPException(400, "mode must be online, ai or local")
     try:
         language = normalize_language(request.language)
+        avatar_url = normalize_avatar(request.avatar_url)
         room, seat = await manager.create(request.profile_id, request.mode, request.player_name,
                                           request.player_color, request.difficulty, request.options,
                                           request.initial_minutes, language, {
                                               "firstMove": request.first_move.value,
                                               "redSlots": request.red_slots,
                                               "blackSlots": request.black_slots,
-                                          }, request.avatar_url, request.taunts_enabled)
+                                          }, avatar_url, request.taunts_enabled)
         if request.mode == "ai" and room.game.state.turn is not seat.color:
             await manager._play_ai(room)
         return {"roomId": room.id, "token": seat.token, "color": seat.color.value,
@@ -200,7 +202,7 @@ async def import_room(request: ImportGameRequest) -> dict:
 async def join_room(room_id: str, request: JoinRoomRequest) -> dict:
     try:
         room, seat = await manager.join(room_id.upper(), request.player_name,
-                                        request.avatar_url)
+                                        normalize_avatar(request.avatar_url))
         async with room.lock:
             room.language = normalize_language(request.language)
             room.game.language = room.language

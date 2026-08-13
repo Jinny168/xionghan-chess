@@ -13,6 +13,8 @@ import threading
 import time
 from typing import Any, Iterator
 
+from xionghan_chess.core.avatars import normalize_avatar
+
 
 class AccountError(ValueError):
     pass
@@ -146,11 +148,9 @@ class AccountStore:
 
     def update_profile(self, user_id: int, display_name: str, avatar_url: str) -> Account:
         display_name = display_name.strip()
-        avatar_url = avatar_url.strip()
+        avatar_url = normalize_avatar(avatar_url)
         if not (1 <= len(display_name) <= 32):
             raise AccountError("显示名称须为 1-32 个字符")
-        if len(avatar_url) > 500 or (avatar_url and not avatar_url.startswith(("https://", "http://"))):
-            raise AccountError("头像地址须为 http/https URL，且不超过 500 个字符")
         with self._lock, self.connect() as db:
             db.execute("UPDATE users SET display_name=?,avatar_url=? WHERE id=?",
                        (display_name, avatar_url, user_id))
