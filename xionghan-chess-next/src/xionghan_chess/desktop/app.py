@@ -1017,7 +1017,7 @@ class MainWindow(QMainWindow):
                 if mode=="注册":display,_=QInputDialog.getText(self,"账号","显示名称",QLineEdit.EchoMode.Normal,username)
                 data=self.request_json(base+("/api/auth/register" if mode=="注册" else "/api/auth/login"),{"username":username,"password":password,"displayName":display},"POST")
                 cloud_to_desktop={"boardTheme":"theme","pageBackground":"background","pieceStyle":"piece_style","font":"font","language":"language","flipped":"flipped","musicStyle":"music_style","volume":"sound_volume","animation":"animations","selection":"selection_highlight","legalTargets":"legal_targets","captureHints":"capture_hints","autosave":"autosave","initialMinutes":"initial_minutes","countdownSeconds":"countdown_seconds"}
-                self.config["account_token"]=data["token"]
+                self.config["account_token"]=data["token"];self.config["account_display_name"]=data["account"]["displayName"];self.config["account_avatar_url"]=data["account"].get("avatarUrl","")
                 for cloud_key,value in data.get("preferences",{}).items():
                     local_key=cloud_to_desktop.get(cloud_key,cloud_key)
                     if local_key in self.config:self.config[local_key]=value
@@ -1053,7 +1053,7 @@ class MainWindow(QMainWindow):
         base=self.server_base()
         if not base:return
         try:
-            setup=self.current_setup();data=self.http_json(base+"/api/rooms",{"profileId":self.config["profile"],"mode":"online","playerName":"桌面玩家" if self.config.get("language")!="en" else "Desktop Player","playerColor":self.config["human_color"],"options":self.config.get("rule_options",{}),"initialMinutes":self.config["initial_minutes"],"language":self.config.get("language","zh-CN"),"firstMove":setup["firstMove"],"redSlots":setup["redSlots"],"blackSlots":setup["blackSlots"]})
+            setup=self.current_setup();name=self.config.get("account_display_name") or ("桌面玩家" if self.config.get("language")!="en" else "Desktop Player");data=self.http_json(base+"/api/rooms",{"profileId":self.config["profile"],"mode":"online","playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"playerColor":self.config["human_color"],"options":self.config.get("rule_options",{}),"initialMinutes":self.config["initial_minutes"],"language":self.config.get("language","zh-CN"),"firstMove":setup["firstMove"],"redSlots":setup["redSlots"],"blackSlots":setup["blackSlots"],"tauntsEnabled":self.config.get("taunts",True)})
             self.open_network(base,data)
             lang=self.config.get("language","zh-CN");QMessageBox.information(self,"房间已创建" if lang!="en" else "Room created",f"{'房间号' if lang!='en' else 'Room code'}：{data['roomId']}")
         except Exception as exc:QMessageBox.warning(self,"创建失败" if self.config.get("language")!="en" else "Create failed",str(exc))
@@ -1064,7 +1064,7 @@ class MainWindow(QMainWindow):
         lang=self.config.get("language","zh-CN")
         room,ok=QInputDialog.getText(self,"加入房间" if lang!="en" else "Join room","房间号" if lang!="en" else "Room code")
         if not ok or not room:return
-        try:self.open_network(base,self.http_json(f"{base}/api/rooms/{room.strip().upper()}/join",{"playerName":"桌面玩家" if lang!="en" else "Desktop Player","language":lang}))
+        try:name=self.config.get("account_display_name") or ("桌面玩家" if lang!="en" else "Desktop Player");self.open_network(base,self.http_json(f"{base}/api/rooms/{room.strip().upper()}/join",{"playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"language":lang}))
         except Exception as exc:QMessageBox.warning(self,"加入失败" if lang!="en" else "Join failed",str(exc))
 
     def spectate_online(self):
@@ -1106,7 +1106,9 @@ class MainWindow(QMainWindow):
         lang=self.config.get("language","zh-CN")
         if message["type"]=="error":QMessageBox.warning(self,"服务器拒绝" if lang!="en" else "Server rejected",message["payload"]["message"]);self.apply_network_state(message["payload"].get("state",{}))
         elif message["type"]=="chat":
-            payload=message["payload"];self.chat_messages.addItem(f"{payload.get('sender','玩家')}：{payload.get('text','')}");self.chat_messages.scrollToBottom()
+            payload=message["payload"]
+            if payload.get("automated") and not self.config.get("taunts",True):return
+            self.chat_messages.addItem(f"{payload.get('sender','玩家')}：{payload.get('text','')}");self.chat_messages.scrollToBottom()
         elif message["type"]=="state":
             snapshot=message["payload"];game_data=snapshot["game"]
             self.apply_network_state(snapshot)

@@ -340,7 +340,9 @@ class RoomManager:
             return
         await self.broadcast(room)
         if room.mode == "ai" and room.game.state.finished:
-            await self._broadcast_ai_taunt(room, "defeat")
+            scene = self._finished_ai_scene(room)
+            if scene:
+                await self._broadcast_ai_taunt(room, scene)
         if (room.mode == "ai" and not room.game.state.finished and not room.game.state.paused
                 and room.game.state.turn is seat.color.opponent):
             await self._play_ai(room)
@@ -363,7 +365,7 @@ class RoomManager:
                     room.game.move(move)
                     room.revision += 1
                     if room.game.state.finished:
-                        scene = "victory"
+                        scene = self._finished_ai_scene(room)
                     elif room.game.rules.in_check(room.game.state, room.game.state.turn):
                         scene = "check"
                     elif len(room.game.state.history) <= 2:
@@ -373,6 +375,13 @@ class RoomManager:
         await self.broadcast(room)
         if scene:
             await self._broadcast_ai_taunt(room, scene)
+
+    @staticmethod
+    def _finished_ai_scene(room: Room) -> str | None:
+        ai_seat = next((seat for seat in room.seats.values() if seat.is_ai), None)
+        if ai_seat is None or room.game.state.winner is None:
+            return None
+        return "victory" if room.game.state.winner is ai_seat.color else "defeat"
 
     async def _broadcast_ai_taunt(self, room: Room, scene: str) -> None:
         event_key = f"{scene}:{len(room.game.state.history)}"

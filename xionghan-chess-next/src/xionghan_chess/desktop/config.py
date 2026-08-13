@@ -31,6 +31,8 @@ DEFAULTS: dict[str, Any] = {
     "first_move": "red",
     "setup_slots": {},
     "account_token": "",
+    "account_display_name": "",
+    "account_avatar_url": "",
     "animations": True,
     "selection_highlight": True,
     "legal_targets": True,

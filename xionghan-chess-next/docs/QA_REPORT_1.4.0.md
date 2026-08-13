@@ -2,7 +2,7 @@
 
 ## 执行结果
 
-- `pytest -q`: **86 passed**, 0 failed，1 条 Starlette/httpx 弃用警告。
+- `pytest -q`: **91 passed**, 0 failed，1 条 Starlette/httpx 弃用警告。
 - Web/Android JavaScript `node --check`: 通过。
 - `locales/zh-CN.json`、`locales/en.json`: JSON 解析通过。
 - `python -m compileall -q src`: 通过。
@@ -22,6 +22,8 @@
 - `android/bin`、`android/obj` 已从 Git 索引移除，构建产物由 `.gitignore` 排除。
 - 旧 `.fen`/JSON 包装棋谱可在桌面、Web 与 Android 离线端迁移导入；Android 载入终局存档不再重复累计统计；在线重开改为双方确认；统计增加时长、最快胜局、连胜和分色维度。
 - 后续迭代已加入纯 MCTS UCB1 推理模块、桌面/Web/Android 轨迹动画、三端将军提示、分场景挑衅语料和 Web 默认头像渲染。
+- 本阶段完成 AI 场景化自动挑衅：开局、将军、胜利、失败事件通过聊天协议发送，并提供 Web/桌面独立开关、有限历史和事件去重。
+- 账号新增可选 `avatarUrl` 字段与资料更新接口；旧 SQLite 数据库启动时自动迁移。Web 可编辑头像 URL，房间快照向 Web、Android 联机页和桌面联机请求传递头像资料。
 
 ## 残留风险
 
@@ -31,4 +33,4 @@
 
 ## 验收结论
 
-当前版本不存在已知阻断级 Bug，满足 v1.4.0 交付前自动化验收条件。MCTS 默认档位替换、AI 自动挑衅、自定义头像 URL 和训练流水线仍属于后续迭代范围。
+当前版本不存在已知阻断级 Bug，满足 v1.4.0 交付前自动化验收条件。MCTS 默认档位替换与自博弈/神经网络训练流水线按本阶段约束暂缓；头像文件上传、本地裁剪和 Android 离线身份系统仍属于后续范围。
