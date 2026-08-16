@@ -185,6 +185,6 @@ def test_release_cache_busters_match_package_version():
     root = Path(__file__).resolve().parents[1]
     index = (root / "web/index.html").read_text(encoding="utf-8")
     app_js = (root / "web/js/app.js").read_text(encoding="utf-8")
-    assert 'app.css?v=1.5.0' in index
-    assert 'app.js?v=1.5.0' in index
-    assert "i18n.js?v=1.5.0" in app_js
+    assert 'app.css?v=1.6.0' in index
+    assert 'app.js?v=1.6.0' in index
+    assert "i18n.js?v=1.6.0" in app_js

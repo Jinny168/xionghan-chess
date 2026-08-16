@@ -1,4 +1,4 @@
-import { applyStaticI18n, currentLanguage, currentLocale, setLanguage, t } from './i18n.js?v=1.5.0';
+import { applyStaticI18n, currentLanguage, currentLocale, setLanguage, t } from './i18n.js?v=1.6.0';
 
 const $ = (selector) => document.querySelector(selector);
 const board = $('#board');

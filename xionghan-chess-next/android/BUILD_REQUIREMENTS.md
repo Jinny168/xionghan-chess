@@ -1,4 +1,4 @@
-# Android v1.5.0 build requirements
+# Android v1.6.0 build requirements
 
 This project uses .NET MAUI Android, not Gradle. The authoritative build file is `XionghanChessAndroid.csproj`.
 

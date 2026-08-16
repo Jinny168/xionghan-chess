@@ -5,6 +5,7 @@ import math
 import random
 import threading
 import time
+from collections.abc import Callable
 
 from .game import Game
 from .model import Move
@@ -24,18 +25,29 @@ class MCTS:
     """Dependency-free UCB1 Monte Carlo search over the shared Game rules."""
 
     def __init__(self, time_limit: float = 0.35, simulations: int | None = None,
-                 exploration: float = math.sqrt(2.0), seed: int | None = None):
+                 exploration: float = math.sqrt(2.0), seed: int | None = None,
+                 root_score: Callable[[Game, Move], float] | None = None):
         self.time_limit = max(0.01, float(time_limit))
         self.simulations = simulations
         self.exploration = max(0.0, float(exploration))
         self.random = random.Random(seed)
+        self.root_score = root_score
         self.completed_simulations = 0
 
     def choose_move(self, game: Game, cancel: threading.Event | None = None) -> Move | None:
         legal = game.rules.legal_moves(game.state)
         if not legal:
             return None
-        root = _Node(unexpanded=list(legal))
+        # The legacy player expanded from policy priors.  In the dependency-
+        # free engine, forcing available captures into the root candidate set
+        # provides the equivalent tactical prior while deeper playouts still
+        # decide which capture is sound.
+        captures = [move for move in legal if game.rules.captured_by_move(game.state, move)]
+        candidates = captures or legal
+        if captures and self.root_score is not None:
+            safe_captures = [move for move in captures if self.root_score(game, move) >= 0]
+            candidates = safe_captures or [move for move in legal if move not in captures] or legal
+        root = _Node(unexpanded=list(candidates))
         deadline = time.monotonic() + self.time_limit
         self.completed_simulations = 0
         while (self.simulations is None and time.monotonic() < deadline) or (
@@ -46,7 +58,13 @@ class MCTS:
             state_game = game
             path = [node]
             while node.unexpanded == [] and node.children:
-                node = max(node.children, key=lambda child: self._ucb(child, node.visits))
+                # Values are stored from the root player's perspective.  The
+                # opponent therefore minimizes that value while retaining the
+                # same UCB exploration pressure.  This mirrors the alternating
+                # sign back-propagation used by the legacy pure-MCTS engine.
+                maximizing = state_game.state.turn is game.state.turn
+                node = max(node.children,
+                           key=lambda child: self._ucb(child, node.visits, maximizing))
                 state_game = self._apply(state_game, node.move)
                 path.append(node)
             if node.unexpanded:
@@ -61,12 +79,15 @@ class MCTS:
                 item.visits += 1
                 item.value += result
             self.completed_simulations += 1
-        return max(root.children, key=lambda child: child.visits).move if root.children else legal[0]
+        return max(root.children, key=lambda child: child.visits).move if root.children else candidates[0]
 
-    def _ucb(self, node: _Node, parent_visits: int) -> float:
+    def _ucb(self, node: _Node, parent_visits: int, maximizing: bool = True) -> float:
         if not node.visits:
             return math.inf
-        return node.value / node.visits + self.exploration * math.sqrt(math.log(max(1, parent_visits)) / node.visits)
+        exploitation = node.value / node.visits
+        if not maximizing:
+            exploitation = -exploitation
+        return exploitation + self.exploration * math.sqrt(math.log(max(1, parent_visits)) / node.visits)
 
     @staticmethod
     def _apply(game: Game, move: Move) -> Game:

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#781f1f">
   <title>匈汉象棋</title>
   <link rel="icon" href="/assets/icon.ico">
-  <link rel="stylesheet" href="/css/app.css?v=1.5.0">
+  <link rel="stylesheet" href="/css/app.css?v=1.6.0">
 </head>
 <body>
   <header class="topbar">
@@ -64,7 +64,7 @@
       <section class="mode-panel">
         <label>模式<select id="modeSelect"><option value="ai">人机对战</option><option value="local">双人同机</option><option value="online">网络对战</option></select></label>
         <label>规则档案<select id="profileSelect"><option value="web">精简模式</option><option value="desktop_classic">经典模式</option><option value="desktop_complete">完整模式</option><option value="traditional">传统象棋</option></select></label>
-        <label id="difficultyRow">AI 难度<select id="difficultySelect"><option value="beginner">入门</option><option value="easy">初级</option><option value="medium" selected>中级</option><option value="hard">高级</option></select></label>
+        <label id="difficultyRow">AI 难度<select id="difficultySelect"><option value="beginner">入门</option><option value="easy">初级</option><option value="medium" selected>中级</option><option value="hard">高级</option><option value="master">大师（MCTS）</option></select></label>
         <label id="colorRow">执子<select id="colorSelect"><option value="red">红方先手</option><option value="black">黑方后手</option></select></label>
         <label>先手<select id="firstMoveSelect"><option value="red">默认（红先）</option><option value="black">黑先</option><option value="random">随机</option></select></label>
         <label>每方时限<select id="initialMinutesSelect"><option value="5">5 分钟</option><option value="10">10 分钟</option><option value="20" selected>20 分钟</option><option value="30">30 分钟</option><option value="60">60 分钟</option></select></label>
@@ -178,8 +178,8 @@
     <h3>反馈支持</h3><p><a href="https://github.com/Jinny168/xionghan-chess/issues" target="_blank" rel="noreferrer">GitHub Issues</a> · 2741526119@qq.com</p>
   </div></dialog>
   <dialog id="rulesDialog" class="text-dialog"><div class="dialog-title"><h2>棋子规则</h2><button class="icon-button" data-close-dialog="rulesDialog">×</button></div><div class="text-dialog-body"><p>各棋子的详细规则、增强选项和夹逼判定可在“设置 → 规则与外观”中逐项查看和调整。</p><p>斜向移动经过的每一段入口都必须通过夹逼检查；兵卒快速行军最多抵达敌境边缘。</p></div></dialog>
-  <dialog id="aboutDialog" class="text-dialog"><div class="dialog-title"><h2>关于匈汉象棋</h2><button class="icon-button" data-close-dialog="aboutDialog">×</button></div><div class="text-dialog-body"><p><strong>版本 1.5.0</strong></p><p>匈汉象棋是一款采用 13 × 13 扩展棋盘、融合匈奴与东汉文化元素的中国象棋创新变体，在传统象棋核心博弈结构上加入特色棋子与可配置规则。</p><h3>当前版本</h3><ul><li>Windows、Web 与 Android 三端支持。</li><li>共享 Python 规则、AI、联机协议和 <code>.xhgame</code> 棋谱格式。</li><li>支持账号云同步、等量让子、观战、棋盘翻转、AI 分析和分级训练。</li></ul><h3>开发信息</h3><p>开发者：靳中原<br>项目主页：<a href="https://github.com/Jinny168/xionghan-chess" target="_blank" rel="noreferrer">github.com/Jinny168/xionghan-chess</a><br>反馈邮箱：2741526119@qq.com</p><p>感谢原项目积累的规则、素材、菜单设计和玩家反馈，也感谢开源社区提供的开发工具与音频资源。</p></div></dialog>
+  <dialog id="aboutDialog" class="text-dialog"><div class="dialog-title"><h2>关于匈汉象棋</h2><button class="icon-button" data-close-dialog="aboutDialog">×</button></div><div class="text-dialog-body"><p><strong>版本 1.6.0</strong></p><p>匈汉象棋是一款采用 13 × 13 扩展棋盘、融合匈奴与东汉文化元素的中国象棋创新变体，在传统象棋核心博弈结构上加入特色棋子与可配置规则。</p><h3>当前版本</h3><ul><li>Windows、Web 与 Android 三端支持。</li><li>共享 Python 规则、AI、联机协议和 <code>.xhgame</code> 棋谱格式。</li><li>支持账号云同步、等量让子、观战、棋盘翻转、AI 分析和分级训练。</li></ul><h3>开发信息</h3><p>开发者：靳中原<br>项目主页：<a href="https://github.com/Jinny168/xionghan-chess" target="_blank" rel="noreferrer">github.com/Jinny168/xionghan-chess</a><br>反馈邮箱：2741526119@qq.com</p><p>感谢原项目积累的规则、素材、菜单设计和玩家反馈，也感谢开源社区提供的开发工具与音频资源。</p></div></dialog>
   <div id="toast" class="toast" role="status"></div>
-  <script type="module" src="/js/app.js?v=1.5.0"></script>
+  <script type="module" src="/js/app.js?v=1.6.0"></script>
 </body>
 </html>

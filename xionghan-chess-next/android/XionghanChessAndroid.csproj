@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>com.xionghan.chess</ApplicationId>
-    <ApplicationVersion>7</ApplicationVersion>
-    <ApplicationDisplayVersion>1.5.0</ApplicationDisplayVersion>
+    <ApplicationVersion>8</ApplicationVersion>
+    <ApplicationDisplayVersion>1.6.0</ApplicationDisplayVersion>
     <PublishTrimmed>false</PublishTrimmed>
     <RunAOTCompilation>false</RunAOTCompilation>
   </PropertyGroup>

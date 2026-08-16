@@ -1,0 +1,38 @@
+{
+  "games": 2,
+  "masterWins": 0,
+  "hardWins": 1,
+  "draws": 1,
+  "masterWinRate": 0.0,
+  "masterDecisiveWinRate": 0.0,
+  "masterMoveMeanSeconds": 0.4745445500011556,
+  "masterMoveMaxSeconds": 0.4955807999940589,
+  "hardMoveMeanSeconds": 1.204352975000802,
+  "hardMoveMaxSeconds": 1.2096857999858912,
+  "adjudicatedGames": 2,
+  "acceptance": {
+    "enoughGames": false,
+    "winRateAtLeast55Percent": false,
+    "masterMoveAtMost12Seconds": true
+  },
+  "results": [
+    {
+      "game": 1,
+      "master_color": "red",
+      "winner": null,
+      "adjudicated": true,
+      "plies": 4,
+      "master_seconds": 0.9643289000086952,
+      "hard_seconds": 2.41443010000512
+    },
+    {
+      "game": 2,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": true,
+      "plies": 4,
+      "master_seconds": 0.9338492999959271,
+      "hard_seconds": 2.402981799998088
+    }
+  ]
+}

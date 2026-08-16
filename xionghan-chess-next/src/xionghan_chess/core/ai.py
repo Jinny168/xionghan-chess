@@ -18,6 +18,7 @@ class Difficulty(StrEnum):
     EASY = "easy"
     MEDIUM = "medium"
     HARD = "hard"
+    MASTER = "master"
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,6 +37,10 @@ CONFIGS = {
     Difficulty.EASY: SearchConfig(4, 1.5, 0.15, 3, 4, 6, 10),
     Difficulty.MEDIUM: SearchConfig(6, 5.0, 0.05, 4, 3, 10, 18),
     Difficulty.HARD: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 32),
+    # MASTER is executed by the shared-rules MCTS engine.  Keeping a config
+    # entry makes the difficulty safe for analysis/configuration code that
+    # inspects CONFIGS before dispatching the search.
+    Difficulty.MASTER: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 32),
 }
 
 VALUES = {
@@ -103,6 +108,13 @@ class ChessAI:
     def choose_move(self, game: Game, cancel: threading.Event | None = None) -> Move | None:
         cfg = CONFIGS[self.difficulty]
         time_scale = max(0.1, float(os.getenv("AI_TIME_SCALE", "1.0")))
+        if self.difficulty is Difficulty.MASTER:
+            # Import lazily to keep the conventional search engine independent
+            # and to avoid loading MCTS for the four established difficulty tiers.
+            from .mcts import MCTS
+            return MCTS(time_limit=cfg.time_limit * time_scale,
+                        seed=self.random.randrange(2**32),
+                        root_score=self._see_score).choose_move(game, cancel)
         deadline = time.monotonic() + cfg.time_limit * time_scale
         self._active_deadline = deadline
         self._active_cancel = cancel

@@ -12,3 +12,4 @@ release/v1.4.0-delivery/
 release/v1.5.0-delivery/
 # 归档：实验性/废弃构建（保留追溯，不跟踪、不发布）
 release/archive-experimental/
+training-data/

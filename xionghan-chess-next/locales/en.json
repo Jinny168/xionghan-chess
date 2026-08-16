@@ -92,7 +92,8 @@
     "beginner": "Beginner",
     "easy": "Easy",
     "medium": "Medium",
-    "hard": "Hard"
+      "hard": "Hard",
+      "master": "Master (MCTS)"
   },
   "settings": {
     "title": "Rule settings",

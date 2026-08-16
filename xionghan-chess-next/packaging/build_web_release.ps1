@@ -3,7 +3,7 @@ $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $ReleaseRoot = Join-Path $ProjectRoot "release"
 $productName = -join [char[]](0x5308, 0x6F22, 0x8C61, 0x68CB)
 $platformName = -join [char[]](0x7F51, 0x9875, 0x7248)
-$PackageName = "$productName-1.5.0-$platformName"
+$PackageName = "$productName-1.6.0-$platformName"
 $Stage = Join-Path $ReleaseRoot $PackageName
 $Archive = Join-Path $ReleaseRoot "$PackageName.zip"
 

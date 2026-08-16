@@ -461,7 +461,7 @@ class SettingsDialog(QDialog):
         self.profile.setCurrentIndex(max(0,self.profile.findData(config["profile"])))
         self.language_select=QComboBox();self.language_select.addItem(t("language.zh-CN", self.language),"zh-CN");self.language_select.addItem(t("language.en", self.language),"en");self.language_select.setCurrentIndex(max(0,self.language_select.findData(self.language)))
         self.game_mode=QComboBox();self.game_mode.addItem(t("mode.ai", self.language),"ai");self.game_mode.addItem(t("mode.local_full", self.language),"local");self.game_mode.setCurrentIndex(max(0,self.game_mode.findData(config.get("game_mode","ai"))))
-        self.difficulty=QComboBox();[(self.difficulty.addItem(t(f"difficulty.{value}", self.language),value)) for value in ("beginner","easy","medium","hard")]
+        self.difficulty=QComboBox();[(self.difficulty.addItem(t(f"difficulty.{value}", self.language),value)) for value in ("beginner","easy","medium","hard","master")]
         self.difficulty.setCurrentIndex(max(0,self.difficulty.findData(config["difficulty"])))
         self.color=QComboBox();self.color.addItem(t("option.red_first", self.language),"red");self.color.addItem(t("option.black_second", self.language),"black");self.color.setCurrentIndex(max(0,self.color.findData(config["human_color"])))
         self.first_move=QComboBox();self.first_move.addItem(t("desktop.first_red",self.language),"red");self.first_move.addItem(t("desktop.first_black",self.language),"black");self.first_move.addItem(t("desktop.first_random",self.language),"random");self.first_move.setCurrentIndex(max(0,self.first_move.findData(config.get("first_move","red"))))

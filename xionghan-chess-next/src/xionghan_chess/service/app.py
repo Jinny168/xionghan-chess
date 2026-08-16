@@ -52,7 +52,7 @@ async def lifespan(_: FastAPI):
         await task
 
 
-app = FastAPI(title="匈汉象棋 API", version="1.5.0", lifespan=lifespan)
+app = FastAPI(title="匈汉象棋 API", version="1.6.0", lifespan=lifespan)
 
 
 class CreateRoomRequest(BaseModel):
