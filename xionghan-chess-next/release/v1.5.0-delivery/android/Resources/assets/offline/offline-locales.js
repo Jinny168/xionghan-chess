@@ -60,7 +60,7 @@ window.XH_OFFLINE_I18N = {
     puzzle1Title: '兵卒初动', puzzle1Hint: '红方最左侧兵向前一步',
     puzzle2Title: '跃马争先', puzzle2Hint: '检查马腿后跃向右前方',
     puzzle3Title: '星轨射手', puzzle3Hint: '沿右上方星轨移动',
-    reasons: { checkmate: '将死', stalemate: '困毙', king_captured: '主帅被擒', palace_invasion: '攻入敌宫', resignation: '认输', timeout: '超时判负' }
+    reasons: { checkmate: '将死', stalemate: '困毙', king_captured: '主帅被擒', palace_invasion: '攻入敌宫', resignation: '认输', timeout: '超时判负', threefold_repetition: '三次重复局面', no_progress: '无进展和棋' }
   },
   en: {
     appName: 'Xionghan Chess',
@@ -123,6 +123,6 @@ window.XH_OFFLINE_I18N = {
     puzzle1Title: 'Pawn opening', puzzle1Hint: 'Move the leftmost red pawn forward one step',
     puzzle2Title: 'Horse initiative', puzzle2Hint: 'Check the horse leg, then jump forward-right',
     puzzle3Title: 'Star-track archer', puzzle3Hint: 'Move along the upper-right star track',
-    reasons: { checkmate: 'Checkmate', stalemate: 'Stalemate', king_captured: 'King captured', palace_invasion: 'Palace invasion', resignation: 'Resignation', timeout: 'Lost on time' }
+    reasons: { checkmate: 'Checkmate', stalemate: 'Stalemate', king_captured: 'King captured', palace_invasion: 'Palace invasion', resignation: 'Resignation', timeout: 'Lost on time', threefold_repetition: 'Threefold repetition', no_progress: 'No-progress draw' }
   }
 };

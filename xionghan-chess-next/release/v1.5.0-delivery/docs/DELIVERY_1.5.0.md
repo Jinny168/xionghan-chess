@@ -17,4 +17,6 @@
 
 - `/api/health` 返回版本 `1.5.0`。
 - 九张头像在 Web、桌面安装包和 Android APK 中均存在。
+- Web CSS/JS 缓存参数、Python 包、API、Docker、Android 和三端产物版本均为 1.5.0。
+- Android 离线长局达到 120 ply 无进展阈值时判定 `no_progress`，与 Python Core 一致。
 - 全量 pytest、JavaScript 语法、Python compileall 和 SHA256 校验通过。
