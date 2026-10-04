@@ -8,7 +8,7 @@ import subprocess
 
 import pytest
 
-from xionghan_chess.core.game import Game
+from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
 from xionghan_chess.core.profiles import PROFILES, get_profile
 from xionghan_chess.core.rules import RulesEngine
@@ -63,6 +63,25 @@ def _offline_result(game: Game) -> dict:
         capture_output=True, check=True, timeout=30,
     )
     return json.loads(completed.stdout)
+
+
+def _probe_resurrect(game: Game, color: Color, row: int, col: int) -> dict:
+    """Run one resurrection through offline.js and return its leg of the probe."""
+    if not shutil.which("node"):
+        pytest.skip("Node.js is required for cross-engine parity tests")
+    payload = json.dumps({
+        "profileId": game.profile.id,
+        "options": asdict(game.rules.options),
+        "state": _offline_state(game),
+        "resurrect": {"color": color.value, "row": row, "col": col},
+    })
+    completed = subprocess.run(
+        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
+        capture_output=True, check=True, timeout=30,
+    )
+    leg = json.loads(completed.stdout)["resurrect"]
+    assert leg is not None, "probe did not run the resurrection leg"
+    return leg
 
 
 @pytest.mark.parametrize("profile_id", [
@@ -691,3 +710,76 @@ def test_pawn_promotion_uses_captured_piece_types_parity():
     assert (0, 4, "rook") in promotions, (
         f"promotion to the captured rook must be offered, got {sorted(promotions)}"
     )
+
+
+# --- pawn resurrection -------------------------------------------------------
+#
+# `Game.resurrect_pawn` is bookkeeping that `Rules` never sees: it reads the
+# mover's own loss pool, rebuilds the pawn, logs a MoveRecord, counts the
+# position and settles the terminal chain. offline.js exposes only `Rules` to the
+# parity probe, so this path had no coverage against the Android build at all.
+
+
+def _resurrection_game(placements: list[tuple[PieceType, Color, int, int]] | None = None) -> Game:
+    game = _sparse("desktop_complete", placements or [],
+                   captured={Color.RED: [_piece(PieceType.PAWN, Color.RED, 0, 0)],
+                             Color.BLACK: []})
+    assert game.rules.options.pawn_resurrection is True
+    return game
+
+
+def test_resurrect_pawn_parity_between_python_and_offline():
+    game = _resurrection_game()
+    # Red's home rank is derived from the profile's own pawn slots (row 8 on the
+    # 13x13 board); a hard coded 8/4 split would silently break `traditional`.
+    home = {(item.row, item.col) for item in game.profile.pieces
+            if item.type is PieceType.PAWN and item.color is Color.RED}
+    assert (8, 4) in home
+
+    offline = _probe_resurrect(game, Color.RED, 8, 4)
+    assert offline["ok"] is True, f"offline.js refused the resurrection: {offline['error']}"
+
+    game.resurrect_pawn(Color.RED, Position(8, 4))
+
+    python_state = game.state.to_dict()
+    js_state = offline["state"]
+    # The revived pawn is the only thing that appeared on either board.
+    assert {(item["row"], item["col"]) for item in js_state["pieces"] if item["type"] == "pawn"} \
+        == {(8, 4)}
+    assert {(item["row"], item["col"]) for item in python_state["pieces"] if item["type"] == "pawn"} \
+        == {(8, 4)}
+    assert js_state["turn"] == python_state["turn"] == "black"
+    # The dead pawn left the loss pool in both engines.
+    assert len(js_state["captured"]["red"]) == len(python_state["captured"]["red"]) == 0
+    assert len(js_state["captured"]["black"]) == len(python_state["captured"]["black"]) == 0
+    # One logged record, and the position counted once as a board change.
+    assert len(js_state["history"]) == len(python_state["history"]) == 1
+    assert js_state["history"][0]["pieceType"] == python_state["history"][0]["pieceType"] == "pawn"
+    assert sum(js_state["positionCounts"].values()) \
+        == sum(python_state["positionCounts"].values()) == 1
+    assert "复活" in python_state["history"][0]["notation"]
+
+
+def test_resurrect_pawn_rejections_match_across_engines():
+    game = _resurrection_game()
+    # Black's home rank is not a square red may resurrect onto, and black is not
+    # the side to move.
+    with pytest.raises(GameError):
+        game.resurrect_pawn(Color.BLACK, Position(4, 4))
+    offline = _probe_resurrect(game, Color.BLACK, 4, 4)
+    assert offline["ok"] is False
+    assert offline["state"] is None
+
+    # An already occupied home square is another rejection both engines share:
+    # red keeps a live pawn on (8, 2).
+    busy = _resurrection_game([(PieceType.PAWN, Color.RED, 8, 2)])
+    with pytest.raises(GameError):
+        busy.resurrect_pawn(Color.RED, Position(8, 2))
+    offline = _probe_resurrect(busy, Color.RED, 8, 2)
+    assert offline["ok"] is False
+    assert busy.state.turn is Color.RED
+
+    # Neither attempt may have touched the board.
+    game = _resurrection_game()
+    assert len(game.state.pieces) == 2
+    assert game.state.turn is Color.RED

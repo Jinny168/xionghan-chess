@@ -16,7 +16,7 @@ from xionghan_chess.core.ai import Difficulty
 from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.avatars import normalize_avatar
 from xionghan_chess.core.game import GameError
-from xionghan_chess.core.model import Color, Position
+from xionghan_chess.core.model import Color, PieceType, Position
 from xionghan_chess.core.profiles import PROFILES
 from xionghan_chess.core.protocol import Envelope, MessageType
 from .rooms import Room, RoomManager
@@ -178,6 +178,10 @@ async def profiles() -> list[dict]:
              "archerStarPoints": [{"row": point.row, "col": point.col}
                                   for point in sorted(archer_star_points(p),
                                                       key=lambda item: (item.row, item.col))],
+             # Mirrors Game.resurrect_pawn, which reads its home squares off
+             # `profile.pieces` instead of a hard coded rank.
+             "pawnHomeSquares": [{"row": spec.row, "col": spec.col}
+                                 for spec in p.pieces if spec.type is PieceType.PAWN],
              "options": asdict(p.options)} for p in PROFILES.values()]
 
 

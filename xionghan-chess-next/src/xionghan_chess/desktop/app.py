@@ -886,7 +886,10 @@ class MainWindow(QMainWindow):
             return
         ReplayDialog(self.game,self.config,self).exec()
     def resurrect_pawn(self):
-        color=self.game.state.turn if self.config.get("game_mode")=="local" else Color(self.config["human_color"]);row=8 if color is Color.RED else 4
+        color=self.game.state.turn if self.config.get("game_mode")=="local" else Color(self.config["human_color"])
+        # Read the rank off the profile's own pawn slots instead of hard coding
+        # 8/4; `traditional` (10x9) keeps its pawns on row 6.
+        row=next((spec.row for spec in self.game.profile.pieces if spec.type is PieceType.PAWN and spec.color is color),8 if color is Color.RED else 4)
         for col in range(0,self.game.profile.cols,2):
             try:self.game.resurrect_pawn(color,Position(row,col));self.refresh();
             except GameError:continue

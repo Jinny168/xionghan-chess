@@ -219,6 +219,16 @@ class Game:
                                {"row": point.row, "col": point.col}
                                for point in sorted(self.rules.archer_star_points,
                                                    key=lambda item: (item.row, item.col))
+                           ],
+                           # Same source `resurrect_pawn` reads, so a client that
+                           # offers a resurrection square cannot drift onto a hard
+                           # coded rank when the profile changes board size.
+                           "pawnHomeSquares": [
+                               {"row": point.row, "col": point.col}
+                               for point in sorted(
+                                   self._pawn_home_squares(Color.RED)
+                                   | self._pawn_home_squares(Color.BLACK),
+                                   key=lambda item: (item.row, item.col))
                            ]}
         data["check"] = self.rules.in_check(self.state, self.state.turn) if not self.state.finished else False
         data["setup"] = self.setup.to_dict()
