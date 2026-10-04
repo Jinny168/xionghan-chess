@@ -14,6 +14,10 @@ from .profiles import PATROL_HOME_ROW, RuleOptions, RuleProfile, XIONGHAN_ROWS
 # on the 10x9 traditional board.
 PATROL_HOME_ROWS = frozenset({PATROL_HOME_ROW, XIONGHAN_ROWS - 1 - PATROL_HOME_ROW})
 
+# The two pieces whose move removal reaches past the square they land on, so
+# they are the only ones `in_check` has to replay to spot an indirect kill.
+INDIRECT_KILLERS = (PieceType.ARMOR, PieceType.ASSASSIN)
+
 
 def archer_star_points(profile: RuleProfile) -> frozenset[Position]:
     """Return the reachable endpoints of the weak-archer diagonal lattice."""
@@ -210,7 +214,63 @@ class RulesEngine:
                 move = Move(piece.position, king.position)
                 if self.pseudo_legal(opponent, move):
                     return True
+        if self._indirect_king_capture(opponent, color.opponent, king):
+            return True
         return self._kings_facing(state)
+
+    def _indirect_king_capture(self, state: GameState, turn: Color, king: Piece) -> bool:
+        """Detect a king killed by a move that never touches its square.
+
+        Armor squeezes an enemy out of a three-cell line once it has stepped
+        into place, and assassin drags the enemy standing directly behind it;
+        in both cases the king disappears without the attacker ever being able
+        to "move onto" the king, so the direct scan above cannot see it and the
+        game would end with no check announced. Replaying the move through
+        `apply_unchecked` -- the same routine that performs the removal -- keeps
+        this sweep from growing a second copy of the armor/assassin rules.
+        """
+        for piece in state.pieces:
+            if piece.color is not turn or piece.type not in INDIRECT_KILLERS:
+                continue
+            for target in self._kill_squares(piece, king.position):
+                if self.get(state, target) is not None:
+                    continue
+                move = Move(piece.position, target)
+                if not self.pseudo_legal(state, move):
+                    continue
+                after = self.apply_unchecked(state, move, switch_turn=False)
+                if king.id not in {p.id for p in after.pieces}:
+                    return True
+        return False
+
+    def _kill_squares(self, piece: Piece, king: Position) -> list[Position]:
+        """Landing squares that could leave `king` dead by proxy.
+
+        Both killers are filtered down to the squares their own rule can make
+        fatal, so the sweep below replays a handful of moves instead of every
+        rook ray. Armor only squeezes from inside a three-cell line, so its
+        landing square has to be within two cells of the king along one of the
+        line directions; an assassin only kills through the enemy standing
+        directly behind it, which is exactly the mirror image of the king
+        through the assassin's own origin.
+        """
+        if piece.type is PieceType.ASSASSIN:
+            mirrored = Position(2 * piece.position.row - king.row,
+                                2 * piece.position.col - king.col)
+            return [mirrored] if self.inside(mirrored) else []
+        return self._three_cell_neighbours(king)
+
+    def _three_cell_neighbours(self, origin: Position) -> list[Position]:
+        """Every square that could pair with `origin` in a three-cell line."""
+        squares = []
+        for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
+            for step in (1, 2):
+                for sign in (1, -1):
+                    square = Position(origin.row + sign * step * dr,
+                                      origin.col + sign * step * dc)
+                    if self.inside(square):
+                        squares.append(square)
+        return squares
 
     def checkmate(self, state: GameState, color: Color) -> bool:
         return self.in_check(state, color) and not self.legal_moves(state, color)
