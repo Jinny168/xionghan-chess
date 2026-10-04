@@ -190,5 +190,7 @@ release/匈漢象棋-2.0.0-网页版/src/.../__init__.py  → __version__ = "2.0
 - **出生行去硬编码**：`game.py::public_state["profile"]["pawnHomeSquares"]`、`service/app.py` `/api/profiles`、桌面端复活按钮统一由 `profile.pieces` 派生，`web/js/app.js` 按 `col` 查表取 `row`；`traditional`（10×9）正确落到 row 6 而非旧硬编码的 8。
 - **C-2 收口（无需改代码）**：复测证实 `web/js/core/game-rules.js` 的 25 点不在活体依赖链上——服务 `WEB_DIR` 运行期解析到内层 `web/`（`/js` 只有 `app.js`、`i18n.js`，无 `js/core`）；活体入口只有内层 `index.html`（module 加载 `/js/app.js?v=1.6.0`）；全树扫描中对旧资产引用的只有审计文档自己。活体侧三条链路本就都是 13 点菱形。改死文件既到不了浏览器又会撕裂历史快照，故改为加回归测试 `test_archer_star_points_are_thirteen_diamonds_not_twenty_five` 钉死；遗留文件保留不归档。
 - **校验**：全量 `pytest tests/ -q` = **146 passed / 0 failed**；`node --check` 对 `offline.js`、`offline-locales.js`、`web/js/app.js` 均通过；新星点用例经变异测试（临时把 `rules.py:26` 过滤改恒真）验证敏感。
-- **提交**：`714c1ce`（143 绿基线）、`6a11580`（复活收尾 + 出生行同源化，8 文件 +159/−10）；**尚未 push**（`CONNECT tunnel failed, response 502`，网络侧问题）。
+- **提交**：`714c1ce`（143 绿基线）、`6a11580`（复活收尾 + 出生行同源化，8 文件 +159/−10）、`cb2dab6`（星点 13 菱形回归 + 审计收口）、`bb26c68`（R-1a/b 间接吃王双写 + 5 条黄金用例）；**尚未 push**（`CONNECT tunnel failed, response 502`，网络侧问题）。
+- **R-1a/b 间接吃王（发布门槛）已交付**：甲的三格连线、刺的身后拖拽都会让王在「没有任何攻击者能走到它格子」的情况下消失，原先 `in_check` 全程 False、对局在沉默中结束。两侧双写（Python `rules.py` + `offline.js`），候选落点按各自规则收紧后统一回放 `apply_unchecked`，避免把甲/刺规则抄成第二份。对拍防不了「两侧同样错」，故另建 `tests/test_p0_rules.py` 钉期望值本身（2 个复现 + 2 个对照组 + 探针三腿），并对 offline.js 做变异测试验证断言有敏感度。校验：全量 **151 passed**。
+- **R-5 对拍维度 2→5 已交付**：探针新增 `capturedByMove` / `checkmate` / `stalemate` 三腿，`check` 腿支持显式 `checkFor`（不显式时取 `state.turn`，而缺王一侧的结论恒为 True，无法用于对比）。
 - **本轮不做**（另有安排）：O-1 统一 `capturable_squares`、O-9…O-18 结构重构、P1-F AI 升变阻挡值、R-9b AI 估值延后。
