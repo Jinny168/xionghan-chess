@@ -187,7 +187,12 @@ class RulesEngine:
             reverse = Position(move.source.row - dr, move.source.col - dc)
             dragged = clone.piece_at(reverse)
             moved_piece = clone.piece_at(move.target)
-            if dragged and dragged.color is not piece.color and dragged.type is not PieceType.SHIELD:
+            # An exchange is still a capture, so the piece standing behind the
+            # assassin keeps its `PIECE_RULES.md:98` shield immunity; only a
+            # shield itself (doc line 92) is exempt for being a shield.
+            if dragged and dragged.color is not piece.color and \
+                    dragged.type is not PieceType.SHIELD and \
+                    not self._protected_by_enemy_shield(clone, dragged):
                 clone.pieces.remove(dragged)
                 removed.append(dragged)
                 if moved_piece:

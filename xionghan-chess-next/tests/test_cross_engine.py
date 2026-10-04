@@ -84,6 +84,53 @@ def _probe_resurrect(game: Game, color: Color, row: int, col: int) -> dict:
     return leg
 
 
+def _offline_captured(game: Game, source: Position, target: Position) -> list[dict]:
+    """Ask offline.js which enemy pieces that very move removes."""
+    if not shutil.which("node"):
+        pytest.skip("Node.js is required for cross-engine parity tests")
+    payload = json.dumps({
+        "profileId": game.profile.id,
+        "options": asdict(game.rules.options),
+        "state": _offline_state(game),
+        "capturedByMove": {"from": {"row": source.row, "col": source.col},
+                           "to": {"row": target.row, "col": target.col}},
+    })
+    completed = subprocess.run(
+        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
+        capture_output=True, check=True, timeout=30,
+    )
+    return json.loads(completed.stdout)["capturedByMove"]
+
+
+def test_assassin_exchange_keeps_shield_protected_piece_parity():
+    # An exchange is still a capture, so `PIECE_RULES.md:98` applies to the
+    # piece dragged behind the assassin: a pawn beside its own shield survives,
+    # while an identical pawn without one does not. Both engines have to report
+    # the same removal list, otherwise the shield immunity only exists on one
+    # side of the parity gate.
+    # The assassin slides (6,5) -> (6,6), so the piece it drags is the one
+    # standing at (6,4): the mirrored square behind its own origin.
+    protected = _sparse("desktop_complete", [
+        (PieceType.ASSASSIN, Color.RED, 6, 5),
+        (PieceType.PAWN, Color.BLACK, 6, 4),
+        (PieceType.SHIELD, Color.BLACK, 6, 3),    # protects the pawn at (6,4)
+    ])
+    unprotected = _sparse("desktop_complete", [
+        (PieceType.ASSASSIN, Color.RED, 6, 5),
+        (PieceType.PAWN, Color.BLACK, 6, 4),
+        (PieceType.SHIELD, Color.RED, 2, 2),
+    ])
+    _assert_parity(protected)
+    _assert_parity(unprotected)
+    for game, expected in ((protected, set()), (unprotected, {PieceType.PAWN})):
+        python_captured = {p.type for p in
+                           game.rules.captured_by_move(game.state, Move(Position(6, 5), Position(6, 6)))}
+        js_captured = {item["type"] for item in
+                       _offline_captured(game, Position(6, 5), Position(6, 6))}
+        assert python_captured == expected, f"python removed {sorted(python_captured)}"
+        assert js_captured == expected, f"offline.js removed {sorted(js_captured)}"
+
+
 @pytest.mark.parametrize("profile_id", [
     "traditional", "web", "desktop_classic", "desktop_complete",
 ])
