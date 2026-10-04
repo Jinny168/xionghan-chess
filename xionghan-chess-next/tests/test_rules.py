@@ -190,6 +190,21 @@ def test_archer_star_visuals_follow_piece_appearance_setting():
     assert not RulesEngine(profile, disabled).archer_star_points
 
 
+def test_archer_star_points_are_thirteen_diamonds_not_twenty_five():
+    # Audit item C-2. The three live paths already agree — `rules.py` filters
+    # with `(row // 3 + col // 3) % 2 == 0` (13 points), `web/js/app.js`
+    # `drawStarPoints` paints whatever `profile.archerStarPoints` carries, and
+    # `offline.js` `starPoints()` mirrors the same condition. The only file that
+    # still spells out the pre-migration 25 points (`row` and `col` both
+    # multiples of 3) is the legacy `web/js/core/game-rules.js`, which the
+    # running service never mounts — so it is pinned by this test instead of by
+    # editing a file that cannot reach a browser.
+    lattice = {(r, c) for r in range(0, 13, 3) for c in range(0, 13, 3) if (r // 3 + c // 3) % 2 == 0}
+    assert len(lattice) == 13
+    expected = frozenset(Position(row, col) for row, col in lattice)
+    assert RulesEngine(get_profile("desktop_complete")).archer_star_points == expected
+
+
 def test_pawn_fast_move_reaches_enemy_territory_edge_but_does_not_cross_it():
     red, black = kings()
     pawn = piece(PieceType.PAWN, Color.RED, 8, 0)

@@ -183,3 +183,12 @@ release/匈漢象棋-2.0.0-网页版/src/.../__init__.py  → __version__ = "2.0
 - 新增本地 JSONL 自博弈采样、29×13×13 状态编码、28561 动作协议和可选 NumPy policy/value MLP；已完成采样→训练→NPZ 保存闭环。
 - 新增 master vs hard 机器可读基准工具。50 局快速筛查的 master 单步平均约 0.417 秒、最大约 0.442 秒，但均为 2 ply 截断局，**不得视为 55% 正式棋力验收**。
 - **待验收**：全部特色棋子手工局面、和棋边界以及至少 50 局非截断完整对弈；训练模型尚未接入生产 MCTS policy/value 推理。
+
+### 【已执行】1.6.0 一致性修复轮（2026-10-04，跨引擎对拍）
+- **起点**：`docs/AUDIT_1.6.0_full.md` 的 C-2 / R-*/O-* 系列。本轮只做**复核 + 复活端到端**，不做结构重构。
+- **复活兵卒（用户最高优先级，已闭环）**：`offline.js` 补 `pawnHomeSquares()` / `resurrectPawn()`，与 `core/game.py::resurrect_pawn` 逐条对齐（开关、行棋方、家乡行取自 `profile.pieces`、占用检查、从 `captured[color]` 回读死兵、7 兵上限、快照、切手、记谱、`recordPosition`、`settle(color, revived)`）；`move()` 与 `settle()` 改为传棋子对象。`offline_rules_probe.cjs` 加 resurrect 对拍腿（`tr` 桩 + `OfflineGame` 导出），`tests/test_cross_engine.py` 加 2 个复活对拍用例（落点/切手/损失池/history/positionCounts/记谱 + 3 类拒绝），并做变异测试证明断言非空转。
+- **出生行去硬编码**：`game.py::public_state["profile"]["pawnHomeSquares"]`、`service/app.py` `/api/profiles`、桌面端复活按钮统一由 `profile.pieces` 派生，`web/js/app.js` 按 `col` 查表取 `row`；`traditional`（10×9）正确落到 row 6 而非旧硬编码的 8。
+- **C-2 收口（无需改代码）**：复测证实 `web/js/core/game-rules.js` 的 25 点不在活体依赖链上——服务 `WEB_DIR` 运行期解析到内层 `web/`（`/js` 只有 `app.js`、`i18n.js`，无 `js/core`）；活体入口只有内层 `index.html`（module 加载 `/js/app.js?v=1.6.0`）；全树扫描中对旧资产引用的只有审计文档自己。活体侧三条链路本就都是 13 点菱形。改死文件既到不了浏览器又会撕裂历史快照，故改为加回归测试 `test_archer_star_points_are_thirteen_diamonds_not_twenty_five` 钉死；遗留文件保留不归档。
+- **校验**：全量 `pytest tests/ -q` = **146 passed / 0 failed**；`node --check` 对 `offline.js`、`offline-locales.js`、`web/js/app.js` 均通过；新星点用例经变异测试（临时把 `rules.py:26` 过滤改恒真）验证敏感。
+- **提交**：`714c1ce`（143 绿基线）、`6a11580`（复活收尾 + 出生行同源化，8 文件 +159/−10）；**尚未 push**（`CONNECT tunnel failed, response 502`，网络侧问题）。
+- **本轮不做**（另有安排）：O-1 统一 `capturable_squares`、O-9…O-18 结构重构、P1-F AI 升变阻挡值、R-9b AI 估值延后。
