@@ -8,6 +8,16 @@ from xionghan_chess.i18n import t
 from .model import Color, Piece, PieceType
 
 
+# The 13x13 "Xion Xiangqi" board. Red is the mirror image of Black, so Red's
+# back rank 0 corresponds to Black's back rank 12.
+XIONGHAN_ROWS = 13
+XIONGHAN_COLS = 13
+# Home rank of the patrol ("巡") before mirroring. Black starts on this rank and
+# Red starts on its mirror image, so the patrol may only ever move along one of
+# those two ranks. Only profiles that enable PieceType.PATROL place it.
+PATROL_HOME_ROW = 5
+
+
 @dataclass(frozen=True, slots=True)
 class RuleOptions:
     king_can_leave_palace: bool = True
@@ -142,7 +152,7 @@ def specs(color: Color, items: Iterable[tuple[PieceType, int, int]]) -> list[Pie
 
 
 def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[PieceSpec]:
-    flip = (lambda row: 12 - row) if color is Color.RED else (lambda row: row)
+    flip = (lambda row: XIONGHAN_ROWS - 1 - row) if color is Color.RED else (lambda row: row)
     items: list[tuple[PieceType, int, int]] = []
     if complete:
         items += [
@@ -173,7 +183,8 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
     ]
     items += [(PieceType.PAWN, 4, col) for col in range(0, 13, 2)]
     if complete or not web:
-        items += [(PieceType.PATROL, 5, 0), (PieceType.PATROL, 5, 12)]
+        items += [(PieceType.PATROL, PATROL_HOME_ROW, 0),
+                  (PieceType.PATROL, PATROL_HOME_ROW, XIONGHAN_COLS - 1)]
     return specs(color, [(kind, flip(row), col) for kind, row, col in items])
 
 

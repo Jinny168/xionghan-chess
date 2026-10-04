@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager, suppress
 import asyncio
 from dataclasses import asdict
+import logging
 import os
 from pathlib import Path
 
@@ -18,7 +19,7 @@ from xionghan_chess.core.game import GameError
 from xionghan_chess.core.model import Color, Position
 from xionghan_chess.core.profiles import PROFILES
 from xionghan_chess.core.protocol import Envelope, MessageType
-from .rooms import RoomManager
+from .rooms import Room, RoomManager
 from xionghan_chess.core.rules import archer_star_points
 from xionghan_chess.core.storage import game_from_content
 from xionghan_chess.core.storage import game_document
@@ -32,15 +33,38 @@ manager = RoomManager()
 accounts = AccountStore()
 WEB_DIR = Path(__file__).resolve().parents[3] / "web"
 LOCALES_DIR = Path(__file__).resolve().parents[3] / "locales"
+LOGGER = logging.getLogger(__name__)
+MAINTENANCE_INTERVAL_SECONDS = 5
+
+
+async def maintain_room(room: Room) -> None:
+    """Advance one room and push its snapshot, isolating failures to that room.
+
+    A raising room must never abort the maintenance loop: otherwise every other
+    room silently stops ticking (clocks freeze) and stops broadcasting.
+    """
+    try:
+        await manager.tick(room)
+        await manager.broadcast(room)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        LOGGER.exception("maintenance failed for room %s", room.id)
 
 
 async def maintenance() -> None:
     while True:
-        await asyncio.sleep(5)
+        await asyncio.sleep(MAINTENANCE_INTERVAL_SECONDS)
+        # Snapshot the rooms: cleanup() below may drop entries, and a raising
+        # room must not prevent the remaining rooms from being serviced.
         for room in list(manager.rooms.values()):
-            await manager.tick(room)
-            await manager.broadcast(room)
-        await manager.cleanup()
+            await maintain_room(room)
+        try:
+            await manager.cleanup()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            LOGGER.exception("maintenance cleanup failed")
 
 
 @asynccontextmanager

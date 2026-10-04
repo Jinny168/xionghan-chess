@@ -13,3 +13,9 @@ release/v1.5.0-delivery/
 # 归档：实验性/废弃构建（保留追溯，不跟踪、不发布）
 release/archive-experimental/
 training-data/
+# PyInstaller 单文件构建工作目录（packaging/build_windows.ps1 会重建）
+build-onefile/
+# 1.0.0 之前的冻结快照：整棵历史源码 + APK，只为本地追溯，不应再入库
+archive/
+# 根目录散落的桌面端调试截图（QA 过程产物，非发布物）
+/desktop-*.png

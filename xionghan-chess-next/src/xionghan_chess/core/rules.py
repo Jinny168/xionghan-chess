@@ -4,7 +4,15 @@ from dataclasses import replace
 from typing import Callable, Iterable
 
 from .model import Color, GameState, Move, Piece, PieceType, Position
-from .profiles import RuleOptions, RuleProfile
+from .profiles import PATROL_HOME_ROW, RuleOptions, RuleProfile, XIONGHAN_ROWS
+
+
+# The patrol is confined to its own starting rank: Black's home rank and Red's
+# mirror image of it. Mirroring matches xionghan_side(), so PATROL_HOME_ROW and
+# XIONGHAN_ROWS - 1 - PATROL_HOME_ROW are the only two ranks it may occupy.
+# Profiles without PieceType.PATROL never place one, so this set is unreachable
+# on the 10x9 traditional board.
+PATROL_HOME_ROWS = frozenset({PATROL_HOME_ROW, XIONGHAN_ROWS - 1 - PATROL_HOME_ROW})
 
 
 def archer_star_points(profile: RuleProfile) -> frozenset[Position]:
@@ -95,6 +103,9 @@ class RulesEngine:
         if target and self._protected_by_enemy_shield(state, target):
             return False
 
+        # Every validator shares the (state, piece, move) signature so this table
+        # stays homogeneous; a validator that does not need `piece` (rook, horse,
+        # cannon, guard, archer, thunder, shield, patrol) simply ignores it.
         validators: dict[PieceType, Callable[[GameState, Piece, Move], bool]] = {
             PieceType.ROOK: self._rook, PieceType.HORSE: self._horse,
             PieceType.ELEPHANT: self._elephant, PieceType.ADVISOR: self._advisor,
@@ -382,7 +393,10 @@ class RulesEngine:
 
     def _nearest_archer_star_distance(self, source: Position,
                                       step_row: int, step_col: int) -> int:
-        for distance in range(1, max(self.profile.rows, self.profile.cols)):
+        # A diagonal needs at most max(rows, cols) - 1 steps to leave the board,
+        # so this exclusive bound always covers the whole ray.
+        search_steps = max(self.profile.rows, self.profile.cols)
+        for distance in range(1, search_steps):
             position = Position(source.row + distance * step_row,
                                 source.col + distance * step_col)
             if not self.inside(position):
@@ -442,7 +456,7 @@ class RulesEngine:
         return self._jump_over_one(state, move, False)
 
     def _patrol(self, state: GameState, piece: Piece, move: Move) -> bool:
-        if move.source.row not in {5, 7} or move.target.row != move.source.row:
+        if move.source.row not in PATROL_HOME_ROWS or move.target.row != move.source.row:
             return False
         distance = abs(move.target.col - move.source.col)
         if distance == 0 or distance % 2 or not self._clear(state, move.source, move.target):

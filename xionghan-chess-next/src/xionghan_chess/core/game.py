@@ -143,13 +143,26 @@ class Game:
         self.state.pending_restart_offer = None
         return accept
 
+    def _pawn_home_squares(self, color: Color) -> set[Position]:
+        """Squares a `color` pawn may be resurrected onto.
+
+        Derived from the profile's own pawn slots instead of hard coding the
+        13x13 ranks: `xionghan_side` (profiles.py:184) places pawns on local row 4
+        and mirrors them to 8 for red, while `traditional_side` (profiles.py:200)
+        places them on local row 3, mirrored to 6 for red. Hard coding 8/4 made
+        resurrection land on the wrong rank for any other board size.
+        """
+        return {Position(spec.row, spec.col) for spec in self.profile.pieces
+                if spec.type is PieceType.PAWN and spec.color is color}
+
     def resurrect_pawn(self, color: Color, position: Position) -> None:
+        if self.state.finished:
+            raise GameError(self._t("error.game_finished"))
         if self.state.paused:
             raise GameError(self._t("error.game_paused"))
         if not self.options.pawn_resurrection or color is not self.state.turn:
             raise GameError(self._t("error.resurrect_not_allowed"))
-        home_row = 8 if color is Color.RED else 4
-        if position.row != home_row or position.col % 2 or self.state.piece_at(position):
+        if position not in self._pawn_home_squares(color) or self.state.piece_at(position):
             raise GameError(self._t("error.invalid_resurrect_position"))
         dead = next((p for p in self.state.captured[color] if p.type is PieceType.PAWN), None)
         if dead is None or sum(p.type is PieceType.PAWN and p.color is color for p in self.state.pieces) >= 7:
@@ -158,11 +171,25 @@ class Game:
         if len(self._snapshots) > self.MAX_SNAPSHOTS:
             del self._snapshots[:-self.MAX_SNAPSHOTS]
         self.state.captured[color].remove(dead)
-        self.state.pieces.append(Piece.create(PieceType.PAWN, color, position.row, position.col))
+        revived = Piece.create(PieceType.PAWN, color, position.row, position.col)
+        self.state.pieces.append(revived)
         self.state.turn = color.opponent
         self.state.turn_started_at = time.monotonic()
         self.state.pending_draw_offer = None
         self.state.pending_undo_offer = None
+        self.state.pending_restart_offer = None
+        # A resurrection is a full-board change, so it carries the same P0-R4 /
+        # P0-R5 bookkeeping as `move()`: log it, count it for repetition, then run
+        # the terminal-state chain, because the revived pawn can deliver mate or
+        # leave the opponent with nothing left.
+        arrival = Move(position, position)
+        record = MoveRecord(
+            arrival, color, PieceType.PAWN, (),
+            self.notation(revived, arrival, (), action=self._t("action.resurrect")),
+        )
+        self.state.history.append(record)
+        self._record_position()
+        self._settle(color, revived)
 
     def tick(self) -> None:
         if self.state.finished or self.state.paused:
@@ -176,9 +203,11 @@ class Game:
             self.state.clocks_ms[self.state.turn] -= elapsed
             self.state.turn_started_at = time.monotonic()
 
-    def notation(self, piece: Piece, move: Move, captured: tuple[Piece, ...]) -> str:
+    def notation(self, piece: Piece, move: Move, captured: tuple[Piece, ...],
+                 action: str | None = None) -> str:
         name = self.profile.display_name_of(piece, self.language)
-        action = self._t("notation.capture") if captured else self._t("notation.move")
+        if action is None:
+            action = self._t("notation.capture") if captured else self._t("notation.move")
         return f"{name} {move.source.row + 1},{move.source.col + 1} {action} {move.target.row + 1},{move.target.col + 1}"
 
     def public_state(self) -> dict:
@@ -201,9 +230,18 @@ class Game:
         self.state.position_counts[key] = self.state.position_counts.get(key, 0) + 1
 
     def _settle_after_move(self, mover: Color, move: Move) -> None:
+        self._settle(mover, self.state.piece_at(move.target))
+
+    def _settle(self, mover: Color, moved: Piece | None) -> None:
+        """Run the terminal-state chain after a board change (P0-R5).
+
+        It takes the piece that landed on the destination rather than a `Move`:
+        the resurrection path has no `Move`, and the move object was only ever
+        used to look that piece up, so this keeps one copy of the five-level
+        order instead of a second hand-rolled copy for resurrections.
+        """
         enemy = mover.opponent
         enemy_king = next((p for p in self.state.pieces if p.type is PieceType.KING and p.color is enemy), None)
-        moved = self.state.piece_at(move.target)
         if enemy_king is None:
             self.state.winner, self.state.result_reason = mover, "king_captured"
         elif moved and moved.type is PieceType.KING and self.options.invasion_victory and self.rules.enemy_palace(mover, moved.position):
