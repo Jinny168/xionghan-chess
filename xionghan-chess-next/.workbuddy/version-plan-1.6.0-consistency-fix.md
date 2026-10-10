@@ -282,6 +282,19 @@ cache_key = (game.rules.position_key(game.state), color)   # ← 确实不含 ca
 - **P0-E（必做，S）**：修 `position_key` 纳入池 → 修复三回合计数 + 缓存键正确性
 - **P0-F（新，P1→建议升级）**：在 `_evaluate` 中**显式计入素材池价值**。此项**独立于 P0-E**，修完 P0-E 仍然需要它
 
+> **【已核实口径 · 定稿】AI 并非完全不知池存在。**
+> `ai.py:333-338`（`_tactical_moves` 内）**已读 `state.captured[moving.color]`**，用于决定可用升变类型：
+> ```python
+> if moving.type is PieceType.PAWN and game.options.pawn_promotion:
+>     final_row = 0 if moving.color is Color.RED else game.profile.rows - 1
+>     promotion_types = {piece.type for piece in state.captured[moving.color]
+>                        if piece.type not in {PieceType.PAWN, PieceType.KING}}
+> ```
+> 准确表述：**AI 在「候选生成层」已读池，仅在「静态评估层 `_evaluate`（`ai.py:361+`）池盲」**（AST 确认该 45 行内无任何 `captured` 引用）。
+> **修法边界因此收窄**：只需 ① `_evaluate` 纳入池价值、② `position_key` 纳入池；**`ai.py:333-338` 已正确，不要动**；**`ai_see._promotion_gain` 不需改**。
+> **量级（为什么仍是 P0）**：升变语义 = 「消耗池中一子 → 棋盘上 PAWN 变为该类型」⇒ `_evaluate` 只见棋盘 `−120(兵)+900(车)=+780`、不见池 `−900` ⇒ 对升变类着法**系统性高估约 +900 量级**（随升变目标类型变）。属确定性定式偏差，非洁癖。
+> **实施纪律**：基线优先 —— 先立「池空 / 池有子」两组断言测试（对应测试 helper #14）证实现有 `_evaluate` 对池完全无感，**再**定池价值公式，**不得凭感觉填系数**。
+
 ⚠️ 两项**都需同步 `offline.js` 的 `positionKey`**（2 处命中），否则三回合计数会分叉。
 ⚠️ P0-E 与 P0-F **互不替代**，请勿只做其一。
 

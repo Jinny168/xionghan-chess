@@ -199,4 +199,72 @@ release/匈漢象棋-2.0.0-网页版/src/.../__init__.py  → __version__ = "2.0
   **规则语义固化：刺吃不掉被盾保护的棋子**（与 `PIECE_RULES.md:98` 一致）。实测两侧一致：刺 6,5→6,6 拖拽身后 (6,4) 的兵，兵旁有己方盾 → 移除列表为空；兵旁无盾 → 移除 `['pawn']`。
 - 顺带修 `offline.js::capturedByMove`：原写法取 `m.from.id`（跨引擎探针只传 `{row,col}`）会抛错；改按坐标取子并按 Python 过滤己方子（刺兑子会把刺自己一并移除）。
 - **校验**：全量 **169 passed**（约 47 秒）。期间一次 432 秒的读数系并发资源争用，非性能劣化，已复测确认。
-- **本轮不做**（另有安排）：O-1 统一 `capturable_squares`、O-9…O-18 结构重构、P1-F AI 升变阻挡值、R-9b AI 估值延后。
+- **本轮不做**（另有安排）：**O-6** 统一 `capturable_squares`、结构重构（见下方编号对照）、P1-F AI 升变阻挡值、R-9b AI 估值延后。
+
+> ### ⚠️ O 编号对照（消除两套体系，防再发错工单）
+> 本文件上一版曾把「统一 `capturable_squares`」记为 **O-1**，属**笔误**。**权威编号一律以 `docs/AUDIT_1.6.0_full.md:340-360` §5.3/§5.4 定稿表为准**：
+>
+> | 主题 | 本文件旧写法 | 权威编号（`AUDIT_1.6.0_full.md`） |
+> |---|---|---|
+> | maintenance 异常隔离 | — | **O-1**（v1.6.0 本轮做，**已交付**） |
+> | 统一 `capturable_squares` | ~~O-1~~ | **O-6**（v1.7.0） |
+> | 广播/快照增量推送 | — | **O-7** |
+> | F-5 安全加固 | — | **O-8** |
+> | i18n 收尾（41 处） | O-9 | **O-9**（同号同义） |
+> | 规则语义调整 C-01~C-12 | — | **O-10**（需产品拍板） |
+> | master 正式棋力验收 | — | **O-11**（独立验收） |
+> | README 全面重写 | — | **O-12** |
+> | 「O-9…O-18 结构重构」 | O-9…O-18 | **该段编号不存在**；结构重构对应 §5.4 的 **O-5**（offline.js 薄壳化）等 |
+>
+> **结论：`O-13`…`O-18` 作废，此后统一使用上表右侧编号。**
+
+---
+
+## 8. v1.7.0 已定档处置（用户已批准）
+
+| 项 | 编号 | 处置 | 前置 / 备注 |
+|---|---|---|---|
+| 统一 `capturable_squares` | **O-6** | **进 v1.7.0，头号结构项** | **前置 = O-10 规则语义（C-01~C-12）需产品拍板；未拍板不开工** |
+| 广播/快照增量推送 | **O-7** | 进 v1.7.0 | **需先立压测基线**（新增 `scripts/benchmark_broadcast.py`） |
+| F-5 安全加固 | **O-8** | 进 v1.7.0 | 低成本高价值；建议并入 `accounts.py` 口令哈希核实 |
+| README 全面重写 | **O-12** | 进 v1.7.0 | 先合并重复 README |
+| offline.js 薄壳化 | **O-5** | **押后** | 与 O-6 同族，触及产品降级路径，单独版本做 |
+| i18n 收尾（41 处） | **O-9** | 进 v1.7.0 | **前置 E-02 重译 `PIECE_RULES.md`**，否则固化错译 |
+| master 正式棋力验收 | **O-11** | **独立验收任务**（**不属于 v1.6.0 遗留门槛**） | 需 50 局**非截断**完整对弈 |
+
+**纪律**：**O-6 不得夹带 P0-F**（P0-F「`_evaluate` 池盲」已被 **R-9b** 冻结为 AI 估值延后项；`ai.py:333-338` 候选生成层已读池，属另一层，勿混）。
+
+---
+
+## 9. 性能与包体预算（v1.7.0 验收依据）
+
+> ⚠️ 下表中**标注「待首采校准」的阈值是建议值，不是既成结论**；首次采样后须回填基线再定稿。
+
+### 9.1 实测基线（可复算）
+| 项 | 实测 | 出处 |
+|---|---|---|
+| APK（.NET MAUI, v1.5.0） | **37.9 MB** | `release/匈漢象棋-1.5.0-安卓版.apk` |
+| APK（MAUI 前 WebView 壳） | 8.8 MB | `archive/.../XionghanChess-Android-3.2.0.apk` |
+| APK 内游戏资源 | 仅 ~80 KB | `du -sh android/Resources/assets` |
+| .NET 链接/AOT | `PublishTrimmed=false` / `RunAOTCompilation=false` | `android/XionghanChessAndroid.csproj:11-12` |
+| minSdk | `SupportedOSPlatformVersion=21`（Android 5.0） | csproj:4 |
+| desktop resources | 126 MB（sounds 77 / fonts 31 / backgrounds 15 / icon.ico 4.63） | `du` |
+| ├ 两首未压缩 BGM | `fc_background_sound.wav` 31.96 MB + `qq_background_sound.wav` 42.92 MB = **74.9 MB（占 sounds 97%）** | Python `wave` |
+| web 代码 payload | js 84K + css 24K + html 24K = 132 KB | `du` |
+| 现有性能基线 | 全仓 0 条 | grep |
+
+**三条设计依据**
+1. **APK 体积与游戏资源无关**：Android 是 WebView 壳，资产不进 APK（assets 仅 80KB）。37.9MB ≈ .NET MAUI 运行时；8.8→37.8 的 +29MB 跳变点正是 v1.3.0（MAUI 迁移）。⇒ 裁资源救不了 APK，唯一杠杆是 linker/trimming/AOT（有反射风险）。
+2. **包体黑洞 = 两首未压缩 BGM WAV**（74.9MB / 77MB = 97%）；转 OGG/MP3 可 −70MB。**只影响桌面/Web 包，不影响 APK。**
+3. `icon.ico` = 4.63 MB，异常。
+
+### 9.2 预算表
+| 指标 | 采样口径 | 测量工具 | 阈值 | 硬/观测 |
+|---|---|---|---|---|
+| **帧率** | 对局→连走 30 步→AI 思考期；各端 3 次中位 | 桌面 dev-only `QTimer` 帧计数（**需加埋点**）；Web DevTools FPS meter；Android `dumpsys gfxinfo` | ①桌面/Web 动画期 **≥55 FPS 均帧**（目标 60）②Android minSdk21 低端机 **≥30 FPS 且无 >2 连续掉帧** ③AI 思考期 **0 次 ≥200ms 主线程卡顿** | 硬门槛（**待首采校准**） |
+| **内存** | 第 60 回合采 RSS/PSS；各端 3 次中位 | 桌面 `psutil`；Web DevTools Memory；Android `dumpsys meminfo` PSS | ①Android WebView 进程 **PSS ≤200 MB** ②桌面 RSS **≤基线×1.2**（**待定基线**）③126MB 资源是否常驻 **须先测** | ①硬门槛 ②③观测项 |
+| **加载时间** | Web：4G 限速+冷缓存，`performance.timing`，5 次中位；桌面：冷启含 `--onefile` 解压，3 次；Android：`am force-stop` 后 `am start -W`，3 次中位 | DevTools Timing；`Measure-Command`；`adb shell am start -W` | ①Web FCP **≤2.0s**（**前提：BGM 不得阻塞首屏**）②Android 冷启 **TotalTime ≤3.0s** ③桌面冷启 **待首采校准** | ①②硬门槛 ③观测项 |
+| **包体** | 每次 Release 构建后记录 | `aapt2 dump badging` / `unzip -l` / APK Analyzer | ①**APK ≤40 MB**（现 37.9，余量仅 2MB）②desktop 分发 **≤60 MB**（现 126MB，**须先 BGM 转码**）③web 静态包 **≤15 MB**（现 97MB，同上）④`icon.ico ≤256 KB` | 硬门槛 |
+
+**达标路径**：BGM 转 OGG/MP3（−70MB）+ 图标瘦身（−4.4MB）→ 桌面/Web 包体达标；APK 另需 linker/trimming spike。
+**测量纪律**：阈值首采后写入基线，防「凭感觉定系数」。
