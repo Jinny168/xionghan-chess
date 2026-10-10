@@ -515,9 +515,9 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 #### B1｜C-9「单方无主动认输按钮」——❌ 关闭（该项已实现）
 审计称「单方无主动认输按钮、请求 `resign` 返回 `error.resignUnavailable`」**不成立**。现仓证据：
 - `web/js/app.js:223` 绑定 `#resignButton → send('resign')`；
-- `src/xionghan_chess/service/rooms.py:284-287` 直接执行 `Game.resign(seat.color)`；
+- `src/xionghan_chess/service/rooms.py:285-286` 直接执行 `Game.resign(seat.color)`；
 - `src/xionghan_chess/core/game.py:106 resign()` 正常实现；
-- 全仓 `resignUnavailable` **0 命中**。
+- **代码中** `resignUnavailable` **0 命中**；字面命中仅见于本审计文本自身（`:505`、`:516`、`:520`），非代码。
 **判定：关闭该项（已实现）。**
 
 #### B2｜C-4「甲」三子连线（可斜可直）—— 已改文档措辞
