@@ -19,3 +19,7 @@ build-onefile/
 archive/
 # 根目录散落的桌面端调试截图（QA 过程产物，非发布物）
 /desktop-*.png
+# release/ 下历史网页版交付目录与顶层 APK/SHA256（本地追溯，不入库；*.exe 由仓库根 .gitignore 覆盖）
+release/匈漢象棋-*/
+release/匈漢象棋-*-安卓版.apk
+release/SHA256SUMS-*.txt
