@@ -58,20 +58,6 @@ function downloadDocument(gameDocument){const filename=`xionghan_${new Date().to
 function documentNode(tag,attrs){const node=document.createElement(tag);Object.assign(node,attrs);return node}
 async function importDocument(document,mode){const targetMode=mode||(app.mode==='online'?'local':app.mode||'local');const data=await api('/api/rooms/import',{method:'POST',body:JSON.stringify({document,mode:targetMode,playerName:t('common.player'),playerColor:$('#colorSelect').value,difficulty:$('#difficultySelect').value,language:currentLanguage()})});closeReplay();acceptSession(data);$('#modeSelect').value=targetMode;syncModeControls();toast(targetMode==='local'?t('toast.imported_local'):t('toast.imported_ai'))}
 
-const labels = {
-  king_can_leave_palace:'汉/汗允许出九宫', king_diagonal_in_palace:'汉/汗在九宫内可斜走',
-  king_lose_diagonal_outside_palace:'汉/汗出九宫后失去斜走',
-  invasion_victory:'进入敌方九宫获胜', advisor_can_leave_palace:'仕/士允许出宫',
-  advisor_gain_straight_outside_palace:'仕/士出九宫后可直走',
-  elephant_can_cross_river:'相/象允许过长城阴山',
-  elephant_gain_jump_two_enemy_territory:'相/象进入敌境后可横竖两格',
-  horse_straight_three:'马允许直走三格',
-  archer_enhanced_mode:'加强射/䠶（自由斜走三格）',
-  pawn_fast_move_before_enemy_territory:'兵卒进入敌境前可快速行军',
-  pawn_backward_at_base:'兵卒到底线可后退', pawn_full_movement_at_base:'兵卒到底线四向移动',
-  pawn_resurrection:'兵卒复活', pawn_promotion:'兵卒升变', enforce_self_check:'禁止送将',
-  threefold_draw:'三次重复和棋'
-};
 const pieceLabels = {
   king:'汉/汗登场',rook:'车登场',horse:'马登场',elephant:'相/象登场',advisor:'仕/士登场',
   cannon:'炮登场',pawn:'兵/卒登场',guard:'尉/卫登场',archer:'射登场',thunder:'檑登场',
@@ -84,7 +70,6 @@ const pieceRuleKeys={
   pawn:['pawn_fast_move_before_enemy_territory','pawn_backward_at_base','pawn_full_movement_at_base','pawn_resurrection','pawn_promotion'],
   archer:['archer_enhanced_mode']
 };
-const pieceDescriptions={king:'主帅；可配置出九宫与攻入敌宫获胜',rook:'横竖直行，路径不可有子',horse:'日字走法，受蹩马腿限制',elephant:'斜走两格，受象眼与过界规则限制',advisor:'基础为九宫内斜走一格',cannon:'直线移动，隔一子吃子',pawn:'向前推进，进入敌境后可横走',guard:'沿直线或斜线隔一子跳',archer:'弱化沿有效星轨，强化可脱离轨道',thunder:'八方向移动，近身攻击落单敌子',armor:'直行并通过三子连线夹击',assassin:'直行至空位并反向兑子',shield:'隔一子跳，自身不可被吃',patrol:'在指定边界线上横移'};
 const names = {red:{king:'漢',rook:'俥',horse:'傌',elephant:'相',advisor:'仕',cannon:'炮',pawn:'兵',guard:'尉',archer:'射',thunder:'檑',armor:'甲',assassin:'刺',shield:'楯',patrol:'巡'},black:{king:'汗',rook:'車',horse:'馬',elephant:'象',advisor:'士',cannon:'砲',pawn:'卒',guard:'衛',archer:'䠶',thunder:'礌',armor:'胄',assassin:'伺',shield:'碷',patrol:'廵'}};
 
 async function api(path, options={}) {const headers={'Content-Type':'application/json',...(app.authToken?{Authorization:`Bearer ${app.authToken}`}:{}) ,...(options.headers||{})};const response=await fetch(path,{...options,headers});const data=await response.json();if(!response.ok)throw new Error(data.detail||t('error.request_failed'));return data;}
@@ -220,7 +205,7 @@ function checkPuzzleProgress(){const session=app.puzzleSession;if(!session||!app
 
 board.addEventListener('pointerdown',async e=>{const pos=positionAt(e);if(pos){app.dragging={start:pos,x:e.clientX,y:e.clientY};const piece=app.state?.pieces.find(p=>p.row===pos.row&&p.col===pos.col);if(canControl(piece)&&(!app.selected||app.selected.row!==pos.row||app.selected.col!==pos.col)){app.selected=piece;playSound('select');await loadLegal(piece)}}});
 board.addEventListener('pointerup',async e=>{const pos=positionAt(e),drag=app.dragging;app.dragging=null;if(!pos)return;if(app.legalPromise)await app.legalPromise.catch(()=>{});if(drag&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8&&app.selected)selectOrMove(pos);else selectOrMove(pos)});board.addEventListener('pointercancel',()=>{app.dragging=null});
-window.addEventListener('resize',resizeBoard);if(window.ResizeObserver)new ResizeObserver(resizeBoard).observe($('#boardShell'));$('#newGameButton').onclick=createGame;$('#joinButton').onclick=joinGame;$('#resignButton').onclick=()=>send('resign');$('#drawButton').onclick=()=>send('draw_offer');$('#undoButton').onclick=()=>send('undo_request');$('#pauseButton').onclick=()=>send('pause',{paused:!app.state?.paused});$('#restartButton').onclick=()=>send(app.mode==='online'?'restart_request':'restart',{options:app.options});$('#replayButton').onclick=()=>openReplay();
+window.addEventListener('resize',resizeBoard);if(window.ResizeObserver)new ResizeObserver(resizeBoard).observe($('#boardShell'));$('#newGameButton').onclick=createGame;$('#joinButton').onclick=joinGame;$('#resignButton').onclick=()=>{const color=app.color||app.state?.turn;if(!confirm(t('dialog.confirm_resign',{color:t(`common.${color}`)})))return;send('resign')};$('#drawButton').onclick=()=>send('draw_offer');$('#undoButton').onclick=()=>send('undo_request');$('#pauseButton').onclick=()=>send('pause',{paused:!app.state?.paused});$('#restartButton').onclick=()=>send(app.mode==='online'?'restart_request':'restart',{options:app.options});$('#replayButton').onclick=()=>openReplay();
 $('#resurrectButton').onclick=()=>{const cols=app.state?.profile?.cols||13;const value=prompt(t('prompt.resurrect_col',{cols}),'1'),col=Number(value)-1;if(!Number.isInteger(col)||col<0||col>=cols)return toast(t('toast.resurrect_col'));// The rank comes from the profile's own pawn slots instead of a hard coded
 // 8/4 split, so `traditional` (10x9) aims at row 6 rather than row 8.
 const home=(app.state?.profile?.pawnHomeSquares||[]).find(square=>square.col===col);if(!home)return toast(t('toast.resurrect_col'));send('resurrect',{row:home.row,col})};
@@ -246,11 +231,14 @@ $('#replayBegin').onclick=()=>setReplayIndex(0);$('#replayPrev').onclick=()=>set
 $('#saveReplayButton').onclick=saveCurrentReplay;$('#savedReplayList').onclick=async e=>{const replay=e.target.closest('[data-replay-record]'),resume=e.target.closest('[data-continue-record]'),exportButton=e.target.closest('[data-export-record]'),del=e.target.closest('[data-delete-replay]'),records=replayRecords();if(replay)loadSavedReplay(Number(replay.dataset.replayRecord));if(resume){const record=records.find(r=>r.id===Number(resume.dataset.continueRecord));if(record)try{await importDocument(record.document)}catch(error){toast(error.message)}}if(exportButton){const record=records.find(r=>r.id===Number(exportButton.dataset.exportRecord));if(record)downloadDocument(record.document)}if(del&&confirm(t('dialog.confirm_delete_replay'))){localStorage.setItem('xh-replays',JSON.stringify(records.filter(r=>r.id!==Number(del.dataset.deleteReplay))));renderSavedReplays()}};
 $('#settingsButton').onclick=()=>{
   const root=$('#ruleOptions'),profile=app.profiles.get($('#profileSelect').value),available=new Set(profile?.pieceTypes||[]);
-  const general=['enforce_self_check','threefold_draw'].map(key=>`<label><input type="checkbox" data-option="${key}" ${app.options[key]!==false?'checked':''}>${t(`rule.${key}`)}</label>`).join('');
+  const general=['enforce_self_check','threefold_draw'].map(key=>`<label><input type="checkbox" data-option="${key}" ${app.options[key]!==false?'checked':''}>${t(`rule.${key}`)}</label>`).join('')
+    // no_progress_draw_plies is the only numeric RuleOption (default 120), so it gets a
+    // select instead of a checkbox; the "" value means "off" (0 disables the check).
+    +`<label>${t('rule.no_progress_draw_plies')} <select data-option-int="no_progress_draw_plies">${[0,60,120,180,240].map(plies=>`<option value="${plies}" ${Number(app.options.no_progress_draw_plies)===plies?'selected':''}>${plies||t('settings.no_progress_off')}</option>`).join('')}</select></label>`;
   const pieces=Object.entries(pieceLabels).map(([kind])=>{const key=`${kind}_appear`,enabled=available.has(kind),mandatory=kind==='king',rules=(pieceRuleKeys[kind]||[]).map(rule=>`<label><input type="checkbox" data-option="${rule}" ${app.options[rule]!==false?'checked':''}>${t(`rule.${rule}`)}</label>`).join('');return `<fieldset class="piece-rule-group ${enabled?'':'unavailable'}"><legend>${t(`piece.${kind}`)}</legend><p>${t(`piece_rule.${kind}`)}</p><label><input type="checkbox" data-option="${key}" ${mandatory||app.options[key]!==false?'checked':''} ${!enabled||mandatory?'disabled':''}>${t('settings.piece_appear')}</label>${rules}</fieldset>`}).join('');
   root.innerHTML=`<fieldset><legend>${t('settings.general_rules')}</legend><div class="option-grid">${general}</div></fieldset><div class="piece-rule-list">${pieces}</div>`;applyPreferences();$('#settingsDialog').showModal();startMusic()
 };
-$('#applySettings').onclick=()=>{app.options={...app.options};document.querySelectorAll('[data-option]').forEach(input=>{if(!input.disabled||input.dataset.option==='king_appear')app.options[input.dataset.option]=input.checked});app.options.king_appear=true;setTimeout(createGame)};
+$('#applySettings').onclick=()=>{app.options={...app.options};document.querySelectorAll('[data-option]').forEach(input=>{if(!input.disabled||input.dataset.option==='king_appear')app.options[input.dataset.option]=input.checked});document.querySelectorAll('[data-option-int]').forEach(input=>{app.options[input.dataset.optionInt]=Number(input.value)});app.options.king_appear=true;setTimeout(createGame)};
 $('#resultRestart').onclick=()=>{$('#resultDialog').close();createGame()};
 
 for(const [id,key] of [['systemThemeSelect','systemTheme'],['fontSelect','font'],['boardThemeSelect','boardTheme'],['pageBackgroundSelect','pageBackground'],['boardBackgroundSelect','boardBackground'],['musicStyleSelect','musicStyle']]){$(`#${id}`).onchange=e=>{app.preferences[key]=e.target.value;applyPreferences();persistPreferences();if(key==='musicStyle'){stopMusic();startMusic()}}}
