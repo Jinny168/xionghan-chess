@@ -210,3 +210,44 @@ def test_g10_board_removals_keeps_the_movers_own_assassin():
     assert board_ids == {assassin.id, victim.id}
     assert enemy_ids == {victim.id}
     assert assassin.id in board_ids and assassin.id not in enemy_ids
+
+
+def test_g11_a_preexisting_line_is_swept_by_an_unrelated_armor_move():
+    # THIS PINS CURRENT-RULE SEMANTICS, NOT DESIRED BEHAVIOUR.
+    #
+    # The armor sweep is a whole-board scan (`_armor_removals`, mirrored by the
+    # JS `armorCaptures`): whenever the *moving* piece is an armor, every
+    # complete ally-ally-enemy line on the board is cleared, whether or not this
+    # move built it. So a line that was assembled by an earlier, NON-armor move
+    # sits in wait -- forming it removes nothing -- until some armour moves
+    # anywhere, and only then is its enemy swept. Here the line is built by a
+    # rook step and then taken by an armour move that neither makes nor touches
+    # it.
+    #
+    # If the product later narrows this to "only clear lines this very move
+    # creates", this case MUST be flipped in the same commit -- it is a
+    # regression guard on the status quo, not an endorsement of it.
+    anchor = piece(PieceType.ARMOR, Color.RED, 5, 5)     # lives in the line, never moves
+    builder = piece(PieceType.ROOK, Color.RED, 9, 6)     # non-armor; steps in to complete it
+    victim = piece(PieceType.PAWN, Color.BLACK, 5, 7)    # the line's enemy
+    mover = piece(PieceType.ARMOR, Color.RED, 0, 5)      # unrelated armour, far from row 5
+    red_king = piece(PieceType.KING, Color.RED, 12, 0)
+    black_king = piece(PieceType.KING, Color.BLACK, 0, 12)
+    state = board(anchor, builder, victim, mover, red_king, black_king)
+    rules = engine()
+
+    build = Move(Position(9, 6), Position(5, 6))
+    assert rules.is_legal(state, build)
+    formed = rules.apply_unchecked(state, build, switch_turn=False)
+    # The line (5,5)-(5,6)-(5,7) now exists, but a non-armor move sweeps nothing.
+    assert victim.id in {p.id for p in formed.pieces}
+
+    sweep = Move(Position(0, 5), Position(0, 6))
+    assert rules.is_legal(formed, sweep)
+    assert {p.id for p in rules.board_removals(formed, sweep)} == {victim.id}
+    after = rules.apply_unchecked(formed, sweep, switch_turn=False)
+    gone = {p.id for p in after.pieces}
+    assert victim.id not in gone          # the pre-existing line's enemy, swept
+    assert anchor.id in gone              # ...by an armour move that never joined it
+    assert builder.id in gone
+    assert mover.id in gone
