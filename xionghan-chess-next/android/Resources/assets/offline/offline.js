@@ -91,8 +91,11 @@ class Rules{
  // repetition ledgers disagree. Format: `<turn>|<board>||pool:<pool>` where board
  // is `color:type:row:col` sorted and `;`-joined, pool is `color:type` sorted and
  // `,`-joined. The pool is part of the key (it gates promotion/revival), so the
- // same board with a different pool is a different position. See rules.py.
- positionKey(state){const board=state.pieces.map(x=>`${x.color}:${x.type}:${x.row}:${x.col}`).sort().join(';');const pool=[];for(const color of['red','black'])for(const piece of((state.captured&&state.captured[color])||[]))pool.push(`${color}:${piece.type}`);pool.sort();return state.turn+'|'+board+'||pool:'+pool.join(',')}
+ // same board with a different pool is a different position.
+ // The board sorts by the (color, type, row, col) TUPLE with NUMERIC row/col to
+ // match Python's `sorted(...)`; a plain string sort would put "10" before "2"
+ // and split the two ledgers on any same-type pair straddling 1<->2 digits.
+ positionKey(state){const rows=state.pieces.map(x=>[x.color,x.type,x.row,x.col]);rows.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:a[1]<b[1]?-1:a[1]>b[1]?1:a[2]-b[2]||a[3]-b[3]);const board=rows.map(r=>`${r[0]}:${r[1]}:${r[2]}:${r[3]}`).join(';');const pool=[];for(const color of['red','black'])for(const piece of((state.captured&&state.captured[color])||[]))pool.push(`${color}:${piece.type}`);pool.sort();return state.turn+'|'+board+'||pool:'+pool.join(',')}
 }
 class OfflineGame{
  constructor(profileId='web',initialMinutes=20){this.sessionId=Date.now();this.start(profileId,initialMinutes)}

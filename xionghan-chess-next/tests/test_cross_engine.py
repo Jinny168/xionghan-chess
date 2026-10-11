@@ -783,12 +783,18 @@ def test_position_key_matches_offline_byte_for_byte():
     a naive mirror is most likely to render differently.
     """
     game = _sparse("desktop_complete", [
-        (PieceType.ROOK, Color.RED, 6, 4),
+        # Two same-type pieces straddling the 1<->2 digit row boundary. Python
+        # sorts by the numeric tuple while a plain string sort would order "10"
+        # before "2", so this pair is what actually proves the contract (F1); a
+        # single-digit-only board passed even with the string-sorted JS.
+        (PieceType.ROOK, Color.RED, 2, 0),
+        (PieceType.ROOK, Color.RED, 10, 0),
+        (PieceType.CANNON, Color.RED, 6, 4),
         (PieceType.PAWN, Color.BLACK, 6, 6),
     ], captured={
-        Color.RED: [_piece(PieceType.HORSE, Color.RED, 0, 0),
-                    _piece(PieceType.CANNON, Color.RED, 0, 1)],
-        Color.BLACK: [_piece(PieceType.PAWN, Color.BLACK, 0, 2)],
+        Color.RED: [_piece(PieceType.HORSE, Color.RED, 0, 1),
+                    _piece(PieceType.CANNON, Color.RED, 0, 2)],
+        Color.BLACK: [_piece(PieceType.PAWN, Color.BLACK, 0, 3)],
     })
     assert game.rules.position_key(game.state) == _offline_position_key(game)
 
