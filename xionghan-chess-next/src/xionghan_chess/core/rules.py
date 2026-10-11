@@ -328,9 +328,13 @@ class RulesEngine:
         at the attackers which could reach `k`, keeping `in_check` the same order
         of work as the direct-plus-indirect scan it replaces.
 
-        The function is pure: it never mutates `state` or its pieces, two calls
-        with the same arguments return equal specs, and it never reads
-        `state.captured`, so it can never report a pool-consuming promotion.
+        The function is pure: it never mutates `state` or its pieces, and two
+        calls with the same arguments return equal specs. Its *result* is blind
+        to the capture pool -- a pawn capturing on its promotion rank is filed as
+        an ordinary direct capture, the same whether the pool is empty or not, so
+        a caller that must ignore the pool can rely on it. The pool is still read
+        internally (`moves_to_target`) to model the mandatory promotion; it never
+        changes which removals exist and never yields a pool-consuming promotion.
         """
         probe = state if state.turn is color else replace(state, turn=color)
         if targets is None:
@@ -351,6 +355,36 @@ class RulesEngine:
             self._assert_capture_specs(found, color)
         return found
 
+    def promotion_types(self, state: GameState, color: Color) -> list[PieceType]:
+        """The types `color` may promote a pawn into right now, sorted.
+
+        The capture pool gates promotion, so this is exactly the set
+        `pseudo_legal`'s promotion branch reads back; candidate generation, MCTS
+        and SEE must all ask the same question, hence one definition.
+        """
+        return sorted({
+            captured.type for captured in state.captured[color]
+            if captured.type not in {PieceType.PAWN, PieceType.KING}
+            and captured.type in self.enabled_piece_types
+        }, key=lambda item: item.value)
+
+    def moves_to_target(self, state: GameState, piece: Piece, target: Position) -> list[Move]:
+        """Every `Move` that carries `piece` onto `target`, one per promotion.
+
+        A pawn stepping onto its promotion rank must promote whenever the pool
+        offers a promotable type (`pseudo_legal`'s gate), so that square is
+        reachable *only* through a promotion move -- a bare `Move(from, to)` is
+        illegal there and would silently hide a capture (and thus a check). This
+        is the shared constructor behind `_capture_removals` and `ai_see`'s
+        recapture scan; neither may hand-roll the variant list again.
+        """
+        if (piece.type is PieceType.PAWN and self.options.pawn_promotion
+                and target.row == (0 if piece.color is Color.RED else self.profile.rows - 1)):
+            promotions = self.promotion_types(state, piece.color)
+            if promotions:
+                return [Move(piece.position, target, promotion) for promotion in promotions]
+        return [Move(piece.position, target)]
+
     def _capture_removals(self, state: GameState, color: Color, victim: Piece) -> list[Removal]:
         """Every move by `color` that removes `victim`, direct or indirect.
 
@@ -358,12 +392,18 @@ class RulesEngine:
         scans this replaces, so the point query stays the same order of work: a
         piece that can land on the victim, an armor whose landing could complete
         a three-cell line through it, or the assassin landing that mirrors it.
+
+        A direct capture is tested through `moves_to_target`, not a single bare
+        move: a pawn taking on its promotion rank only has legal *promotion*
+        moves, so asking about the bare move would miss the capture whenever the
+        pool is non-empty -- and with it a king capture masquerading as no check.
         """
         removals: list[Removal] = []
         for piece in state.pieces:
             if piece.color is not color:
                 continue
-            if self.pseudo_legal(state, Move(piece.position, victim.position)):
+            if any(self.pseudo_legal(state, move)
+                   for move in self.moves_to_target(state, piece, victim.position)):
                 removals.append(Removal(CaptureKind.DIRECT, victim.id, victim.type,
                                         victim.color, victim.position,
                                         piece.position, victim.position))

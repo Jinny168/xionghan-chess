@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 
 from .game import Game
-from .model import Color, Move, Piece, PieceType, Position
+from .model import Move, Piece, PieceType, Position
 
 
 Guard = Callable[[], None]
@@ -59,26 +59,16 @@ def _captures_to(game: Game, target: Position, guard: Guard | None) -> list[Move
             guard()
         if piece.color is not game.state.turn:
             continue
-        for move in _moves_to_target(game, piece, target):
+        # `moves_to_target` is the shared promotion-variant constructor (rules.py):
+        # a pawn recapturing on its promotion rank only has promotion moves, so a
+        # single bare move would miss the recapture entirely.
+        for move in game.rules.moves_to_target(game.state, piece, target):
             if not game.rules.is_legal(game.state, move):
                 continue
             if any(captured.id == victim.id
                    for captured in game.rules.captured_by_move(game.state, move)):
                 moves.append(move)
     return moves
-
-
-def _moves_to_target(game: Game, piece: Piece, target: Position) -> list[Move]:
-    if (piece.type is PieceType.PAWN and game.options.pawn_promotion
-            and target.row == (0 if piece.color is Color.RED else game.profile.rows - 1)):
-        promotions = sorted({
-            captured.type for captured in game.state.captured[piece.color]
-            if captured.type not in {PieceType.PAWN, PieceType.KING}
-            and captured.type in game.rules.enabled_piece_types
-        }, key=lambda item: item.value)
-        if promotions:
-            return [Move(piece.position, target, promotion) for promotion in promotions]
-    return [Move(piece.position, target)]
 
 
 def _promotion_gain(piece: Piece, move: Move, values: Mapping[PieceType, int]) -> int:

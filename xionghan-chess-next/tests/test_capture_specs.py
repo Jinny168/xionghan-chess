@@ -94,22 +94,34 @@ def test_g4_capturable_squares_never_emits_a_pool_consume():
 
 def test_g5_capturable_squares_is_blind_to_the_capture_pool():
     red_king, black_king = _far_kings()
+    # An ordinary capture ...
     rook = piece(PieceType.ROOK, Color.RED, 5, 0)
     enemy = piece(PieceType.HORSE, Color.BLACK, 5, 4)
-    empty = board(red_king, black_king, rook, enemy)
+    # ... and a promotion-rank capture: a red pawn taking a black piece on row 0,
+    # where a stocked pool makes the bare move illegal (only the promotion
+    # variant reaches the square). This is the shape that used to make the
+    # *result* depend on the pool (F2).
+    pawn = piece(PieceType.PAWN, Color.RED, 1, 6)
+    crowned = piece(PieceType.HORSE, Color.BLACK, 0, 6)
+    pieces = (red_king, black_king, rook, enemy, pawn, crowned)
+    # The two boards share the very same pieces, so the specs compare field for
+    # field (ids included); only `captured` differs.
+    empty = board(*pieces)
     dead = piece(PieceType.ROOK, Color.RED, 0, 0)
-    stocked = board(red_king, black_king, rook, enemy,
-                    captured={Color.RED: [dead], Color.BLACK: []})
+    stocked = board(*pieces, captured={Color.RED: [dead], Color.BLACK: []})
     assert empty.captured[Color.RED] == []
     assert stocked.captured[Color.RED] != []
     rules = engine()
-    # `capturable_squares` is pool-blind by design: only the pool differs between
-    # the two boards, so a capture the board itself does not show must not appear
-    # or vanish with the pool (checked in both directions). The pool-aware
-    # witness for "these two states really differ" lives in the repetition key
+    # `capturable_squares` is blind to the capture pool: a promotion capture is
+    # filed exactly like any other direct capture, so nothing may appear or
+    # vanish with the pool (checked in both directions). The pool-aware witness
+    # for "these two states really differ" lives in the repetition key
     # `position_key` (方案 A), not in the capture reader.
     assert rules.capturable_squares(empty, Color.RED) == rules.capturable_squares(stocked, Color.RED)
     assert rules.capturable_squares(empty, Color.BLACK) == rules.capturable_squares(stocked, Color.BLACK)
+    # ... and the promotion-rank capture is in both, i.e. the pool hid nothing.
+    assert crowned.position in rules.capturable_squares(empty, Color.RED)
+    assert crowned.position in rules.capturable_squares(stocked, Color.RED)
 
 
 def test_g6_in_check_is_the_boolean_of_the_point_query():
@@ -251,3 +263,34 @@ def test_g11_a_preexisting_line_is_swept_by_an_unrelated_armor_move():
     assert anchor.id in gone              # ...by an armour move that never joined it
     assert builder.id in gone
     assert mover.id in gone
+
+
+def test_g12_promotion_rank_check_is_not_hidden_by_a_stocked_pool():
+    # The golden shape of F2: a red pawn already on its promotion rank (row 0)
+    # bears on the black king sharing that rank. `pseudo_legal` forces a
+    # promotion there whenever the pool can supply one, so the bare step
+    # (1,6)->(0,6) is ILLEGAL with a stocked pool and legal with an empty one.
+    #
+    # BEFORE the fix `_capture_removals` probed that single bare move, so the
+    # threat vanished the moment the pool was non-empty: `in_check(stocked, BLACK)`
+    # returned False -- a genuine check reported as none. AFTER the fix it probes
+    # every `moves_to_target` variant (the promotion move), so the check is seen
+    # in both states. `test_g5` pins the same blindness for `capturable_squares`;
+    # this case pins the consequence that actually matters, `in_check`.
+    red_king = piece(PieceType.KING, Color.RED, 12, 0)
+    black_king = piece(PieceType.KING, Color.BLACK, 0, 6)
+    pawn = piece(PieceType.PAWN, Color.RED, 1, 6)
+    empty = board(red_king, black_king, pawn)
+    dead = piece(PieceType.ROOK, Color.RED, 0, 1)
+    stocked = board(red_king, black_king, pawn,
+                    captured={Color.RED: [dead], Color.BLACK: []})
+    rules = engine()
+
+    # Root cause, pinned: the bare step's legality flips with the pool.
+    bare = Move(Position(1, 6), Position(0, 6))
+    assert rules.pseudo_legal(empty, bare) is True
+    assert rules.pseudo_legal(stocked, bare) is False     # forced promotion
+
+    # The reader must not inherit that flip: the king is in check either way.
+    assert rules.in_check(empty, Color.BLACK) is True
+    assert rules.in_check(stocked, Color.BLACK) is True   # was False before the fix
