@@ -756,6 +756,43 @@ def test_threefold_repetition_boundary_parity():
             _assert_parity(game)
 
 
+def _offline_position_key(game: Game) -> str:
+    """Ask offline.js for its `Rules.positionKey` on the very same state."""
+    if not shutil.which("node"):
+        pytest.skip("Node.js is required for cross-engine parity tests")
+    payload = json.dumps({
+        "profileId": game.profile.id,
+        "options": asdict(game.rules.options),
+        "state": _offline_state(game),
+        "positionKey": True,
+    })
+    completed = subprocess.run(
+        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
+        capture_output=True, check=True, timeout=30,
+    )
+    return json.loads(completed.stdout)["positionKey"]
+
+
+def test_position_key_matches_offline_byte_for_byte():
+    """The repetition key is a cross-engine contract, so it has to be identical.
+
+    方案 A folded the capture pool into `position_key`; one character of drift
+    between the Python and offline builders would split the two repetition
+    ledgers (the JS one counts threefold locally). The pool is non-empty here
+    because that segment -- colour-tagged, sorted, `,`-joined -- is exactly what
+    a naive mirror is most likely to render differently.
+    """
+    game = _sparse("desktop_complete", [
+        (PieceType.ROOK, Color.RED, 6, 4),
+        (PieceType.PAWN, Color.BLACK, 6, 6),
+    ], captured={
+        Color.RED: [_piece(PieceType.HORSE, Color.RED, 0, 0),
+                    _piece(PieceType.CANNON, Color.RED, 0, 1)],
+        Color.BLACK: [_piece(PieceType.PAWN, Color.BLACK, 0, 2)],
+    })
+    assert game.rules.position_key(game.state) == _offline_position_key(game)
+
+
 def test_no_progress_plies_option_parity():
     game = Game("desktop_classic", option_overrides={"no_progress_draw_plies": 4})
     for _ in range(4):

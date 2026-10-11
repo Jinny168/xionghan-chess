@@ -10,7 +10,9 @@ import time
 
 from .game import RESTORE_PAWN_LIMIT, Game
 from .model import Color, GameState, Move, PieceType, Position
-from .rules import RulesEngine
+# `pool_signature` is re-exported here (rules.py owns the format) because the
+# pool-blindness guardrail test imports it alongside `evaluation_key`.
+from .rules import RulesEngine, pool_signature
 from .ai_see import static_exchange_score
 
 
@@ -77,23 +79,17 @@ POOL_PROMOTION_TYPES = frozenset(VALUES) - {PieceType.PAWN, PieceType.KING}
 # AI's pool valuation and `Game.resurrect_pawn` share one rule definition.
 
 
-def pool_signature(state: GameState) -> str:
-    """The pool half of the AI cache key (see `evaluation_key`)."""
-    return ",".join(sorted(f"{color.value}:{piece.type.value}"
-                           for color in Color for piece in state.captured[color]))
-
-
 def evaluation_key(rules: RulesEngine, state: GameState) -> str:
     """Pool-aware cache key for every AI memo (TT, evaluation, SEE).
 
-    `RulesEngine.position_key` deliberately excludes the pool because it also
-    backs the threefold-repetition ledger (game.py:238-240), and the offline
-    client mirrors it for that same purpose (offline.js:84). Search must not
-    reuse it: the pool decides which promotion moves are legal (rules.py:96-104),
-    so two positions that differ only in the pool are not interchangeable and
-    must not share a cached score.
+    This is exactly `RulesEngine.position_key`, which already carries the capture
+    pool (see `rules.py::pool_signature`): the pool decides which promotion moves
+    are legal, so two positions that differ only in the pool are not
+    interchangeable and must not share a cached score. Kept as a named helper so
+    the AI's intent -- "this key has to see the pool" -- stays greppable at the
+    call sites instead of reading as a bare position key.
     """
-    return f"{rules.position_key(state)}||pool:{pool_signature(state)}"
+    return rules.position_key(state)
 
 
 class SearchTimeout(Exception):

@@ -72,6 +72,27 @@ def archer_star_segments(profile: RuleProfile) -> tuple[tuple[Position, Position
     return tuple(segments)
 
 
+# Bumped whenever the `position_key` string format changes. `core/storage.py`
+# stamps it into every saved document, so a load can tell whether a repetition
+# ledger was written in the *current* format and re-derive it if not (see
+# `game_from_document`). Version 2 is "the key that includes the capture pool".
+POSITION_KEY_VERSION = 2
+
+
+def pool_signature(state: GameState) -> str:
+    """The pool half of a `position_key`, colour-tagged and sorted.
+
+    A capture pool is game state, not bookkeeping: it fixes which promotions are
+    legal (`pseudo_legal`'s pawn-promotion gate below) and how many pawns may be
+    revived (`game.py::resurrect_pawn`). Two states sharing a board and side to
+    move but holding different pools are therefore *different* positions, so the
+    pool is a first-class part of the repetition key -- not an AI-only cache
+    extra.
+    """
+    return ",".join(sorted(f"{color.value}:{piece.type.value}"
+                           for color in Color for piece in state.captured[color]))
+
+
 class RulesEngine:
     """Authoritative, side-effect free move validation for every delivery target."""
 
@@ -397,8 +418,27 @@ class RulesEngine:
         return not self.in_check(state, color) and not self.legal_moves(state, color)
 
     def position_key(self, state: GameState) -> str:
+        """Repetition key for one position, used by the threefold-draw ledger.
+
+        Format contract, mirrored byte-for-byte by `offline.js`
+        `Rules.positionKey` (a drift here splits the two repetition ledgers):
+
+            "<turn>|<board>||pool:<pool>"
+
+          - `<turn>`: `red` or `black`.
+          - `<board>`: every piece as `color:type:row:col`, sorted, joined by `;`.
+          - `||pool:` then `pool_signature(state)`: every captured piece as
+            `color:type`, sorted, joined by `,` (empty string when no pool).
+
+        The pool is part of the key because it changes the legal moves (which
+        promotions are offered, how many pawns can be revived), so the same
+        board with a different pool is a different position. Piece ids are
+        deliberately excluded: they are regenerated per game, so keying on them
+        would make the key never repeat and the draw could never fire.
+        """
         pieces = sorted((p.color.value, p.type.value, p.position.row, p.position.col) for p in state.pieces)
-        return f"{state.turn.value}|" + ";".join(f"{c}:{t}:{r}:{k}" for c, t, r, k in pieces)
+        board = ";".join(f"{color}:{kind}:{row}:{col}" for color, kind, row, col in pieces)
+        return f"{state.turn.value}|{board}||pool:{pool_signature(state)}"
 
     def _clear(self, state: GameState, source: Position, target: Position) -> bool:
         dr = (target.row > source.row) - (target.row < source.row)

@@ -56,6 +56,11 @@ if (request.capturableSquares) {
   const queried = targets ? targets.map(item => ({row: item.row, col: item.col})) : null;
   result.capturableSquares = rules.capturableSquares(state, color, queried);
 }
+// Position-key leg: the repetition key must be byte-identical on both engines,
+// else the Python and offline ledgers split (方案 A folded the capture pool in).
+if (request.positionKey) {
+  result.positionKey = rules.positionKey(state);
+}
 if (request.checkmate !== undefined || request.stalemate !== undefined) {
   const moves = rules.legalAll(state, state.turn);
   if (request.checkmate !== undefined) {

@@ -103,11 +103,11 @@ def test_g5_capturable_squares_is_blind_to_the_capture_pool():
     assert empty.captured[Color.RED] == []
     assert stocked.captured[Color.RED] != []
     rules = engine()
-    # Opposite of P0-F's direction: `capturable_squares` is pool-blind by design;
-    # the pool-aware witness for "the two states really differ" lives in the AI
-    # cache key `evaluation_key`, not here. Only the pool differs between the two
-    # boards, so a capture the board itself does not show must not appear or
-    # vanish with the pool (checked in both directions).
+    # `capturable_squares` is pool-blind by design: only the pool differs between
+    # the two boards, so a capture the board itself does not show must not appear
+    # or vanish with the pool (checked in both directions). The pool-aware
+    # witness for "these two states really differ" lives in the repetition key
+    # `position_key` (方案 A), not in the capture reader.
     assert rules.capturable_squares(empty, Color.RED) == rules.capturable_squares(stocked, Color.RED)
     assert rules.capturable_squares(empty, Color.BLACK) == rules.capturable_squares(stocked, Color.BLACK)
 

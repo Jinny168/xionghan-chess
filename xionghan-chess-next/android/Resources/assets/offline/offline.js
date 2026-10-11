@@ -87,7 +87,12 @@ class Rules{
  // side's own pool. `capturedByMove` is this set narrowed to the enemy.
  boardRemovals(state,m){if(!this.get(state,m.from))return[];const next=this.applyUnchecked(state,m,false),before=new Map(state.pieces.map(x=>[x.id,x])),after=new Set(next.pieces.map(x=>x.id));return[...before.values()].filter(x=>!after.has(x.id))}
  legalAll(state,color=state.turn){const probe=color===state.turn?state:{...state,turn:color},moves=[];for(const p of probe.pieces)if(p.color===color)moves.push(...this.legalFor(probe,p));return moves}
- positionKey(state){return state.turn+'|'+state.pieces.map(x=>`${x.color}:${x.type}:${x.row}:${x.col}`).sort().join(';')}
+ // Mirror of `RulesEngine.position_key`; byte-identical or the Python and offline
+ // repetition ledgers disagree. Format: `<turn>|<board>||pool:<pool>` where board
+ // is `color:type:row:col` sorted and `;`-joined, pool is `color:type` sorted and
+ // `,`-joined. The pool is part of the key (it gates promotion/revival), so the
+ // same board with a different pool is a different position. See rules.py.
+ positionKey(state){const board=state.pieces.map(x=>`${x.color}:${x.type}:${x.row}:${x.col}`).sort().join(';');const pool=[];for(const color of['red','black'])for(const piece of((state.captured&&state.captured[color])||[]))pool.push(`${color}:${piece.type}`);pool.sort();return state.turn+'|'+board+'||pool:'+pool.join(',')}
 }
 class OfflineGame{
  constructor(profileId='web',initialMinutes=20){this.sessionId=Date.now();this.start(profileId,initialMinutes)}
