@@ -60,7 +60,7 @@ async def maintain_room(room: Room) -> None:
 **方案**：`git rm --cached`（**磁盘保留，可逆**）+ 补全 .gitignore + 截图移`docs/assets/`。
 
 ### P0-3 规则引擎存在人工双实现
-**位置**：`android/Resources/assets/offline/offline.js`（**152 行**；行数为方案 A（`403590d`）落地后 HEAD 实测值，审计基线 `67fabf6` 记 127 行）
+**位置**：`android/Resources/assets/offline/offline.js`（**172 行**；行数为 ⑦（`e7ffe02`）落地后 HEAD 实测值，审计基线 `67fabf6` 记 127 行）
 
 JS侧用**逐方法镜像**方式重写了Python 规则引擎：
 
@@ -74,7 +74,7 @@ JS侧用**逐方法镜像**方式重写了Python 规则引擎：
 | :32 | `FEN_PIECES` 棋谱映射 | — | — |
 | :34+ | `class Rules` 走法校验 | `rules.py::RulesEngine` | `diagonalPathPinched` ↔ `_diagonal_path_pinched` 等一一对应 |
 
-> 行号刷新：上表 offline.js 列与 `rules.py` 引用已按当前 HEAD（`403590d`）实测重定位（初稿为审计基线 `67fabf6`）。offline.js 现 **152 行**（基线 127 行）；**表中静态锚点（`:12`~`:34`）位于 O-6 提交 B、其后注释提交与方案 A 的插入点（均 ≥ `:85`）之上，故未被挪动**。
+> 行号刷新：上表 offline.js 列与 `rules.py` 引用已按当前 HEAD（`e7ffe02`）实测重定位（初稿为审计基线 `67fabf6`）。offline.js 现 **172 行**（基线 127 行）；**表中静态锚点（`:12`~`:34`，含 `:23` `starPoints()`、`:61` `archer_enhanced_mode`）位于 O-6 提交 B、其后注释提交、方案 A 与 ⑦ 的插入点（均 ≥ `:85`）之上，故未被挪动**。
 
 > **O-6 收敛补记（提交 A `32ff35b` / 提交 B `e470df4`）**：上表「Python 对应」一列的**吃子关系读取**曾是 **6 份独立实现**（`apply_unchecked` 的落点/甲线/刺拖拽/升变移除、`captured_by_move` 的 ID 差集、`in_check` 的单子试探、`_indirect_king_capture`/`_kill_squares`/`_three_cell_neighbours`、`game.py::move` 的自有差集、offline.js 的镜像诸函数），**已由 O-6 提交 A（`32ff35b`）收敛为唯一纯函数 `capturable_squares`**（Python `rules.py::capturable_squares` ↔ JS `offline.js::capturableSquares`，两端同构），`in_check` 改走其点查询，三处 `_indirect*`/`_kill_squares`/`_three_cell_neighbours` 与 offline.js 对应函数已删除；提交 B（`e470df4`）进一步抽出 `rules.py::board_removals` 作为**写侧唯一移除生产者**（`game.py::move` 与 offline.js `move()` 的 `boardRemovals` 同源）。**注**：这里收敛的是**吃子关系的读取**；Python/offline.js 的**走法校验本体仍是两套实现**，本次 P0-3「人工双实现」结论不变。
 
@@ -373,6 +373,33 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 > **观察项｜甲线移除是「整盘扫描」，与读侧「按本次移动归因」在极罕见局面下存在差异（O-6 暴露的既有语义，非本次引入）**
 > 写侧 `rules.py::_apply_move` 调用 `rules.py::_armor_removals`，后者**遍历整盘**所有「甲 + 己方子 + 敌子」成三连的组合并移除其中的敌子，**不区分该三连是否由本次移动造成**；读侧 `rules.py::capturable_squares`（经 `_capture_removals`）则**按本次移动能否落到「穿过该受害者的落点」归因**。二者仅在「盘面已存在一条与本次移动无关的甲线三连」这类**极罕见局面**下给出不同移除集，现有测试未覆盖。**O-6 提交 A 保留了旧行为（写侧整盘扫描），非 O-6 引入**；提交 B（`e470df4`）抽出的 `rules.py::board_removals` 即这份「更宽语义」的唯一命名入口，建议后续在此补一条黄金用例固化口径。
 
+> **观察项｜`position_key` 跨引擎排序曾不一致（F1，已修 `b4d9dce`）**
+> **现象**：同一局面在 Python 与 offline.js 产出**不同的 `position_key`** ⇒ 两端三回合判和账本分叉（同一局面在一端计到 2、另一端计到 3，判和口径不一致）。
+> **最小构造**：13×13 盘面放两颗**同色同型**子、坐标跨 1↔2 位，例如红车在 `(2,0)` 与 `(10,0)`（两王置于对角 `(0,0)` / `(12,12)`）：
+> - Python `rules.py::position_key`：board 段按 `(color, type, **int** row, **int** col)` **元组序** → `…red:rook:2:0;red:rook:10:0`
+> - 旧 `offline.js::positionKey`：对整串 `color:type:row:col` 做**字典序**排序 → `…red:rook:10:0;red:rook:2:0`（字符串里 `'1' < '2'`）
+> **根因（函数级）**：两端排序键类型不同——Python 用整数元组序，JS 用字符串字典序。**方案 A 之前即存在**（两版排序逻辑均未改动，方案 A 仅追加 `||pool:` 段）。
+> **为什么既有测试没抓到**：方案 A 新加的 `tests/test_cross_engine.py::test_position_key_matches_offline_byte_for_byte` 的 fixture **只有 1 颗车、无「同型成对子跨界坐标」** ⇒ 对拍恒等，却证明不了「任意局面逐字符相等」这条契约。属典型的「**绿了但没证明**」（同 §5.2 对拍门禁能力边界）。
+> **处置**：已修 `b4d9dce`——`offline.js::positionKey` 排序改为**元组数值序**（color → type → int row → int col），board 段**格式不变**，故 `POSITION_KEY_VERSION` **不 bump**（依据：JS 档不含 `positionKeyVersion` 字段，无 JS 写出的 v2 档需迁移）。**建议**后续把「同型成对子跨界坐标」补入该对拍 fixture。
+
+> **观察项｜`capturable_squares` 的**结果**曾随升变池变化（F2，已修 `742909f`）＋ 契约文本同步更正**
+> **现象**：同一盘面、仅升变池不同时，`rules.py::capturable_squares` 返回**不同的移除集**；进而 `rules.py::in_check` 布尔值随之翻转（**将军假阴性**）。
+> **最小构造**：红兵在 `(1,5)`（其正前方 `(0,5)` 为红方升变线）直进吃 `(0,5)` 的黑子：
+> - 池空：`capturable_squares(red)` = `{(0,5): (DIRECT,)}`
+> - 池含可升变子（如被吃的红马）：旧实现返回 `{}`（**漏报**）
+> - 且「黑王在 `(0,5)`」时 `in_check(black)`：池空 `True` / 池非空 `False`
+> **根因（函数级）**：`rules.py::pseudo_legal` 的**必升变闸门**读 `state.captured`——兵到升变线、池中有可升变子时，**未声明升变**的走法 pseudo 非法；旧 `rules.py::_capture_removals` 只造**不带 `promotion`** 的 `Move(...)`，于是池非空时漏报该吃子（连带漏掉「升变吃王」造成的将军）。**方案 A 之前即存在。**
+> **契约文本更正（现仓口径）**：`rules.py::capturable_squares` docstring 原写 *"never reads `state.captured`"*——**不准确**。正确口径为：**「结果」对池盲**（同一盘面无论池如何，返回的移除集相同）；但函数**内部仍读池**（经 `rules.py::moves_to_target` 建模必升变），且**绝不产出池消耗升变**。`tests/test_capture_specs.py::G5` 名仍为 `…_is_blind_to_the_capture_pool`，其**真实断言是「结果池无关」**，fixture 已补入上述升变线吃子形状（更精确的名字应为 `…_result_is_independent_of_the_capture_pool`）。
+> **为什么既有测试没抓到**：原 G5 fixture 是 rook/horse、**不涉升变线** ⇒ 恒绿。与 F1 同类，属「绿了但没证明」。
+> **处置**：已修 `742909f`——新增单一来源 `rules.py::promotion_types` + `rules.py::moves_to_target`；`_capture_removals` 经 `moves_to_target` **补试升变吃子变体**；`ai_see.py::_captures_to` 改为复用并删本地重复。修后实测：`capturable_squares` 结果池无关、`in_check` 两态一致。
+
+> **待办项｜本轮复核衍生的三处一致性收口**
+> 1. **JS 档载入不重建判和账本** —— `offline.js::loadGameDocument` 载入时**曾**不按快照重建 `positionCounts`（Python 侧 `storage.py::_rebuild_position_counts` 一早已做），是「三端判和一致」的残口。**本轮已修 `e7ffe02`**：策略为「`snapshots` 非空即**一律重建**（重建是纯函数，无条件正确且幂等）；空 `snapshots` 则回退保留原账本」。**依据**：JS 侧从不给键格式版本戳（`formatVersion` 恒为 1、从不写 `positionKeyVersion`）⇒ 无字段可按版本分支 ⇒ 逻辑必然取「一律重建」。
+> 2. **`ai.py::_tactical_moves` 内联升变子集与 `rules.py::promotion_types` 有两处差异** —— **(a)** 缺 `enabled_piece_types` 过滤；**(b)** 用 `set`（无序）而非 `sorted(…, key=value)`。**但无可观测行为差异**，依据两条：① 池中可升变子只能来自 `*_appear` 过滤后的初始盘面 ⇒ 其 `type` **必属** `enabled_piece_types`，故 (a) 实际不筛掉任何项；② 紧随其后的 `game.rules.is_legal(...)` 兜底拒绝「升变到被禁子型」，(b) 只影响候选**次序**且被 `seen` 去重。⇒ 定性：**低危纯结构收敛 + 少量多余候选生成**。**记待办（低危，纯收敛）**。
+> 3. **`rules.py::pseudo_legal` 的必升变闸门 / `rules.py::legal_moves` 的内联升变集未复用 `rules.py::promotion_types`** —— 前者**只取布尔**（判非空），后者与 `promotion_types` **逐字等价**（可安全委派）。⇒ **纯结构收敛，无行为差异**。**记待办（纯结构收敛）**。
+
+> **说明｜⑦ 的 diff 里出现 `position_key` 字面量**不是**违规** —— O-6 的门禁「提交 A/B 的 diff 不得出现 `position_key`」只约束 **O-6 提交 A（`32ff35b`）/ 提交 B（`e470df4`）** 这两次**读侧/写侧收敛**提交（意在防止夹带 P0-F 语义）。⑦（`e7ffe02`）是**载入时按快照重建判和账本**，其语义**本就要求**调用 `position_key` 重算（`key = game.rules.position_key(GameState.from_dict(snapshot))`）。后人若 grep 到 ⑦ 的 diff 含 `position_key`，**不得据此判违规**。
+
 ### 5.5 范围蔓延风险控制
 初版审计的 7 项一度膨胀到 16 项。本轮最终锁定 **9 项**（上表 5.3），
 砍掉 3 项规则语义改动、2 项重写类任务，理由均为「需产品拍板」或「应独立版本做」。
@@ -441,7 +468,7 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 | 端 | 规则实现 | 证据 |
 |---|---|---|
 | 服务端 / 桌面 | `core/rules.py` | 唯一权威引擎（14 种棋子） |
-| **Android 离线** | `offline.js` | **第二套真引擎**（**152 行**人工镜像，14 种棋子） |
+| **Android 离线** | `offline.js` | **第二套真引擎**（**172 行**人工镜像，14 种棋子） |
 | **Web 端** | **第三套残缺引擎** | `web/js/core/game-rules.js`，**仅 9/14 种棋子**，见 6.3 |
 
 > **订正记录（2026-10-04 下午）**：初稿称「Web 端零规则、判定全在服务端」——**这个结论是错的**。

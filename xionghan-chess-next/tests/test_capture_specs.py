@@ -92,7 +92,7 @@ def test_g4_capturable_squares_never_emits_a_pool_consume():
     assert all(removal.kind is not CaptureKind.PROMOTION_CONSUME for removal in removals)
 
 
-def test_g5_capturable_squares_is_blind_to_the_capture_pool():
+def test_g5_capturable_squares_result_is_independent_of_the_capture_pool():
     red_king, black_king = _far_kings()
     # An ordinary capture ...
     rook = piece(PieceType.ROOK, Color.RED, 5, 0)
