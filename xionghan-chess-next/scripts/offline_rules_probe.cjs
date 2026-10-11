@@ -47,6 +47,15 @@ if (request.capturedByMove) {
     color: piece.color,
   }));
 }
+// Capture-spec leg: `targets` (optional) is the point-query list of victim
+// squares; without it the whole board is enumerated. The returned array is
+// keyed by victim square and already carries each removal's `kind`, so the
+// Python side compares victim set *and* capture kind, not just who died.
+if (request.capturableSquares) {
+  const {color, targets} = request.capturableSquares;
+  const queried = targets ? targets.map(item => ({row: item.row, col: item.col})) : null;
+  result.capturableSquares = rules.capturableSquares(state, color, queried);
+}
 if (request.checkmate !== undefined || request.stalemate !== undefined) {
   const moves = rules.legalAll(state, state.turn);
   if (request.checkmate !== undefined) {

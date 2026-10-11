@@ -102,6 +102,60 @@ def _offline_captured(game: Game, source: Position, target: Position) -> list[di
     return json.loads(completed.stdout)["capturedByMove"]
 
 
+def _python_capture_specs(game: Game, color: Color, targets=None) -> list[dict]:
+    """Normalise `RulesEngine.capturable_squares` into the offline probe's shape.
+
+    The offline array is keyed by victim square and carries each removal's
+    `kind`, so normalising the Python dict to the same shape lets the parity
+    gate compare the kind too -- not just which piece died.
+    """
+    specs = game.rules.capturable_squares(game.state, color, targets=targets)
+    normalised = [
+        {
+            "row": spec.position.row,
+            "col": spec.position.col,
+            "removals": [
+                {
+                    "kind": removal.kind.value,
+                    "victimId": removal.victim_id,
+                    "victimType": removal.victim_type.value,
+                    "victimColor": removal.victim_color.value,
+                    "victimRow": removal.victim_position.row,
+                    "victimCol": removal.victim_position.col,
+                    "originRow": removal.origin.row,
+                    "originCol": removal.origin.col,
+                    "landingRow": removal.landing.row,
+                    "landingCol": removal.landing.col,
+                }
+                for removal in spec.removals
+            ],
+        }
+        for spec in specs.values()
+    ]
+    return sorted(normalised, key=lambda item: (item["row"], item["col"]))
+
+
+def _offline_capture_specs(game: Game, color: Color, targets=None) -> list[dict]:
+    """Ask offline.js for its `capturableSquares` over the same board and colour."""
+    if not shutil.which("node"):
+        pytest.skip("Node.js is required for cross-engine parity tests")
+    request: dict = {"color": color.value}
+    if targets is not None:
+        request["targets"] = [{"row": position.row, "col": position.col} for position in targets]
+    payload = json.dumps({
+        "profileId": game.profile.id,
+        "options": asdict(game.rules.options),
+        "state": _offline_state(game),
+        "capturableSquares": request,
+    })
+    completed = subprocess.run(
+        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
+        capture_output=True, check=True, timeout=30,
+    )
+    observed = json.loads(completed.stdout)["capturableSquares"]
+    return sorted(observed, key=lambda item: (item["row"], item["col"]))
+
+
 def test_assassin_exchange_keeps_shield_protected_piece_parity():
     # An exchange is still a capture, so `PIECE_RULES.md:98` applies to the
     # piece dragged behind the assassin: a pawn beside its own shield survives,
@@ -830,3 +884,56 @@ def test_resurrect_pawn_rejections_match_across_engines():
     game = _resurrection_game()
     assert len(game.state.pieces) == 2
     assert game.state.turn is Color.RED
+
+
+# --- O-6 capture specs -------------------------------------------------------
+#
+# The legal-move parity above compares move *sets*; a divergence that keeps the
+# same moves but attributes a different capture kind would slip through. These
+# cases compare the whole `capturable_squares` structure -- victim square,
+# victim, kind, origin and landing -- on both engines, so "both wrong the same
+# way" is the only way they can stay green.
+
+
+@pytest.mark.parametrize("profile_id", [
+    "traditional", "web", "desktop_classic", "desktop_complete",
+])
+def test_capturable_squares_full_enumeration_parity(profile_id):
+    game = Game(profile_id)
+    for color in (Color.RED, Color.BLACK):
+        assert _python_capture_specs(game, color) == _offline_capture_specs(game, color)
+    for index in range(6):
+        moves = sorted(game.rules.legal_moves(game.state), key=lambda move: move.key())
+        game.move(moves[index % len(moves)])
+    for color in (Color.RED, Color.BLACK):
+        assert _python_capture_specs(game, color) == _offline_capture_specs(game, color)
+
+
+def test_capturable_squares_point_query_parity():
+    game = Game("desktop_complete")
+    for index in range(4):
+        moves = sorted(game.rules.legal_moves(game.state), key=lambda move: move.key())
+        game.move(moves[index % len(moves)])
+    positions = [piece.position for piece in game.state.pieces][:4]
+    for color in (Color.RED, Color.BLACK):
+        for position in positions:
+            assert _python_capture_specs(game, color, targets=(position,)) == \
+                _offline_capture_specs(game, color, targets=(position,))
+
+
+def test_capture_kinds_match_across_engines():
+    # A crafted board that produces a direct capture, an armor squeeze and an
+    # assassin drag at once, so a "captured but with the wrong kind" decision
+    # cannot pass the gate.
+    game = _sparse("desktop_complete", [
+        (PieceType.ARMOR, Color.RED, 6, 3),
+        (PieceType.PAWN, Color.RED, 6, 5),
+        (PieceType.PAWN, Color.BLACK, 6, 6),
+        (PieceType.ASSASSIN, Color.RED, 9, 4),
+        (PieceType.HORSE, Color.BLACK, 9, 2),
+    ])
+    python = _python_capture_specs(game, Color.RED)
+    offline = _offline_capture_specs(game, Color.RED)
+    assert python == offline
+    kinds = {removal["kind"] for spec in python for removal in spec["removals"]}
+    assert {"direct", "armor_line", "assassin_drag"} <= kinds, kinds

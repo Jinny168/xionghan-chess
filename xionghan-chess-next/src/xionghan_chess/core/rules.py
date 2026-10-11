@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from enum import StrEnum
 from typing import Callable, Iterable
 
 from .model import Color, GameState, Move, Piece, PieceType, Position
@@ -14,9 +15,37 @@ from .profiles import PATROL_HOME_ROW, RuleOptions, RuleProfile, XIONGHAN_ROWS
 # on the 10x9 traditional board.
 PATROL_HOME_ROWS = frozenset({PATROL_HOME_ROW, XIONGHAN_ROWS - 1 - PATROL_HOME_ROW})
 
-# The two pieces whose move removal reaches past the square they land on, so
-# they are the only ones `in_check` has to replay to spot an indirect kill.
-INDIRECT_KILLERS = (PieceType.ARMOR, PieceType.ASSASSIN)
+
+class CaptureKind(StrEnum):
+    """How a move takes an enemy piece off the board."""
+    DIRECT = "direct"                        # the landing square is the victim's square
+    ARMOR_LINE = "armor_line"                # armor completes an allied/enemy/allied line
+    ASSASSIN_DRAG = "assassin_drag"          # assassin drags the enemy behind its origin
+    PROMOTION_CONSUME = "promotion_consume"  # reserved; never emitted by capturable_squares
+
+
+@dataclass(frozen=True, slots=True)
+class Removal:
+    """A single enemy piece removed by a move, attributed to the move's squares."""
+    kind: CaptureKind
+    victim_id: str
+    victim_type: PieceType
+    victim_color: Color
+    victim_position: Position
+    origin: Position
+    landing: Position
+
+
+@dataclass(frozen=True, slots=True)
+class CaptureSpec:
+    """Every way the piece standing on `position` can be captured."""
+    position: Position
+    removals: tuple[Removal, ...]
+
+
+def _removal_order(removal: Removal) -> tuple[str, int, int, int, int]:
+    return (removal.kind.value, removal.origin.row, removal.origin.col,
+            removal.landing.row, removal.landing.col)
 
 
 def archer_star_points(profile: RuleProfile) -> frozenset[Position]:
@@ -160,41 +189,55 @@ class RulesEngine:
         moving = self.get(state, move.source)
         if moving is None:
             return ()
-        after_ids = {piece.id for piece in self.apply_unchecked(state, move, switch_turn=False).pieces}
+        _, removals = self._apply_move(state, move)
+        victim_ids = {removal.victim_id for removal in removals
+                      if removal.victim_color is not moving.color}
         return tuple(piece for piece in state.pieces
-                     if piece.color is not moving.color and piece.id not in after_ids)
+                     if piece.color is not moving.color and piece.id in victim_ids)
 
     def apply_unchecked(self, state: GameState, move: Move, switch_turn: bool = True) -> GameState:
+        if self.get(state, move.source) is None:
+            return state.clone()
+        clone, _ = self._apply_move(state, move)
+        if switch_turn:
+            clone.turn = clone.turn.opponent
+        return clone
+
+    def _apply_move(self, state: GameState, move: Move) -> tuple[GameState, list[Removal]]:
+        """Clone `state`, play `move`, and report every enemy piece it removes.
+
+        This is the single writer behind both `apply_unchecked` and
+        `captured_by_move`, so a move has exactly one implementation of "what do
+        I capture, and how" -- the indirect armor/assassin sweeps below are the
+        same predicates `capturable_squares` reads back when it answers the
+        question from the other direction.
+        """
         clone = state.clone()
         piece = clone.piece_at(move.source)
-        if piece is None:
-            return clone
+        removals: list[Removal] = []
         target = clone.piece_at(move.target)
-        removed: list[Piece] = []
         if target:
             clone.pieces.remove(target)
-            removed.append(target)
+            removals.append(Removal(CaptureKind.DIRECT, target.id, target.type,
+                                    target.color, target.position, move.source, move.target))
         clone.pieces[clone.pieces.index(piece)] = piece.at(move.target)
 
         if piece.type is PieceType.ARMOR:
-            for captured in self._armor_captures(clone, piece.color):
+            for captured in self._armor_removals(clone, piece.color):
                 if captured in clone.pieces:
                     clone.pieces.remove(captured)
-                    removed.append(captured)
+                    removals.append(Removal(CaptureKind.ARMOR_LINE, captured.id, captured.type,
+                                            captured.color, captured.position,
+                                            move.source, move.target))
 
         if piece.type is PieceType.ASSASSIN:
-            dr, dc = move.target.row - move.source.row, move.target.col - move.source.col
-            reverse = Position(move.source.row - dr, move.source.col - dc)
-            dragged = clone.piece_at(reverse)
-            moved_piece = clone.piece_at(move.target)
-            # An exchange is still a capture, so the piece standing behind the
-            # assassin keeps its `PIECE_RULES.md:98` shield immunity; only a
-            # shield itself (doc line 92) is exempt for being a shield.
-            if dragged and dragged.color is not piece.color and \
-                    dragged.type is not PieceType.SHIELD and \
-                    not self._protected_by_enemy_shield(clone, dragged):
+            dragged = self._assassin_drag_victim(clone, piece, move.source, move.target)
+            if dragged is not None:
                 clone.pieces.remove(dragged)
-                removed.append(dragged)
+                removals.append(Removal(CaptureKind.ASSASSIN_DRAG, dragged.id, dragged.type,
+                                        dragged.color, dragged.position,
+                                        move.source, move.target))
+                moved_piece = clone.piece_at(move.target)
                 if moved_piece:
                     clone.pieces.remove(moved_piece)
 
@@ -205,77 +248,127 @@ class RulesEngine:
                 dead = next((p for p in clone.captured[piece.color] if p.type is move.promotion), None)
                 if dead:
                     clone.captured[piece.color].remove(dead)
-        if switch_turn:
-            clone.turn = clone.turn.opponent
-        return clone
+        return clone, removals
+
+    def _assassin_drag_victim(self, state: GameState, piece: Piece,
+                              source: Position, target: Position) -> Piece | None:
+        """The piece an assassin drags once it has landed on `target` from `source`.
+
+        The assassin kills the enemy sitting on the mirror of its own origin, so
+        the victim is read off the state where the assassin has already moved.
+        An exchange is still a capture, which keeps the dragged piece's
+        `PIECE_RULES.md:98` shield immunity; only a shield itself (doc line 92)
+        is exempt for being a shield.
+        """
+        reverse = Position(2 * source.row - target.row, 2 * source.col - target.col)
+        dragged = state.piece_at(reverse)
+        if dragged and dragged.color is not piece.color and \
+                dragged.type is not PieceType.SHIELD and \
+                not self._protected_by_enemy_shield(state, dragged):
+            return dragged
+        return None
 
     def in_check(self, state: GameState, color: Color) -> bool:
         king = next((p for p in state.pieces if p.color is color and p.type is PieceType.KING), None)
         if king is None:
             return True
-        opponent = replace(state, turn=color.opponent)
-        for piece in opponent.pieces:
-            if piece.color is color.opponent:
-                move = Move(piece.position, king.position)
-                if self.pseudo_legal(opponent, move):
-                    return True
-        if self._indirect_king_capture(opponent, color.opponent, king):
-            return True
-        return self._kings_facing(state)
+        threatened = self.capturable_squares(state, color.opponent, targets=(king.position,))
+        return bool(threatened) or self._kings_facing(state)
 
-    def _indirect_king_capture(self, state: GameState, turn: Color, king: Piece) -> bool:
-        """Detect a king killed by a move that never touches its square.
+    def capturable_squares(self, state: GameState, color: Color,
+                           targets: Iterable[Position] | None = None) -> dict[Position, CaptureSpec]:
+        """Map every square `color` can capture to the removals that do it.
 
-        Armor squeezes an enemy out of a three-cell line once it has stepped
-        into place, and assassin drags the enemy standing directly behind it;
-        in both cases the king disappears without the attacker ever being able
-        to "move onto" the king, so the direct scan above cannot see it and the
-        game would end with no check announced. Replaying the move through
-        `apply_unchecked` -- the same routine that performs the removal -- keeps
-        this sweep from growing a second copy of the armor/assassin rules.
+        The key is the victim's square: a direct capture is filed under the
+        square the attacker lands on, while an armor squeeze or an assassin drag
+        is filed under the square its victim occupied. `targets=None` enumerates
+        the whole board and exists for the HUD and the cross-engine parity gate
+        -- it is not a hot path. `targets=(k,)` is a point query that only looks
+        at the attackers which could reach `k`, keeping `in_check` the same order
+        of work as the direct-plus-indirect scan it replaces.
+
+        The function is pure: it never mutates `state` or its pieces, two calls
+        with the same arguments return equal specs, and it never reads
+        `state.captured`, so it can never report a pool-consuming promotion.
         """
-        for piece in state.pieces:
-            if piece.color is not turn or piece.type not in INDIRECT_KILLERS:
+        probe = state if state.turn is color else replace(state, turn=color)
+        if targets is None:
+            victims = [piece.position for piece in state.pieces if piece.color is color.opponent]
+        else:
+            victims = list(targets)
+        found: dict[Position, CaptureSpec] = {}
+        for position in victims:
+            victim = self.get(state, position)
+            if victim is None or victim.color is not color.opponent:
                 continue
-            for target in self._kill_squares(piece, king.position):
-                if self.get(state, target) is not None:
+            removals = self._capture_removals(probe, color, victim)
+            if not removals:
+                continue
+            removals.sort(key=_removal_order)
+            found[position] = CaptureSpec(position, tuple(removals))
+        if __debug__:
+            self._assert_capture_specs(found, color)
+        return found
+
+    def _capture_removals(self, state: GameState, color: Color, victim: Piece) -> list[Removal]:
+        """Every move by `color` that removes `victim`, direct or indirect.
+
+        The candidate attackers are copied verbatim from the direct/indirect
+        scans this replaces, so the point query stays the same order of work: a
+        piece that can land on the victim, an armor whose landing could complete
+        a three-cell line through it, or the assassin landing that mirrors it.
+        """
+        removals: list[Removal] = []
+        for piece in state.pieces:
+            if piece.color is not color:
+                continue
+            if self.pseudo_legal(state, Move(piece.position, victim.position)):
+                removals.append(Removal(CaptureKind.DIRECT, victim.id, victim.type,
+                                        victim.color, victim.position,
+                                        piece.position, victim.position))
+            if piece.type is PieceType.ASSASSIN:
+                mirrored = Position(2 * piece.position.row - victim.position.row,
+                                    2 * piece.position.col - victim.position.col)
+                landings = [mirrored] if self.inside(mirrored) else []
+            elif piece.type is PieceType.ARMOR:
+                landings = []
+                for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
+                    for step in (1, 2):
+                        for sign in (1, -1):
+                            square = Position(victim.position.row + sign * step * dr,
+                                              victim.position.col + sign * step * dc)
+                            if self.inside(square):
+                                landings.append(square)
+            else:
+                continue
+            for landing in landings:
+                if self.get(state, landing) is not None:
                     continue
-                move = Move(piece.position, target)
+                move = Move(piece.position, landing)
                 if not self.pseudo_legal(state, move):
                     continue
                 after = self.apply_unchecked(state, move, switch_turn=False)
-                if king.id not in {p.id for p in after.pieces}:
-                    return True
-        return False
+                if victim.id not in {p.id for p in after.pieces}:
+                    kind = (CaptureKind.ASSASSIN_DRAG if piece.type is PieceType.ASSASSIN
+                            else CaptureKind.ARMOR_LINE)
+                    removals.append(Removal(kind, victim.id, victim.type,
+                                            victim.color, victim.position,
+                                            piece.position, landing))
+        return removals
 
-    def _kill_squares(self, piece: Piece, king: Position) -> list[Position]:
-        """Landing squares that could leave `king` dead by proxy.
-
-        Both killers are filtered down to the squares their own rule can make
-        fatal, so the sweep below replays a handful of moves instead of every
-        rook ray. Armor only squeezes from inside a three-cell line, so its
-        landing square has to be within two cells of the king along one of the
-        line directions; an assassin only kills through the enemy standing
-        directly behind it, which is exactly the mirror image of the king
-        through the assassin's own origin.
-        """
-        if piece.type is PieceType.ASSASSIN:
-            mirrored = Position(2 * piece.position.row - king.row,
-                                2 * piece.position.col - king.col)
-            return [mirrored] if self.inside(mirrored) else []
-        return self._three_cell_neighbours(king)
-
-    def _three_cell_neighbours(self, origin: Position) -> list[Position]:
-        """Every square that could pair with `origin` in a three-cell line."""
-        squares = []
-        for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
-            for step in (1, 2):
-                for sign in (1, -1):
-                    square = Position(origin.row + sign * step * dr,
-                                      origin.col + sign * step * dc)
-                    if self.inside(square):
-                        squares.append(square)
-        return squares
+    def _assert_capture_specs(self, found: dict[Position, CaptureSpec], color: Color) -> None:
+        """Contract checks that hold for every capture spec (`python -O` skips)."""
+        for key, spec in found.items():
+            assert spec.position == key, "a spec is keyed by its victim's square"
+            assert spec.removals == tuple(sorted(spec.removals, key=_removal_order)), \
+                "removals must be sorted by the deterministic order"
+            for removal in spec.removals:
+                assert removal.kind is not CaptureKind.PROMOTION_CONSUME, \
+                    "capturable_squares never reports a pool-consuming promotion"
+                assert removal.victim_color is color.opponent, \
+                    "every removal hits the opposing side"
+                assert removal.victim_position == key, \
+                    "a removal's victim square is the spec's key"
 
     def checkmate(self, state: GameState, color: Color) -> bool:
         return self.in_check(state, color) and not self.legal_moves(state, color)
@@ -540,7 +633,7 @@ class RulesEngine:
                    max(abs(p.position.row - target.position.row), abs(p.position.col - target.position.col)) == 1
                    for p in state.pieces)
 
-    def _armor_captures(self, state: GameState, color: Color) -> list[Piece]:
+    def _armor_removals(self, state: GameState, color: Color) -> list[Piece]:
         captures: dict[str, Piece] = {}
         directions = ((0, 1), (1, 0), (1, 1), (1, -1))
         for row in range(self.profile.rows):
