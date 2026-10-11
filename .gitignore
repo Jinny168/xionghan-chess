@@ -52,3 +52,8 @@ Icon?
 docker-compose.override.yml
 docker/nginx/ssl/*.pem
 docker/nginx/ssl/*.key
+
+# 智能体工作区 / 临时脚手架（不入库；.workbuddy/attic 为删除前留痕备份）
+.workbuddy/
+.tmpbase/
+_scratch_*.py

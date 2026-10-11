@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager, suppress
 import asyncio
 from dataclasses import asdict
+import logging
 import os
 from pathlib import Path
 
@@ -13,11 +14,12 @@ from pydantic import BaseModel, Field, ValidationError
 
 from xionghan_chess.core.ai import Difficulty
 from xionghan_chess.core.analysis import analyze_game
+from xionghan_chess.core.avatars import normalize_avatar
 from xionghan_chess.core.game import GameError
-from xionghan_chess.core.model import Color, Position
+from xionghan_chess.core.model import Color, PieceType, Position
 from xionghan_chess.core.profiles import PROFILES
 from xionghan_chess.core.protocol import Envelope, MessageType
-from .rooms import RoomManager
+from .rooms import Room, RoomManager
 from xionghan_chess.core.rules import archer_star_points
 from xionghan_chess.core.storage import game_from_content
 from xionghan_chess.core.storage import game_document
@@ -31,15 +33,38 @@ manager = RoomManager()
 accounts = AccountStore()
 WEB_DIR = Path(__file__).resolve().parents[3] / "web"
 LOCALES_DIR = Path(__file__).resolve().parents[3] / "locales"
+LOGGER = logging.getLogger(__name__)
+MAINTENANCE_INTERVAL_SECONDS = 5
+
+
+async def maintain_room(room: Room) -> None:
+    """Advance one room and push its snapshot, isolating failures to that room.
+
+    A raising room must never abort the maintenance loop: otherwise every other
+    room silently stops ticking (clocks freeze) and stops broadcasting.
+    """
+    try:
+        await manager.tick(room)
+        await manager.broadcast(room)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        LOGGER.exception("maintenance failed for room %s", room.id)
 
 
 async def maintenance() -> None:
     while True:
-        await asyncio.sleep(5)
+        await asyncio.sleep(MAINTENANCE_INTERVAL_SECONDS)
+        # Snapshot the rooms: cleanup() below may drop entries, and a raising
+        # room must not prevent the remaining rooms from being serviced.
         for room in list(manager.rooms.values()):
-            await manager.tick(room)
-            await manager.broadcast(room)
-        await manager.cleanup()
+            await maintain_room(room)
+        try:
+            await manager.cleanup()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            LOGGER.exception("maintenance cleanup failed")
 
 
 @asynccontextmanager
@@ -51,13 +76,14 @@ async def lifespan(_: FastAPI):
         await task
 
 
-app = FastAPI(title="匈汉象棋 API", version="1.4.0", lifespan=lifespan)
+app = FastAPI(title="匈汉象棋 API", version="1.6.0", lifespan=lifespan)
 
 
 class CreateRoomRequest(BaseModel):
     profile_id: str = Field("web", alias="profileId")
     mode: str = "online"
     player_name: str = Field("玩家", alias="playerName")
+    avatar_url: str = Field("", alias="avatarUrl", max_length=500)
     player_color: Color = Field(Color.RED, alias="playerColor")
     difficulty: Difficulty = Difficulty(os.getenv("AI_DEFAULT_DIFFICULTY", "medium"))
     options: dict[str, object] = Field(default_factory=dict)
@@ -66,11 +92,13 @@ class CreateRoomRequest(BaseModel):
     first_move: FirstMove = Field(FirstMove.RED, alias="firstMove")
     red_slots: list[str] | None = Field(None, alias="redSlots")
     black_slots: list[str] | None = Field(None, alias="blackSlots")
+    taunts_enabled: bool = Field(True, alias="tauntsEnabled")
     model_config = {"populate_by_name": True}
 
 
 class JoinRoomRequest(BaseModel):
     player_name: str = Field("玩家", alias="playerName")
+    avatar_url: str = Field("", alias="avatarUrl", max_length=500)
     language: str = "zh-CN"
     model_config = {"populate_by_name": True}
 
@@ -94,6 +122,12 @@ class CredentialsRequest(BaseModel):
 
 class PreferencesRequest(BaseModel):
     preferences: dict[str, object] = Field(default_factory=dict)
+
+
+class ProfileRequest(BaseModel):
+    display_name: str = Field(alias="displayName", min_length=1, max_length=32)
+    avatar_url: str = Field("", alias="avatarUrl", max_length=500)
+    model_config = {"populate_by_name": True}
 
 
 class CloudGameRequest(BaseModel):
@@ -144,6 +178,10 @@ async def profiles() -> list[dict]:
              "archerStarPoints": [{"row": point.row, "col": point.col}
                                   for point in sorted(archer_star_points(p),
                                                       key=lambda item: (item.row, item.col))],
+             # Mirrors Game.resurrect_pawn, which reads its home squares off
+             # `profile.pieces` instead of a hard coded rank.
+             "pawnHomeSquares": [{"row": spec.row, "col": spec.col}
+                                 for spec in p.pieces if spec.type is PieceType.PAWN],
              "options": asdict(p.options)} for p in PROFILES.values()]
 
 
@@ -153,13 +191,14 @@ async def create_room(request: CreateRoomRequest) -> dict:
         raise HTTPException(400, "mode must be online, ai or local")
     try:
         language = normalize_language(request.language)
+        avatar_url = normalize_avatar(request.avatar_url)
         room, seat = await manager.create(request.profile_id, request.mode, request.player_name,
                                           request.player_color, request.difficulty, request.options,
                                           request.initial_minutes, language, {
                                               "firstMove": request.first_move.value,
                                               "redSlots": request.red_slots,
                                               "blackSlots": request.black_slots,
-                                          })
+                                          }, avatar_url, request.taunts_enabled)
         if request.mode == "ai" and room.game.state.turn is not seat.color:
             await manager._play_ai(room)
         return {"roomId": room.id, "token": seat.token, "color": seat.color.value,
@@ -190,7 +229,8 @@ async def import_room(request: ImportGameRequest) -> dict:
 @app.post("/api/rooms/{room_id}/join")
 async def join_room(room_id: str, request: JoinRoomRequest) -> dict:
     try:
-        room, seat = await manager.join(room_id.upper(), request.player_name)
+        room, seat = await manager.join(room_id.upper(), request.player_name,
+                                        normalize_avatar(request.avatar_url))
         async with room.lock:
             room.language = normalize_language(request.language)
             room.game.language = room.language
@@ -341,6 +381,18 @@ async def save_cloud_preferences(request: PreferencesRequest,
     account, _ = current_account(authorization)
     return {"preferences": await asyncio.to_thread(
         accounts.save_preferences, account.id, request.preferences)}
+
+
+@app.put("/api/me/profile")
+async def save_profile(request: ProfileRequest,
+                       authorization: str | None = Header(None)) -> dict:
+    account, _ = current_account(authorization)
+    try:
+        updated = await asyncio.to_thread(accounts.update_profile, account.id,
+                                          request.display_name, request.avatar_url)
+        return {"account": updated.public()}
+    except AccountError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @app.get("/api/me/games")

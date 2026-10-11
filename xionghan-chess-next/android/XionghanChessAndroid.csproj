@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>com.xionghan.chess</ApplicationId>
-    <ApplicationVersion>6</ApplicationVersion>
-    <ApplicationDisplayVersion>1.4.0</ApplicationDisplayVersion>
+    <ApplicationVersion>8</ApplicationVersion>
+    <ApplicationDisplayVersion>1.6.0</ApplicationDisplayVersion>
     <PublishTrimmed>false</PublishTrimmed>
     <RunAOTCompilation>false</RunAOTCompilation>
   </PropertyGroup>
@@ -22,5 +22,7 @@
                   LogicalName="offline\sounds\eat.wav" />
     <AndroidAsset Include="..\web\assets\sounds\button.wav"
                   LogicalName="offline\sounds\button.wav" />
+    <AndroidAsset Include="..\web\assets\avatars\*.webp"
+                  LogicalName="offline\avatars\%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

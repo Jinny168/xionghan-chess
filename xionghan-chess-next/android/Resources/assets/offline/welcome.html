@@ -17,12 +17,15 @@
     .welcome button { width: 100%; cursor: pointer; }
     .welcome .primary { margin-top: 18px; }
     .welcome .hint { font-size: .9rem; opacity: .7; margin-top: 18px; }
+    .avatar-grid { display:grid;grid-template-columns:repeat(5,52px);gap:8px;margin:10px 0; }
+    .avatar-grid button { width:52px;height:52px;min-height:52px;padding:0;border:2px solid transparent;border-radius:50%;background-position:center;background-size:cover; }
+    .avatar-grid button.selected { border-color:#a32828;box-shadow:0 0 0 2px #e4bd75; }
   </style>
 </head>
 <body>
   <main class="welcome">
     <h1>匈汉象棋</h1>
-    <div class="subtitle">大厅 · v1.4.0</div>
+    <div class="subtitle">大厅 · v1.6.0</div>
     <section class="welcome-grid">
       <article class="welcome-card">
         <h2>开始对局</h2>
@@ -43,6 +46,9 @@
   <script>
     const $ = id => document.getElementById(id);
     const saved = JSON.parse(sessionStorage.getItem('xh-offline-start') || '{}');
+    let avatar = localStorage.getItem('xh-offline-avatar') || 'avatar-01';
+    const avatarGrid = document.createElement('div');avatarGrid.id='avatarGrid';avatarGrid.className='avatar-grid';document.querySelector('.welcome-card:nth-child(2)').append(avatarGrid);
+    for(let index=1;index<=9;index++){const id=`avatar-${String(index).padStart(2,'0')}`,button=document.createElement('button');button.type='button';button.dataset.avatar=id;button.style.backgroundImage=`url('avatars/${id}.webp')`;button.classList.toggle('selected',id===avatar);button.onclick=()=>{avatar=id;avatarGrid.querySelectorAll('button').forEach(item=>item.classList.toggle('selected',item===button));localStorage.setItem('xh-offline-avatar',avatar)};avatarGrid.append(button)}
     for (const id of ['profileSelect','minutesSelect','firstMoveSelect','languageSelect','themeSelect']) if (saved[id]) $(id).value = saved[id];
     function start() {
       const payload = Object.fromEntries(['profileSelect','minutesSelect','firstMoveSelect','languageSelect','themeSelect'].map(id => [id, $(id).value]));

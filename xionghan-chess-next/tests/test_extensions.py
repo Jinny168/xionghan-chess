@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from xionghan_chess.core.analysis import analyze_game, quality_for_loss
+from xionghan_chess.core.avatars import avatar_asset_name, normalize_avatar
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color
 from xionghan_chess.core.puzzles import load_puzzles
@@ -32,6 +33,13 @@ def test_custom_setup_requires_equal_counts_and_supports_black_first():
         GameSetup.build(profile, profile.options, "red", red[:-1], black)
 
 
+def test_builtin_avatar_identifiers_are_validated():
+    assert normalize_avatar("builtin:avatar-01") == "builtin:avatar-01"
+    assert avatar_asset_name("builtin:avatar-09") == "avatar-09.webp"
+    with pytest.raises(ValueError):
+        normalize_avatar("builtin:avatar-99")
+
+
 def test_account_store_round_trip(tmp_path):
     store = AccountStore(tmp_path / "cloud.db")
     account, token = store.register("player_one", "password123", "棋手一")
@@ -39,6 +47,9 @@ def test_account_store_round_trip(tmp_path):
     assert store.save_preferences(account.id, {"theme": "dark"}) == {"theme": "dark"}
     saved = store.save_game(account.id, {"formatVersion": 1}, "测试棋局")
     assert store.favorite_game(account.id, saved["id"], True)["favorite"] is True
+    updated = store.update_profile(account.id, "新棋手", "https://example.com/avatar.png")
+    assert updated.public()["avatarUrl"] == "https://example.com/avatar.png"
+    assert store.authenticate(token).public()["displayName"] == "新棋手"
 
 
 def test_auth_api_and_preferences_use_bearer_token(tmp_path, monkeypatch):
@@ -55,6 +66,25 @@ def test_auth_api_and_preferences_use_bearer_token(tmp_path, monkeypatch):
                            json={"preferences": {"pieceStyle": "modern"}})
         assert saved.json()["preferences"]["pieceStyle"] == "modern"
         assert client.get("/api/me", headers=headers).json()["account"]["username"] == username
+        profile = client.put("/api/me/profile", headers=headers,
+                             json={"displayName": "云端棋手", "avatarUrl": "https://example.com/a.png"})
+        assert profile.status_code == 200
+        assert profile.json()["account"]["avatarUrl"].endswith("a.png")
+        invalid = client.put("/api/me/profile", headers=headers,
+                             json={"displayName": "云端棋手", "avatarUrl": "builtin:avatar-99"})
+        assert invalid.status_code == 400
+
+
+def test_room_snapshot_carries_avatar_and_taunt_setting():
+    with TestClient(service_app.app) as client:
+        created = client.post("/api/rooms", json={
+            "profileId": "web", "mode": "ai", "playerName": "头像棋手",
+            "avatarUrl": "https://example.com/player.png", "tauntsEnabled": False,
+        })
+        assert created.status_code == 200
+        player = next(item for item in created.json()["snapshot"]["players"] if item["color"] == "red")
+        assert player["avatarUrl"].endswith("player.png")
+        assert created.json()["snapshot"]["chatHistory"] == []
 
 
 def test_spectator_channel_is_read_only():

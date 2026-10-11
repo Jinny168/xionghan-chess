@@ -190,6 +190,88 @@ def test_archer_star_visuals_follow_piece_appearance_setting():
     assert not RulesEngine(profile, disabled).archer_star_points
 
 
+def test_archer_star_points_are_thirteen_diamonds_not_twenty_five():
+    # Audit item C-2. The three live paths already agree — `rules.py` filters
+    # with `(row // 3 + col // 3) % 2 == 0` (13 points), `web/js/app.js`
+    # `drawStarPoints` paints whatever `profile.archerStarPoints` carries, and
+    # `offline.js` `starPoints()` mirrors the same condition. The only file that
+    # still spells out the pre-migration 25 points (`row` and `col` both
+    # multiples of 3) is the legacy `web/js/core/game-rules.js`, which the
+    # running service never mounts — so it is pinned by this test instead of by
+    # editing a file that cannot reach a browser.
+    lattice = {(r, c) for r in range(0, 13, 3) for c in range(0, 13, 3) if (r // 3 + c // 3) % 2 == 0}
+    assert len(lattice) == 13
+    expected = frozenset(Position(row, col) for row, col in lattice)
+    assert RulesEngine(get_profile("desktop_complete")).archer_star_points == expected
+
+
+# --------------------------------------------------------------------------
+# R-3: patrol (巡) was the only one of the 14 piece types with no direct
+# coverage at all.
+# --------------------------------------------------------------------------
+
+def _patrol_board(*extra, row=5, col=0, profile="desktop_complete"):
+    return state(*kings(), piece(PieceType.PATROL, Color.RED, row, col), *extra, profile=profile)
+
+
+def _patrol_move(rules, board, row, col):
+    source = next(p.position for p in board.pieces if p.type is PieceType.PATROL)
+    return rules.pseudo_legal(board, Move(source, Position(row, col)))
+
+
+def test_patrol_steps_an_even_number_of_columns_along_its_home_row():
+    rules = RulesEngine(get_profile("desktop_complete"))
+    board = _patrol_board()
+    assert _patrol_move(rules, board, 5, 2)
+    assert _patrol_move(rules, board, 5, 4)
+
+
+def test_patrol_accepts_both_home_rows():
+    rules = RulesEngine(get_profile("desktop_complete"))
+    assert _patrol_move(rules, _patrol_board(row=5), 5, 2)
+    assert _patrol_move(rules, _patrol_board(row=7), 7, 2)
+
+
+def test_patrol_rejects_odd_distances_and_staying_put():
+    rules = RulesEngine(get_profile("desktop_complete"))
+    board = _patrol_board()
+    assert not _patrol_move(rules, board, 5, 1)
+    assert not _patrol_move(rules, board, 5, 3)
+    assert not _patrol_move(rules, board, 5, 0)
+
+
+def test_patrol_rejects_leaving_its_home_row():
+    rules = RulesEngine(get_profile("desktop_complete"))
+    board = _patrol_board()
+    assert not _patrol_move(rules, board, 4, 2)
+    assert not _patrol_move(rules, board, 6, 2)
+    # Even staying on a legal column is not enough if the row changes.
+    assert not _patrol_move(rules, board, 4, 0)
+
+
+def test_patrol_rejects_a_blocked_path():
+    rules = RulesEngine(get_profile("desktop_complete"))
+    board = _patrol_board(piece(PieceType.PAWN, Color.RED, 5, 2))
+    assert not _patrol_move(rules, board, 5, 4)
+
+
+def test_patrol_captures_two_columns_away_but_not_four():
+    rules = RulesEngine(get_profile("desktop_complete"))
+    near = _patrol_board(piece(PieceType.PAWN, Color.BLACK, 5, 2))
+    assert _patrol_move(rules, near, 5, 2)
+    far = _patrol_board(piece(PieceType.PAWN, Color.BLACK, 5, 4))
+    assert not _patrol_move(rules, far, 5, 4)
+
+
+def test_traditional_profile_has_no_patrol():
+    rules = RulesEngine(get_profile("traditional"))
+    board = state(piece(PieceType.KING, Color.RED, 9, 4),
+                  piece(PieceType.PATROL, Color.RED, 5, 0),
+                  piece(PieceType.KING, Color.BLACK, 0, 4),
+                  profile="traditional")
+    assert not _patrol_move(rules, board, 5, 2)
+
+
 def test_pawn_fast_move_reaches_enemy_territory_edge_but_does_not_cross_it():
     red, black = kings()
     pawn = piece(PieceType.PAWN, Color.RED, 8, 0)

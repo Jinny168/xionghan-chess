@@ -21,13 +21,14 @@ from PySide6.QtWidgets import (
 
 from xionghan_chess.core.ai import ChessAI, Difficulty
 from xionghan_chess.core.analysis import analyze_game
+from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position
 from xionghan_chess.core.profiles import PROFILES, profile_rule_values
 from xionghan_chess.core.puzzles import load_puzzles
 from xionghan_chess.core.setup import GameSetup, profile_slots
 from xionghan_chess.core.storage import game_document, game_from_document
-from xionghan_chess.core.taunts import taunts
+from xionghan_chess.core.taunts import choose_taunt, taunts
 from xionghan_chess.i18n import normalize_language, t
 from .audio import DesktopAudio
 from .config import config_path, load_config, save_config
@@ -460,7 +461,7 @@ class SettingsDialog(QDialog):
         self.profile.setCurrentIndex(max(0,self.profile.findData(config["profile"])))
         self.language_select=QComboBox();self.language_select.addItem(t("language.zh-CN", self.language),"zh-CN");self.language_select.addItem(t("language.en", self.language),"en");self.language_select.setCurrentIndex(max(0,self.language_select.findData(self.language)))
         self.game_mode=QComboBox();self.game_mode.addItem(t("mode.ai", self.language),"ai");self.game_mode.addItem(t("mode.local_full", self.language),"local");self.game_mode.setCurrentIndex(max(0,self.game_mode.findData(config.get("game_mode","ai"))))
-        self.difficulty=QComboBox();[(self.difficulty.addItem(t(f"difficulty.{value}", self.language),value)) for value in ("beginner","easy","medium","hard")]
+        self.difficulty=QComboBox();[(self.difficulty.addItem(t(f"difficulty.{value}", self.language),value)) for value in ("beginner","easy","medium","hard","master")]
         self.difficulty.setCurrentIndex(max(0,self.difficulty.findData(config["difficulty"])))
         self.color=QComboBox();self.color.addItem(t("option.red_first", self.language),"red");self.color.addItem(t("option.black_second", self.language),"black");self.color.setCurrentIndex(max(0,self.color.findData(config["human_color"])))
         self.first_move=QComboBox();self.first_move.addItem(t("desktop.first_red",self.language),"red");self.first_move.addItem(t("desktop.first_black",self.language),"black");self.first_move.addItem(t("desktop.first_random",self.language),"random");self.first_move.setCurrentIndex(max(0,self.first_move.findData(config.get("first_move","red"))))
@@ -479,6 +480,7 @@ class SettingsDialog(QDialog):
         self.selection_highlight=QCheckBox(t("settings.selection", self.language));self.selection_highlight.setChecked(config.get("selection_highlight",True))
         self.legal_targets=QCheckBox(t("settings.legal_targets", self.language));self.legal_targets.setChecked(config.get("legal_targets",True))
         self.capture_hints=QCheckBox(t("settings.capture_hints", self.language));self.capture_hints.setChecked(config.get("capture_hints",True))
+        self.taunts=QCheckBox("棋灵挑衅短语" if self.language!="en" else "AI taunts");self.taunts.setChecked(config.get("taunts",True))
         self.autosave=QCheckBox(t("settings.autosave_desktop", self.language));self.autosave.setChecked(config.get("autosave",True))
 
         game_tab=QWidget();game_layout=QVBoxLayout(game_tab);game_form=QFormLayout()
@@ -495,7 +497,7 @@ class SettingsDialog(QDialog):
         appearance_form.addRow(t("settings.sound_volume", self.language),self.sound_volume);appearance_form.addRow(t("settings.music", self.language),self.music)
         appearance_form.addRow(t("settings.music_style", self.language),self.music_style);appearance_form.addRow(t("settings.music_volume", self.language),self.music_volume)
         appearance_form.addRow(t("settings.animation", self.language),self.animations);appearance_form.addRow(t("settings.selection", self.language),self.selection_highlight)
-        appearance_form.addRow(t("settings.legal_targets", self.language),self.legal_targets);appearance_form.addRow(t("settings.capture_hints", self.language),self.capture_hints)
+        appearance_form.addRow(t("settings.legal_targets", self.language),self.legal_targets);appearance_form.addRow(t("settings.capture_hints", self.language),self.capture_hints);appearance_form.addRow("棋灵挑衅" if self.language!="en" else "AI taunts",self.taunts)
         tabs.addTab(appearance_tab,t("settings.appearance_tab", self.language))
 
         self._active_profile_id = config["profile"]
@@ -569,7 +571,7 @@ class SettingsDialog(QDialog):
         self._capture_profile_values()
         values=self._profile_values[self._active_profile_id]
         previous=self.parent().config if self.parent() else {}
-        return {"profile":self.profile.currentData(),"language":self.language_select.currentData(),"game_mode":self.game_mode.currentData(),"difficulty":self.difficulty.currentData(),"human_color":self.color.currentData(),"first_move":self.first_move.currentData(),"initial_minutes":self.minutes.value(),"countdown_seconds":self.countdown.currentData(),"sound":self.sound.isChecked(),"music":self.music.isChecked(),"music_style":self.music_style.currentData(),"sound_volume":self.sound_volume.value(),"music_volume":self.music_volume.value(),"theme":self.theme.currentData(),"font":self.font.currentData(),"background":self.background.currentData(),"piece_style":self.piece_style.currentData(),"flipped":previous.get("flipped",False),"setup_slots":previous.get("setup_slots",{}),"account_token":previous.get("account_token",""),"animations":self.animations.isChecked(),"selection_highlight":self.selection_highlight.isChecked(),"legal_targets":self.legal_targets.isChecked(),"capture_hints":self.capture_hints.isChecked(),"autosave":self.autosave.isChecked(),"server_url":previous.get("server_url","http://127.0.0.1:8000"),"rule_options":values}
+        return {"profile":self.profile.currentData(),"language":self.language_select.currentData(),"game_mode":self.game_mode.currentData(),"difficulty":self.difficulty.currentData(),"human_color":self.color.currentData(),"first_move":self.first_move.currentData(),"initial_minutes":self.minutes.value(),"countdown_seconds":self.countdown.currentData(),"sound":self.sound.isChecked(),"music":self.music.isChecked(),"music_style":self.music_style.currentData(),"sound_volume":self.sound_volume.value(),"music_volume":self.music_volume.value(),"theme":self.theme.currentData(),"font":self.font.currentData(),"background":self.background.currentData(),"piece_style":self.piece_style.currentData(),"flipped":previous.get("flipped",False),"setup_slots":previous.get("setup_slots",{}),"account_token":previous.get("account_token",""),"animations":self.animations.isChecked(),"selection_highlight":self.selection_highlight.isChecked(),"legal_targets":self.legal_targets.isChecked(),"capture_hints":self.capture_hints.isChecked(),"taunts":self.taunts.isChecked(),"autosave":self.autosave.isChecked(),"server_url":previous.get("server_url","http://127.0.0.1:8000"),"rule_options":values}
 
 
 class HandicapDialog(QDialog):
@@ -826,6 +828,7 @@ class MainWindow(QMainWindow):
             if self.network:
                 self.send_network("move",{"from":{"row":move.source.row,"col":move.source.col},"to":{"row":move.target.row,"col":move.target.col},"promotion":move.promotion.value if move.promotion else None});return
             record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound();self.refresh();
+            if self.game.state.finished:self.add_ai_taunt("defeat")
             if not self.game.state.finished and self.config.get("game_mode","ai")=="ai":self.start_ai()
         except GameError as exc:QMessageBox.warning(self,"非法走棋",str(exc))
 
@@ -838,9 +841,14 @@ class MainWindow(QMainWindow):
         if cancel.is_set():return
         try:
             if move:
-                record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound()
+                record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound();scene="victory" if self.game.state.finished else ("check" if self.game.rules.in_check(self.game.state,self.game.state.turn) else ("opening" if len(self.game.state.history)<=2 else None));self.add_ai_taunt(scene)
         except GameError as exc:self.ai_failed(str(exc));return
         self.board.locked=False;self.refresh()
+
+    def add_ai_taunt(self, scene):
+        if not scene or not self.config.get("taunts",True):return
+        sender="Xionghan AI" if self.config.get("language")=="en" else "匈汉棋灵"
+        self.chat_messages.addItem(f"{sender}：{choose_taunt(scene)}");self.chat_messages.scrollToBottom()
 
     def ai_failed(self,result):
         message,cancel=result if isinstance(result,tuple) else (str(result),self.cancel)
@@ -878,7 +886,10 @@ class MainWindow(QMainWindow):
             return
         ReplayDialog(self.game,self.config,self).exec()
     def resurrect_pawn(self):
-        color=self.game.state.turn if self.config.get("game_mode")=="local" else Color(self.config["human_color"]);row=8 if color is Color.RED else 4
+        color=self.game.state.turn if self.config.get("game_mode")=="local" else Color(self.config["human_color"])
+        # Read the rank off the profile's own pawn slots instead of hard coding
+        # 8/4; `traditional` (10x9) keeps its pawns on row 6.
+        row=next((spec.row for spec in self.game.profile.pieces if spec.type is PieceType.PAWN and spec.color is color),8 if color is Color.RED else 4)
         for col in range(0,self.game.profile.cols,2):
             try:self.game.resurrect_pawn(color,Position(row,col));self.refresh();
             except GameError:continue
@@ -1010,14 +1021,26 @@ class MainWindow(QMainWindow):
                 if mode=="注册":display,_=QInputDialog.getText(self,"账号","显示名称",QLineEdit.EchoMode.Normal,username)
                 data=self.request_json(base+("/api/auth/register" if mode=="注册" else "/api/auth/login"),{"username":username,"password":password,"displayName":display},"POST")
                 cloud_to_desktop={"boardTheme":"theme","pageBackground":"background","pieceStyle":"piece_style","font":"font","language":"language","flipped":"flipped","musicStyle":"music_style","volume":"sound_volume","animation":"animations","selection":"selection_highlight","legalTargets":"legal_targets","captureHints":"capture_hints","autosave":"autosave","initialMinutes":"initial_minutes","countdownSeconds":"countdown_seconds"}
-                self.config["account_token"]=data["token"]
+                self.config["account_token"]=data["token"];self.config["account_display_name"]=data["account"]["displayName"];self.config["account_avatar_url"]=data["account"].get("avatarUrl","")
                 for cloud_key,value in data.get("preferences",{}).items():
                     local_key=cloud_to_desktop.get(cloud_key,cloud_key)
                     if local_key in self.config:self.config[local_key]=value
                 save_config(self.config);QMessageBox.information(self,"账号",f"已登录：{data['account']['displayName']}");return
-            action,ok=QInputDialog.getItem(self,"云同步","选择操作",["上传当前棋局","同步外观偏好","查看云端棋谱","退出登录"],0,False)
+            action,ok=QInputDialog.getItem(self,"云同步","选择操作",["修改资料与头像","上传当前棋局","同步外观偏好","查看云端棋谱","退出登录"],0,False)
             if not ok:return
             if action=="退出登录":self.request_json(base+"/api/auth/logout",{},"POST",token);self.config["account_token"]="";save_config(self.config);return
+            if action=="修改资料与头像":
+                current=self.request_json(base+"/api/me",None,"GET",token)["account"]
+                display,ok=QInputDialog.getText(self,"账号资料","显示名称",QLineEdit.EchoMode.Normal,current["displayName"])
+                if not ok or not display.strip():return
+                choices=["默认头像",*[f"内置头像 {index+1}" for index in range(len(BUILTIN_AVATARS))],"外部 URL"]
+                choice,ok=QInputDialog.getItem(self,"账号头像","选择头像",choices,0,False)
+                if not ok:return
+                if choice=="外部 URL":avatar,_=QInputDialog.getText(self,"账号头像","头像 URL",QLineEdit.EchoMode.Normal,current.get("avatarUrl","") if current.get("avatarUrl","").startswith("http") else "")
+                elif choice=="默认头像":avatar=""
+                else:avatar=f"builtin:{BUILTIN_AVATARS[choices.index(choice)-1]}"
+                updated=self.request_json(base+"/api/me/profile",{"displayName":display.strip(),"avatarUrl":avatar.strip()},"PUT",token)["account"]
+                self.config["account_display_name"]=updated["displayName"];self.config["account_avatar_url"]=updated.get("avatarUrl","");save_config(self.config);self.refresh();return
             if action=="上传当前棋局":
                 if not self.game:return
                 self.request_json(base+"/api/me/games",{"document":game_document(self.game),"title":f"{self.game.profile.title} · {len(self.game.state.history)} 手"},"POST",token);QMessageBox.information(self,"云同步","当前棋局已上传")
@@ -1046,7 +1069,7 @@ class MainWindow(QMainWindow):
         base=self.server_base()
         if not base:return
         try:
-            setup=self.current_setup();data=self.http_json(base+"/api/rooms",{"profileId":self.config["profile"],"mode":"online","playerName":"桌面玩家" if self.config.get("language")!="en" else "Desktop Player","playerColor":self.config["human_color"],"options":self.config.get("rule_options",{}),"initialMinutes":self.config["initial_minutes"],"language":self.config.get("language","zh-CN"),"firstMove":setup["firstMove"],"redSlots":setup["redSlots"],"blackSlots":setup["blackSlots"]})
+            setup=self.current_setup();name=self.config.get("account_display_name") or ("桌面玩家" if self.config.get("language")!="en" else "Desktop Player");data=self.http_json(base+"/api/rooms",{"profileId":self.config["profile"],"mode":"online","playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"playerColor":self.config["human_color"],"options":self.config.get("rule_options",{}),"initialMinutes":self.config["initial_minutes"],"language":self.config.get("language","zh-CN"),"firstMove":setup["firstMove"],"redSlots":setup["redSlots"],"blackSlots":setup["blackSlots"],"tauntsEnabled":self.config.get("taunts",True)})
             self.open_network(base,data)
             lang=self.config.get("language","zh-CN");QMessageBox.information(self,"房间已创建" if lang!="en" else "Room created",f"{'房间号' if lang!='en' else 'Room code'}：{data['roomId']}")
         except Exception as exc:QMessageBox.warning(self,"创建失败" if self.config.get("language")!="en" else "Create failed",str(exc))
@@ -1057,7 +1080,7 @@ class MainWindow(QMainWindow):
         lang=self.config.get("language","zh-CN")
         room,ok=QInputDialog.getText(self,"加入房间" if lang!="en" else "Join room","房间号" if lang!="en" else "Room code")
         if not ok or not room:return
-        try:self.open_network(base,self.http_json(f"{base}/api/rooms/{room.strip().upper()}/join",{"playerName":"桌面玩家" if lang!="en" else "Desktop Player","language":lang}))
+        try:name=self.config.get("account_display_name") or ("桌面玩家" if lang!="en" else "Desktop Player");self.open_network(base,self.http_json(f"{base}/api/rooms/{room.strip().upper()}/join",{"playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"language":lang}))
         except Exception as exc:QMessageBox.warning(self,"加入失败" if lang!="en" else "Join failed",str(exc))
 
     def spectate_online(self):
@@ -1099,7 +1122,9 @@ class MainWindow(QMainWindow):
         lang=self.config.get("language","zh-CN")
         if message["type"]=="error":QMessageBox.warning(self,"服务器拒绝" if lang!="en" else "Server rejected",message["payload"]["message"]);self.apply_network_state(message["payload"].get("state",{}))
         elif message["type"]=="chat":
-            payload=message["payload"];self.chat_messages.addItem(f"{payload.get('sender','玩家')}：{payload.get('text','')}");self.chat_messages.scrollToBottom()
+            payload=message["payload"]
+            if payload.get("automated") and not self.config.get("taunts",True):return
+            self.chat_messages.addItem(f"{payload.get('sender','玩家')}：{payload.get('text','')}");self.chat_messages.scrollToBottom()
         elif message["type"]=="state":
             snapshot=message["payload"];game_data=snapshot["game"]
             self.apply_network_state(snapshot)
@@ -1110,7 +1135,7 @@ class MainWindow(QMainWindow):
 
     def apply_network_state(self,snapshot):
         if not snapshot:return
-        game_data=snapshot["game"];self.revision=snapshot["revision"];self.config["human_color"]=snapshot.get("youAre") or self.config["human_color"];self.game=Game.from_state(GameState.from_dict(game_data),game_data["profile"]["options"],game_data.get("setup"));replay=game_data.get("replay",[]);self.game._snapshots=[item for item in replay[:-1] if isinstance(item,dict)];self.board.set_game(self.game,Color(self.config["human_color"]),False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
+        game_data=snapshot["game"];self.revision=snapshot["revision"];self.config["human_color"]=snapshot.get("youAre") or self.config["human_color"];self.network_players={item["color"]:item for item in snapshot.get("players",[])};self.game=Game.from_state(GameState.from_dict(game_data),game_data["profile"]["options"],game_data.get("setup"));replay=game_data.get("replay",[]);self.game._snapshots=[item for item in replay[:-1] if isinstance(item,dict)];self.board.set_game(self.game,Color(self.config["human_color"]),False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
         if not self.game.state.history:self._stats_recorded=False;self._autosaved=False
         lang=self.config.get("language","zh-CN")
         self.statusBar().showMessage(f"{'房间' if lang!='en' else 'Room'} {snapshot['roomId']} · {'状态版本' if lang!='en' else 'revision'} {self.revision}");self.refresh()
@@ -1141,7 +1166,8 @@ class MainWindow(QMainWindow):
         check_key=(len(state.history), state.turn.value, bool(self.game.rules.in_check(state, state.turn)))
         if check_key[2] and check_key != self._last_check_key: self.board.pulse_check()
         self._last_check_key=check_key
-        self.red.setText(f"{t('common.red', lang)}  {self._clock(state.clocks_ms[Color.RED])}");self.black.setText(f"{t('common.black', lang)}  {self._clock(state.clocks_ms[Color.BLACK])}")
+        for color,label in ((Color.RED,self.red),(Color.BLACK,self.black)):
+            player=getattr(self,"network_players",{}).get(color.value,{}) if self.network else {};name=player.get("name") or t("common.red" if color is Color.RED else "common.black",lang);asset=avatar_asset_name(player.get("avatarUrl","") if player else "");prefix=f'<img src="{(Path(__file__).resolve().parent / "resources" / "avatars" / asset).as_posix()}" width="34" height="34"> ' if asset else "";label.setText(f"{prefix}{name}  {self._clock(state.clocks_ms[color])}")
         threshold=max(0,int(self.config.get("countdown_seconds",30)))*1000
         self.red.setStyleSheet("color:#b21f1f;font-weight:bold" if threshold and state.clocks_ms[Color.RED]<=threshold and not state.paused else "")
         self.black.setStyleSheet("color:#b21f1f;font-weight:bold" if threshold and state.clocks_ms[Color.BLACK]<=threshold and not state.paused else "")
