@@ -189,11 +189,24 @@ class RulesEngine:
         moving = self.get(state, move.source)
         if moving is None:
             return ()
+        return tuple(piece for piece in self.board_removals(state, move)
+                     if piece.color is not moving.color)
+
+    def board_removals(self, state: GameState, move: Move) -> tuple[Piece, ...]:
+        """Every piece a move takes off the board, of either colour.
+
+        The single removal producer is `_apply_move`; this reads it back as whole
+        pieces so `Game.move()` can log each removal into the matching
+        `state.captured` pool. It is wider than `capturable_squares` in exactly
+        one way: an assassin exchange also removes the assassin itself, so the
+        mover's own piece is present here (it lands in its own side's pool).
+        `captured_by_move` is this same set narrowed to the enemy.
+        """
+        if self.get(state, move.source) is None:
+            return ()
         _, removals = self._apply_move(state, move)
-        victim_ids = {removal.victim_id for removal in removals
-                      if removal.victim_color is not moving.color}
-        return tuple(piece for piece in state.pieces
-                     if piece.color is not moving.color and piece.id in victim_ids)
+        removed_ids = {removal.victim_id for removal in removals}
+        return tuple(piece for piece in state.pieces if piece.id in removed_ids)
 
     def apply_unchecked(self, state: GameState, move: Move, switch_turn: bool = True) -> GameState:
         if self.get(state, move.source) is None:
@@ -237,9 +250,16 @@ class RulesEngine:
                 removals.append(Removal(CaptureKind.ASSASSIN_DRAG, dragged.id, dragged.type,
                                         dragged.color, dragged.position,
                                         move.source, move.target))
+                # An exchange removes the assassin itself too. That own-colour
+                # removal belongs to this move's set (and to its own side's
+                # pool), so it is recorded here; `capturable_squares`, which
+                # only reports enemy victims, filters it back out.
                 moved_piece = clone.piece_at(move.target)
                 if moved_piece:
                     clone.pieces.remove(moved_piece)
+                    removals.append(Removal(CaptureKind.ASSASSIN_DRAG, moved_piece.id,
+                                            moved_piece.type, moved_piece.color,
+                                            moved_piece.position, move.source, move.target))
 
         if move.promotion and piece.type is PieceType.PAWN and self.options.pawn_promotion:
             promoted = clone.piece_at(move.target)

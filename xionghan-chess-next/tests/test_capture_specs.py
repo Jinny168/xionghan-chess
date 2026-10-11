@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import copy
 
-from xionghan_chess.core.model import Color, GameState, Piece, PieceType, Position
+from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
 from xionghan_chess.core.profiles import get_profile
 from xionghan_chess.core.rules import CaptureKind, CaptureSpec, Removal, RulesEngine
 
@@ -103,8 +103,11 @@ def test_g5_capturable_squares_is_blind_to_the_capture_pool():
     assert empty.captured[Color.RED] == []
     assert stocked.captured[Color.RED] != []
     rules = engine()
-    # Only the pool differs between the two boards, so a capture the board itself
-    # does not show must not appear or vanish with the pool (both directions).
+    # Opposite of P0-F's direction: `capturable_squares` is pool-blind by design;
+    # the pool-aware witness for "the two states really differ" lives in the AI
+    # cache key `evaluation_key`, not here. Only the pool differs between the two
+    # boards, so a capture the board itself does not show must not appear or
+    # vanish with the pool (checked in both directions).
     assert rules.capturable_squares(empty, Color.RED) == rules.capturable_squares(stocked, Color.RED)
     assert rules.capturable_squares(empty, Color.BLACK) == rules.capturable_squares(stocked, Color.BLACK)
 
@@ -188,3 +191,22 @@ def test_g9_capturable_squares_is_pure_and_idempotent():
     second = rules.capturable_squares(state, Color.RED)
     assert first == second
     assert state.to_dict() == snapshot.to_dict()
+
+
+def test_g10_board_removals_keeps_the_movers_own_assassin():
+    # An assassin exchange lands the assassin and drags the enemy behind its
+    # origin, so BOTH pieces leave the board. `board_removals` reports the whole
+    # set (the mover's own assassin included, because it belongs to its own
+    # side's pool and `Game.move()` must log it); `capturable_squares` /
+    # `captured_by_move` report only the enemy victim. This is the one place the
+    # wider write-side set and the read-side view deliberately disagree.
+    assassin = piece(PieceType.ASSASSIN, Color.RED, 6, 5)
+    victim = piece(PieceType.HORSE, Color.BLACK, 6, 4)
+    state = board(assassin, victim)
+    rules = engine()
+    move = Move(Position(6, 5), Position(6, 6))
+    board_ids = {p.id for p in rules.board_removals(state, move)}
+    enemy_ids = {p.id for p in rules.captured_by_move(state, move)}
+    assert board_ids == {assassin.id, victim.id}
+    assert enemy_ids == {victim.id}
+    assert assassin.id in board_ids and assassin.id not in enemy_ids

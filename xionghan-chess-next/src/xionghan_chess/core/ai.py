@@ -8,7 +8,7 @@ import random
 import threading
 import time
 
-from .game import Game
+from .game import RESTORE_PAWN_LIMIT, Game
 from .model import Color, GameState, Move, PieceType, Position
 from .rules import RulesEngine
 from .ai_see import static_exchange_score
@@ -73,8 +73,8 @@ CENTRAL_WEIGHTS = {
 # every pool-relevant move was over-rated by exactly one VALUE. Mirroring the
 # pool half of that ledger at full weight is therefore the fix, not a tuning knob.
 POOL_PROMOTION_TYPES = frozenset(VALUES) - {PieceType.PAWN, PieceType.KING}
-# Same rule cap as game.py:169 (a side may never field more than 7 pawns).
-RESTORE_PAWN_LIMIT = 7
+# `RESTORE_PAWN_LIMIT` (the 7-pawn cap) is imported from `.game` above so the
+# AI's pool valuation and `Game.resurrect_pawn` share one rule definition.
 
 
 def pool_signature(state: GameState) -> str:
