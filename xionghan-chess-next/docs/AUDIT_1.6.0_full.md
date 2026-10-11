@@ -57,7 +57,7 @@ async def maintenance() -> None:
 **方案**：`git rm --cached`（**磁盘保留，可逆**）+ 补全 .gitignore + 截图移`docs/assets/`。
 
 ### P0-3 规则引擎存在人工双实现
-**位置**：`android/Resources/assets/offline/offline.js`（**144 行**；行数为 O-6 提交 B 后的 HEAD `c468343` 实测值，审计基线 `67fabf6` 记 127 行）
+**位置**：`android/Resources/assets/offline/offline.js`（**144 行**；行数为 O-6 提交 B 后的 HEAD `e470df4` 实测值，审计基线 `67fabf6` 记 127 行）
 
 JS侧用**逐方法镜像**方式重写了Python 规则引擎：
 
@@ -71,9 +71,9 @@ JS侧用**逐方法镜像**方式重写了Python 规则引擎：
 | :32 | `FEN_PIECES` 棋谱映射 | — | — |
 | :34+ | `class Rules` 走法校验 | `rules.py::RulesEngine` | `diagonalPathPinched` ↔ `_diagonal_path_pinched` 等一一对应 |
 
-> 行号刷新：上表 offline.js 列与 `rules.py` 引用已按 HEAD（`c468343`）实测重定位（初稿为审计基线 `67fabf6`）。offline.js 现 **144 行**（基线 127 行）；表中行号均 < :88（新 `boardRemovals` 之前），未受提交 B 影响。
+> 行号刷新：上表 offline.js 列与 `rules.py` 引用已按 HEAD（`e470df4`）实测重定位（初稿为审计基线 `67fabf6`）。offline.js 现 **144 行**（基线 127 行）；表中行号均 < :88（新 `boardRemovals` 之前），未受提交 B 影响。
 
-> **O-6 收敛补记（提交 A `32ff35b` / 提交 B `c468343`）**：上表「Python 对应」一列的**吃子关系读取**曾是 **6 份独立实现**（`apply_unchecked` 的落点/甲线/刺拖拽/升变移除、`captured_by_move` 的 ID 差集、`in_check` 的单子试探、`_indirect_king_capture`/`_kill_squares`/`_three_cell_neighbours`、`game.py::move` 的自有差集、offline.js 的镜像诸函数），**已由 O-6 提交 A（`32ff35b`）收敛为唯一纯函数 `capturable_squares`**（Python `rules.py::capturable_squares` ↔ JS `offline.js::capturableSquares`，两端同构），`in_check` 改走其点查询，三处 `_indirect*`/`_kill_squares`/`_three_cell_neighbours` 与 offline.js 对应函数已删除；提交 B（`c468343`）进一步抽出 `rules.py::board_removals` 作为**写侧唯一移除生产者**（`game.py::move` 与 offline.js `move()` 的 `boardRemovals` 同源）。**注**：这里收敛的是**吃子关系的读取**；Python/offline.js 的**走法校验本体仍是两套实现**，本次 P0-3「人工双实现」结论不变。
+> **O-6 收敛补记（提交 A `32ff35b` / 提交 B `e470df4`）**：上表「Python 对应」一列的**吃子关系读取**曾是 **6 份独立实现**（`apply_unchecked` 的落点/甲线/刺拖拽/升变移除、`captured_by_move` 的 ID 差集、`in_check` 的单子试探、`_indirect_king_capture`/`_kill_squares`/`_three_cell_neighbours`、`game.py::move` 的自有差集、offline.js 的镜像诸函数），**已由 O-6 提交 A（`32ff35b`）收敛为唯一纯函数 `capturable_squares`**（Python `rules.py::capturable_squares` ↔ JS `offline.js::capturableSquares`，两端同构），`in_check` 改走其点查询，三处 `_indirect*`/`_kill_squares`/`_three_cell_neighbours` 与 offline.js 对应函数已删除；提交 B（`e470df4`）进一步抽出 `rules.py::board_removals` 作为**写侧唯一移除生产者**（`game.py::move` 与 offline.js `move()` 的 `boardRemovals` 同源）。**注**：这里收敛的是**吃子关系的读取**；Python/offline.js 的**走法校验本体仍是两套实现**，本次 P0-3「人工双实现」结论不变。
 
 **重要澄清（纠正此前的误判）**：三端**并非各自实现规则**。
 - profile 选择**由服务端统一解析**（`rooms.py:104` `get_profile`），Web/桌面均从服务端拉取 → 规则唯一真相源在服务端
@@ -368,7 +368,7 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 | O-12 | README 全面重写 | 工作量 M，改前应先合并 `xionghan-chess-next/README.md` |
 
 > **观察项｜甲线移除是「整盘扫描」，与读侧「按本次移动归因」在极罕见局面下存在差异（O-6 暴露的既有语义，非本次引入）**
-> 写侧 `rules.py::_apply_move` 调用 `rules.py::_armor_removals`，后者**遍历整盘**所有「甲 + 己方子 + 敌子」成三连的组合并移除其中的敌子，**不区分该三连是否由本次移动造成**；读侧 `rules.py::capturable_squares`（经 `_capture_removals`）则**按本次移动能否落到「穿过该受害者的落点」归因**。二者仅在「盘面已存在一条与本次移动无关的甲线三连」这类**极罕见局面**下给出不同移除集，现有测试未覆盖。**O-6 提交 A 保留了旧行为（写侧整盘扫描），非 O-6 引入**；提交 B（`c468343`）抽出的 `rules.py::board_removals` 即这份「更宽语义」的唯一命名入口，建议后续在此补一条黄金用例固化口径。
+> 写侧 `rules.py::_apply_move` 调用 `rules.py::_armor_removals`，后者**遍历整盘**所有「甲 + 己方子 + 敌子」成三连的组合并移除其中的敌子，**不区分该三连是否由本次移动造成**；读侧 `rules.py::capturable_squares`（经 `_capture_removals`）则**按本次移动能否落到「穿过该受害者的落点」归因**。二者仅在「盘面已存在一条与本次移动无关的甲线三连」这类**极罕见局面**下给出不同移除集，现有测试未覆盖。**O-6 提交 A 保留了旧行为（写侧整盘扫描），非 O-6 引入**；提交 B（`e470df4`）抽出的 `rules.py::board_removals` 即这份「更宽语义」的唯一命名入口，建议后续在此补一条黄金用例固化口径。
 
 ### 5.5 范围蔓延风险控制
 初版审计的 7 项一度膨胀到 16 项。本轮最终锁定 **9 项**（上表 5.3），
@@ -521,7 +521,7 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 ### 7.1 C 项处置补注（2026-10-10；玩法侧口径落地，只读复核）
 
 > 依据：逐条 Read 现仓源码 + 只读 `python -c` 实测复现。凡「审计措辞与现仓对不上」者已显式标注，避免后续再被引用。
-> 行号已按**当前工作树**重定位（表中 C 项背景列的行号为 R-1a 之前版本）。**O-6（提交 A `32ff35b` +176/−83、提交 B `c468343`）已再次挪动 `rules.py` 行号（现 686 行），故自本节起所有 `rules.py` 引用一律改用「`rules.py::函数名`」锚点，不再随行号漂移失效。**
+> 行号已按**当前工作树**重定位（表中 C 项背景列的行号为 R-1a 之前版本）。**O-6（提交 A `32ff35b` +176/−83、提交 B `e470df4`）已再次挪动 `rules.py` 行号（现 686 行），故自本节起所有 `rules.py` 引用一律改用「`rules.py::函数名`」锚点，不再随行号漂移失效。**
 
 #### B1｜C-9「单方无主动认输按钮」——❌ 关闭（该项已实现）
 审计称「单方无主动认输按钮、请求 `resign` 返回 `error.resignUnavailable`」**不成立**。现仓证据：
