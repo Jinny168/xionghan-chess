@@ -556,7 +556,7 @@ def test_armor_line_squeeze_capture_parity():
     # Armor sweeps any enemy that completes an allied/enemy/allied line. The
     # squeeze is an indirect capture, so it must appear in captured_by_move even
     # though armor never captures by sliding onto the occupied square itself.
-    # The armor starts one step short of the squeeze line on purpose. `_armor_captures`
+    # The armor starts one step short of the squeeze line on purpose. `_armor_removals`
     # reads lines through the armor's destination square, so a squeeze only exists
     # once the armor has landed at (6,4); starting on (6,4) would leave the line
     # (6,4),(6,5),(6,6) broken by the armor's own departure and capture nothing.
