@@ -9,7 +9,8 @@ import threading
 import time
 
 from .game import Game
-from .model import Color, Move, PieceType, Position
+from .model import Color, GameState, Move, PieceType, Position
+from .rules import RulesEngine
 from .ai_see import static_exchange_score
 
 
@@ -64,6 +65,35 @@ CENTRAL_WEIGHTS = {
     PieceType.THUNDER: 2.4, PieceType.ARMOR: 1.8, PieceType.ASSASSIN: 2.2,
     PieceType.SHIELD: 1.0, PieceType.PATROL: 1.2,
 }
+
+# A pool ("captured") piece is not lost material: it parks in its owner's pool,
+# where a pawn promoting on the last rank can become it (rules.py:96-104) and a
+# dead pawn can be revived out of it (game.py:167-169). `_evaluate` used to sum
+# the board only, so a capture read as -VALUE and a promotion as +VALUE, i.e.
+# every pool-relevant move was over-rated by exactly one VALUE. Mirroring the
+# pool half of that ledger at full weight is therefore the fix, not a tuning knob.
+POOL_PROMOTION_TYPES = frozenset(VALUES) - {PieceType.PAWN, PieceType.KING}
+# Same rule cap as game.py:169 (a side may never field more than 7 pawns).
+RESTORE_PAWN_LIMIT = 7
+
+
+def pool_signature(state: GameState) -> str:
+    """The pool half of the AI cache key (see `evaluation_key`)."""
+    return ",".join(sorted(f"{color.value}:{piece.type.value}"
+                           for color in Color for piece in state.captured[color]))
+
+
+def evaluation_key(rules: RulesEngine, state: GameState) -> str:
+    """Pool-aware cache key for every AI memo (TT, evaluation, SEE).
+
+    `RulesEngine.position_key` deliberately excludes the pool because it also
+    backs the threefold-repetition ledger (game.py:238-240), and the offline
+    client mirrors it for that same purpose (offline.js:84). Search must not
+    reuse it: the pool decides which promotion moves are legal (rules.py:96-104),
+    so two positions that differ only in the pool are not interchangeable and
+    must not share a cached score.
+    """
+    return f"{rules.position_key(state)}||pool:{pool_signature(state)}"
 
 
 class SearchTimeout(Exception):
@@ -193,7 +223,7 @@ class ChessAI:
                 cancel: threading.Event | None, ply: int, allow_null: bool = True) -> float:
         self._guard(deadline, cancel)
         self.nodes += 1
-        key = game.rules.position_key(game.state)
+        key = evaluation_key(game.rules, game.state)
         original_alpha = alpha
         original_beta = beta
         entry = self.transposition.get(key)
@@ -359,7 +389,7 @@ class ChessAI:
         return tactical
 
     def _evaluate(self, game: Game, color: Color) -> float:
-        cache_key = (game.rules.position_key(game.state), color)
+        cache_key = (evaluation_key(game.rules, game.state), color)
         cached = self.evaluation_cache.get(cache_key)
         if cached is not None:
             return cached
@@ -387,6 +417,12 @@ class ChessAI:
                     positional += central * 1.8
             score += sign * (VALUES[piece.type] + positional)
 
+        # Material parked in each side's pool is a live conversion option, and the
+        # board-only sum above silently priced it at zero (P0-F). The pool's owner
+        # is the one who benefits, so its value is added and the opponent's
+        # subtracted -- symmetric with the board term's `sign` above.
+        score += self._pool_value(game, color) - self._pool_value(game, color.opponent)
+
         own_attacks, own_pressure = self._activity_score(game, color)
         enemy_attacks, enemy_pressure = self._activity_score(game, color.opponent)
         score += (own_attacks - enemy_attacks) * 5
@@ -403,6 +439,32 @@ class ChessAI:
             self.evaluation_cache.clear()
         self.evaluation_cache[cache_key] = score
         return score
+
+    def _pool_value(self, game: Game, color: Color) -> float:
+        """Material `color` still holds in its own pool (`state.captured[color]`).
+
+        Full `VALUES` weight, no phase weighting: this restores the half of the
+        ledger `_evaluate` was missing, it is not a calibration knob. Both gates
+        and the promotion filter mirror the rules exactly, so the term only counts
+        conversions the ruleset actually allows.
+        """
+        pool = game.state.captured[color]
+        enabled = game.rules.enabled_piece_types
+        total = 0.0
+        if game.options.pawn_promotion:
+            # Same filter as rules.py:96-104: promotion targets exclude PAWN/KING
+            # and must be enabled by the profile. (A captured KING can sit in the
+            # pool; counting it would blow the score up by VALUES[KING].)
+            total += sum(VALUES[piece.type] for piece in pool
+                         if piece.type in POOL_PROMOTION_TYPES and piece.type in enabled)
+        if game.options.pawn_resurrection:
+            # Only pawns can be revived (game.py:167-169), never above the 7-pawn
+            # cap, so the dead pawns beyond that cap are worth nothing.
+            dead_pawns = sum(1 for piece in pool if piece.type is PieceType.PAWN)
+            fielded = sum(1 for piece in game.state.pieces
+                          if piece.type is PieceType.PAWN and piece.color is color)
+            total += min(dead_pawns, max(0, RESTORE_PAWN_LIMIT - fielded)) * VALUES[PieceType.PAWN]
+        return total
 
     def _game_phase(self, game: Game) -> float:
         current = sum(VALUES[piece.type] for piece in game.state.pieces
@@ -597,7 +659,7 @@ class ChessAI:
         return sum(VALUES[piece.type] for piece in game.rules.captured_by_move(game.state, move))
 
     def _see_score(self, game: Game, move: Move) -> int:
-        key = (game.rules.position_key(game.state), move.key())
+        key = (evaluation_key(game.rules, game.state), move.key())
         cached = self.see_cache.get(key)
         if cached is not None:
             return cached

@@ -71,6 +71,11 @@ def test_ai_avoids_immediate_cannon_sacrifice(monkeypatch, difficulty):
 
 
 def test_evaluation_is_symmetric_when_colors_and_rows_are_mirrored():
+    # NOTE (P0-F): this state carries no pool, so both `captured` lists stay empty
+    # and the pool term `_evaluate` added is 0 for both sides -- the mirror
+    # equality below holds. If anyone gives this fixture a pool, the pool MUST be
+    # mirrored too (red pool -> black pool at the mirrored squares), otherwise
+    # this test fails for a real reason and looks like a false alarm.
     pieces = [
         piece(PieceType.KING, Color.RED, 11, 6),
         piece(PieceType.KING, Color.BLACK, 1, 5),
