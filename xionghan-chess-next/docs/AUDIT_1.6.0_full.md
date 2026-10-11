@@ -57,7 +57,7 @@ async def maintenance() -> None:
 **方案**：`git rm --cached`（**磁盘保留，可逆**）+ 补全 .gitignore + 截图移`docs/assets/`。
 
 ### P0-3 规则引擎存在人工双实现
-**位置**：`android/Resources/assets/offline/offline.js`（**144 行**；行数为 O-6 提交 B 后的 HEAD `e470df4` 实测值，审计基线 `67fabf6` 记 127 行）
+**位置**：`android/Resources/assets/offline/offline.js`（**147 行**；行数为 O-6 提交 B 及其后注释提交后的 HEAD `324b4bb` 实测值，审计基线 `67fabf6` 记 127 行）
 
 JS侧用**逐方法镜像**方式重写了Python 规则引擎：
 
@@ -71,7 +71,7 @@ JS侧用**逐方法镜像**方式重写了Python 规则引擎：
 | :32 | `FEN_PIECES` 棋谱映射 | — | — |
 | :34+ | `class Rules` 走法校验 | `rules.py::RulesEngine` | `diagonalPathPinched` ↔ `_diagonal_path_pinched` 等一一对应 |
 
-> 行号刷新：上表 offline.js 列与 `rules.py` 引用已按 HEAD（`e470df4`）实测重定位（初稿为审计基线 `67fabf6`）。offline.js 现 **144 行**（基线 127 行）；表中行号均 < :88（新 `boardRemovals` 之前），未受提交 B 影响。
+> 行号刷新：上表 offline.js 列与 `rules.py` 引用已按当前 HEAD（`324b4bb`）实测重定位（初稿为审计基线 `67fabf6`）。offline.js 现 **147 行**（基线 127 行）；**表中各锚点行号均 < :88，未被 O-6 提交 B 及其后的注释提交挪动**。
 
 > **O-6 收敛补记（提交 A `32ff35b` / 提交 B `e470df4`）**：上表「Python 对应」一列的**吃子关系读取**曾是 **6 份独立实现**（`apply_unchecked` 的落点/甲线/刺拖拽/升变移除、`captured_by_move` 的 ID 差集、`in_check` 的单子试探、`_indirect_king_capture`/`_kill_squares`/`_three_cell_neighbours`、`game.py::move` 的自有差集、offline.js 的镜像诸函数），**已由 O-6 提交 A（`32ff35b`）收敛为唯一纯函数 `capturable_squares`**（Python `rules.py::capturable_squares` ↔ JS `offline.js::capturableSquares`，两端同构），`in_check` 改走其点查询，三处 `_indirect*`/`_kill_squares`/`_three_cell_neighbours` 与 offline.js 对应函数已删除；提交 B（`e470df4`）进一步抽出 `rules.py::board_removals` 作为**写侧唯一移除生产者**（`game.py::move` 与 offline.js `move()` 的 `boardRemovals` 同源）。**注**：这里收敛的是**吃子关系的读取**；Python/offline.js 的**走法校验本体仍是两套实现**，本次 P0-3「人工双实现」结论不变。
 
@@ -438,7 +438,7 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 | 端 | 规则实现 | 证据 |
 |---|---|---|
 | 服务端 / 桌面 | `core/rules.py` | 唯一权威引擎（14 种棋子） |
-| **Android 离线** | `offline.js` | **第二套真引擎**（**144 行**人工镜像，14 种棋子） |
+| **Android 离线** | `offline.js` | **第二套真引擎**（**147 行**人工镜像，14 种棋子） |
 | **Web 端** | **第三套残缺引擎** | `web/js/core/game-rules.js`，**仅 9/14 种棋子**，见 6.3 |
 
 > **订正记录（2026-10-04 下午）**：初稿称「Web 端零规则、判定全在服务端」——**这个结论是错的**。
