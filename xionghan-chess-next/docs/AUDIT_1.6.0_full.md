@@ -35,18 +35,21 @@
 ## 二、P0 阻断项（3 项，均已实测确认）
 
 ### P0-1 服务端后台任务无异常隔离
-**位置**：`service/app.py:36-42`
+**位置**：`service/app.py::maintenance`（隔离体见 `service/app.py::maintain_room`）
 ```python
-async def maintenance() -> None:
-    while True:
-        await asyncio.sleep(5)
-        for room in list(manager.rooms.values()):
-            await manager.tick(room)      # 任一房间抛异常 → 整个后台任务死亡
-            await manager.broadcast(room)
-        await manager.cleanup()
+# 现仓形态（service/app.py::maintain_room）：per-room 异常隔离
+async def maintain_room(room: Room) -> None:
+    try:
+        await manager.tick(room)
+        await manager.broadcast(room)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        LOGGER.exception("maintenance failed for room %s", room.id)
 ```
-**影响**：单个房间的异常会导致**所有房间**停止计时与广播，且无日志、无自愈。
+**原影响**：单个房间的异常会导致**所有房间**停止计时与广播，且无日志、无自愈（审计基线 `67fabf6` 的原引形态：`maintenance()` 循环内直接 `await manager.tick(room)`／`await manager.broadcast(room)`，无隔离）。
 **方案**：per-room `try/except` 隔离，异常日志带 `room_id`。
+> **O-1 已落地**：`service/app.py::maintenance` 已改为逐房间 `await maintain_room(room)`（隔离体见上），`cleanup()` 亦独立 `try/except`（`LOGGER.exception("maintenance cleanup failed")`），`asyncio.sleep(5)` 提为具名常量 `MAINTENANCE_INTERVAL_SECONDS = 5`（`service/app.py:37`）。
 
 ### P0-2 构建产物与规则源码副本污染版本库
 **实测**：`git ls-files | grep -c "core/rules.py"` = **13**
@@ -57,7 +60,7 @@ async def maintenance() -> None:
 **方案**：`git rm --cached`（**磁盘保留，可逆**）+ 补全 .gitignore + 截图移`docs/assets/`。
 
 ### P0-3 规则引擎存在人工双实现
-**位置**：`android/Resources/assets/offline/offline.js`（**147 行**；行数为 O-6 提交 B 及其后注释提交后的 HEAD `324b4bb` 实测值，审计基线 `67fabf6` 记 127 行）
+**位置**：`android/Resources/assets/offline/offline.js`（**152 行**；行数为方案 A（`403590d`）落地后 HEAD 实测值，审计基线 `67fabf6` 记 127 行）
 
 JS侧用**逐方法镜像**方式重写了Python 规则引擎：
 
@@ -71,7 +74,7 @@ JS侧用**逐方法镜像**方式重写了Python 规则引擎：
 | :32 | `FEN_PIECES` 棋谱映射 | — | — |
 | :34+ | `class Rules` 走法校验 | `rules.py::RulesEngine` | `diagonalPathPinched` ↔ `_diagonal_path_pinched` 等一一对应 |
 
-> 行号刷新：上表 offline.js 列与 `rules.py` 引用已按当前 HEAD（`324b4bb`）实测重定位（初稿为审计基线 `67fabf6`）。offline.js 现 **147 行**（基线 127 行）；**表中各锚点行号均 < :88，未被 O-6 提交 B 及其后的注释提交挪动**。
+> 行号刷新：上表 offline.js 列与 `rules.py` 引用已按当前 HEAD（`403590d`）实测重定位（初稿为审计基线 `67fabf6`）。offline.js 现 **152 行**（基线 127 行）；**表中静态锚点（`:12`~`:34`）位于 O-6 提交 B、其后注释提交与方案 A 的插入点（均 ≥ `:85`）之上，故未被挪动**。
 
 > **O-6 收敛补记（提交 A `32ff35b` / 提交 B `e470df4`）**：上表「Python 对应」一列的**吃子关系读取**曾是 **6 份独立实现**（`apply_unchecked` 的落点/甲线/刺拖拽/升变移除、`captured_by_move` 的 ID 差集、`in_check` 的单子试探、`_indirect_king_capture`/`_kill_squares`/`_three_cell_neighbours`、`game.py::move` 的自有差集、offline.js 的镜像诸函数），**已由 O-6 提交 A（`32ff35b`）收敛为唯一纯函数 `capturable_squares`**（Python `rules.py::capturable_squares` ↔ JS `offline.js::capturableSquares`，两端同构），`in_check` 改走其点查询，三处 `_indirect*`/`_kill_squares`/`_three_cell_neighbours` 与 offline.js 对应函数已删除；提交 B（`e470df4`）进一步抽出 `rules.py::board_removals` 作为**写侧唯一移除生产者**（`game.py::move` 与 offline.js `move()` 的 `boardRemovals` 同源）。**注**：这里收敛的是**吃子关系的读取**；Python/offline.js 的**走法校验本体仍是两套实现**，本次 P0-3「人工双实现」结论不变。
 
@@ -187,7 +190,7 @@ moves 池有车 vs 池有马 不同 = True   position_key 相同 = True
 **跨端同步**：`offline.js` 的 `positionKey` 有 2 处命中（三回合计数逻辑本身被镜像），
 **必须同步**，否则两端合计数分叉。
 
-> **方案 A 已获批（2026-10）**：把升变池纳入 `position_key` 的方案 **A** 已获用户批准（原话「大胆去做，我同意」），已派主程序实现。**落地后 `position_key` 将含池**，三回合判和口径随之改变——本节「只吃 `(color, type, row, col) + turn`」描述的是**方案 A 之前**的现状。
+> **方案 A 已落地（`403590d`，2026-10）**：把升变池纳入 `position_key` 的方案 **A** 已获用户批准（原话「大胆去做，我同意」）并由主程序实现落地。**`position_key` 现含池**（`rules.py::position_key` + `rules.py::pool_signature`），三回合判和口径随之改变——本节「只吃 `(color, type, row, col) + turn`」描述的是**方案 A 之前**的现状。
 
 ---
 
@@ -266,12 +269,12 @@ def _evaluate(self, game: Game, color: Color) -> float:
     cache_key = (game.rules.position_key(game.state), color)   # ← 漏池的 key
     cached = self.evaluation_cache.get(cache_key)
 ```
-> 注：本块为 **P0-F 之前**的形态；P0-F 落地后 `cache_key` 已改为 `evaluation_key(game.rules, game.state)`（见 `ai.py::_evaluate`），AI 缓存自此认池。
+> 注：本块为 **P0-F 之前**的形态；P0-F 落地后 `cache_key` 已改为 `evaluation_key(game.rules, game.state)`（见 `ai.py::_evaluate`），AI 缓存自此认池。**方案 A（`403590d`）后 AI 侧的 `evaluation_key` 归并为直接委托 `position_key`（`return rules.position_key(state)`，池不再在键里出现两遍）—— 后者自身已含池；`ai.py::_evaluate` 仍调用 `evaluation_key`，故「`cache_key` 用 `evaluation_key`」这一形态不变。**
 
 且 `_evaluate` 的计分循环（`ai.py::_evaluate`）只累加 `state.pieces`，同样不读素材池。
 
 **影响范围（精确版，已实测确认 `evaluation_cache` 生命周期）**：
-- `ai.py::choose_move` 中 `evaluation_cache.clear()`（现 :154）在**每次搜索开始时**执行
+- `ai.py::choose_move` 中 `evaluation_cache.clear()`（现 :134）在**每次搜索开始时**执行
   → 缓存**不跨搜索存活**，仅在一次 `search()` 内复用
 - ❌ **不构成**「跨局棋力污染」
 - ✅ **构成**：「同一次搜索内」两次到达同布局但升变池不同的局面 → 缓存碰撞
@@ -295,7 +298,7 @@ AI 缓存这条是「顺手免疫」：若将来 `_evaluate` 要把「可升变�
 - 但 AI **从未把「我有升变权」计入估值** → 兵该不该冲底线与真实收益脱节
 
 **与 P0-F 的关系（关键区分）**：
-- **P0-F 是「键」的问题** → 修「漏池的键」即可，零平衡影响（P0-F 已按**方案 C**先只改 AI 缓存键 `evaluation_key`；**把升变池并入判和键 `position_key` 的方案 A 已获用户批准**，见 P0-E）
+- **P0-F 是「键」的问题** → 修「漏池的键」即可，零平衡影响（P0-F 已按**方案 C**先只改 AI 缓存键 `evaluation_key`；**把升变池并入判和键 `position_key` 的方案 A 已落地 `403590d`**，见 P0-E）
 - **P0-G 是「值」的问题** → 改 `_evaluate` = **估值口径变更 = 新平衡问题**
 
 **分层结论（避免笼统说「AI 漏算」）**：
@@ -306,7 +309,7 @@ AI 缓存这条是「顺手免疫」：若将来 `_evaluate` 要把「可升变�
 | `ai._evaluate`（`ai.py::_evaluate`） | ❌ **缺失** | 只读 `pieces`，漏升变潜力 |
 
 **本轮裁定（制作人）**：
-- ✅ 修「漏池的键」（R-8）—— 因 `game.py::_record_position` 三回合计数**真的读它**，是 P0-E 真实 bug；**方案 A（把升变池并入 `position_key`）已获用户批准**，P0-F 已先按方案 C（AI 缓存键 `evaluation_key`）落地
+- ✅ 修「漏池的键」（R-8）—— 因 `game.py::_record_position` 三回合计数**真的读它**，是 P0-E 真实 bug；**方案 A（把升变池并入 `position_key`）已落地 `403590d`**，P0-F 已先按方案 C（AI 缓存键 `evaluation_key`）落地
 - ✅ 加 `test_ai_paths_never_mutate_state_captured` 护栏（R-9a）——
   把「AI 只读不写素材池」这个**隐式约定变成可执行护栏**（实测当前 `ai_see.py` 的 3 处 `captured_by_move` 调用点 :23/:42/:66
   的 `captured` 均为局部变量，安全）
@@ -438,7 +441,7 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 | 端 | 规则实现 | 证据 |
 |---|---|---|
 | 服务端 / 桌面 | `core/rules.py` | 唯一权威引擎（14 种棋子） |
-| **Android 离线** | `offline.js` | **第二套真引擎**（**147 行**人工镜像，14 种棋子） |
+| **Android 离线** | `offline.js` | **第二套真引擎**（**152 行**人工镜像，14 种棋子） |
 | **Web 端** | **第三套残缺引擎** | `web/js/core/game-rules.js`，**仅 9/14 种棋子**，见 6.3 |
 
 > **订正记录（2026-10-04 下午）**：初稿称「Web 端零规则、判定全在服务端」——**这个结论是错的**。
@@ -521,7 +524,7 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 ### 7.1 C 项处置补注（2026-10-10；玩法侧口径落地，只读复核）
 
 > 依据：逐条 Read 现仓源码 + 只读 `python -c` 实测复现。凡「审计措辞与现仓对不上」者已显式标注，避免后续再被引用。
-> 行号已按**当前工作树**重定位（表中 C 项背景列的行号为 R-1a 之前版本）。**O-6（提交 A `32ff35b` +176/−83、提交 B `e470df4`）已再次挪动 `rules.py` 行号（现 686 行），故自本节起所有 `rules.py` 引用一律改用「`rules.py::函数名`」锚点，不再随行号漂移失效。**
+> 行号已按**当前工作树**重定位（表中 C 项背景列的行号为 R-1a 之前版本）。**O-6（提交 A `32ff35b` +176/−83、提交 B `e470df4`）与方案 A（`403590d`）已再次挪动 `rules.py` 行号（现 726 行），故自本节起所有 `rules.py` 引用一律改用「`rules.py::函数名`」锚点，不再随行号漂移失效。**
 
 #### B1｜C-9「单方无主动认输按钮」——❌ 关闭（该项已实现）
 审计称「单方无主动认输按钮、请求 `resign` 返回 `error.resignUnavailable`」**不成立**。现仓证据：
