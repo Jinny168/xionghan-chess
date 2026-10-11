@@ -799,6 +799,131 @@ def test_position_key_matches_offline_byte_for_byte():
     assert game.rules.position_key(game.state) == _offline_position_key(game)
 
 
+def _old_string_sorted_offline_key(state: dict) -> str:
+    """Reproduce the pre-F1 offline.js `positionKey`: whole-string board sort.
+
+    Before F1 the JS engine sorted `"color:type:row:col"` strings, so "10" landed
+    before "2" (`'10' < '2'`). A document saved by that engine therefore carries
+    keys today's `positionKey` can never reproduce -- exactly the stale ledger a
+    load has to recover from.
+    """
+    board = ";".join(sorted(f"{p['color']}:{p['type']}:{p['row']}:{p['col']}"
+                            for p in state["pieces"]))
+    pool = ",".join(sorted(f"{color}:{item['type']}"
+                           for color in ("red", "black")
+                           for item in state["captured"][color]))
+    return f"{state['turn']}|{board}||pool:{pool}"
+
+
+def _probe_load_document(document: dict,
+                         then_play: list[tuple[tuple[int, int], tuple[int, int]]]) -> dict:
+    """Drive offline.js's DOM-free `gameFromDocument` and return its probe leg.
+
+    `gameFromDocument` is the core `loadGameDocument` delegates to; going through
+    it exercises the real load path (validation, ledger rebuild) without a DOM.
+    """
+    if not shutil.which("node"):
+        pytest.skip("Node.js is required for cross-engine parity tests")
+    payload = json.dumps({
+        "profileId": document["profileId"],
+        "options": document["options"],
+        "state": document["state"],
+        "loadDocument": {
+            "document": document,
+            "initialMinutes": 20,
+            "thenPlay": [{"from": {"row": a, "col": b}, "to": {"row": c, "col": d}}
+                         for (a, b), (c, d) in then_play],
+        },
+    })
+    completed = subprocess.run(
+        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
+        capture_output=True, check=True, timeout=30,
+    )
+    leg = json.loads(completed.stdout)["loadDocument"]
+    assert leg["ok"], f"offline.js refused the document: {leg['error']}"
+    return leg
+
+
+def test_offline_load_rebuilds_a_stale_repetition_ledger():
+    """A `.xhgame` saved by a pre-F1 offline build carries string-sorted ledger
+    keys that today's `positionKey` can never reproduce. Loading it must re-derive
+    the ledger from the snapshots (mirroring Python's `_rebuild_position_counts`,
+    storage.py), otherwise a pre-load repetition is forgotten and the threefold
+    draw never fires (漏判).
+
+    Before this fix the loader kept the stored keys verbatim. The assertions
+    below are red on that build: the probe has no `gameFromDocument` to call, so
+    no `loadDocument` leg is produced at all.
+
+    The board puts two red rooks on rows 2 and 10 -- the 1<->2 digit straddle is
+    what makes the old string sort disagree with today's tuple sort (F1), so the
+    stored keys really are stale.
+    """
+    profile = get_profile("desktop_complete")
+    pieces = [
+        _piece(PieceType.KING, Color.RED, 0, 0),
+        _piece(PieceType.KING, Color.BLACK, profile.rows - 1, profile.cols - 1),
+        _piece(PieceType.ROOK, Color.RED, 2, 0),     # straddle piece (rows 2 & 10)
+        _piece(PieceType.ROOK, Color.RED, 10, 0),    # shuffles rows 10
+        _piece(PieceType.ROOK, Color.BLACK, 4, 0),   # shuffles rows 4
+    ]
+    game = Game.from_state(GameState(profile.id, pieces, turn=Color.RED))
+
+    def play(sr: int, sc: int, tr: int, tc: int) -> None:
+        move = next(m for m in game.rules.legal_moves(game.state)
+                    if (m.source.row, m.source.col, m.target.row, m.target.col) == (sr, sc, tr, tc))
+        game.move(move)
+
+    cycle = [((10, 0), (10, 1)), ((4, 0), (4, 1)), ((10, 1), (10, 0)), ((4, 1), (4, 0))]
+    for squares in cycle:                       # the start position is now seen twice
+        play(squares[0][0], squares[0][1], squares[1][0], squares[1][1])
+
+    state = game.state.to_dict()
+    snapshots = [dict(snapshot) for snapshot in game._snapshots]
+    assert len(snapshots) == len(state["history"]) == len(cycle)
+    visited = [*snapshots, state]
+
+    # The document as a pre-F1 engine wrote it: old string-sorted keys and no
+    # version marker (offline.js never stamps one).
+    stale: dict[str, int] = {}
+    for snapshot in visited:
+        key = _old_string_sorted_offline_key(snapshot)
+        stale[key] = stale.get(key, 0) + 1
+    document = {
+        "formatVersion": 1,
+        "profileId": profile.id,
+        "options": asdict(profile.options),
+        "state": {**state, "positionCounts": stale},
+        "snapshots": snapshots,
+        "savedAt": "2026-01-01T00:00:00",
+    }
+
+    # What the ledger must be once rebuilt: today's pool-aware, tuple-sorted key
+    # over every visited position (snapshots are the pre-move states, the live
+    # state is the last one).
+    expected: dict[str, int] = {}
+    for snapshot in visited:
+        key = game.rules.position_key(GameState.from_dict(snapshot))
+        expected[key] = expected.get(key, 0) + 1
+    # Guard: the stored keys really are stale, else this case proves nothing.
+    assert set(stale) != set(expected)
+    assert max(stale.values()) == 2, "the repetition is pre-load, so its store sits at 2"
+
+    leg = _probe_load_document(document, cycle)
+
+    # 1) The rebuilt ledger is byte-identical to Python's on the same states.
+    assert leg["loadedPositionCounts"] == expected
+    assert max(leg["loadedPositionCounts"].values()) == 2
+    # 2) No stale key survives beside it (a load must not keep two ledgers).
+    assert set(leg["loadedPositionCounts"]) == set(expected)
+    # 3) A third visit to the start position now draws. Without the rebuild the
+    #    third occurrence would file under today's key while the stored one sits
+    #    at 2 under the old key, so `settle` never sees the threefold.
+    assert leg["draw"] is True
+    assert leg["resultReason"] == "threefold_repetition"
+    assert max(leg["positionCounts"].values()) == 3
+
+
 def test_no_progress_plies_option_parity():
     game = Game("desktop_classic", option_overrides={"no_progress_draw_plies": 4})
     for _ in range(4):
