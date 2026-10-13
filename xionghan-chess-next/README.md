@@ -4,7 +4,7 @@
 
 - **当前版本**：1.7.0
 - 棋子行棋规则：[docs/PIECE_RULES.md](docs/PIECE_RULES.md)；对局与胜负规则：[docs/RULES.md](docs/RULES.md)
-- 玩家操作与常见问题：[docs/HELP.md](docs/HELP.md)
+- 玩家操作与常见问题：[HELP.md](src/xionghan_chess/desktop/resources/docs/HELP.md)
 
 > 本目录 `xionghan-chess-next/` 是当前唯一的正式实现。仓库根目录下的 `desktop/`、`web/`、`docker/` 属于旧的 2.0 代码线，已退出维护，不在本项目的构建与运行范围内。
 
@@ -109,7 +109,7 @@ xionghan-chess-next/
 - WebSocket 协议：[docs/WEBSOCKET_PROTOCOL.md](docs/WEBSOCKET_PROTOCOL.md)
 - Android 构建与连服：[docs/ANDROID.md](docs/ANDROID.md)
 - Linux 服务器部署：[docs/LINUX_DEPLOY.md](docs/LINUX_DEPLOY.md)、Docker 部署：[docs/DOCKER_DEPLOY.md](docs/DOCKER_DEPLOY.md)
-- 玩家帮助与 FAQ：[docs/HELP.md](docs/HELP.md)
+- 玩家帮助与 FAQ：[HELP.md](src/xionghan_chess/desktop/resources/docs/HELP.md)（**仓库内唯一一份**：桌面端运行期加载并随包分发，`docs/HELP.md` 旧副本已删除）
 - 项目愿景：[ABOUT.md](src/xionghan_chess/desktop/resources/docs/ABOUT.md)（**仓库内唯一一份**：桌面端运行期加载并随包分发的权威副本，`docs/ABOUT.md` 旧副本已删除）
 - 变更记录：[docs/CHANGELOG_1.6.0.md](docs/CHANGELOG_1.6.0.md)；当前版本计划：[docs/VERSION_PLAN_1.6.0.md](docs/VERSION_PLAN_1.6.0.md)
 - 排障：[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
