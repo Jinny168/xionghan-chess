@@ -201,6 +201,16 @@
 
 `tests/test_qa_regressions.py::test_release_cache_busters_match_package_version` 断言 `app.css?v=1.6.0` / `app.js?v=1.6.0` / `i18n.js?v=1.6.0`。**实测**：`web/index.html` 与 `web/js/app.js` **当前仍是 `?v=1.6.0`**。=> 版本号 bump 到 1.7.0 时，**此测试将变红**，须与 cache-buster 同 commit 修改。
 
+> **状态更新：该耦合点已消除（已根治）—— `71330e1` + `3baae61`**
+>
+> 上句中的用例名是**基准 `3fe7fe7` 时的历史快照，予以保留**（记录"当时叫什么"）。该用例**已被替换**为 **`test_release_version_sources_agree`**（`tests/test_qa_regressions.py:189`；旧名在代码中**已不存在**，实测 `grep -c` = 0）。
+>
+> 新用例**不再硬编码任何版本字面量**：它以 **`package.json:version` 为单一来源**，把其余 **7 处**逐一**解析后比对**——`pyproject.toml:[project].version`、`xionghan_chess.__version__`、`android/XionghanChessAndroid.csproj:ApplicationDisplayVersion`、`web/index.html` 的 `app.css?v=`、`web/index.html` 的 `app.js?v=`、`web/js/app.js` 的 `i18n.js?v=`、`deploy/docker-compose.yml` 的 image tag —— 不一致时报出**全部**错配文件名。
+>
+> **因此"bump 会让该测试变红"这一耦合今后不再存在**：未来的版本 bump 只需改各版本字段，不会再因该测试失败。
+>
+> 附（对本节基准时观察的更正）：基准时我观察到"`web/index.html` / `web/js/app.js` 仍为 `?v=1.6.0`"；该状态随后由 `88a68bd`（"版本号 1.6.0 → 1.7.0 余项（A 类 7 文件）+ web 缓存戳测试耦合"）改为 **`?v=1.7.0`**。实测当前各面版本一致为 `1.7.0`（`package.json` / `web/index.html` / `web/js/app.js` / `deploy/docker-compose.yml` image tag / csproj `ApplicationDisplayVersion`），且 csproj `ApplicationVersion=9`。
+
 ### 8.4 影响范围判定
 
 上述 5 个提交**只动文档与版本**（`bfea053` 自述"无行为变更"重构），故：
