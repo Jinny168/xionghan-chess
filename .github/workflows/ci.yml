@@ -1,0 +1,71 @@
+name: CI
+
+# NOTE ON LOCATION: GitHub Actions only reads workflows from the repository
+# root's `.github/workflows/`. This repo's root also holds a migration-era
+# legacy tree (`desktop/`, `web/`, `docker/`, `docs/`, `handoff.md`) that is NOT
+# built or tested here; the live project is the `xionghan-chess-next/` subtree,
+# so every step runs with `working-directory: xionghan-chess-next`.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+defaults:
+  run:
+    working-directory: xionghan-chess-next
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Both platforms must report; a Windows-only failure must not hide the
+      # Ubuntu result (and vice versa).
+      fail-fast: false
+      matrix:
+        # Windows + Ubuntu on purpose: the cross-engine gate spawns `node`
+        # subprocesses and reads Android asset paths whose case/section
+        # comparison differs per platform (Windows is case-insensitive, Ubuntu
+        # is case-sensitive; line-ending and path-separator handling differ
+        # too). Running both surfaces those differences instead of hiding them.
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Binary assets (wav/png/webp/ico/pdf/apk…) are stored in Git LFS;
+          # the test job needs only source + node, so skip the LFS pull.
+          lfs: false
+
+      # Core of this gate. `tests/test_cross_engine.py` is the ONLY guard
+      # against the Python (`core/rules.py`) and offline (`offline.js`) rule
+      # engines drifting apart, and it skips itself when `node` is missing.
+      # Assert node BEFORE anything else so a missing binary fails the run
+      # loudly instead of letting the whole gate skip to a green line.
+      # (`tests/conftest.py` fails the parity suite by default for the same
+      # reason; this step is the second, earlier line of defence.)
+      - name: Assert node is present (cross-engine parity gate)
+        run: node --version
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install (test extra)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test]"
+
+      # `node --check` on the CommonJS-safe assets (no ESM `import`, so the
+      # result is identical across node versions). The web front-end files are
+      # ES modules and are checked by the project's own `npm run check`, whose
+      # ESM `--check` behaviour depends on the runner's node version.
+      - name: Node syntax check (JS assets)
+        run: |
+          node --check android/Resources/assets/offline/offline.js
+          node --check android/Resources/assets/offline/offline-locales.js
+          node --check scripts/offline_rules_probe.cjs
+
+      - name: pytest
+        run: pytest tests/ -q
