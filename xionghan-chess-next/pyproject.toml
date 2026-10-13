@@ -35,3 +35,11 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+# `--strict-markers` turns a mistyped `@pytest.mark.<name>` into an error instead
+# of a silently-ignored no-op. `slow` marks the wall-clock performance guardrails
+# (tests/test_performance.py): run them with the full suite (CI does), skip them
+# locally with `-m "not slow"`.
+addopts = ["--strict-markers"]
+markers = [
+  "slow: wall-clock performance regression guardrail (`-m 'not slow'` to skip)",
+]
