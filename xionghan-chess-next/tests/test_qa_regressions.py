@@ -189,10 +189,10 @@ def test_android_offline_no_progress_draw_matches_core_contract():
 def test_release_version_sources_agree():
     """Every shipped version string must agree with one base -- parsed, not typed.
 
-    A scattered literal version is how the 1.6.0 -> 1.7.0 bump nearly shipped a
-    stale cache-buster: the previous check hardcoded `?v=1.7.0`, so it stayed
-    honest only while someone remembered to edit it (and the audit's sync-point
-    #6 was exactly this manual step). Here the base is read once from
+    A scattered literal version is how the previous release bump nearly shipped a
+    stale cache-buster: the earlier check hardcoded the cache-buster literal, so
+    it stayed honest only while someone remembered to edit it (the audit's
+    sync-point #6 was exactly this manual step). Here the base is read once from
     `package.json` and every other surface is compared against it -- a future
     bump edits the version fields only; adding a surface means adding a source
     below, never a literal. The failure message names every mismatching file.
