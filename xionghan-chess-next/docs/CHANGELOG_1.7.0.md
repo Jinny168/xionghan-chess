@@ -1,0 +1,45 @@
+# 匈汉象棋 v1.7.0 更新日志
+
+> 本版本主线为「三端规则一致性」与「AI 池感知」，并统一英文术语、重写对外文档。
+> 下列条目均可回溯到提交 hash；未落地的事项不列入。
+
+## AI 棋力
+
+- **AI 感知升变池（`f10261f`）**：`_evaluate` 原先只求棋盘之和，导致「吃子」被全额计亏、升变池被当作不存在，单次升变着法被系统性高估约 +900。改为按「盘上 + 池」合并台账补回另一半，权重恒 `1.0`（属补漏，非调参）。池中排除 `KING`（避免 `VALUES[KING]` 爆分），升变项排除 `PAWN`，复活项按 7 兵上限计。
+- **池感知缓存键（`f10261f`）**：新增 `evaluation_key` 并**同步**替换置换表 / 评估 / SEE 三处缓存键，避免「同盘面、不同池」串用缓存。
+- 规则语义零改动：该提交对 `rules.py` / `game.py` / `offline.js` 各为 0 行改动。
+- 现状基线冻结（`dfbb1dc`）：为 AI 池盲立可复跑基线断言。
+
+## 规则内核：`capturable_squares` 统一
+
+- **读侧收敛（`32ff35b`）**：把「谁能吃谁、以何方式吃」从 `in_check` / `_indirect_king_capture` / `_kill_squares` / `_three_cell_neighbours` 等多份实现，收敛为唯一纯函数 `capturable_squares`（`CaptureKind` / `Removal` / `CaptureSpec`）。`in_check` 与离线端 `inCheck` 均派生自它，三端同构；规则语义零改动。
+- **写侧收敛（`e470df4`）**：新增 `RulesEngine.board_removals`，成为「一步走法移除哪些子」的唯一写者；`captured_by_move` 是其收窄到敌方的子集；`RESTORE_PAWN_LIMIT = 7` 收敛到唯一出处（原在 `ai.py` 重复一份）。离线端镜像为 `Rules.boardRemovals`。
+- **边界固化（`bdeef7b`）**：G11 钉死「甲的三子清线为全盘扫描」这一既有语义——守卫的是**现状**而非期望值，产品若改规则需同步翻转。
+
+## 判和口径：升变池并入 `position_key`
+
+- **口径升级（`403590d`，方案 A，用户拍板）**：capture pool 是游戏状态而非记账——它决定哪些升变合法、能复活多少兵，因此「同盘面、不同池」视为两个不同局面。`position_key` 升为 `<turn>|<board>||pool:<pool>`，新增 `POSITION_KEY_VERSION = 2`；`evaluation_key` 归并为 `position_key` 本身。
+- **旧档自动迁移（`403590d`）**：`core/storage.py` 写入 `positionKeyVersion`，读到旧标记（<2）的档时按快照重建判和账本，杜绝读旧档因键口径不同而误判 / 漏判和棋。
+- **两端逐字符一致（`b4d9dce`）**：离线端 `positionKey` 排序由字符串序改为元组数值序，与 Python 完全一致。
+- **离线档载入重建（`e7ffe02`）**：离线端载入 `.xhgame` 时按快照重建判和账本，与 Python 侧对称。
+
+## 缺陷修复
+
+- **将军假阴性（`742909f`，F2）**：`capturable_squares` 名义池盲实则不然——池非空时「必升变闸门」使裸 move 非法，升变线吃子随之被漏报，`in_check` 假阴性（可能连带将死 / 和棋判定出错）。新增 `promotion_types` / `moves_to_target` 把升变变体构造收成唯一来源；G12 黄金用例钉死「修前 False、修后 True」。其结果仍保持池盲。
+- **两端 `position_key` 排序分叉（`b4d9dce`，F1）**：原字符串序把 `"10"` 排在 `"2"` 之前，任何「同色同型、行号跨 1↔2 位」的局面两端账本就此分叉。
+- **离线旧档载入漏判和（`e7ffe02`）**：离线端载入时直接 clone 旧账本而不重建，含跨位同型子的旧档第三次回到同一局面时判和永不触发。
+
+## 国际化
+
+- **英文棋子术语统一（`ce24348`）**：共 35 键，含 6 个核心键（`Knight→Horse` / `Minister→Elephant` / `Guard→Advisor` / `Soldier→Pawn` / `Captain→Guard` / `Catapult→Thunder`）及关联的 `piece.*_label`、`piece_name.*`、`piece_rule.*`、`*_long`、`rule.*` 选项描述、`error.*`、`docs.help` / `docs.rules`。修掉 Advisor/Guard 撞词等错译；`piece_rule.armor` 明确「三子成一条直线（含斜线）」，`piece_rule.shield` 补「保护相邻友子」。两份 locale 键集保持完全一致（各 488 键）。
+
+## 文档
+
+- **仓库根 README 改为对外落地页（`0ca248e`）**：明确「活体树 `xionghan-chess-next/` vs 迁移前的历史遗留树」两棵树关系，给出入口，移除过期的 v2.0 内容。
+- **活体 README 重写（`ce24348`）**：快速开始 / 三端构建 / 目录结构 / 规则要点 / 已知限制；写明「离线同机」与「在线需服务端」的边界。
+- **审计文档结构刷新（`01e8bc4` / `7c170e2` / `3fe7fe7` 等）**：O-6、方案 A 之后的行号与锚点统一刷新。
+
+## 工程与版本线
+
+- 生产版本号提升至 `1.7.0`；Android `versionCode` 8 → 9、`versionName` 1.7.0。
+- 三端规则一致性由跨引擎对拍持续守护：`capturable_squares`、`position_key`（含池）与升变池镜像均纳入 Node 探针对拍。

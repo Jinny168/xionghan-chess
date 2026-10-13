@@ -2,7 +2,7 @@
 
 在 13×13 扩展棋盘上展开、融合匈奴与东汉历史文化元素的中国象棋变体。Windows 桌面端、Web 端与 Android 端共享同一套 Python 规则、AI、联机协议和 `.xhgame` 棋谱格式；对局既可以在本机单机进行，也可以连接自建的 FastAPI 服务进行在线对战。
 
-- **版本线**：开发中，版本号在正式发版时统一更新（当前代码侧为 1.6.0）
+- **当前版本**：1.7.0
 - 棋子行棋规则：[docs/PIECE_RULES.md](docs/PIECE_RULES.md)；对局与胜负规则：[docs/RULES.md](docs/RULES.md)
 - 玩家操作与常见问题：[docs/HELP.md](docs/HELP.md)
 
