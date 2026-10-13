@@ -110,7 +110,7 @@ xionghan-chess-next/
 - Android 构建与连服：[docs/ANDROID.md](docs/ANDROID.md)
 - Linux 服务器部署：[docs/LINUX_DEPLOY.md](docs/LINUX_DEPLOY.md)、Docker 部署：[docs/DOCKER_DEPLOY.md](docs/DOCKER_DEPLOY.md)
 - 玩家帮助与 FAQ：[docs/HELP.md](docs/HELP.md)
-- 项目愿景：[docs/ABOUT.md](docs/ABOUT.md)
+- 项目愿景：[ABOUT.md](src/xionghan_chess/desktop/resources/docs/ABOUT.md)（**仓库内唯一一份**：桌面端运行期加载并随包分发的权威副本，`docs/ABOUT.md` 旧副本已删除）
 - 变更记录：[docs/CHANGELOG_1.6.0.md](docs/CHANGELOG_1.6.0.md)；当前版本计划：[docs/VERSION_PLAN_1.6.0.md](docs/VERSION_PLAN_1.6.0.md)
 - 排障：[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
