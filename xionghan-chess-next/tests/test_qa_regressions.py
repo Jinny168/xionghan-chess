@@ -1,8 +1,13 @@
 import asyncio
+import json
 from pathlib import Path
+import re
+import tomllib
+import xml.etree.ElementTree as ET
 
 import pytest
 
+import xionghan_chess
 from xionghan_chess.core.game import GameError
 from xionghan_chess.core.model import Color
 from xionghan_chess.core.protocol import Envelope, MessageType
@@ -181,10 +186,50 @@ def test_android_offline_no_progress_draw_matches_core_contract():
     assert "this.state.resultReason='no_progress'" in offline
 
 
-def test_release_cache_busters_match_package_version():
+def test_release_version_sources_agree():
+    """Every shipped version string must agree with one base -- parsed, not typed.
+
+    A scattered literal version is how the 1.6.0 -> 1.7.0 bump nearly shipped a
+    stale cache-buster: the previous check hardcoded `?v=1.7.0`, so it stayed
+    honest only while someone remembered to edit it (and the audit's sync-point
+    #6 was exactly this manual step). Here the base is read once from
+    `package.json` and every other surface is compared against it -- a future
+    bump edits the version fields only; adding a surface means adding a source
+    below, never a literal. The failure message names every mismatching file.
+    """
     root = Path(__file__).resolve().parents[1]
-    index = (root / "web/index.html").read_text(encoding="utf-8")
-    app_js = (root / "web/js/app.js").read_text(encoding="utf-8")
-    assert 'app.css?v=1.7.0' in index
-    assert 'app.js?v=1.7.0' in index
-    assert "i18n.js?v=1.7.0" in app_js
+
+    base = json.loads((root / "package.json").read_text(encoding="utf-8"))["version"]
+    sources: dict[str, str] = {"package.json:version": base}
+
+    with (root / "pyproject.toml").open("rb") as handle:
+        sources["pyproject.toml:[project].version"] = tomllib.load(handle)["project"]["version"]
+
+    sources["xionghan_chess.__version__"] = xionghan_chess.__version__
+
+    csproj = ET.parse(root / "android" / "XionghanChessAndroid.csproj").getroot()
+    display = csproj.find("PropertyGroup/ApplicationDisplayVersion")
+    assert display is not None, "Android csproj is missing ApplicationDisplayVersion"
+    sources["android/XionghanChessAndroid.csproj:ApplicationDisplayVersion"] = (display.text or "").strip()
+
+    index = (root / "web" / "index.html").read_text(encoding="utf-8")
+    app_js = (root / "web" / "js" / "app.js").read_text(encoding="utf-8")
+    for label, text, pattern in (
+        ("web/index.html:app.css?v=", index, r"/css/app\.css\?v=([^\"']+)"),
+        ("web/index.html:app.js?v=", index, r"/js/app\.js\?v=([^\"']+)"),
+        ("web/js/app.js:i18n.js?v=", app_js, r"i18n\.js\?v=([^\"']+)"),
+    ):
+        found = re.search(pattern, text)
+        assert found is not None, f"{label}: cache-buster not found"
+        sources[label] = found.group(1)
+
+    compose = (root / "deploy" / "docker-compose.yml").read_text(encoding="utf-8")
+    tag = re.search(r"image:\s*xionghan-chess:([^\s]+)", compose)
+    assert tag is not None, "deploy/docker-compose.yml: image tag not found"
+    sources["deploy/docker-compose.yml:image tag"] = tag.group(1)
+
+    mismatched = {name: value for name, value in sources.items() if value != base}
+    assert not mismatched, (
+        f"version sources disagree: base={base!r} (package.json); "
+        f"mismatched={mismatched}; all={sources}"
+    )
