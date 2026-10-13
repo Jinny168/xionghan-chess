@@ -358,8 +358,13 @@ class ChessAI:
                     seen.add(move)
             if moving.type is PieceType.PAWN and game.options.pawn_promotion:
                 final_row = 0 if moving.color is Color.RED else game.profile.rows - 1
-                promotion_types = {piece.type for piece in state.captured[moving.color]
-                                   if piece.type not in {PieceType.PAWN, PieceType.KING}}
+                # Single source for the set (was hand-rolled here). It stays an
+                # unordered set on purpose: this list feeds `_order`'s *stable*
+                # sort and is then truncated, so switching to the sorted
+                # `promotion_types` would silently reshuffle tied promotions and
+                # change the search. Same elements, same insertion order => same
+                # iteration order as before.
+                promotion_types = game.rules.promotable_types(state, moving.color)
                 for col in range(game.profile.cols):
                     for promotion in promotion_types:
                         move = Move(moving.position, Position(final_row, col), promotion)

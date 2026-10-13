@@ -149,10 +149,10 @@ class RulesEngine:
                 return False
         elif piece.type is PieceType.PAWN and self.options.pawn_promotion and \
                 move.target.row == (0 if piece.color is Color.RED else self.profile.rows - 1):
-            promotable = [p for p in state.captured[piece.color]
-                          if p.type not in {PieceType.PAWN, PieceType.KING}
-                          and p.type in self.enabled_piece_types]
-            if promotable:
+            # Only non-emptiness is needed here, so ask the set directly -- this
+            # gate is the one promotion branch that runs on the pseudo_legal hot
+            # path, and `promotable_types` skips `promotion_types`' sort.
+            if self.promotable_types(state, piece.color):
                 return False
         if target and self._protected_by_enemy_shield(state, target):
             return False
@@ -192,13 +192,7 @@ class RulesEngine:
                     promotions: list[PieceType | None] = [None]
                     if (piece.type is PieceType.PAWN and self.options.pawn_promotion
                             and row == (0 if color is Color.RED else self.profile.rows - 1)):
-                        available = {
-                            captured.type for captured in probe.captured[color]
-                            if captured.type not in {PieceType.PAWN, PieceType.KING}
-                            and captured.type in self.enabled_piece_types
-                        }
-                        if available:
-                            promotions = sorted(available, key=lambda item: item.value)
+                        promotions = self.promotion_types(probe, color) or [None]
                     for promotion in promotions:
                         move = Move(piece.position, target, promotion)
                         if self.is_legal(probe, move):
@@ -355,18 +349,26 @@ class RulesEngine:
             self._assert_capture_specs(found, color)
         return found
 
-    def promotion_types(self, state: GameState, color: Color) -> list[PieceType]:
-        """The types `color` may promote a pawn into right now, sorted.
+    def promotable_types(self, state: GameState, color: Color) -> set[PieceType]:
+        """The types `color`'s pawns may promote into right now, unordered.
 
         The capture pool gates promotion, so this is exactly the set
-        `pseudo_legal`'s promotion branch reads back; candidate generation, MCTS
-        and SEE must all ask the same question, hence one definition.
+        `pseudo_legal`'s promotion branch reads back. It is the one place the
+        predicate lives: `promotion_types` wraps it sorted for candidate
+        generation, the `pseudo_legal` gate only needs non-emptiness, and
+        `ai.py`'s tactical scan iterates it as an unordered set -- none of them
+        may hand-roll the set again.
         """
-        return sorted({
+        return {
             captured.type for captured in state.captured[color]
             if captured.type not in {PieceType.PAWN, PieceType.KING}
             and captured.type in self.enabled_piece_types
-        }, key=lambda item: item.value)
+        }
+
+    def promotion_types(self, state: GameState, color: Color) -> list[PieceType]:
+        """`promotable_types` sorted -- the deterministic order candidate
+        generation, MCTS and SEE iterate in."""
+        return sorted(self.promotable_types(state, color), key=lambda item: item.value)
 
     def moves_to_target(self, state: GameState, piece: Piece, target: Position) -> list[Move]:
         """Every `Move` that carries `piece` onto `target`, one per promotion.
