@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from functools import lru_cache
 import json
+import os
 from dataclasses import asdict
 from pathlib import Path
+import random
 import shutil
 import subprocess
 
@@ -1105,3 +1108,285 @@ def test_capture_kinds_match_across_engines():
     assert python == offline
     kinds = {removal["kind"] for spec in python for removal in spec["removals"]}
     assert {"direct", "armor_line", "assassin_drag"} <= kinds, kinds
+
+
+# ---------------------------------------------------------------------------
+# P0-3: random/exhaustive parity + same-side invariants
+# ---------------------------------------------------------------------------
+#
+# The golden cases above are hand-built and, twice already (F1's single rook,
+# F2's promotion-line blindness), a fixture that never reached the bug stayed
+# green. This block adds two independent nets on top -- it does not weaken or
+# replace any of them:
+#
+#   1. A fixed, reproducible sample of random *legal* positions compared on the
+#      same five legs as the golden cases (`moves`, `check`, `capturableSquares`,
+#      `positionKey`, `capturedByMove`). The seed is printed and the sample size
+#      is `XH_PARITY_SAMPLES` (default 16), so a red run is reproducible and the
+#      suite stays time-bounded.
+#   2. Same-side invariants written a different way (a point query must equal the
+#      full enumeration restricted to that key; `in_check` must equal the king's
+#      point query; `captured_by_move` must equal the capture-spec attribution).
+#      These need no JS, so they can still catch a mistake the two engines make
+#      *identically* -- exactly what a pure parity gate cannot do.
+
+_ALL_TYPES: tuple[PieceType, ...] = tuple(sorted(PieceType, key=lambda kind: kind.value))
+_SAMPLING_PROFILES: tuple[str, ...] = ("traditional", "web", "desktop_classic", "desktop_complete")
+PARITY_SEED_BASE = 20261013
+PARITY_SAMPLES = max(1, int(os.environ.get("XH_PARITY_SAMPLES", "16")))
+
+
+def _sample_context(index: int, game: Game) -> str:
+    """A reproducible description of one sample, for failure messages."""
+    board = ", ".join(
+        f"{piece.color.value}:{piece.type.value}@{piece.position.row},{piece.position.col}"
+        for piece in sorted(game.state.pieces,
+                            key=lambda p: (p.color.value, p.type.value, p.position.row, p.position.col))
+    )
+    pool = "; ".join(
+        f"{color.value}=[{','.join(p.type.value for p in game.state.captured[color])}]"
+        for color in (Color.RED, Color.BLACK)
+    )
+    return (f"\n[XH_PARITY seed={PARITY_SEED_BASE + index} index={index}] "
+            f"profile={game.profile.id} turn={game.state.turn.value}\n"
+            f"  board: {board}\n  pool: {pool}")
+
+
+def _random_game_once(rng: random.Random, target: PieceType) -> Game | None:
+    """One random-placement attempt that must include a `target` piece."""
+    candidates = [pid for pid in _SAMPLING_PROFILES
+                  if target in get_profile(pid).enabled_piece_types]
+    profile = get_profile(rng.choice(candidates or list(_SAMPLING_PROFILES)))
+    rows, cols = profile.rows, profile.cols
+    enabled = tuple(sorted(profile.enabled_piece_types, key=lambda kind: kind.value))
+
+    squares = [(row, col) for row in range(rows) for col in range(cols)]
+    rng.shuffle(squares)
+    occupied: set[Position] = set()
+    pieces: list[Piece] = []
+
+    def place(kind: PieceType, color: Color, row: int, col: int) -> bool:
+        position = Position(row, col)
+        if position in occupied:
+            return False
+        occupied.add(position)
+        pieces.append(_piece(kind, color, row, col))
+        return True
+
+    def place_random(kind: PieceType, color: Color) -> bool:
+        while squares:
+            row, col = squares.pop()
+            if place(kind, color, row, col):
+                return True
+        return False
+
+    # Both kings first: a missing king makes `in_check` answer `True`
+    # unconditionally and silently weaken every comparison.
+    for color in (Color.RED, Color.BLACK):
+        if not place_random(PieceType.KING, color):
+            return None
+
+    # The one piece type this sample is responsible for exercising. The king is
+    # already covered by the mandatory pair, so it never gets a second copy --
+    # a board with two kings of one colour has no meaning for `in_check`.
+    if target is not PieceType.KING and \
+            not place_random(target, rng.choice((Color.RED, Color.BLACK))):
+        return None
+
+    # A handful of extra pieces, so ranks/files/adjacency get rough coverage.
+    # Kings are excluded for the same reason: at most one per colour.
+    extra_types = [kind for kind in enabled if kind is not PieceType.KING]
+    for _ in range(rng.randint(2, 6)):
+        if not extra_types:
+            break
+        if not place_random(rng.choice(extra_types), rng.choice((Color.RED, Color.BLACK))):
+            break
+
+    # Seed promotion-line pressure: a pawn on its promotion rank and one a step
+    # short, which is where F2 lived.
+    if PieceType.PAWN in enabled:
+        for color, rank in ((Color.RED, 0), (Color.BLACK, rows - 1)):
+            step = rank + 1 if color is Color.RED else rank - 1
+            for row in (rank, step):
+                if 0 <= row < rows and rng.random() < 0.5:
+                    place(PieceType.PAWN, color, row, rng.randrange(cols))
+
+    # Non-empty capture pools: the pool gates mandatory promotion, so both the
+    # empty and the stocked pool have to be exercised.
+    pool_types = [kind for kind in enabled if kind is not PieceType.KING]
+    captured: dict[Color, list[Piece]] = {Color.RED: [], Color.BLACK: []}
+    for color in (Color.RED, Color.BLACK):
+        if pool_types and rng.random() < 0.5:
+            for _ in range(rng.randint(1, 2)):
+                captured[color].append(_piece(rng.choice(pool_types), color, 0, 0))
+
+    state = GameState(profile.id, pieces, turn=rng.choice((Color.RED, Color.BLACK)),
+                      captured=captured)
+    game = Game.from_state(state)
+    # Keep the sample *legal*: the side that just moved may not have left its own
+    # king capturable, and the side to move needs at least one legal reply.
+    if game.rules.in_check(state, state.turn.opponent):
+        return None
+    if not game.rules.legal_moves(state):
+        return None
+    return game
+
+
+@lru_cache(maxsize=None)
+def _random_game(index: int) -> Game:
+    """Deterministic legal random position for sample `index`, seed printed above."""
+    target = _ALL_TYPES[index % len(_ALL_TYPES)]
+    seed = PARITY_SEED_BASE + index
+    for attempt in range(64):
+        game = _random_game_once(random.Random(seed + attempt * 1_000_003), target)
+        if game is not None:
+            return game
+    raise AssertionError(
+        f"no legal random position for index={index} seed={seed} after 64 attempts"
+    )
+
+
+def _offline_full_probe(game: Game, check_for: Color, capture_color: Color,
+                        captured_move: Move | None) -> dict:
+    """One offline.js call that returns every parity leg for the same board."""
+    if not shutil.which("node"):
+        pytest.skip("Node.js is required for cross-engine parity tests")
+    sent_options = asdict(game.rules.options)
+    assert set(sent_options) >= set(asdict(game.profile.options)), (
+        "test channel dropped options: payload must cover every profile option key"
+    )
+    payload: dict = {
+        "profileId": game.profile.id,
+        "options": sent_options,
+        "state": _offline_state(game),
+        "checkFor": check_for.value,
+        "capturableSquares": {"color": capture_color.value},
+        "positionKey": True,
+    }
+    if captured_move is not None:
+        payload["capturedByMove"] = {
+            "from": {"row": captured_move.source.row, "col": captured_move.source.col},
+            "to": {"row": captured_move.target.row, "col": captured_move.target.col},
+            "promotion": captured_move.promotion.value if captured_move.promotion else None,
+        }
+    completed = subprocess.run(
+        ["node", str(PROBE), str(OFFLINE)], input=json.dumps(payload), text=True,
+        capture_output=True, check=True, timeout=60,
+    )
+    return json.loads(completed.stdout)
+
+
+@pytest.mark.parametrize("index", range(PARITY_SAMPLES))
+def test_random_position_cross_engine_parity(index):
+    game = _random_game(index)
+    context = _sample_context(index, game)
+    print(f"[XH_PARITY] seed={PARITY_SEED_BASE + index} index={index} profile={game.profile.id}")
+    state = game.state
+    rules = game.rules
+
+    legal = sorted(rules.legal_moves(state), key=lambda move: move.key())
+    assert legal, f"random sample must have at least one legal move{context}"
+    expected_moves = {_move_key(move) for move in legal}
+    first_move = legal[0]
+
+    result = _offline_full_probe(game, state.turn, state.turn, first_move)
+
+    observed_moves = {
+        (item["from"]["row"], item["from"]["col"], item["to"]["row"],
+         item["to"]["col"], item["promotion"])
+        for item in result["moves"]
+    }
+    assert observed_moves == expected_moves, (
+        f"legalAll mismatch{context}\n"
+        f"  only-python={sorted(expected_moves - observed_moves)}\n"
+        f"  only-js={sorted(observed_moves - expected_moves)}"
+    )
+
+    assert result["check"] is rules.in_check(state, state.turn), f"check mismatch{context}"
+    assert result["positionKey"] == rules.position_key(state), (
+        f"positionKey mismatch{context}\n"
+        f"  python={rules.position_key(state)!r}\n  js={result['positionKey']!r}"
+    )
+    python_specs = _python_capture_specs(game, state.turn)
+    assert result["capturableSquares"] == python_specs, (
+        f"capturableSquares mismatch{context}\n"
+        f"  python={python_specs}\n  js={result['capturableSquares']}"
+    )
+    python_captured = sorted((piece.type.value, piece.color.value)
+                             for piece in rules.captured_by_move(state, first_move))
+    js_captured = sorted((item["type"], item["color"]) for item in result["capturedByMove"])
+    assert js_captured == python_captured, (
+        f"capturedByMove mismatch for {first_move.key()}{context}\n"
+        f"  python={python_captured}\n  js={js_captured}"
+    )
+
+
+@pytest.mark.parametrize("index", range(PARITY_SAMPLES))
+def test_random_position_same_side_invariants(index):
+    """Self-consistency checks that hold without the JS engine.
+
+    A parity gate can only catch the two engines drifting apart; these identities
+    are stated in a different shape, so a mistake both engines share still has a
+    chance of failing here.
+    """
+    game = _random_game(index)
+    context = _sample_context(index, game)
+    state = game.state
+    rules = game.rules
+    king_pieces = [piece for piece in state.pieces if piece.type is PieceType.KING]
+    assert len(king_pieces) == 2, f"sample must hold exactly two kings{context}"
+    kings = {piece.color: piece.position for piece in king_pieces}
+    assert set(kings) == {Color.RED, Color.BLACK}, f"sample must keep both kings{context}"
+
+    for color in (Color.RED, Color.BLACK):
+        full = rules.capturable_squares(state, color)
+
+        # G6: `in_check(color)` is the *opponent's* point query on `color`'s king
+        # (or the facing-kings rule) -- the querying colour and the threatened
+        # king are opposite, which is exactly what `in_check` reads.
+        own_king = kings[color]
+        point = rules.capturable_squares(state, color.opponent, targets=(own_king,))
+        expected_check = bool(point) or rules._kings_facing(state)
+        assert rules.in_check(state, color) is expected_check, (
+            f"in_check != king point query for {color.value}{context}\n"
+            f"  point={point}\n  kings_facing={rules._kings_facing(state)}"
+        )
+
+        # G7: a point query is exactly the full enumeration restricted to that key.
+        for key in (kings[color.opponent], *list(full)[:2], Position(0, 0)):
+            restricted = {key: full[key]} if key in full else {}
+            assert rules.capturable_squares(state, color, targets=(key,)) == restricted, (
+                f"point query != full enumeration at {key} for {color.value}{context}"
+            )
+
+        # G8: `captured_by_move` agrees with the capture-spec attribution.
+        for move in sorted(rules.legal_moves(state, color), key=lambda item: item.key()):
+            attributed = {
+                removal.victim_id
+                for spec in full.values() for removal in spec.removals
+                if removal.origin == move.source and removal.landing == move.target
+            }
+            actual = {piece.id for piece in rules.captured_by_move(state, move)}
+            assert attributed == actual, (
+                f"capture attribution != captured_by_move for {move.key()} "
+                f"({color.value}){context}\n"
+                f"  attributed={sorted(attributed)}\n  actual={sorted(actual)}"
+            )
+
+
+def test_random_sample_set_covers_every_piece_type():
+    """The random sample must actually reach the piece types it claims to.
+
+    Sample `index` force-includes `_ALL_TYPES[index % 14]`, so the default run
+    (16 samples) is guaranteed to exercise all 14 types; a smaller
+    `XH_PARITY_SAMPLES` still asserts coverage for the samples that exist,
+    instead of silently testing the same few boards forever.
+    """
+    seen: set[PieceType] = set()
+    for index in range(PARITY_SAMPLES):
+        seen |= {piece.type for piece in _random_game(index).state.pieces}
+    required = set(_ALL_TYPES[:min(PARITY_SAMPLES, len(_ALL_TYPES))])
+    missing = required - seen
+    assert not missing, (
+        f"{PARITY_SAMPLES} samples never exercised: {sorted(kind.value for kind in missing)}"
+    )
