@@ -1,21 +1,21 @@
-"""桌面端的 6 个对话框（阶段1 S1-2 从 app.py 抽出）。
+"""桌面端的 6 个对话框（阶段1 S1-2 从 app.py 抽出，约 300 行）。
 
-| 类 | 职责 |
-|---|---|
-| `SettingsDialog` | 设置（游戏/外观/棋子与规则 三个 tab） |
-| `HandicapDialog` | 等量让子（按 slot 逐个勾选） |
-| `ReplayDialog` | 复盘（推演 + 调 `AnalysisWorker` 做分析） |
-| `TrainingDialog` | 残局与排局训练 |
-| `GameLibraryDialog` | 棋谱库 |
-| `DocumentDialog` | 只读长文弹窗（规则/帮助/关于/分析结果共用） |
+- `SettingsDialog`      —— 设置（游戏 / 外观 / 棋子与规则 三个 tab）
+- `HandicapDialog`      —— 等量让子（摆子）
+- `ReplayDialog`        —— 复盘 + AI 分析（分析已异步化，见 workers.AnalysisWorker）
+- `TrainingDialog`      —— 残局与排局训练
+- `GameLibraryDialog`   —— 本地棋谱库
+- `DocumentDialog`      —— 纯文本弹窗（规则/帮助/关于/分析结果复用）
 
-它们只做 UI 装配与取值，规则/状态全在 `core/`；颜色与字体来自 `ui/theme.py`。
+**合成一个模块而不是拆 6 个文件**：结构审计与主程序的方案都指出
+「Dialog 拆开只是文件变多，收益有限」，而 `ReplayDialog` 依赖 `DocumentDialog`；
+合在一个模块里既省掉跨文件导入，也避免拆完再拼。
 """
 from __future__ import annotations
 
+from dataclasses import asdict
 import json
 import os
-from dataclasses import asdict
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
@@ -26,14 +26,12 @@ from PySide6.QtWidgets import (
     QTextBrowser, QVBoxLayout, QWidget,
 )
 
-from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, PieceType
 from xionghan_chess.core.profiles import PROFILES, profile_rule_values
 from xionghan_chess.core.puzzles import load_puzzles
 from xionghan_chess.core.setup import profile_slots
 from xionghan_chess.core.storage import game_from_document
-from xionghan_chess.core.taunts import taunts
 from xionghan_chess.i18n import normalize_language, t
 
 from ..storage import load_game

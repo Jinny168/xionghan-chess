@@ -36,6 +36,17 @@ from PySide6.QtGui import QPainter, QPixmap  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 import xionghan_chess.desktop.app as app  # noqa: E402
+from xionghan_chess.core.game import Game  # noqa: E402
+from xionghan_chess.core.profiles import PROFILES  # noqa: E402
+from xionghan_chess.desktop.config import load_config  # noqa: E402
+from xionghan_chess.desktop.ui.dialogs import (  # noqa: E402
+    DocumentDialog,
+    GameLibraryDialog,
+    HandicapDialog,
+    ReplayDialog,
+    SettingsDialog,
+    TrainingDialog,
+)
 
 
 def _play_one_move(window) -> int:
@@ -65,30 +76,6 @@ def main() -> int:
         "提和仍有确认（S0-D 对照组）": "QMessageBox.question" in draw_source,
     }
 
-    # ---- S1-2：6 个 Dialog 必须能被构造 ----
-    # 只构造不 exec()（exec 会阻塞等用户点）。构造过程会跑完各自的 _build：
-    # 建控件、填下拉、算规则文案 —— 这是 Dialog 代码的主体，漏 import / 键名写错都在这里炸。
-    from xionghan_chess.desktop.ui import dialogs as dlg
-
-    opened = []
-    try:
-        opened.append(dlg.SettingsDialog(window.config, window))
-        # HandicapDialog 收的是 **dict**（内部调 .items()），不是 RuleOptions dataclass
-        opened.append(dlg.HandicapDialog(window.game.profile.id,
-                                         window.config.get("rule_options", {}), None, window))
-        opened.append(dlg.ReplayDialog(window.game, window.config, window))
-        opened.append(dlg.TrainingDialog(window))
-        opened.append(dlg.GameLibraryDialog(Path(tempfile.gettempdir()), window.config, window))
-        opened.append(dlg.DocumentDialog("smoke", "content", window))
-        checks["S1-2 六个 Dialog 可构造"] = True
-    except Exception as exc:  # noqa: BLE001
-        checks["S1-2 六个 Dialog 可构造"] = False
-        print(f"  Dialog 构造异常: {exc!r}")
-    finally:
-        for widget in opened:
-            widget.close()
-            widget.deleteLater()
-
     # ---- S1-2：棋盘绘制必须真的能跑 ----
     # Qt 会吞掉事件处理器里的异常（只打印不抛），所以 offscreen 下 `show()` 并不能
     # 证明 paintEvent 是好的。这里直接拿一个真 QPainter 调它 —— 异常才会真的冒出来。
@@ -104,6 +91,28 @@ def main() -> int:
         print(f"  paintEvent 异常: {exc!r}")
     finally:
         painter.end()
+
+    # ---- S1-2：6 个对话框必须能构造 ----
+    # 它们已搬到 ui/dialogs.py。冒烟只构造 MainWindow 的话，对话框里的漏 import
+    # （GameState / BoardWidget / load_game / os 都真的漏过）要等用户点开才炸。
+    cfg = load_config()
+    sample_game = Game(PROFILES["desktop_complete"])
+    dialog_builders = {
+        "DocumentDialog": lambda: DocumentDialog("标题", "正文", None),
+        "SettingsDialog": lambda: SettingsDialog(cfg, None),
+        "HandicapDialog": lambda: HandicapDialog("desktop_complete", {}, None, None),
+        "ReplayDialog": lambda: ReplayDialog(sample_game, cfg, None),
+        "TrainingDialog": lambda: TrainingDialog(None),
+        "GameLibraryDialog": lambda: GameLibraryDialog(Path(tempfile.mkdtemp()), cfg, None),
+    }
+    for name, build in dialog_builders.items():
+        try:
+            dialog = build()
+            dialog.deleteLater()
+            checks[f"S1-2 对话框可构造：{name}"] = True
+        except Exception as exc:  # noqa: BLE001
+            checks[f"S1-2 对话框可构造：{name}"] = False
+            print(f"  {name} 构造异常: {exc!r}")
 
     # ---- S1-9：设置不应无条件丢对局 ----
     played = _play_one_move(window)

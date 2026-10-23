@@ -12,25 +12,23 @@ from PySide6.QtCore import Qt, QThreadPool, QTimer, Signal, QUrl
 from PySide6.QtGui import QAction, QFont, QIcon, QKeySequence
 from PySide6.QtWebSockets import QWebSocket
 from PySide6.QtWidgets import (
-    QApplication, QComboBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
-    QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QMainWindow,
-    QMessageBox, QPushButton, QSpinBox, QSplitter, QTabWidget, QVBoxLayout, QWidget,
+    QApplication, QComboBox, QFileDialog, QFrame, QGridLayout, QGroupBox, QHBoxLayout,
+    QInputDialog, QLabel, QLineEdit, QListWidget, QMainWindow, QMessageBox, QPushButton,
+    QSpinBox, QSplitter, QTabWidget, QVBoxLayout, QWidget,
 )
 
 from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position
+from xionghan_chess.core.profiles import PROFILES, profile_rule_values
 from xionghan_chess.core.storage import game_document
 from xionghan_chess.core.taunts import choose_taunt, taunts
 from xionghan_chess.i18n import t
 from .audio import DesktopAudio
 from .config import config_path, load_config, save_config
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
+from .ui.dialogs import DocumentDialog, GameLibraryDialog, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
 from .ui.board_widget import BoardWidget
-from .ui.dialogs import (
-    DocumentDialog, GameLibraryDialog, HandicapDialog, ReplayDialog,
-    SettingsDialog, TrainingDialog,
-)
 from .ui.workers import AIWorker, AnalysisWorker, HttpWorker
 from .ui import theme
 
