@@ -35,6 +35,7 @@ from xionghan_chess.i18n import normalize_language, t
 
 from ..puzzle_store import available_puzzles, install_puzzles
 from ..storage import load_game
+from ..texts import dl, dlf
 from . import theme
 from .board_widget import BoardWidget
 from .workers import AnalysisWorker
@@ -60,8 +61,8 @@ class SettingsDialog(QDialog):
         self.sound_volume=QSlider(Qt.Orientation.Horizontal);self.sound_volume.setRange(0,100);self.sound_volume.setValue(config.get("sound_volume",70))
         self.music_volume=QSlider(Qt.Orientation.Horizontal);self.music_volume.setRange(0,100);self.music_volume.setValue(config.get("music_volume",40))
         self.theme=QComboBox();[(self.theme.addItem(t(f"option.theme_{value}", self.language),value)) for value in ("classic","green","blue","purple","dark")];self.theme.setCurrentIndex(max(0,self.theme.findData(config.get("theme","classic"))))
-        self.font=QComboBox();[(self.font.addItem(text,value)) for value,text in (("system","微软雅黑"),("kaiti","楷体"),("songti","宋体"),("fangsong","仿宋"))];self.font.setCurrentIndex(max(0,self.font.findData(config.get("font","system"))))
-        self.background=QComboBox();self.background.addItem("原色（无背景图片）","none");[(self.background.addItem(f"背景 {index}",str(index))) for index in range(1,6)];self.background.setCurrentIndex(max(0,self.background.findData(str(config.get("background","none")))))
+        self.font=QComboBox();[(self.font.addItem(text,value)) for value,text in (("system",dl("微软雅黑")),("kaiti",dl("楷体")),("songti",dl("宋体")),("fangsong",dl("仿宋")))];self.font.setCurrentIndex(max(0,self.font.findData(config.get("font","system"))))
+        self.background=QComboBox();self.background.addItem(dl("原色（无背景图片）"),"none");[(self.background.addItem(dlf("背景 {index}", index=index),str(index))) for index in range(1,6)];self.background.setCurrentIndex(max(0,self.background.findData(str(config.get("background","none")))))
         self.piece_style=QComboBox();[(self.piece_style.addItem(t(f"option.piece_{value}", self.language),value)) for value in ("traditional","modern","cartoon")];self.piece_style.setCurrentIndex(max(0,self.piece_style.findData(config.get("piece_style","traditional"))))
         self.animations=QCheckBox(t("settings.animation", self.language));self.animations.setChecked(config.get("animations",True))
         self.selection_highlight=QCheckBox(t("settings.selection", self.language));self.selection_highlight.setChecked(config.get("selection_highlight",True))
@@ -170,7 +171,7 @@ class HandicapDialog(QDialog):
         self.selected={color:list((selected or {}).get(color,defaults[color])) for color in defaults};self.checks={}
         layout=QVBoxLayout(self);note=QLabel(t("desktop.handicap_note",lang));layout.addWidget(note)
         columns=QHBoxLayout();layout.addLayout(columns,1)
-        for color,title in (("red","红方"),("black","黑方")):
+        for color,title in (("red",dl("红方")),("black",dl("黑方"))):
             group=QGroupBox(title);group_layout=QVBoxLayout(group);scroll=QScrollArea();scroll.setWidgetResizable(True);content=QWidget();items=QVBoxLayout(content)
             for slot in (item for item in slots if item["color"]==color):
                 check=QCheckBox(f"{theme.NAMES[Color(color)][PieceType(slot['type'])]}  {slot['type']}  ({slot['row']+1},{slot['col']+1})");check.setChecked(slot["id"] in self.selected[color]);check.setProperty("slot_id",slot["id"]);check.setProperty("color",color)
@@ -188,7 +189,7 @@ class HandicapDialog(QDialog):
 
     def _update_counts(self) -> None:
         counts={color:sum(check.isChecked() and check.property("color")==color for check in self.checks.values()) for color in ("red","black")}
-        self.counts.setText(f"红方 {counts['red']} 枚 · 黑方 {counts['black']} 枚")
+        self.counts.setText(dlf("红方 {red} 枚 · 黑方 {black} 枚", red=counts['red'], black=counts['black']))
 
     def _accept(self) -> None:
         result=self.value()
@@ -235,14 +236,14 @@ class ReplayDialog(QDialog):
         game=Game.from_state(self.snapshots[-1].clone(),self.options);game._snapshots=[item.to_dict() for item in self.snapshots[:-1]]
         worker=AnalysisWorker(game)
         worker.signals.finished.connect(self._show_analysis_result)
-        worker.signals.failed.connect(lambda message:QMessageBox.warning(self,"分析失败",str(message)))
-        self.statusBar().showMessage("正在分析对局…",30000)
+        worker.signals.failed.connect(lambda message:QMessageBox.warning(self,dl("分析失败"),str(message)))
+        self.statusBar().showMessage(dl("正在分析对局…"),30000)
         self.pool.start(worker)
 
     def _show_analysis_result(self, result: object) -> None:
-        labels={"best":"最佳","good":"良好","inaccuracy":"欠准","mistake":"失误","blunder":"严重失误"}
+        labels={"best":dl("最佳"),"good":dl("良好"),"inaccuracy":dl("欠准"),"mistake":dl("失误"),"blunder":dl("严重失误")}
         lines=["  ".join(f"{labels[key]} {value}" for key,value in result["summary"].items()),""]
-        lines.extend(f"{item['ply']}. {item['notation']}  · {labels[item['quality']]}  · 损失 {item['scoreLoss']}" for item in result["moves"])
+        lines.extend(dlf("{ply}. {notation}  · {quality}  · 损失 {loss}", ply=item['ply'], notation=item['notation'], quality=labels[item['quality']], loss=item['scoreLoss']) for item in result["moves"])
         DocumentDialog(t("desktop.analysis_title",self.language),"\n".join(lines),self).exec()
 
     def set_step(self, step: int) -> None:
@@ -252,7 +253,7 @@ class ReplayDialog(QDialog):
         state=self.snapshots[step].clone(); replay=Game.from_state(state,self.options)
         self.board.set_game(replay,Color.RED,True);self.board.interactive=False
         notation=state.history[-1].notation if state.history else t("desktop.opening",self.language)
-        self.info.setText(f"第 {step} / {len(self.snapshots)-1} 步 · {notation}")
+        self.info.setText(dlf("第 {step} / {total} 步 · {notation}", step=step, total=len(self.snapshots)-1, notation=notation))
         self.moves.blockSignals(True);self.moves.setCurrentRow(step);self.moves.blockSignals(False)
 
     def toggle_play(self) -> None:
@@ -302,30 +303,30 @@ class TrainingDialog(QDialog):
 
     def import_puzzles(self) -> None:
         """P1-K：真的把外部题库并入用户题库，而不是只弹一句「已选择」。"""
-        path,_=QFileDialog.getOpenFileName(self,"导入题库","","JSON (*.json)")
+        path,_=QFileDialog.getOpenFileName(self,dl("导入题库"),"","JSON (*.json)")
         if not path:return
         try:
             result=install_puzzles(Path(path))
         except Exception as exc:  # 非法题库：给出原因，不写坏存储
-            QMessageBox.warning(self,"题库导入失败",f"{exc}\n\n文件：{path}")
+            QMessageBox.warning(self,dl("题库导入失败"),dlf("{exc}\n\n文件：{path}", exc=exc, path=path))
             return
-        QMessageBox.information(self,"题库导入",result.summary)
+        QMessageBox.information(self,dl("题库导入"),result.summary)
         self.reload()
 
 
 class GameLibraryDialog(QDialog):
     def __init__(self, folder: Path, config: dict, parent: QWidget | None = None) -> None:
-        super().__init__(parent);self.setWindowTitle("本地棋谱库");self.resize(700,520)
+        super().__init__(parent);self.setWindowTitle(dl("本地棋谱库"));self.resize(700,520)
         self.folder=folder;self.config=config;self.selected_path:Path|None=None
         self.folder.mkdir(parents=True,exist_ok=True)
-        layout=QVBoxLayout(self);layout.addWidget(QLabel(f"棋谱目录：{self.folder}"))
+        layout=QVBoxLayout(self);layout.addWidget(QLabel(dlf("棋谱目录：{path}", path=self.folder)))
         self.list=QListWidget();layout.addWidget(self.list,1)
         files=sorted((*self.folder.glob("*.xhgame"),*self.folder.glob("*.fen"),*self.folder.glob("*.json")),key=lambda path:path.stat().st_mtime,reverse=True)
         for path in files:
             item=QListWidgetItem(f"{path.stem}    {path.stat().st_size//1024+1} KB")
             item.setData(Qt.ItemDataRole.UserRole,str(path));self.list.addItem(item)
-        if not files:self.list.addItem("暂无本地棋谱；结束对局后将自动保存到这里")
-        actions=QHBoxLayout();replay=QPushButton("复盘");resume=QPushButton("继续对局");open_folder=QPushButton("打开目录");close=QPushButton("关闭")
+        if not files:self.list.addItem(dl("暂无本地棋谱；结束对局后将自动保存到这里"))
+        actions=QHBoxLayout();replay=QPushButton(dl("复盘"));resume=QPushButton(dl("继续对局"));open_folder=QPushButton(dl("打开目录"));close=QPushButton(dl("关闭"))
         replay.clicked.connect(self.replay_selected);resume.clicked.connect(self.resume_selected);open_folder.clicked.connect(self.open_folder);close.clicked.connect(self.reject)
         for button in (replay,resume,open_folder,close):actions.addWidget(button)
         layout.addLayout(actions);self.list.itemDoubleClicked.connect(lambda _:self.replay_selected())
@@ -338,7 +339,7 @@ class GameLibraryDialog(QDialog):
         path=self.current_path()
         if not path:return
         try:ReplayDialog(load_game(path),self.config,self).exec()
-        except Exception as exc:QMessageBox.warning(self,"棋谱读取失败",str(exc))
+        except Exception as exc:QMessageBox.warning(self,dl("棋谱读取失败"),str(exc))
 
     def resume_selected(self) -> None:
         path=self.current_path()
@@ -346,7 +347,7 @@ class GameLibraryDialog(QDialog):
 
     def open_folder(self) -> None:
         try:os.startfile(self.folder)
-        except OSError as exc:QMessageBox.warning(self,"打开目录失败",str(exc))
+        except OSError as exc:QMessageBox.warning(self,dl("打开目录失败"),str(exc))
 
 
 class DocumentDialog(QDialog):

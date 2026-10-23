@@ -26,6 +26,7 @@ from pathlib import Path
 from xionghan_chess.core.puzzles import Puzzle, load_puzzles, move_to_dict
 
 from .config import puzzles_file
+from .texts import dl, dlf
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,9 +38,9 @@ class InstallResult:
     @property
     def summary(self) -> str:
         if self.added == 0:
-            return f"没有新增题目（{self.skipped} 条 id 已存在）。"
-        suffix = f"，{self.skipped} 条已存在跳过" if self.skipped else ""
-        return f"已导入 {self.added} 条题目{suffix}。当前自定义题库共 {self.total} 条。"
+            return dlf("没有新增题目（{skipped} 条 id 已存在）。", skipped=self.skipped)
+        suffix = dlf("，{skipped} 条已存在跳过", skipped=self.skipped) if self.skipped else ""
+        return dlf("已导入 {added} 条题目{suffix}。当前自定义题库共 {total} 条。", added=self.added, suffix=suffix, total=self.total)
 
 
 def _entry(puzzle: Puzzle) -> dict[str, object]:
@@ -67,7 +68,7 @@ def load_user_puzzles(path: Path | None = None) -> tuple[list[Puzzle], str]:
     try:
         return load_puzzles(target), ""
     except Exception as exc:  # noqa: BLE001 —— 任何解析失败都只影响自定义题库
-        return [], f"自定义题库读取失败（已忽略）：{exc}"
+        return [], dlf("自定义题库读取失败（已忽略）：{exc}", exc=exc)
 
 
 def available_puzzles(path: Path | None = None) -> tuple[list[Puzzle], str]:
@@ -93,7 +94,7 @@ def install_puzzles(source: Path, path: Path | None = None) -> InstallResult:
     target = path or puzzles_file()
     incoming = load_puzzles(source)          # 非法题库在此抛错
     if not incoming:
-        raise ValueError("题库文件里没有任何题目")
+        raise ValueError(dl("题库文件里没有任何题目"))
 
     builtin_ids = {puzzle.id for puzzle in load_puzzles()}
     current, _ = load_user_puzzles(target)

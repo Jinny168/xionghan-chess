@@ -15,6 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from . import net
+from .texts import dl
 
 # GitHub Releases 是当前唯一的分发出口（打包产物由 CI 上传）。
 # 用 latest（不含预发布）而不是列表接口：语义就是「最新正式版」。
@@ -116,7 +117,7 @@ def evaluate(payload: object, current: str) -> CheckResult:
     """
     info = parse_release(payload)
     if info is None:
-        return CheckResult(STATUS_ERROR, error="更新信息格式无法识别")
+        return CheckResult(STATUS_ERROR, error=dl("更新信息格式无法识别"))
     status = STATUS_UPDATE if is_newer(info.version, current) else STATUS_LATEST
     return CheckResult(status, info)
 

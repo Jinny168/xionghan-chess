@@ -6,6 +6,7 @@ from PySide6.QtCore import QUrl
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer, QSoundEffect
 
 from .ui import theme
+from .texts import dl
 
 
 class DesktopAudio:
@@ -56,17 +57,17 @@ class DesktopAudio:
     def _on_effect_status(self, name: str) -> None:
         effect = self.effects.get(name)
         if effect is not None and effect.status() is QSoundEffect.Status.Error:
-            self._record_failure(name, "音效加载/播放失败（文件缺失或格式不支持）")
+            self._record_failure(name, dl("音效加载/播放失败（文件缺失或格式不支持）"))
 
     def _on_player_error(self, error: QMediaPlayer.Error, message: str) -> None:
         if error != QMediaPlayer.Error.NoError:
-            self._record_failure("music", message or "背景音乐加载失败")
+            self._record_failure("music", message or dl("背景音乐加载失败"))
 
     def failure_summary(self) -> str:
         """给界面用的一句话；没有失败返回空串。"""
         if not self.failures:
             return ""
-        return "部分音效无法播放：" + "、".join(sorted(self.failures))
+        return dl("部分音效无法播放：") + "、".join(sorted(self.failures))
 
     def configure(self, config: dict) -> None:
         self.enabled = bool(config.get("sound", True))
