@@ -59,3 +59,11 @@
 # Documentation
 *.pdf filter=lfs diff=lfs merge=lfs -text
 *.apk filter=lfs diff=lfs merge=lfs -text
+
+# LFS exceptions: 6 desktop resources stored as regular git objects (SSH-only push channel, LFS endpoint unreachable)
+xionghan-chess-next/src/xionghan_chess/desktop/resources/sounds/fc_background_sound.ogg -filter -diff -merge -text
+xionghan-chess-next/src/xionghan_chess/desktop/resources/sounds/qq_background_sound.ogg -filter -diff -merge -text
+xionghan-chess-next/src/xionghan_chess/desktop/resources/backgrounds/3.jpg -filter -diff -merge -text
+xionghan-chess-next/src/xionghan_chess/desktop/resources/backgrounds/4.jpg -filter -diff -merge -text
+xionghan-chess-next/src/xionghan_chess/desktop/resources/backgrounds/5.jpg -filter -diff -merge -text
+xionghan-chess-next/src/xionghan_chess/desktop/resources/icon.ico -filter -diff -merge -text
