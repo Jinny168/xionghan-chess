@@ -90,6 +90,51 @@ class AIWorker(QRunnable):
             self.signals.failed.emit((str(exc), self.cancel))
 
 
+def _http_json_blocking(url, payload=None, method="GET", token=""):
+    """阻塞版 HTTP 请求。**只允许在 worker 线程里调用**（阶段0 S0-C 抽出）。
+
+    抽出原因：原先是 `MainWindow.request_json` / `http_json` 两个静态方法，在 GUI
+    线程同步 `urlopen(timeout=15/8)` —— 服务不可达时窗口"未响应"最长 15 秒。
+    """
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    body = json.dumps(payload).encode("utf-8") if payload is not None else None
+    request = urllib.request.Request(url, body, headers, method=method)
+    with urllib.request.urlopen(request, timeout=15) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+class HttpWorker(QRunnable):
+    """把阻塞 HTTP 请求移到线程池（阶段0 S0-C：建连/云同步不再冻结 GUI）。"""
+
+    def __init__(self, url, payload=None, method="GET", token=""):
+        super().__init__()
+        self.url, self.payload, self.method, self.token = url, payload, method, token
+        self.signals = WorkerSignals()
+
+    def run(self) -> None:
+        try:
+            self.signals.finished.emit(_http_json_blocking(self.url, self.payload, self.method, self.token))
+        except Exception as exc:
+            self.signals.failed.emit(str(exc))
+
+
+class AnalysisWorker(QRunnable):
+    """把复盘分析移到线程池（阶段0 S0-C：show_analysis 不再冻结 GUI）。"""
+
+    def __init__(self, game: Game):
+        super().__init__()
+        self.game = game
+        self.signals = WorkerSignals()
+
+    def run(self) -> None:
+        try:
+            self.signals.finished.emit(analyze_game(self.game, Difficulty.BEGINNER, 40))
+        except Exception as exc:
+            self.signals.failed.emit(str(exc))
+
+
 class BoardWidget(QWidget):
     move_requested = Signal(object)
     piece_selected = Signal()
@@ -643,8 +688,17 @@ class ReplayDialog(QDialog):
         analyze=QPushButton(t("desktop.analysis",self.language));analyze.clicked.connect(self.show_analysis);controls.insertWidget(0,analyze)
 
     def show_analysis(self):
+        # 阶段0 S0-C：analyze_game(40 ply) 原先在 GUI 线程同步跑，复盘窗直接冻结。
+        # 移到线程池，完成后经 Signal 回到 GUI 线程弹结果。
         game=Game.from_state(self.snapshots[-1].clone(),self.options);game._snapshots=[item.to_dict() for item in self.snapshots[:-1]]
-        result=analyze_game(game,Difficulty.BEGINNER,40);labels={"best":"最佳","good":"良好","inaccuracy":"欠准","mistake":"失误","blunder":"严重失误"}
+        worker=AnalysisWorker(game)
+        worker.signals.finished.connect(self._show_analysis_result)
+        worker.signals.failed.connect(lambda message:QMessageBox.warning(self,"分析失败",str(message)))
+        self.statusBar().showMessage("正在分析对局…",30000)
+        self.pool.start(worker)
+
+    def _show_analysis_result(self,result):
+        labels={"best":"最佳","good":"良好","inaccuracy":"欠准","mistake":"失误","blunder":"严重失误"}
         lines=["  ".join(f"{labels[key]} {value}" for key,value in result["summary"].items()),""]
         lines.extend(f"{item['ply']}. {item['notation']}  · {labels[item['quality']]}  · 损失 {item['scoreLoss']}" for item in result["moves"])
         DocumentDialog(t("desktop.analysis_title",self.language),"\n".join(lines),self).exec()
@@ -1056,6 +1110,12 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def request_json(url,payload=None,method="GET",token=""):
+        # ⚠️ 同步阻塞版，仍在 GUI 线程跑。**仅 account_sync 使用**（7 处）。
+        # account_sync 是「对话框与多个请求交错的链式流程」，异步化需要把整条链改成
+        # 回调（阶段1 的 net/http_client.py + session 抽取，见
+        # docs/DESKTOP_ITERATION_PLAN_1.7.0.md S1-1 / S6）。阶段0 已把更常用的
+        # 建连三入口（create/join/spectate）与复盘分析迁到线程池。
+        # 新代码请用 self._request_json_async(...)。
         headers={"Content-Type":"application/json"}
         if token:headers["Authorization"]=f"Bearer {token}"
         body=json.dumps(payload).encode("utf-8") if payload is not None else None
@@ -1068,14 +1128,30 @@ class MainWindow(QMainWindow):
         if not ok:return None
         self.config["server_url"]=value.rstrip("/");save_config(self.config);return self.config["server_url"]
 
+    def _request_json_async(self,url,payload=None,method="GET",token="",on_done=None,on_error=None):
+        """阶段0 S0-C：把阻塞 HTTP 请求移到 QThreadPool，避免 GUI 冻结（urlopen timeout 15s）。
+
+        on_done(data) / on_error(message) 都经 Signal 回到 **GUI 线程**执行
+        （跨线程发射 + AutoConnection，Qt 官方语义）。用法与 start_ai 同一模式。
+        """
+        worker=HttpWorker(url,payload,method,token)
+        if on_done is not None:worker.signals.finished.connect(on_done)
+        if on_error is not None:worker.signals.failed.connect(on_error)
+        else:worker.signals.failed.connect(lambda message:QMessageBox.warning(self,"网络请求失败",str(message)))
+        self.pool.start(worker)
+
     def create_online(self):
         base=self.server_base()
         if not base:return
-        try:
-            setup=self.current_setup();name=self.config.get("account_display_name") or ("桌面玩家" if self.config.get("language")!="en" else "Desktop Player");data=self.http_json(base+"/api/rooms",{"profileId":self.config["profile"],"mode":"online","playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"playerColor":self.config["human_color"],"options":self.config.get("rule_options",{}),"initialMinutes":self.config["initial_minutes"],"language":self.config.get("language","zh-CN"),"firstMove":setup["firstMove"],"redSlots":setup["redSlots"],"blackSlots":setup["blackSlots"],"tauntsEnabled":self.config.get("taunts",True)})
+        setup=self.current_setup();lang=self.config.get("language","zh-CN")
+        name=self.config.get("account_display_name") or ("桌面玩家" if lang!="en" else "Desktop Player")
+        payload={"profileId":self.config["profile"],"mode":"online","playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"playerColor":self.config["human_color"],"options":self.config.get("rule_options",{}),"initialMinutes":self.config["initial_minutes"],"language":lang,"firstMove":setup["firstMove"],"redSlots":setup["redSlots"],"blackSlots":setup["blackSlots"],"tauntsEnabled":self.config.get("taunts",True)}
+        def _created(data):
             self.open_network(base,data)
-            lang=self.config.get("language","zh-CN");QMessageBox.information(self,"房间已创建" if lang!="en" else "Room created",f"{'房间号' if lang!='en' else 'Room code'}：{data['roomId']}")
-        except Exception as exc:QMessageBox.warning(self,"创建失败" if self.config.get("language")!="en" else "Create failed",str(exc))
+            QMessageBox.information(self,"房间已创建" if lang!="en" else "Room created",f"{'房间号' if lang!='en' else 'Room code'}：{data['roomId']}")
+        # 阶段0 S0-C：建连请求移到线程池 —— 服务不可达时窗口不再冻结最长 15s
+        self._request_json_async(base+"/api/rooms",payload,"POST",on_done=_created,
+            on_error=lambda message:QMessageBox.warning(self,"创建失败" if lang!="en" else "Create failed",str(message)))
 
     def join_online(self):
         base=self.server_base()
@@ -1083,16 +1159,21 @@ class MainWindow(QMainWindow):
         lang=self.config.get("language","zh-CN")
         room,ok=QInputDialog.getText(self,"加入房间" if lang!="en" else "Join room","房间号" if lang!="en" else "Room code")
         if not ok or not room:return
-        try:name=self.config.get("account_display_name") or ("桌面玩家" if lang!="en" else "Desktop Player");self.open_network(base,self.http_json(f"{base}/api/rooms/{room.strip().upper()}/join",{"playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"language":lang}))
-        except Exception as exc:QMessageBox.warning(self,"加入失败" if lang!="en" else "Join failed",str(exc))
+        name=self.config.get("account_display_name") or ("桌面玩家" if lang!="en" else "Desktop Player")
+        def _joined(data):self.open_network(base,data)
+        # 阶段0 S0-C：建连请求移到线程池 —— 服务不可达时窗口不再冻结最长 8s
+        self._request_json_async(f"{base}/api/rooms/{room.strip().upper()}/join",{"playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"language":lang},"POST",on_done=_joined,
+            on_error=lambda message:QMessageBox.warning(self,"加入失败" if lang!="en" else "Join failed",str(message)))
 
     def spectate_online(self):
         base=self.server_base()
         if not base:return
         room,ok=QInputDialog.getText(self,"观战房间","房间号")
         if not ok or not room:return
-        try:self.open_network(base,self.http_json(f"{base}/api/rooms/{room.strip().upper()}/spectate",{"displayName":"桌面观众"}),True)
-        except Exception as exc:QMessageBox.warning(self,"观战失败",str(exc))
+        def _spectating(data):self.open_network(base,data,True)
+        # 阶段0 S0-C：建连请求移到线程池
+        self._request_json_async(f"{base}/api/rooms/{room.strip().upper()}/spectate",{"displayName":"桌面观众"},"POST",on_done=_spectating,
+            on_error=lambda message:QMessageBox.warning(self,"观战失败",str(message)))
 
     @staticmethod
     def http_json(url,payload):

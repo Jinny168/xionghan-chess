@@ -69,3 +69,42 @@ jobs:
 
       - name: pytest
         run: pytest tests/ -q
+
+  # Desktop has ZERO automated coverage today: `tests/` greps 0 hits on desktop
+  # symbols and the `test` extra does not even install PySide6, so a broken
+  # desktop shell could only ever be discovered by a human running the app.
+  # This job is the first net. Windows-only on purpose: PySide6 on Ubuntu needs
+  # system GL libs (libEGL et al.) that are not worth the CI weight, and the
+  # desktop build script (`packaging/build_windows.ps1`) is Windows-only anyway.
+  desktop-smoke:
+    name: desktop smoke (windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: xionghan-chess-next
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Desktop resources (fonts / sounds / icon) live in Git LFS; without
+          # the pull they would be pointer files and the assembly chain would
+          # silently fall back to defaults instead of failing loudly.
+          lfs: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install (desktop extra)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[desktop]"
+
+      # `QT_QPA_PLATFORM=offscreen` lets Qt create a QApplication without a real
+      # display. `scripts/desktop_smoke.py` asserts the whole assembly chain
+      # (import -> QApplication -> MainWindow() -> close) plus the stage-0 guards
+      # (async HttpWorker/AnalysisWorker, resign confirmation) and exits non-zero
+      # on any failed check, so a broken shell cannot pass silently.
+      - name: Desktop offscreen smoke
+        run: python scripts/desktop_smoke.py
+        env:
+          QT_QPA_PLATFORM: offscreen
