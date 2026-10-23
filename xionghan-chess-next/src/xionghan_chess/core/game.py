@@ -85,6 +85,11 @@ class Game:
         snapshot = self._snapshots[-plies]
         del self._snapshots[-plies:]
         self.state = GameState.from_dict(snapshot)
+        self.state.pending_draw_offer = None
+        self.state.pending_undo_offer = None
+        self.state.pending_restart_offer = None
+        self.state.paused = False
+        self.state.paused_by = None
         self.state.turn_started_at = time.monotonic()
 
     def set_paused(self, paused: bool, color: Color | None = None) -> None:
@@ -181,7 +186,7 @@ class Game:
         action = self._t("notation.capture") if captured else self._t("notation.move")
         return f"{name} {move.source.row + 1},{move.source.col + 1} {action} {move.target.row + 1},{move.target.col + 1}"
 
-    def public_state(self) -> dict:
+    def public_state(self, replay_tail: int | None = None) -> dict:
         data = self.state.to_dict()
         data["profile"] = {"id": self.profile.id, "title": self.profile.title,
                            "rows": self.profile.rows, "cols": self.profile.cols,
@@ -193,7 +198,15 @@ class Game:
                            ]}
         data["check"] = self.rules.in_check(self.state, self.state.turn) if not self.state.finished else False
         data["setup"] = self.setup.to_dict()
-        data["replay"] = [snapshot for snapshot in self._snapshots] + [self.state.to_dict()]
+        replay = [snapshot for snapshot in self._snapshots] + [self.state.to_dict()]
+        if replay_tail is not None and replay_tail > 0 and len(replay) > replay_tail:
+            data["replay"] = replay[-replay_tail:]
+            data["replayBaseIndex"] = len(replay) - replay_tail
+            data["replayComplete"] = False
+        else:
+            data["replay"] = replay
+            data["replayBaseIndex"] = 0
+            data["replayComplete"] = True
         return data
 
     def _record_position(self) -> None:

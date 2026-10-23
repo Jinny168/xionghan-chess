@@ -1,3 +1,0 @@
-[console_scripts]
-xionghan-desktop = xionghan_chess.desktop.app:run
-xionghan-server = xionghan_chess.service.app:run

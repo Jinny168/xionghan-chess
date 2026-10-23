@@ -43,9 +43,14 @@ def benchmark_master_vs_hard(games: int = 50, profile: str = "traditional",
                 is_master = game.state.turn is master_color
                 started = time.perf_counter()
                 if is_master and master_simulations is not None:
-                    scorer = ChessAI(Difficulty.HARD)._see_score
+                    # Use the *production* master configuration (model-loaded scorers) so that
+                    # bounded-simulation runs still exercise the shipped master path, not a
+                    # heuristic SEE scorer that diverges from what users actually play.
+                    master_ai = ChessAI(Difficulty.MASTER)
+                    master_model = master_ai._load_master_model()
                     move = MCTS(simulations=master_simulations, seed=seed + game_index * max_plies + ply,
-                                root_score=scorer).choose_move(game)
+                                root_score=lambda g, m: master_ai._master_move_score(g, m, master_model),
+                                leaf_score=master_ai._master_leaf_score).choose_move(game)
                 else:
                     level = Difficulty.MASTER if is_master else Difficulty.HARD
                     move = ChessAI(level, seed=seed + game_index * max_plies + ply).choose_move(game)

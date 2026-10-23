@@ -26,27 +26,35 @@ class MCTS:
 
     def __init__(self, time_limit: float = 0.35, simulations: int | None = None,
                  exploration: float = math.sqrt(2.0), seed: int | None = None,
-                 root_score: Callable[[Game, Move], float] | None = None):
+                 root_score: Callable[[Game, Move], float] | None = None,
+                 leaf_score: Callable[[Game, object], float] | None = None,
+                 root_limit: int = 40):
         self.time_limit = max(0.01, float(time_limit))
         self.simulations = simulations
         self.exploration = max(0.0, float(exploration))
         self.random = random.Random(seed)
         self.root_score = root_score
+        self.leaf_score = leaf_score
+        self.root_limit = max(1, int(root_limit))
         self.completed_simulations = 0
 
     def choose_move(self, game: Game, cancel: threading.Event | None = None) -> Move | None:
         legal = game.rules.legal_moves(game.state)
         if not legal:
             return None
-        # The legacy player expanded from policy priors.  In the dependency-
-        # free engine, forcing available captures into the root candidate set
-        # provides the equivalent tactical prior while deeper playouts still
-        # decide which capture is sound.
         captures = [move for move in legal if game.rules.captured_by_move(game.state, move)]
-        candidates = captures or legal
-        if captures and self.root_score is not None:
-            safe_captures = [move for move in captures if self.root_score(game, move) >= 0]
-            candidates = safe_captures or [move for move in legal if move not in captures] or legal
+        candidates = legal
+        if self.root_score is not None:
+            scored = sorted(((self.root_score(game, move), move) for move in legal),
+                            key=lambda item: item[0], reverse=True)
+            if captures:
+                safe_captures = [(score, move) for score, move in scored
+                                 if move in captures and score >= 0]
+                if safe_captures:
+                    scored = safe_captures
+            candidates = [move for _, move in scored[:self.root_limit]] or legal
+        elif captures:
+            candidates = captures
         root = _Node(unexpanded=list(candidates))
         deadline = time.monotonic() + self.time_limit
         self.completed_simulations = 0
@@ -68,7 +76,7 @@ class MCTS:
                 state_game = self._apply(state_game, node.move)
                 path.append(node)
             if node.unexpanded:
-                move = node.unexpanded.pop(self.random.randrange(len(node.unexpanded)))
+                move = node.unexpanded.pop(0 if self.root_score is not None else self.random.randrange(len(node.unexpanded)))
                 state_game = self._apply(state_game, move)
                 child = _Node(move=move, parent=node, unexpanded=list(state_game.rules.legal_moves(state_game.state)))
                 node.children.append(child)
@@ -79,7 +87,7 @@ class MCTS:
                 item.visits += 1
                 item.value += result
             self.completed_simulations += 1
-        return max(root.children, key=lambda child: child.visits).move if root.children else candidates[0]
+        return max(root.children, key=lambda child: (child.value / max(1, child.visits), child.visits)).move if root.children else candidates[0]
 
     def _ucb(self, node: _Node, parent_visits: int, maximizing: bool = True) -> float:
         if not node.visits:
@@ -110,4 +118,6 @@ class MCTS:
             return 1.0
         if game.state.winner is root_color.opponent:
             return -1.0
+        if self.leaf_score is not None:
+            return max(-1.0, min(1.0, self.leaf_score(game, root_color)))
         return 0.0

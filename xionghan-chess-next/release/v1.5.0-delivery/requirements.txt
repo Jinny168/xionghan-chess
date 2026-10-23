@@ -1,5 +1,0 @@
-# Xionghan Chess v1.5.0 unified install set
--e .[desktop,build,test]
-# Server-only: pip install -r requirements/server.txt
-# Desktop-only: pip install -r requirements/desktop.txt
-# Tests: pip install -r requirements/dev.txt

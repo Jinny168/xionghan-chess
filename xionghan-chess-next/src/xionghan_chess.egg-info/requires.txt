@@ -12,3 +12,6 @@ PySide6<7,>=6.8
 [test]
 pytest<9,>=8.3
 httpx<1,>=0.28
+
+[train]
+numpy<3,>=2.1

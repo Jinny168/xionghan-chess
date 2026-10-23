@@ -4,10 +4,11 @@ from contextlib import asynccontextmanager, suppress
 import asyncio
 from dataclasses import asdict
 import os
+import time
 from pathlib import Path
 
-from fastapi import FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
@@ -53,6 +54,27 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="匈汉象棋 API", version="1.6.0", lifespan=lifespan)
+
+
+_RATE_LIMIT: dict[str, list[float]] = {}
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    # Optional, process-local per-IP sliding-window limiter. Disabled unless
+    # XH_RATE_LIMIT_PER_MINUTE > 0 (default off so local dev / CI tests are unaffected).
+    limit = int(os.getenv("XH_RATE_LIMIT_PER_MINUTE", "0") or "0")
+    if limit <= 0 or request.client is None:
+        return await call_next(request)
+    client_ip = request.client.host
+    now = time.monotonic()
+    window = _RATE_LIMIT.setdefault(client_ip, [])
+    while window and now - window[0] > 60.0:
+        window.pop(0)
+    if len(window) >= limit:
+        return JSONResponse(status_code=429, content={"detail": "请求过于频繁，请稍后再试"})
+    window.append(now)
+    return await call_next(request)
 
 
 class CreateRoomRequest(BaseModel):

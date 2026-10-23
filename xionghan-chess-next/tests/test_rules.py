@@ -100,6 +100,20 @@ def test_game_undo_restores_authoritative_snapshot():
     assert game.state.turn is Color.RED
 
 
+def test_undo_clears_pending_negotiation_state():
+    game = Game("traditional")
+    game.move(next(iter(game.rules.legal_moves(game.state))))
+    game.state.pending_draw_offer = Color.RED
+    game.state.pending_undo_offer = Color.RED
+    game.state.pending_restart_offer = Color.RED
+    game.set_paused(True, Color.RED)
+    game.undo()
+    assert game.state.pending_draw_offer is None
+    assert game.state.pending_undo_offer is None
+    assert game.state.pending_restart_offer is None
+    assert game.state.paused is False
+
+
 def test_king_outside_palace_diagonal_is_independently_configurable():
     red = piece(PieceType.KING, Color.RED, 8, 6)
     black = piece(PieceType.KING, Color.BLACK, 1, 5)

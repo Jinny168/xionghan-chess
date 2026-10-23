@@ -4,7 +4,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.storage import game_document
-from xionghan_chess.service.app import app
+from xionghan_chess.service.app import app, manager
 
 
 def test_websocket_rejects_unsupported_protocol_version():
@@ -104,6 +104,21 @@ def test_imported_game_can_resume_in_local_mode():
         payload = response.json()
         assert payload["snapshot"]["mode"] == "local"
         assert payload["snapshot"]["game"]["history"] == game.state.to_dict()["history"]
+
+
+def test_compact_snapshot_keeps_replay_tail_metadata():
+    with TestClient(app) as client:
+        created = client.post("/api/rooms", json={
+            "profileId": "traditional", "mode": "local", "playerName": "local"
+        }).json()
+        room = manager.require(created["roomId"])
+        for _ in range(3):
+            room.game.move(room.game.rules.legal_moves(room.game.state)[0])
+        compact = room.snapshot(created["token"], compact=True)["game"]
+        full = room.snapshot(created["token"])["game"]
+        assert compact["replayComplete"] is False
+        assert compact["replayBaseIndex"] == len(full["replay"]) - 2
+        assert compact["replay"] == full["replay"][-2:]
 
 
 def test_imported_ai_game_continues_when_it_is_ai_turn():

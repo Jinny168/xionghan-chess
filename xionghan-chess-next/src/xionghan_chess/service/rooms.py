@@ -63,7 +63,7 @@ class Room:
     def tr(self, key: str, **params: object) -> str:
         return t(key, self.language, **params)
 
-    def snapshot(self, token: str | None = None) -> dict[str, Any]:
+    def snapshot(self, token: str | None = None, compact: bool = False) -> dict[str, Any]:
         seat = next((s for s in self.seats.values() if s.token == token), None)
         players = ([
             {"color": Color.RED.value, "name": self.tr("common.local_player_one"),
@@ -83,7 +83,7 @@ class Room:
             "players": players,
             "chatHistory": list(self.chat_history),
             "spectatorCount": sum(item.connected for item in self.spectators.values()),
-            "game": self.game.public_state(),
+            "game": self.game.public_state(replay_tail=2 if compact else None),
         }
 
 
@@ -410,12 +410,12 @@ class RoomManager:
             spectator_sockets = list(room.spectator_sockets.items())
             player_messages = {
                 token: Envelope(type=MessageType.STATE, roomId=room.id, revision=revision,
-                                payload=room.snapshot(token)).wire()
+                                payload=room.snapshot(token, compact=True)).wire()
                 for token in room.sockets
             }
             spectator_message = Envelope(
                 type=MessageType.STATE, roomId=room.id, revision=revision,
-                payload=room.snapshot(None)).wire()
+                payload=room.snapshot(None, compact=True)).wire()
         dead: list[tuple[str, WebSocket]] = []
         for token, socket in player_sockets:
             try:

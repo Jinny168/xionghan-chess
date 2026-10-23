@@ -181,6 +181,13 @@ def test_android_offline_no_progress_draw_matches_core_contract():
     assert "this.state.resultReason='no_progress'" in offline
 
 
+def test_android_release_manifest_disables_cleartext_traffic():
+    root = Path(__file__).resolve().parents[1]
+    manifest = (root / "android/AndroidManifest.xml").read_text(encoding="utf-8")
+    assert 'android:usesCleartextTraffic="false"' in manifest
+    assert 'android:usesCleartextTraffic="true"' not in manifest
+
+
 def test_release_cache_busters_match_package_version():
     root = Path(__file__).resolve().parents[1]
     index = (root / "web/index.html").read_text(encoding="utf-8")

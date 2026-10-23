@@ -4,6 +4,7 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 import math
 import os
+from pathlib import Path
 import random
 import threading
 import time
@@ -85,6 +86,9 @@ class TTEntry:
 
 
 class ChessAI:
+    _master_model = None
+    _master_model_path: str | None = None
+
     def __init__(self, difficulty: Difficulty | str = Difficulty.MEDIUM, seed: int | None = None):
         self.difficulty = Difficulty(difficulty)
         self.random = random.Random(seed)
@@ -112,9 +116,12 @@ class ChessAI:
             # Import lazily to keep the conventional search engine independent
             # and to avoid loading MCTS for the four established difficulty tiers.
             from .mcts import MCTS
+            model = self._load_master_model()
             return MCTS(time_limit=cfg.time_limit * time_scale,
                         seed=self.random.randrange(2**32),
-                        root_score=self._see_score).choose_move(game, cancel)
+                        root_score=lambda current, move: self._master_move_score(current, move, model),
+                        leaf_score=self._master_leaf_score,
+                        root_limit=cfg.root_limit).choose_move(game, cancel)
         deadline = time.monotonic() + cfg.time_limit * time_scale
         self._active_deadline = deadline
         self._active_cancel = cancel
@@ -168,6 +175,40 @@ class ChessAI:
             if len(candidates) > 1:
                 return self.random.choice(candidates)
         return best
+
+    @classmethod
+    def _load_master_model(cls):
+        path = os.getenv("XH_MCTS_MODEL", "training-data/policy-value-v1.npz")
+        if cls._master_model_path == path:
+            return cls._master_model
+        cls._master_model_path = path
+        cls._master_model = None
+        if not Path(path).exists():
+            return None
+        try:
+            from xionghan_chess.training.network import NumpyPolicyValueNet
+            cls._master_model = NumpyPolicyValueNet.load(path)
+        except Exception:
+            cls._master_model = None
+        return cls._master_model
+
+    def _master_move_score(self, game: Game, move: Move, model) -> float:
+        moving = game.state.piece_at(move.source)
+        if moving is None:
+            return -math.inf
+        score = self._capture_value(game, move) * 8 + self._see_score(game, move) * 3
+        score += self._root_bias(game, move)
+        child = Game.from_state(game.rules.apply_unchecked(game.state, move), game.options, game.setup)
+        score += self._evaluate(child, moving.color) * 0.08
+        if model is not None:
+            try:
+                score += model.move_score(game.state, move) * 25
+            except Exception:
+                pass
+        return score
+
+    def _master_leaf_score(self, game: Game, root_color: Color) -> float:
+        return math.tanh(self._evaluate(game, root_color) / 1200.0)
 
     def _root(self, game: Game, moves: list[Move], depth: int, deadline: float,
               cancel: threading.Event | None, alpha: float = -math.inf,

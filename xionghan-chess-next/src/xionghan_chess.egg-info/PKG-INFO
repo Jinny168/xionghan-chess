@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: xionghan-chess
-Version: 1.5.0
+Version: 1.6.0
 Summary: Shared-core Xionghan Chess desktop, web and server implementation
 Requires-Python: >=3.11
 Requires-Dist: fastapi<1,>=0.116
@@ -14,3 +14,5 @@ Requires-Dist: pillow<13,>=11; extra == "build"
 Provides-Extra: test
 Requires-Dist: pytest<9,>=8.3; extra == "test"
 Requires-Dist: httpx<1,>=0.28; extra == "test"
+Provides-Extra: train
+Requires-Dist: numpy<3,>=2.1; extra == "train"
