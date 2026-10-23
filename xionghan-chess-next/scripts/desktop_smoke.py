@@ -31,6 +31,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from PySide6.QtGui import QPainter, QPixmap  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 import xionghan_chess.desktop.app as app  # noqa: E402
@@ -62,6 +63,22 @@ def main() -> int:
         "认输有二次确认（S0-D 防回归）": "QMessageBox.question" in resign_source,
         "提和仍有确认（S0-D 对照组）": "QMessageBox.question" in draw_source,
     }
+
+    # ---- S1-2：棋盘绘制必须真的能跑 ----
+    # Qt 会吞掉事件处理器里的异常（只打印不抛），所以 offscreen 下 `show()` 并不能
+    # 证明 paintEvent 是好的。这里直接拿一个真 QPainter 调它 —— 异常才会真的冒出来。
+    # 这是 BoardWidget 从 app.py 搬到 ui/board_widget.py 后最容易断的地方。
+    canvas = QPixmap(window.board.size())
+    canvas.fill()
+    painter = QPainter(canvas)
+    try:
+        window.board.paintEvent(painter)
+        checks["S1-2 棋盘可绘制（paintEvent 直调）"] = True
+    except Exception as exc:  # noqa: BLE001
+        checks["S1-2 棋盘可绘制（paintEvent 直调）"] = False
+        print(f"  paintEvent 异常: {exc!r}")
+    finally:
+        painter.end()
 
     # ---- S1-9：设置不应无条件丢对局 ----
     played = _play_one_move(window)
