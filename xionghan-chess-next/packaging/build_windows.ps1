@@ -14,6 +14,26 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 $release = Join-Path $ProjectRoot "release"
 $work = Join-Path $ProjectRoot "build-onefile"
 $icon = Join-Path $ProjectRoot "src\xionghan_chess\desktop\resources\icon.ico"
+
+# 阶段1 S1-7：构建期资源断言。
+# `--add-data`（本脚本）与 pyproject 的 `[tool.setuptools.package-data]` 是**两处手工同步**，
+# 漏一个不会报错，只会让成品静默缺资源（图标全缺却没明显报错是已知打包事故）。
+# 这里显式校验三份数据源 + 图标存在且非空，把"静默丢失"变成"构建即失败"。
+$dataRoots = @(
+    (Join-Path $ProjectRoot 'src\xionghan_chess\desktop\resources'),
+    (Join-Path $ProjectRoot 'src\xionghan_chess\core\data'),
+    (Join-Path $ProjectRoot 'locales')
+)
+foreach ($root in $dataRoots) {
+    if (-not (Test-Path $root)) { Write-Error "资源目录缺失：$root"; exit 1 }
+    $items = @(Get-ChildItem -Path $root -Recurse -File)
+    if ($items.Count -eq 0) { Write-Error "资源目录为空：$root"; exit 1 }
+    $sum = ($items | Measure-Object -Property Length -Sum).Sum
+    Write-Host ("  资源校验 OK：{0}  ({1} 个文件, {2:N1} MB)" -f $root, $items.Count, ($sum/1MB))
+}
+if (-not (Test-Path $icon)) { Write-Error "图标缺失：$icon"; exit 1 }
+$iconInfo = Get-Item $icon
+Write-Host ("  图标校验 OK：{0}  ({1:N0} B)" -f $icon, $iconInfo.Length)
 $productName = -join [char[]](0x5308, 0x6F22, 0x8C61, 0x68CB)
 $platformName = -join [char[]](0x684C, 0x9762, 0x7248)
 $artifactName = "$productName-1.7.0-$platformName"

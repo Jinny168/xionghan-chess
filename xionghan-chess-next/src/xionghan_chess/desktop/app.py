@@ -33,6 +33,7 @@ from xionghan_chess.i18n import normalize_language, t
 from .audio import DesktopAudio
 from .config import config_path, load_config, save_config
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
+from .ui.board_geometry import cell_layout, point_to_position, view_position
 
 
 NAMES = {
@@ -184,8 +185,9 @@ class BoardWidget(QWidget):
     def _view_position(self, position: Position) -> Position:
         if not self.flipped or not self.game:
             return position
-        return Position(self.game.profile.rows - 1 - position.row,
-                        self.game.profile.cols - 1 - position.col)
+        # 阶段1 S1-2：翻转换算抽到 desktop/ui/board_geometry.py（纯函数）
+        return view_position(position.row, position.col,
+                             self.game.profile.rows, self.game.profile.cols, True)
 
     def set_appearance(self, theme_name: str, background_name: str,
                        piece_style: str = "traditional") -> None:
@@ -272,13 +274,12 @@ class BoardWidget(QWidget):
         bounds = self.rect().adjusted(13, 13, -13, -13)
         rows = self.game.profile.rows if self.game else 13
         cols = self.game.profile.cols if self.game else 13
-        cell = min(bounds.width() / max(1, cols - 1 + 1.35), bounds.height() / max(1, rows - 1 + 1.35))
-        pad = cell * .675
-        width = cell * (cols - 1) + pad * 2
-        height = cell * (rows - 1) + pad * 2
-        rect = bounds.adjusted((bounds.width()-width)/2, (bounds.height()-height)/2,
-                               -(bounds.width()-width)/2, -(bounds.height()-height)/2)
-        return rect, rect.left()+pad, rect.top()+pad, cell, cell
+        # 阶段1 S1-2：布局数学抽到 desktop/ui/board_geometry.py（纯函数，可单测）。
+        # 注意 cell_layout 返回的是「可用区域局部坐标」，而绘制/命中测试要的是窗口
+        # 绝对像素，故这里仍用 rect.left()+pad 还原（与原实现逐字节等价）。
+        ix, iy, _gl, _gt, cw, ch, pad = cell_layout(bounds.width(), bounds.height(), rows, cols)
+        rect = bounds.adjusted(ix, iy, -ix, -iy)
+        return rect, rect.left() + pad, rect.top() + pad, cw, ch
 
     def _draw_xionghan_grid(self, painter, left, top, cw, ch):
         right, bottom = left + 12 * cw, top + 12 * ch
@@ -460,11 +461,10 @@ class BoardWidget(QWidget):
     def _position(self, point) -> Position | None:
         if not self.game:
             return None
-        _,left,top,cw,ch=self._geometry()
-        col=round((point.x()-left)/cw);row=round((point.y()-top)/ch)
-        if self.flipped:
-            row=self.game.profile.rows-1-row;col=self.game.profile.cols-1-col
-        return Position(row,col) if 0<=row<self.game.profile.rows and 0<=col<self.game.profile.cols else None
+        _, left, top, cw, ch = self._geometry()
+        # 阶段1 S1-2：像素→棋盘坐标抽到 desktop/ui/board_geometry.py（纯函数，可单测）
+        return point_to_position(point.x(), point.y(), left, top, cw, ch,
+                                 self.game.profile.rows, self.game.profile.cols, self.flipped)
 
     def mousePressEvent(self, event) -> None:
         if event.button() is Qt.MouseButton.LeftButton and not self.locked and self.interactive and self.game:
@@ -873,7 +873,9 @@ class MainWindow(QMainWindow):
         try:
             piece=self.game.state.piece_at(move.source)
             if piece and piece.type is PieceType.PAWN and self.game.options.pawn_promotion and move.target.row in {0,self.game.profile.rows-1}:
-                choices={p.type for p in self.game.state.captured[piece.color] if p.type not in {PieceType.PAWN,PieceType.KING} and p.type in self.game.rules.enabled_piece_types}
+                # 阶段1 S1-3：原为内联复制 core 谓词（这是 rules.promotable_types 的第 4 份
+                # 拷贝，前 3 份已在 bfea053 收敛）。改为调用单一来源，避免再次漂移。
+                choices=set(self.game.rules.promotable_types(self.game.state,piece.color))
                 if choices:
                     options=[(NAMES[piece.color][kind],kind) for kind in sorted(choices,key=lambda item:item.value)]
                     label,ok=QInputDialog.getItem(self,"兵卒升变","选择升变棋子",[item[0] for item in options],0,False)

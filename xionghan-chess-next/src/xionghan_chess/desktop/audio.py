@@ -19,7 +19,10 @@ class DesktopAudio:
             effect = QSoundEffect()
             effect.setSource(QUrl.fromLocalFile(str(root / filename)))
             self.effects[name] = effect
-        self.music_files = {"fc": root / "fc_background_sound.wav", "qq": root / "qq_background_sound.wav"}
+        # 阶段1 S1-5：BGM 由无压缩 WAV 换成 OGG/Vorbis（74.88 MB -> 5.98 MB，省 68.90 MB）。
+        # 依据 Qt 官方文档：QMediaPlayer 支持压缩格式；而短音效走 QSoundEffect，
+        # 官方要求"低延迟播放未压缩音频（通常 WAV）"，故 sounds/ 下其余 wav 不动。
+        self.music_files = {"fc": root / "fc_background_sound.ogg", "qq": root / "qq_background_sound.ogg"}
         self.output = QAudioOutput()
         self.player = QMediaPlayer()
         self.player.setAudioOutput(self.output)
