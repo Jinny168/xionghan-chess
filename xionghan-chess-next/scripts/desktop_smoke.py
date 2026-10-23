@@ -26,6 +26,7 @@
 from __future__ import annotations
 
 import inspect
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -60,6 +61,11 @@ def _play_one_move(window) -> int:
 
 
 def main() -> int:
+    # 冒烟必须跑在**隔离的用户目录**里。此前它直接用真实 `%APPDATA%`：测试中途会
+    # 改主题/盘型来验证「改设置要不要重开对局」，虽然结尾有备份还原，但只要中途
+    # 异常退出，用户真实配置就被留在了测试值上 —— 有人的默认主题变成暗黑就是这么来的。
+    # 放到临时目录后，测试怎么折腾都碰不到用户的 settings.json。
+    os.environ["APPDATA"] = tempfile.mkdtemp(prefix="xionghan-smoke-")
     qt = QApplication(sys.argv[:1])
     window = app.MainWindow()
 
