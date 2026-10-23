@@ -99,6 +99,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[desktop]"
 
+      # Static gate for the thing runtime smoke CANNOT catch: a name that is only
+      # used on a rarely-taken branch (e.g. `math` inside an animation branch, or
+      # a resource path that silently resolves to a missing directory). Writing it
+      # caught two real bugs when BoardWidget moved out of app.py.
+      - name: Static check (undefined names in desktop package)
+        run: python scripts/check_undefined_names.py
+
       # `QT_QPA_PLATFORM=offscreen` lets Qt create a QApplication without a real
       # display. `scripts/desktop_smoke.py` asserts the whole assembly chain
       # (import -> QApplication -> MainWindow() -> close) plus the stage-0 guards

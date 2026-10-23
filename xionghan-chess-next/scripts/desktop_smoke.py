@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import inspect
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -63,6 +64,30 @@ def main() -> int:
         "认输有二次确认（S0-D 防回归）": "QMessageBox.question" in resign_source,
         "提和仍有确认（S0-D 对照组）": "QMessageBox.question" in draw_source,
     }
+
+    # ---- S1-2：6 个 Dialog 必须能被构造 ----
+    # 只构造不 exec()（exec 会阻塞等用户点）。构造过程会跑完各自的 _build：
+    # 建控件、填下拉、算规则文案 —— 这是 Dialog 代码的主体，漏 import / 键名写错都在这里炸。
+    from xionghan_chess.desktop.ui import dialogs as dlg
+
+    opened = []
+    try:
+        opened.append(dlg.SettingsDialog(window.config, window))
+        # HandicapDialog 收的是 **dict**（内部调 .items()），不是 RuleOptions dataclass
+        opened.append(dlg.HandicapDialog(window.game.profile.id,
+                                         window.config.get("rule_options", {}), None, window))
+        opened.append(dlg.ReplayDialog(window.game, window.config, window))
+        opened.append(dlg.TrainingDialog(window))
+        opened.append(dlg.GameLibraryDialog(Path(tempfile.gettempdir()), window.config, window))
+        opened.append(dlg.DocumentDialog("smoke", "content", window))
+        checks["S1-2 六个 Dialog 可构造"] = True
+    except Exception as exc:  # noqa: BLE001
+        checks["S1-2 六个 Dialog 可构造"] = False
+        print(f"  Dialog 构造异常: {exc!r}")
+    finally:
+        for widget in opened:
+            widget.close()
+            widget.deleteLater()
 
     # ---- S1-2：棋盘绘制必须真的能跑 ----
     # Qt 会吞掉事件处理器里的异常（只打印不抛），所以 offscreen 下 `show()` 并不能
