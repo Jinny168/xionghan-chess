@@ -2,13 +2,40 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Callable
+import sys
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
 
+def config_root(platform: str | None = None,
+                environ: Mapping[str, str] | None = None) -> Path:
+    """各平台的用户配置目录（P1-F）。
+
+    此前只有 Windows 的 `%APPDATA%` 约定，macOS/Linux 会退化成
+    `~/XionghanChess` —— 既不符合平台规范，也和系统备份/清理工具对不上。
+
+    三个平台各自的惯例：
+      Windows  `%APPDATA%\\XionghanChess`
+      macOS    `~/Library/Application Support/XionghanChess`
+      Linux    `$XDG_CONFIG_HOME/xionghan-chess`（缺省 `~/.config/...`）
+
+    参数可注入是有意的：这样路径规则能用普通单测覆盖，不必真的切换到某个系统。
+    Windows 分支保持**逐字节不变** —— 已有用户的配置/棋谱目录不能因为这次改动搬家。
+    """
+    platform = sys.platform if platform is None else platform
+    environ = os.environ if environ is None else environ
+    home = environ.get("HOME") or str(Path.home())
+    if platform.startswith("win"):
+        return Path(environ.get("APPDATA") or home) / "XionghanChess"
+    if platform == "darwin":
+        return Path(home) / "Library" / "Application Support" / "XionghanChess"
+    base = environ.get("XDG_CONFIG_HOME") or str(Path(home) / ".config")
+    return Path(base) / "xionghan-chess"
+
+
 def config_path() -> Path:
-    root = Path(os.getenv("APPDATA", Path.home())) / "XionghanChess"
+    root = config_root()
     root.mkdir(parents=True, exist_ok=True)
     return root / "settings.json"
 

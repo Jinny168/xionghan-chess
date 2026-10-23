@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -261,3 +262,43 @@ def test_migrate_is_pure_and_reports_change() -> None:
     assert result["initial_minutes"] == 180
     again, changed_again = desktop_config.migrate(result)
     assert changed_again is False and again == result
+
+
+# --------------------------------------------------------------------------- #
+# P1-F：配置目录按平台约定
+# --------------------------------------------------------------------------- #
+def test_config_root_windows_keeps_existing_location() -> None:
+    """Windows 分支必须逐字节不变 —— 已有用户的配置不能因为这次改动搬家。"""
+    root = desktop_config.config_root("win32", {"APPDATA": r"C:/Users/me/AppData/Roaming"})
+    assert root == Path(r"C:/Users/me/AppData/Roaming") / "XionghanChess"
+
+
+def test_config_root_windows_without_appdata_falls_back_to_home() -> None:
+    root = desktop_config.config_root("win32", {"HOME": r"C:/Users/me"})
+    assert root.name == "XionghanChess"
+
+
+def test_config_root_macos_uses_application_support() -> None:
+    root = desktop_config.config_root("darwin", {"HOME": "/Users/me"})
+    assert root == Path("/Users/me/Library/Application Support/XionghanChess")
+
+
+def test_config_root_linux_uses_xdg_config_home() -> None:
+    root = desktop_config.config_root("linux", {"HOME": "/home/me",
+                                                "XDG_CONFIG_HOME": "/home/me/.config-custom"})
+    assert root == Path("/home/me/.config-custom/xionghan-chess")
+
+
+def test_config_root_linux_defaults_to_dot_config() -> None:
+    root = desktop_config.config_root("linux", {"HOME": "/home/me"})
+    assert root == Path("/home/me/.config/xionghan-chess")
+
+
+def test_config_root_platforms_do_not_collide() -> None:
+    """三个平台不能落到同一个目录，否则双系统共享 HOME 时会互相覆盖配置。"""
+    roots = {
+        desktop_config.config_root("win32", {"APPDATA": "/x", "HOME": "/x"}),
+        desktop_config.config_root("darwin", {"HOME": "/x"}),
+        desktop_config.config_root("linux", {"HOME": "/x"}),
+    }
+    assert len(roots) == 3
