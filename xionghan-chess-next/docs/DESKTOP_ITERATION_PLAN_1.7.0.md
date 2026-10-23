@@ -283,13 +283,13 @@
 | P1-I i18n key 覆盖 | 已修 | 新增 `tests/test_desktop_i18n_keys.py`：字面量/三元/f-string 前缀族都查两个语言包，并断言扫描到 ≥100 个 key 防「扫描器失效导致空集合永真」（`0d421c7`） |
 | P1-R config 无 schema 版本 | 已修 | `CONFIG_VERSION=1` + `migrate()` 迁移链，v0→v1 收敛数值范围/容器类型/未知语言且保留未知键；只有更高版本才不回写（`207408d`） |
 | P1-B refresh god-poll | 已修 | 拆成 9 个单职责方法 + 快照比对：空转 tick 9.777 ms → 0.023 ms；`in_check` 不再每 tick 全盘扫描。先写 12 条行为契约在旧代码上跑通，再重构仍全绿；另 7 条钉「按需重建」；像素级验证走子/暂停确实重绘（`a6f8a3e`） |
+| P1-J 英文半翻译 | 已修 | 新增 `desktop/texts.py`（121 词条 + 26 模板），151 处只有中文的文案接入 `dl()/dlf()`；`tests/test_desktop_texts.py` 9 条把「不许出现裸中文字面量」变成可执行定义；`language=en` 实渲染截图核对（`e1490a3`） |
+| P1-F config 路径仅 Windows | 已修 | 抽出 `config_root(platform, environ)`：Windows 位置逐字节不变，macOS 用 Application Support，Linux 用 XDG；6 条测试（`030a890`） |
 
 ## 7.2 仍未做（按建议优先级）
 
-| # | 问题 | 为什么说它还开着（实测） | 影响 | 估计 |
-|---|---|---|---|---|
-| **P1-J** | 英文半翻译 | `app.py` 含中文 151 行、`if lang/else` 内联三元 25 处，`self._t(` 0 命中 | 英文界面仍有一半中文 | 1.0d |
-| **P1-F** | `config_path` 只有 Windows 约定 | `config.py:10` 仅 `APPDATA` 回退 `Path.home()`，无 `Library`/`XDG` 分支 | 与 S2-2（mac/Linux）绑定，已放弃 → 降为「知情不修」 | 0.25d |
+**无。** 审计提出的 P0-A~G、P1-A~S、P2-A/C 已全部处理完毕；P1-P（签名）、P2-B（mac/Linux）、P2-D（安装器）为明确搁置/放弃项，见 7.3。
+
 
 ## 7.3 明确「不做」而非「没做」
 
