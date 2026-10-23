@@ -275,19 +275,19 @@
 | P1-O 微软授权字体 | 已修 | Noto OFL 子集 + `OFL.txt`（S2-4） |
 | P2-A DPI 可读性 | 已实测 | 200% 下单格 69.5 逻辑像素、13 列完整（见 §五-4） |
 | P2-C Qt 体积 | 已修 | spec 内过滤，73.5 → 55.2 MB（S2-6） |
+| P1-L 训练改全局 profile | 已修 | 删掉 `show_training()` 里写 `config["profile"]` 那行；`desktop_smoke.py` 新增断言（`5e99b69`） |
+| P1-S 音效静默失败 | 已修 | 订阅 `QSoundEffect.statusChanged` + `QMediaPlayer.errorOccurred`，失败进 `failures` 并在状态栏提示；`tests/test_desktop_audio.py` 7 条（`5e99b69`） |
+| P1-K 导入题库是空壳 | 已修 | 真实导入到 `%APPDATA%\XionghanChess\puzzles.json`，id 冲突跳过、非法文件不写盘；`tests/test_desktop_puzzle_store.py` 13 条（`444d1d9`） |
+| P1-G 根 spec 孤儿 | 已清理 | 删除 `XionghanChess.spec`（内含本机绝对路径，全仓零引用）；构建只认 `packaging/build_windows.spec`（`5e99b69`） |
 
 ## 7.2 仍未做（按建议优先级）
 
 | # | 问题 | 为什么说它还开着（实测） | 影响 | 估计 |
 |---|---|---|---|---|
-| **P1-L** | 做训练题会**静默改全局 profile** | `app.py:329 show_training()` 仍写 `self.config["profile"]=self.game.profile.id` | 做了道 traditional 题，主对局悄悄变 10×9 盘 | 0.25d |
-| **P1-K** | `import_puzzles` 是空壳 | `dialogs.py:296-298` 选完文件只弹一句「已选择」，什么都没导入 | 界面上有个假功能 | 0.5d |
-| **P1-S** | 音效失败静默无声 | `audio.py` 未订阅 `QSoundEffect.statusChanged`（grep 0 命中）；构造时对 7 个 WAV 调 `setSource` | 文件缺失/格式不支持时玩家以为「这游戏没声音」 | 0.25d |
 | **P1-I** | i18n key 覆盖无测试 | `tests/` 里没有扫 `t("…")` 字面量的用例（S1-8 从未实现） | 「zh/en 两边都缺同一个 key」无人发现，玩家看到裸 key | 0.25d |
 | **P1-B** | `refresh()` 仍是 250ms god-poll | `refresh()` 每 tick 做 `tick` + `history.clear()+addItems` + 阵亡文本重建 + 全盘重绘，且 `record_result`/`autosave_game`/模态弹窗三个副作用都在定时器里 | 13×13 每 250ms 重建列表；副作用藏在轮询里，难测 | 1.0d |
 | **P1-J** | 英文半翻译 | `app.py` 含中文 151 行、`if lang/else` 内联三元 25 处，`self._t(` 0 命中 | 英文界面仍有一半中文 | 1.0d |
 | **P1-R** | `config.py` 无 schema 版本 | grep `SCHEMA/schema_version/CONFIG_VERSION` 无命中；仍是 `{**DEFAULTS, **data}` 浅合并 | 删键/改类型无迁移路径，只能靠调用点兜底 | 0.5d |
-| **P1-G** | 根 `XionghanChess.spec` 是孤儿 | 文件仍在，内含 `C:/Users/27415/PycharmProjects/...` 绝对路径，全仓零引用（`packaging/build_windows.spec` 才是现在用的） | 有人误用它构建会得到 163 MB 且换台机器就失败 | 0.1d |
 | **P1-Q** | `load_bundled_fonts()` 依赖 QApplication | `theme.py:102` 直接 `QApplication.instance().setFont(...)`，实例为空即 `AttributeError` | 单测里直接构造 `MainWindow()` 仍是障碍 | 0.25d |
 | **P1-F** | `config_path` 只有 Windows 约定 | `config.py:10` 仅 `APPDATA` 回退 `Path.home()`，无 `Library`/`XDG` 分支 | 与 S2-2（mac/Linux）绑定，已放弃 → 降为「知情不修」 | 0.25d |
 
