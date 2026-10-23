@@ -49,7 +49,9 @@ from .ui import theme
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
-        super().__init__();theme.load_bundled_fonts();self.config=load_config();self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._last_check_key=None
+        super().__init__();theme.load_bundled_fonts();self.config=load_config();self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._shown_result=False
+        # P1-B：界面刷新快照（棋盘/棋谱/阵亡/将军），换局时必须清空
+        self._reset_ui_cache()
         # S2-7 配套：非 None 时表示正处在「残局题」里，`human_move` 要判对错。
         self.puzzle_session=None
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
@@ -118,7 +120,7 @@ class MainWindow(QMainWindow):
 
     def new_game(self) -> None:
         self.puzzle_session=None
-        self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local";self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh();
+        self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local";self._reset_ui_cache();self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh();
         if not local and self.game.state.turn is not human:self.start_ai()
 
     def start_mode(self, mode: str) -> None:
@@ -292,6 +294,7 @@ class MainWindow(QMainWindow):
         """S1-9：UI 重建后把进行中的对局接回新控件 —— 不重开、不重复记账、不重弹结果。"""
         self.game=game
         human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local"
+        self._reset_ui_cache()
         self.board.set_game(game,human,local)
         self.configure_board()
         # 联机时棋盘由服务器快照驱动，重建后不应变成可交互
@@ -340,7 +343,7 @@ class MainWindow(QMainWindow):
             # traditional 的 10×9），一旦写进全局配置，玩家做完一道题再开新局就会
             # 静默变成那道题的盘型；联机建房、让子设置也会跟着串。
             # 题目的盘型由 `self.game.profile` 承担，与用户自己的偏好配置无关。
-            self.close_network();self.game=dialog.selected_game;self.config["game_mode"]="local";self.board.set_game(self.game,Color.RED,True);self.configure_board()
+            self.close_network();self.game=dialog.selected_game;self.config["game_mode"]="local";self._reset_ui_cache();self.board.set_game(self.game,Color.RED,True);self.configure_board()
             # S2-7 配套：带上题目本身，之后每一手都要对答案。
             self.puzzle_session=puzzle_judge.session_for(dialog.selected_puzzle)
             # 训练棋不是正式对局：既不进战绩，也不往棋谱库塞一条两步的「棋谱」。
@@ -370,7 +373,7 @@ class MainWindow(QMainWindow):
 
     def load_game_path(self, path: Path) -> None:
         try:
-            game=load_game(path);self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=game;self.puzzle_session=None;self.config["profile"]=game.profile.id;self.config["rule_options"]=asdict(game.options);save_config(self.config);self.board.set_game(game,Color(self.config["human_color"]),self.config.get("game_mode","ai")=="local");self.configure_board();self._stats_recorded=game.state.finished;self._autosaved=game.state.finished;self.refresh();self.statusBar().showMessage(f"已载入：{path}",5000)
+            game=load_game(path);self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=game;self.puzzle_session=None;self._reset_ui_cache();self.config["profile"]=game.profile.id;self.config["rule_options"]=asdict(game.options);save_config(self.config);self.board.set_game(game,Color(self.config["human_color"]),self.config.get("game_mode","ai")=="local");self.configure_board();self._stats_recorded=game.state.finished;self._autosaved=game.state.finished;self.refresh();self.statusBar().showMessage(f"已载入：{path}",5000)
         except Exception as exc:QMessageBox.warning(self,"导入失败",str(exc))
 
     def show_game_library(self) -> None:
@@ -604,7 +607,7 @@ class MainWindow(QMainWindow):
 
     def apply_network_state(self, snapshot: dict[str, object] | None) -> None:
         if not snapshot:return
-        game_data=snapshot["game"];self.revision=snapshot["revision"];self.config["human_color"]=snapshot.get("youAre") or self.config["human_color"];self.network_players={item["color"]:item for item in snapshot.get("players",[])};self.puzzle_session=None;self.game=Game.from_state(GameState.from_dict(game_data),game_data["profile"]["options"],game_data.get("setup"));replay=game_data.get("replay",[]);self.game._snapshots=[item for item in replay[:-1] if isinstance(item,dict)];self.board.set_game(self.game,Color(self.config["human_color"]),False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
+        game_data=snapshot["game"];self.revision=snapshot["revision"];self.config["human_color"]=snapshot.get("youAre") or self.config["human_color"];self.network_players={item["color"]:item for item in snapshot.get("players",[])};self.puzzle_session=None;self.game=Game.from_state(GameState.from_dict(game_data),game_data["profile"]["options"],game_data.get("setup"));self._reset_ui_cache();replay=game_data.get("replay",[]);self.game._snapshots=[item for item in replay[:-1] if isinstance(item,dict)];self.board.set_game(self.game,Color(self.config["human_color"]),False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
         if not self.game.state.history:self._stats_recorded=False;self._autosaved=False
         lang=self.config.get("language","zh-CN")
         self.statusBar().showMessage(f"{'房间' if lang!='en' else 'Room'} {snapshot['roomId']} · {'状态版本' if lang!='en' else 'revision'} {self.revision}");self.refresh()
@@ -628,33 +631,168 @@ class MainWindow(QMainWindow):
         if hasattr(self,"board"):self.board.interactive=True
 
     def refresh(self) -> None:
-        if not self.game:return
-        if not self.network:self.game.tick()
-        lang=self.config.get("language","zh-CN")
-        state=self.game.state;self.banner.setText(t("status.game_over", lang) if state.finished else (t("status.paused", lang) if state.paused else t("status.turn", lang, color=t("common.red" if state.turn is Color.RED else "common.black", lang))))
+        """按需刷新界面（250ms 定时器回调）。
+
+        P1-B：此前这里是 12 件事的大杂烩 —— 每 tick 无条件 `history.clear()+addItems`、
+        重拼阵亡文本、全盘重绘，还把战绩落盘／自动存档／终局弹窗三个副作用混在中间。
+        现在拆成若干只做一件事的小方法，并对**没变化**的部分跳过重建；
+        三个副作用集中到 `_settle_finished()`，由哨兵保证各只发生一次。
+        """
+        if not self.game:
+            return
+        if not self.network:
+            self.game.tick()
+        state = self.game.state
+        lang = self.config.get("language", "zh-CN")
+        history_key = tuple(record.notation for record in state.history)
+        self._update_banner(state, lang)
+        self._pulse_check_if_needed(state)
+        self._update_player_labels(state, lang)
+        self._update_clock_warning(state)
+        self._update_history(history_key)
+        self._update_captured(state, lang)
+        self._update_board_if_needed(state, history_key)
+        self._update_controls(state, lang)
+        self._settle_finished(state, lang)
+
+    def _update_banner(self, state: GameState, lang: str) -> None:
+        if state.finished:
+            text = t("status.game_over", lang)
+        elif state.paused:
+            text = t("status.paused", lang)
+        else:
+            text = t("status.turn", lang,
+                     color=t("common.red" if state.turn is Color.RED else "common.black", lang))
         # S2-7 配套：题目模式下横幅要说明「在练哪道题、走到第几手」——
         # 否则玩家分不清这是普通对局还是残局训练。
-        session=getattr(self,"puzzle_session",None)
+        session = getattr(self, "puzzle_session", None)
         if session is not None:
-            step=f"第 {min(session.cursor+1, session.total)}/{session.total} 手" if lang!="en" else f"step {min(session.cursor+1, session.total)}/{session.total}"
-            self.banner.setText(self.banner.text()+(f"　·　训练《{session.puzzle.title}》{step}" if lang!="en" else f"　·　Puzzle “{session.puzzle.title}” {step}"))
-        check_key=(len(state.history), state.turn.value, bool(self.game.rules.in_check(state, state.turn)))
-        if check_key[2] and check_key != self._last_check_key: self.board.pulse_check()
-        self._last_check_key=check_key
-        for color,label in ((Color.RED,self.red),(Color.BLACK,self.black)):
-            player=getattr(self,"network_players",{}).get(color.value,{}) if self.network else {};name=player.get("name") or t("common.red" if color is Color.RED else "common.black",lang);asset=avatar_asset_name(player.get("avatarUrl","") if player else "");prefix=f'<img src="{theme.resource("avatars",asset).as_posix()}" width="34" height="34"> ' if asset else "";label.setText(f"{prefix}{name}  {self._clock(state.clocks_ms[color])}")
-        threshold=max(0,int(self.config.get("countdown_seconds",30)))*1000
-        self.red.setStyleSheet("color:#b21f1f;font-weight:bold" if threshold and state.clocks_ms[Color.RED]<=threshold and not state.paused else "")
-        self.black.setStyleSheet("color:#b21f1f;font-weight:bold" if threshold and state.clocks_ms[Color.BLACK]<=threshold and not state.paused else "")
-        self.history.clear();self.history.addItems([r.notation for r in state.history]);self.captured.setText(f"{t('common.red', lang)}："+" ".join(theme.NAMES[p.color][p.type] for p in state.captured[Color.RED])+f"\n{t('common.black', lang)}："+" ".join(theme.NAMES[p.color][p.type] for p in state.captured[Color.BLACK]));self.board.update()
-        self.pause.setText(t("action.resume" if state.paused else "action.pause", lang));self.pause.setEnabled(not state.finished);self.undo.setEnabled(bool(state.history) and not state.paused);self.draw.setEnabled(not state.finished and not state.paused);self.resign.setEnabled(not state.finished);self.resurrect.setEnabled(not state.finished and not state.paused)
-        if state.finished and not self._stats_recorded:record_result(self.game,self.config["human_color"]);self._stats_recorded=True
-        if state.finished and self.config.get("autosave",True) and not self._autosaved:
-            try:path=autosave_game(self.game);self.statusBar().showMessage(("棋谱已自动保存：" if lang!="en" else "Replay auto-saved: ")+f"{path}",8000)
-            except OSError as exc:self.statusBar().showMessage(("自动保存失败：" if lang!="en" else "Auto-save failed: ")+f"{exc}",8000)
-            self._autosaved=True
-        if state.finished and not getattr(self,"_shown_result",False):self._shown_result=True;winner=t("result.draw", lang) if state.draw else t("result.victory", lang, color=t("common.red" if state.winner is Color.RED else "common.black", lang));QMessageBox.information(self,t("dialog.result_title", lang),winner)
-        if not state.finished:self._shown_result=False
+            step = min(session.cursor + 1, session.total)
+            text += (f"　·　训练《{session.puzzle.title}》第 {step}/{session.total} 手" if lang != "en"
+                     else f"　·　Puzzle “{session.puzzle.title}” step {step}/{session.total}")
+        if self.banner.text() != text:
+            self.banner.setText(text)
+
+    def _pulse_check_if_needed(self, state: GameState) -> None:
+        """将军时闪一下棋盘。
+
+        `in_check()` 要全盘扫描，不能每 250ms 跑一次 —— 只在「局面可能变了」
+        （走子数/轮到谁/棋子数/暂停/终局）时才真的去算。
+        """
+        signature = (len(state.history), state.turn.value, len(state.pieces),
+                     state.paused, state.finished)
+        if signature == self._last_check_signature:
+            return
+        self._last_check_signature = signature
+        if not state.finished and self.game.rules.in_check(state, state.turn):
+            self.board.pulse_check()
+
+    def _update_player_labels(self, state: GameState, lang: str) -> None:
+        for color, label in ((Color.RED, self.red), (Color.BLACK, self.black)):
+            player = getattr(self, "network_players", {}).get(color.value, {}) if self.network else {}
+            name = player.get("name") or t("common.red" if color is Color.RED else "common.black", lang)
+            asset = avatar_asset_name(player.get("avatarUrl", "") if player else "")
+            prefix = (f'<img src="{theme.resource("avatars", asset).as_posix()}" '
+                      f'width="34" height="34"> ') if asset else ""
+            text = f"{prefix}{name}  {self._clock(state.clocks_ms[color])}"
+            # 时钟每 250ms 被读一次，但只有「秒数变了」才会真的不同 —— 不比对的话
+            # 每秒要做 4 次富文本 setText（会触发重新布局）。
+            if label.text() != text:
+                label.setText(text)
+
+    def _update_clock_warning(self, state: GameState) -> None:
+        threshold = max(0, int(self.config.get("countdown_seconds", 30))) * 1000
+        for color, label in ((Color.RED, self.red), (Color.BLACK, self.black)):
+            warn = bool(threshold) and state.clocks_ms[color] <= threshold and not state.paused
+            style = "color:#b21f1f;font-weight:bold" if warn else ""
+            if label.styleSheet() != style:
+                label.setStyleSheet(style)
+
+    def _update_history(self, history_key: tuple[str, ...]) -> None:
+        """棋谱列表只在走子序列变化时重建。
+
+        P1-B 的重点：原来是每 tick `clear()+addItems(全部)`，一局 200 手时
+        每秒重建 4 次列表，滚动位置也会被打断。
+        """
+        if history_key == self._last_history_key:
+            return
+        self._last_history_key = history_key
+        self.history.clear()
+        self.history.addItems(list(history_key))
+
+    def _update_captured(self, state: GameState, lang: str) -> None:
+        red = tuple(theme.NAMES[p.color][p.type] for p in state.captured[Color.RED])
+        black = tuple(theme.NAMES[p.color][p.type] for p in state.captured[Color.BLACK])
+        key = (red, black, lang)
+        if key == self._last_captured_key:
+            return
+        self._last_captured_key = key
+        self.captured.setText(f"{t('common.red', lang)}：" + " ".join(red)
+                              + f"\n{t('common.black', lang)}：" + " ".join(black))
+
+    def _update_board_if_needed(self, state: GameState, history_key: tuple[str, ...]) -> None:
+        """棋盘只在「画面可能不同」时重绘。
+
+        走子动画有自己的 25ms 定时器并自行 `update()`，不需要这里代劳；
+        这里负责的是落子、吃子、暂停/锁定遮罩、终局这类由状态驱动的整盘重绘。
+        """
+        key = (history_key, len(state.pieces), state.turn.value,
+               state.paused, self.board.locked, state.finished)
+        if key == self._last_board_key:
+            return
+        self._last_board_key = key
+        self.board.update()
+
+    def _update_controls(self, state: GameState, lang: str) -> None:
+        pause_text = t("action.resume" if state.paused else "action.pause", lang)
+        if self.pause.text() != pause_text:
+            self.pause.setText(pause_text)
+        self.pause.setEnabled(not state.finished)
+        self.undo.setEnabled(bool(state.history) and not state.paused)
+        self.draw.setEnabled(not state.finished and not state.paused)
+        self.resign.setEnabled(not state.finished)
+        self.resurrect.setEnabled(not state.finished and not state.paused)
+
+    def _settle_finished(self, state: GameState, lang: str) -> None:
+        """终局三件事：战绩落盘、自动存档、结果弹窗。各只发生一次。
+
+        `_stats_recorded` / `_autosaved` / `_shown_result` 是三个哨兵 —— 它们
+        原先散落在 `refresh()` 末尾，和界面刷新混在一起，看不出「只在第一次
+        终局时执行」这层意思。集中到这里之后，`refresh()` 可以按需重复调用。
+        """
+        if not state.finished:
+            self._shown_result = False
+            return
+        if not self._stats_recorded:
+            record_result(self.game, self.config["human_color"])
+            self._stats_recorded = True
+        if self.config.get("autosave", True) and not self._autosaved:
+            try:
+                path = autosave_game(self.game)
+                self.statusBar().showMessage(
+                    ("棋谱已自动保存：" if lang != "en" else "Replay auto-saved: ") + f"{path}", 8000)
+            except OSError as exc:
+                self.statusBar().showMessage(
+                    ("自动保存失败：" if lang != "en" else "Auto-save failed: ") + f"{exc}", 8000)
+            self._autosaved = True
+        if not self._shown_result:
+            self._shown_result = True
+            winner = (t("result.draw", lang) if state.draw else
+                      t("result.victory", lang,
+                        color=t("common.red" if state.winner is Color.RED else "common.black", lang)))
+            QMessageBox.information(self, t("dialog.result_title", lang), winner)
+
+    def _reset_ui_cache(self) -> None:
+        """换了对局之后清掉刷新快照。
+
+        不做的话，两局若「走子数、棋子数、轮到谁」恰好相同，棋盘会被判定成
+        「没变化」而不重绘 —— 屏幕上留着上一局的子。所有替换 `self.game` 的地方
+        都要调它。
+        """
+        self._last_check_signature = None
+        self._last_history_key = None
+        self._last_captured_key = None
+        self._last_board_key = None
 
     @staticmethod
     def _clock(ms: int) -> str:seconds=max(0,ms//1000);return f"{seconds//60:02d}:{seconds%60:02d}"
