@@ -956,15 +956,47 @@ class MainWindow(QMainWindow):
             return
         QMessageBox.information(self,"复活","当前没有可用的兵卒复活位置")
 
+    # S1-9：这些设置会改变「规则/对局结构」—— 改了必然要重开一局。
+    # 其余设置（主题/字体/语言/音量/翻转/辅助提示…）只是界面差异，应当保留当前对局。
+    _GAME_BREAKING_KEYS = ("profile", "rule_options", "initial_minutes")
+
     def settings(self):
         dialog=SettingsDialog(self.config,self)
-        if dialog.exec():
-            self.config=dialog.value();save_config(self.config);self.audio.configure(self.config)
-            self.setWindowTitle(t("app.name", self.config.get("language","zh-CN")))
-            self.menuBar().clear()
-            old=self.centralWidget()
-            if old:old.deleteLater()
-            self._build();self.new_game()
+        if not dialog.exec():return
+        self._apply_settings(dialog.value())
+
+    def _apply_settings(self, new_config):
+        """应用新配置（S1-9）：只在「规则会变」时重开对局，否则保留当前对局。
+
+        从 settings() 拆出来，便于**不弹对话框**地验证（桌面端此前没这个能力）。
+        原实现无条件 `_build() + new_game()`，改个主题或音量都会丢掉整局。
+        """
+        previous=self.config
+        self.config=new_config;save_config(self.config);self.audio.configure(self.config)
+        self.setWindowTitle(t("app.name", self.config.get("language","zh-CN")))
+        breaking=any(previous.get(key)!=self.config.get(key) for key in self._GAME_BREAKING_KEYS)
+        preserved=None if breaking else getattr(self,"game",None)
+        # 记账/存档/结果弹窗的哨兵必须原样带回，否则 refresh() 会重复记账、重弹结果
+        sentinels=(getattr(self,"_stats_recorded",False),getattr(self,"_autosaved",False),getattr(self,"_shown_result",False))
+        self.menuBar().clear()
+        old=self.centralWidget()
+        if old:old.deleteLater()
+        self._build()
+        if preserved is None or preserved.state is None:
+            self.new_game()          # 规则变了（或本来就没有对局）→ 必须新开
+        else:
+            self._reattach_game(preserved,sentinels)
+
+    def _reattach_game(self, game, sentinels):
+        """S1-9：UI 重建后把进行中的对局接回新控件 —— 不重开、不重复记账、不重弹结果。"""
+        self.game=game
+        human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local"
+        self.board.set_game(game,human,local)
+        self.configure_board()
+        # 联机时棋盘由服务器快照驱动，重建后不应变成可交互
+        self.board.locked=bool(self.network)
+        self._stats_recorded,self._autosaved,self._shown_result=sentinels
+        self.refresh()
 
     def apply_appearance(self):
         if not hasattr(self,"board"):return
