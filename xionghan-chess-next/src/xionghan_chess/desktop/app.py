@@ -24,7 +24,16 @@ from xionghan_chess.core.storage import game_document
 from xionghan_chess.core.taunts import choose_taunt, taunts
 from xionghan_chess.i18n import t
 from .audio import DesktopAudio
-from .config import config_path, load_config, save_config
+# `settings` 别名而非 `config`：本类实例上有一个 `self.config`（用户配置字典），
+# 若把模块导入成 `config`，方法体里的 `games_dir()` 会先命中**模块**
+# 而 `self.config` 是属性 —— 两者同名极易读错，故模块一律走 `settings.`。
+from .config import (
+    GAME_BREAKING_KEYS,
+    games_dir,
+    load_config,
+    save_config,
+    settings_differ_in_game_breaking_keys,
+)
 from . import net
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
 from .ui.dialogs import DocumentDialog, GameLibraryDialog, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
@@ -195,7 +204,9 @@ class MainWindow(QMainWindow):
 
     # S1-9：这些设置会改变「规则/对局结构」—— 改了必然要重开一局。
     # 其余设置（主题/字体/语言/音量/翻转/辅助提示…）只是界面差异，应当保留当前对局。
-    _GAME_BREAKING_KEYS = ("profile", "rule_options", "initial_minutes")
+    # 真正的清单放在 config.GAME_BREAKING_KEYS（配置语义，测试与 UI 共用一份）；
+    # 这里保留同名类属性仅为向后兼容既有调用方。
+    _GAME_BREAKING_KEYS = GAME_BREAKING_KEYS
 
     def settings(self) -> None:
         dialog=SettingsDialog(self.config,self)
@@ -211,7 +222,7 @@ class MainWindow(QMainWindow):
         previous=self.config
         self.config=new_config;save_config(self.config);self.audio.configure(self.config)
         self.setWindowTitle(t("app.name", self.config.get("language","zh-CN")))
-        breaking=any(previous.get(key)!=self.config.get(key) for key in self._GAME_BREAKING_KEYS)
+        breaking=settings_differ_in_game_breaking_keys(previous,self.config)
         preserved=None if breaking else getattr(self,"game",None)
         # 记账/存档/结果弹窗的哨兵必须原样带回，否则 refresh() 会重复记账、重弹结果
         sentinels=(getattr(self,"_stats_recorded",False),getattr(self,"_autosaved",False),getattr(self,"_shown_result",False))
@@ -274,7 +285,7 @@ class MainWindow(QMainWindow):
 
     def export_game(self) -> None:
         if not self.game:return
-        path,_=QFileDialog.getSaveFileName(self,"导出棋局",str(config_path().parent / "games" / "当前棋局.xhgame"),"匈汉棋谱 (*.xhgame);;JSON (*.json)")
+        path,_=QFileDialog.getSaveFileName(self,"导出棋局",str(games_dir() / "当前棋局.xhgame"),"匈汉棋谱 (*.xhgame);;JSON (*.json)")
         if not path:return
         if not Path(path).suffix:path += ".xhgame"
         try:save_game(self.game,path);self.statusBar().showMessage(f"棋局已保存：{path}",5000)
@@ -282,7 +293,7 @@ class MainWindow(QMainWindow):
 
     def import_game(self) -> None:
         # load_game accepts current documents and legacy .fen content.
-        path,_=QFileDialog.getOpenFileName(self,"导入棋局",str(config_path().parent / "games"),"匈汉棋谱 (*.xhgame *.fen *.json)")
+        path,_=QFileDialog.getOpenFileName(self,"导入棋局",str(games_dir()),"匈汉棋谱 (*.xhgame *.fen *.json)")
         if not path:return
         self.load_game_path(Path(path))
 
@@ -292,11 +303,11 @@ class MainWindow(QMainWindow):
         except Exception as exc:QMessageBox.warning(self,"导入失败",str(exc))
 
     def show_game_library(self) -> None:
-        dialog=GameLibraryDialog(config_path().parent / "games",self.config,self)
+        dialog=GameLibraryDialog(games_dir(),self.config,self)
         if dialog.exec() and dialog.selected_path:self.load_game_path(dialog.selected_path)
 
     def open_autosave_folder(self) -> None:
-        folder=config_path().parent / "games";folder.mkdir(parents=True,exist_ok=True)
+        folder=games_dir()
         try:os.startfile(folder)
         except OSError as exc:QMessageBox.warning(self,"打开目录失败",str(exc))
 

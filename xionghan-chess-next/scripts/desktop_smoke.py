@@ -38,7 +38,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 import xionghan_chess.desktop.app as app  # noqa: E402
 from xionghan_chess.core.game import Game  # noqa: E402
 from xionghan_chess.core.profiles import PROFILES  # noqa: E402
-from xionghan_chess.desktop.config import load_config  # noqa: E402
+from xionghan_chess.desktop.config import config_path, load_config  # noqa: E402
 from xionghan_chess.desktop.ui.dialogs import (  # noqa: E402
     DocumentDialog,
     GameLibraryDialog,
@@ -126,7 +126,7 @@ def main() -> int:
     }
 
     # 真实行为：只改主题 -> 保留对局；改盘面 -> 重开（并在结束后还原用户配置）
-    cfg_file = app.config_path()
+    cfg_file = config_path()
     cfg_backup = cfg_file.read_bytes() if cfg_file.exists() else None
     try:
         theme_cfg = dict(window.config)
