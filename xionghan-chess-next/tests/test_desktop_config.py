@@ -167,3 +167,97 @@ def test_mainwindow_alias_points_to_shared_tuple() -> None:
     from xionghan_chess.desktop.app import MainWindow
 
     assert MainWindow._GAME_BREAKING_KEYS is desktop_config.GAME_BREAKING_KEYS
+
+
+# --------------------------------------------------------------------------- #
+# P1-R：schema 版本与迁移
+# --------------------------------------------------------------------------- #
+def test_defaults_declare_current_schema_version() -> None:
+    assert desktop_config.DEFAULTS["schema_version"] == desktop_config.CONFIG_VERSION
+
+
+def test_legacy_file_without_version_is_migrated_and_rewritten(isolated_appdata) -> None:
+    """旧配置没有 `schema_version`：读一次之后应当被补上并回写。"""
+    path = desktop_config.config_path()
+    path.write_text(json.dumps({"theme": "dark"}), encoding="utf-8")
+    loaded = desktop_config.load_config()
+    assert loaded["schema_version"] == desktop_config.CONFIG_VERSION
+    assert loaded["theme"] == "dark"
+    on_disk = json.loads(path.read_text(encoding="utf-8"))
+    assert on_disk["schema_version"] == desktop_config.CONFIG_VERSION, "迁移结果应回写一次"
+
+
+def test_migration_only_runs_once(isolated_appdata) -> None:
+    """第一次读会迁移并回写；第二次读到的是已迁移文件，内容不该再变。"""
+    path = desktop_config.config_path()
+    path.write_text(json.dumps({"initial_minutes": "oops"}), encoding="utf-8")
+
+    first = desktop_config.load_config()
+    after_first = path.read_text(encoding="utf-8")
+    assert json.loads(after_first)["initial_minutes"] == 20, "迁移应把坏值收敛成默认值"
+
+    second = desktop_config.load_config()
+    assert first == second
+    assert path.read_text(encoding="utf-8") == after_first, "第二次读取不该再改文件"
+
+
+@pytest.mark.parametrize(
+    "key,raw,expected",
+    [
+        ("initial_minutes", 999, 180),
+        ("initial_minutes", 0, 1),
+        ("initial_minutes", "abc", 20),
+        ("sound_volume", -5, 0),
+        ("sound_volume", 101, 100),
+        ("music_volume", "40", 40),
+        ("countdown_seconds", -1, 0),
+    ],
+)
+def test_migration_clamps_numeric_values(isolated_appdata, key: str, raw: object, expected: int) -> None:
+    """手改配置或旧版本写坏的值，读一次就收敛到合法范围。"""
+    desktop_config.config_path().write_text(json.dumps({key: raw}), encoding="utf-8")
+    assert desktop_config.load_config()[key] == expected
+
+
+def test_migration_repairs_wrong_container_types(isolated_appdata) -> None:
+    path = desktop_config.config_path()
+    path.write_text(json.dumps({"rule_options": "oops", "setup_slots": [1, 2]}), encoding="utf-8")
+    loaded = desktop_config.load_config()
+    assert loaded["rule_options"] == {}
+    assert loaded["setup_slots"] == {}
+
+
+def test_migration_repairs_unknown_language(isolated_appdata) -> None:
+    desktop_config.config_path().write_text(json.dumps({"language": "fr"}), encoding="utf-8")
+    assert desktop_config.load_config()["language"] == desktop_config.DEFAULTS["language"]
+
+
+def test_migration_keeps_unknown_keys(isolated_appdata) -> None:
+    """未知键可能是新版本写入的，迁移不能把它丢掉。"""
+    desktop_config.config_path().write_text(
+        json.dumps({"theme": "dark", "future_feature": {"a": 1}}), encoding="utf-8")
+    loaded = desktop_config.load_config()
+    assert loaded["future_feature"] == {"a": 1}
+
+
+def test_newer_schema_version_is_left_alone(isolated_appdata) -> None:
+    """文件来自更新版本：不认识的配置按原样用，不回写、不改值。"""
+    path = desktop_config.config_path()
+    original = {"schema_version": desktop_config.CONFIG_VERSION + 99,
+                "initial_minutes": 999, "future_feature": True}
+    path.write_text(json.dumps(original), encoding="utf-8")
+    loaded = desktop_config.load_config()
+    assert loaded["initial_minutes"] == 999, "更高版本的值不该被旧版本擅自夹紧"
+    assert loaded["future_feature"] is True
+    assert json.loads(path.read_text(encoding="utf-8")) == original, "不该回写"
+
+
+def test_migrate_is_pure_and_reports_change() -> None:
+    """`migrate()` 不写盘、不改入参，只用返回值表达结果。"""
+    source = {"initial_minutes": 999}
+    result, changed = desktop_config.migrate(source)
+    assert changed is True
+    assert source == {"initial_minutes": 999}, "入参不应被修改"
+    assert result["initial_minutes"] == 180
+    again, changed_again = desktop_config.migrate(result)
+    assert changed_again is False and again == result
