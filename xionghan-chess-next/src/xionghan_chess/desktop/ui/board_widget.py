@@ -11,11 +11,14 @@ from __future__ import annotations
 import math
 
 from PySide6.QtCore import QPointF, Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen, QPixmap, QRadialGradient
+from PySide6.QtGui import (
+    QBrush, QColor, QFont, QMouseEvent, QPainter, QPaintEvent, QPen, QPixmap,
+    QRadialGradient,
+)
 from PySide6.QtWidgets import QWidget
 
 from xionghan_chess.core.game import Game
-from xionghan_chess.core.model import Color, Move, PieceType, Position
+from xionghan_chess.core.model import Color, Move, Piece, PieceType, Position
 from xionghan_chess.i18n import t
 
 from . import theme
@@ -26,7 +29,7 @@ class BoardWidget(QWidget):
     move_requested = Signal(object)
     piece_selected = Signal()
 
-    def __init__(self, parent: QWidget | None = None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.game: Game | None = None
         self.human_color = Color.RED
@@ -119,11 +122,11 @@ class BoardWidget(QWidget):
             self.animation_timer.stop()
         self.update()
 
-    def _controlled(self, piece) -> bool:
+    def _controlled(self, piece: Piece | None) -> bool:
         return bool(piece and not self.game.state.paused and piece.color is self.game.state.turn and
                     (self.control_both or piece.color is self.human_color))
 
-    def paintEvent(self, event) -> None:
+    def paintEvent(self, event: QPaintEvent) -> None:
         if not self.game:
             return
         painter = QPainter(self)
@@ -160,7 +163,7 @@ class BoardWidget(QWidget):
             painter.setPen(QColor("white")); painter.setFont(QFont("Microsoft YaHei", 18, QFont.Weight.Bold))
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, t("status.thinking_desktop", self.language))
 
-    def _geometry(self):
+    def _geometry(self) -> tuple[float, float, float, float]:
         bounds = self.rect().adjusted(13, 13, -13, -13)
         rows = self.game.profile.rows if self.game else 13
         cols = self.game.profile.cols if self.game else 13
@@ -171,7 +174,7 @@ class BoardWidget(QWidget):
         rect = bounds.adjusted(ix, iy, -ix, -iy)
         return rect, rect.left() + pad, rect.top() + pad, cw, ch
 
-    def _draw_xionghan_grid(self, painter, left, top, cw, ch):
+    def _draw_xionghan_grid(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         right, bottom = left + 12 * cw, top + 12 * ch
         for row in range(13):
             if row != 6:
@@ -195,7 +198,7 @@ class BoardWidget(QWidget):
         painter.drawText(int(left + cw * 6), int(separator_y - ch * .5), int(cw * 6), int(ch),
                          Qt.AlignmentFlag.AlignCenter, t("board.yin_mountains", self.language))
 
-    def _draw_traditional_grid(self, painter, left, top, cw, ch):
+    def _draw_traditional_grid(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         right, bottom = left + 8 * cw, top + 9 * ch
         for row in range(10):
             painter.drawLine(QPointF(left, top + row * ch), QPointF(right, top + row * ch))
@@ -214,7 +217,7 @@ class BoardWidget(QWidget):
         painter.drawText(int(left + cw * 4), int(river_y - ch * .5), int(cw * 4), int(ch),
                          Qt.AlignmentFlag.AlignCenter, t("board.han_boundary", self.language))
 
-    def _draw_initial_position_marks(self, painter, left, top, cw, ch):
+    def _draw_initial_position_marks(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         positions = [(row, col) for row in (4, 8) for col in range(0, 13, 2)]
         positions += [(3, 1), (3, 11), (9, 1), (9, 11)]
         offset, length = min(cw, ch) * .14, min(cw, ch) * .2
@@ -228,7 +231,7 @@ class BoardWidget(QWidget):
                 painter.drawLine(QPointF(corner_x, corner_y), QPointF(corner_x, corner_y + sy * length))
         painter.restore()
 
-    def _draw_star_points(self, painter, left, top, cw, ch):
+    def _draw_star_points(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         """Draw only endpoints that belong to the reachable weak-archer lattice."""
         inner = min(cw, ch) * .07
         outer = min(cw, ch) * .18
@@ -245,13 +248,13 @@ class BoardWidget(QWidget):
                 )
         painter.restore()
 
-    def _draw_palaces(self, painter, left, top, cw, ch, rows):
+    def _draw_palaces(self, painter: QPainter, left: float, top: float, cw: float, ch: float, rows: int) -> None:
         starts = ((0, 3), (7, 3)) if rows == 10 else ((1, 5), (9, 5))
         for row, col in starts:
             painter.drawLine(QPointF(left + col*cw, top + row*ch), QPointF(left + (col+2)*cw, top + (row+2)*ch))
             painter.drawLine(QPointF(left + (col+2)*cw, top + row*ch), QPointF(left + col*cw, top + (row+2)*ch))
 
-    def _draw_marks(self, painter, left, top, cw, ch):
+    def _draw_marks(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         if not self.game:
             return
         if self.game.rules.in_check(self.game.state, self.game.state.turn):
@@ -270,7 +273,7 @@ class BoardWidget(QWidget):
             target = self.game.state.piece_at(move.target)
             self._mark(painter, move.target, left, top, cw, ch, QColor(148, 30, 30, 90) if target else QColor(43, 104, 72, 180), .4 if target else .1)
 
-    def _draw_capture_hints(self, painter, left, top, cw, ch):
+    def _draw_capture_hints(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         if not self.show_capture_hints:
             return
         painter.save()
@@ -283,7 +286,7 @@ class BoardWidget(QWidget):
             painter.drawLine(QPointF(x + size, y - size), QPointF(x - size, y + size))
         painter.restore()
 
-    def _draw_animation(self, painter, left, top, cw, ch):
+    def _draw_animation(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         if self.animation_target is None:
             return
         progress = min(1.0, self.animation_frame / 14)
@@ -320,13 +323,13 @@ class BoardWidget(QWidget):
             for captured in self.game.rules.captured_by_move(self.game.state, move)
         }
 
-    def _mark(self, painter, pos, left, top, cw, ch, color, ratio):
+    def _mark(self, painter: QPainter, pos: Position, left: float, top: float, cw: float, ch: float, color: str, ratio: float) -> None:
         pos = self._view_position(pos)
         radius = min(cw, ch) * ratio
         painter.setPen(Qt.PenStyle.NoPen); painter.setBrush(color)
         painter.drawEllipse(QPointF(left + pos.col*cw, top + pos.row*ch), radius, radius)
 
-    def _draw_piece(self, painter, piece, left, top, cw, ch):
+    def _draw_piece(self, painter: QPainter, piece: Piece, left: float, top: float, cw: float, ch: float) -> None:
         radius = min(cw, ch) * .39
         shown = self._view_position(piece.position)
         center = QPointF(left + shown.col*cw, top + shown.row*ch)
@@ -348,7 +351,7 @@ class BoardWidget(QWidget):
         painter.setPen(QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e"))
         painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2), Qt.AlignmentFlag.AlignCenter, theme.NAMES[piece.color][piece.type])
 
-    def _position(self, point) -> Position | None:
+    def _position(self, point: QPointF) -> Position | None:
         if not self.game:
             return None
         _, left, top, cw, ch = self._geometry()
@@ -356,7 +359,7 @@ class BoardWidget(QWidget):
         return point_to_position(point.x(), point.y(), left, top, cw, ch,
                                  self.game.profile.rows, self.game.profile.cols, self.flipped)
 
-    def mousePressEvent(self, event) -> None:
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() is Qt.MouseButton.LeftButton and not self.locked and self.interactive and self.game:
             self.drag_origin = self._position(event.position())
             piece = self.game.state.piece_at(self.drag_origin) if self.drag_origin else None
@@ -365,7 +368,7 @@ class BoardWidget(QWidget):
                 self.piece_selected.emit()
                 self.update()
 
-    def mouseReleaseEvent(self, event) -> None:
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         if (self.locked or not self.interactive or not self.game or self.game.state.finished
                 or self.game.state.paused):
             return

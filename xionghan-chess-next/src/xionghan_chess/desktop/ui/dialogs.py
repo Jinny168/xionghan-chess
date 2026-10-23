@@ -41,7 +41,7 @@ from .workers import AnalysisWorker
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, config: dict, parent=None):
+    def __init__(self, config: dict, parent: QWidget | None = None) -> None:
         super().__init__(parent); self.language=normalize_language(config.get("language")); self.setWindowTitle(t("settings.desktop_title", self.language)); self.resize(720, 760)
         layout=QVBoxLayout(self); tabs=QTabWidget(); layout.addWidget(tabs,1)
         self.profile=QComboBox(); [self.profile.addItem(t(f"profile.{p.id}", self.language),p.id) for p in PROFILES.values()]
@@ -131,7 +131,7 @@ class SettingsDialog(QDialog):
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText(t("action.confirm", self.language));buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("action.cancel", self.language))
         buttons.accepted.connect(self.accept);buttons.rejected.connect(self.reject);layout.addWidget(buttons)
 
-    def _update_piece_availability(self):
+    def _update_piece_availability(self) -> None:
         profile=PROFILES[self.profile.currentData()]
         for kind in PieceType:
             check=self.checks[f"{kind.value}_appear"]
@@ -141,12 +141,12 @@ class SettingsDialog(QDialog):
             if not available:check.setChecked(False)
             elif kind is PieceType.KING:check.setChecked(True)
 
-    def _capture_profile_values(self):
+    def _capture_profile_values(self) -> None:
         values = {key: check.isChecked() for key, check in self.checks.items()}
         values["king_appear"] = True
         self._profile_values[self._active_profile_id] = values
 
-    def _profile_changed(self):
+    def _profile_changed(self) -> None:
         self._capture_profile_values()
         self._active_profile_id = self.profile.currentData()
         values = self._profile_values[self._active_profile_id]
@@ -162,7 +162,7 @@ class SettingsDialog(QDialog):
 
 
 class HandicapDialog(QDialog):
-    def __init__(self, profile_id: str, options: dict, selected: dict | None = None, parent=None):
+    def __init__(self, profile_id: str, options: dict, selected: dict | None = None, parent: QWidget | None = None) -> None:
         lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
         super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.handicap_title",lang));self.resize(720,620)
         profile=PROFILES[profile_id];active=profile.options.merged(options);slots=profile_slots(profile,active)
@@ -182,25 +182,25 @@ class HandicapDialog(QDialog):
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText(t("action.confirm", lang));buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("action.cancel", lang));buttons.button(QDialogButtonBox.StandardButton.Reset).setText(t("action.reset", lang))
         buttons.accepted.connect(self._accept);buttons.rejected.connect(self.reject);buttons.button(QDialogButtonBox.StandardButton.Reset).clicked.connect(lambda:self._set_all(True));layout.addWidget(buttons);self._update_counts()
 
-    def _set_all(self, checked: bool):
+    def _set_all(self, checked: bool) -> None:
         for check in self.checks.values():check.setChecked(checked)
         self._update_counts()
 
-    def _update_counts(self):
+    def _update_counts(self) -> None:
         counts={color:sum(check.isChecked() and check.property("color")==color for check in self.checks.values()) for color in ("red","black")}
         self.counts.setText(f"红方 {counts['red']} 枚 · 黑方 {counts['black']} 枚")
 
-    def _accept(self):
+    def _accept(self) -> None:
         result=self.value()
         if len(result["red"])!=len(result["black"]):QMessageBox.warning(self,t("desktop.invalid_setup",self.language),t("desktop.equal_setup",self.language));return
         self.accept()
 
-    def value(self):
+    def value(self) -> dict:
         return {color:[slot_id for slot_id,check in self.checks.items() if check.property("color")==color and check.isChecked()] for color in ("red","black")}
 
 
 class ReplayDialog(QDialog):
-    def __init__(self, game: Game, config: dict, parent=None):
+    def __init__(self, game: Game, config: dict, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.language=normalize_language(config.get("language"));self.setWindowTitle(t("dialog.replay_title",self.language))
         self.resize(960, 820)
@@ -229,7 +229,7 @@ class ReplayDialog(QDialog):
 
         analyze=QPushButton(t("desktop.analysis",self.language));analyze.clicked.connect(self.show_analysis);controls.insertWidget(0,analyze)
 
-    def show_analysis(self):
+    def show_analysis(self) -> None:
         # 阶段0 S0-C：analyze_game(40 ply) 原先在 GUI 线程同步跑，复盘窗直接冻结。
         # 移到线程池，完成后经 Signal 回到 GUI 线程弹结果。
         game=Game.from_state(self.snapshots[-1].clone(),self.options);game._snapshots=[item.to_dict() for item in self.snapshots[:-1]]
@@ -239,7 +239,7 @@ class ReplayDialog(QDialog):
         self.statusBar().showMessage("正在分析对局…",30000)
         self.pool.start(worker)
 
-    def _show_analysis_result(self,result):
+    def _show_analysis_result(self, result: object) -> None:
         labels={"best":"最佳","good":"良好","inaccuracy":"欠准","mistake":"失误","blunder":"严重失误"}
         lines=["  ".join(f"{labels[key]} {value}" for key,value in result["summary"].items()),""]
         lines.extend(f"{item['ply']}. {item['notation']}  · {labels[item['quality']]}  · 损失 {item['scoreLoss']}" for item in result["moves"])
@@ -269,7 +269,7 @@ class ReplayDialog(QDialog):
 
 
 class TrainingDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
         super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.training_title",lang));self.resize(760,560);self.selected_game=None
         layout=QVBoxLayout(self);filters=QHBoxLayout();self.level=QComboBox();self.level.addItem(t("desktop.beginner",lang),"beginner");self.level.addItem(t("desktop.advanced",lang),"advanced");self.level.addItem(t("desktop.master",lang),"master");filters.addWidget(self.level);import_button=QPushButton(t("desktop.import_puzzles",lang));import_button.clicked.connect(self.import_puzzles);filters.addWidget(import_button);layout.addLayout(filters)
@@ -277,27 +277,27 @@ class TrainingDialog(QDialog):
         actions=QHBoxLayout();self.hint=QPushButton(t("desktop.hint",lang));self.hint.clicked.connect(self.show_hint);start=QPushButton(t("desktop.start_training",lang));start.clicked.connect(self.start_selected);close=QPushButton(t("common.close",lang));close.clicked.connect(self.reject);actions.addWidget(self.hint);actions.addStretch();actions.addWidget(start);actions.addWidget(close);layout.addLayout(actions)
         self.level.currentIndexChanged.connect(self.reload);self.puzzles=[];self.reload()
 
-    def reload(self):
+    def reload(self) -> None:
         self.puzzles=[item for item in load_puzzles() if item.difficulty==self.level.currentData()];self.list.clear()
         for puzzle in self.puzzles:self.list.addItem(f"{puzzle.title}  ·  {puzzle.description}")
 
-    def current(self):
+    def current(self) -> object:
         row=self.list.currentRow();return self.puzzles[row] if 0<=row<len(self.puzzles) else None
 
-    def show_hint(self):
+    def show_hint(self) -> None:
         puzzle=self.current();QMessageBox.information(self,t("desktop.hint",self.language),puzzle.hints[0] if puzzle and puzzle.hints else t("desktop.select_puzzle",self.language))
 
-    def start_selected(self):
+    def start_selected(self) -> None:
         puzzle=self.current()
         if puzzle:self.selected_game=game_from_document(puzzle.document);self.accept()
 
-    def import_puzzles(self):
+    def import_puzzles(self) -> None:
         path,_=QFileDialog.getOpenFileName(self,"导入题库","","JSON (*.json)")
         if path:QMessageBox.information(self,"题库导入","外部题库文件已选择；服务端题库接口可将其合并为共享题库。")
 
 
 class GameLibraryDialog(QDialog):
-    def __init__(self, folder: Path, config: dict, parent=None):
+    def __init__(self, folder: Path, config: dict, parent: QWidget | None = None) -> None:
         super().__init__(parent);self.setWindowTitle("本地棋谱库");self.resize(700,520)
         self.folder=folder;self.config=config;self.selected_path:Path|None=None
         self.folder.mkdir(parents=True,exist_ok=True)
@@ -333,7 +333,7 @@ class GameLibraryDialog(QDialog):
 
 
 class DocumentDialog(QDialog):
-    def __init__(self, title: str, content: str, parent=None):
+    def __init__(self, title: str, content: str, parent: QWidget | None = None) -> None:
         super().__init__(parent);self.setWindowTitle(title);self.resize(760,680)
         layout=QVBoxLayout(self);browser=QTextBrowser();browser.setHtml(content) if content.lstrip().startswith("<") else browser.setMarkdown(content);layout.addWidget(browser)
         lang=getattr(parent,"config",{}).get("language","zh-CN") if parent else "zh-CN"

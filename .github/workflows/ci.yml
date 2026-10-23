@@ -106,6 +106,13 @@ jobs:
       - name: Static check (undefined names in desktop package)
         run: python scripts/check_undefined_names.py
 
+      # Stage-1 S1-4 gate: every parameter and return value in the desktop
+      # package must be annotated (>=85%; currently 100%). Without a gate the
+      # coverage silently regresses on the next refactor — app.py started at
+      # 6.2% and the classes moved out to ui/ were left at 30-45%.
+      - name: Static check (type annotation coverage)
+        run: python scripts/check_annotations.py
+
       # `QT_QPA_PLATFORM=offscreen` lets Qt create a QApplication without a real
       # display. `scripts/desktop_smoke.py` asserts the whole assembly chain
       # (import -> QApplication -> MainWindow() -> close) plus the stage-0 guards
