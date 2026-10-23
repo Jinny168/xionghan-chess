@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -68,12 +69,37 @@ def _place_desktop_entry(target: Path, desktop: Path, dry_run: bool) -> str:
         return f"符号链接不可用（{exc.__class__.__name__}），已改为复制：{link}"
 
 
+def running_instances() -> list[str]:
+    """列出正在运行的桌面版进程（PIDs）。
+
+    部署前必须先问这个：Windows 不允许覆盖正在运行的 exe，`shutil.copy2` 会抛
+    WinError 32。更糟的是——如果脚本自己去 `taskkill`，会把用户正在下的棋**连同
+    未保存的局面一起干掉**。所以这里只检测、不杀，让调用方给出明确提示。
+    """
+    try:
+        completed = subprocess.run(
+            ["tasklist", "/FI", f"IMAGENAME eq {EXE_NAME}", "/NH"],
+            capture_output=True, text=True, errors="ignore", timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [line.split()[1] for line in completed.stdout.splitlines()
+            if line.strip().lower().startswith(EXE_NAME.lower()) and len(line.split()) > 1]
+
+
 def deploy(dry_run: bool = False) -> int:
     source = newest_release()
     target = APP_DIR / EXE_NAME
     size_mb = source.stat().st_size / 1048576
     print(f"构建产物：{source.name}  {size_mb:.1f} MB")
     print(f"部署位置：{target}")
+
+    busy = running_instances()
+    if busy:
+        print(f"中止：程序正在运行（PID {', '.join(busy)}）。")
+        print("请先关闭匈漢象棋再重新执行 —— 直接覆盖会把这些实例里正在进行的对局丢掉。")
+        return 1
+
     if not dry_run:
         APP_DIR.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
