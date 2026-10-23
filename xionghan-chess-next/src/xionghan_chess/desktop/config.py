@@ -28,6 +28,15 @@ def games_dir() -> Path:
     return folder
 
 
+def puzzles_file() -> Path:
+    """用户导入的题库（P1-K）。随包题库是只读的，导入的题目落在这里。
+
+    不自动创建文件：没有导入过就该「没有这个文件」，而不是留一个空 JSON
+    让加载逻辑去处理空列表。
+    """
+    return data_dir() / "puzzles.json"
+
+
 DEFAULT_SERVER_URL = "http://127.0.0.1:8000"
 
 DEFAULTS: dict[str, Any] = {

@@ -29,11 +29,11 @@ from PySide6.QtWidgets import (
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, PieceType
 from xionghan_chess.core.profiles import PROFILES, profile_rule_values
-from xionghan_chess.core.puzzles import load_puzzles
 from xionghan_chess.core.setup import profile_slots
 from xionghan_chess.core.storage import game_from_document
 from xionghan_chess.i18n import normalize_language, t
 
+from ..puzzle_store import available_puzzles, install_puzzles
 from ..storage import load_game
 from . import theme
 from .board_widget import BoardWidget
@@ -278,11 +278,18 @@ class TrainingDialog(QDialog):
         self.level.currentIndexChanged.connect(self.reload);self.puzzles=[];self.reload()
 
     def reload(self) -> None:
-        self.puzzles=[item for item in load_puzzles() if item.difficulty==self.level.currentData()];self.list.clear()
+        # P1-K：随包题库 + 用户导入的题库（见 desktop/puzzle_store.py）。
+        all_puzzles,warning=available_puzzles()
+        self.puzzles=[item for item in all_puzzles if item.difficulty==self.level.currentData()];self.list.clear()
         for puzzle in self.puzzles:self.list.addItem(f"{puzzle.title}  ·  {puzzle.description}")
+        if warning:
+            # 自定义题库坏了不该让窗口打不开 —— 但要让人知道它被忽略了
+            note=QListWidgetItem("⚠ "+warning);note.setFlags(Qt.ItemFlag.NoItemFlags);self.list.addItem(note)
 
     def current(self) -> object:
-        row=self.list.currentRow();return self.puzzles[row] if 0<=row<len(self.puzzles) else None
+        row=self.list.currentRow()
+        # 警告项不可选，但 currentRow 仍可能指向它，越界检查已经在下面兜住
+        return self.puzzles[row] if 0<=row<len(self.puzzles) else None
 
     def show_hint(self) -> None:
         puzzle=self.current();QMessageBox.information(self,t("desktop.hint",self.language),puzzle.hints[0] if puzzle and puzzle.hints else t("desktop.select_puzzle",self.language))
@@ -294,8 +301,16 @@ class TrainingDialog(QDialog):
         if puzzle:self.selected_puzzle=puzzle;self.selected_game=game_from_document(puzzle.document);self.accept()
 
     def import_puzzles(self) -> None:
+        """P1-K：真的把外部题库并入用户题库，而不是只弹一句「已选择」。"""
         path,_=QFileDialog.getOpenFileName(self,"导入题库","","JSON (*.json)")
-        if path:QMessageBox.information(self,"题库导入","外部题库文件已选择；服务端题库接口可将其合并为共享题库。")
+        if not path:return
+        try:
+            result=install_puzzles(Path(path))
+        except Exception as exc:  # 非法题库：给出原因，不写坏存储
+            QMessageBox.warning(self,"题库导入失败",f"{exc}\n\n文件：{path}")
+            return
+        QMessageBox.information(self,"题库导入",result.summary)
+        self.reload()
 
 
 class GameLibraryDialog(QDialog):
