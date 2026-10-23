@@ -56,6 +56,21 @@ foreach ($fontFile in @('NotoSansSC-subset.ttf', 'NotoSerifSC-subset.ttf')) {
 }
 $fontSum = (Get-ChildItem -Path $fontDir -File | Measure-Object -Property Length -Sum).Sum
 Write-Host ("  字体校验 OK：OFL 开源字体，{0:N1} MB（S2-4，原微软字体 31.5 MB 已移除）" -f ($fontSum/1MB))
+
+# 阶段2 S2-6：Qt 体积裁剪 —— 已改为在 `build_windows.spec` 里做，**不要**再用
+# `--exclude-module`。
+#
+# 实测记录（避免以后有人重走这条死路）：
+#   加 46 个 `--exclude-module PySide6.QtXxx` -> 73,458,712 B
+#   一个都不加                              -> 73,542,180 B
+#   差 83 KB，属压缩噪声；且两次构建的 Analysis TOC 里 Qt6Qml.dll / Qt6Quick.dll /
+#   Qt6Pdf.dll / opengl32sw.dll 一个都没少。原因：`--exclude-module` 只影响 import
+#   图，而 PySide6 的 hook 是按 site-packages 里的文件**直接收**二进制的。
+#
+# 有效做法是在 Analysis 之后过滤 `a.binaries` / `a.datas`（只能在 spec 里做）：
+#   过滤后 55,225,671 B，同一份代码同一台机器，**省 18.3 MB（-24.9%）**，
+#   裁掉 7 个未使用 Qt 二进制 + Qt 翻译 144 -> 10 个。
+# 打包产物已用 scripts/probe_exe.py 探活（临时 APPDATA，验证数据目录被创建 + 进程存活）。
 $productName = -join [char[]](0x5308, 0x6F22, 0x8C61, 0x68CB)
 $platformName = -join [char[]](0x684C, 0x9762, 0x7248)
 $artifactName = "$productName-1.7.0-$platformName"
@@ -65,7 +80,8 @@ $artifactName = "$productName-1.7.0-$platformName"
 # —— 即使构建其实成功了。表现为脚本报「NativeCommandError」但 release/ 里已有产物。
 # 处置：原生命令段临时切到 Continue，真正的是否失败只看 $LASTEXITCODE（下面已逐行检查）。
 $ErrorActionPreference = "Continue"
-& $Python -m PyInstaller --noconfirm --clean --onefile --name $artifactName --windowed --icon $icon --add-data "$(Join-Path $ProjectRoot 'src\xionghan_chess\desktop\resources');xionghan_chess\desktop\resources" --add-data "$(Join-Path $ProjectRoot 'src\xionghan_chess\core\data');xionghan_chess\core\data" --add-data "$(Join-Path $ProjectRoot 'locales');locales" --paths (Join-Path $ProjectRoot "src") --distpath $release --workpath $work --specpath $work (Join-Path $PSScriptRoot "desktop_entry.py")
+$env:XIONGHAN_EXE_NAME = $artifactName
+& $Python -m PyInstaller --noconfirm --clean --distpath $release --workpath $work (Join-Path $PSScriptRoot "build_windows.spec")
 if ($LASTEXITCODE -ne 0) { $ErrorActionPreference = "Stop"; exit $LASTEXITCODE }
 $ErrorActionPreference = "Stop"
 Copy-Item -LiteralPath (Join-Path $release "$artifactName.exe") -Destination (Join-Path $release "$productName-$platformName.exe") -Force
