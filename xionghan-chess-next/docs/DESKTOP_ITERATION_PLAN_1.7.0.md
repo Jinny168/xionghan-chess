@@ -235,7 +235,7 @@
 | S2-5 | `.qrc` 分层资源化 | **不做** | 计划的前提是「小件散落在文件系统里，丢了不报错」。但现在的护栏已经是双份：`scripts` 的构建期资源断言（`build_windows.ps1` 校验三份 `--add-data` 目标存在且非空 + 字体/OFL 断言）+ `tests/test_desktop_theme_resources.py` 断言 10 个关键资源可解析。qrc 能带来的额外收益只剩「变成 ImportError」，而成本是把 `theme.resource()` 从 `Path` 改成 `:/` 前缀、破坏所有按路径读取的调用点（音效、字体、头像）。计划里「大件绝不进」那条理由也已失效：两首 BGM 已从 78 MB WAV 转成 7.5 MB OGG（S1-5）。 |
 | S2-1 | Windows 安装器 + 代码签名 | **搁置（用户已确认）** | 用户确认**没有 EV/OV 代码签名证书**。没有签名的安装包仍会被 SmartScreen 拦，做了收益也有限；且签名流程一旦写进脚本却无证书可用，会让构建链长期红。维持现状：绿色版 EXE + 校验和。证书到位后可直接接续。 |
 | S2-2 | mac / Linux 构建 | **放弃（用户已决定）** | 需要对应操作系统的构建机。源码无平台分支是事实，但**无法在本机实测**（见「未决与风险」3）。用户明确暂不投入。 |
-| S2-7 | 补残局与排局内容 | **已完成** | 见 6.1（`9aff5db`）。内容侧闭环，但**解法校验尚未接进 UI**，见 6.1.1。 |
+| S2-7 | 补残局与排局内容 | **已完成** | 见 6.1（`9aff5db`）；配套的解法校验也已接进 UI，见 6.1.1（`500207c`）。 |
 
 ## 6.3 这一阶段暴露的两条方法学结论
 
@@ -247,3 +247,62 @@
    窗口一闪而过。所以打包产物必须用 `scripts/probe_exe.py` 探活：以临时 `APPDATA`
    启动，断言数据目录被创建 + 进程存活，而不是看有没有报错。
 
+
+---
+
+# 七、剩余项清单（2026-10-24 实测核对）
+
+> 判据一律是**代码/实测**，不是「计划表里没勾」。每条都注明「凭什么说它还开着」。
+
+## 7.1 已完成（对照用，避免重复排查）
+
+| 问题 | 结论 | 证据 |
+|---|---|---|
+| P0-A 构建链断裂 | 已修 | `build_windows.ps1` 改用 `Join-Path`；本轮多次实构建成功 |
+| P0-B 假 ico | 已修 | `resources/icon.ico` 174,192 B，magic `00000100`（真 ICO）；`web/assets/icon.ico` 已不存在 |
+| P0-C 两处 UI 冻结 | 已修 | `dialogs.py:232 show_analysis` 已走 worker（源码注释标注 S0-C）；HTTP 走 `_request_json_async` |
+| P0-D 桌面零护栏 | 已修 | 新增 9 个测试文件（`test_desktop_{net,config,storage,theme_resources,board_geometry,update,training}.py` + `test_puzzle_coverage.py` + `test_packaging_spec.py`）+ `desktop_smoke.py`；CI 有 `desktop-smoke` job（windows-latest） |
+| P0-E EXE 零验证 | 已修 | `scripts/probe_exe.py` 以临时 APPDATA 探活；本轮每次发版都跑 |
+| P0-F 认输无确认 | 已修 | `desktop_smoke.py` 断言 `QMessageBox.question` 存在（含提和对照组） |
+| P0-G 包体 163 MB | 已修 | 现 **55,224,972 B**（BGM→OGG + 字体子集 + Qt 裁剪） |
+| P1-A 单文件混职责 | 已修 | `app.py` 1197 → **658 行**，拆出 config/storage/net/update/training/ui/* |
+| P1-C 升变集第 4 份拷贝 | 已修 | `human_move` 调 `rules.promotable_types` |
+| P1-D 类型标注 | 已修 | `check_annotations` 393/393 = 100%（门槛 85%） |
+| P1-E 资源两处手工同步 | 已修 | 构建期资源断言（S1-7）；qrc 判定不做（见 6.2） |
+| P1-H 无更新机制 | 已修 | 帮助→检查更新（S2-3） |
+| P1-M 残局名不副实 | 已修 | 题库 9→16，未覆盖子力清零（S2-7） |
+| P1-N 改设置丢对局 | 已修 | `desktop_smoke.py` 三条 S1-9 断言 |
+| P1-O 微软授权字体 | 已修 | Noto OFL 子集 + `OFL.txt`（S2-4） |
+| P2-A DPI 可读性 | 已实测 | 200% 下单格 69.5 逻辑像素、13 列完整（见 §五-4） |
+| P2-C Qt 体积 | 已修 | spec 内过滤，73.5 → 55.2 MB（S2-6） |
+
+## 7.2 仍未做（按建议优先级）
+
+| # | 问题 | 为什么说它还开着（实测） | 影响 | 估计 |
+|---|---|---|---|---|
+| **P1-L** | 做训练题会**静默改全局 profile** | `app.py:329 show_training()` 仍写 `self.config["profile"]=self.game.profile.id` | 做了道 traditional 题，主对局悄悄变 10×9 盘 | 0.25d |
+| **P1-K** | `import_puzzles` 是空壳 | `dialogs.py:296-298` 选完文件只弹一句「已选择」，什么都没导入 | 界面上有个假功能 | 0.5d |
+| **P1-S** | 音效失败静默无声 | `audio.py` 未订阅 `QSoundEffect.statusChanged`（grep 0 命中）；构造时对 7 个 WAV 调 `setSource` | 文件缺失/格式不支持时玩家以为「这游戏没声音」 | 0.25d |
+| **P1-I** | i18n key 覆盖无测试 | `tests/` 里没有扫 `t("…")` 字面量的用例（S1-8 从未实现） | 「zh/en 两边都缺同一个 key」无人发现，玩家看到裸 key | 0.25d |
+| **P1-B** | `refresh()` 仍是 250ms god-poll | `refresh()` 每 tick 做 `tick` + `history.clear()+addItems` + 阵亡文本重建 + 全盘重绘，且 `record_result`/`autosave_game`/模态弹窗三个副作用都在定时器里 | 13×13 每 250ms 重建列表；副作用藏在轮询里，难测 | 1.0d |
+| **P1-J** | 英文半翻译 | `app.py` 含中文 151 行、`if lang/else` 内联三元 25 处，`self._t(` 0 命中 | 英文界面仍有一半中文 | 1.0d |
+| **P1-R** | `config.py` 无 schema 版本 | grep `SCHEMA/schema_version/CONFIG_VERSION` 无命中；仍是 `{**DEFAULTS, **data}` 浅合并 | 删键/改类型无迁移路径，只能靠调用点兜底 | 0.5d |
+| **P1-G** | 根 `XionghanChess.spec` 是孤儿 | 文件仍在，内含 `C:/Users/27415/PycharmProjects/...` 绝对路径，全仓零引用（`packaging/build_windows.spec` 才是现在用的） | 有人误用它构建会得到 163 MB 且换台机器就失败 | 0.1d |
+| **P1-Q** | `load_bundled_fonts()` 依赖 QApplication | `theme.py:102` 直接 `QApplication.instance().setFont(...)`，实例为空即 `AttributeError` | 单测里直接构造 `MainWindow()` 仍是障碍 | 0.25d |
+| **P1-F** | `config_path` 只有 Windows 约定 | `config.py:10` 仅 `APPDATA` 回退 `Path.home()`，无 `Library`/`XDG` 分支 | 与 S2-2（mac/Linux）绑定，已放弃 → 降为「知情不修」 | 0.25d |
+
+## 7.3 明确「不做」而非「没做」
+
+| 项 | 决定 |
+|---|---|
+| S2-1 安装器 + 代码签名（P1-P / P2-D） | 搁置：用户确认无 EV/OV 证书；维持绿色版 EXE + 校验和 |
+| S2-2 mac/Linux（P2-B，连带 P1-F） | 放弃：无对应构建机，无法实测 |
+| S2-5 `.qrc` 分层资源 | 不做：护栏已由构建期断言 + 资源单测覆盖，改 qrc 只会破坏 `theme.resource()` 的路径语义 |
+
+## 7.4 尚未验证（不是「没做」，是「没法在这台机器上验」）
+
+| 项 | 现状 |
+|---|---|
+| EXE 在**干净无 Python 机器**上的表现 | 只在本机验证过（本机有 `.venv`）。需要一台干净 Windows 或虚拟机 |
+| 真实多显示器 / 系统级 DPI 热切换 | 200% 静态渲染已验；运行时切换未验 |
+| GitHub Actions 上 CI 是否全绿 | 本地门禁全绿（535 passed / 对拍 84/84 / 冒烟全绿 / 注解 100%），但本机无法执行 Actions |
