@@ -282,12 +282,12 @@
 | P1-Q 字体加载依赖 QApplication | 已修 | 无 QGuiApplication 时整体跳过；实测 `addApplicationFont` 无应用会**段错误**（exit 139），不是抛异常，故用子进程断言退出码（`5caf8e5`） |
 | P1-I i18n key 覆盖 | 已修 | 新增 `tests/test_desktop_i18n_keys.py`：字面量/三元/f-string 前缀族都查两个语言包，并断言扫描到 ≥100 个 key 防「扫描器失效导致空集合永真」（`0d421c7`） |
 | P1-R config 无 schema 版本 | 已修 | `CONFIG_VERSION=1` + `migrate()` 迁移链，v0→v1 收敛数值范围/容器类型/未知语言且保留未知键；只有更高版本才不回写（`207408d`） |
+| P1-B refresh god-poll | 已修 | 拆成 9 个单职责方法 + 快照比对：空转 tick 9.777 ms → 0.023 ms；`in_check` 不再每 tick 全盘扫描。先写 12 条行为契约在旧代码上跑通，再重构仍全绿；另 7 条钉「按需重建」；像素级验证走子/暂停确实重绘（`a6f8a3e`） |
 
 ## 7.2 仍未做（按建议优先级）
 
 | # | 问题 | 为什么说它还开着（实测） | 影响 | 估计 |
 |---|---|---|---|---|
-| **P1-B** | `refresh()` 仍是 250ms god-poll | `refresh()` 每 tick 做 `tick` + `history.clear()+addItems` + 阵亡文本重建 + 全盘重绘，且 `record_result`/`autosave_game`/模态弹窗三个副作用都在定时器里 | 13×13 每 250ms 重建列表；副作用藏在轮询里，难测 | 1.0d |
 | **P1-J** | 英文半翻译 | `app.py` 含中文 151 行、`if lang/else` 内联三元 25 处，`self._t(` 0 命中 | 英文界面仍有一半中文 | 1.0d |
 | **P1-F** | `config_path` 只有 Windows 约定 | `config.py:10` 仅 `APPDATA` 回退 `Path.home()`，无 `Library`/`XDG` 分支 | 与 S2-2（mac/Linux）绑定，已放弃 → 降为「知情不修」 | 0.25d |
 
