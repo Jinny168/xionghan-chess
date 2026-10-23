@@ -38,6 +38,8 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 import xionghan_chess.desktop.app as app  # noqa: E402
 from xionghan_chess.core.game import Game  # noqa: E402
 from xionghan_chess.core.profiles import PROFILES  # noqa: E402
+from xionghan_chess.core.puzzles import load_puzzles  # noqa: E402
+from xionghan_chess.core.storage import game_from_document  # noqa: E402
 from xionghan_chess.desktop.config import config_path, load_config  # noqa: E402
 from xionghan_chess.desktop.ui.dialogs import (  # noqa: E402
     DocumentDialog,
@@ -157,6 +159,44 @@ def main() -> int:
             cfg_file.unlink(missing_ok=True)
         else:
             cfg_file.write_bytes(cfg_backup)
+
+    # ---- S2-7 配套：训练模式必须真的判对错 ----
+    # 只断言「有 _judge_puzzle 方法」挡不住接线断裂：若 human_move 忘了调它，
+    # 玩家走错也照样过。所以这里真进一道题、真走一手错棋，验证三件事：
+    # 棋被退回题面、cursor 不动、而且没有把错棋记进历史。
+    try:
+        puzzle = load_puzzles()[0]
+        solution = puzzle.solution[0]
+
+        class _FakeTrainingDialog:  # 只回答「用户选了哪道题」，其余走真实 show_training
+            def __init__(self, parent=None) -> None:
+                self.selected_game = game_from_document(puzzle.document)
+                self.selected_puzzle = puzzle
+
+            def exec(self) -> bool:
+                return True
+
+        real_dialog, real_info = app.TrainingDialog, app.QMessageBox.information
+        app.TrainingDialog = _FakeTrainingDialog
+        app.QMessageBox.information = staticmethod(lambda *a, **k: None)
+        try:
+            window.show_training()
+            prefix = len(window.game.state.history)
+            wrong = next(
+                move for move in window.game.rules.legal_moves(window.game.state)
+                if (move.source.row, move.source.col, move.target.row, move.target.col)
+                != (solution.source.row, solution.source.col, solution.target.row, solution.target.col)
+            )
+            window.human_move(wrong)
+            checks["S2-7 答错会退回题面"] = len(window.game.state.history) == prefix
+            checks["S2-7 答错不计入进度"] = window.puzzle_session is not None and window.puzzle_session.cursor == 0
+            window.human_move(solution)
+            checks["S2-7 答对即过关"] = window.puzzle_session is None
+        finally:
+            app.TrainingDialog, app.QMessageBox.information = real_dialog, real_info
+    except Exception as exc:  # noqa: BLE001
+        checks["S2-7 训练判定端到端"] = False
+        print(f"  训练判定异常: {exc!r}")
 
     window.close()
     window.deleteLater()

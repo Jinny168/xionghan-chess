@@ -271,7 +271,7 @@ class ReplayDialog(QDialog):
 class TrainingDialog(QDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
-        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.training_title",lang));self.resize(760,560);self.selected_game=None
+        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.training_title",lang));self.resize(760,560);self.selected_game=None;self.selected_puzzle=None
         layout=QVBoxLayout(self);filters=QHBoxLayout();self.level=QComboBox();self.level.addItem(t("desktop.beginner",lang),"beginner");self.level.addItem(t("desktop.advanced",lang),"advanced");self.level.addItem(t("desktop.master",lang),"master");filters.addWidget(self.level);import_button=QPushButton(t("desktop.import_puzzles",lang));import_button.clicked.connect(self.import_puzzles);filters.addWidget(import_button);layout.addLayout(filters)
         self.list=QListWidget();self.list.itemDoubleClicked.connect(lambda _:self.start_selected());layout.addWidget(self.list,1)
         actions=QHBoxLayout();self.hint=QPushButton(t("desktop.hint",lang));self.hint.clicked.connect(self.show_hint);start=QPushButton(t("desktop.start_training",lang));start.clicked.connect(self.start_selected);close=QPushButton(t("common.close",lang));close.clicked.connect(self.reject);actions.addWidget(self.hint);actions.addStretch();actions.addWidget(start);actions.addWidget(close);layout.addLayout(actions)
@@ -289,7 +289,9 @@ class TrainingDialog(QDialog):
 
     def start_selected(self) -> None:
         puzzle=self.current()
-        if puzzle:self.selected_game=game_from_document(puzzle.document);self.accept()
+        # S2-7 配套：除了载入局面，还要把题目本身交出去 —— 主窗口要靠它的
+        # `solution` 判对错。此前只 `accept()`，解法字段在桌面端形同废纸。
+        if puzzle:self.selected_puzzle=puzzle;self.selected_game=game_from_document(puzzle.document);self.accept()
 
     def import_puzzles(self) -> None:
         path,_=QFileDialog.getOpenFileName(self,"导入题库","","JSON (*.json)")

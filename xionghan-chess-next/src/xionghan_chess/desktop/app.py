@@ -36,6 +36,7 @@ from .config import (
     settings_differ_in_game_breaking_keys,
 )
 from . import net
+from . import training as puzzle_judge
 from . import update as version_check
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
 from .ui.dialogs import DocumentDialog, GameLibraryDialog, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
@@ -49,6 +50,8 @@ from .ui import theme
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__();theme.load_bundled_fonts();self.config=load_config();self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._last_check_key=None
+        # S2-7 配套：非 None 时表示正处在「残局题」里，`human_move` 要判对错。
+        self.puzzle_session=None
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
         icon_path = theme.resource("icon.ico")
         if icon_path.exists():
@@ -112,6 +115,7 @@ class MainWindow(QMainWindow):
         self.apply_appearance()
 
     def new_game(self) -> None:
+        self.puzzle_session=None
         self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local";self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh();
         if not local and self.game.state.turn is not human:self.start_ai()
 
@@ -132,10 +136,48 @@ class MainWindow(QMainWindow):
                     move=Move(move.source,move.target,next(kind for text,kind in options if text==label))
             if self.network:
                 self.send_network("move",{"from":{"row":move.source.row,"col":move.source.col},"to":{"row":move.target.row,"col":move.target.col},"promotion":move.promotion.value if move.promotion else None});return
-            record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound();self.refresh();
+            record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound()
+            # S2-7 配套：题目模式下先判对错。答错时 `_judge_puzzle` 已经把棋退回去并
+            # 自己刷新过了，这里直接返回，避免再走进 AI / 终局提示分支。
+            if not self._judge_puzzle(move):return
+            self.refresh();
             if self.game.state.finished:self.add_ai_taunt("defeat")
             if not self.game.state.finished and self.config.get("game_mode","ai")=="ai":self.start_ai()
         except GameError as exc:QMessageBox.warning(self,"非法走棋",str(exc))
+
+    def _judge_puzzle(self, move: Move) -> bool:
+        """判定训练题的一手棋。返回 False 表示答错且已回退（调用方不要再刷新）。
+
+        判定本身在 `desktop/training.py`（纯逻辑、有单测）；这里只负责三件界面的事：
+        答错时把棋退回去、按尝试次数给更强的提示、过关时收尾。
+        """
+        session=self.puzzle_session
+        if session is None:return True
+        lang=self.config.get("language","zh-CN");english=lang=="en"
+        verdict=session.submit(move)
+        if verdict==puzzle_judge.VERDICT_WRONG:
+            # `Game.move` 在落子前压栈，所以 undo(1) 正好回到题面；多步题也只退一手，
+            # 已解出的前几手保留。
+            try:self.game.undo(1)
+            except GameError:pass
+            self.board.set_game(self.game,self.game.state.turn,True);self.board.locked=False
+            hint=session.next_hint()
+            detail=(("提示："+hint) if hint else "") if not english else (("Hint: "+hint) if hint else "")
+            QMessageBox.information(self,"再想想" if not english else "Not quite",
+                                    ("这不是正解，棋已退回。\n" if not english else "That is not the solution; the move was taken back.\n")+detail)
+            self.refresh()
+            return False
+        if verdict==puzzle_judge.VERDICT_SOLVED:
+            title=session.puzzle.title
+            self.puzzle_session=None
+            QMessageBox.information(self,"过关" if not english else "Solved",
+                                    (f"正解！《{title}》已解出。" if not english else f"Correct — “{title}” solved."))
+            self.statusBar().showMessage("训练完成，可继续自由对弈" if not english else "Training complete; free play resumed",8000)
+            return True
+        self.statusBar().showMessage(
+            (f"正解，继续第 {session.cursor+1}/{session.total} 手" if not english
+             else f"Correct — step {session.cursor+1}/{session.total}"),5000)
+        return True
 
     def start_ai(self) -> None:
         if self.board.locked or self.game.state.finished or self.game.state.paused:return
@@ -167,8 +209,14 @@ class MainWindow(QMainWindow):
         else:self.audio.play("capture" if record.captured else "move")
     def undo_move(self) -> None:
         if self.network:self.send_network("undo_request");return
-        try:self.cancel.set();plies=1 if self.config.get("game_mode")=="local" else (2 if len(self.game.state.history)>=2 else 1);self.game.undo(plies);self.cancel=threading.Event();self.board.locked=False;self.refresh()
-        except GameError as exc:QMessageBox.information(self,"悔棋",str(exc))
+        # S2-7 配套：题目模式下悔棋＝重做这道题，进度一律归零。
+        # 必须先重置再悔棋 —— 答错的棋已经被退回过，此时 `undo` 会因无可退而抛错，
+        # 若把重置放在后面就会被提前 return 跳过（实测 attempts 会停在 2）。
+        # 多步题也适用：退一手后 cursor 必须回到 0，否则之后每一手都判错。
+        if self.puzzle_session is not None:self.puzzle_session.reset()
+        try:self.cancel.set();plies=1 if self.config.get("game_mode")=="local" else (2 if len(self.game.state.history)>=2 else 1);self.game.undo(plies);self.cancel=threading.Event();self.board.locked=False
+        except GameError as exc:QMessageBox.information(self,"悔棋",str(exc));self.refresh();return
+        self.refresh()
     def toggle_pause(self) -> None:
         if not self.game or self.game.state.finished:return
         if self.network:self.send_network("pause",{"paused":not self.game.state.paused});return
@@ -278,7 +326,13 @@ class MainWindow(QMainWindow):
     def show_training(self) -> None:
         dialog=TrainingDialog(self)
         if dialog.exec() and dialog.selected_game:
-            self.close_network();self.game=dialog.selected_game;self.config["profile"]=self.game.profile.id;self.config["game_mode"]="local";self.board.set_game(self.game,Color.RED,True);self.configure_board();self.refresh()
+            self.close_network();self.game=dialog.selected_game;self.config["profile"]=self.game.profile.id;self.config["game_mode"]="local";self.board.set_game(self.game,Color.RED,True);self.configure_board()
+            # S2-7 配套：带上题目本身，之后每一手都要对答案。
+            self.puzzle_session=puzzle_judge.session_for(dialog.selected_puzzle)
+            # 训练棋不是正式对局：既不进战绩，也不往棋谱库塞一条两步的「棋谱」。
+            # 这两个标志是 refresh() 里「终局才记账/才自动存」的开关，置 True 即抑制。
+            self._stats_recorded=True;self._autosaved=True
+            self.refresh()
 
     def toggle_fullscreen(self) -> None:
         self.showNormal() if self.isFullScreen() else self.showFullScreen()
@@ -302,7 +356,7 @@ class MainWindow(QMainWindow):
 
     def load_game_path(self, path: Path) -> None:
         try:
-            game=load_game(path);self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=game;self.config["profile"]=game.profile.id;self.config["rule_options"]=asdict(game.options);save_config(self.config);self.board.set_game(game,Color(self.config["human_color"]),self.config.get("game_mode","ai")=="local");self.configure_board();self._stats_recorded=game.state.finished;self._autosaved=game.state.finished;self.refresh();self.statusBar().showMessage(f"已载入：{path}",5000)
+            game=load_game(path);self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=game;self.puzzle_session=None;self.config["profile"]=game.profile.id;self.config["rule_options"]=asdict(game.options);save_config(self.config);self.board.set_game(game,Color(self.config["human_color"]),self.config.get("game_mode","ai")=="local");self.configure_board();self._stats_recorded=game.state.finished;self._autosaved=game.state.finished;self.refresh();self.statusBar().showMessage(f"已载入：{path}",5000)
         except Exception as exc:QMessageBox.warning(self,"导入失败",str(exc))
 
     def show_game_library(self) -> None:
@@ -536,7 +590,7 @@ class MainWindow(QMainWindow):
 
     def apply_network_state(self, snapshot: dict[str, object] | None) -> None:
         if not snapshot:return
-        game_data=snapshot["game"];self.revision=snapshot["revision"];self.config["human_color"]=snapshot.get("youAre") or self.config["human_color"];self.network_players={item["color"]:item for item in snapshot.get("players",[])};self.game=Game.from_state(GameState.from_dict(game_data),game_data["profile"]["options"],game_data.get("setup"));replay=game_data.get("replay",[]);self.game._snapshots=[item for item in replay[:-1] if isinstance(item,dict)];self.board.set_game(self.game,Color(self.config["human_color"]),False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
+        game_data=snapshot["game"];self.revision=snapshot["revision"];self.config["human_color"]=snapshot.get("youAre") or self.config["human_color"];self.network_players={item["color"]:item for item in snapshot.get("players",[])};self.puzzle_session=None;self.game=Game.from_state(GameState.from_dict(game_data),game_data["profile"]["options"],game_data.get("setup"));replay=game_data.get("replay",[]);self.game._snapshots=[item for item in replay[:-1] if isinstance(item,dict)];self.board.set_game(self.game,Color(self.config["human_color"]),False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
         if not self.game.state.history:self._stats_recorded=False;self._autosaved=False
         lang=self.config.get("language","zh-CN")
         self.statusBar().showMessage(f"{'房间' if lang!='en' else 'Room'} {snapshot['roomId']} · {'状态版本' if lang!='en' else 'revision'} {self.revision}");self.refresh()
@@ -564,6 +618,12 @@ class MainWindow(QMainWindow):
         if not self.network:self.game.tick()
         lang=self.config.get("language","zh-CN")
         state=self.game.state;self.banner.setText(t("status.game_over", lang) if state.finished else (t("status.paused", lang) if state.paused else t("status.turn", lang, color=t("common.red" if state.turn is Color.RED else "common.black", lang))))
+        # S2-7 配套：题目模式下横幅要说明「在练哪道题、走到第几手」——
+        # 否则玩家分不清这是普通对局还是残局训练。
+        session=getattr(self,"puzzle_session",None)
+        if session is not None:
+            step=f"第 {min(session.cursor+1, session.total)}/{session.total} 手" if lang!="en" else f"step {min(session.cursor+1, session.total)}/{session.total}"
+            self.banner.setText(self.banner.text()+(f"　·　训练《{session.puzzle.title}》{step}" if lang!="en" else f"　·　Puzzle “{session.puzzle.title}” {step}"))
         check_key=(len(state.history), state.turn.value, bool(self.game.rules.in_check(state, state.turn)))
         if check_key[2] and check_key != self._last_check_key: self.board.pulse_check()
         self._last_check_key=check_key
