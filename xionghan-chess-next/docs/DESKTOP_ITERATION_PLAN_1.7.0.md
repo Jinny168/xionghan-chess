@@ -279,16 +279,16 @@
 | P1-S 音效静默失败 | 已修 | 订阅 `QSoundEffect.statusChanged` + `QMediaPlayer.errorOccurred`，失败进 `failures` 并在状态栏提示；`tests/test_desktop_audio.py` 7 条（`5e99b69`） |
 | P1-K 导入题库是空壳 | 已修 | 真实导入到 `%APPDATA%\XionghanChess\puzzles.json`，id 冲突跳过、非法文件不写盘；`tests/test_desktop_puzzle_store.py` 13 条（`444d1d9`） |
 | P1-G 根 spec 孤儿 | 已清理 | 删除 `XionghanChess.spec`（内含本机绝对路径，全仓零引用）；构建只认 `packaging/build_windows.spec`（`5e99b69`） |
+| P1-Q 字体加载依赖 QApplication | 已修 | 无 QGuiApplication 时整体跳过；实测 `addApplicationFont` 无应用会**段错误**（exit 139），不是抛异常，故用子进程断言退出码（`5caf8e5`） |
+| P1-I i18n key 覆盖 | 已修 | 新增 `tests/test_desktop_i18n_keys.py`：字面量/三元/f-string 前缀族都查两个语言包，并断言扫描到 ≥100 个 key 防「扫描器失效导致空集合永真」（`0d421c7`） |
+| P1-R config 无 schema 版本 | 已修 | `CONFIG_VERSION=1` + `migrate()` 迁移链，v0→v1 收敛数值范围/容器类型/未知语言且保留未知键；只有更高版本才不回写（`207408d`） |
 
 ## 7.2 仍未做（按建议优先级）
 
 | # | 问题 | 为什么说它还开着（实测） | 影响 | 估计 |
 |---|---|---|---|---|
-| **P1-I** | i18n key 覆盖无测试 | `tests/` 里没有扫 `t("…")` 字面量的用例（S1-8 从未实现） | 「zh/en 两边都缺同一个 key」无人发现，玩家看到裸 key | 0.25d |
 | **P1-B** | `refresh()` 仍是 250ms god-poll | `refresh()` 每 tick 做 `tick` + `history.clear()+addItems` + 阵亡文本重建 + 全盘重绘，且 `record_result`/`autosave_game`/模态弹窗三个副作用都在定时器里 | 13×13 每 250ms 重建列表；副作用藏在轮询里，难测 | 1.0d |
 | **P1-J** | 英文半翻译 | `app.py` 含中文 151 行、`if lang/else` 内联三元 25 处，`self._t(` 0 命中 | 英文界面仍有一半中文 | 1.0d |
-| **P1-R** | `config.py` 无 schema 版本 | grep `SCHEMA/schema_version/CONFIG_VERSION` 无命中；仍是 `{**DEFAULTS, **data}` 浅合并 | 删键/改类型无迁移路径，只能靠调用点兜底 | 0.5d |
-| **P1-Q** | `load_bundled_fonts()` 依赖 QApplication | `theme.py:102` 直接 `QApplication.instance().setFont(...)`，实例为空即 `AttributeError` | 单测里直接构造 `MainWindow()` 仍是障碍 | 0.25d |
 | **P1-F** | `config_path` 只有 Windows 约定 | `config.py:10` 仅 `APPDATA` 回退 `Path.home()`，无 `Library`/`XDG` 分支 | 与 S2-2（mac/Linux）绑定，已放弃 → 降为「知情不修」 | 0.25d |
 
 ## 7.3 明确「不做」而非「没做」
