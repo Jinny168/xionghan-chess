@@ -9,7 +9,7 @@ import math
 import urllib.request
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QPointF, QRunnable, Qt, QThreadPool, QTimer, Signal, QUrl
+from PySide6.QtCore import QPointF, Qt, QThreadPool, QTimer, Signal, QUrl
 from PySide6.QtGui import QAction, QColor, QFont, QFontDatabase, QIcon, QPainter, QPen, QBrush, QRadialGradient, QPixmap, QKeySequence
 from PySide6.QtWebSockets import QWebSocket
 from PySide6.QtWidgets import (
@@ -19,8 +19,6 @@ from PySide6.QtWidgets import (
     QInputDialog, QLineEdit, QFileDialog, QTextBrowser, QSlider, QTabWidget, QListWidgetItem,
 )
 
-from xionghan_chess.core.ai import ChessAI, Difficulty
-from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position
@@ -34,6 +32,7 @@ from .audio import DesktopAudio
 from .config import config_path, load_config, save_config
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
 from .ui.board_geometry import cell_layout, point_to_position, view_position
+from .ui.workers import AIWorker, AnalysisWorker, HttpWorker
 
 
 NAMES = {
@@ -69,71 +68,6 @@ def load_bundled_fonts() -> None:
     FONT_CHOICES["system"] = UI_FONT
     FONT_CHOICES["kaiti"] = PIECE_FONT
     QApplication.instance().setFont(QFont(UI_FONT, 10))
-
-
-class WorkerSignals(QObject):
-    finished = Signal(object)
-    failed = Signal(object)
-
-
-class AIWorker(QRunnable):
-    def __init__(self, game: Game, difficulty: str, cancel: threading.Event):
-        super().__init__()
-        self.game = Game.from_state(game.state.clone(), game.options)
-        self.ai = ChessAI(difficulty)
-        self.cancel = cancel
-        self.signals = WorkerSignals()
-
-    def run(self) -> None:
-        try:
-            self.signals.finished.emit((self.ai.choose_move(self.game, self.cancel), self.cancel))
-        except Exception as exc:
-            self.signals.failed.emit((str(exc), self.cancel))
-
-
-def _http_json_blocking(url, payload=None, method="GET", token=""):
-    """阻塞版 HTTP 请求。**只允许在 worker 线程里调用**（阶段0 S0-C 抽出）。
-
-    抽出原因：原先是 `MainWindow.request_json` / `http_json` 两个静态方法，在 GUI
-    线程同步 `urlopen(timeout=15/8)` —— 服务不可达时窗口"未响应"最长 15 秒。
-    """
-    headers = {"Content-Type": "application/json"}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    body = json.dumps(payload).encode("utf-8") if payload is not None else None
-    request = urllib.request.Request(url, body, headers, method=method)
-    with urllib.request.urlopen(request, timeout=15) as response:
-        return json.loads(response.read().decode("utf-8"))
-
-
-class HttpWorker(QRunnable):
-    """把阻塞 HTTP 请求移到线程池（阶段0 S0-C：建连/云同步不再冻结 GUI）。"""
-
-    def __init__(self, url, payload=None, method="GET", token=""):
-        super().__init__()
-        self.url, self.payload, self.method, self.token = url, payload, method, token
-        self.signals = WorkerSignals()
-
-    def run(self) -> None:
-        try:
-            self.signals.finished.emit(_http_json_blocking(self.url, self.payload, self.method, self.token))
-        except Exception as exc:
-            self.signals.failed.emit(str(exc))
-
-
-class AnalysisWorker(QRunnable):
-    """把复盘分析移到线程池（阶段0 S0-C：show_analysis 不再冻结 GUI）。"""
-
-    def __init__(self, game: Game):
-        super().__init__()
-        self.game = game
-        self.signals = WorkerSignals()
-
-    def run(self) -> None:
-        try:
-            self.signals.finished.emit(analyze_game(self.game, Difficulty.BEGINNER, 40))
-        except Exception as exc:
-            self.signals.failed.emit(str(exc))
 
 
 class BoardWidget(QWidget):
