@@ -875,6 +875,9 @@ class MainWindow(QMainWindow):
         except GameError as exc:QMessageBox.information(self,"暂停",str(exc))
     def resign_game(self):
         if self.network:self.send_network("resign");return
+        # 阶段0 S0-D：认输是「不可逆的破坏性操作」，与同文件 draw_game（提和）保持对称，
+        # 也修正与 Web 端已交付「认输二次确认」的行为不一致。误点一下不再毁掉一局。
+        if QMessageBox.question(self,"认输","确认认输并结束当前对局？")!=QMessageBox.StandardButton.Yes:return
         color=self.game.state.turn if self.config.get("game_mode")=="local" else Color(self.config["human_color"]);self.game.resign(color);self.refresh()
     def draw_game(self):
         if self.network:self.send_network("draw_offer");return
