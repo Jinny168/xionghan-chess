@@ -33,6 +33,21 @@ def resource(*parts: str) -> Path:
     return RESOURCES.joinpath(*parts)
 
 
+def read_docs(name: str, fallback_label: str = "文档") -> str:
+    """读取随包文档（`docs/` 下的 md），失败时返回可展示的中文提示而非抛异常。
+
+    S1-1：`show_rules`/`show_help`/`show_about` 原先各自内联「拼路径 + try/except
+    OSError + 拼错误串」，三份重复且都用 `Path(__file__).parent / "resources"` ——
+    这类写法在文件搬家后就会静默指错（BoardWidget 搬 `ui/` 时就踩过）。统一走
+    `resource()`，搬文件不再影响这里。
+    """
+    path = resource("docs", name)
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return f"{fallback_label}读取失败：{exc}"
+
+
 # 棋盘上的棋子字形。**必须保持中文**（切英文界面也不翻译）：这是象棋子的视觉本体。
 NAMES = {
     Color.RED: {PieceType.KING:"漢",PieceType.ROOK:"俥",PieceType.HORSE:"傌",PieceType.ELEPHANT:"相",PieceType.ADVISOR:"仕",PieceType.CANNON:"炮",PieceType.PAWN:"兵",PieceType.GUARD:"尉",PieceType.ARCHER:"射",PieceType.THUNDER:"檑",PieceType.ARMOR:"甲",PieceType.ASSASSIN:"刺",PieceType.SHIELD:"楯",PieceType.PATROL:"巡"},

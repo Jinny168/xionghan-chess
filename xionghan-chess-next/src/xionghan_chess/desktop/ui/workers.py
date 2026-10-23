@@ -13,15 +13,14 @@ AutoConnection，Qt 官方语义）。
 """
 from __future__ import annotations
 
-import json
 import threading
-import urllib.request
 
 from PySide6.QtCore import QObject, QRunnable, Signal
 
 from xionghan_chess.core.ai import ChessAI, Difficulty
 from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.game import Game
+from xionghan_chess.desktop import net
 
 
 class WorkerSignals(QObject):
@@ -59,14 +58,11 @@ def http_json_blocking(url: str, payload: dict | None = None,
 
     抽出原因：原先是 `MainWindow.request_json` / `http_json` 两个静态方法，在 GUI
     线程同步 `urlopen(timeout=15/8)` —— 服务不可达时窗口"未响应"最长 15 秒。
+
+    S1-1：实现下沉到 `desktop.net.request_json`（可注入 transport、有单测覆盖），
+    本函数只保留「给 QRunnable 用的薄封装」语义，避免第二份 urllib 实现漂移。
     """
-    headers = {"Content-Type": "application/json"}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    body = json.dumps(payload).encode("utf-8") if payload is not None else None
-    request = urllib.request.Request(url, body, headers, method=method)
-    with urllib.request.urlopen(request, timeout=15) as response:
-        return json.loads(response.read().decode("utf-8"))
+    return net.request_json(url, payload, method, token)
 
 
 class HttpWorker(QRunnable):

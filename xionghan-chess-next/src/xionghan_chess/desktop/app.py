@@ -4,8 +4,6 @@ from dataclasses import asdict
 import os
 import sys
 import threading
-import json
-import urllib.request
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThreadPool, QTimer, Signal, QUrl
@@ -26,6 +24,7 @@ from xionghan_chess.core.taunts import choose_taunt, taunts
 from xionghan_chess.i18n import t
 from .audio import DesktopAudio
 from .config import config_path, load_config, save_config
+from . import net
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
 from .ui.dialogs import DocumentDialog, GameLibraryDialog, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
 from .ui.board_widget import BoardWidget
@@ -39,7 +38,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__();theme.load_bundled_fonts();self.config=load_config();self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._last_check_key=None
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
-        icon_path = Path(__file__).resolve().parent / "resources" / "icon.ico"
+        icon_path = theme.resource("icon.ico")
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
         self.resize(1260,850);self.setMinimumSize(760,560);self._build();self.new_game()
@@ -312,28 +311,19 @@ class MainWindow(QMainWindow):
         lang=self.config.get("language","zh-CN")
         if lang=="en":
             DocumentDialog(t("dialog.rules_title", lang),t("docs.rules", lang),self).exec();return
-        path=Path(__file__).resolve().parent / "resources" / "docs" / "PIECE_RULES.md"
-        try:content=path.read_text(encoding="utf-8")
-        except OSError as exc:content=f"规则文档读取失败：{exc}"
-        DocumentDialog(t("dialog.rules_title", lang),content,self).exec()
+        DocumentDialog(t("dialog.rules_title", lang),theme.read_docs("PIECE_RULES.md","规则文档"),self).exec()
 
     def show_help(self):
         lang=self.config.get("language","zh-CN")
         if lang=="en":
             DocumentDialog(t("dialog.help_title", lang),t("docs.help", lang),self).exec();return
-        path=Path(__file__).resolve().parent / "resources" / "docs" / "HELP.md"
-        try:content=path.read_text(encoding="utf-8")
-        except OSError as exc:content=f"帮助文档读取失败：{exc}"
-        DocumentDialog(t("dialog.help_title", lang),content,self).exec()
+        DocumentDialog(t("dialog.help_title", lang),theme.read_docs("HELP.md","帮助文档"),self).exec()
 
     def show_about(self):
         lang=self.config.get("language","zh-CN")
         if lang=="en":
             DocumentDialog(t("dialog.about_title", lang),t("docs.about", lang),self).exec();return
-        path=Path(__file__).resolve().parent / "resources" / "docs" / "ABOUT.md"
-        try:content=path.read_text(encoding="utf-8")
-        except OSError as exc:content=f"关于文档读取失败：{exc}"
-        DocumentDialog(t("dialog.about_title", lang),content,self).exec()
+        DocumentDialog(t("dialog.about_title", lang),theme.read_docs("ABOUT.md","关于文档"),self).exec()
 
     def account_sync(self):
         base=self.config.get("server_url","http://127.0.0.1:8000").rstrip("/");token=self.config.get("account_token","")
@@ -387,11 +377,8 @@ class MainWindow(QMainWindow):
         # docs/DESKTOP_ITERATION_PLAN_1.7.0.md S1-1 / S6）。阶段0 已把更常用的
         # 建连三入口（create/join/spectate）与复盘分析迁到线程池。
         # 新代码请用 self._request_json_async(...)。
-        headers={"Content-Type":"application/json"}
-        if token:headers["Authorization"]=f"Bearer {token}"
-        body=json.dumps(payload).encode("utf-8") if payload is not None else None
-        request=urllib.request.Request(url,body,headers,method=method)
-        with urllib.request.urlopen(request,timeout=15) as response:return json.loads(response.read().decode("utf-8"))
+        # S1-1：阻塞实现已下沉到 net.request_json（可注入 transport，已被单测覆盖）。
+        return net.request_json(url, payload, method, token)
 
     def server_base(self) -> str | None:
         lang=self.config.get("language","zh-CN")
@@ -446,17 +433,12 @@ class MainWindow(QMainWindow):
         self._request_json_async(f"{base}/api/rooms/{room.strip().upper()}/spectate",{"displayName":"桌面观众"},"POST",on_done=_spectating,
             on_error=lambda message:QMessageBox.warning(self,"观战失败",str(message)))
 
-    @staticmethod
-    def http_json(url,payload):
-        request=urllib.request.Request(url,json.dumps(payload).encode("utf-8"),{"Content-Type":"application/json"},method="POST")
-        with urllib.request.urlopen(request,timeout=8) as response:return json.loads(response.read().decode("utf-8"))
-
     def open_network(self,base,data,spectator=False):
         self.cancel.set();self.network_base=base;self.room_id=data["roomId"];self.token=data["token"];self.spectator=spectator;self.revision=data["snapshot"]["revision"];self.network_reconnect_attempts=0;self.network_closing=False;self.apply_network_state(data["snapshot"]);self._connect_network()
 
     def _connect_network(self):
         if not self.room_id or not self.token or not self.network_base:return
-        lang=self.config.get("language","zh-CN");suffix="/spectate" if self.spectator else "";ws=self.network_base.replace("https://","wss://",1).replace("http://","ws://",1)+f"/ws/{self.room_id}{suffix}?token={self.token}"
+        lang=self.config.get("language","zh-CN");ws=net.ws_url(self.network_base,self.room_id,self.token,self.spectator)
         socket=QWebSocket();self.network=socket;socket.textMessageReceived.connect(self.network_message);socket.connected.connect(lambda:self._network_connected(socket));socket.disconnected.connect(lambda:self._network_disconnected(socket));socket.open(QUrl(ws));self.statusBar().showMessage(f"{'房间' if lang!='en' else 'Room'} {self.room_id} · {'正在连接' if lang!='en' else 'Connecting'}")
 
     def _network_connected(self,socket):
@@ -466,14 +448,15 @@ class MainWindow(QMainWindow):
     def _network_disconnected(self,socket):
         if socket is not self.network:return
         code=int(socket.closeCode());socket.deleteLater();self.network=None;lang=self.config.get("language","zh-CN")
-        if self.network_closing or not self.room_id or code in {4001,4403,1008}:
+        # S1-1：终止条件判定下沉到 net.should_reconnect（纯函数，已被单测覆盖三种终止码）
+        if not net.should_reconnect(code,self.network_closing,self.room_id):
             self.statusBar().showMessage("网络已断开" if lang!="en" else "Network disconnected");return
-        if self.network_reconnect_attempts>=3:
+        if self.network_reconnect_attempts>=net.MAX_RECONNECT_ATTEMPTS:
             self.statusBar().showMessage("自动重连失败，请重新加入房间" if lang!="en" else "Reconnect failed; join the room again");return
-        delay=min(8000,1200*(2**self.network_reconnect_attempts));self.network_reconnect_attempts+=1;self.statusBar().showMessage(f"{'网络中断，正在重连' if lang!='en' else 'Disconnected, reconnecting'} ({self.network_reconnect_attempts}/3)");QTimer.singleShot(delay,self._connect_network)
+        delay=net.reconnect_delay(self.network_reconnect_attempts);self.network_reconnect_attempts+=1;self.statusBar().showMessage(f"{'网络中断，正在重连' if lang!='en' else 'Disconnected, reconnecting'} ({self.network_reconnect_attempts}/{net.MAX_RECONNECT_ATTEMPTS})");QTimer.singleShot(delay,self._connect_network)
 
     def network_message(self,text):
-        message=json.loads(text)
+        message=net.decode_message(text)
         lang=self.config.get("language","zh-CN")
         if message["type"]=="error":QMessageBox.warning(self,"服务器拒绝" if lang!="en" else "Server rejected",message["payload"]["message"]);self.apply_network_state(message["payload"].get("state",{}))
         elif message["type"]=="chat":
@@ -497,7 +480,7 @@ class MainWindow(QMainWindow):
 
     def send_network(self,type_,payload=None):
         if not self.network or not self.network.isValid():QMessageBox.information(self,"网络","连接尚未建立");return
-        self.network.sendTextMessage(json.dumps({"type":type_,"roomId":self.room_id,"revision":self.revision,"payload":payload or {},"protocolVersion":1},ensure_ascii=False))
+        self.network.sendTextMessage(net.encode_message(type_,self.room_id,self.revision,payload))
 
     def send_chat(self, quick=False):
         if not self.network:
@@ -522,7 +505,7 @@ class MainWindow(QMainWindow):
         if check_key[2] and check_key != self._last_check_key: self.board.pulse_check()
         self._last_check_key=check_key
         for color,label in ((Color.RED,self.red),(Color.BLACK,self.black)):
-            player=getattr(self,"network_players",{}).get(color.value,{}) if self.network else {};name=player.get("name") or t("common.red" if color is Color.RED else "common.black",lang);asset=avatar_asset_name(player.get("avatarUrl","") if player else "");prefix=f'<img src="{(Path(__file__).resolve().parent / "resources" / "avatars" / asset).as_posix()}" width="34" height="34"> ' if asset else "";label.setText(f"{prefix}{name}  {self._clock(state.clocks_ms[color])}")
+            player=getattr(self,"network_players",{}).get(color.value,{}) if self.network else {};name=player.get("name") or t("common.red" if color is Color.RED else "common.black",lang);asset=avatar_asset_name(player.get("avatarUrl","") if player else "");prefix=f'<img src="{theme.resource("avatars",asset).as_posix()}" width="34" height="34"> ' if asset else "";label.setText(f"{prefix}{name}  {self._clock(state.clocks_ms[color])}")
         threshold=max(0,int(self.config.get("countdown_seconds",30)))*1000
         self.red.setStyleSheet("color:#b21f1f;font-weight:bold" if threshold and state.clocks_ms[Color.RED]<=threshold and not state.paused else "")
         self.black.setStyleSheet("color:#b21f1f;font-weight:bold" if threshold and state.clocks_ms[Color.BLACK]<=threshold and not state.paused else "")
@@ -544,7 +527,7 @@ class MainWindow(QMainWindow):
 
 def run() -> None:
     app=QApplication(sys.argv);app.setApplicationName(t("app.name"))
-    icon_path=Path(__file__).resolve().parent / "resources" / "icon.ico"
+    icon_path=theme.resource("icon.ico")
     if icon_path.exists():app.setWindowIcon(QIcon(str(icon_path)))
     theme.load_bundled_fonts();window=MainWindow();window.show();sys.exit(app.exec())
 

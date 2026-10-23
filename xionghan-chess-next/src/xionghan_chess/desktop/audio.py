@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from PySide6.QtCore import QUrl
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer, QSoundEffect
+
+from .ui import theme
 
 
 class DesktopAudio:
     def __init__(self) -> None:
-        root = Path(__file__).resolve().parent / "resources" / "sounds"
+        # S1-1：资源路径统一走 theme.resource()，本模块不再自己拼 __file__ 相对路径
+        # （audio.py 若被搬位置，旧写法会静默指到不存在的目录，音效全部静音而不报错）。
+        root = theme.resource("sounds")
         files = {
             "select": "choose.wav", "move": "drop.wav", "capture": "eat.wav",
             "check": "warn.wav", "win": "fc_victory_sound.wav",
