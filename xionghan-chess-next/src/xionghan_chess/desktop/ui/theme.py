@@ -14,8 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtGui import QFont, QFontDatabase
-from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QFont, QFontDatabase, QGuiApplication
 
 from xionghan_chess.core.model import Color, PieceType
 
@@ -75,6 +74,16 @@ THEMES = {
 FONT_CHOICES = {"system": UI_FONT, "kaiti": PIECE_FONT, "songti": "SimSun", "fangsong": "FangSong"}
 
 
+def _gui_application() -> QGuiApplication | None:
+    """当前 GUI 应用实例；没有就返回 None。
+
+    单独抽出来是为了**可测**：`QFontDatabase.addApplicationFont()` 在没有
+    QGuiApplication 时不是抛异常，而是**直接段错误**（本机实测 exit 139）。
+    段错误没法用 try/except 兜，只能在调用前先判。
+    """
+    return QGuiApplication.instance()
+
+
 def load_bundled_fonts() -> None:
     """注册随包字体（Noto Sans SC Subset 界面 / Noto Serif SC Subset 棋子）。
 
@@ -82,7 +91,15 @@ def load_bundled_fonts() -> None:
 
     S2-4：字体文件与 family 名一起换掉。若随包字体加载失败（文件缺失/损坏），
     保持模块里的默认 family 名不变，Qt 会回退到系统字体 —— 不崩，只是样式降级。
+
+    P1-Q：**没有 QGuiApplication 时整体跳过**。字体注册只是「让 Qt 认识这两个
+    family」，没有 GUI 应用时既无意义也不安全（见 `_gui_application` 的说明）。
+    此前这里直接 `QApplication.instance().setFont(...)`，无应用时抛 AttributeError；
+    但真正致命的是它前面的 `addApplicationFont` —— 那一步会先把进程打死。
     """
+    app = _gui_application()
+    if app is None:
+        return
     global UI_FONT, PIECE_FONT
     font_dir = RESOURCES / "fonts"
     loaded: dict[str, str] = {}
@@ -99,4 +116,4 @@ def load_bundled_fonts() -> None:
     # 现改用已注册的随包字体：宋体选项恰好就是随包的 Noto Serif SC，仿宋回退到界面字体。
     FONT_CHOICES["songti"] = PIECE_FONT
     FONT_CHOICES["fangsong"] = UI_FONT
-    QApplication.instance().setFont(QFont(UI_FONT, 10))
+    app.setFont(QFont(UI_FONT, 10))

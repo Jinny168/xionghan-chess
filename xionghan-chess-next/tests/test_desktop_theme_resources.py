@@ -122,3 +122,38 @@ def test_bundled_fonts_cover_all_piece_glyphs() -> None:
         cmap = set(TTFont(font_dir / filename).getBestCmap())
         missing = {ch for ch in needed if ord(ch) not in cmap}
         assert not missing, f"{filename} 缺少字形：{''.join(sorted(missing))}"
+
+
+# ---------------------------------------------------------------------------
+# P1-Q：没有 QGuiApplication 时，字体加载必须是安全 no-op
+# ---------------------------------------------------------------------------
+def test_load_bundled_fonts_is_noop_without_gui_application(monkeypatch: pytest.MonkeyPatch) -> None:
+    """打桩掉应用实例后调用，不能抛异常、也不能改动字体名。"""
+    before = (theme.UI_FONT, theme.PIECE_FONT)
+    monkeypatch.setattr(theme, "_gui_application", lambda: None)
+    theme.load_bundled_fonts()
+    assert (theme.UI_FONT, theme.PIECE_FONT) == before
+
+
+def test_load_bundled_fonts_does_not_crash_the_process_without_qapplication() -> None:
+    """子进程里裸调一次：没有 QGuiApplication 时必须正常退出。
+
+    为什么用子进程：`QFontDatabase.addApplicationFont()` 在没有 GUI 应用时是
+    **段错误**（本机实测 exit 139），不是抛异常。进程内跑会把 pytest 一起带走，
+    所以只能另起一个进程看退出码。
+    """
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    code = (
+        "import sys; sys.path.insert(0, 'src')\n"
+        "from xionghan_chess.desktop.ui import theme\n"
+        "theme.load_bundled_fonts()\n"
+        "print('NOOP_OK')\n"
+    )
+    proc = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True,
+                          text=True, timeout=120)
+    assert proc.returncode == 0, f"退出码 {proc.returncode}\nstdout={proc.stdout}\nstderr={proc.stderr}"
+    assert "NOOP_OK" in proc.stdout
