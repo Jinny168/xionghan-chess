@@ -33,41 +33,9 @@ from .config import config_path, load_config, save_config
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
 from .ui.board_geometry import cell_layout, point_to_position, view_position
 from .ui.workers import AIWorker, AnalysisWorker, HttpWorker
+from .ui import theme
 
 
-NAMES = {
-    Color.RED: {PieceType.KING:"漢",PieceType.ROOK:"俥",PieceType.HORSE:"傌",PieceType.ELEPHANT:"相",PieceType.ADVISOR:"仕",PieceType.CANNON:"炮",PieceType.PAWN:"兵",PieceType.GUARD:"尉",PieceType.ARCHER:"射",PieceType.THUNDER:"檑",PieceType.ARMOR:"甲",PieceType.ASSASSIN:"刺",PieceType.SHIELD:"楯",PieceType.PATROL:"巡"},
-    Color.BLACK: {PieceType.KING:"汗",PieceType.ROOK:"車",PieceType.HORSE:"馬",PieceType.ELEPHANT:"象",PieceType.ADVISOR:"士",PieceType.CANNON:"砲",PieceType.PAWN:"卒",PieceType.GUARD:"衛",PieceType.ARCHER:"䠶",PieceType.THUNDER:"礌",PieceType.ARMOR:"胄",PieceType.ASSASSIN:"伺",PieceType.SHIELD:"碷",PieceType.PATROL:"廵"},
-}
-
-UI_FONT = "Microsoft YaHei"
-PIECE_FONT = "KaiTi"
-
-THEMES = {
-    "classic": {"board": "#e7c88d", "line": "#684726", "frame": "#5a3b20", "panel": "#fff9ed", "window": "#d9c8a6", "accent": "#315c48"},
-    "green": {"board": "#dfeeda", "line": "#315c36", "frame": "#365a3e", "panel": "#f6fbf2", "window": "#c8d8c1", "accent": "#315c48"},
-    "blue": {"board": "#dcebf1", "line": "#285c73", "frame": "#31586a", "panel": "#f3f8fa", "window": "#c4d4da", "accent": "#315f76"},
-    "purple": {"board": "#eee1f2", "line": "#724585", "frame": "#5c386d", "panel": "#fbf6fc", "window": "#d8c7dc", "accent": "#6d3e79"},
-    "dark": {"board": "#34302b", "line": "#c9b58e", "frame": "#171513", "panel": "#29241f", "window": "#1d1a17", "accent": "#8e3b32"},
-}
-
-FONT_CHOICES = {"system": UI_FONT, "kaiti": PIECE_FONT, "songti": "SimSun", "fangsong": "FangSong"}
-
-
-def load_bundled_fonts() -> None:
-    global UI_FONT, PIECE_FONT
-    font_dir = Path(__file__).resolve().parent / "resources" / "fonts"
-    loaded: dict[str, str] = {}
-    for filename, key in (("msyh.ttc", "ui"), ("simkai.ttf", "piece")):
-        font_id = QFontDatabase.addApplicationFont(str(font_dir / filename))
-        families = QFontDatabase.applicationFontFamilies(font_id) if font_id >= 0 else []
-        if families:
-            loaded[key] = families[0]
-    UI_FONT = loaded.get("ui", UI_FONT)
-    PIECE_FONT = loaded.get("piece", PIECE_FONT)
-    FONT_CHOICES["system"] = UI_FONT
-    FONT_CHOICES["kaiti"] = PIECE_FONT
-    QApplication.instance().setFont(QFont(UI_FONT, 10))
 
 
 class BoardWidget(QWidget):
@@ -85,7 +53,7 @@ class BoardWidget(QWidget):
         self.drag_origin: Position | None = None
         self.locked = False
         self.interactive = True
-        self.theme = THEMES["classic"]
+        self.theme = theme.THEMES["classic"]
         self.background = QPixmap()
         self.piece_style = "traditional"
         self.show_selection = True
@@ -125,7 +93,7 @@ class BoardWidget(QWidget):
 
     def set_appearance(self, theme_name: str, background_name: str,
                        piece_style: str = "traditional") -> None:
-        self.theme = THEMES.get(theme_name, THEMES["classic"])
+        self.theme = theme.THEMES.get(theme_name, theme.THEMES["classic"])
         self.piece_style = piece_style
         if background_name == "none":
             self.background = QPixmap()
@@ -197,7 +165,7 @@ class BoardWidget(QWidget):
         self._draw_animation(painter, left, top, cw, ch)
         if self.game.state.paused:
             painter.fillRect(rect, QColor(30, 25, 20, 150))
-            painter.setPen(QColor("white")); painter.setFont(QFont(UI_FONT, 19, QFont.Weight.Bold))
+            painter.setPen(QColor("white")); painter.setFont(QFont(theme.UI_FONT, 19, QFont.Weight.Bold))
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, f"{t('status.paused', self.language)}\n{t('status.timer_stopped', self.language)}")
         if self.locked:
             painter.fillRect(rect, QColor(30, 25, 20, 90))
@@ -233,7 +201,7 @@ class BoardWidget(QWidget):
             if 0 < col < 12:
                 painter.drawLine(QPointF(x, separator_y - marker), QPointF(x, separator_y + marker))
 
-        painter.setFont(QFont(PIECE_FONT, max(17, int(cw * .38))))
+        painter.setFont(QFont(theme.PIECE_FONT, max(17, int(cw * .38))))
         painter.drawText(int(left), int(separator_y - ch * .5), int(cw * 6), int(ch),
                          Qt.AlignmentFlag.AlignCenter, t("board.great_wall", self.language))
         painter.drawText(int(left + cw * 6), int(separator_y - ch * .5), int(cw * 6), int(ch),
@@ -252,7 +220,7 @@ class BoardWidget(QWidget):
                 painter.drawLine(QPointF(x, top + 5 * ch), QPointF(x, bottom))
 
         river_y = top + 4.5 * ch
-        painter.setFont(QFont(PIECE_FONT, max(16, int(cw * .38))))
+        painter.setFont(QFont(theme.PIECE_FONT, max(16, int(cw * .38))))
         painter.drawText(int(left), int(river_y - ch * .5), int(cw * 4), int(ch),
                          Qt.AlignmentFlag.AlignCenter, t("board.chu_river", self.language))
         painter.drawText(int(left + cw * 4), int(river_y - ch * .5), int(cw * 4), int(ch),
@@ -304,7 +272,7 @@ class BoardWidget(QWidget):
                 pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / 24)))
                 self._mark(painter, king.position, left, top, cw, ch, QColor(190, 28, 28, pulse), .47)
                 painter.save(); painter.setPen(QColor(190, 28, 28, min(255, pulse + 40)))
-                painter.setFont(QFont(UI_FONT, max(14, int(min(cw, ch) * .22)), QFont.Weight.Bold))
+                painter.setFont(QFont(theme.UI_FONT, max(14, int(min(cw, ch) * .22)), QFont.Weight.Bold))
                 shown = self._view_position(king.position)
                 painter.drawText(QPointF(left + shown.col * cw, top + shown.row * ch - min(cw, ch) * .55), t("status.check", self.language))
                 painter.restore()
@@ -388,9 +356,9 @@ class BoardWidget(QWidget):
         if self.piece_style == "modern":
             painter.setBrush(Qt.BrushStyle.NoBrush); painter.setPen(QPen(outline, 1))
             painter.drawEllipse(center, radius * .82, radius * .82)
-        painter.setFont(QFont(PIECE_FONT, max(13, int(radius*1.15)), QFont.Weight.Bold))
+        painter.setFont(QFont(theme.PIECE_FONT, max(13, int(radius*1.15)), QFont.Weight.Bold))
         painter.setPen(QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e"))
-        painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2), Qt.AlignmentFlag.AlignCenter, NAMES[piece.color][piece.type])
+        painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2), Qt.AlignmentFlag.AlignCenter, theme.NAMES[piece.color][piece.type])
 
     def _position(self, point) -> Position | None:
         if not self.game:
@@ -565,7 +533,7 @@ class HandicapDialog(QDialog):
         for color,title in (("red","红方"),("black","黑方")):
             group=QGroupBox(title);group_layout=QVBoxLayout(group);scroll=QScrollArea();scroll.setWidgetResizable(True);content=QWidget();items=QVBoxLayout(content)
             for slot in (item for item in slots if item["color"]==color):
-                check=QCheckBox(f"{NAMES[Color(color)][PieceType(slot['type'])]}  {slot['type']}  ({slot['row']+1},{slot['col']+1})");check.setChecked(slot["id"] in self.selected[color]);check.setProperty("slot_id",slot["id"]);check.setProperty("color",color)
+                check=QCheckBox(f"{theme.NAMES[Color(color)][PieceType(slot['type'])]}  {slot['type']}  ({slot['row']+1},{slot['col']+1})");check.setChecked(slot["id"] in self.selected[color]);check.setProperty("slot_id",slot["id"]);check.setProperty("color",color)
                 if slot["type"]=="king":check.setChecked(True);check.setEnabled(False)
                 check.toggled.connect(self._update_counts);self.checks[slot["id"]]=check;items.addWidget(check)
             items.addStretch();scroll.setWidget(content);group_layout.addWidget(scroll);columns.addWidget(group)
@@ -734,7 +702,7 @@ class DocumentDialog(QDialog):
 
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__();load_bundled_fonts();self.config=load_config();self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._last_check_key=None
+        super().__init__();theme.load_bundled_fonts();self.config=load_config();self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._last_check_key=None
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
         icon_path = Path(__file__).resolve().parent / "resources" / "icon.ico"
         if icon_path.exists():
@@ -811,7 +779,7 @@ class MainWindow(QMainWindow):
                 # 拷贝，前 3 份已在 bfea053 收敛）。改为调用单一来源，避免再次漂移。
                 choices=set(self.game.rules.promotable_types(self.game.state,piece.color))
                 if choices:
-                    options=[(NAMES[piece.color][kind],kind) for kind in sorted(choices,key=lambda item:item.value)]
+                    options=[(theme.NAMES[piece.color][kind],kind) for kind in sorted(choices,key=lambda item:item.value)]
                     label,ok=QInputDialog.getItem(self,"兵卒升变","选择升变棋子",[item[0] for item in options],0,False)
                     if not ok:return
                     move=Move(move.source,move.target,next(kind for text,kind in options if text==label))
@@ -934,11 +902,11 @@ class MainWindow(QMainWindow):
 
     def apply_appearance(self):
         if not hasattr(self,"board"):return
-        theme=THEMES.get(self.config.get("theme","classic"),THEMES["classic"]);font=FONT_CHOICES.get(self.config.get("font","system"),UI_FONT)
+        palette=theme.THEMES.get(self.config.get("theme","classic"),theme.THEMES["classic"]);font=theme.FONT_CHOICES.get(self.config.get("font","system"),theme.UI_FONT)
         QApplication.instance().setFont(QFont(font,10));self.configure_board()
         text="#f3ead7" if self.config.get("theme")=="dark" else "#211b17"
         hover="#4a433b" if self.config.get("theme")=="dark" else "#f1dfbf"
-        self.setStyleSheet(f"""QMainWindow,#root{{background:{theme['window']};color:{text}}}QMenuBar,QMenu,QToolBar{{background:{theme['panel']};color:{text};border-bottom:1px solid {theme['line']};padding:5px}}#banner{{background:{theme['accent']};color:white;padding:8px;font-weight:bold;font-size:15px}}QListWidget,QLabel,QFrame,QGroupBox,QComboBox,QSpinBox,QLineEdit{{background:{theme['panel']};color:{text};border:1px solid {theme['line']};padding:7px}}QPushButton{{min-height:35px;background:{theme['panel']};color:{text};border:1px solid {theme['line']}}}QPushButton:hover{{background:{hover}}}""")
+        self.setStyleSheet(f"""QMainWindow,#root{{background:{palette['window']};color:{text}}}QMenuBar,QMenu,QToolBar{{background:{palette['panel']};color:{text};border-bottom:1px solid {palette['line']};padding:5px}}#banner{{background:{palette['accent']};color:white;padding:8px;font-weight:bold;font-size:15px}}QListWidget,QLabel,QFrame,QGroupBox,QComboBox,QSpinBox,QLineEdit{{background:{palette['panel']};color:{text};border:1px solid {palette['line']};padding:7px}}QPushButton{{min-height:35px;background:{palette['panel']};color:{text};border:1px solid {palette['line']}}}QPushButton:hover{{background:{hover}}}""")
 
     def configure_board(self):
         self.board.language=self.config.get("language","zh-CN")
@@ -1223,7 +1191,7 @@ class MainWindow(QMainWindow):
         threshold=max(0,int(self.config.get("countdown_seconds",30)))*1000
         self.red.setStyleSheet("color:#b21f1f;font-weight:bold" if threshold and state.clocks_ms[Color.RED]<=threshold and not state.paused else "")
         self.black.setStyleSheet("color:#b21f1f;font-weight:bold" if threshold and state.clocks_ms[Color.BLACK]<=threshold and not state.paused else "")
-        self.history.clear();self.history.addItems([r.notation for r in state.history]);self.captured.setText(f"{t('common.red', lang)}："+" ".join(NAMES[p.color][p.type] for p in state.captured[Color.RED])+f"\n{t('common.black', lang)}："+" ".join(NAMES[p.color][p.type] for p in state.captured[Color.BLACK]));self.board.update()
+        self.history.clear();self.history.addItems([r.notation for r in state.history]);self.captured.setText(f"{t('common.red', lang)}："+" ".join(theme.NAMES[p.color][p.type] for p in state.captured[Color.RED])+f"\n{t('common.black', lang)}："+" ".join(theme.NAMES[p.color][p.type] for p in state.captured[Color.BLACK]));self.board.update()
         self.pause.setText(t("action.resume" if state.paused else "action.pause", lang));self.pause.setEnabled(not state.finished);self.undo.setEnabled(bool(state.history) and not state.paused);self.draw.setEnabled(not state.finished and not state.paused);self.resign.setEnabled(not state.finished);self.resurrect.setEnabled(not state.finished and not state.paused)
         if state.finished and not self._stats_recorded:record_result(self.game,self.config["human_color"]);self._stats_recorded=True
         if state.finished and self.config.get("autosave",True) and not self._autosaved:
@@ -1243,7 +1211,7 @@ def run() -> None:
     app=QApplication(sys.argv);app.setApplicationName(t("app.name"))
     icon_path=Path(__file__).resolve().parent / "resources" / "icon.ico"
     if icon_path.exists():app.setWindowIcon(QIcon(str(icon_path)))
-    load_bundled_fonts();window=MainWindow();window.show();sys.exit(app.exec())
+    theme.load_bundled_fonts();window=MainWindow();window.show();sys.exit(app.exec())
 
 
 if __name__ == "__main__":run()
