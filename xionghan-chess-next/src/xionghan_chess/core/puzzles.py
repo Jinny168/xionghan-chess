@@ -7,7 +7,8 @@ from typing import Any
 
 from .model import Move, Position
 from .game import Game
-from .storage import game_document
+from .rules import CaptureKind
+from .storage import game_document, game_from_document
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +32,39 @@ class Puzzle:
         if reveal:
             data["solution"] = [move_to_dict(move) for move in self.solution]
         return data
+
+    def exercise(self) -> tuple[frozenset[str], frozenset[str]]:
+        """这道题**实际**练到哪些子力、触发哪些吃法。
+
+        从解法反推，不看题目自带的任何声明字段 —— 题面里摆了甲但解法根本不动它，
+        对玩家来说等于没覆盖。P1-M 的原始症状正是「标题写着残局训练，实际全是
+        开局第一步」，所以判据必须是「解法里出现的子力」，而不是「题面里有这个子」。
+        """
+        game = game_from_document(self.document)
+        pieces: set[str] = set()
+        kinds: set[str] = set()
+        for step in self.solution:
+            mover = game.rules.get(game.state, step.source)
+            if mover is not None:
+                pieces.add(mover.type.value)
+            for victim in game.rules.captured_by_move(game.state, step):
+                pieces.add(victim.type.value)
+            origin = (step.source.row, step.source.col)
+            for spec in game.rules.capturable_squares(game.state, game.state.turn).values():
+                for removal in spec.removals:
+                    if (removal.origin.row, removal.origin.col) == origin:
+                        kinds.add(removal.kind.value)
+            # `direct` 只认落点原本站着敌子（同 scripts/build_puzzles.py 的口径）。
+            landing = game.rules.get(game.state, step.target)
+            if landing is not None and landing.color is not game.state.turn:
+                kinds.add(CaptureKind.DIRECT.value)
+            # 不再单独调 `is_legal`：`Game.move()` 本身就会校验，重复调一次等于把
+            # 将军/终局判定跑两遍（实测 16 题多花 ~15 秒）。非法步在这里停下即可。
+            try:
+                game.move(step)
+            except ValueError:
+                break
+        return frozenset(pieces), frozenset(kinds)
 
 
 def move_to_dict(move: Move) -> dict[str, Any]:
