@@ -57,7 +57,9 @@ class MainWindow(QMainWindow):
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
         self.resize(1260,850);self.setMinimumSize(760,560);self._build();self.new_game()
-        self.audio.configure(self.config);self.apply_appearance()
+        # P1-S：先挂回调再 configure —— 否则 configure 期间（切 BGM/设音量）暴露的
+        # 加载失败会被漏掉，玩家只看到「没声音」。
+        self.audio.on_failure=self._report_audio_failure;self.audio.configure(self.config);self.apply_appearance()
         self.timer=QTimer(self);self.timer.timeout.connect(self.refresh);self.timer.start(250)
 
     def _build(self) -> None:
@@ -305,6 +307,14 @@ class MainWindow(QMainWindow):
         hover="#4a433b" if self.config.get("theme")=="dark" else "#f1dfbf"
         self.setStyleSheet(f"""QMainWindow,#root{{background:{palette['window']};color:{text}}}QMenuBar,QMenu,QToolBar{{background:{palette['panel']};color:{text};border-bottom:1px solid {palette['line']};padding:5px}}#banner{{background:{palette['accent']};color:white;padding:8px;font-weight:bold;font-size:15px}}QListWidget,QLabel,QFrame,QGroupBox,QComboBox,QSpinBox,QLineEdit{{background:{palette['panel']};color:{text};border:1px solid {palette['line']};padding:7px}}QPushButton{{min-height:35px;background:{palette['panel']};color:{text};border:1px solid {palette['line']}}}QPushButton:hover{{background:{hover}}}""")
 
+    def _report_audio_failure(self, message: str) -> None:
+        """P1-S：音效加载/播放失败时在状态栏说一句。
+
+        不弹模态框：音效缺失不影响下棋，打断对局比听不到提示音更糟。
+        """
+        prefix = "音效不可用：" if self.config.get("language", "zh-CN") != "en" else "Audio unavailable: "
+        self.statusBar().showMessage(prefix + message, 10000)
+
     def configure_board(self) -> None:
         self.board.language=self.config.get("language","zh-CN")
         self.board.set_appearance(self.config.get("theme","classic"),str(self.config.get("background","none")),self.config.get("piece_style","traditional"))
@@ -326,7 +336,11 @@ class MainWindow(QMainWindow):
     def show_training(self) -> None:
         dialog=TrainingDialog(self)
         if dialog.exec() and dialog.selected_game:
-            self.close_network();self.game=dialog.selected_game;self.config["profile"]=self.game.profile.id;self.config["game_mode"]="local";self.board.set_game(self.game,Color.RED,True);self.configure_board()
+            # P1-L：**不要**写 `self.config["profile"]`。训练题自带 profile（可能是
+            # traditional 的 10×9），一旦写进全局配置，玩家做完一道题再开新局就会
+            # 静默变成那道题的盘型；联机建房、让子设置也会跟着串。
+            # 题目的盘型由 `self.game.profile` 承担，与用户自己的偏好配置无关。
+            self.close_network();self.game=dialog.selected_game;self.config["game_mode"]="local";self.board.set_game(self.game,Color.RED,True);self.configure_board()
             # S2-7 配套：带上题目本身，之后每一手都要对答案。
             self.puzzle_session=puzzle_judge.session_for(dialog.selected_puzzle)
             # 训练棋不是正式对局：既不进战绩，也不往棋谱库塞一条两步的「棋谱」。

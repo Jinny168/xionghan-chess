@@ -180,7 +180,10 @@ def main() -> int:
         app.TrainingDialog = _FakeTrainingDialog
         app.QMessageBox.information = staticmethod(lambda *a, **k: None)
         try:
+            # P1-L：训练题自带 profile，绝不能写进用户的全局配置。
+            profile_before = window.config.get("profile")
             window.show_training()
+            checks["P1-L 训练不改全局 profile"] = window.config.get("profile") == profile_before
             prefix = len(window.game.state.history)
             wrong = next(
                 move for move in window.game.rules.legal_moves(window.game.state)
