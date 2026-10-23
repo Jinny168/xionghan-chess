@@ -34,6 +34,28 @@ foreach ($root in $dataRoots) {
 if (-not (Test-Path $icon)) { Write-Error "图标缺失：$icon"; exit 1 }
 $iconInfo = Get-Item $icon
 Write-Host ("  图标校验 OK：{0}  ({1:N0} B)" -f $icon, $iconInfo.Length)
+
+# 阶段2 S2-4：字体授权断言。
+# 1.6.0 曾把系统字体 msyh.ttc / simkai.ttf 拷进仓库随包分发 —— 那是微软授权字体，
+# 随安装包再分发需要单独授权。现改用 SIL OFL 1.1 的 Noto 子集。
+# OFL 条件 2 要求副本分发时随附许可证，所以 OFL.txt 必须在包里；缺它同样属于合规问题，
+# 且和资源缺失一样"不报错、装完才发现"，因此在这里拦成构建失败。
+$fontDir = Join-Path $ProjectRoot 'src\xionghan_chess\desktop\resources\fonts'
+foreach ($legacy in @('msyh.ttc', 'simkai.ttf')) {
+    if (Test-Path (Join-Path $fontDir $legacy)) {
+        Write-Error "授权风险：随包资源仍含微软授权字体 $legacy（见 S2-4）"; exit 1
+    }
+}
+if (-not (Test-Path (Join-Path $fontDir 'OFL.txt'))) {
+    Write-Error "合规缺失：字体目录缺 OFL.txt（SIL OFL 1.1 条件 2 要求随附许可证）"; exit 1
+}
+foreach ($fontFile in @('NotoSansSC-subset.ttf', 'NotoSerifSC-subset.ttf')) {
+    $fontPath = Join-Path $fontDir $fontFile
+    if (-not (Test-Path $fontPath)) { Write-Error "随包字体缺失：$fontPath"; exit 1 }
+    if ((Get-Item $fontPath).Length -lt 1MB) { Write-Error "随包字体疑似损坏（过小）：$fontPath"; exit 1 }
+}
+$fontSum = (Get-ChildItem -Path $fontDir -File | Measure-Object -Property Length -Sum).Sum
+Write-Host ("  字体校验 OK：OFL 开源字体，{0:N1} MB（S2-4，原微软字体 31.5 MB 已移除）" -f ($fontSum/1MB))
 $productName = -join [char[]](0x5308, 0x6F22, 0x8C61, 0x68CB)
 $platformName = -join [char[]](0x684C, 0x9762, 0x7248)
 $artifactName = "$productName-1.7.0-$platformName"

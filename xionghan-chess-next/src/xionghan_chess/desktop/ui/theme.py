@@ -54,9 +54,15 @@ NAMES = {
     Color.BLACK: {PieceType.KING:"汗",PieceType.ROOK:"車",PieceType.HORSE:"馬",PieceType.ELEPHANT:"象",PieceType.ADVISOR:"士",PieceType.CANNON:"砲",PieceType.PAWN:"卒",PieceType.GUARD:"衛",PieceType.ARCHER:"䠶",PieceType.THUNDER:"礌",PieceType.ARMOR:"胄",PieceType.ASSASSIN:"伺",PieceType.SHIELD:"碷",PieceType.PATROL:"廵"},
 }
 
-# 默认字体名（`load_bundled_fonts()` 会用随包字体覆盖成真实 family 名）
-UI_FONT = "Microsoft YaHei"
-PIECE_FONT = "KaiTi"
+# 默认字体名（`load_bundled_fonts()` 会用随包字体覆盖成真实 family 名）。
+#
+# 阶段2 S2-4：随包字体从**微软授权的 msyh.ttc / simkai.ttf（31.5 MB）**
+# 换成 Noto Sans SC / Noto Serif SC 的 GB2312 子集（9.8 MB，省 21.7 MB）。
+# 换的理由不只是体积：微软雅黑/楷体随安装包分发需要单独授权，此前是直接把系统字体
+# 拷进仓库，授权状态未查证。Noto 系列是 SIL OFL 1.1，明确允许嵌入与再分发
+# （OFL.txt 与字体同目录，子集已按条件 3 改名，见 scripts/build_fonts.py）。
+UI_FONT = "Noto Sans SC Subset"
+PIECE_FONT = "Noto Serif SC Subset"
 
 THEMES = {
     "classic": {"board": "#e7c88d", "line": "#684726", "frame": "#5a3b20", "panel": "#fff9ed", "window": "#d9c8a6", "accent": "#315c48"},
@@ -70,14 +76,17 @@ FONT_CHOICES = {"system": UI_FONT, "kaiti": PIECE_FONT, "songti": "SimSun", "fan
 
 
 def load_bundled_fonts() -> None:
-    """注册随包字体（msyh.ttc 界面 / simkai.ttf 棋子），并把默认字体名换成真实 family。
+    """注册随包字体（Noto Sans SC Subset 界面 / Noto Serif SC Subset 棋子）。
 
     注意会**重新绑定**模块全局 UI_FONT / PIECE_FONT —— 调用方须用 `theme.UI_FONT` 读取。
+
+    S2-4：字体文件与 family 名一起换掉。若随包字体加载失败（文件缺失/损坏），
+    保持模块里的默认 family 名不变，Qt 会回退到系统字体 —— 不崩，只是样式降级。
     """
     global UI_FONT, PIECE_FONT
     font_dir = RESOURCES / "fonts"
     loaded: dict[str, str] = {}
-    for filename, key in (("msyh.ttc", "ui"), ("simkai.ttf", "piece")):
+    for filename, key in (("NotoSansSC-subset.ttf", "ui"), ("NotoSerifSC-subset.ttf", "piece")):
         font_id = QFontDatabase.addApplicationFont(str(font_dir / filename))
         families = QFontDatabase.applicationFontFamilies(font_id) if font_id >= 0 else []
         if families:
@@ -86,4 +95,8 @@ def load_bundled_fonts() -> None:
     PIECE_FONT = loaded.get("piece", PIECE_FONT)
     FONT_CHOICES["system"] = UI_FONT
     FONT_CHOICES["kaiti"] = PIECE_FONT
+    # S2-4：原来 "songti"/"fangsong" 硬指向系统 SimSun / FangSong —— 机器上没装就静默回退。
+    # 现改用已注册的随包字体：宋体选项恰好就是随包的 Noto Serif SC，仿宋回退到界面字体。
+    FONT_CHOICES["songti"] = PIECE_FONT
+    FONT_CHOICES["fangsong"] = UI_FONT
     QApplication.instance().setFont(QFont(UI_FONT, 10))

@@ -160,7 +160,7 @@ class BoardWidget(QWidget):
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, f"{t('status.paused', self.language)}\n{t('status.timer_stopped', self.language)}")
         if self.locked:
             painter.fillRect(rect, QColor(30, 25, 20, 90))
-            painter.setPen(QColor("white")); painter.setFont(QFont("Microsoft YaHei", 18, QFont.Weight.Bold))
+            painter.setPen(QColor("white")); painter.setFont(QFont(theme.UI_FONT, 18, QFont.Weight.Bold))
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, t("status.thinking_desktop", self.language))
 
     def _geometry(self) -> tuple[float, float, float, float]:

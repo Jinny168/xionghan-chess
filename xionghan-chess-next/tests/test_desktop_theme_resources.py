@@ -33,8 +33,10 @@ def test_resources_dir_exists() -> None:
     "relpath",
     [
         "icon.ico",
-        "fonts/msyh.ttc",
-        "fonts/simkai.ttf",
+        # S2-4：随包字体换成 Noto OFL 子集（原 msyh.ttc / simkai.ttf 为微软授权字体）
+        "fonts/NotoSansSC-subset.ttf",
+        "fonts/NotoSerifSC-subset.ttf",
+        "fonts/OFL.txt",
         "sounds/drop.wav",
         "sounds/fc_background_sound.ogg",
         "sounds/qq_background_sound.ogg",
@@ -85,3 +87,38 @@ def test_read_docs_missing_file_returns_message_not_raise() -> None:
 
 def test_read_docs_default_label() -> None:
     assert theme.read_docs("NOT_EXIST.md").startswith("文档读取失败：")
+
+
+# ---------------------------------------------------------------------------
+# S2-4：随包字体必须是可再分发的开源字体
+# ---------------------------------------------------------------------------
+def test_bundled_fonts_are_open_licensed() -> None:
+    """防线回归：不允许再把系统/商用字体拷进仓库。
+
+    msyh.ttc（微软雅黑）与 simkai.ttf（楷体）随安装包分发需要微软单独授权，
+    曾是 1.6.0 的分发风险点。这里同时断言：
+    - 旧文件不存在；
+    - 仓库里有 OFL 许可证文本（OFL 条件 2：分发时必须随附许可证）；
+    - 当前 family 名不是 Reserved Font Name 的原始名（OFL 条件 3：子集属
+      Modified Version，不得沿用 "Noto Sans SC" 原名）。
+    """
+    font_dir = theme.resources_dir() / "fonts"
+    for legacy in ("msyh.ttc", "simkai.ttf"):
+        assert not (font_dir / legacy).exists(), f"微软授权字体仍在随包资源里：{legacy}"
+    license_text = (font_dir / "OFL.txt").read_text(encoding="utf-8")
+    assert "SIL OPEN FONT LICENSE" in license_text.upper()
+    assert theme.UI_FONT.endswith(" Subset"), theme.UI_FONT
+    assert theme.PIECE_FONT.endswith(" Subset"), theme.PIECE_FONT
+
+
+def test_bundled_fonts_cover_all_piece_glyphs() -> None:
+    """棋子字形不能被字体子集裁掉 —— 少了就是方块（tofu），且只在对局时可见。"""
+    from fontTools.ttLib import TTFont
+
+    font_dir = theme.resources_dir() / "fonts"
+    needed = {name for side in theme.NAMES.values() for name in side.values()}
+    needed |= {"汉", "象", "棋", "残", "局"}
+    for filename in ("NotoSansSC-subset.ttf", "NotoSerifSC-subset.ttf"):
+        cmap = set(TTFont(font_dir / filename).getBestCmap())
+        missing = {ch for ch in needed if ord(ch) not in cmap}
+        assert not missing, f"{filename} 缺少字形：{''.join(sorted(missing))}"
