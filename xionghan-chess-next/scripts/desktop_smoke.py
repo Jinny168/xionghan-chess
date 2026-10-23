@@ -63,6 +63,13 @@ def main() -> int:
 
     resign_source = inspect.getsource(app.MainWindow.resign_game)
     draw_source = inspect.getsource(app.MainWindow.draw_game)
+    update_source = inspect.getsource(app.MainWindow.check_updates)
+    # 菜单项要真的挂在菜单栏上，不能只在源码里出现过 —— 逐个子菜单收标题。
+    menu_titles: set[str] = set()
+    for top_action in window.menuBar().actions():
+        submenu = top_action.menu()
+        if submenu is not None:
+            menu_titles.update(action.text() for action in submenu.actions())
 
     checks: dict[str, bool] = {
         "MainWindow 构造（全装配链）": window is not None,
@@ -74,6 +81,13 @@ def main() -> int:
         "AnalysisWorker 存在（分析异步化 S0-C）": hasattr(app, "AnalysisWorker"),
         "认输有二次确认（S0-D 防回归）": "QMessageBox.question" in resign_source,
         "提和仍有确认（S0-D 对照组）": "QMessageBox.question" in draw_source,
+        # S2-3：更新检查必须**只查不装**。真自更新需要代码签名与回滚（S2-1），
+        # 在那之前出现「自动下载/替换 exe」的代码就是越界，这里守一道。
+        "更新检查在位（S2-3）": hasattr(window, "check_updates")
+        and "检查更新" in menu_titles,
+        "更新只开下载页、不自更新（S2-3）": callable(getattr(window, "check_updates", None))
+        and "QDesktopServices.openUrl" in update_source
+        and "QProcess" not in update_source,
     }
 
     # ---- S1-2：棋盘绘制必须真的能跑 ----

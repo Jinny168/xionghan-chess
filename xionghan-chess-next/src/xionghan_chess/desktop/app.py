@@ -8,7 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThreadPool, QTimer, Signal, QUrl
-from PySide6.QtGui import QAction, QFont, QIcon, QKeySequence
+from PySide6.QtGui import QAction, QDesktopServices, QFont, QIcon, QKeySequence
 from PySide6.QtWebSockets import QWebSocket
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QFileDialog, QFrame, QGridLayout, QGroupBox, QHBoxLayout,
@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QSpinBox, QSplitter, QTabWidget, QVBoxLayout, QWidget,
 )
 
+from xionghan_chess import __version__
 from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position
@@ -35,6 +36,7 @@ from .config import (
     settings_differ_in_game_breaking_keys,
 )
 from . import net
+from . import update as version_check
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
 from .ui.dialogs import DocumentDialog, GameLibraryDialog, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
 from .ui.board_widget import BoardWidget
@@ -89,6 +91,7 @@ class MainWindow(QMainWindow):
         help_menu=self.menuBar().addMenu(t("menu.help", lang))
         guide=QAction(t("menu.guide", lang),self);guide.setShortcut(QKeySequence("F1"));guide.triggered.connect(self.show_help);help_menu.addAction(guide)
         rules=QAction(t("menu.piece_rules", lang),self);rules.triggered.connect(self.show_rules);help_menu.addAction(rules)
+        check_update=QAction("检查更新" if lang!="en" else "Check for updates",self);check_update.triggered.connect(self.check_updates);help_menu.addAction(check_update)
         help_menu.addSeparator()
         about=QAction(t("menu.about", lang),self);about.triggered.connect(self.show_about);help_menu.addAction(about)
         root=QWidget();root.setObjectName("root");self.setCentralWidget(root);layout=QVBoxLayout(root);self.banner=QLabel();self.banner.setAlignment(Qt.AlignmentFlag.AlignCenter);self.banner.setObjectName("banner");layout.addWidget(self.banner)
@@ -336,6 +339,52 @@ class MainWindow(QMainWindow):
         if lang=="en":
             DocumentDialog(t("dialog.about_title", lang),t("docs.about", lang),self).exec();return
         DocumentDialog(t("dialog.about_title", lang),theme.read_docs("ABOUT.md","关于文档"),self).exec()
+
+    def check_updates(self) -> None:
+        """帮助 → 检查更新（S2-3）：只查版本、只开下载页，**不做静默自更新**。
+
+        没有代码签名时做自动替换可执行文件，等于给程序开一条可被中间人替换的
+        更新通道（签名落地是 S2-1）。所以这里只把用户送到下载页，装哪个包、
+        什么时候装，由用户自己决定。
+
+        请求走 `_request_json_async`：GitHub API 在慢网下要几秒，同步调用会把
+        菜单卡住。结论一律由 `version_check.evaluate` 算 —— 与单测同一条代码。
+        """
+        lang = self.config.get("language", "zh-CN")
+        english = lang == "en"
+
+        def present(payload: object) -> None:
+            result = version_check.evaluate(payload, __version__)
+            if result.status == version_check.STATUS_ERROR:
+                QMessageBox.warning(self, "检查更新失败" if not english else "Update check failed",
+                                    ("更新信息无法解析，请稍后再试。" if not english
+                                     else "Could not read the update manifest."))
+                return
+            info = result.info
+            if result.status == version_check.STATUS_UPDATE and info is not None:
+                box = QMessageBox(self)
+                box.setWindowTitle("发现新版本" if not english else "Update available")
+                box.setText((f"当前版本 {__version__}，最新版本 {info.label}"
+                             if not english else f"Current {__version__}, latest {info.label}"))
+                if info.notes:
+                    box.setInformativeText(info.notes[:500])
+                open_button = box.addButton("打开下载页" if not english else "Open download page",
+                                            QMessageBox.ButtonRole.AcceptRole)
+                box.addButton("以后再说" if not english else "Later", QMessageBox.ButtonRole.RejectRole)
+                box.exec()
+                if box.clickedButton() is open_button:
+                    QDesktopServices.openUrl(QUrl(info.url or version_check.DOWNLOAD_PAGE))
+                return
+            QMessageBox.information(self, "已是最新版本" if not english else "Up to date",
+                                    (f"当前版本 {__version__} 已是最新。" if not english
+                                     else f"You are on the latest version ({__version__})."))
+
+        def failed(message: str) -> None:
+            QMessageBox.warning(self, "检查更新失败" if not english else "Update check failed",
+                                ("没能连上更新服务器：\n" if not english
+                                 else "Could not reach the update server:\n") + str(message))
+
+        self._request_json_async(version_check.RELEASES_URL, on_done=present, on_error=failed)
 
     def account_sync(self) -> None:
         base=self.config.get("server_url","http://127.0.0.1:8000").rstrip("/");token=self.config.get("account_token","")
