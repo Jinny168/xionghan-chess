@@ -36,7 +36,7 @@ from xionghan_chess.i18n import normalize_language, t
 from ..puzzle_store import available_puzzles, install_puzzles
 from ..storage import load_game
 from ..texts import dl, dlf
-from . import theme
+from . import piece_assets, theme
 from .board_widget import BoardWidget
 from .workers import AnalysisWorker
 
@@ -74,6 +74,14 @@ class SettingsDialog(QDialog):
         [(self.piece_style.addItem(t(f"option.piece_{value}", self.language),value)) for value in ("traditional","modern","cartoon")]
         current=GLYPH_STYLE_DATA if config.get("piece_render","glyph")=="glyph" else config.get("piece_style","traditional")
         self.piece_style.setCurrentIndex(max(0,self.piece_style.findData(current)))
+        # 整套风格资源缺失（目录被改名的极端情况）时，该风格在下拉里**不可选** ——
+        # 与图谱的「该风格资源缺失」保持一致；棋盘另有字形回退，所以程序不崩。
+        for _index in range(1, self.piece_style.count()):
+            _data = self.piece_style.itemData(_index)
+            if _data and piece_assets.preload(_data) == 0:
+                _item = self.piece_style.model().item(_index)
+                if _item is not None:
+                    _item.setEnabled(False)
         self.animations=QCheckBox(t("settings.animation", self.language));self.animations.setChecked(config.get("animations",True))
         self.selection_highlight=QCheckBox(t("settings.selection", self.language));self.selection_highlight.setChecked(config.get("selection_highlight",True))
         self.legal_targets=QCheckBox(t("settings.legal_targets", self.language));self.legal_targets.setChecked(config.get("legal_targets",True))
