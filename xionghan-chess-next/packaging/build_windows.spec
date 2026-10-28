@@ -69,6 +69,11 @@ datas = [
     (os.path.join(PROJECT, "src", "xionghan_chess", "core", "data"),
      os.path.join("xionghan_chess", "core", "data")),
     (os.path.join(PROJECT, "locales"), "locales"),
+    # 棋子美术：仓库唯一真源是 `web/assets/pieces/{style}/`（66 张 160×160 PNG），
+    # 打包时映射进随包资源目录，运行期仍走 `theme.resource("pieces", ...)`。
+    # 不复制第二份：仓库里只有这一棵源树，开发态由 `piece_assets` 回退到它。
+    (os.path.join(PROJECT, "web", "assets", "pieces"),
+     os.path.join("xionghan_chess", "desktop", "resources", "pieces")),
 ]
 
 a = Analysis(

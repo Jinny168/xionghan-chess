@@ -40,10 +40,15 @@ from . import theme
 from .board_widget import BoardWidget
 from .workers import AnalysisWorker
 
+# 「棋子美术风格」下拉里的回退项：选中它 = 回到 1.7.0 的字形棋子（`piece_render="glyph"`）。
+GLYPH_STYLE_DATA = "__glyph__"
+
 
 class SettingsDialog(QDialog):
-    def __init__(self, config: dict, parent: QWidget | None = None) -> None:
+    def __init__(self, config: dict, parent: QWidget | None = None,
+                 initial_tab: int = 0) -> None:
         super().__init__(parent); self.language=normalize_language(config.get("language")); self.setWindowTitle(t("settings.desktop_title", self.language)); self.resize(720, 760)
+        self._config=config
         layout=QVBoxLayout(self); tabs=QTabWidget(); layout.addWidget(tabs,1)
         self.profile=QComboBox(); [self.profile.addItem(t(f"profile.{p.id}", self.language),p.id) for p in PROFILES.values()]
         self.profile.setCurrentIndex(max(0,self.profile.findData(config["profile"])))
@@ -63,7 +68,12 @@ class SettingsDialog(QDialog):
         self.theme=QComboBox();[(self.theme.addItem(t(f"option.theme_{value}", self.language),value)) for value in ("classic","green","blue","purple","dark")];self.theme.setCurrentIndex(max(0,self.theme.findData(config.get("theme","classic"))))
         self.font=QComboBox();[(self.font.addItem(text,value)) for value,text in (("system",dl("微软雅黑")),("kaiti",dl("楷体")),("songti",dl("宋体")),("fangsong",dl("仿宋")))];self.font.setCurrentIndex(max(0,self.font.findData(config.get("font","system"))))
         self.background=QComboBox();self.background.addItem(dl("原色（无背景图片）"),"none");[(self.background.addItem(dlf("背景 {index}", index=index),str(index))) for index in range(1,6)];self.background.setCurrentIndex(max(0,self.background.findData(str(config.get("background","none")))))
-        self.piece_style=QComboBox();[(self.piece_style.addItem(t(f"option.piece_{value}", self.language),value)) for value in ("traditional","modern","cartoon")];self.piece_style.setCurrentIndex(max(0,self.piece_style.findData(config.get("piece_style","traditional"))))
+        # 「棋子美术风格」下拉的第一项是**回退项**：选中它 = `piece_render="glyph"`。
+        # 没有它就成了单向门 —— 用户切到图片风格后再也回不到 1.7.0 的字形棋子。
+        self.piece_style=QComboBox();self.piece_style.addItem(t("desktop.atlas_glyph_mode_default", self.language),GLYPH_STYLE_DATA)
+        [(self.piece_style.addItem(t(f"option.piece_{value}", self.language),value)) for value in ("traditional","modern","cartoon")]
+        current=GLYPH_STYLE_DATA if config.get("piece_render","glyph")=="glyph" else config.get("piece_style","traditional")
+        self.piece_style.setCurrentIndex(max(0,self.piece_style.findData(current)))
         self.animations=QCheckBox(t("settings.animation", self.language));self.animations.setChecked(config.get("animations",True))
         self.selection_highlight=QCheckBox(t("settings.selection", self.language));self.selection_highlight.setChecked(config.get("selection_highlight",True))
         self.legal_targets=QCheckBox(t("settings.legal_targets", self.language));self.legal_targets.setChecked(config.get("legal_targets",True))
@@ -81,7 +91,14 @@ class SettingsDialog(QDialog):
         appearance_tab=QWidget();appearance_form=QFormLayout(appearance_tab)
         appearance_form.addRow(t("language.label", self.language),self.language_select)
         appearance_form.addRow(t("settings.board_theme", self.language),self.theme);appearance_form.addRow(t("settings.font", self.language),self.font)
-        appearance_form.addRow(t("settings.background", self.language),self.background);appearance_form.addRow(t("settings.piece_style", self.language),self.piece_style);appearance_form.addRow(t("settings.sound_effects", self.language),self.sound)
+        appearance_form.addRow(t("settings.background", self.language),self.background)
+        # 「预览三风格」与菜单「帮助 → 棋子图谱」打开的是**同一个**窗口（同一实现）。
+        piece_row=QWidget();piece_row_layout=QHBoxLayout(piece_row);piece_row_layout.setContentsMargins(0,0,0,0)
+        piece_row_layout.addWidget(self.piece_style,1)
+        preview=QPushButton(dl("预览三风格"));preview.clicked.connect(self.open_piece_atlas)
+        piece_row_layout.addWidget(preview)
+        appearance_form.addRow(t("settings.piece_style", self.language),piece_row)
+        appearance_form.addRow(t("settings.sound_effects", self.language),self.sound)
         appearance_form.addRow(t("settings.sound_volume", self.language),self.sound_volume);appearance_form.addRow(t("settings.music", self.language),self.music)
         appearance_form.addRow(t("settings.music_style", self.language),self.music_style);appearance_form.addRow(t("settings.music_volume", self.language),self.music_volume)
         appearance_form.addRow(t("settings.animation", self.language),self.animations);appearance_form.addRow(t("settings.selection", self.language),self.selection_highlight)
@@ -131,6 +148,25 @@ class SettingsDialog(QDialog):
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText(t("action.confirm", self.language));buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("action.cancel", self.language))
         buttons.accepted.connect(self.accept);buttons.rejected.connect(self.reject);layout.addWidget(buttons)
+        tabs.setCurrentIndex(max(0, min(tabs.count()-1, int(initial_tab))))
+
+    def open_piece_atlas(self) -> None:
+        """打开棋子图谱（与应用菜单「帮助 → 棋子图谱」同一个窗口）。
+
+        图谱里点「使用此风格」会即时改 `piece_style` —— 这里把主窗口的
+        `apply_piece_style` 传下去，棋盘立刻重绘；返回后下拉框跟随新值，
+        点「确定」不会把它改回去。
+        """
+        from .piece_atlas import PieceAtlasDialog
+
+        parent = self.parent()
+        applier = getattr(parent, "apply_piece_style", None)
+        PieceAtlasDialog(self._config, parent or self, applier).exec()
+        # 图谱里可能选了风格，也可能选回「书法字形」—— 下拉框按 `piece_render`
+        # 决定停在哪一项，否则点「确定」会把刚切过去的画法又覆盖掉。
+        current = (GLYPH_STYLE_DATA if self._config.get("piece_render", "glyph") == "glyph"
+                   else self._config.get("piece_style", "traditional"))
+        self.piece_style.setCurrentIndex(max(0, self.piece_style.findData(current)))
 
     def _update_piece_availability(self) -> None:
         profile=PROFILES[self.profile.currentData()]
@@ -159,7 +195,12 @@ class SettingsDialog(QDialog):
         self._capture_profile_values()
         values=self._profile_values[self._active_profile_id]
         previous=self.parent().config if self.parent() else {}
-        return {"profile":self.profile.currentData(),"language":self.language_select.currentData(),"game_mode":self.game_mode.currentData(),"difficulty":self.difficulty.currentData(),"human_color":self.color.currentData(),"first_move":self.first_move.currentData(),"initial_minutes":self.minutes.value(),"countdown_seconds":self.countdown.currentData(),"sound":self.sound.isChecked(),"music":self.music.isChecked(),"music_style":self.music_style.currentData(),"sound_volume":self.sound_volume.value(),"music_volume":self.music_volume.value(),"theme":self.theme.currentData(),"font":self.font.currentData(),"background":self.background.currentData(),"piece_style":self.piece_style.currentData(),"flipped":previous.get("flipped",False),"setup_slots":previous.get("setup_slots",{}),"account_token":previous.get("account_token",""),"animations":self.animations.isChecked(),"selection_highlight":self.selection_highlight.isChecked(),"legal_targets":self.legal_targets.isChecked(),"capture_hints":self.capture_hints.isChecked(),"taunts":self.taunts.isChecked(),"autosave":self.autosave.isChecked(),"server_url":previous.get("server_url","http://127.0.0.1:8000"),"rule_options":values}
+        # 回退项（书法字形）不覆盖 `piece_style`：只把画法切回 glyph，风格偏好留着，
+        # 下次再选图片风格时仍是用户上一次挑的那一套。
+        choice=self.piece_style.currentData()
+        piece_style=previous.get("piece_style","traditional") if choice==GLYPH_STYLE_DATA else choice
+        piece_render="glyph" if choice==GLYPH_STYLE_DATA else "image"
+        return {"profile":self.profile.currentData(),"language":self.language_select.currentData(),"game_mode":self.game_mode.currentData(),"difficulty":self.difficulty.currentData(),"human_color":self.color.currentData(),"first_move":self.first_move.currentData(),"initial_minutes":self.minutes.value(),"countdown_seconds":self.countdown.currentData(),"sound":self.sound.isChecked(),"music":self.music.isChecked(),"music_style":self.music_style.currentData(),"sound_volume":self.sound_volume.value(),"music_volume":self.music_volume.value(),"theme":self.theme.currentData(),"font":self.font.currentData(),"background":self.background.currentData(),"piece_style":piece_style,"piece_render":piece_render,"flipped":previous.get("flipped",False),"setup_slots":previous.get("setup_slots",{}),"account_token":previous.get("account_token",""),"animations":self.animations.isChecked(),"selection_highlight":self.selection_highlight.isChecked(),"legal_targets":self.legal_targets.isChecked(),"capture_hints":self.capture_hints.isChecked(),"taunts":self.taunts.isChecked(),"autosave":self.autosave.isChecked(),"server_url":previous.get("server_url","http://127.0.0.1:8000"),"rule_options":values}
 
 
 class HandicapDialog(QDialog):
@@ -212,7 +253,8 @@ class ReplayDialog(QDialog):
         split=QSplitter();layout.addWidget(split,1)
         self.board = BoardWidget(); self.board.interactive = False
         self.board.set_appearance(config.get("theme","classic"), str(config.get("background","none")),
-                                  config.get("piece_style","traditional"))
+                                  config.get("piece_style","traditional"),
+                                  config.get("piece_render","glyph"))
         split.addWidget(self.board)
         side=QWidget();side_layout=QVBoxLayout(side);side_layout.addWidget(QLabel(t("desktop.replay_moves",self.language)))
         self.moves=QListWidget();self.moves.addItem(f"0. {t('desktop.opening',self.language)}")

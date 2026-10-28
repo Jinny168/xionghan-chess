@@ -89,6 +89,9 @@ DEFAULTS: dict[str, Any] = {
     "font": "system",
     "background": "none",
     "piece_style": "traditional",
+    # 棋子画法：`glyph` = 1.7.0 的字形棋子（默认，界面逐像素不变）；`image` = 三风格美术图。
+    # 新增键不 bump CONFIG_VERSION：`{**DEFAULTS, **data}` 会自动给旧配置补上默认值。
+    "piece_render": "glyph",
     "flipped": False,
     "first_move": "red",
     "setup_slots": {},

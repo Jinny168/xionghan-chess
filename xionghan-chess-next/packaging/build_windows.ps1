@@ -22,7 +22,9 @@ $icon = Join-Path $ProjectRoot "src\xionghan_chess\desktop\resources\icon.ico"
 $dataRoots = @(
     (Join-Path $ProjectRoot 'src\xionghan_chess\desktop\resources'),
     (Join-Path $ProjectRoot 'src\xionghan_chess\core\data'),
-    (Join-Path $ProjectRoot 'locales')
+    (Join-Path $ProjectRoot 'locales'),
+    # 棋子美术（66 张 160×160 PNG）。它是 Git LFS 跟踪的，见下面的专项断言。
+    (Join-Path $ProjectRoot 'web\assets\pieces')
 )
 foreach ($root in $dataRoots) {
     if (-not (Test-Path $root)) { Write-Error "资源目录缺失：$root"; exit 1 }
@@ -56,6 +58,67 @@ foreach ($fontFile in @('NotoSansSC-subset.ttf', 'NotoSerifSC-subset.ttf')) {
 }
 $fontSum = (Get-ChildItem -Path $fontDir -File | Measure-Object -Property Length -Sum).Sum
 Write-Host ("  字体校验 OK：OFL 开源字体，{0:N1} MB（S2-4，原微软字体 31.5 MB 已移除）" -f ($fontSum/1MB))
+
+# ---- 棋子美术断言（三风格 PNG）----
+# 为什么必须逐张验魔数：`web/assets/pieces/**/*.png` 是 **Git LFS** 跟踪的。
+# 新克隆若没跑 `git lfs pull`，拿到的是约 130 B 的 `version https://git-lfs...` 指针
+# 文本 —— PyInstaller 会照样把它们塞进 EXE，运行期只是「缺图 → 回退字形」，
+# **不报任何错**。所以这里把「静默缺图」拦成「构建失败」。
+$pieceDir = Join-Path $ProjectRoot 'web\assets\pieces'
+$styles = @('traditional', 'modern', 'cartoon')
+$pieceFiles = @(Get-ChildItem -Path $pieceDir -Recurse -File -Filter *.png)
+if (-not ($pieceFiles.Count -in @(66, 84))) {
+    Write-Error ("棋子图数量异常：{0}（期望 66 = 11 型 × 3 风格 × 2 色，或 84 = 14 × 3 × 2）。可能是 Git LFS 未拉取：先 `git lfs pull`。" -f $pieceFiles.Count)
+    exit 1
+}
+$pieceSum = ($pieceFiles | Measure-Object -Property Length -Sum).Sum
+if ($pieceSum -lt 300KB -or $pieceSum -gt 512KB) {
+    Write-Error ("棋子图总体积异常：{0:N0} B（期望 300 KB ~ 512 KB）。66 个 LFS 指针只有约 8.6 KB —— 大概率是 Git LFS 未拉取：先 `git lfs pull`。" -f $pieceSum)
+    exit 1
+}
+$bad = @()
+foreach ($file in $pieceFiles) {
+    if ($file.Length -gt 24KB) {
+        $bad += ("{0}: 单张 {1:N0} B 超过 24 KB 硬门禁" -f $file.Name, $file.Length)
+        continue
+    }
+    $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+    if ($bytes.Length -lt 24 -or $bytes[0] -ne 0x89 -or $bytes[1] -ne 0x50 -or $bytes[2] -ne 0x4E -or $bytes[3] -ne 0x47) {
+        $bad += ("{0}: 不是 PNG（缺少 89 50 4E 47 魔数）" -f $file.Name)
+        continue
+    }
+    # PNG IHDR：宽高是第 16..23 字节的大端 32 位整数。
+    $width = ([int]$bytes[16] -shl 24) -bor ([int]$bytes[17] -shl 16) -bor ([int]$bytes[18] -shl 8) -bor [int]$bytes[19]
+    $height = ([int]$bytes[20] -shl 24) -bor ([int]$bytes[21] -shl 16) -bor ([int]$bytes[22] -shl 8) -bor [int]$bytes[23]
+    if ($width -ne 160 -or $height -ne 160) {
+        $bad += ("{0}: {1}×{2}（期望 160×160）" -f $file.Name, $width, $height)
+    }
+}
+# 三风格必须齐全：任一风格缺某个已存在的后缀，就是"某几个子在其他风格下变大变小"。
+$stems = @{}
+foreach ($style in $styles) {
+    $dir = Join-Path $pieceDir $style
+    if (-not (Test-Path $dir)) { $bad += ("缺少风格目录：{0}" -f $style); continue }
+    $names = @(Get-ChildItem -Path $dir -File -Filter *.png | ForEach-Object { $_.Name })
+    if ($names.Count -eq 0) { $bad += ("风格目录为空：{0}" -f $style); continue }
+    $stems[$style] = $names
+}
+if ($stems.Count -gt 0) {
+    foreach ($style in $stems.Keys) {
+        foreach ($other in $stems.Keys) {
+            if ($style -eq $other) { continue }
+            $missing = @($stems[$style] | Where-Object { $stems[$other] -notcontains $_ })
+            if ($missing.Count -gt 0) {
+                $bad += ("风格 {0} 缺少 {1} 张：{2}" -f $other, $missing.Count, ($missing -join ', '))
+            }
+        }
+    }
+}
+if ($bad.Count -gt 0) {
+    Write-Error ("棋子图校验失败（{0} 项）：`n  {1}`n若全部报「不是 PNG / 尺寸不对」，几乎一定是 Git LFS 未拉取：先 `git lfs pull`。" -f $bad.Count, ($bad -join "`n  "))
+    exit 1
+}
+Write-Host ("  棋子图校验 OK：{0} 张，{1:N1} KB，均 160×160 且三风格齐全" -f $pieceFiles.Count, ($pieceSum/1KB))
 
 # 阶段2 S2-6：Qt 体积裁剪 —— 已改为在 `build_windows.spec` 里做，**不要**再用
 # `--exclude-module`。

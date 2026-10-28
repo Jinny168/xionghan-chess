@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 
-from PySide6.QtCore import QPointF, Qt, QTimer, Signal
+from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
     QBrush, QColor, QFont, QMouseEvent, QPainter, QPaintEvent, QPen, QPixmap,
     QRadialGradient,
@@ -21,8 +21,120 @@ from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, Move, Piece, PieceType, Position
 from xionghan_chess.i18n import t
 
-from . import theme
+from . import piece_assets, theme
 from .board_geometry import cell_layout, point_to_position, view_position
+
+
+# 缺图回退（**仅 image 模式**）的配色：美术从 66 张位图反推，让回退格与位图同材质。
+# 传统=象牙白+深棕环，现代=纯白+细红/黑环，卡通=纯白+粗粉/蓝环。
+# `radius_ratio` 是描边宽相对盘半径的系数（160 画布下 3/5/≥8 px 折算而来）。
+FALLBACK_STYLE: dict[str, dict[str, object]] = {
+    "traditional": {
+        "fill": (252, 248, 238), "inner_fill": (245, 240, 228),
+        "ring": (80, 50, 20), "ring_ratio": 0.022, "inner_ring": (180, 160, 130),
+        "text": {Color.RED: (190, 35, 35), Color.BLACK: (30, 30, 30)},
+    },
+    "modern": {
+        "fill": (255, 255, 255), "inner_fill": None,
+        "ring": {Color.RED: (220, 50, 50), Color.BLACK: (40, 40, 40)},
+        "ring_ratio": 0.036, "inner_ring": "ring",
+        "text": {Color.RED: (220, 50, 50), Color.BLACK: (40, 40, 40)},
+    },
+    "cartoon": {
+        "fill": (255, 255, 255), "inner_fill": None,
+        "ring": {Color.RED: (255, 100, 100), Color.BLACK: (100, 150, 220)},
+        "ring_ratio": 0.058, "inner_ring": None,
+        "text": {Color.RED: (200, 50, 50), Color.BLACK: (50, 100, 180)},
+    },
+}
+
+GLYPH_MODE = "glyph"
+IMAGE_MODE = "image"
+PIECE_RENDER_MODES = (GLYPH_MODE, IMAGE_MODE)
+
+
+def _color(value: object, color: Color) -> QColor:
+    """配色项可能是三元素元组，也可能是 `{Color: 元组}` 映射。"""
+    if isinstance(value, dict):
+        value = value[color]
+    return QColor(*value)  # type: ignore[misc]
+
+
+def _piece_font(radius: float, mode: str) -> QFont:
+    """棋子字体：两种模式的字号/字重**刻意不同**，不要合并参数。
+
+    - `glyph`：**逐字保留 1.7.0 的构造**（pointSize + Bold）。默认模式占 62 枚棋子，
+      改一个数字就是全盘观感回归；`tests/test_desktop_piece_render.py` 守着这条。
+    - `image_fallback`：与位图同度量 —— `pixelSize`（逻辑像素，Qt 自己乘 DPR，
+      **不要**再乘 `devicePixelRatioF()`）+ `Normal`。
+
+    ⚠️ 别按 `OS/2.usWeightClass` 推断粗细：随包两个子集的元数据（Sans=100、
+    Serif=200）与实际光栅结果**相反**（同字高下 Sans 比 Serif 重 11%~71%）。
+    """
+    if mode == GLYPH_MODE:
+        return QFont(theme.PIECE_FONT, max(13, int(radius * 1.15)), QFont.Weight.Bold)
+    font = QFont()
+    font.setFamilies([theme.PIECE_FONT])
+    # `round` 不是 `int`：760×560 时 radius=12.30，int 给 13、round 给 14，
+    # 差这 1px 会让「字高 / 盘径」从 0.52 掉到 0.49（刚好出带）。
+    font.setPixelSize(max(9, round(radius * 1.12)))
+    font.setWeight(QFont.Weight.Normal)
+    return font
+
+
+def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float,
+                     piece: Piece, style: str) -> None:
+    """画一枚**字形**棋子（圆片 + 汉字）—— 默认 `piece_render="glyph"` 的渲染路径。
+
+    1.7.0 的观感即此实现，**不要改动里面的颜色/字号/字重**：`glyph` 模式下
+    62 枚棋子全都走这里，任何「顺手整洁化」都是全盘回归。
+    """
+    if style == "modern":
+        brush = QBrush(QColor("#f9e7bb"))
+    elif style == "cartoon":
+        brush = QBrush(QColor("#ffd98e"))
+    else:
+        gradient = QRadialGradient(center.x()-radius*.25, center.y()-radius*.3, radius*1.2)
+        gradient.setColorAt(0, QColor("#fff0c5")); gradient.setColorAt(1, QColor("#d4a763"))
+        brush = QBrush(gradient)
+    outline = QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e")
+    painter.setBrush(brush); painter.setPen(QPen(outline, max(2, radius*(.13 if style == "cartoon" else .1))))
+    painter.drawEllipse(center, radius, radius)
+    if style == "modern":
+        painter.setBrush(Qt.BrushStyle.NoBrush); painter.setPen(QPen(outline, 1))
+        painter.drawEllipse(center, radius * .82, radius * .82)
+    painter.setFont(_piece_font(radius, GLYPH_MODE))
+    painter.setPen(QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e"))
+    painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2), Qt.AlignmentFlag.AlignCenter, theme.NAMES[piece.color][piece.type])
+
+
+def draw_fallback_piece(painter: QPainter, center: QPointF, radius: float,
+                        color: Color, piece_type: PieceType, style: str) -> None:
+    """`image` 模式下**没有美术**的棋型（甲/刺/楯）怎么画。
+
+    与位图同材质：盘径仍是 `0.78 cell`，填充/环色/描边宽按风格取自 `FALLBACK_STYLE`，
+    字用 `pixelSize` + `Normal` 把「字高/盘径」压到 0.52（位图实测 0.496–0.555）。
+    棋盘与棋子图谱**共用这一个函数**，两处不允许各写一份。
+    """
+    spec = FALLBACK_STYLE[style if style in FALLBACK_STYLE else "traditional"]
+    ring = _color(spec["ring"], color)
+    painter.setBrush(QBrush(_color(spec["fill"], color)))
+    painter.setPen(QPen(ring, max(2, radius * float(spec["ring_ratio"]))))  # type: ignore[arg-type]
+    painter.drawEllipse(center, radius, radius)
+    inner_fill = spec["inner_fill"]
+    if inner_fill is not None:
+        painter.setBrush(QBrush(_color(inner_fill, color)))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(center, radius * .86, radius * .86)
+    inner_ring = spec["inner_ring"]
+    if inner_ring is not None:
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(_color(spec["ring"] if inner_ring == "ring" else inner_ring, color), 1))
+        painter.drawEllipse(center, radius * .82, radius * .82)
+    painter.setFont(_piece_font(radius, "image_fallback"))
+    painter.setPen(_color(spec["text"], color))  # type: ignore[arg-type]
+    painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2),
+                     Qt.AlignmentFlag.AlignCenter, theme.NAMES[color][piece_type])
 
 
 class BoardWidget(QWidget):
@@ -43,6 +155,9 @@ class BoardWidget(QWidget):
         self.theme = theme.THEMES["classic"]
         self.background = QPixmap()
         self.piece_style = "traditional"
+        # `piece_render`：`glyph` = 1.7.0 的字形棋子（默认，逐像素不变）；
+        # `image` = 三风格美术图，缺图（甲/刺/楯）按同风格配色回退字形。
+        self.piece_render = GLYPH_MODE
         self.show_selection = True
         self.show_legal_targets = True
         self.show_capture_hints = True
@@ -79,9 +194,15 @@ class BoardWidget(QWidget):
                              self.game.profile.rows, self.game.profile.cols, True)
 
     def set_appearance(self, theme_name: str, background_name: str,
-                       piece_style: str = "traditional") -> None:
+                       piece_style: str = "traditional",
+                       piece_render: str = GLYPH_MODE) -> None:
         self.theme = theme.THEMES.get(theme_name, theme.THEMES["classic"])
-        self.piece_style = piece_style
+        self.piece_style = piece_assets.normalize_style(piece_style)
+        self.piece_render = piece_render if piece_render in PIECE_RENDER_MODES else GLYPH_MODE
+        # 棋子美术的**唯一**预热点：换风格/换外观时才解码图片。
+        # paintEvent 里同步解码会让首帧卡顿，并在动画期间反复触发磁盘 IO。
+        # 缓存命中后这里只是遍历 22 个键，代价可以忽略。
+        piece_assets.preload(self.piece_style)
         if background_name == "none":
             self.background = QPixmap()
         else:
@@ -330,26 +451,36 @@ class BoardWidget(QWidget):
         painter.drawEllipse(QPointF(left + pos.col*cw, top + pos.row*ch), radius, radius)
 
     def _draw_piece(self, painter: QPainter, piece: Piece, left: float, top: float, cw: float, ch: float) -> None:
+        # 盘径是**不变量**：字形模式与图片模式共用这一个 radius（= 0.78 格），
+        # 所以切风格时棋子不会「变大/变小」。图片的留白在载入时已按常量裁掉。
         radius = min(cw, ch) * .39
         shown = self._view_position(piece.position)
         center = QPointF(left + shown.col*cw, top + shown.row*ch)
-        if self.piece_style == "modern":
-            brush = QBrush(QColor("#f9e7bb"))
-        elif self.piece_style == "cartoon":
-            brush = QBrush(QColor("#ffd98e"))
-        else:
-            gradient = QRadialGradient(center.x()-radius*.25, center.y()-radius*.3, radius*1.2)
-            gradient.setColorAt(0, QColor("#fff0c5")); gradient.setColorAt(1, QColor("#d4a763"))
-            brush = QBrush(gradient)
-        outline = QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e")
-        painter.setBrush(brush); painter.setPen(QPen(outline, max(2, radius*(.13 if self.piece_style == "cartoon" else .1))))
-        painter.drawEllipse(center, radius, radius)
-        if self.piece_style == "modern":
-            painter.setBrush(Qt.BrushStyle.NoBrush); painter.setPen(QPen(outline, 1))
-            painter.drawEllipse(center, radius * .82, radius * .82)
-        painter.setFont(QFont(theme.PIECE_FONT, max(13, int(radius*1.15)), QFont.Weight.Bold))
-        painter.setPen(QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e"))
-        painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2), Qt.AlignmentFlag.AlignCenter, theme.NAMES[piece.color][piece.type])
+        if self.piece_render == IMAGE_MODE:
+            if self._draw_piece_image(painter, piece, center, radius):
+                return
+            # 甲/刺/楯 三型没有美术：同风格底盘 + 统一字形，不留白、不报错。
+            draw_fallback_piece(painter, center, radius, piece.color, piece.type, self.piece_style)
+            return
+        draw_piece_glyph(painter, center, radius, piece, self.piece_style)
+
+    def _draw_piece_image(self, painter: QPainter, piece: Piece, center: QPointF,
+                          radius: float) -> bool:
+        """把棋子画成美术图；没有可用美术时返回 False，由调用方走回退分支。
+
+        图片已在载入时裁到盘径、并预缩放到 `dev = round(0.78 * cell * dpr)`，
+        这里只用目标矩形贴一次（不再做绘制期缩放，那会丢掉预缩放的收益）。
+        `pixmap()` 返回的图已 `setDevicePixelRatio()`，所以**不要**再
+        `painter.scale(dpr, dpr)`：那会把缩放叠乘一次，棋子整整放大一倍。
+        """
+        artwork = piece_assets.pixmap(self.piece_style, piece.color, piece.type,
+                                      round(radius * 2 * self.devicePixelRatioF()))
+        if artwork is None:
+            return False
+        painter.drawPixmap(
+            QRectF(center.x() - radius, center.y() - radius, radius * 2, radius * 2),
+            artwork, QRectF(artwork.rect()))
+        return True
 
     def _position(self, point: QPointF) -> Position | None:
         if not self.game:

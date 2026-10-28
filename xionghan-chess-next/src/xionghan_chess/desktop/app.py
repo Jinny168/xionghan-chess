@@ -42,6 +42,7 @@ from . import update as version_check
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
 from .ui.dialogs import DocumentDialog, GameLibraryDialog, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
 from .ui.board_widget import BoardWidget
+from .ui.piece_atlas import PieceAtlasDialog
 from .ui.workers import AIWorker, AnalysisWorker, HttpWorker
 from .ui import theme
 
@@ -98,6 +99,8 @@ class MainWindow(QMainWindow):
         account=QAction(dl("账号与云同步"),self);account.triggered.connect(self.account_sync);settings_menu.addAction(account)
         help_menu=self.menuBar().addMenu(t("menu.help", lang))
         guide=QAction(t("menu.guide", lang),self);guide.setShortcut(QKeySequence("F1"));guide.triggered.connect(self.show_help);help_menu.addAction(guide)
+        # 棋子图谱排在「棋子规则」**之上**：它是规则的「带图索引」，先看图谱再看全文。
+        atlas=QAction(t("desktop.piece_atlas", lang),self);atlas.triggered.connect(self.show_piece_atlas);help_menu.addAction(atlas)
         rules=QAction(t("menu.piece_rules", lang),self);rules.triggered.connect(self.show_rules);help_menu.addAction(rules)
         check_update=QAction("检查更新" if lang!="en" else "Check for updates",self);check_update.triggered.connect(self.check_updates);help_menu.addAction(check_update)
         help_menu.addSeparator()
@@ -264,10 +267,34 @@ class MainWindow(QMainWindow):
     # 这里保留同名类属性仅为向后兼容既有调用方。
     _GAME_BREAKING_KEYS = GAME_BREAKING_KEYS
 
-    def settings(self) -> None:
-        dialog=SettingsDialog(self.config,self)
+    def settings(self, tab: int = 0) -> None:
+        dialog=SettingsDialog(self.config,self,initial_tab=int(tab))
         if not dialog.exec():return
         self._apply_settings(dialog.value())
+
+    def show_piece_atlas(self) -> None:
+        """帮助 → 棋子图谱（与设置里「预览三风格」同一个窗口）。"""
+        PieceAtlasDialog(self.config,self,self.apply_piece_style).exec()
+
+    def apply_piece_style(self, style: str) -> None:
+        """棋子美术风格**即时生效**：不重开对局、不重建界面。
+
+        `piece_style` / `piece_render` 都不在 `GAME_BREAKING_KEYS` 里 —— 它们只影响
+        画法，不影响规则。所以这里只做三件事：写配置、重配棋盘（内部预热新风格图片）、
+        重绘。走子数 / 时钟 / 悔棋可用性全部原样保留。
+
+        `style=""`（「书法字形」）表示回到字形渲染：保留 `piece_style` 原值，只把
+        `piece_render` 切回 `glyph` —— 它与升级前的渲染逐像素一致。
+        """
+        if style:
+            self.config["piece_style"]=style
+            self.config["piece_render"]="image"
+        else:
+            self.config["piece_render"]="glyph"
+        save_config(self.config);self.configure_board();self.board.update()
+        lang=self.config.get("language","zh-CN")
+        name=t(f"option.piece_{self.config.get('piece_style','traditional')}", lang) if style else t("desktop.atlas_glyph_mode", lang)
+        self.statusBar().showMessage(t("desktop.atlas_switched", lang, style=name),5000)
 
     def _apply_settings(self, new_config: dict[str, object]) -> None:
         """应用新配置（S1-9）：只在「规则会变」时重开对局，否则保留当前对局。
@@ -324,7 +351,7 @@ class MainWindow(QMainWindow):
 
     def configure_board(self) -> None:
         self.board.language=self.config.get("language","zh-CN")
-        self.board.set_appearance(self.config.get("theme","classic"),str(self.config.get("background","none")),self.config.get("piece_style","traditional"))
+        self.board.set_appearance(self.config.get("theme","classic"),str(self.config.get("background","none")),self.config.get("piece_style","traditional"),self.config.get("piece_render","glyph"))
         self.board.set_assists(selection=self.config.get("selection_highlight",True),legal_targets=self.config.get("legal_targets",True),capture_hints=self.config.get("capture_hints",True),animations=self.config.get("animations",True))
         self.board.set_flipped(self.config.get("flipped",False))
 

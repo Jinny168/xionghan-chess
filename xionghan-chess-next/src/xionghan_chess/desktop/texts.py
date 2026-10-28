@@ -148,6 +148,12 @@ EN: dict[str, str] = {
     "楷体": "KaiTi",
     "宋体": "SimSun",
     "仿宋": "FangSong",
+    # ---- 棋子图谱 ----
+    "预览三风格": "Preview all styles",
+    "常规棋子": "Standard pieces",
+    "特色棋子": "Signature pieces",
+    # 缺图格左下角的小标：这枚子当前是字形回退，不是美术
+    "字": "glyph",
     # ---- 更新 ----
     "发现新版本": "Update available",
     "打开下载页": "Open download page",
