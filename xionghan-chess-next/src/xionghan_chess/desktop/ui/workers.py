@@ -86,13 +86,14 @@ class HttpWorker(QRunnable):
 class AnalysisWorker(QRunnable):
     """把复盘分析移到线程池（S0-C：show_analysis 不再冻结 GUI）。"""
 
-    def __init__(self, game: Game) -> None:
+    def __init__(self, game: Game, cancel: threading.Event | None = None) -> None:
         super().__init__()
         self.game = game
+        self.cancel = cancel
         self.signals = WorkerSignals()
 
     def run(self) -> None:
         try:
-            self.signals.finished.emit(analyze_game(self.game, Difficulty.BEGINNER, 40))
+            self.signals.finished.emit(analyze_game(self.game, Difficulty.BEGINNER, 40, self.cancel))
         except Exception as exc:  # noqa: BLE001
             self.signals.failed.emit(str(exc))

@@ -16,6 +16,7 @@ from __future__ import annotations
 from dataclasses import asdict
 import json
 import os
+import threading
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
@@ -265,6 +266,9 @@ class ReplayDialog(QDialog):
         super().__init__(parent)
         self.language=normalize_language(config.get("language"));self.setWindowTitle(t("dialog.replay_title",self.language))
         self.resize(960, 820)
+        # 复盘分析的取消信号：关窗即置位，让后台分析在下一手前退出
+        # （否则关窗后还要等 `40 手 × 每手预算` 才停得下来）。
+        self._analysis_cancel = threading.Event()
         self.snapshots = [GameState.from_dict(item) for item in game._snapshots] + [game.state.clone()]
         self.options = asdict(game.options)
         layout = QVBoxLayout(self)
@@ -291,11 +295,15 @@ class ReplayDialog(QDialog):
 
         analyze=QPushButton(t("desktop.analysis",self.language));analyze.clicked.connect(self.show_analysis);controls.insertWidget(0,analyze)
 
+    def closeEvent(self, event: object) -> None:
+        self._analysis_cancel.set()     # 关窗即取消后台分析
+        super().closeEvent(event)
+
     def show_analysis(self) -> None:
         # 阶段0 S0-C：analyze_game(40 ply) 原先在 GUI 线程同步跑，复盘窗直接冻结。
         # 移到线程池，完成后经 Signal 回到 GUI 线程弹结果。
         game=Game.from_state(self.snapshots[-1].clone(),self.options);game._snapshots=[item.to_dict() for item in self.snapshots[:-1]]
-        worker=AnalysisWorker(game)
+        worker=AnalysisWorker(game, self._analysis_cancel)
         worker.signals.finished.connect(self._show_analysis_result)
         worker.signals.failed.connect(lambda message:QMessageBox.warning(self,dl("分析失败"),str(message)))
         self.statusBar().showMessage(dl("正在分析对局…"),30000)
