@@ -64,6 +64,7 @@ def _color(value: object, color: Color) -> QColor:
 # 用同一族会让 12 枚回退子（占一盘 19.4%）在 modern/cartoon 下像「外来户」。
 # 值存**属性名**而不是 family 字符串：`theme.PIECE_FONT/UI_FONT` 会被
 # `load_bundled_fonts()` **重新绑定**，import 时把名字拷进字典就会读到默认值。
+# ⚠️ 晚绑定，勿改成字面量 —— 改了就只在对 `load_bundled_fonts()` 之前生效。
 STYLE_FONT: dict[str, str] = {
     "traditional": "PIECE_FONT",
     "modern": "UI_FONT",
