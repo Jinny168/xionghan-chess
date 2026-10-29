@@ -83,11 +83,12 @@ def test_ai_avoids_an_immediate_reverse_when_useful_moves_exist(monkeypatch):
 # 静态搜索（quiescence）节点上限：只截断"跑飞"的吃子链
 # ---------------------------------------------------------------------------
 def test_quiescence_node_limit_is_bounded():
-    """上限必须存在且落在合理区间（80）：有上限防跑飞，又别小到误截正常变例。
+    """上限 = 80：有上限防跑飞，又不会切到正常搜索。
 
-    具体数值目前**没有可复现依据**（见 `ai.QUIESCENCE_NODE_LIMIT` 上方注释），
-    定值前这条只保证"有上限、不是无穷"。
+    依据见 `ai.QUIESCENCE_NODE_LIMIT` 上方注释的实测：同一批四个回归局面，
+    cap 80 的 trunc 全为 0，cap 40 则**四个局面各触发 1 次**（切到正常链）。
     """
+
     from xionghan_chess.core.ai import QUIESCENCE_NODE_LIMIT
 
     assert 20 <= QUIESCENCE_NODE_LIMIT <= 200, f"上限 {QUIESCENCE_NODE_LIMIT} 不在合理区间"
