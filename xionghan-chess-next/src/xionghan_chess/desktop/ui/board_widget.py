@@ -64,8 +64,8 @@ LEGAL_DOT_DARK_RGB = (0x9F, 0xBF, 0xA8)   # #9fbfa8 浅灰绿
 # 结束即停表，不常驻定时器。
 ANIMATION_TIMER_MS = 20
 ANIMATION_FRAMES = 23
-# 将军脉冲保持原来的 600ms 观感（24 帧 × 25ms），换 16ms 定时器后需重算帧数。
-CHECK_PULSE_FRAMES = 38
+# 将军脉冲保持原来的 600ms 观感（24 帧 × 25ms）：换成 20ms 定时器后 = 600/20 = 30 帧。
+CHECK_PULSE_FRAMES = 30
 
 GLYPH_MODE = "glyph"
 IMAGE_MODE = "image"
