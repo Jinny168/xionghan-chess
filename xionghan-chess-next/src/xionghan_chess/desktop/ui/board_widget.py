@@ -304,6 +304,7 @@ class BoardWidget(QWidget):
         self._draw_marks(painter, left, top, cw, ch)
         for piece in self.game.state.pieces:
             self._draw_piece(painter, piece, left, top, cw, ch)
+        self._draw_check_label(painter, left, top, cw, ch)
         # 「思索中」遮罩必须画在**棋子之后、走子动画之前**：
         # `human_move` 落子后立刻 `start_ai()`，于是玩家自己这一手的 350ms 动画
         # 全程处在 `locked=True` 状态。若遮罩压在动画上，玩家看到的是"我落子没反馈、
@@ -419,11 +420,6 @@ class BoardWidget(QWidget):
             if king:
                 pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / 24)))
                 self._mark(painter, king.position, left, top, cw, ch, QColor(190, 28, 28, pulse), .47)
-                painter.save(); painter.setPen(QColor(190, 28, 28, min(255, pulse + 40)))
-                painter.setFont(QFont(theme.UI_FONT, max(14, int(min(cw, ch) * .22)), QFont.Weight.Bold))
-                shown = self._view_position(king.position)
-                painter.drawText(QPointF(left + shown.col * cw, top + shown.row * ch - min(cw, ch) * .55), t("status.check", self.language))
-                painter.restore()
         if self.selected and self.show_selection:
             self._mark(painter, self.selected, left, top, cw, ch, QColor(221, 166, 40, 145), .48)
         # 空位落点：统一半径 .13、按主题取色（深色主题必须提亮，见 legal_dot_color）。
@@ -451,6 +447,27 @@ class BoardWidget(QWidget):
         color = QColor(self.theme["accent"])
         color.setAlphaF(LEGAL_DOT_ALPHA_LIGHT)
         return color
+
+    def _draw_check_label(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
+        """「将军」二字单独一层，画在**棋子之后**。
+
+        原来它和红晕一起画在棋子层之下，被相邻棋子盖住就看不清（尤其九宫附近子力密集）。
+        红晕/环仍留在下层（那是"哪枚子被将"的空间指示，不该盖住棋子）。
+        """
+        if not self.game or not self.game.rules.in_check(self.game.state, self.game.state.turn):
+            return
+        king = next((p for p in self.game.state.pieces
+                     if p.type is PieceType.KING and p.color is self.game.state.turn), None)
+        if king is None:
+            return
+        pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / 24)))
+        painter.save()
+        painter.setPen(QColor(190, 28, 28, min(255, pulse + 40)))
+        painter.setFont(QFont(theme.UI_FONT, max(14, int(min(cw, ch) * .22)), QFont.Weight.Bold))
+        shown = self._view_position(king.position)
+        painter.drawText(QPointF(left + shown.col * cw,
+                                 top + shown.row * ch - min(cw, ch) * .55), t("status.check", self.language))
+        painter.restore()
 
     def _draw_capture_hints(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         if not self.show_capture_hints:

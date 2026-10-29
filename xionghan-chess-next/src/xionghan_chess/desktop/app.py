@@ -695,6 +695,10 @@ class MainWindow(QMainWindow):
         else:
             text = t("status.turn", lang,
                      color=t("common.red" if state.turn is Color.RED else "common.black", lang))
+            # 将军提到横幅：盘内那两个字在九宫附近常被棋子盖住，横幅是最稳的位置。
+            # 用现成的 `status.check` + `status.turn` 拼接（两词条中英都已存在）。
+            if self.game.rules.in_check(state, state.turn):
+                text = f"{t('status.check', lang)} · {text}"
         # S2-7 配套：题目模式下横幅要说明「在练哪道题、走到第几手」——
         # 否则玩家分不清这是普通对局还是残局训练。
         session = getattr(self, "puzzle_session", None)
