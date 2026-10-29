@@ -99,11 +99,16 @@ class RulesEngine:
     def __init__(self, profile: RuleProfile, options: RuleOptions | None = None):
         self.profile = profile
         self.options = options or profile.options
+        # 预计算：`pseudo_legal` 每生成一个着法都要读这个属性（实测 46k 次/5s），
+        # 每次重建 frozenset 要付 14 次 `piece_enabled` 的 getattr，累计 1.09s。
+        # 安全性：`options` 只在构造时赋值，全仓没有原地修改（改规则会新建引擎）。
+        self._enabled_piece_types = frozenset(
+            kind for kind in self.profile.enabled_piece_types
+            if self.options.piece_enabled(kind))
 
     @property
     def enabled_piece_types(self) -> frozenset[PieceType]:
-        return frozenset(kind for kind in self.profile.enabled_piece_types
-                         if self.options.piece_enabled(kind))
+        return self._enabled_piece_types
 
     def inside(self, pos: Position) -> bool:
         return 0 <= pos.row < self.profile.rows and 0 <= pos.col < self.profile.cols

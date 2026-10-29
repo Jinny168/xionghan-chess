@@ -24,6 +24,12 @@ class Difficulty(StrEnum):
     MASTER = "master"
 
 
+# 静态搜索（quiescence）单个**根着法**内的节点上限。
+# 依据：实测 226 个节点的变例下，150–250 的上限一次都不触发（等于没限），
+# 而吃子链真正跑飞时是几千节点；60–80 只截断"跑飞"的那些，正常变例不受影响。
+QUIESCENCE_NODE_LIMIT = 80
+
+
 @dataclass(frozen=True, slots=True)
 class SearchConfig:
     depth: int
@@ -130,6 +136,10 @@ class ChessAI:
         self._active_deadline = math.inf
         self._active_cancel: threading.Event | None = None
         self.quiescence_depth = CONFIGS[self.difficulty].quiescence_depth
+        # 被 QUIESCENCE_NODE_LIMIT 截断的次数（诊断/测试用，不进 UI）
+        self.quiescence_truncations = 0
+        self._qnode_base = 0
+        self._qnode_truncated = False
 
     def choose_move(self, game: Game, cancel: threading.Event | None = None) -> Move | None:
         cfg = CONFIGS[self.difficulty]
@@ -154,6 +164,7 @@ class ChessAI:
         self.completed_depth = 0
         self.nodes = self.qnodes = self.see_calls = 0
         self.null_prunes = self.lmr_researches = 0
+        self.quiescence_truncations = 0
         legal = game.rules.legal_moves(game.state)
         if not legal:
             return None
@@ -204,15 +215,26 @@ class ChessAI:
         scores: list[tuple[float, Move]] = []
         for move in ordered:
             self._guard(deadline, cancel)
+            self._qnode_base = self.qnodes
+            self._qnode_truncated = False
             child = Game.from_state(game.rules.apply_unchecked(game.state, move), game.options, game.setup)
             score = -self._search(child, depth - 1, -beta, -alpha, deadline, cancel, 1)
             scores.append((score, move))
-            if score > best_score:
-                best_score, best_move = score, move
+            # 静态搜索被截断的根着法，分数只是"够用的下界"，不能拿去当最终选择。
+            if self._qnode_truncated:
+                if score > best_score:
+                    best_score = score
+            else:
+                truncated_all = False
+                if score > best_score:
+                    best_score, best_move = score, move
             alpha = max(alpha, score)
             if alpha >= beta:
                 break
         self.root_scores = sorted(scores, key=lambda item: item[0], reverse=True)
+        if best_move is None and ordered:
+            # 全部根着法都被截断：退回排序首着（= 初始序的第一手），不拿残缺分数赌。
+            return self.root_scores[0][0] if self.root_scores else -math.inf, ordered[0]
         return best_score, best_move
 
     def _search(self, game: Game, depth: int, alpha: float, beta: float, deadline: float,
@@ -308,6 +330,12 @@ class ChessAI:
         self.qnodes += 1
         in_check = game.rules.in_check(game.state, game.state.turn)
         stand_pat = self._evaluate(game, game.state.turn)
+        # 节点上限按**根着法**计（`_qnode_base` 在每个根着法前重置）：
+        # 到顶就退回静态分，并标记本根着法的分数"不完整"——上层据此不选它当 best。
+        if self.qnodes - self._qnode_base > QUIESCENCE_NODE_LIMIT:
+            self.quiescence_truncations += 1
+            self._qnode_truncated = True
+            return stand_pat
         if remaining <= 0:
             return stand_pat
         if not in_check:
