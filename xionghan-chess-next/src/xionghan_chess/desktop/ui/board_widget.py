@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import math
+import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
@@ -69,6 +70,11 @@ CHECK_PULSE_FRAMES = 30
 
 # 射的对角路径预览：颜色比可走点更弱（可走点 .55），否则会和落点抢注意力。
 ARCHER_PATH_ALPHA = 0.35
+
+# 思考态读条：**封顶 0.9**，永远不到 100% —— 剩下的 10% 表示"随时可能出手"，
+# 避免条卡在 99% 抖动（也避免把"预算耗尽"误读成"该出手了"）。
+THINKING_RATIO_CAP = 0.9
+THINKING_TICK_MS = 100
 
 GLYPH_MODE = "glyph"
 IMAGE_MODE = "image"
@@ -193,6 +199,10 @@ class BoardWidget(QWidget):
         self.capturable: set[Position] = set()
         self.drag_origin: Position | None = None
         self.locked = False
+        # 思考态读条：`thinking_started` 为 None 表示不在思考（不画条）。
+        # `elapsed` 用 `time.monotonic()`，`limit` 由 app 层从 `CONFIGS` 传入。
+        self.thinking_started: float | None = None
+        self.thinking_limit = 0.0
         self.interactive = True
         self.theme = theme.THEMES["classic"]
         self.theme_name = "classic"
@@ -327,13 +337,83 @@ class BoardWidget(QWidget):
         if self.locked:
             painter.fillRect(rect, QColor(30, 25, 20, 90))
             painter.setPen(QColor("white")); painter.setFont(QFont(theme.UI_FONT, 18, QFont.Weight.Bold))
-            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, t("status.thinking_desktop", self.language))
+            cell = min(cw, ch)
+            if self.thinking_started is None:
+                painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, t("status.thinking_desktop", self.language))
+            else:
+                # 文案上移一行，给下面的读条与秒数腾位置
+                painter.drawText(QRectF(rect.left(), rect.center().y() - cell * 0.45,
+                                        rect.width(), cell * 0.4),
+                                 Qt.AlignmentFlag.AlignCenter, t("status.thinking_desktop", self.language))
+                self._draw_thinking_progress(painter, rect, cw, ch)
         self._draw_capture_hints(painter, left, top, cw, ch)
         self._draw_animation(painter, left, top, cw, ch)
         if self.game.state.paused:
             painter.fillRect(rect, QColor(30, 25, 20, 150))
             painter.setPen(QColor("white")); painter.setFont(QFont(theme.UI_FONT, 19, QFont.Weight.Bold))
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, f"{t('status.paused', self.language)}\n{t('status.timer_stopped', self.language)}")
+
+    # ---------------------------------------------------------------- 思考态读条
+    def begin_thinking(self, limit_seconds: float) -> None:
+        """开始计时。`limit_seconds` 由 app 层从 `CONFIGS[difficulty].time_limit` 传入 ——
+        这里**不写任何默认时长**，否则前端就有了第二份"预算"来源。"""
+        self.thinking_started = time.monotonic()
+        self.thinking_limit = max(0.001, float(limit_seconds))
+        self.update()
+
+    def end_thinking(self) -> None:
+        """落子（或失败/取消）时归零。预算耗尽**不会**自动归零或归满。"""
+        self.thinking_started = None
+        self.thinking_limit = 0.0
+        self.update()
+
+    def thinking_elapsed(self) -> float:
+        if self.thinking_started is None:
+            return 0.0
+        return max(0.0, time.monotonic() - self.thinking_started)
+
+    def thinking_ratio(self) -> float:
+        """`min(0.9, elapsed / time_limit)`；未在思考时返回 0。"""
+        if self.thinking_started is None or self.thinking_limit <= 0:
+            return 0.0
+        return min(THINKING_RATIO_CAP, self.thinking_elapsed() / self.thinking_limit)
+
+    def _draw_thinking_progress(self, painter: QPainter, rect: QRectF, cw: float, ch: float) -> None:
+        """遮罩内的预算读条 + 正向累计秒数（不是倒计时）。"""
+        if self.thinking_started is None:
+            return
+        cell = min(cw, ch)
+        center_x = rect.center().x()
+        center_y = rect.center().y()
+        bar_w = cell * 2.2
+        bar_h = max(4.0, cell * 0.075)
+        bar = QRectF(center_x - bar_w / 2, center_y - bar_h / 2, bar_w, bar_h)
+
+        painter.save()
+        # 底槽
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(255, 255, 255, 60))
+        painter.drawRoundedRect(bar, 2, 2)
+        # 填充（封顶 0.9，因此条**永远不会**铺满）
+        ratio = self.thinking_ratio()
+        if ratio > 0:
+            fill = QRectF(bar.left(), bar.top(), max(bar_h * 0.5, bar.width() * ratio), bar.height())
+            painter.setBrush(self.thinking_progress_color())
+            painter.drawRoundedRect(fill, 2, 2)
+        # 正向秒数
+        painter.setPen(QColor("white"))
+        painter.setFont(QFont(theme.UI_FONT, max(10, int(cell * 0.16))))
+        painter.drawText(QRectF(bar.left(), bar.bottom() + cell * 0.08, bar_w, cell * 0.3),
+                         Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,
+                         t("status.thinking_elapsed", self.language,
+                           seconds=f"{self.thinking_elapsed():.1f}"))
+        painter.restore()
+
+    def thinking_progress_color(self) -> QColor:
+        """填充色：主题 accent；深色主题必须换浅灰绿（深绿在深底上看不见）。"""
+        if self.theme_name == "dark":
+            return QColor(*LEGAL_DOT_DARK_RGB)
+        return QColor(self.theme["accent"])
 
     def _geometry(self) -> tuple[float, float, float, float]:
         bounds = self.rect().adjusted(13, 13, -13, -13)

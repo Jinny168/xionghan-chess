@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 
 from xionghan_chess import __version__
 from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
+from xionghan_chess.core.ai import CONFIGS, Difficulty
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position
 from xionghan_chess.core.profiles import PROFILES, profile_rule_values
@@ -41,7 +42,7 @@ from . import training as puzzle_judge
 from . import update as version_check
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
 from .ui.dialogs import DocumentDialog, GameLibraryDialog, GLYPH_STYLE_DATA, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
-from .ui.board_widget import BoardWidget
+from .ui.board_widget import THINKING_TICK_MS, BoardWidget
 from .ui.piece_atlas import PieceAtlasDialog
 from .ui.workers import AIWorker, AnalysisWorker, HttpWorker
 from .ui import theme
@@ -54,6 +55,10 @@ class MainWindow(QMainWindow):
         super().__init__();theme.load_bundled_fonts();self.config=load_config();set_language(self.config.get("language","zh-CN"));self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._shown_result=False
         # P1-B：界面刷新快照（棋盘/棋谱/阵亡/将军），换局时必须清空
         self._reset_ui_cache()
+        # 思考态读条：100ms 只负责让棋盘重绘，**start_ai 起、finish_ai 止**，不常驻。
+        self.thinking_timer = QTimer(self)
+        self.thinking_timer.setInterval(THINKING_TICK_MS)
+        self.thinking_timer.timeout.connect(self._tick_thinking)
         # S2-7 配套：非 None 时表示正处在「残局题」里，`human_move` 要判对错。
         self.puzzle_session=None
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
@@ -187,12 +192,28 @@ class MainWindow(QMainWindow):
              else f"Correct — step {session.cursor+1}/{session.total}"),5000)
         return True
 
+    def _begin_thinking(self) -> None:
+        """起表：预算**只**从 `CONFIGS` 读，前端不写第二份时长。"""
+        difficulty = Difficulty(self.config.get("difficulty", "medium"))
+        self.board.begin_thinking(CONFIGS[difficulty].time_limit)
+        self.thinking_timer.start()
+
+    def _end_thinking(self) -> None:
+        self.thinking_timer.stop()
+        self.board.end_thinking()
+
+    def _tick_thinking(self) -> None:
+        self.board.update()
+
     def start_ai(self) -> None:
         if self.board.locked or self.game.state.finished or self.game.state.paused:return
-        self.board.locked=True;self.board.update();worker=AIWorker(self.game,self.config["difficulty"],self.cancel);worker.signals.finished.connect(self.finish_ai);worker.signals.failed.connect(self.ai_failed);self.pool.start(worker)
+        self.board.locked=True;self._begin_thinking();worker=AIWorker(self.game,self.config["difficulty"],self.cancel);worker.signals.finished.connect(self.finish_ai);worker.signals.failed.connect(self.ai_failed);self.pool.start(worker)
 
     def finish_ai(self, result: tuple[Move | None, threading.Event]) -> None:
         move,cancel=result
+        # 读条必须在**每个出口**停掉并归零：成功 / move is None / 取消都一样，
+        # 否则取消后条会一直往前爬（预算耗尽了也不会自己归零）。
+        self._end_thinking()
         if cancel.is_set():return
         try:
             if move:
@@ -207,6 +228,7 @@ class MainWindow(QMainWindow):
 
     def ai_failed(self, result: object) -> None:
         message,cancel=result if isinstance(result,tuple) else (str(result),self.cancel)
+        self._end_thinking()
         if cancel.is_set():return
         self.board.locked=False;self.refresh();QMessageBox.warning(self,dl("AI 异常"),message)
     def play_sound(self) -> None:

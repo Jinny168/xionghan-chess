@@ -177,6 +177,7 @@
     "timer_stopped": "Timer stopped",
     "thinking": "AI is thinking",
     "thinking_desktop": "AI is thinking...",
+    "thinking_elapsed": "Elapsed {seconds}s",
     "turn": "{color} to move",
     "network_unavailable": "Server unavailable. Offline pass-and-play is ready.",
     "check": "Check"

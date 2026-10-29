@@ -177,6 +177,7 @@
     "timer_stopped": "计时已停止",
     "thinking": "棋灵思考中",
     "thinking_desktop": "棋灵思考中...",
+    "thinking_elapsed": "已用 {seconds} 秒",
     "turn": "{color}行棋",
     "network_unavailable": "服务器不可用，离线同机模式可正常使用",
     "check": "将军"
