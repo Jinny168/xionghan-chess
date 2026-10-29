@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from enum import StrEnum
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Iterator
 
 from .model import Color, GameState, Move, Piece, PieceType, Position
 from .profiles import PATROL_HOME_ROW, RuleOptions, RuleProfile, XIONGHAN_ROWS
@@ -184,10 +184,8 @@ class RulesEngine:
         next_state = self.apply_unchecked(state, move, switch_turn=False)
         return not self.in_check(next_state, state.turn)
 
-    def legal_moves(self, state: GameState, color: Color | None = None) -> list[Move]:
-        color = color or state.turn
-        probe = state if state.turn is color else replace(state, turn=color)
-        result: list[Move] = []
+    def _iter_legal(self, probe: GameState, color: Color) -> Iterator[Move]:
+        """枚举 `color` 的全部合法着法（`legal_moves` 与 `has_any_legal_move` 的唯一来源）。"""
         for piece in probe.pieces:
             if piece.color is not color:
                 continue
@@ -201,8 +199,24 @@ class RulesEngine:
                     for promotion in promotions:
                         move = Move(piece.position, target, promotion)
                         if self.is_legal(probe, move):
-                            result.append(move)
-        return result
+                            yield move
+
+    def legal_moves(self, state: GameState, color: Color | None = None) -> list[Move]:
+        color = color or state.turn
+        probe = state if state.turn is color else replace(state, turn=color)
+        return list(self._iter_legal(probe, color))
+
+    def has_any_legal_move(self, state: GameState, color: Color | None = None) -> bool:
+        """是否**存在**至少一个合法着法（命中即返回，不枚举全部）。
+
+        `legal_moves()` 要跑满 62 枚 × 13×13 个目标点（实测 257ms/次），而
+        `_settle` 每次落子都要问一句"对方还有没有着法"。这里用同一个生成器
+        短路取第一个 —— 语义与 `bool(legal_moves(...))` 完全等价，但常规局面
+        只需扫到第一个能走的子。
+        """
+        color = color or state.turn
+        probe = state if state.turn is color else replace(state, turn=color)
+        return next(self._iter_legal(probe, color), None) is not None
 
     def captured_by_move(self, state: GameState, move: Move) -> tuple[Piece, ...]:
         """Return enemy pieces removed by a move, including indirect captures."""
@@ -459,10 +473,10 @@ class RulesEngine:
                     "a removal's victim square is the spec's key"
 
     def checkmate(self, state: GameState, color: Color) -> bool:
-        return self.in_check(state, color) and not self.legal_moves(state, color)
+        return self.in_check(state, color) and not self.has_any_legal_move(state, color)
 
     def stalemate(self, state: GameState, color: Color) -> bool:
-        return not self.in_check(state, color) and not self.legal_moves(state, color)
+        return not self.in_check(state, color) and not self.has_any_legal_move(state, color)
 
     def position_key(self, state: GameState) -> str:
         """Repetition key for one position, used by the threefold-draw ledger.

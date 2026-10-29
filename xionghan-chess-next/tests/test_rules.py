@@ -400,3 +400,20 @@ def test_diagonal_pinch_applies_to_guard_and_thunder_paths():
     assert not RulesEngine(profile).pseudo_legal(
         thunder_board, Move(thunder.position, Position(6, 6))
     )
+
+
+# ---------------------------------------------------------------------------
+# has_any_legal_move：与 `bool(legal_moves(...))` 必须逐局面等价
+# ---------------------------------------------------------------------------
+def test_has_any_legal_move_matches_legal_moves():
+    """短路版与全量枚举必须给出同一个布尔值（`_settle` 依赖它判困毙/将死）。"""
+    for profile in ("desktop_complete", "desktop_classic", "web", "traditional"):
+        game = Game(profile)
+        for _ in range(4):
+            for color in (Color.RED, Color.BLACK):
+                assert (game.rules.has_any_legal_move(game.state, color)
+                        == bool(game.rules.legal_moves(game.state, color))), profile
+            legal = game.rules.legal_moves(game.state)
+            if not legal:
+                break
+            game.move(legal[0])
