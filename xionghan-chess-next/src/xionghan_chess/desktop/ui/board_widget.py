@@ -67,6 +67,9 @@ ANIMATION_FRAMES = 23
 # 将军脉冲保持原来的 600ms 观感（24 帧 × 25ms）：换成 20ms 定时器后 = 600/20 = 30 帧。
 CHECK_PULSE_FRAMES = 30
 
+# 射的对角路径预览：颜色比可走点更弱（可走点 .55），否则会和落点抢注意力。
+ARCHER_PATH_ALPHA = 0.35
+
 GLYPH_MODE = "glyph"
 IMAGE_MODE = "image"
 PIECE_RENDER_MODES = (GLYPH_MODE, IMAGE_MODE)
@@ -311,6 +314,7 @@ class BoardWidget(QWidget):
         if rows == 13:
             self._draw_initial_position_marks(painter, left, top, cw, ch)
             self._draw_star_points(painter, left, top, cw, ch)
+        self._draw_archer_paths(painter, left, top, cw, ch)
         self._draw_marks(painter, left, top, cw, ch)
         for piece in self.game.state.pieces:
             self._draw_piece(painter, piece, left, top, cw, ch)
@@ -432,6 +436,96 @@ class BoardWidget(QWidget):
         for row, col in starts:
             painter.drawLine(QPointF(left + col*cw, top + row*ch), QPointF(left + (col+2)*cw, top + (row+2)*ch))
             painter.drawLine(QPointF(left + (col+2)*cw, top + row*ch), QPointF(left + col*cw, top + (row+2)*ch))
+
+    # ---------------------------------------------------------------- 射的路径
+    def archer_rays(self) -> list[tuple[Position, Position, Position | None, int, int]]:
+        """选中射时，返回每条对角射线的 `(起点, 最远可停格, 障碍格, 步行, 步列)`。
+
+        规则与 `RulesEngine._archer` 一致，但这里**不重复实现规则**：
+        可停格直接取 `self.legal`（引擎已经算过），只按方向分组取最远那个。
+        这样线端点必然落在某个可走点上，不会出现"线画到了不能走的地方"。
+
+        障碍格 = 最远可停格的**紧邻下一格**且有子 —— 用于画"被挡住"的截断标记。
+        若最远可停格本身就是吃子点，则越过它再看一格（那里才是真正的墙）。
+
+        一个方向没有可停格时**整条线不画**：画一条"被堵死的线"只会增加噪声。
+        """
+        if not self.game or self.selected is None or not self.show_legal_targets:
+            return []
+        piece = self.game.state.piece_at(self.selected)
+        if piece is None or piece.type is not PieceType.ARCHER:
+            return []
+        by_direction: dict[tuple[int, int], list[Position]] = {}
+        for move in self.legal:
+            dr = move.target.row - self.selected.row
+            dc = move.target.col - self.selected.col
+            if dr == 0 or abs(dr) != abs(dc):
+                continue
+            step = (1 if dr > 0 else -1, 1 if dc > 0 else -1)
+            by_direction.setdefault(step, []).append(move.target)
+        rays = []
+        for (step_row, step_col), targets in by_direction.items():
+            farthest = max(targets, key=lambda target: abs(target.row - self.selected.row))
+            # 只有当这条射线是**被棋子挡住**才画截断标记；走到星位距离上限不算"挡住"。
+            star_limit = self.game.rules._nearest_archer_star_distance(  # noqa: SLF001
+                self.selected, step_row, step_col)
+            reached_limit = abs(farthest.row - self.selected.row) >= star_limit > 0
+            beyond = Position(farthest.row + step_row, farthest.col + step_col)
+            obstacle = (beyond
+                        if not reached_limit
+                        and self.game.rules.inside(beyond)
+                        and self.game.state.piece_at(beyond) is not None
+                        else None)
+            rays.append((self.selected, farthest, obstacle, step_row, step_col))
+        return rays
+
+    def archer_path_color(self) -> QColor:
+        """路径虚线颜色：主题 accent @.35（深色主题用浅灰绿），**必须比可走点更弱**。"""
+        if self.theme_name == "dark":
+            color = QColor(*LEGAL_DOT_DARK_RGB)
+        else:
+            color = QColor(self.theme["accent"])
+        color.setAlphaF(ARCHER_PATH_ALPHA)
+        return color
+
+    def _draw_archer_paths(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
+        """射的对角路径预览：虚线 + 被挡时的截断标记。
+
+        层级：星位刻线 → **本层** → 可走点 → 红叉 → 选中环 → 落子动画 → 将军环。
+        只有 4 条线、几十像素，直接 drawLine，不做缓存、不加定时器。
+        """
+        rays = self.archer_rays()
+        if not rays:
+            return
+        cell = min(cw, ch)
+        color = self.archer_path_color()
+        pen = QPen(color, max(1.0, cell * 0.02), Qt.PenStyle.DashLine)
+        pen.setDashPattern([4, 4])          # 单位是笔宽：宽 1px 时即 4px/4px
+        painter.save()
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        for source, farthest, obstacle, step_row, step_col in rays:
+            start = self._view_position(source)
+            end = self._view_position(farthest)
+            start_point = QPointF(left + start.col * cw, top + start.row * ch)
+            end_point = QPointF(left + end.col * cw, top + end.row * ch)
+            painter.drawLine(start_point, end_point)
+            if obstacle is None:
+                continue
+            # 截断标记：画在「最远可停格」与「障碍格」**正中间**，一对垂直于射线的短线。
+            blocked = self._view_position(obstacle)
+            blocked_point = QPointF(left + blocked.col * cw, top + blocked.row * ch)
+            middle = QPointF((end_point.x() + blocked_point.x()) / 2,
+                             (end_point.y() + blocked_point.y()) / 2)
+            # 垂直方向（对角线射线的法向）
+            normal = QPointF(-step_col, step_row)
+            half = cell * 0.12 / 2
+            # 标记用实线（虚线会更糊），宽度与虚线一致
+            painter.setPen(QPen(color, max(1.0, cell * 0.02), Qt.PenStyle.SolidLine))
+            painter.drawLine(QPointF(middle.x() - normal.x() * half, middle.y() - normal.y() * half),
+                             QPointF(middle.x() + normal.x() * half, middle.y() + normal.y() * half))
+            painter.setPen(pen)
+        painter.restore()
 
     def _draw_marks(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         if not self.game:
