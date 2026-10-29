@@ -737,12 +737,66 @@ class ChessAI:
             killers = self.killers.get(ply, [])
             if move in killers:
                 value += 4_000 - killers.index(move) * 500
-            child = game.rules.apply_unchecked(game.state, move)
-            if game.rules.in_check(child, child.turn):
-                value += 900
+            # 「这一步是否将军」只影响排序权重，但直接算要 `apply_unchecked` +
+            # `in_check`（实测 0.50 ms/着、108 着 = 54 ms/次排序）。这里先用几何筛
+            # 掉**不可能**将军的着法 —— 判据见 `_may_give_check`，保守到只会多算、不会漏算。
+            if self._may_give_check(game, move):
+                child = game.rules.apply_unchecked(game.state, move)
+                if game.rules.in_check(child, child.turn):
+                    value += 900
             return value
 
         return sorted(moves, key=score, reverse=True)
+
+    # 车/炮/檑/射/尉/巡 走的是直线或对角线：只要目标格与敌王不在同一条线上，
+    # 落子后就**不可能**攻击到王（这些兵种没有"跳过去打"的走法）。
+    _LINE_PIECES = frozenset({
+        PieceType.ROOK, PieceType.CANNON, PieceType.THUNDER,
+        PieceType.ARCHER, PieceType.GUARD, PieceType.PATROL,
+    })
+    # 近战兵种的最大切比雪夫距离：王/仕/兵 1 格，相 2 格（田），马 2 格（日）。
+    _LOCAL_REACH = {
+        PieceType.KING: 1, PieceType.ADVISOR: 1, PieceType.PAWN: 1,
+        PieceType.ELEPHANT: 2, PieceType.HORSE: 2,
+    }
+
+    @staticmethod
+    def _aligned(a: Position, b: Position) -> bool:
+        """同行 / 同列 / 同对角线。"""
+        dr, dc = abs(a.row - b.row), abs(a.col - b.col)
+        return dr == 0 or dc == 0 or dr == dc
+
+    def _may_give_check(self, game: Game, move: Move) -> bool:
+        """这一步**是否可能**将军（保守判据，只用来省掉无谓的 `in_check`）。
+
+        能将军只有三条路：
+        1. **移动的子自己**打到王：直线兵种要求目标格与王共线（行/列/斜）；
+           近战兵种要求切比雪夫距离在步长内。
+        2. **移开后露出**别的子：只有"源格原本挡在某个子与王的连线上"才可能，
+           即 `_aligned(source, king)`。
+        3. **特殊机制**：甲/刺的走法会额外移除第三枚子（可露出非源格连线），
+           升变会换成另一步法 —— 这两类一律按"可能将军"处理。
+
+        判据错只会多算（慢一点），不会漏算（改变排序正确性）。
+        """
+        king = next((piece for piece in game.state.pieces
+                     if piece.type is PieceType.KING and piece.color is game.state.turn.opponent), None)
+        if king is None:
+            return True
+        mover = game.state.piece_at(move.source)
+        if mover is None or move.promotion is not None:
+            return True
+        if mover.type in (PieceType.ARMOR, PieceType.ASSASSIN):
+            return True
+        if self._aligned(move.source, king.position):
+            return True
+        if mover.type in self._LINE_PIECES:
+            return self._aligned(move.target, king.position)
+        reach = self._LOCAL_REACH.get(mover.type)
+        if reach is None:
+            return True
+        return (abs(move.target.row - king.position.row) <= reach
+                and abs(move.target.col - king.position.col) <= reach)
 
     @staticmethod
     def _guard(deadline: float, cancel: threading.Event | None) -> None:

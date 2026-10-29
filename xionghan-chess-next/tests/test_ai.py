@@ -113,3 +113,48 @@ def test_truncated_root_moves_never_become_best(monkeypatch):
 
     assert engine.quiescence_truncations > 0, "上限 0 时应当发生截断"
     assert move == expected, "全部根着法被截断时必须退回初始序首着"
+
+
+# ---------------------------------------------------------------------------
+# 将军预筛：只许「多算一次」，不许「漏掉一次」
+# ---------------------------------------------------------------------------
+def test_check_prescreen_never_misses_a_real_check():
+    """`_may_give_check` 为假时，这一步**确实**不给将军。
+
+    预筛只用来省 `apply_unchecked + in_check`（0.5 ms/着）；一旦出现假阴性，
+    排序里那 +900 就会少给，等同于悄悄改了搜索顺序。逐局面逐着法对一遍。
+    """
+    engine = ChessAI(Difficulty.MEDIUM, seed=5)
+    misses: list[str] = []
+    for profile in ("desktop_complete", "desktop_classic", "web"):
+        game = Game(profile)
+        for _ in range(5):
+            moves = game.rules.legal_moves(game.state)
+            if not moves:
+                break
+            for move in moves:
+                exact = game.rules.in_check(
+                    game.rules.apply_unchecked(game.state, move),
+                    game.state.turn.opponent)
+                if exact and not engine._may_give_check(game, move):
+                    misses.append(f"{profile}:{move.key()}")
+            game.move(moves[0])
+    assert not misses, f"预筛漏掉了真实的将军着法：{misses[:5]}"
+
+
+def test_check_prescreen_keeps_move_ordering_identical():
+    """预筛前后 `_order()` 的输出顺序必须**完全一致**（少算但结果不改）。"""
+    engine = ChessAI(Difficulty.MEDIUM, seed=6)
+    for profile in ("desktop_complete", "web"):
+        game = Game(profile)
+        for _ in range(4):
+            moves = game.rules.legal_moves(game.state)
+            if not moves:
+                break
+            fast = [move.key() for move in engine._order(game, moves)]
+            original = engine._may_give_check
+            engine._may_give_check = lambda *args, **kwargs: True
+            slow = [move.key() for move in engine._order(game, moves)]
+            engine._may_give_check = original
+            assert fast == slow, f"{profile} 的着法排序被预筛改变了"
+            game.move(moves[0])
