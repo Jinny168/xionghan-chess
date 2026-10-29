@@ -54,6 +54,10 @@ FALLBACK_STYLE: dict[str, dict[str, object]] = {
 # 颜色按主题取：浅色四主题用**该主题的 accent**；深色主题必须换成浅灰绿，
 # 因为 dark 的 accent `#8e3b32` 是红色，会和"可吃红叉"混淆，且深绿在深底上直接消失。
 LEGAL_DOT_RATIO = 0.13
+# 深色主题单独放大到 .15：`#9fbfa8@.60` 在 `#34302b` 上的绿通道差 +86 已经达标，
+# 但深底上小面积色块的**显眼度不只取决于对比度**，还取决于面积 —— 这是对比度补偿，
+# 不是"只让射显眼"（所有棋子同尺寸，只是深色档不同）。
+LEGAL_DOT_RATIO_DARK = 0.15
 LEGAL_DOT_ALPHA_LIGHT = 0.55
 LEGAL_DOT_ALPHA_DARK = 0.60
 LEGAL_DOT_DARK_RGB = (0x9F, 0xBF, 0xA8)   # #9fbfa8 浅灰绿
@@ -621,12 +625,17 @@ class BoardWidget(QWidget):
         # **每个可走格都画**，不合并中间点——点同时承担"这格能点"的暗示，
         # 合并等于宣称"中间不能停"，与事实冲突。
         dot_color = self.legal_dot_color()
+        dot_ratio = self.legal_dot_ratio()
         for move in self.legal if self.show_legal_targets else ():
             target = self.game.state.piece_at(move.target)
             if target:
                 self._mark(painter, move.target, left, top, cw, ch, QColor(148, 30, 30, 90), .4)
             else:
-                self._mark(painter, move.target, left, top, cw, ch, dot_color, LEGAL_DOT_RATIO)
+                self._mark(painter, move.target, left, top, cw, ch, dot_color, dot_ratio)
+
+    def legal_dot_ratio(self) -> float:
+        """可走点半径：浅色四主题 0.13，深色 0.15（对比度补偿，见常量注释）。"""
+        return LEGAL_DOT_RATIO_DARK if self.theme_name == "dark" else LEGAL_DOT_RATIO
 
     def legal_dot_color(self) -> QColor:
         """可走点的颜色：浅色主题 = 该主题 accent @.55；深色 = #9fbfa8 @.60。

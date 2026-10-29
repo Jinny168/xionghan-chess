@@ -209,3 +209,23 @@ def test_star_ticks_are_hidden_under_legal_targets(qt_app: QApplication) -> None
     other = next(point for point in sorted(stars) if point not in {move.target for move in legal})
     assert _tick_pixel(selected, board, other) == _tick_pixel(restored, board, other), \
         "不相干的星位不该被隐藏"
+
+
+# ---------------------------------------------------------------------------
+# 4) 半径按主题取值：浅色 0.13 / 深色 0.15
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("theme_name", THEMES)
+def test_dot_radius_per_theme(qt_app: QApplication, theme_name: str) -> None:
+    """逐主题核对半径 —— 不要只测一个代表。
+
+    深色主题单独放大是**对比度补偿**：`#9fbfa8@.60` 在 `#34302b` 上绿通道差 +86 虽然达标，
+    但深底上小面积色块的显眼度还取决于面积。所有棋子仍然同尺寸（只是深色档整体大一档），
+    所以这不是"只让射显眼"。
+    """
+    from xionghan_chess.desktop.ui.board_widget import LEGAL_DOT_RATIO, LEGAL_DOT_RATIO_DARK
+
+    board = make_board(theme_name, [Piece.create(PieceType.KING, Color.RED, 11, 6)])
+    expected = LEGAL_DOT_RATIO_DARK if theme_name == "dark" else LEGAL_DOT_RATIO
+    assert board.legal_dot_ratio() == pytest.approx(expected), (
+        f"{theme_name} 的可走点半径应为 {expected}，实际 {board.legal_dot_ratio()}")
+    assert expected == pytest.approx(0.15 if theme_name == "dark" else 0.13)
