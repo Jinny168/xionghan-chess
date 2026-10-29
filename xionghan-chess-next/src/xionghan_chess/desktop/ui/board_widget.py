@@ -57,6 +57,16 @@ LEGAL_DOT_ALPHA_LIGHT = 0.55
 LEGAL_DOT_ALPHA_DARK = 0.60
 LEGAL_DOT_DARK_RGB = (0x9F, 0xBF, 0xA8)   # #9fbfa8 浅灰绿
 
+# 落子动画：460ms / 20ms = 23 帧（原来 350ms / 25ms ≈ 14 帧，肉眼只有 ~9 帧可见）。
+# 为什么不抄网页的 900ms：太拖沓。为什么不是 550/16：实测 900×900 单帧 p95 10.9ms、
+# **max 14.3ms**（超 12ms 掉帧线），1470px 更大时 p95 已 16.2ms —— 按"单帧 >12ms 就回退"
+# 的规则取 450ms/20ms 一档：预算 20ms 时两个尺寸的 p95（10.9 / 16.2）都在预算内。
+# 结束即停表，不常驻定时器。
+ANIMATION_TIMER_MS = 20
+ANIMATION_FRAMES = 23
+# 将军脉冲保持原来的 600ms 观感（24 帧 × 25ms），换 16ms 定时器后需重算帧数。
+CHECK_PULSE_FRAMES = 38
+
 GLYPH_MODE = "glyph"
 IMAGE_MODE = "image"
 PIECE_RENDER_MODES = (GLYPH_MODE, IMAGE_MODE)
@@ -200,7 +210,7 @@ class BoardWidget(QWidget):
         self.animation_frame = 0
         self.check_pulse_frame = 0
         self.animation_timer = QTimer(self)
-        self.animation_timer.setInterval(25)
+        self.animation_timer.setInterval(ANIMATION_TIMER_MS)
         self.animation_timer.timeout.connect(self._advance_animation)
         self.setMinimumSize(420, 420)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -266,11 +276,11 @@ class BoardWidget(QWidget):
 
     def _advance_animation(self) -> None:
         self.animation_frame += 1
-        if self.animation_frame >= 14:
+        if self.animation_frame >= ANIMATION_FRAMES:
             self.animation_target = None
             self.animation_source = None
         self.check_pulse_frame += 1
-        if self.check_pulse_frame >= 24 and self.animation_target is None:
+        if self.check_pulse_frame >= CHECK_PULSE_FRAMES and self.animation_target is None:
             self.animation_timer.stop()
         self.update()
 
@@ -418,7 +428,7 @@ class BoardWidget(QWidget):
         if self.game.rules.in_check(self.game.state, self.game.state.turn):
             king = next((p for p in self.game.state.pieces if p.type is PieceType.KING and p.color is self.game.state.turn), None)
             if king:
-                pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / 24)))
+                pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / CHECK_PULSE_FRAMES)))
                 self._mark(painter, king.position, left, top, cw, ch, QColor(190, 28, 28, pulse), .47)
         if self.selected and self.show_selection:
             self._mark(painter, self.selected, left, top, cw, ch, QColor(221, 166, 40, 145), .48)
@@ -460,7 +470,7 @@ class BoardWidget(QWidget):
                      if p.type is PieceType.KING and p.color is self.game.state.turn), None)
         if king is None:
             return
-        pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / 24)))
+        pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / CHECK_PULSE_FRAMES)))
         painter.save()
         painter.setPen(QColor(190, 28, 28, min(255, pulse + 40)))
         painter.setFont(QFont(theme.UI_FONT, max(14, int(min(cw, ch) * .22)), QFont.Weight.Bold))
@@ -485,7 +495,7 @@ class BoardWidget(QWidget):
     def _draw_animation(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         if self.animation_target is None:
             return
-        progress = min(1.0, self.animation_frame / 14)
+        progress = min(1.0, self.animation_frame / ANIMATION_FRAMES)
         if self.animation_source is not None:
             source = self._view_position(self.animation_source)
             target = self._view_position(self.animation_target)

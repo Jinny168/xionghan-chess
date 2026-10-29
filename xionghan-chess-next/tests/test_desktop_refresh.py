@@ -178,3 +178,25 @@ def test_autosave_respects_config(window, recorded, monkeypatch: pytest.MonkeyPa
     window.refresh()
     assert recorded["autosave"] == 0
     assert recorded["stats"] == 1, "关掉自动存档不影响战绩落盘"
+
+
+def test_banner_prefixes_check_state(window, monkeypatch: pytest.MonkeyPatch) -> None:
+    """被将时横幅要写「将军 · 红方行棋」——盘内那两个字常被棋子盖住。"""
+    monkeypatch.setattr(window, "_check_state", lambda state: True)
+    window.refresh()
+    assert window.banner.text().startswith("将军 · "), window.banner.text()
+
+    monkeypatch.setattr(window, "_check_state", lambda state: False)
+    window.refresh()
+    assert "将军" not in window.banner.text()
+
+
+def test_banner_prefixes_check_state(window, monkeypatch: pytest.MonkeyPatch) -> None:
+    """被将时横幅要写「将军 · 红方行棋」——盘内那两个字常被棋子盖住。"""
+    monkeypatch.setattr(window, "_check_state", lambda state: True)
+    window.refresh()
+    assert window.banner.text().startswith("将军 · "), window.banner.text()
+
+    monkeypatch.setattr(window, "_check_state", lambda state: False)
+    window.refresh()
+    assert "将军" not in window.banner.text()

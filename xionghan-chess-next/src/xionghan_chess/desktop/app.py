@@ -697,7 +697,7 @@ class MainWindow(QMainWindow):
                      color=t("common.red" if state.turn is Color.RED else "common.black", lang))
             # 将军提到横幅：盘内那两个字在九宫附近常被棋子盖住，横幅是最稳的位置。
             # 用现成的 `status.check` + `status.turn` 拼接（两词条中英都已存在）。
-            if self.game.rules.in_check(state, state.turn):
+            if self._check_state(state):
                 text = f"{t('status.check', lang)} · {text}"
         # S2-7 配套：题目模式下横幅要说明「在练哪道题、走到第几手」——
         # 否则玩家分不清这是普通对局还是残局训练。
@@ -709,19 +709,27 @@ class MainWindow(QMainWindow):
         if self.banner.text() != text:
             self.banner.setText(text)
 
-    def _pulse_check_if_needed(self, state: GameState) -> None:
-        """将军时闪一下棋盘。
+    def _check_state(self, state: GameState) -> bool:
+        """轮到的一方是否被将（**同一局面只算一次**，横幅与脉冲共用）。
 
-        `in_check()` 要全盘扫描，不能每 250ms 跑一次 —— 只在「局面可能变了」
-        （走子数/轮到谁/棋子数/暂停/终局）时才真的去算。
+        `in_check()` 是全盘扫描（`capturable_squares`），不能每 250ms 跑一次：
+        只在「局面可能变了」（走子数 / 轮到谁 / 棋子数 / 暂停 / 终局）时才真的去算。
+        横幅和棋盘脉冲都要这个结论，所以收成一个入口，避免算两遍。
         """
         signature = (len(state.history), state.turn.value, len(state.pieces),
                      state.paused, state.finished)
-        if signature == self._last_check_signature:
-            return
-        self._last_check_signature = signature
-        if not state.finished and self.game.rules.in_check(state, state.turn):
-            self.board.pulse_check()
+        if signature != self._last_check_signature:
+            self._last_check_signature = signature
+            self._last_check_value = (not state.finished
+                                      and self.game.rules.in_check(state, state.turn))
+            # 只在「新局面上第一次判定为将军」时闪一次，同一局面反复 refresh 不重复触发。
+            if self._last_check_value:
+                self.board.pulse_check()
+        return self._last_check_value
+
+    def _pulse_check_if_needed(self, state: GameState) -> None:
+        """将军时闪一下棋盘（判定与缓存都在 `_check_state` 里）。"""
+        self._check_state(state)
 
     def _update_player_labels(self, state: GameState, lang: str) -> None:
         for color, label in ((Color.RED, self.red), (Color.BLACK, self.black)):
@@ -826,6 +834,7 @@ class MainWindow(QMainWindow):
         都要调它。
         """
         self._last_check_signature = None
+        self._last_check_value = False
         self._last_history_key = None
         self._last_captured_key = None
         self._last_board_key = None

@@ -98,3 +98,41 @@ def test_pause_overlay_stays_on_top(qt_app: QApplication) -> None:
     """暂停遮罩仍然盖住一切（含动画）—— 暂停是「停下」，不该露出动画。"""
     paused_image, board = render(locked=False, paused=True)
     assert ring_pixel(paused_image, board) != RING_COLOR, "暂停遮罩应当压在动画之上"
+
+
+# ---------------------------------------------------------------------------
+# 落子指示的时长：550ms / 16ms（原来 350ms / 25ms，肉眼只有 ~9 帧）
+# ---------------------------------------------------------------------------
+def test_animation_duration_is_about_450ms(qt_app: QApplication) -> None:
+    """23 帧 × 20ms = 460ms：够看清落子方向，又落在单帧 20ms 预算内。
+
+    取这一档而不是 550ms/16ms，是因为实测 900×900 单帧 max 14.3ms（超 12ms 掉帧线）、
+    1470px p95 已 16.2ms —— 20ms 定时器下两个尺寸都在预算内。
+    """
+    from xionghan_chess.desktop.ui.board_widget import ANIMATION_FRAMES, ANIMATION_TIMER_MS
+
+    assert ANIMATION_TIMER_MS == 20
+    duration = ANIMATION_FRAMES * ANIMATION_TIMER_MS
+    assert 420 <= duration <= 500, f"落子指示时长 {duration}ms 不在 460±40 内"
+    assert duration > 350, "时长必须比改前的 350ms 更久（原来只有 ~9 个可见帧）"
+
+
+def test_animation_stops_after_the_last_frame(qt_app: QApplication) -> None:
+    """跑满帧数后必须清掉动画状态；脉冲走完后定时器必须停（不得常驻）。"""
+    from xionghan_chess.desktop.ui.board_widget import (
+        ANIMATION_FRAMES, CHECK_PULSE_FRAMES, BoardWidget as Widget,
+    )
+
+    game = Game("web")
+    board = Widget()
+    board.resize(SIZE, SIZE)
+    board.set_game(game, Color.RED, True)
+    board.animations_enabled = True
+    board.animation_source = Position(6, 6)
+    board.animation_target = Position(5, 6)
+    board.animation_frame = 0
+    board.animation_timer.start()
+    for _ in range(max(ANIMATION_FRAMES, CHECK_PULSE_FRAMES) + 2):
+        board._advance_animation()
+    assert board.animation_target is None and board.animation_source is None
+    assert not board.animation_timer.isActive(), "动画结束后定时器必须停"
