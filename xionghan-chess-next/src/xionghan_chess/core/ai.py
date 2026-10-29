@@ -146,7 +146,9 @@ class ChessAI:
         self.evaluation_cache: dict[tuple[str, Color], float] = {}
         self.see_cache: dict[tuple[str, str], int] = {}
         self.principal_move: Move | None = None
-        self.root_scores: list[tuple[float, Move]] = []
+        # (score, move, truncated)：第三项是「该根着法这一轮的分数是否残缺」，
+        # 只用于告诉迭代加深「别拿它当窗口中心」，**不参与判罚**（判罚仍看候选是否为 None）。
+        self.root_scores: list[tuple[float, Move, bool]] = []
         self.completed_depth = 0
         self.nodes = 0
         self.qnodes = 0
@@ -158,6 +160,7 @@ class ChessAI:
         self.quiescence_depth = CONFIGS[self.difficulty].quiescence_depth
         # 被 QUIESCENCE_NODE_LIMIT 截断的次数（诊断/测试用，不进 UI）
         self.quiescence_truncations = 0
+        self.no_candidate_fallbacks = 0
         self._qnode_base = 0
         self._qnode_truncated = False
 
@@ -185,6 +188,7 @@ class ChessAI:
         self.nodes = self.qnodes = self.see_calls = 0
         self.null_prunes = self.lmr_researches = 0
         self.quiescence_truncations = 0
+        self.no_candidate_fallbacks = 0
         legal = game.rules.legal_moves(game.state)
         if not legal:
             return None
@@ -210,8 +214,12 @@ class ChessAI:
                     best = candidate
                     self.principal_move = candidate
                     self.completed_depth = depth
-                    previous_score = score
-                    search_moves = [move for _, move in self.root_scores[:cfg.root_limit]]
+                    # 窗口中心只允许被**完整分**推动：残缺分只是下界，拿它当
+                    # `previous_score` 会把 aspiration 窗口带偏 → 更多 re-search →
+                    # 预算被吃 → 深度更低 → 更多残缺分（正反馈）。
+                    complete = [item[0] for item in self.root_scores if not item[2]]
+                    previous_score = max(complete) if complete else None
+                    search_moves = [item[1] for item in self.root_scores[:cfg.root_limit]]
                 if abs(score) >= VALUES[PieceType.KING]:
                     break
         except SearchTimeout:
@@ -220,8 +228,8 @@ class ChessAI:
         self._active_cancel = None
         if cfg.randomness and self.root_scores and self.random.random() < cfg.randomness:
             best_score = self.root_scores[0][0]
-            candidates = [move for score, move in self.root_scores[:cfg.candidate_count]
-                          if best_score - score <= 90]
+            candidates = [item[1] for item in self.root_scores[:cfg.candidate_count]
+                          if best_score - item[0] <= 90]
             if len(candidates) > 1:
                 return self.random.choice(candidates)
         return best
@@ -232,7 +240,7 @@ class ChessAI:
         ordered = self._order(game, moves, self.principal_move)
         ordered = sorted(ordered, key=lambda move: self._root_bias(game, move) < -100)
         best_score, best_move = -math.inf, None
-        scores: list[tuple[float, Move]] = []
+        scores: list[tuple[float, Move, bool]] = []
         for move in ordered:
             self._guard(deadline, cancel)
             # `_qnode_truncated` 是**粘性**的：本根着法的任意一次静态搜索被截断，
@@ -240,20 +248,25 @@ class ChessAI:
             self._qnode_truncated = False
             child = Game.from_state(game.rules.apply_unchecked(game.state, move), game.options, game.setup)
             score = -self._search(child, depth - 1, -beta, -alpha, deadline, cancel, 1)
-            scores.append((score, move))
-            # 静态搜索被截断的根着法，分数只是"够用的下界"，不能拿去当最终选择。
-            if self._qnode_truncated:
+            truncated = self._qnode_truncated
+            scores.append((score, move, truncated))
+            # 判罚逻辑**不动**：被截断的根着法只是"不能夺标"（见下），
+            # 但它的分数也**不许**抬高 alpha / 触发 beta 截断 —— 否则一个偏高的
+            # 残缺分会让后续更好的着法被提前切掉，而且从选点上看不出来。
+            if truncated:
                 if score > best_score:
                     best_score = score
             else:
                 if score > best_score:
                     best_score, best_move = score, move
-            alpha = max(alpha, score)
-            if alpha >= beta:
-                break
+                alpha = max(alpha, score)
+                if alpha >= beta:
+                    break
         self.root_scores = sorted(scores, key=lambda item: item[0], reverse=True)
         if best_move is None and ordered:
             # 全部根着法都被截断：退回排序首着（= 初始序的第一手），不拿残缺分数赌。
+            # 这条兜底不该经常发生 —— 打点出来，事后才有线索（否则只表现为"某步下得怪"）。
+            self.no_candidate_fallbacks += 1
             return self.root_scores[0][0] if self.root_scores else -math.inf, ordered[0]
         return best_score, best_move
 

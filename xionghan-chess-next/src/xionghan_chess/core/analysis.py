@@ -52,7 +52,7 @@ def analyze_game(game: Game, difficulty: Difficulty | str = Difficulty.BEGINNER,
         position = Game.from_state(state, game.options, game.setup)
         engine = ChessAI(difficulty, seed=0)
         best = engine.choose_move(position)
-        scores = {move.key(): int(round(score)) for score, move in engine.root_scores}
+        scores = {move.key(): int(round(score)) for score, move, _truncated in engine.root_scores}
         best_score = max(scores.values(), default=0)
         actual_score = scores.get(record.move.key(), best_score if best == record.move else best_score - 400)
         loss = max(0, best_score - actual_score)
