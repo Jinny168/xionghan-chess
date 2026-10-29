@@ -12,8 +12,8 @@ import math
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
-    QBrush, QColor, QFont, QMouseEvent, QPainter, QPaintEvent, QPen, QPixmap,
-    QRadialGradient,
+    QBrush, QColor, QFont, QFontMetricsF, QMouseEvent, QPainter, QPaintEvent, QPainterPath,
+    QPen, QPixmap, QRadialGradient,
 )
 from PySide6.QtWidgets import QWidget
 
@@ -400,7 +400,16 @@ class BoardWidget(QWidget):
         painter.restore()
 
     def _draw_star_points(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
-        """Draw only endpoints that belong to the reachable weak-archer lattice."""
+        """Draw only endpoints that belong to the reachable weak-archer lattice.
+
+        **选中棋子时，跳过它可走点所在的格子**：射的最远落点恰好落在一个星位上
+        （星位判定 `row%3==0 && col//3...`，`_nearest_archer_star_distance` 决定最远格 =
+        星位），而星位是四条斜向短刻线、可走点是半透明圆 —— 刻线从圆里透出来，
+        那一格就变成"一个星号"，整条落点线在第三格"断了"，看起来只有两个落点。
+        隐藏的是**该格的刻线**，星位本身的位置与尺寸不动。
+        """
+        covered = ({move.target for move in self.legal}
+                   if self.selected is not None and self.show_legal_targets else frozenset())
         inner = min(cw, ch) * .07
         outer = min(cw, ch) * .18
         painter.save()
@@ -408,6 +417,8 @@ class BoardWidget(QWidget):
         painter.setPen(QPen(color, 1.25))
         for point in sorted(self.game.rules.archer_star_points,
                             key=lambda item: (item.row, item.col)):
+            if point in covered:
+                continue
             center = QPointF(left + point.col * cw, top + point.row * ch)
             for sx, sy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
                 painter.drawLine(
@@ -471,12 +482,19 @@ class BoardWidget(QWidget):
         if king is None:
             return
         pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / CHECK_PULSE_FRAMES)))
-        painter.save()
-        painter.setPen(QColor(190, 28, 28, min(255, pulse + 40)))
-        painter.setFont(QFont(theme.UI_FONT, max(14, int(min(cw, ch) * .22)), QFont.Weight.Bold))
+        font = QFont(theme.UI_FONT, max(14, int(min(cw, ch) * .22)), QFont.Weight.Bold)
+        text = t("status.check", self.language)
         shown = self._view_position(king.position)
-        painter.drawText(QPointF(left + shown.col * cw,
-                                 top + shown.row * ch - min(cw, ch) * .55), t("status.check", self.language))
+        baseline = QPointF(left + shown.col * cw, top + shown.row * ch - min(cw, ch) * .55)
+        # 描边：红字直接压在棋子圆面上会糊成一片；先描一圈浅色再把红字填进去。
+        metrics = QFontMetricsF(font)
+        path = QPainterPath()
+        path.addText(QPointF(baseline.x() - metrics.horizontalAdvance(text) / 2,
+                             baseline.y()), font, text)
+        painter.save()
+        painter.setBrush(QColor(190, 28, 28, min(255, pulse + 40)))
+        painter.setPen(QPen(QColor(255, 252, 245, 235), max(2.0, min(cw, ch) * .045)))
+        painter.drawPath(path)
         painter.restore()
 
     def _draw_capture_hints(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:

@@ -688,6 +688,9 @@ class MainWindow(QMainWindow):
         self._settle_finished(state, lang)
 
     def _update_banner(self, state: GameState, lang: str) -> None:
+        # 优先级**写死**：终局 > 暂停 > 将军 > 行棋。
+        # 将军前缀只在 `state.turn` 的一方被将时出现，判断走 `_check_state()` 的
+        # 盘面指纹缓存 —— 解开将军后的第一次 refresh 就已经是 False，不会残留一帧。
         if state.finished:
             text = t("status.game_over", lang)
         elif state.paused:
@@ -716,8 +719,10 @@ class MainWindow(QMainWindow):
         只在「局面可能变了」（走子数 / 轮到谁 / 棋子数 / 暂停 / 终局）时才真的去算。
         横幅和棋盘脉冲都要这个结论，所以收成一个入口，避免算两遍。
         """
-        signature = (len(state.history), state.turn.value, len(state.pieces),
-                     state.paused, state.finished)
+        # 签名里必须含**盘面指纹**（不能只看走子数/子数）：将军可能在"子数不变、
+        # 走子数不变"的情况下被解开（例如同一次结算里挪动了子、或回放/编辑直接改盘面）。
+        # `position_key` 是纯字符串拼接，62 枚子约 20µs，远低于 `in_check` 的 0.4ms。
+        signature = (self.game.rules.position_key(state), state.paused, state.finished)
         if signature != self._last_check_signature:
             self._last_check_signature = signature
             self._last_check_value = (not state.finished

@@ -121,3 +121,91 @@ def test_no_dot_beyond_a_blocker(qt_app: QApplication) -> None:
     assert not has_dot(Position(3, 6)), "(行3,列6) 被己方兵挡住，不该有点"
     assert not has_dot(Position(1, 6)), "(行1,列6) 在阻挡之后，不该有点"
     assert all(move.target != Position(3, 6) for move in legal)
+
+
+# ---------------------------------------------------------------------------
+# 3) 选中时，可走点所在格的星位刻线必须藏起来
+# ---------------------------------------------------------------------------
+def _tick_pixel(image: QImage, board: BoardWidget, position: Position) -> tuple[int, int, int, int]:
+    """星位刻线**外端**的取样点：距格心 0.17 cell 的对角方向。
+
+    可走点半径是 0.13 cell，这个位置在圆外，所以像素只反映"有没有刻线"。
+    """
+    _rect, left, top, cw, ch = board._geometry()
+    shown = board._view_position(position)
+    offset = 0.17 * min(cw, ch)
+    return image.pixelColor(int(left + shown.col * cw + offset),
+                            int(top + shown.row * ch + offset)).getRgb()
+
+
+def test_star_ticks_are_hidden_under_legal_targets(qt_app: QApplication) -> None:
+    """射的最远落点恰好是星位：不藏刻线的话，那一格会变成"一个星号"。
+
+    验收两条：选中时**没有**刻线；取消选中后刻线**回来**（防止永久删掉）。
+    """
+    game = Game("desktop_complete")
+    archer = next(piece for piece in game.state.pieces
+                  if piece.type is PieceType.ARCHER and piece.color is Color.RED
+                  and piece.position.col == 0)
+    legal = [move for move in game.rules.legal_moves(game.state) if move.source == archer.position]
+    stars = game.rules.archer_star_points
+    on_star = [move.target for move in legal if move.target in stars]
+    assert on_star, "这个局面里射的最远落点应当正好落在星位上"
+
+    board = make_board("classic", game.state.pieces, legal)
+    board.selected = archer.position
+    selected = render(board)
+    board.selected = None
+    restored = render(board)
+
+    target = on_star[0]
+    assert _tick_pixel(selected, board, target) != _tick_pixel(restored, board, target), \
+        "选中时该格的星位刻线应当被隐藏"
+    # 控制组：另一个星位（不是可走点）刻线必须还在
+    other = next(point for point in sorted(stars) if point not in {move.target for move in legal})
+    assert _tick_pixel(selected, board, other) == _tick_pixel(restored, board, other), \
+        "不相干的星位不该被隐藏"
+
+
+# ---------------------------------------------------------------------------
+# 3) 选中时，可走点所在格的星位刻线必须藏起来
+# ---------------------------------------------------------------------------
+def _tick_pixel(image: QImage, board: BoardWidget, position: Position) -> tuple[int, int, int, int]:
+    """星位刻线**外端**的取样点：距格心 0.17 cell 的对角方向。
+
+    可走点半径是 0.13 cell，这个位置在圆外，所以像素只反映"有没有刻线"。
+    """
+    _rect, left, top, cw, ch = board._geometry()
+    shown = board._view_position(position)
+    offset = 0.17 * min(cw, ch)
+    return image.pixelColor(int(left + shown.col * cw + offset),
+                            int(top + shown.row * ch + offset)).getRgb()
+
+
+def test_star_ticks_are_hidden_under_legal_targets(qt_app: QApplication) -> None:
+    """射的最远落点恰好是星位：不藏刻线的话，那一格会变成"一个星号"。
+
+    验收两条：选中时**没有**刻线；取消选中后刻线**回来**（防止永久删掉）。
+    """
+    game = Game("desktop_complete")
+    archer = next(piece for piece in game.state.pieces
+                  if piece.type is PieceType.ARCHER and piece.color is Color.RED
+                  and piece.position.col == 0)
+    legal = [move for move in game.rules.legal_moves(game.state) if move.source == archer.position]
+    stars = game.rules.archer_star_points
+    on_star = [move.target for move in legal if move.target in stars]
+    assert on_star, "这个局面里射的最远落点应当正好落在星位上"
+
+    board = make_board("classic", game.state.pieces, legal)
+    board.selected = archer.position
+    selected = render(board)
+    board.selected = None
+    restored = render(board)
+
+    target = on_star[0]
+    assert _tick_pixel(selected, board, target) != _tick_pixel(restored, board, target), \
+        "选中时该格的星位刻线应当被隐藏"
+    # 控制组：另一个星位（不是可走点）刻线必须还在
+    other = next(point for point in sorted(stars) if point not in {move.target for move in legal})
+    assert _tick_pixel(selected, board, other) == _tick_pixel(restored, board, other), \
+        "不相干的星位不该被隐藏"

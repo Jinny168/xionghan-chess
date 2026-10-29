@@ -200,3 +200,59 @@ def test_banner_prefixes_check_state(window, monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(window, "_check_state", lambda state: False)
     window.refresh()
     assert "将军" not in window.banner.text()
+
+
+def test_banner_check_prefix_clears_on_the_same_refresh(window) -> None:
+    """解开将军后的**第一次** refresh 横幅就不能再有「将军」。
+
+    这里刻意让"子数、走子数都不变"，只把车挪到不将军的位置 ——
+    只按 (走子数/子数) 做缓存签名会残留一帧，故 `_check_state` 用盘面指纹。
+    """
+    from xionghan_chess.core.model import Piece, PieceType, Position
+
+    game = window.game
+    game.state.pieces = [
+        Piece.create(PieceType.KING, Color.BLACK, 1, 6),
+        Piece.create(PieceType.KING, Color.RED, 12, 0),   # 不能与黑将同列（会"照面"）
+        Piece.create(PieceType.ROOK, Color.RED, 1, 9),   # 沿第 1 行将军
+    ]
+    game.state.turn = Color.BLACK
+    window._reset_ui_cache()
+    window.refresh()
+    assert window.banner.text().startswith("将军 · "), window.banner.text()
+
+    # 车挪到不将军的格子：子数与走子数都不变
+    before = (len(game.state.pieces), len(game.state.history))
+    game.state.pieces = [piece.at(Position(12, 9)) if piece.type is PieceType.ROOK else piece
+                         for piece in game.state.pieces]   # 挪到第 12 行，不再照将
+    assert (len(game.state.pieces), len(game.state.history)) == before
+    window.refresh()
+    assert "将军" not in window.banner.text(), f"将军解除后仍有残留：{window.banner.text()}"
+
+
+def test_banner_check_prefix_clears_on_the_same_refresh(window) -> None:
+    """解开将军后的**第一次** refresh 横幅就不能再有「将军」。
+
+    这里刻意让"子数、走子数都不变"，只把车挪到不将军的位置 ——
+    只按 (走子数/子数) 做缓存签名会残留一帧，故 `_check_state` 用盘面指纹。
+    """
+    from xionghan_chess.core.model import Piece, PieceType, Position
+
+    game = window.game
+    game.state.pieces = [
+        Piece.create(PieceType.KING, Color.BLACK, 1, 6),
+        Piece.create(PieceType.KING, Color.RED, 12, 0),   # 不能与黑将同列（会"照面"）
+        Piece.create(PieceType.ROOK, Color.RED, 1, 9),   # 沿第 1 行将军
+    ]
+    game.state.turn = Color.BLACK
+    window._reset_ui_cache()
+    window.refresh()
+    assert window.banner.text().startswith("将军 · "), window.banner.text()
+
+    # 车挪到不将军的格子：子数与走子数都不变
+    before = (len(game.state.pieces), len(game.state.history))
+    game.state.pieces = [piece.at(Position(12, 9)) if piece.type is PieceType.ROOK else piece
+                         for piece in game.state.pieces]   # 挪到第 12 行，不再照将
+    assert (len(game.state.pieces), len(game.state.history)) == before
+    window.refresh()
+    assert "将军" not in window.banner.text(), f"将军解除后仍有残留：{window.banner.text()}"
