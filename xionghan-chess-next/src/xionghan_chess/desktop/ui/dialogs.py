@@ -55,7 +55,18 @@ class SettingsDialog(QDialog):
         self.language_select=QComboBox();self.language_select.addItem(t("language.zh-CN", self.language),"zh-CN");self.language_select.addItem(t("language.en", self.language),"en");self.language_select.setCurrentIndex(max(0,self.language_select.findData(self.language)))
         self.game_mode=QComboBox();self.game_mode.addItem(t("mode.ai", self.language),"ai");self.game_mode.addItem(t("mode.local_full", self.language),"local");self.game_mode.setCurrentIndex(max(0,self.game_mode.findData(config.get("game_mode","ai"))))
         self.difficulty=QComboBox();[(self.difficulty.addItem(t(f"difficulty.{value}", self.language),value)) for value in ("beginner","easy","medium","hard","master")]
-        self.difficulty.setCurrentIndex(max(0,self.difficulty.findData(config["difficulty"])))
+        # 未知档位（旧档 / 手改 / 将来并档）**显式回落**到默认，并把原值作为不可选条目
+        # 显示出来。原来的 `max(0, findData(...))` 会静默落到「入门」——并档那天就成了
+        # 「所有高级玩家无声降级」，而且用户在界面上看不出任何异样。
+        self._unknown_difficulty = self.difficulty.findData(config["difficulty"]) < 0
+        if self._unknown_difficulty:
+            self.difficulty.insertItem(
+                0, dlf("未知档位「{name}」，已回落到默认", name=str(config["difficulty"])),
+                config["difficulty"])
+            self.difficulty.model().item(0).setEnabled(False)
+            self.difficulty.setCurrentIndex(max(0, self.difficulty.findData("medium")))
+        else:
+            self.difficulty.setCurrentIndex(max(0, self.difficulty.findData(config["difficulty"])))
         self.color=QComboBox();self.color.addItem(t("option.red_first", self.language),"red");self.color.addItem(t("option.black_second", self.language),"black");self.color.setCurrentIndex(max(0,self.color.findData(config["human_color"])))
         self.first_move=QComboBox();self.first_move.addItem(t("desktop.first_red",self.language),"red");self.first_move.addItem(t("desktop.first_black",self.language),"black");self.first_move.addItem(t("desktop.first_random",self.language),"random");self.first_move.setCurrentIndex(max(0,self.first_move.findData(config.get("first_move","red"))))
         self.minutes=QSpinBox();self.minutes.setRange(1,180);self.minutes.setValue(config["initial_minutes"])

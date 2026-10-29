@@ -192,6 +192,7 @@ TEMPLATES: dict[str, str] = {
     "{ply}. {notation}  · {quality}  · 损失 {loss}": "{ply}. {notation}  · {quality}  · loss {loss}",
     "第 {step} / {total} 步 · {notation}": "Move {step} / {total} · {notation}",
     "背景 {index}": "Background {index}",
+    "未知档位「{name}」，已回落到默认": "Unknown level “{name}” — reverted to the default",
     "{exc}\n\n文件：{path}": "{exc}\n\nFile: {path}",
     "对局结束": "Game over",
 }
