@@ -287,16 +287,21 @@ class BoardWidget(QWidget):
         self._draw_marks(painter, left, top, cw, ch)
         for piece in self.game.state.pieces:
             self._draw_piece(painter, piece, left, top, cw, ch)
+        # 「思索中」遮罩必须画在**棋子之后、走子动画之前**：
+        # `human_move` 落子后立刻 `start_ai()`，于是玩家自己这一手的 350ms 动画
+        # 全程处在 `locked=True` 状态。若遮罩压在动画上，玩家看到的是"我落子没反馈、
+        # AI 落子有反馈"——观感差异全来自绘制顺序，与动画本身无关。
+        # 遮罩的颜色/文案/透明度一个字都没改，只调顺序。
+        if self.locked:
+            painter.fillRect(rect, QColor(30, 25, 20, 90))
+            painter.setPen(QColor("white")); painter.setFont(QFont(theme.UI_FONT, 18, QFont.Weight.Bold))
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, t("status.thinking_desktop", self.language))
         self._draw_capture_hints(painter, left, top, cw, ch)
         self._draw_animation(painter, left, top, cw, ch)
         if self.game.state.paused:
             painter.fillRect(rect, QColor(30, 25, 20, 150))
             painter.setPen(QColor("white")); painter.setFont(QFont(theme.UI_FONT, 19, QFont.Weight.Bold))
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, f"{t('status.paused', self.language)}\n{t('status.timer_stopped', self.language)}")
-        if self.locked:
-            painter.fillRect(rect, QColor(30, 25, 20, 90))
-            painter.setPen(QColor("white")); painter.setFont(QFont(theme.UI_FONT, 18, QFont.Weight.Bold))
-            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, t("status.thinking_desktop", self.language))
 
     def _geometry(self) -> tuple[float, float, float, float]:
         bounds = self.rect().adjusted(13, 13, -13, -13)
