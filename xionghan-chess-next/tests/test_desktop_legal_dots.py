@@ -1,0 +1,123 @@
+"""可走点（空位落点）的可见性与边界。
+
+## 两条判据
+
+1. **可见性**：点色与棋盘底色的**绿通道差 ≥ 40**。低于 40 在 13×13 上基本看不见。
+   这条判据是有来历的：深色主题旧做法（深绿 `#315c48` @.72 混在 `#34302b` 上）
+   绿差只有 **+32**，一律不达标 —— 那不是新回归，是存量问题。
+2. **不越界**：有子阻挡处不得出现可走点。点画多了等于骗玩家"这格能走"。
+
+颜色按主题取（浅色四主题用该主题 accent、深色用浅灰绿 `#9fbfa8`），
+`board.legal_dot_color()` 是唯一来源，这里直接读它做混合，避免"量渲染像素"时
+被格线颜色干扰（点正好压在格线交点上）。
+"""
+
+from __future__ import annotations
+
+import pytest
+
+pytest.importorskip("PySide6", reason="棋盘渲染依赖 PySide6")
+
+from PySide6.QtGui import QColor, QImage, QPixmap  # noqa: E402
+from PySide6.QtWidgets import QApplication  # noqa: E402
+
+from xionghan_chess.core.game import Game  # noqa: E402
+from xionghan_chess.core.model import Color, Move, Piece, PieceType, Position  # noqa: E402
+from xionghan_chess.desktop.ui import theme  # noqa: E402
+from xionghan_chess.desktop.ui.board_widget import BoardWidget  # noqa: E402
+
+SIZE = 620
+THEMES = ("classic", "green", "blue", "purple", "dark")
+
+
+@pytest.fixture(scope="module")
+def qt_app() -> QApplication:
+    app = QApplication.instance() or QApplication([])
+    theme.load_bundled_fonts()
+    return app
+
+
+def make_board(theme_name: str, pieces: list[Piece], legal: list[Move] | None = None) -> BoardWidget:
+    game = Game("desktop_complete")
+    game.state.pieces = list(pieces)
+    board = BoardWidget()
+    board.resize(SIZE, SIZE)
+    board.set_game(game, Color.RED, True)
+    board.set_appearance(theme_name, "none", "traditional", "glyph")
+    board.legal = list(legal or [])
+    board.show_legal_targets = True
+    return board
+
+
+def render(board: BoardWidget) -> QImage:
+    canvas = QPixmap(SIZE, SIZE)
+    canvas.fill(QColor("white"))
+    board.render(canvas)
+    return canvas.toImage()
+
+
+def centre(board: BoardWidget, position: Position) -> tuple[int, int]:
+    _rect, left, top, cw, _ch = board._geometry()
+    shown = board._view_position(position)
+    return int(left + shown.col * cw), int(top + shown.row * cw)
+
+
+# ---------------------------------------------------------------------------
+# 1) 可见性：点色 vs 盘底色 的绿通道差
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("theme_name", THEMES)
+def test_legal_dot_contrast_on_every_theme(qt_app: QApplication, theme_name: str) -> None:
+    board = make_board(theme_name, [Piece.create(PieceType.KING, Color.RED, 11, 6)])
+    dot = board.legal_dot_color()
+    board_background = QColor(theme.THEMES[theme_name]["board"])
+
+    alpha = dot.alphaF()
+    blended_green = alpha * dot.green() + (1 - alpha) * board_background.green()
+    delta = abs(blended_green - board_background.green())
+    assert delta >= 40, (
+        f"{theme_name}: 点色 {dot.getRgb()} 混到盘底 {board_background.name()} 上，"
+        f"绿通道只差 {delta:.0f}（要求 ≥40）")
+
+
+def test_dark_theme_dot_is_lighter_not_redder(qt_app: QApplication) -> None:
+    """深色主题的点必须是**浅灰绿**：不能让 red 通道压过 green（否则像可吃红叉）。"""
+    board = make_board("dark", [Piece.create(PieceType.KING, Color.RED, 11, 6)])
+    dot = board.legal_dot_color()
+    assert (dot.red(), dot.green(), dot.blue()) == (0x9F, 0xBF, 0xA8)
+    assert dot.green() > dot.red(), "深色主题的点应是灰绿，不应偏红"
+
+
+# ---------------------------------------------------------------------------
+# 2) 不越界：有子阻挡处不得画点
+# ---------------------------------------------------------------------------
+def test_no_dot_beyond_a_blocker(qt_app: QApplication) -> None:
+    """车在 (行6,列6)，同列 (行4,列6) 有己方兵挡路：
+
+    可达 (行5,列6)；(行3,列6) 与 (行1,列6) 在阻挡之后，必须没有点。
+    （注意坐标系是 `Position(row, col)`，车沿**列**移动。）
+    """
+    pieces = [
+        Piece.create(PieceType.KING, Color.RED, 11, 6),
+        Piece.create(PieceType.KING, Color.BLACK, 1, 1),
+        Piece.create(PieceType.ROOK, Color.RED, 6, 6),
+        Piece.create(PieceType.PAWN, Color.RED, 4, 6),   # 挡路的己方兵
+    ]
+    game = Game("desktop_complete")
+    game.state.pieces = list(pieces)
+    reachable = game.rules.legal_moves(game.state)
+    legal = [move for move in reachable if move.source == Position(6, 6)]
+    assert legal, "构造的局面里车应当有可走格"
+
+    board = make_board("classic", pieces, legal)
+    with_dots = render(board)
+    board.legal = []
+    without_dots = render(board)
+
+    def has_dot(position: Position) -> bool:
+        x, y = centre(board, position)
+        return with_dots.pixelColor(x, y) != without_dots.pixelColor(x, y)
+
+    assert has_dot(Position(5, 6)), "(行5,列6) 无人阻挡，应当有点"
+    assert not has_dot(Position(3, 6)), "(行3,列6) 被己方兵挡住，不该有点"
+    assert not has_dot(Position(1, 6)), "(行1,列6) 在阻挡之后，不该有点"
+    assert all(move.target != Position(3, 6) for move in legal)

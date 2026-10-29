@@ -48,6 +48,15 @@ FALLBACK_STYLE: dict[str, dict[str, object]] = {
     },
 }
 
+# 可走点（空位落点）的视觉参数。
+# 半径 `.13`（上限 .16）：再大会和 0.39 的棋子抢视觉，三格连点会连成"毛毛虫"。
+# 颜色按主题取：浅色四主题用**该主题的 accent**；深色主题必须换成浅灰绿，
+# 因为 dark 的 accent `#8e3b32` 是红色，会和"可吃红叉"混淆，且深绿在深底上直接消失。
+LEGAL_DOT_RATIO = 0.13
+LEGAL_DOT_ALPHA_LIGHT = 0.55
+LEGAL_DOT_ALPHA_DARK = 0.60
+LEGAL_DOT_DARK_RGB = (0x9F, 0xBF, 0xA8)   # #9fbfa8 浅灰绿
+
 GLYPH_MODE = "glyph"
 IMAGE_MODE = "image"
 PIECE_RENDER_MODES = (GLYPH_MODE, IMAGE_MODE)
@@ -173,6 +182,7 @@ class BoardWidget(QWidget):
         self.locked = False
         self.interactive = True
         self.theme = theme.THEMES["classic"]
+        self.theme_name = "classic"
         self.background = QPixmap()
         self.piece_style = "traditional"
         # `piece_render`：`glyph` = 1.7.0 的字形棋子（默认，逐像素不变）；
@@ -216,7 +226,8 @@ class BoardWidget(QWidget):
     def set_appearance(self, theme_name: str, background_name: str,
                        piece_style: str = "traditional",
                        piece_render: str = GLYPH_MODE) -> None:
-        self.theme = theme.THEMES.get(theme_name, theme.THEMES["classic"])
+        self.theme_name = theme_name if theme_name in theme.THEMES else "classic"
+        self.theme = theme.THEMES[self.theme_name]
         self.piece_style = piece_assets.normalize_style(piece_style)
         self.piece_render = piece_render if piece_render in PIECE_RENDER_MODES else GLYPH_MODE
         # 棋子美术的**唯一**预热点：换风格/换外观时才解码图片。
@@ -415,9 +426,31 @@ class BoardWidget(QWidget):
                 painter.restore()
         if self.selected and self.show_selection:
             self._mark(painter, self.selected, left, top, cw, ch, QColor(221, 166, 40, 145), .48)
+        # 空位落点：统一半径 .13、按主题取色（深色主题必须提亮，见 legal_dot_color）。
+        # **每个可走格都画**，不合并中间点——点同时承担"这格能点"的暗示，
+        # 合并等于宣称"中间不能停"，与事实冲突。
+        dot_color = self.legal_dot_color()
         for move in self.legal if self.show_legal_targets else ():
             target = self.game.state.piece_at(move.target)
-            self._mark(painter, move.target, left, top, cw, ch, QColor(148, 30, 30, 90) if target else QColor(43, 104, 72, 180), .4 if target else .1)
+            if target:
+                self._mark(painter, move.target, left, top, cw, ch, QColor(148, 30, 30, 90), .4)
+            else:
+                self._mark(painter, move.target, left, top, cw, ch, dot_color, LEGAL_DOT_RATIO)
+
+    def legal_dot_color(self) -> QColor:
+        """可走点的颜色：浅色主题 = 该主题 accent @.55；深色 = #9fbfa8 @.60。
+
+        判据是"与棋盘底色的绿通道差不低于 40"，否则 13×13 上根本看不见。
+        深色主题的旧做法（深绿 `#315c48` @.72 混在 `#34302b` 上）绿差只有 +32，
+        本来就不达标；换浅灰绿后约 +60。
+        """
+        if self.theme_name == "dark":
+            color = QColor(*LEGAL_DOT_DARK_RGB)
+            color.setAlphaF(LEGAL_DOT_ALPHA_DARK)
+            return color
+        color = QColor(self.theme["accent"])
+        color.setAlphaF(LEGAL_DOT_ALPHA_LIGHT)
+        return color
 
     def _draw_capture_hints(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         if not self.show_capture_hints:
