@@ -43,6 +43,9 @@ def silent_dialogs(monkeypatch: pytest.MonkeyPatch) -> dict[str, list]:
                         staticmethod(lambda *a, **k: calls["information"].append(a[1:3])))
     monkeypatch.setattr(QMessageBox, "question",
                         staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
+    # 结果弹窗已改为自定义按钮的 QMessageBox，`information` 不再是它的出口；
+    # 不 patch 这一层，终局用例会真的模态执行并挂住。
+    monkeypatch.setattr(appmod, "show_result_dialog", staticmethod(lambda *a, **k: False))
     return calls
 
 
@@ -75,12 +78,13 @@ def recorded(monkeypatch: pytest.MonkeyPatch, silent_dialogs) -> dict[str, int]:
         counts["autosave"] += 1
         return tmp_path_marker()
 
-    def fake_dialog(*args, **kwargs) -> None:
+    def fake_dialog(*args, **kwargs) -> bool:
         counts["dialog"] += 1
+        return False
 
     monkeypatch.setattr(appmod, "record_result", fake_record)
     monkeypatch.setattr(appmod, "autosave_game", fake_autosave)
-    monkeypatch.setattr(QMessageBox, "information", staticmethod(fake_dialog))
+    monkeypatch.setattr(appmod, "show_result_dialog", staticmethod(fake_dialog))
     return counts
 
 

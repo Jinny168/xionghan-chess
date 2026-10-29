@@ -50,9 +50,43 @@ from .ui import theme
 
 
 
+def build_result_dialog(parent: QWidget, title: str, text: str, lang: str,
+                        *, allow_again: bool) -> tuple[QMessageBox, QPushButton | None]:
+    """构建「对局结束」对话框，返回 `(对话框, 再来一局按钮)`。
+
+    单独抽出来有两个原因：
+    1. 测试要能在**不 exec** 的情况下检查按钮文案与角色；
+    2. `QMessageBox.information(...)` 是静态便捷函数，加不了自定义主按钮，
+       而右键 / Enter 两条入口都需要「再来一局」成为默认按钮。
+    """
+    box = QMessageBox(parent)
+    box.setWindowTitle(title)
+    box.setText(text)
+    box.setIcon(QMessageBox.Icon.Information)
+    again: QPushButton | None = None
+    if allow_again:
+        again = box.addButton(t("action.play_again", lang), QMessageBox.ButtonRole.AcceptRole)
+        box.setDefaultButton(again)
+    box.addButton(t("action.close", lang), QMessageBox.ButtonRole.RejectRole)
+    return box, again
+
+
+def show_result_dialog(parent: QWidget, title: str, text: str, lang: str,
+                       *, allow_again: bool) -> bool:
+    """展示结果对话框，返回用户是否点了「再来一局」。
+
+    ⚠️ 这是**模态**调用：测试必须 patch 这个函数（或 `build_result_dialog`），
+    否则 offscreen 下会永久挂住。原来测试 patch `QMessageBox.information`，
+    换成自定义按钮后那个 seam 不再成立，所以把它收敛到这一个函数上。
+    """
+    box, again = build_result_dialog(parent, title, text, lang, allow_again=allow_again)
+    box.exec()
+    return again is not None and box.clickedButton() is again
+
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
-        super().__init__();theme.load_bundled_fonts();self.config=load_config();set_language(self.config.get("language","zh-CN"));self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._shown_result=False
+        super().__init__();theme.load_bundled_fonts();self.config=load_config();set_language(self.config.get("language","zh-CN"));self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._shown_result=False;self._play_again_pending=False
         # P1-B：界面刷新快照（棋盘/棋谱/阵亡/将军），换局时必须清空
         self._reset_ui_cache()
         # 思考态读条：100ms 只负责让棋盘重绘，**start_ai 起、finish_ai 止**，不常驻。
@@ -121,9 +155,9 @@ class MainWindow(QMainWindow):
         chat_row=QHBoxLayout();self.chat_input=QLineEdit();self.chat_input.setMaxLength(80);self.chat_input.setPlaceholderText(dl("输入聊天内容"))
         self.chat_input.returnPressed.connect(self.send_chat);chat_send=QPushButton(dl("发送"));chat_send.clicked.connect(self.send_chat);chat_row.addWidget(self.chat_input,1);chat_row.addWidget(chat_send);chat_layout.addLayout(chat_row)
         side_tabs.addTab(record_page,t("panel.moves", lang));side_tabs.addTab(chat_page,t("panel.chat", lang));right.addWidget(side_tabs,1);right.addWidget(QLabel("阵亡子力" if lang!="en" else "Captured pieces"));right.addWidget(self.captured)
-        actions=QGridLayout();self.undo=QPushButton(t("action.undo", lang));self.undo.clicked.connect(self.undo_move);self.pause=QPushButton(t("action.pause", lang));self.pause.clicked.connect(self.toggle_pause);self.resign=QPushButton(t("action.resign", lang));self.resign.clicked.connect(self.resign_game);self.draw=QPushButton(t("action.draw", lang));self.draw.clicked.connect(self.draw_game);self.resurrect=QPushButton(t("action.resurrect", lang));self.resurrect.clicked.connect(self.resurrect_pawn)
+        actions=QGridLayout();self.undo=QPushButton(t("action.undo", lang));self.undo.clicked.connect(self.undo_move);self.pause=QPushButton(t("action.pause", lang));self.pause.clicked.connect(self.toggle_pause);self.resign=QPushButton(t("action.resign", lang));self.resign.clicked.connect(self.resign_game);self.draw=QPushButton(t("action.draw", lang));self.draw.clicked.connect(self.draw_game);self.resurrect=QPushButton(t("action.resurrect", lang));self.resurrect.clicked.connect(self.resurrect_pawn);self.again=QPushButton(t("action.play_again", lang));self.again.clicked.connect(self.trigger_play_again)
         self.flip=QPushButton(dl("↕ 翻转"));self.flip.clicked.connect(self.flip_board)
-        for i,b in enumerate((self.undo,self.pause,self.resign,self.draw,self.resurrect,self.flip)):actions.addWidget(b,i//2,i%2)
+        for i,b in enumerate((self.undo,self.pause,self.resign,self.draw,self.resurrect,self.flip,self.again)):actions.addWidget(b,i//2,i%2)
         right.addLayout(actions);split.addWidget(self.side);split.setSizes([850,300])
         self.apply_appearance()
 
@@ -823,6 +857,55 @@ class MainWindow(QMainWindow):
         self.draw.setEnabled(not state.finished and not state.paused)
         self.resign.setEnabled(not state.finished)
         self.resurrect.setEnabled(not state.finished and not state.paused)
+        again_text = t("action.play_again", lang)
+        if self.again.text() != again_text:
+            self.again.setText(again_text)
+        self.again.setEnabled(self.can_play_again() and not self._play_again_pending)
+
+    def can_play_again(self) -> bool:
+        """「再来一局」是否可用。
+
+        三种局面刻意不给这个入口：**残局题**（重开会丢掉题目会话）、
+        **联机局**（新局要双方重新进房，不是本地能决定的）、以及**未终局**。
+        """
+        if self.game is None or not self.game.state.finished:
+            return False
+        if self.puzzle_session is not None:
+            return False
+        if self.network:
+            return False
+        return True
+
+    def trigger_play_again(self) -> None:
+        """「再来一局」的唯一入口：右键、结果弹窗、Enter 都走这里。
+
+        - 连点保护：`_play_again_pending` 立刻置位，第二次点击直接被吃掉；
+        - **延迟到事件循环**再开新局：结果弹窗是在 `refresh()` 链上弹的，
+          直接在弹窗回调里 `new_game()` 会重入刷新。
+        """
+        if self._play_again_pending or not self.can_play_again():
+            return
+        self._play_again_pending = True
+        self.again.setEnabled(False)
+        QTimer.singleShot(0, self._play_again_now)
+
+    def _play_again_now(self) -> None:
+        self._play_again_pending = False
+        self.new_game()
+
+    def keyPressEvent(self, event: object) -> None:
+        """Enter / Return = 再来一局（仅终局、且没有模态框时）。
+
+        为什么不是 Ctrl+R：那是「复盘」的快捷键；Ctrl+N 仍是菜单的「新建」。
+        """
+        key = getattr(event, "key", lambda: None)()
+        if (key in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
+                and self.game is not None and self.game.state.finished
+                and QApplication.activeModalWidget() is None):
+            self.trigger_play_again()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def _settle_finished(self, state: GameState, lang: str) -> None:
         """终局三件事：战绩落盘、自动存档、结果弹窗。各只发生一次。
@@ -851,7 +934,10 @@ class MainWindow(QMainWindow):
             winner = (t("result.draw", lang) if state.draw else
                       t("result.victory", lang,
                         color=t("common.red" if state.winner is Color.RED else "common.black", lang)))
-            QMessageBox.information(self, t("dialog.result_title", lang), winner)
+            if show_result_dialog(self, t("dialog.result_title", lang), winner, lang,
+                                  allow_again=self.can_play_again()):
+                # 延迟一帧再开新局：本函数在 refresh 链上，直接调会重入
+                QTimer.singleShot(0, self.trigger_play_again)
 
     def _reset_ui_cache(self) -> None:
         """换了对局之后清掉刷新快照。

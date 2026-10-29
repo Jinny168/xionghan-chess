@@ -136,6 +136,8 @@ def test_progress_uses_config_time_limit(qt_app: QApplication) -> None:
 def window(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch, tmp_path):
     monkeypatch.setenv("APPDATA", str(tmp_path))
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
+    # 结果弹窗改为自定义按钮框后，静默点转移到 `show_result_dialog`（否则会真模态挂住）
+    monkeypatch.setattr(appmod, "show_result_dialog", staticmethod(lambda *a, **k: False))
     monkeypatch.setattr(QMessageBox, "warning", staticmethod(lambda *a, **k: None))
     monkeypatch.setattr(QMessageBox, "question",
                         staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))

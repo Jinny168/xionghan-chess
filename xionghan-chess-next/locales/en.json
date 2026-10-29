@@ -183,6 +183,8 @@
     "check": "Check"
   },
   "action": {
+    "close": "Close",
+    "play_again": "Play again",
     "start": "Start game",
     "start_new": "Start new game",
     "join": "Join",

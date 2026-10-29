@@ -88,6 +88,8 @@ def qt_app() -> QApplication:
 @pytest.fixture(autouse=True)
 def silent_dialogs(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
+    # 结果弹窗改为自定义按钮框后，静默点转移到 `show_result_dialog`（否则会真模态挂住）
+    monkeypatch.setattr(appmod, "show_result_dialog", staticmethod(lambda *a, **k: False))
     monkeypatch.setattr(QMessageBox, "question",
                         staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
 

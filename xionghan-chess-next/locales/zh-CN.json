@@ -183,6 +183,8 @@
     "check": "将军"
   },
   "action": {
+    "close": "关闭",
+    "play_again": "再来一局",
     "start": "开始对局",
     "start_new": "开始新对局",
     "join": "加入",
