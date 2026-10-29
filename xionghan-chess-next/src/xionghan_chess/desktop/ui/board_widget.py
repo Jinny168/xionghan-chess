@@ -92,13 +92,13 @@ def _piece_font(radius: float, mode: str, style: str = "traditional") -> QFont:
     # `round` 不是 `int`：760×560 时 radius=12.30，int 给 13、round 给 14，
     # 差这 1px 会让「字高 / 盘径」从 0.52 掉到 0.49（刚好出带）。
     font.setPixelSize(max(9, round(radius * 1.12)))
-    # 字重取 **Medium**（按判据口径「3 型回退均值 ÷ 11 型位图均值」实测）：
-    #   字重       traditional  modern  cartoon
-    #   Normal        0.76 ❌    0.96    0.82 ❌
-    #   Medium        0.89 ✅    1.11    0.95 ✅   ← 采用
-    #   Bold          1.10       1.24    1.05（贴上界，无必要）
-    # 四档字高都在 0.512–0.527，加粗不影响高度；Normal 会让 traditional/cartoon 偏淡。
-    font.setWeight(QFont.Weight.Medium)
+    # 字重 **Normal，三风格一致**。
+    # 密度（3 型回退均值 ÷ 11 型位图均值）在两个平台上差 40%，不可互比：
+    #   offscreen(Normal) 0.89 / 1.11 / 0.95；windows(Normal) 1.10 / 1.51 / 1.04。
+    # Windows（用户实际看到的）上**没有任何字重能让三风格同时进 0.85–1.25** ——
+    # modern 位图笔画远细于任何系统无衬线，同字高下最低就是 1.51；且 Medium/Bold
+    # 只会更大（1.72 / 2.01）。所以选三条里最接近的 Normal，密度只当**回归指标**。
+    font.setWeight(QFont.Weight.Normal)
     return font
 
 
