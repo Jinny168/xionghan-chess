@@ -29,7 +29,7 @@ from xionghan_chess.core.profiles import PROFILES  # noqa: E402
 from xionghan_chess.desktop.config import DEFAULTS  # noqa: E402
 from xionghan_chess.desktop.ui import piece_assets, theme  # noqa: E402
 from xionghan_chess.desktop.ui.board_widget import (  # noqa: E402
-    GLYPH_MODE, IMAGE_MODE, BoardWidget, _piece_font,
+    GLYPH_MODE, IMAGE_MODE, BoardWidget, _piece_font, draw_fallback_piece,
 )
 
 SIZE = 620
@@ -159,50 +159,123 @@ def test_config_without_piece_render_stays_glyph(qt_app: QApplication) -> None:
 
 
 # ---------------------------------------------------------------------------
-# image 模式的回退字形：字号必须与位图同度量
+# image 模式的回退字形：字族随风格、字号与字重与位图同量级
 # ---------------------------------------------------------------------------
-def _text_ink(radius: float, mode: str, glyph: str = "漢") -> tuple[int, float, float]:
-    """在透明画布上只画那个字，返回 (字高, 字高/盘径, 墨量/字高²)。"""
-    font: QFont = _piece_font(radius, mode)
-    side = int(radius * 2)
-    image = QImage(side, side, QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(image)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    painter.setFont(font)
-    painter.setPen(QColor(0, 0, 0))
-    painter.drawText(0, 0, side, side, Qt.AlignmentFlag.AlignCenter, glyph)
-    painter.end()
-    min_x, min_y, max_x, max_y, area = side, side, -1, -1, 0
+# ⚠️ 密度判据**只用同一次测量内的比值**（`alpha>128` 的不同标定会让绝对值差 20–25%，
+# 硬编码绝对密度必然在另一种量法下误红）。这里两侧共用同一个掩膜：
+#   · 画布底填**该风格盘面色**；
+#   · 字用**该风格该色的字色**（不是纯黑，否则色距掩膜会把字形权重算偏）；
+#   · 只统计 `r < 0.62R` 的圆盘内部，排除外环与描边。
+FALLBACK_KINDS = (PieceType.ARMOR, PieceType.ASSASSIN, PieceType.SHIELD)
+ART_KINDS = tuple(piece_assets.SUFFIX)
+SAMPLE_RADIUS = 55.0          # 盘径 110px：密度只在 dev ≥ 110px 档有意义
+FILL_COLOR = {
+    "traditional": (252, 248, 238),
+    "modern": (255, 255, 255),
+    "cartoon": (255, 255, 255),
+}
+
+
+def _ink_stats(image: QImage, fill: tuple[int, int, int], radius: float) -> tuple[int, float]:
+    """返回 (墨高, 墨量/墨高²)。掩膜 = 与盘面色的 L1 距离 > 60，且 r < 0.62R。"""
+    side = image.width()
+    center = side / 2
+    limit = (0.62 * radius) ** 2
+    min_y, max_y, area = side, -1, 0
     for y in range(side):
         for x in range(side):
-            if image.pixelColor(x, y).alpha() > 128:
+            dx, dy = x + 0.5 - center, y + 0.5 - center
+            if dx * dx + dy * dy > limit:
+                continue
+            color = image.pixelColor(x, y)
+            distance = (abs(color.red() - fill[0]) + abs(color.green() - fill[1])
+                        + abs(color.blue() - fill[2]))
+            if distance > 60:
                 area += 1
-                min_x = min(min_x, x); max_x = max(max_x, x)
                 min_y = min(min_y, y); max_y = max(max_y, y)
     height = max_y - min_y + 1 if max_y >= 0 else 0
-    assert height > 0, "回退字形没有画出任何墨迹"
-    return height, height / (2 * radius), area / (height * height)
+    assert height > 0, "字形没有画出任何墨迹（掩膜口径变了？）"
+    return height, area / (height * height)
 
 
-@pytest.mark.parametrize("radius", [24.6, 39.0, 50.0])
-def test_fallback_glyph_height_matches_bitmap_scale(qt_app: QApplication, radius: float) -> None:
-    """`字高 / 盘径` 必须落在 0.49–0.56（66 张位图实测 0.496–0.555）。
+def _fallback_image(style: str, kind: PieceType, radius: float) -> QImage:
+    side = int(radius * 2)
+    image = QImage(side, side, QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(QColor(*FILL_COLOR[style]))
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    draw_fallback_piece(painter, QPointF(side / 2, side / 2), radius, Color.RED, kind, style)
+    painter.end()
+    return image
+
+
+def _artwork_image(style: str, kind: PieceType, radius: float) -> QImage:
+    side = int(radius * 2)
+    image = QImage(side, side, QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(QColor(*FILL_COLOR[style]))
+    artwork = piece_assets.pixmap(style, Color.RED, kind, int(radius * 2))
+    assert artwork is not None
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+    painter.drawPixmap(QPointF((side - artwork.width()) / 2, (side - artwork.height()) / 2), artwork)
+    painter.end()
+    return image
+
+
+def _style_density(style: str, kinds: tuple[PieceType, ...], fallback: bool) -> tuple[float, float]:
+    """一组棋型的 (墨高/盘径 均值, 墨量/墨高² 均值)。"""
+    heights: list[float] = []
+    densities: list[float] = []
+    for kind in kinds:
+        image = (_fallback_image(style, kind, SAMPLE_RADIUS) if fallback
+                 else _artwork_image(style, kind, SAMPLE_RADIUS))
+        height, density = _ink_stats(image, FILL_COLOR[style], SAMPLE_RADIUS)
+        heights.append(height / (2 * SAMPLE_RADIUS))
+        densities.append(density)
+    return sum(heights) / len(heights), sum(densities) / len(densities)
+
+
+@pytest.mark.parametrize("style", STYLES)
+def test_fallback_glyph_height_matches_bitmap_scale(qt_app: QApplication, style: str) -> None:
+    """`字高 / 盘径` ∈ 0.48–0.56（66 张位图实测 0.496–0.555）。
 
     1.7.0 的兜底是 `pointSize`：实测 0.69–0.73，比位图大 33%，所以 `image` 模式
-    的缺图格会「又大又黑」。这条断言就是那个回归的拦截点。
+    的缺图格会「又大又黑」。这条断言就是那个回归的拦截点，且与掩膜无关。
     """
-    _height, ratio, _density = _text_ink(radius, "image_fallback")
-    assert 0.49 <= ratio <= 0.56, f"radius={radius} 字高/盘径={ratio:.3f}"
+    height_ratio, _density = _style_density(style, FALLBACK_KINDS, fallback=True)
+    assert 0.48 <= height_ratio <= 0.56, f"{style} 字高/盘径={height_ratio:.3f}"
 
 
-@pytest.mark.parametrize("radius", [24.6, 39.0, 50.0])
-def test_fallback_glyph_is_lighter_than_legacy_glyph(qt_app: QApplication, radius: float) -> None:
-    """回退字形必须比 1.7.0 的兜底更轻（Bold → Normal）。
+@pytest.mark.parametrize("style", STYLES)
+def test_fallback_density_is_same_order_as_artwork(qt_app: QApplication, style: str) -> None:
+    """回退字形 vs **该风格 11 型图片**的墨量/墨高²：比值必须在同一量级。
 
-    实测口径：`墨量 / 字高²` 从 0.43~0.45 降到 0.32~0.36。这里只钉「明显变轻」
-    （≥10%），不钉绝对值 —— 绝对值依赖抗锯齿与阈值，跨 Qt 版本会漂。
+    判据取「同一次测量内的比值」，不硬编码任何绝对密度 —— 两侧共用
+    `FALLBACK_KINDS`/`ART_KINDS` 与同一个 `_ink_stats()` 掩膜，系统偏差互相抵消。
+    上界放到 1.50 是因为手绘稿逐字离散很大（兵/檑相差近一倍），这条只负责抓
+    「忘了去掉 Bold / 忘了换字族」这类 60% 以上的系统性错误。
     """
-    _h1, _r1, legacy = _text_ink(radius, GLYPH_MODE)
-    _h2, _r2, fallback = _text_ink(radius, "image_fallback")
-    assert fallback <= legacy * 0.9, f"radius={radius} 回退 {fallback:.3f} 未比旧兜底 {legacy:.3f} 更轻"
+    _fh, fallback = _style_density(style, FALLBACK_KINDS, fallback=True)
+    _ah, artwork = _style_density(style, ART_KINDS, fallback=False)
+    ratio = fallback / artwork
+    assert 0.75 <= ratio <= 1.50, (
+        f"{style}: 回退密度 {fallback:.3f} / 图片 {artwork:.3f} = {ratio:.2f}（期望 0.75–1.50）")
+
+
+def test_fallback_family_follows_style(qt_app: QApplication) -> None:
+    """字族随风格：传统=衬线、现代/卡通=无衬线（`setFamilies` 记录的就是请求的族）。"""
+    assert _piece_font(30.0, "image_fallback", "traditional").families()[0] == theme.PIECE_FONT
+    for style in ("modern", "cartoon"):
+        assert _piece_font(30.0, "image_fallback", style).families()[0] == theme.UI_FONT, style
+    # glyph 分支原样透传：字族固定衬线、字重 Bold
+    glyph_font = _piece_font(30.0, GLYPH_MODE)
+    assert glyph_font.family() == theme.PIECE_FONT
+    assert glyph_font.weight() == QFont.Weight.Bold
+
+
+def test_fallback_is_lighter_than_legacy_glyph(qt_app: QApplication) -> None:
+    """回退字重是 Normal（Bold 在 7 字均值下偏重 34~60%）。"""
+    legacy = _piece_font(30.0, GLYPH_MODE).weight()
+    fallback = _piece_font(30.0, "image_fallback", "traditional").weight()
+    assert legacy == QFont.Weight.Bold
+    assert fallback == QFont.Weight.Normal

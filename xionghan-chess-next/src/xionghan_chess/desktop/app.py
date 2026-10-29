@@ -40,7 +40,7 @@ from .texts import dl, dlf, set_language
 from . import training as puzzle_judge
 from . import update as version_check
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
-from .ui.dialogs import DocumentDialog, GameLibraryDialog, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
+from .ui.dialogs import DocumentDialog, GameLibraryDialog, GLYPH_STYLE_DATA, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
 from .ui.board_widget import BoardWidget
 from .ui.piece_atlas import PieceAtlasDialog
 from .ui.workers import AIWorker, AnalysisWorker, HttpWorker
@@ -283,17 +283,18 @@ class MainWindow(QMainWindow):
         画法，不影响规则。所以这里只做三件事：写配置、重配棋盘（内部预热新风格图片）、
         重绘。走子数 / 时钟 / 悔棋可用性全部原样保留。
 
-        `style=""`（「书法字形」）表示回到字形渲染：保留 `piece_style` 原值，只把
-        `piece_render` 切回 `glyph` —— 它与升级前的渲染逐像素一致。
+        `style == GLYPH_STYLE_DATA`（`"__glyph__"`）表示回到字形渲染：保留
+        `piece_style` 原值，只把 `piece_render` 切回 `glyph` —— 与升级前逐像素一致。
         """
-        if style:
+        glyph = style == GLYPH_STYLE_DATA
+        if glyph:
+            self.config["piece_render"]="glyph"
+        else:
             self.config["piece_style"]=style
             self.config["piece_render"]="image"
-        else:
-            self.config["piece_render"]="glyph"
         save_config(self.config);self.configure_board();self.board.update()
         lang=self.config.get("language","zh-CN")
-        name=t(f"option.piece_{self.config.get('piece_style','traditional')}", lang) if style else t("desktop.atlas_glyph_mode", lang)
+        name=t("desktop.atlas_glyph_mode", lang) if glyph else t(f"option.piece_{style}", lang)
         self.statusBar().showMessage(t("desktop.atlas_switched", lang, style=name),5000)
 
     def _apply_settings(self, new_config: dict[str, object]) -> None:

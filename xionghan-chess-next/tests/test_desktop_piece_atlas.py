@@ -21,8 +21,9 @@ from xionghan_chess.desktop import app as appmod  # noqa: E402
 from xionghan_chess.desktop.config import load_config  # noqa: E402
 from xionghan_chess.desktop.ui import piece_assets, theme  # noqa: E402
 from xionghan_chess.desktop.ui.dialogs import GLYPH_STYLE_DATA, SettingsDialog  # noqa: E402
+from xionghan_chess.desktop.ui.dialogs import GLYPH_STYLE_DATA  # noqa: E402
 from xionghan_chess.desktop.ui.piece_atlas import (  # noqa: E402
-    GLYPH_CHOICE, PIECE_OPTION_KEYS, REGULAR_KINDS, SPECIAL_KINDS, PieceAtlasDialog,
+    PIECE_OPTION_KEYS, REGULAR_KINDS, SPECIAL_KINDS, THUMB, PieceAtlasDialog,
 )
 
 
@@ -108,20 +109,24 @@ def test_missing_art_cell_draws_glyph_not_blank(atlas: PieceAtlasDialog) -> None
         assert piece_assets.is_missing(style, Color.RED, PieceType.ARMOR)
 
 
-def test_thumbnail_sizes_are_capped(atlas: PieceAtlasDialog) -> None:
-    """缩略图逻辑边长 72（窄窗）/ 80（≥900），上限 80 —— 再大就超过源盘径。"""
-    atlas.resize(760, 560)
-    assert atlas._thumb_edge() == 72
-    atlas.resize(1000, 700)
-    assert atlas._thumb_edge() == 80
-    atlas.resize(2560, 1400)
-    assert atlas._thumb_edge() == 80
+def test_thumbnail_edge_is_a_single_value(atlas: PieceAtlasDialog) -> None:
+    """缩略图边长**单值 72**（边长 = 盘径）。
+
+    曾经有 80 的大窗档，但 80×2 ÷ 源盘径 137 = 1.17× 上采样，越过「>1.15 记缺陷」
+    那条线；72×2 ÷ 137 = 1.05×，任何 DPI 下都≈1:1。这里同时钉住「不随窗口变」。
+    """
+    assert THUMB == 72
+    sizes = []
+    for width, height in ((760, 560), (1000, 700), (2560, 1400)):
+        atlas.resize(width, height)
+        sizes.append(atlas._cell_pixmap("traditional", Color.RED, THUMB).width())
+    assert len(set(sizes)) == 1, f"缩略图尺寸随窗口变了：{sizes}"
 
 
 def test_glyph_choice_restores_glyph_render_without_losing_style(atlas: PieceAtlasDialog) -> None:
     """「书法字形」是回退项：切回 glyph，但 `piece_style` 保留原值（不是单向门）。"""
     atlas.config["piece_style"] = "cartoon"
-    atlas.apply_style(GLYPH_CHOICE)
+    atlas.apply_style(GLYPH_STYLE_DATA)
     assert atlas.config["piece_render"] == "glyph"
     assert atlas.config["piece_style"] == "cartoon"
 
@@ -132,7 +137,7 @@ def test_style_choice_enables_image_render(atlas: PieceAtlasDialog) -> None:
     assert atlas.config["piece_style"] == "modern"
     assert atlas.config["piece_render"] == "image"
     assert atlas._is_active("modern")
-    assert not atlas._is_active(GLYPH_CHOICE)
+    assert not atlas._is_active(GLYPH_STYLE_DATA)
 
 
 def test_rule_keys_belong_to_the_rule_options() -> None:
@@ -209,7 +214,7 @@ def test_switching_back_to_glyph_keeps_the_game(window) -> None:
     window.game.move(moves[0])
     history = len(window.game.state.history)
     window.apply_piece_style("cartoon")
-    window.apply_piece_style(GLYPH_CHOICE)
+    window.apply_piece_style(GLYPH_STYLE_DATA)
     assert len(window.game.state.history) == history
     assert window.board.piece_render == "glyph"
     assert window.board.piece_style == "cartoon", "回退字形不该抹掉风格偏好"

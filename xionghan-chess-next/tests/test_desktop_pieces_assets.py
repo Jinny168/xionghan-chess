@@ -22,13 +22,26 @@ from pathlib import Path
 import pytest
 
 from xionghan_chess.core.model import Color, PieceType
-from xionghan_chess.desktop.ui import piece_assets
+from xionghan_chess.desktop.ui import piece_assets, theme
 
 ROOT = Path(__file__).resolve().parents[1]
 PIECES = ROOT / "web" / "assets" / "pieces"
 JS = ROOT / "web" / "js" / "app.js"
 STYLES = ("traditional", "modern", "cartoon")
 EXPECTED_PER_STYLE = 22
+
+
+@pytest.fixture(autouse=True)
+def _isolated_cache():
+    """每条用例前后清空 L1/L2 与缺图标记。
+
+    有几条用例会把 `resolve()` / `theme.resource` 打桩成「文件不存在」来验缺图路径。
+    打桩会被自动还原，但 `_RAW` / `_MISSING` 是**模块级状态**，留下的「缺图」判定
+    会污染后面的用例（表现为别的用例里 `pixmap()` 突然返回 None）。
+    """
+    piece_assets.clear_cache()
+    yield
+    piece_assets.clear_cache()
 
 
 def _files(style: str) -> list[Path]:
@@ -176,3 +189,34 @@ def test_broken_image_is_treated_as_missing(tmp_path: Path, monkeypatch: pytest.
     monkeypatch.setattr(piece_assets, "resolve", lambda *args, **kwargs: pointer)
     assert piece_assets.pixmap("traditional", Color.RED, PieceType.KING, 60) is None
     assert piece_assets.is_missing("traditional", Color.RED, PieceType.KING)
+
+
+def test_bundled_and_source_paths_resolve_to_the_same_bytes(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """源码态与打包态取到的是**同一批文件**。
+
+    仓库里棋子图只有一份真源（`web/assets/pieces`），打包时由 spec 映射进随包目录。
+    开发态随包目录不存在，`resolve()` 会回退到真源 —— 这条断言两边的字节一致，
+    否则「开发时看到的」和「用户看到的」会是两套图。
+    """
+    bundled = piece_assets.resolve("traditional", Color.RED, PieceType.KING)
+    assert bundled is not None and "web" in bundled.parts
+    monkeypatch.setattr(theme, "resource", lambda *parts: tmp_path.joinpath(*parts))
+    source = piece_assets.resolve("traditional", Color.RED, PieceType.KING)
+    assert source is not None, "随包路径缺失时应回退到仓库真源"
+    assert source.read_bytes() == bundled.read_bytes()
+
+
+def test_bundled_path_wins_when_it_exists(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """打包态优先：随包路径存在时**不得**再去读仓库真源。"""
+    bundled_dir = tmp_path / "pieces" / "traditional"
+    bundled_dir.mkdir(parents=True)
+    real = piece_assets.resolve("modern", Color.RED, PieceType.ROOK)
+    assert real is not None
+    target = bundled_dir / "hongche.png"
+    target.write_bytes(real.read_bytes())
+    monkeypatch.setattr(theme, "resource",
+                        lambda *parts: tmp_path.joinpath(*parts))
+    resolved = piece_assets.resolve("traditional", Color.RED, PieceType.ROOK)
+    assert resolved == target

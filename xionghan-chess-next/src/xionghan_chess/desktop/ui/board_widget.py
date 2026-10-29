@@ -60,21 +60,34 @@ def _color(value: object, color: Color) -> QColor:
     return QColor(*value)  # type: ignore[misc]
 
 
-def _piece_font(radius: float, mode: str) -> QFont:
+# 缺图回退的字族随风格：位图传统是衬线笔锋、现代/卡通是黑体，
+# 用同一族会让 12 枚回退子（占一盘 19.4%）在 modern/cartoon 下像「外来户」。
+# 值存**属性名**而不是 family 字符串：`theme.PIECE_FONT/UI_FONT` 会被
+# `load_bundled_fonts()` **重新绑定**，import 时把名字拷进字典就会读到默认值。
+STYLE_FONT: dict[str, str] = {
+    "traditional": "PIECE_FONT",
+    "modern": "UI_FONT",
+    "cartoon": "UI_FONT",
+}
+
+
+def _piece_font(radius: float, mode: str, style: str = "traditional") -> QFont:
     """棋子字体：两种模式的字号/字重**刻意不同**，不要合并参数。
 
     - `glyph`：**逐字保留 1.7.0 的构造**（pointSize + Bold）。默认模式占 62 枚棋子，
       改一个数字就是全盘观感回归；`tests/test_desktop_piece_render.py` 守着这条。
     - `image_fallback`：与位图同度量 —— `pixelSize`（逻辑像素，Qt 自己乘 DPR，
-      **不要**再乘 `devicePixelRatioF()`）+ `Normal`。
+      **不要**再乘 `devicePixelRatioF()`）+ `Normal`（Bold 在 7 字均值下偏重 34~60%），
+      字族随 `style` 变（传统衬线 / 现代·卡通无衬线）。
 
     ⚠️ 别按 `OS/2.usWeightClass` 推断粗细：随包两个子集的元数据（Sans=100、
     Serif=200）与实际光栅结果**相反**（同字高下 Sans 比 Serif 重 11%~71%）。
     """
     if mode == GLYPH_MODE:
         return QFont(theme.PIECE_FONT, max(13, int(radius * 1.15)), QFont.Weight.Bold)
+    family = getattr(theme, STYLE_FONT.get(style, "PIECE_FONT"))
     font = QFont()
-    font.setFamilies([theme.PIECE_FONT])
+    font.setFamilies([family])
     # `round` 不是 `int`：760×560 时 radius=12.30，int 给 13、round 给 14，
     # 差这 1px 会让「字高 / 盘径」从 0.52 掉到 0.49（刚好出带）。
     font.setPixelSize(max(9, round(radius * 1.12)))
@@ -103,7 +116,7 @@ def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float,
     if style == "modern":
         painter.setBrush(Qt.BrushStyle.NoBrush); painter.setPen(QPen(outline, 1))
         painter.drawEllipse(center, radius * .82, radius * .82)
-    painter.setFont(_piece_font(radius, GLYPH_MODE))
+    painter.setFont(_piece_font(radius, GLYPH_MODE, style))
     painter.setPen(QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e"))
     painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2), Qt.AlignmentFlag.AlignCenter, theme.NAMES[piece.color][piece.type])
 
@@ -131,7 +144,7 @@ def draw_fallback_piece(painter: QPainter, center: QPointF, radius: float,
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.setPen(QPen(_color(spec["ring"] if inner_ring == "ring" else inner_ring, color), 1))
         painter.drawEllipse(center, radius * .82, radius * .82)
-    painter.setFont(_piece_font(radius, "image_fallback"))
+    painter.setFont(_piece_font(radius, "image_fallback", style))
     painter.setPen(_color(spec["text"], color))  # type: ignore[arg-type]
     painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2),
                      Qt.AlignmentFlag.AlignCenter, theme.NAMES[color][piece_type])

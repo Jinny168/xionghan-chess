@@ -46,7 +46,7 @@ from ..config import save_config
 from ..texts import dl
 from . import piece_assets, theme
 from .board_widget import GLYPH_MODE, IMAGE_MODE, draw_fallback_piece, draw_piece_glyph
-from .dialogs import DocumentDialog
+from .dialogs import GLYPH_STYLE_DATA, DocumentDialog
 
 # 左侧清单的顺序：先「常规 7 型」（任何档案都有），再「特色 7 型」。
 REGULAR_KINDS: tuple[PieceType, ...] = (
@@ -78,15 +78,11 @@ PIECE_OPTION_KEYS: dict[PieceType, tuple[str, ...]] = {
     PieceType.PATROL: (),
 }
 
-# 对比条里「书法字形」这一格用空串标识：调用 `apply_style("")` 即回到字形渲染。
-GLYPH_CHOICE = ""
-
-# 缩略图逻辑边长：窗口越窄越小，上限 80。这里给的是**盘径**（图片已裁掉留白），
-# 200% DPI 下 80 → 160 设备像素，对 137 源盘径是 1.17× 上采样 —— 仅在最大档、
-# 且只影响图谱缩略图，可接受；再大就明显糊了。
-THUMB_SMALL = 72
-THUMB_LARGE = 80
-LARGE_WINDOW = 900
+# 缩略图逻辑边长：**单值 72**，这里给的是**盘径**（图片已裁掉留白）。
+# 曾经有 80 的大窗档，但 80×2（200% DPI）÷ 源盘径 137 = **1.17× 上采样**，
+# 越过我们给棋盘定的「>1.15 记已知缺陷」那条线；72×2 ÷ 137 = 1.05×，
+# 任何 DPI 下都≈1:1。72 在格宽 97 下仍有 25 px 净间隙，不挤。
+THUMB = 72
 # 「去规则设置调整」要跳到设置里的「棋子与规则」tab（第 3 个）。
 PIECE_RULES_TAB = 2
 
@@ -111,9 +107,8 @@ class PieceAtlasDialog(QDialog):
         self._apply_style_cb = apply_style
         self.style = piece_assets.normalize_style(config.get("piece_style"))
         self.kind: PieceType = PieceType.KING
-        self._thumb_bucket = self._thumb_edge()
         self.setWindowTitle(t("desktop.piece_atlas", self.language))
-        self.resize(LARGE_WINDOW, 640)
+        self.resize(900, 640)
         self.setMinimumSize(760, 560)
         self._build()
 
@@ -231,46 +226,37 @@ class PieceAtlasDialog(QDialog):
         self.style = piece_assets.normalize_style(style)
         self._rebuild_detail()
 
-    def _thumb_edge(self) -> int:
-        return THUMB_LARGE if self.width() >= LARGE_WINDOW else THUMB_SMALL
-
-    def resizeEvent(self, event: object) -> None:
-        super().resizeEvent(event)
-        if not hasattr(self, "_detail_layout"):
-            return
-        bucket = self._thumb_edge()
-        if bucket != self._thumb_bucket:
-            self._thumb_bucket = bucket
-            self._rebuild_detail()
-
     def _is_active(self, choice: str) -> bool:
         """这一格是否就是当前生效的渲染方式。"""
         render = self.config.get("piece_render", GLYPH_MODE)
-        if choice == GLYPH_CHOICE:
+        if choice == GLYPH_STYLE_DATA:
             return render != IMAGE_MODE
         return (render == IMAGE_MODE
                 and piece_assets.normalize_style(self.config.get("piece_style")) == choice)
 
     def apply_style(self, choice: str) -> None:
-        """「使用此风格」：原地生效，不重开对局、不重建界面。"""
-        if choice:
+        """「使用此风格」：原地生效，不重开对局、不重建界面。
+
+        `choice == GLYPH_STYLE_DATA`（`"__glyph__"`）表示回到字形渲染，此时
+        **不动 `piece_style`** —— 用户下次再选图片风格还是上次挑的那一套。
+        """
+        glyph = choice == GLYPH_STYLE_DATA
+        if glyph:
+            self.config["piece_render"] = GLYPH_MODE
+        else:
             self.config["piece_style"] = piece_assets.normalize_style(choice)
             self.config["piece_render"] = IMAGE_MODE
-        else:
-            self.config["piece_render"] = GLYPH_MODE
+            self.style = piece_assets.normalize_style(choice)
         if self._apply_style_cb is not None:
             self._apply_style_cb(choice)
         else:
             save_config(self.config)
-        if choice:
-            self.style = piece_assets.normalize_style(choice)
-        name = (t(f"option.piece_{choice}", self.language) if choice
-                else t("desktop.atlas_glyph_mode", self.language))
+        name = (t("desktop.atlas_glyph_mode", self.language) if glyph
+                else t(f"option.piece_{choice}", self.language))
         self.status.setText(t("desktop.atlas_switched", self.language, style=name))
-        if choice:
-            button = self._style_buttons.get(self.style)
-            if button is not None:
-                button.setChecked(True)
+        button = self._style_buttons.get(self.style)
+        if button is not None and not glyph:
+            button.setChecked(True)
         self._rebuild_detail()
 
     # ------------------------------------------------------------------ 右栏
@@ -292,9 +278,9 @@ class PieceAtlasDialog(QDialog):
 
         - `choice` 是风格名 → 走**图片**路径；没有美术的棋型（甲/刺/楯）用
           `draw_fallback_piece()` 画同风格底盘 + 统一衬线字形，并加「字」标。
-        - `choice == GLYPH_CHOICE` → 展示「书法字形」的样子（`piece_render="glyph"`）。
+        - `choice == GLYPH_STYLE_DATA` → 展示「书法字形」的样子（`piece_render="glyph"`）。
         """
-        if choice == GLYPH_CHOICE:
+        if choice == GLYPH_STYLE_DATA:
             canvas = QPixmap(edge, edge)
             canvas.fill(Qt.GlobalColor.transparent)
             painter = QPainter(canvas)
@@ -323,8 +309,8 @@ class PieceAtlasDialog(QDialog):
         layout.addWidget(self._heading(t("settings.piece_style", self.language)))
         row = QHBoxLayout()
         row.setSpacing(12)
-        edge = self._thumb_edge()
-        for choice in (GLYPH_CHOICE, *piece_assets.STYLES):
+        edge = THUMB
+        for choice in (GLYPH_STYLE_DATA, *piece_assets.STYLES):
             cell = QWidget()
             cell_layout = QVBoxLayout(cell)
             cell_layout.setContentsMargins(0, 0, 0, 0)
@@ -334,15 +320,15 @@ class PieceAtlasDialog(QDialog):
             preview.setFixedSize(edge, edge)
             preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
             cell_layout.addWidget(preview, 0, Qt.AlignmentFlag.AlignHCenter)
-            if choice:
-                name = QLabel(t(f"option.piece_{choice}", self.language))
-            else:
+            if choice == GLYPH_STYLE_DATA:
                 name = QLabel(t("desktop.atlas_glyph_mode", self.language))
+            else:
+                name = QLabel(t(f"option.piece_{choice}", self.language))
             name.setAlignment(Qt.AlignmentFlag.AlignHCenter)
             cell_layout.addWidget(name)
-            if choice and piece_assets.preload(choice) == 0:
+            if choice != GLYPH_STYLE_DATA and piece_assets.preload(choice) == 0:
                 note = QLabel(t("desktop.atlas_missing_asset", self.language))
-            elif choice and piece_assets.resolve(choice, Color.RED, self.kind) is None:
+            elif choice != GLYPH_STYLE_DATA and piece_assets.resolve(choice, Color.RED, self.kind) is None:
                 note = QLabel(t("desktop.atlas_glyph_fallback", self.language))
             else:
                 note = None
@@ -358,7 +344,7 @@ class PieceAtlasDialog(QDialog):
                 button.setEnabled(False)
             else:
                 button.setText(t("desktop.atlas_use_style", self.language))
-                button.setEnabled(not choice or piece_assets.preload(choice) > 0)
+                button.setEnabled(choice == GLYPH_STYLE_DATA or piece_assets.preload(choice) > 0)
                 button.clicked.connect(lambda _checked=False, value=choice: self.apply_style(value))
             cell_layout.addWidget(button)
             row.addWidget(cell)
@@ -371,7 +357,7 @@ class PieceAtlasDialog(QDialog):
         layout = QHBoxLayout(box)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(16)
-        edge = min(self._thumb_edge() * 2, 160)
+        edge = min(THUMB * 2, 160)
         for color in (Color.RED, Color.BLACK):
             column = QVBoxLayout()
             column.setSpacing(4)
@@ -391,6 +377,13 @@ class PieceAtlasDialog(QDialog):
         positioning = QLabel(t(f"piece_rule.{self.kind.value}_long", self.language))
         positioning.setWordWrap(True)
         text.addWidget(positioning)
+        # 该型在当前风格下没有美术时，第二行说明回退字形是怎么来的（字族随风格、
+        # 墨量与位图同量级）——否则用户只看得出「这枚子长得不一样」。
+        if piece_assets.resolve(self.style, Color.RED, self.kind) is None:
+            fallback = QLabel(t("desktop.atlas_glyph_family_note", self.language))
+            fallback.setWordWrap(True)
+            fallback.setStyleSheet("color:#6f6254")
+            text.addWidget(fallback)
         text.addStretch(1)
         layout.addLayout(text, 1)
         return box

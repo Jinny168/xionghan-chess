@@ -138,7 +138,16 @@ def _source_tree() -> Path | None:
 
 
 def resolve(style: str | None, color: Color, piece_type: PieceType) -> Path | None:
-    """棋子图片的绝对路径；该型没有美术或文件不存在时返回 None。"""
+    """棋子图片的绝对路径；该型没有美术或文件不存在时返回 None。
+
+    **两条来源，顺序固定**：
+    1. **打包态**：随包路径 `theme.resource("pieces", style, name)` —— spec 把
+       `web/assets/pieces` 映射进 `resources/pieces`；
+    2. 该路径不存在时（**源码态**：仓库里不复制第二份棋子图）回退到仓库真源
+       `web/assets/pieces/...`（`_source_tree()` 向上定位仓库根）。
+    两条路径指向**同一批文件**（`tests/test_desktop_pieces_assets.py` 断言同一枚子
+    经两条路径取到的字节相同），所以开发态与打包态观感一致。
+    """
     name = file_name(color, piece_type)
     if name is None:
         return None
