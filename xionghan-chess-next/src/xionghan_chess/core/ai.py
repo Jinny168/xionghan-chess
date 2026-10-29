@@ -26,6 +26,8 @@ class Difficulty(StrEnum):
 
 # 静态搜索（quiescence）单个**根着法**内的节点上限。
 # 作用：吃子链偶发跑飞时不让它独吞整个思考预算；**正常局面应当一次都不触发**。
+# 计数口径：单个**静态搜索**（一次 `_quiescence` 入口及其递归）的节点数，
+#   不是"某根着法整棵树"的累计 —— 后者会随尝试深度线性上涨，不能当跑飞信号。
 #
 # 为什么是 80 而不是更小的 40 —— 有实测（medium / seed 12345 / 四个回归局面）：
 #     局面        cap 80 的 trunc   cap 40 的 trunc
@@ -233,7 +235,8 @@ class ChessAI:
         scores: list[tuple[float, Move]] = []
         for move in ordered:
             self._guard(deadline, cancel)
-            self._qnode_base = self.qnodes
+            # `_qnode_truncated` 是**粘性**的：本根着法的任意一次静态搜索被截断，
+            # 就把整个根着法标记为"分数不完整"，不参与夺标。
             self._qnode_truncated = False
             child = Game.from_state(game.rules.apply_unchecked(game.state, move), game.options, game.setup)
             score = -self._search(child, depth - 1, -beta, -alpha, deadline, cancel, 1)
@@ -243,7 +246,6 @@ class ChessAI:
                 if score > best_score:
                     best_score = score
             else:
-                truncated_all = False
                 if score > best_score:
                     best_score, best_move = score, move
             alpha = max(alpha, score)
@@ -274,6 +276,10 @@ class ChessAI:
                 return entry.score
 
         if depth <= 0:
+            # 每次**一次静态搜索**开始时归位计数：cap 限制的是这一次静态搜索的节点数，
+            # 不是该根着法整棵深度树的累计 —— 后者会随"尝试更深的深度"线性上涨，
+            # 根本不能当"吃子链跑飞"的信号（medium 明明 depth=1 也会报 trunc=12 就是这个）。
+            self._qnode_base = self.qnodes
             return self._quiescence(game, alpha, beta, deadline, cancel, ply,
                                     self.quiescence_depth)
         in_check = game.rules.in_check(game.state, game.state.turn)
@@ -348,8 +354,9 @@ class ChessAI:
         self.qnodes += 1
         in_check = game.rules.in_check(game.state, game.state.turn)
         stand_pat = self._evaluate(game, game.state.turn)
-        # 节点上限按**根着法**计（`_qnode_base` 在每个根着法前重置）：
-        # 到顶就退回静态分，并标记本根着法的分数"不完整"——上层据此不选它当 best。
+        # 节点上限按**单次静态搜索**计（`_qnode_base` 在 `_search` 的叶子处归位，
+        # 递归调用共享同一个基数）：到顶就退回静态分，并把**本根着法**标记为
+        # "分数不完整"（粘性），上层据此不让它夺标。
         if self.qnodes - self._qnode_base > QUIESCENCE_NODE_LIMIT:
             self.quiescence_truncations += 1
             self._qnode_truncated = True
