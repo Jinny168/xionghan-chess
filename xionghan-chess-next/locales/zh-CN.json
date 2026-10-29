@@ -89,11 +89,11 @@
   },
   "difficulty": {
     "label": "AI 难度",
-    "beginner": "入门",
-    "easy": "初级",
-    "medium": "中级",
-      "hard": "高级",
-      "master": "大师（MCTS）"
+    "beginner": "入门 · 每手约 0.5 秒",
+    "easy": "初级 · 每手约 1.5 秒",
+    "medium": "中级 · 每手约 5 秒",
+      "hard": "高级 · 每手约 12 秒",
+      "master": "大师 · 每手约 12 秒（与高级同预算）"
   },
   "settings": {
     "title": "规则设置",

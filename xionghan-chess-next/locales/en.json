@@ -89,11 +89,11 @@
   },
   "difficulty": {
     "label": "AI difficulty",
-    "beginner": "Beginner",
-    "easy": "Easy",
-    "medium": "Medium",
-      "hard": "Hard",
-      "master": "Master (MCTS)"
+    "beginner": "Beginner · about 0.5 s per move",
+    "easy": "Easy · about 1.5 s per move",
+    "medium": "Medium · about 5 s per move",
+      "hard": "Hard · about 12 s per move",
+      "master": "Master · about 12 s per move (same budget as Hard)"
   },
   "settings": {
     "title": "Rule settings",
