@@ -250,16 +250,18 @@ def test_fallback_glyph_height_matches_bitmap_scale(qt_app: QApplication, style:
 def test_fallback_density_is_same_order_as_artwork(qt_app: QApplication, style: str) -> None:
     """回退字形 vs **该风格 11 型图片**的墨量/墨高²：比值必须在同一量级。
 
-    判据取「同一次测量内的比值」，不硬编码任何绝对密度 —— 两侧共用
-    `FALLBACK_KINDS`/`ART_KINDS` 与同一个 `_ink_stats()` 掩膜，系统偏差互相抵消。
-    上界放到 1.50 是因为手绘稿逐字离散很大（兵/檑相差近一倍），这条只负责抓
-    「忘了去掉 Bold / 忘了换字族」这类 60% 以上的系统性错误。
+    口径与验收一致：**3 型回退均值 ÷ 11 型位图均值**，两侧共用同一个 `_ink_stats()`
+    掩膜（画布填该风格盘面色 + 色距 >60 + 只统计 `r < 0.62R`），系统偏差互相抵消。
+    带宽 **0.85–1.25**（team-lead 定的判据区间）。
+
+    ⚠️ 必须先 `theme.load_bundled_fonts()`（`qt_app` fixture 已做）：不加载的话字族会落到
+    系统替代字体，墨量只剩约 1/10，任何比值都不可信。
     """
     _fh, fallback = _style_density(style, FALLBACK_KINDS, fallback=True)
     _ah, artwork = _style_density(style, ART_KINDS, fallback=False)
     ratio = fallback / artwork
-    assert 0.75 <= ratio <= 1.50, (
-        f"{style}: 回退密度 {fallback:.3f} / 图片 {artwork:.3f} = {ratio:.2f}（期望 0.75–1.50）")
+    assert 0.85 <= ratio <= 1.25, (
+        f"{style}: 回退密度 {fallback:.3f} / 图片 {artwork:.3f} = {ratio:.2f}（期望 0.85–1.25）")
 
 
 def test_fallback_family_follows_style(qt_app: QApplication) -> None:
@@ -273,9 +275,14 @@ def test_fallback_family_follows_style(qt_app: QApplication) -> None:
     assert glyph_font.weight() == QFont.Weight.Bold
 
 
-def test_fallback_is_lighter_than_legacy_glyph(qt_app: QApplication) -> None:
-    """回退字重是 Normal（Bold 在 7 字均值下偏重 34~60%）。"""
+def test_fallback_weight_is_medium(qt_app: QApplication) -> None:
+    """回退字重是 **Medium**：Bold 会贴上界、Normal 又偏淡（traditional/cartoon 0.76/0.82）。
+
+    这是判据口径（3 型回退均值 ÷ 11 型位图均值）下的实测结论，换字重前请重跑
+    `test_fallback_density_is_same_order_as_artwork`。
+    """
     legacy = _piece_font(30.0, GLYPH_MODE).weight()
     fallback = _piece_font(30.0, "image_fallback", "traditional").weight()
     assert legacy == QFont.Weight.Bold
-    assert fallback == QFont.Weight.Normal
+    assert fallback == QFont.Weight.Medium
+    assert QFont.Weight.Normal < fallback < QFont.Weight.Bold
