@@ -37,9 +37,12 @@ def test_label_seconds_match_config(locale: str, difficulty: Difficulty) -> None
     label = load(locale)[difficulty.value]
     numbers = NUMBER.findall(label)
     assert numbers, f"{locale}/{difficulty.value} 文案里没有秒数：{label!r}"
-    assert float(numbers[0]) == pytest.approx(CONFIGS[difficulty].time_limit), (
-        f"{locale}/{difficulty.value} 文案写 {numbers[0]} 秒，"
-        f"CONFIGS 实际 {CONFIGS[difficulty].time_limit} 秒 —— 改预算时忘了改文案？")
+    listed, actual = float(numbers[0]), CONFIGS[difficulty].time_limit
+    # ±10% 容差：文案是"约 N 秒"，而实测可能 12.2s（3/3）——既不让措辞噪声把测试弄脆，
+    # 又能抓住"配置 6 秒、文案 5 秒"这类真实错配（那是 17%，超容差）。
+    assert listed == pytest.approx(actual, rel=0.10), (
+        f"{locale}/{difficulty.value} 文案写 {listed} 秒，"
+        f"CONFIGS 实际 {actual} 秒（超出 ±10%）—— 改预算时忘了改文案？")
 
 
 @pytest.mark.parametrize("locale", list(LOCALES))
@@ -50,9 +53,21 @@ def test_labels_do_not_claim_more_strength(locale: str) -> None:
             assert word not in label, f"{locale}/{difficulty.value} 含禁用措辞「{word}」：{label!r}"
 
 
-def test_master_and_hard_share_the_budget() -> None:
-    """大师与高级预算相同（大师只是换 MCTS）——文案里必须也体现这一点。"""
+def test_master_and_hard_share_the_budget_at_config_level() -> None:
+    """配置层：大师与高级预算相同（大师换的是 MCTS，不是预算）。"""
     assert (CONFIGS[Difficulty.MASTER].time_limit
             == CONFIGS[Difficulty.HARD].time_limit), "预算一旦分叉，这条与文案都要改"
-    assert "同预算" in load("zh-CN")["master"] or "同一预算" in load("zh-CN")["master"]
-    assert "same budget" in load("en")["master"]
+
+
+@pytest.mark.parametrize("locale", list(LOCALES))
+def test_labels_do_not_compare_budgets_across_levels(locale: str) -> None:
+    """文案里不得出现「同预算 / same budget」这类跨档比较字样。
+
+    我们主动放弃了那个说法：下一版"提前返回"落地后，高级通常 ~5s 就返回、大师仍 12s，
+    "同预算"会让玩家困惑"预算一样为什么慢一倍"。**文案层不再承诺档间预算关系。**
+    """
+    banned = ("同预算", "同一预算", "same budget")
+    for difficulty in Difficulty:
+        label = load(locale)[difficulty.value]
+        for word in banned:
+            assert word not in label, f"{locale}/{difficulty.value} 含跨档比较措辞「{word}」：{label!r}"
