@@ -98,8 +98,11 @@ def test_unavailable_pieces_are_marked_and_greyed(qt_app: QApplication) -> None:
 
 
 def test_missing_art_cell_draws_glyph_not_blank(atlas: PieceAtlasDialog) -> None:
-    """甲/刺/楯：三风格都没有美术，缩略图必须是「同风格底盘 + 字形」，不是空白。"""
-    atlas.kind = PieceType.ARMOR
+    """刺/巡：三风格都没有美术，缩略图必须是「同风格底盘 + 字形」，不是空白。
+
+    （甲/楯 已软删、也不再进图鉴，这条改用同样缺美术的刺。）
+    """
+    atlas.kind = PieceType.ASSASSIN
     for style in piece_assets.STYLES:
         artwork = atlas._cell_pixmap(style, Color.RED, 72)
         assert not artwork.isNull()
@@ -107,7 +110,7 @@ def test_missing_art_cell_draws_glyph_not_blank(atlas: PieceAtlasDialog) -> None
         opaque = sum(1 for y in range(image.height()) for x in range(image.width())
                      if image.pixelColor(x, y).alpha() > 128)
         assert opaque > 72 * 72 * 0.25, f"{style} 缺图格几乎空白（不透明像素 {opaque}）"
-        assert piece_assets.is_missing(style, Color.RED, PieceType.ARMOR)
+        assert piece_assets.is_missing(style, Color.RED, PieceType.ASSASSIN)
 
 
 def test_thumbnail_edge_is_a_single_value(atlas: PieceAtlasDialog) -> None:

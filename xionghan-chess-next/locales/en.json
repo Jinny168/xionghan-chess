@@ -352,9 +352,7 @@
     "guard": "Guard",
     "archer": "Archer",
     "thunder": "Thunder",
-    "armor": "Armor",
     "assassin": "Assassin",
-    "shield": "Shield",
     "patrol": "Patrol",
     "king_label": "King",
     "rook_label": "Rook",
@@ -366,9 +364,7 @@
     "guard_label": "Guard",
     "archer_label": "Archer",
     "thunder_label": "Thunder",
-    "armor_label": "Armor",
     "assassin_label": "Assassin",
-    "shield_label": "Shield",
     "patrol_label": "Patrol",
     "red": {
       "king": "漢",
@@ -381,9 +377,7 @@
       "guard": "尉",
       "archer": "射",
       "thunder": "檑",
-      "armor": "甲",
       "assassin": "刺",
-      "shield": "楯",
       "patrol": "巡"
     },
     "black": {
@@ -397,9 +391,7 @@
       "guard": "衛",
       "archer": "䠶",
       "thunder": "礌",
-      "armor": "胄",
       "assassin": "伺",
-      "shield": "碷",
       "patrol": "廵"
     }
   },
@@ -414,9 +406,7 @@
     "guard": "Guard",
     "archer": "Archer",
     "thunder": "Thunder",
-    "armor": "Armor",
     "assassin": "Assassin",
-    "shield": "Shield",
     "patrol": "Patrol"
   },
   "piece_rule": {
@@ -430,9 +420,7 @@
     "guard": "Jumps over one piece on straight or diagonal lines",
     "archer": "Weak mode follows star tracks; enhanced mode can leave them",
     "thunder": "Moves in eight directions and attacks isolated adjacent enemies",
-    "armor": "Moves straight and captures through three-in-a-line formations (including diagonals)",
     "assassin": "Moves to an empty square and exchanges backward",
-    "shield": "Jumps over one piece and cannot be captured; protects adjacent allies",
     "patrol": "Slides horizontally along boundary lines",
     "king_long": "Leader; official rules allow leaving the palace and winning by entering the enemy palace",
     "rook_long": "Moves horizontally or vertically along clear lines",

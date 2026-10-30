@@ -34,7 +34,8 @@ from xionghan_chess.desktop.ui.board_widget import (  # noqa: E402
 
 SIZE = 620
 STYLES = ("traditional", "modern", "cartoon")
-MISSING = (PieceType.ARMOR, PieceType.ASSASSIN, PieceType.SHIELD)
+# 甲/楯 已软删（不再有棋子文案与字形），剩下唯一没有美术的棋型是刺
+MISSING = (PieceType.ASSASSIN,)
 
 
 @pytest.fixture(scope="module")
@@ -121,7 +122,7 @@ def test_disk_diameter_stays_0_78_cell(qt_app: QApplication, style: str) -> None
 
 @pytest.mark.parametrize("kind", MISSING)
 def test_missing_art_still_draws_ink_in_image_mode(qt_app: QApplication, kind: PieceType) -> None:
-    """甲/刺/楯 没有美术，但 image 模式下必须画出同风格底盘 + 字形（不能空白）。"""
+    """刺没有美术，但 image 模式下必须画出同风格底盘 + 字形（不能空白）。"""
     style = "traditional"
     empty, board = render(style, IMAGE_MODE, [])
     marked, _ = render(style, IMAGE_MODE, one_piece(kind))
@@ -166,7 +167,7 @@ def test_config_without_piece_render_stays_glyph(qt_app: QApplication) -> None:
 #   · 画布底填**该风格盘面色**；
 #   · 字用**该风格该色的字色**（不是纯黑，否则色距掩膜会把字形权重算偏）；
 #   · 只统计 `r < 0.62R` 的圆盘内部，排除外环与描边。
-FALLBACK_KINDS = (PieceType.ARMOR, PieceType.ASSASSIN, PieceType.SHIELD)
+FALLBACK_KINDS = (PieceType.ASSASSIN,)   # 甲/楯 已软删，回退绘制只剩刺
 ART_KINDS = tuple(piece_assets.SUFFIX)
 SAMPLE_RADIUS = 55.0          # 盘径 110px：密度只在 dev ≥ 110px 档有意义
 FILL_COLOR = {

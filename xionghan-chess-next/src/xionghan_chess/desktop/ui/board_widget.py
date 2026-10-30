@@ -157,12 +157,12 @@ def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float,
         painter.drawEllipse(center, radius * .82, radius * .82)
     painter.setFont(_piece_font(radius, GLYPH_MODE, style))
     painter.setPen(QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e"))
-    painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2), Qt.AlignmentFlag.AlignCenter, theme.NAMES[piece.color][piece.type])
+    painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2), Qt.AlignmentFlag.AlignCenter, theme.NAMES[piece.color].get(piece.type, ""))
 
 
 def draw_fallback_piece(painter: QPainter, center: QPointF, radius: float,
                         color: Color, piece_type: PieceType, style: str) -> None:
-    """`image` 模式下**没有美术**的棋型（甲/刺/楯）怎么画。
+    """`image` 模式下**没有美术**的棋型（刺/巡）怎么画。
 
     与位图同材质：盘径仍是 `0.78 cell`，填充/环色/描边宽按风格取自 `FALLBACK_STYLE`，
     字用 `pixelSize` + `Normal` 把「字高/盘径」压到 0.52（位图实测 0.496–0.555）。
@@ -186,7 +186,7 @@ def draw_fallback_piece(painter: QPainter, center: QPointF, radius: float,
     painter.setFont(_piece_font(radius, "image_fallback", style))
     painter.setPen(_color(spec["text"], color))  # type: ignore[arg-type]
     painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2),
-                     Qt.AlignmentFlag.AlignCenter, theme.NAMES[color][piece_type])
+                     Qt.AlignmentFlag.AlignCenter, theme.NAMES[color].get(piece_type, ""))
 
 
 class BoardWidget(QWidget):

@@ -352,9 +352,7 @@
     "guard": "尉/卫",
     "archer": "射",
     "thunder": "檑",
-    "armor": "甲/胄",
     "assassin": "刺/伺",
-    "shield": "楯/碷",
     "patrol": "巡/廵",
     "king_label": "汉 / 汗",
     "rook_label": "俥 / 車",
@@ -366,9 +364,7 @@
     "guard_label": "尉 / 卫",
     "archer_label": "射 / 䠶",
     "thunder_label": "檑 / 礌",
-    "armor_label": "甲 / 胄",
     "assassin_label": "刺 / 伺",
-    "shield_label": "楯 / 碷",
     "patrol_label": "巡 / 廵",
     "red": {
       "king": "漢",
@@ -381,9 +377,7 @@
       "guard": "尉",
       "archer": "射",
       "thunder": "檑",
-      "armor": "甲",
       "assassin": "刺",
-      "shield": "楯",
       "patrol": "巡"
     },
     "black": {
@@ -397,9 +391,7 @@
       "guard": "衛",
       "archer": "䠶",
       "thunder": "礌",
-      "armor": "胄",
       "assassin": "伺",
-      "shield": "碷",
       "patrol": "廵"
     }
   },
@@ -414,9 +406,7 @@
     "guard": "尉/卫",
     "archer": "射",
     "thunder": "檑",
-    "armor": "甲/胄",
     "assassin": "刺/伺",
-    "shield": "楯/碷",
     "patrol": "巡/廵"
   },
   "piece_rule": {
@@ -430,9 +420,7 @@
     "guard": "沿直线或斜线隔一子跳",
     "archer": "弱化沿有效星轨，强化可脱离轨道",
     "thunder": "八方向移动，近身攻击落单敌子",
-    "armor": "直行，并通过三子成一条直线（含斜线）吃子",
     "assassin": "直行至空位并反向兑子",
-    "shield": "隔一子跳，自身不可被吃，并保护相邻友子",
     "patrol": "在指定边界线上横移",
     "king_long": "主帅；正式规则允许出九宫，并可通过进入敌方九宫取胜",
     "rook_long": "沿横线或竖线行走，路径不可有棋子",
