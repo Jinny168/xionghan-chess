@@ -6,8 +6,8 @@
 一边 59 子 / 113 着，数字互相引用就会得出相反结论（trunc 到底是 0 还是 12）。
 这个脚本把三件事固定下来，让换机器也能复现同一把尺子：
 
-1. **局面生成**：`--profile/--seed/--plies` 固定，走子策略写死为
-   「每步取合法着法列表的**中位**（按 `move.key()` 排序）」，跳过会直接终局的走法；
+1. **局面生成**：`--profile/--seed/--plies` 固定，走子策略是**确定性**的
+   （`idx = (中位 + seed) % 合法着数`，跳过逆着法与三次重复，避开立刻终局的吃王着法）；
 2. **测量口径**：临时覆盖 `QUIESCENCE_NODE_LIMIT`（只在**本进程**内）、
    `AI_TIME_SCALE` 走产品自己的环境变量读取路径，不碰 `CONFIGS`；
 3. **provenance**：把上面每个参数的实际取值（含 `AI_TIME_SCALE` 及其来源）打进输出，
@@ -100,10 +100,12 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from xionghan_chess.core.ai import CONFIGS, ChessAI, Difficulty  # noqa: E402
 from xionghan_chess.core.game import Game, GameError  # noqa: E402
-from xionghan_chess.core.model import Color, Piece, PieceType  # noqa: E402
+from xionghan_chess.core.model import Color, Move, Piece, PieceType  # noqa: E402
 import xionghan_chess.core.ai as ai_module  # noqa: E402
 
-POSITION_POLICY = "每步取合法着法列表中位（按 move.key() 排序），跳过会立刻终局的吃王着法"
+POSITION_POLICY = ("每步从合法着法列表中位起、按 seed 做确定性轮转；"
+                   "跳过上一步的逆着法与第三次重复（position_key 计数），"
+                   "避开会立刻终局的吃王着法")
 
 
 def build_dense_position(profile: str) -> tuple[Game, list[str]]:
@@ -127,28 +129,80 @@ def build_dense_position(profile: str) -> tuple[Game, list[str]]:
     return game, []
 
 
-def build_position(profile: str, seed: int, plies: int) -> tuple[Game, list[str]]:
-    """固定种子 + 固定走子策略地推进 `plies` 手。
+REPETITION_LIMIT = 3      # 同一 position_key 最多出现这么多次，超过就换候选
 
-    注意：这里的 `seed` **不参与**走子（策略是确定性的中位选择），它只用于给
-    AI 播种；真正的随机性来自 `CONFIGS[difficulty].randomness`（在 provenance 里标注）。
+
+def position_fingerprint(game: Game) -> str:
+    """唯一标识一个局面：`position_key`（含轮次、子力、升变池）。
+
+    `pieces/legal` 只是辅助显示 —— 两个局面子数与合法着数相同，完全可能是不同局面。
+    """
+    return game.rules.position_key(game.state)
+
+
+def build_position(profile: str, seed: int, plies: int) -> tuple[Game, list[str]]:
+    """按「seed 参与的确定性轮转」推进 `plies` 手，并避免走成原地打转。
+
+    ## 与 v1 的三处差别（v1 的 16 个"局面"实际只有 4 个独立局面）
+    1. **seed 真正参与决策**：v1 取"合法着法中位"，`seed` 完全不消费 →
+       700/701/702/703 生成逐子相同的局面。现在起点是
+       `idx = (median + seed) % len(pool)`，同 seed 完全一致、相邻 seed 至少差一位。
+    2. **禁止立刻回头**：跳过上一步的逆着法（`A→B` 之后不再走 `B→A`）。
+       v1 会在 `7,12 ↔ 7,10` 这类两步之间无限循环，`plies=8` 与 `plies=12` 是同一局面。
+    3. **三次重复检测**：用 `position_key` 计数，候选会让某局面第 4 次出现时换下一个候选。
+
+    策略**不依赖时间受限搜索**（不调 `choose_move`），所以同参可确定性重建。
     """
     game = Game(profile)
     played: list[str] = []
+    last: Move | None = None
+    seen: dict[str, int] = {position_fingerprint(game): 1}
+
     for _ in range(plies):
         legal = game.rules.legal_moves(game.state)
         if not legal or game.state.finished:
             break
-        safe = [move for move in legal
-                if (piece := game.state.piece_at(move.target)) is None
-                or piece.type is not PieceType.KING]
-        pool = sorted(safe or legal, key=lambda move: move.key())
+        # 吃王的着法会让局面立刻终局，这里只是"造基准局面"，避开它
+        pool = sorted(
+            (move for move in legal
+             if (piece := game.state.piece_at(move.target)) is None
+             or piece.type is not PieceType.KING),
+            key=lambda move: move.key(),
+        ) or sorted(legal, key=lambda move: move.key())
+
+        start = (len(pool) // 2 + seed) % len(pool)
+        chosen: Move | None = None
+        for step in range(len(pool)):
+            candidate = pool[(start + step) % len(pool)]
+            if last is not None and _is_reverse(last, candidate):
+                continue
+            try:
+                probe = game.rules.apply_unchecked(game.state, candidate)
+            except GameError:
+                continue
+            if seen.get(game.rules.position_key(probe), 0) >= REPETITION_LIMIT:
+                continue
+            chosen = candidate
+            break
+        if chosen is None:                       # 全部候选都不合格：宁可停下
+            break
         try:
-            game.move(pool[len(pool) // 2])      # 中位
+            game.move(chosen)
         except GameError:
             break
+        last = chosen
         played.append(game.state.history[-1].move.key())
+        key = position_fingerprint(game)
+        seen[key] = seen.get(key, 0) + 1
+
     return game, played
+
+
+def _is_reverse(previous: Move, candidate: Move) -> bool:
+    """`candidate` 是否正好把 `previous` 走回去（源/目标互换，同兵种同升变）。"""
+    return (candidate.source == previous.target
+            and candidate.target == previous.source
+            and candidate.promotion == previous.promotion)
 
 
 def instrument(ai: ChessAI, rules) -> dict[str, dict[str, float]]:
@@ -255,6 +309,8 @@ def main(argv: list[str] | None = None) -> int:
         "played": played,
     }
     summary = {
+        # 唯一指纹：`pieces/legal` 相同也可能是不同局面，跨快照引用只认这个
+        "position_key": position_fingerprint(game),
         "pieces": len(game.state.pieces),
         "legal": len(game.rules.legal_moves(game.state)),
         "nodes": ai.nodes,
@@ -281,7 +337,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"（逐根 ms 中位 {statistics.median(r['ms'] for r in table):.0f}，"
               f"trunc 非零根 {sum(1 for value in trunc_values if value)}/{len(trunc_values)}）")
 
-    print("summary: " + " ".join(f"{key}={value}" for key, value in summary.items()))
+    def _short(key: str, value: object) -> object:
+        if key == "position_key" and isinstance(value, str) and len(value) > 32:
+            return value[:32] + "…"
+        return value
+
+    print("summary: " + " ".join(f"{key}={_short(key, value)}" for key, value in summary.items()))
     print("provenance: " + " ".join(f"{key}={value}" for key, value in provenance.items()))
     return 0
 
