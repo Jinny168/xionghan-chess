@@ -50,32 +50,36 @@ def _moves_from(state: GameState, source: Position, color: Color = Color.RED) ->
 # ---------------------------------------------------------------------------
 # ① 兵「过界」判定比另两处口径早一格
 # ---------------------------------------------------------------------------
-def test_behavior_lock_pawn_crossed_at_row6() -> None:
-    """当前行为：红兵站在长城行 row=6 即可**横走**（(6,3) -> (6,4) 合法）。
+def test_pawn_sideways_boundary_is_row5() -> None:
+    """红兵横走的分界在 **row 5**：row 6（阴山行本身）不能横走，row 5 能。
 
-    文档：`PIECE_RULES.md:52`「**过**长城阴山后可以横走一格」—— 行 6 是长城行本身。
-    疑点：`rules.py:610` 用 `crossed = row <= middle(6)`，而
-          `rules.py:615-618`（快速行军，row9 -> 最远落行 5）与
-          `rules.py:557`（相/象，`target.row < 6`）都把**敌境首行定为 5**。
-          → 三处里两处一个口径、一处另一个，即使不看文档代码也不自洽。
+    这条曾是「锁定偏差」用例（旧实现用 `row <= middle`，行 6 就能横走）；
+    用户授权统一口径后语义反转，现在锁的是**正确行为**：
+      * `rules.py` 的 `crossed` 改为 `row < middle`；
+      * 与 `distance_to_enemy_territory`（最远落行 5）、象的 `target.row < middle` 三处一致。
     """
     rules = _rules()
-    state = _state(_piece(PieceType.PAWN, Color.RED, 6, 3), *_kings_off_column())
+    on_middle = _state(_piece(PieceType.PAWN, Color.RED, 6, 3), *_kings_off_column())
+    middle_targets = {(m.target.row, m.target.col)
+                      for m in _moves_from(on_middle, Position(6, 3))}
+    assert (6, 4) not in middle_targets, "阴山行不该能横走"
+    assert (6, 2) not in middle_targets
+    assert (5, 3) in middle_targets, "前进一格仍正常"
 
-    targets = {(m.target.row, m.target.col) for m in _moves_from(state, Position(6, 3))}
-    assert (6, 4) in targets, "行 6 的横走若被修掉，本用例应同步改为断言非法"
-    assert (6, 2) in targets
-    assert (5, 3) in targets  # 前进一格仍正常
+    inside = _state(_piece(PieceType.PAWN, Color.RED, 5, 3), *_kings_off_column())
+    inside_targets = {(m.target.row, m.target.col)
+                      for m in _moves_from(inside, Position(5, 3))}
+    assert (5, 4) in inside_targets and (5, 2) in inside_targets, "敌境首行必须能横走"
 
-
-def test_behavior_lock_pawn_horizontal_from_row5() -> None:
-    """对照组：行 5（敌境首行）横走合法 —— 说明上面那条的差异只发生在行 6。
-
-    文档与另两处口径都认为行 5 起算敌境，这条**不是**偏差，是基准。
-    """
-    state = _state(_piece(PieceType.PAWN, Color.RED, 5, 3), *_kings_off_column())
-    targets = {(m.target.row, m.target.col) for m in _moves_from(state, Position(5, 3))}
-    assert (5, 4) in targets
+    # 黑方镜像：row 7 起可横走，row 6 不行
+    black_middle = _state(_piece(PieceType.PAWN, Color.BLACK, 6, 3), *_kings_off_column(),
+                          turn=Color.BLACK)
+    assert (6, 4) not in {(m.target.row, m.target.col)
+                          for m in _moves_from(black_middle, Position(6, 3), Color.BLACK)}
+    black_inside = _state(_piece(PieceType.PAWN, Color.BLACK, 7, 3), *_kings_off_column(),
+                          turn=Color.BLACK)
+    assert (7, 4) in {(m.target.row, m.target.col)
+                      for m in _moves_from(black_inside, Position(7, 3), Color.BLACK)}
 
 
 # ---------------------------------------------------------------------------
@@ -112,11 +116,10 @@ def test_behavior_lock_pawn_promotion_is_forced() -> None:
 # ---------------------------------------------------------------------------
 # ③ 照面只判同列
 # ---------------------------------------------------------------------------
-def test_behavior_lock_kings_facing_detects_column_only() -> None:
-    """当前行为：两王**同一行**且中间无子时 `in_check` 返回 False（同行照面合法）。
+def test_kings_facing_detects_row_and_column() -> None:
+    """照面判「同一条直线」：**同列或同行**且中间无子，两种都计入被将。
 
-    文档：`PIECE_RULES.md:12`「两个汉/汗不能在**同一直线**无遮挡地照面」—— 直线含横向。
-    疑点：`rules.py:784-787` 的 `_kings_facing` 只比较 `col`，同行不判。
+    文档 `PIECE_RULES.md` 写的是「同一直线」；旧实现只比较了列，同行被漏判。
     """
     rules = _rules()
 
@@ -125,35 +128,30 @@ def test_behavior_lock_kings_facing_detects_column_only() -> None:
     same_col = _state(_piece(PieceType.KING, Color.RED, 2, 6),
                       _piece(PieceType.KING, Color.BLACK, 9, 6))
 
-    assert rules.in_check(same_row, Color.RED) is False, "同行照面若开始被算作被将，本用例应删除"
-    assert rules.in_check(same_col, Color.RED) is True, "同列照面必须仍算被将"
+    assert rules.in_check(same_row, Color.RED) is True, "同行无遮挡必须算被将"
+    assert rules.in_check(same_col, Color.RED) is True, "同列无遮挡必须算被将"
+
+    # 中间隔子即不照面
+    blocked_row = _state(_piece(PieceType.KING, Color.RED, 6, 2),
+                         _piece(PieceType.KING, Color.BLACK, 6, 9),
+                         _piece(PieceType.ROOK, Color.RED, 6, 5))
+    assert rules._kings_facing(blocked_row) is False
 
 
 # ---------------------------------------------------------------------------
 # ④ 锁「矛盾」本身（不是锁行为）
 # ---------------------------------------------------------------------------
-@pytest.mark.xfail(
-    strict=True,
-    reason="敌境起始行三处口径不一致：crossed 用 row<=6，快速行军/相用 row<6（首行 5）。"
-           "规则定口径后本用例应通过 —— 届时 strict 会让它报错，提醒删除本标记。",
-)
 def test_enemy_territory_definition_is_consistent() -> None:
-    """断言三处「敌人境」判定给出同一个起始行。
+    """三处「敌境起始行」必须一致 —— 现已统一为 **row 5**（红方）。
 
-    当前会失败（6 vs 5 vs 5）→ 用 `xfail(strict=True)` 标成"已知矛盾"：
-      - 矛盾仍在：本用例 xfail（不算失败，但报告里可见）；
-      - 矛盾被修好：strict 模式让它**报错**，强制有人回来删标记，不会静默变成"还行"。
-
-    三处口径（均为红方，13 行、middle=6）：
-      * `rules.py:610`  `crossed = row <= middle`            → 过界首行 6
-      * `rules.py:615`  `distance_to_enemy_territory = row - middle + 1` → 最远落行 5
-      * `rules.py:557`  `if target.row < middle: 禁止`        → 敌境为 0..5，首行 5
+    这三处分别是：兵横走的 `crossed`、快速行军的 `distance_to_enemy_territory`、
+    象/相的 `target.row < middle`。口径统一后本用例从 `xfail` 转为正常通过。
     """
     boundaries = {
-        "crossed (rules.py:610)": MIDDLE_ROW,
-        "fast_move (rules.py:615-618)": MIDDLE_ROW - 1,
-        "elephant (rules.py:557)": MIDDLE_ROW - 1,
+        "crossed (rules.py)": MIDDLE_ROW - 1,
+        "fast_move (rules.py)": MIDDLE_ROW - 1,
+        "elephant (rules.py)": MIDDLE_ROW - 1,
     }
     assert len(set(boundaries.values())) == 1, (
-        "三处「敌境起始行」必须一致，当前为：" + repr(boundaries)
-    )
+        "三处「敌境起始行」必须一致，当前为：" + repr(boundaries))
+    assert MIDDLE_ROW - 1 == 5

@@ -53,12 +53,12 @@ def _board() -> list[Piece]:
     """两个变体共用的盘面：除 `captured` 池外完全相同的棋子布局。
 
     - 红兵在 (1,4)，再进一步到 (0,4) 即触底升变（红方朝 row 0 推进）；
-    - 双方王都在 row 12 但**不同列**，避开「照面」与将军噪音，
-      保证两个变体的 `in_check`、`_king_safety` 等输入一致。
+    - 两王**既不同行也不同列**（红 12,6 / 黑 11,0）。照面口径统一为「同列**或同行**」之后，
+      原来「同 row 12、不同列」的摆法会直接照面 → 整盘被将军过滤成无着法。
     """
     return [
         _piece(PieceType.KING, Color.RED, 12, 6),
-        _piece(PieceType.KING, Color.BLACK, 12, 0),
+        _piece(PieceType.KING, Color.BLACK, 11, 0),
         _piece(PieceType.PAWN, Color.RED, 1, 4),
     ]
 
@@ -72,7 +72,7 @@ def _see_board() -> list[Piece]:
     """给 SEE 用的小盘面：红车 (6,4) 可以合法吃掉黑兵 (6,6)。"""
     return [
         _piece(PieceType.KING, Color.RED, 12, 6),
-        _piece(PieceType.KING, Color.BLACK, 12, 0),
+        _piece(PieceType.KING, Color.BLACK, 11, 0),   # 与红王不同行也不同列，避免照面
         _piece(PieceType.ROOK, Color.RED, 6, 4),
         _piece(PieceType.PAWN, Color.BLACK, 6, 6),
     ]

@@ -561,8 +561,9 @@ class RulesEngine:
             if self._diagonal_path_pinched(state, move):
                 return False
             return True
-        in_enemy_territory = (piece.color is Color.RED and move.source.row <= middle) or \
-                             (piece.color is Color.BLACK and move.source.row >= middle)
+        # 与兵/快速行军同一口径：阴山行本身不算敌境（红 row ≤ 5、黑 row ≥ 7）。
+        in_enemy_territory = (piece.color is Color.RED and move.source.row < middle) or \
+                             (piece.color is Color.BLACK and move.source.row > middle)
         return self.options.elephant_can_cross_river and \
             self.options.elephant_gain_jump_two_enemy_territory and in_enemy_territory
 
@@ -607,7 +608,9 @@ class RulesEngine:
         dr, dc = move.target.row - move.source.row, move.target.col - move.source.col
         forward = -1 if piece.color is Color.RED else 1
         middle = self.profile.rows // 2
-        crossed = move.source.row <= middle if piece.color is Color.RED else move.source.row >= middle
+        # 阴山（中间行）本身**不算**进入敌境：红方 row ≤ 5、黑方 row ≥ 7 才可横走。
+        # 与 `distance_to_enemy_territory`（最远落行 5）和象的 `target.row < middle` 同一口径。
+        crossed = move.source.row < middle if piece.color is Color.RED else move.source.row > middle
         enemy_base = move.source.row == (0 if piece.color is Color.RED else self.profile.rows - 1)
         if enemy_base and self.options.pawn_full_movement_at_base:
             return abs(dr) + abs(dc) == 1
@@ -782,6 +785,10 @@ class RulesEngine:
                    for p in state.pieces)
 
     def _kings_facing(self, state: GameState) -> bool:
+        """两王同一**直线**（同列或同行）且中间无子 → 照面，计入被将。"""
         kings = [p for p in state.pieces if p.type is PieceType.KING]
-        return len(kings) == 2 and kings[0].position.col == kings[1].position.col and \
-            self._clear(state, kings[0].position, kings[1].position)
+        if len(kings) != 2:
+            return False
+        same_line = (kings[0].position.col == kings[1].position.col
+                     or kings[0].position.row == kings[1].position.row)
+        return same_line and self._clear(state, kings[0].position, kings[1].position)

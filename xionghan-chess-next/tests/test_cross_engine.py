@@ -360,16 +360,22 @@ def test_elephant_parity_eye_and_two_step_crossing():
 
 
 def test_elephant_cannot_cross_river_toggle_parity():
-    # Without river crossing a red elephant on row 6 may only step back into its
-    # own half; with it on, the forward orthogonal two-step appears too.
+    # Row 6 is the middle ("阴山") row: it is **not** enemy territory any more
+    # (口径统一为 row ≤ 5 for red), so from there only the diagonals appear when
+    # river crossing is on -- the orthogonal two-step needs enemy territory.
     blocked = _sparse("desktop_complete", [(PieceType.ELEPHANT, Color.RED, 6, 4)],
                       options={"elephant_can_cross_river": False})
     _assert_targets(blocked, (6, 4), [(8, 2), (8, 6)])
     crossing = _sparse("desktop_complete", [(PieceType.ELEPHANT, Color.RED, 6, 4)],
                        options={"elephant_can_cross_river": True})
-    _assert_targets(crossing, (6, 4), [(4, 2), (4, 4), (4, 6),
-                                       (6, 2), (6, 6),
-                                       (8, 2), (8, 4), (8, 6)])
+    _assert_targets(crossing, (6, 4), [(4, 2), (4, 6), (8, 2), (8, 6)])
+    # One row further in (row 5 = first enemy row) the orthogonal two-step is
+    # back: the feature exists, only the boundary moved.
+    inside = _sparse("desktop_complete", [(PieceType.ELEPHANT, Color.RED, 5, 4)],
+                     options={"elephant_can_cross_river": True})
+    _assert_targets(inside, (5, 4), [(3, 2), (3, 4), (3, 6),
+                                     (5, 2), (5, 6),
+                                     (7, 2), (7, 4), (7, 6)])
 
 
 def test_advisor_parity_palace_diagonal():
@@ -1096,10 +1102,12 @@ def test_capture_kinds_match_across_engines():
     # A crafted board that produces a direct capture, an armor squeeze and an
     # assassin drag at once, so a "captured but with the wrong kind" decision
     # cannot pass the gate.
+    # 兵对放在 row 5：row 6 是阴山行，**不再**算敌境，红兵在那里不能横走吃子
+    # （旧口径下这枚 direct 吃子靠的正是 row 6 横走，改口径后必须下移一行）。
     game = _sparse("desktop_complete", [
         (PieceType.ARMOR, Color.RED, 6, 3),
-        (PieceType.PAWN, Color.RED, 6, 5),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
+        (PieceType.PAWN, Color.RED, 5, 5),
+        (PieceType.PAWN, Color.BLACK, 5, 6),
         (PieceType.ASSASSIN, Color.RED, 9, 4),
         (PieceType.HORSE, Color.BLACK, 9, 2),
     ])
