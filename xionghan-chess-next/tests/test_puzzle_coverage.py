@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+import pytest
+
 from xionghan_chess.core.model import PieceType
 from xionghan_chess.core.puzzles import load_puzzles
 
@@ -40,32 +42,31 @@ def _coverage() -> tuple[dict[str, int], dict[str, int]]:
     return pieces, kinds
 
 
-# ⚠️ 临时豁免：刺（ASSASSIN）在题库里暂时 0 覆盖。
-# 原因：`endgame-assassin-drag-01` 依赖的是已删除的「拖拽兑子」机制，题已不可解，
-# 本轮按裁决删除（见 `fix(rules): 删除失效题库题…`），而它是唯一一道让刺真正走动的题。
-# 恢复条件：设计侧另出一轮「刺的斜向滑吃」题后，**把 ASSASSIN 从这里删掉**，
-# 两条覆盖断言（子力全覆盖 / 特色子力覆盖）会自动重新生效。
-# 这里刻意保留在断言里而不是删掉整个测试，避免"守卫被静默拆掉"。
-_TEMPORARILY_UNCOVERED = {PieceType.ASSASSIN}
-
-
 def test_special_pieces_are_covered() -> None:
     """P1-M 的原始症状：甲/刺/楯零覆盖。这三种子力是匈汉象棋的特色，不能被漏掉。"""
     pieces, _ = _coverage()
-    for kind in (PieceType.ARMOR, PieceType.ASSASSIN, PieceType.SHIELD):
-        if kind in _TEMPORARILY_UNCOVERED:
-            continue
+    for kind in (PieceType.ARMOR, PieceType.SHIELD):
         assert pieces.get(kind.value, 0) >= 1, f"题库没有任何一道题真的用到 {kind.value}"
-    for kind in _TEMPORARILY_UNCOVERED:
-        assert pieces.get(kind.value, 0) == 0, (
-            f"{kind.value} 已被临时豁免，若题库重新覆盖它，请从 _TEMPORARILY_UNCOVERED 里移除")
+    # 刺暂时缺题，缺口由 `test_assassin_is_covered`（xfail strict）显式钉住，见下方。
 
 
 def test_every_piece_type_is_covered() -> None:
     pieces, _ = _coverage()
+    # 13 类：ASSASSIN 暂时缺题，由 `test_assassin_is_covered` 单独钉（不在此静默放过）
     missing = [kind.value for kind in PieceType
-               if kind not in _TEMPORARILY_UNCOVERED and pieces.get(kind.value, 0) == 0]
+               if kind is not PieceType.ASSASSIN and pieces.get(kind.value, 0) == 0]
     assert not missing, f"以下子力在题库里没有任何一道题练到：{missing}"
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="刺的唯一题目 endgame-assassin-drag-01 因机制删除而移除；待设计侧补一道刺题后本用例应通过，"
+           "届时 strict 会报错提醒去掉本标记",
+)
+def test_assassin_is_covered() -> None:
+    """题库应至少有一道题在解法中实际动到 ASSASSIN（`exercise()` 口径：解法真正走到的子力）。"""
+    pieces, _ = _coverage()
+    assert pieces.get(PieceType.ASSASSIN.value, 0) >= 1
 
 
 def test_special_capture_kinds_are_covered() -> None:
