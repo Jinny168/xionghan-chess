@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import ctypes
 import sys
+from pathlib import Path
 from ctypes import POINTER, Structure, byref, c_ulong, c_ushort, c_void_p, c_wchar_p
 
 ole32 = ctypes.oledll.ole32                 # oledll：HRESULT 失败自动抛 OSError
@@ -88,5 +89,7 @@ if __name__ == "__main__":
     lnk_path, exe_path = sys.argv[1], sys.argv[2]
     icon = sys.argv[3] if len(sys.argv) > 3 else exe_path + ",0"
     desc = sys.argv[4] if len(sys.argv) > 4 else "匈汉象棋"
-    make_shortcut(lnk_path, exe_path, exe_path.rsplit("\\", 1)[0], icon, desc)
+    # 用 pathlib 取父目录：命令行传入的路径可能是 `/` 分隔（Git Bash 会给过来），
+    # 用 rsplit("\\") 会切不开，WorkingDirectory 就会变成 EXE 自己。
+    make_shortcut(lnk_path, exe_path, str(Path(exe_path).parent), icon, desc)
     print("created:", lnk_path)
