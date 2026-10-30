@@ -538,6 +538,46 @@ def test_archer_enhanced_capture_only_from_star_parity():
     assert (1, 1) in _targets_from(_assert_parity(on_star), (3, 3))
 
 
+def test_archer_capture_ignores_blockers_parity():
+    """射的吃子无视阻挡（位移仍要求路径空），两引擎必须一致。"""
+    # 注意：`_sparse` 默认把红王放在 (0,0)，会与这里的射重叠 —— 必须自带王位。
+    kings = [(PieceType.KING, Color.RED, 12, 12), (PieceType.KING, Color.BLACK, 0, 10)]
+    one = _sparse("desktop_complete", kings + [
+        (PieceType.ARCHER, Color.RED, 0, 0),
+        (PieceType.PAWN, Color.RED, 1, 1),
+        (PieceType.HORSE, Color.BLACK, 3, 3),
+    ], kings=False)
+    targets = _targets_from(_assert_parity(one), (0, 0))
+    assert (3, 3) in targets, "隔 1 子应能吃到"
+    assert (2, 2) not in targets, "空着位移被挡应非法"
+
+    two = _sparse("desktop_complete", kings + [
+        (PieceType.ARCHER, Color.RED, 0, 0),
+        (PieceType.PAWN, Color.RED, 1, 1),
+        (PieceType.PAWN, Color.RED, 2, 2),
+        (PieceType.HORSE, Color.BLACK, 3, 3),
+    ], kings=False)
+    assert (3, 3) in _targets_from(_assert_parity(two), (0, 0)), "隔 2 子也应能吃到"
+
+
+def test_pawn_charge_toggle_parity():
+    """兵冲锋（开关）两引擎一致：开启后过阴山可直线多格，遇子即停、不吃子。"""
+    on = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 3)],
+                 options={"pawn_charge": True})
+    targets = _targets_from(_assert_parity(on), (5, 3))
+    assert (2, 3) in targets and (0, 3) in targets
+
+    off = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 3)])
+    assert (2, 3) not in _targets_from(_assert_parity(off), (5, 3))
+
+    blocked = _sparse("desktop_complete", [
+        (PieceType.PAWN, Color.RED, 5, 3),
+        (PieceType.PAWN, Color.RED, 4, 3),
+    ], options={"pawn_charge": True})
+    blocked_targets = _targets_from(_assert_parity(blocked), (5, 3))
+    assert (2, 3) not in blocked_targets and (4, 3) not in blocked_targets
+
+
 def test_thunder_parity_line_diagonal_and_isolated_capture():
     game = _sparse("desktop_complete", [
         (PieceType.THUNDER, Color.RED, 6, 4),

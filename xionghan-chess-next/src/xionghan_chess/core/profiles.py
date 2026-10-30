@@ -35,6 +35,8 @@ class RuleOptions:
     pawn_full_movement_at_base: bool = True
     pawn_resurrection: bool = True
     pawn_promotion: bool = True
+    pawn_charge: bool = False                 # 敌阵冲锋（过阴山后直线多格，不吃子）
+    pawn_three_line_capture: bool = False     # 兵参与"三连吃子"（与甲同构）
     enforce_self_check: bool = True
     threefold_draw: bool = True
     no_progress_draw_plies: int = 120
@@ -71,6 +73,8 @@ class RuleOptions:
             "pawn_promotion_enabled": "pawn_promotion",
             "pawn_backward_at_base_enabled": "pawn_backward_at_base",
             "pawn_full_movement_at_base_enabled": "pawn_full_movement_at_base",
+            "pawn_charge_enabled": "pawn_charge",
+            "pawn_three_line_capture_enabled": "pawn_three_line_capture",
             "ju_appear": "rook_appear", "ma_appear": "horse_appear",
             "xiang_appear": "elephant_appear", "shi_appear": "advisor_appear",
             "pao_appear": "cannon_appear", "wei_appear": "guard_appear",

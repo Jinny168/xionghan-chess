@@ -130,6 +130,72 @@ def test_armor_three_piece_line_captures_enemy():
     assert rules.captured_by_move(board, move) == (enemy,)
 
 
+def test_archer_captures_through_blockers_but_moves_only_on_clear_path():
+    """射：吃子无视阻挡；位移仍要求路径无子（射程/星点/夹逼不变）。"""
+    red, black = kings()
+    rules = RulesEngine(get_profile("desktop_complete"))
+
+    one = state(red, black, piece(PieceType.ARCHER, Color.RED, 0, 0),
+                piece(PieceType.PAWN, Color.RED, 1, 1),
+                piece(PieceType.HORSE, Color.BLACK, 3, 3))
+    assert rules.is_legal(one, Move(Position(0, 0), Position(3, 3))), "隔 1 子应能吃到"
+    assert not rules.is_legal(one, Move(Position(0, 0), Position(2, 2))), "空着位移被挡应非法"
+
+    two = state(red, black, piece(PieceType.ARCHER, Color.RED, 0, 0),
+                piece(PieceType.PAWN, Color.RED, 1, 1),
+                piece(PieceType.PAWN, Color.RED, 2, 2),
+                piece(PieceType.HORSE, Color.BLACK, 3, 3))
+    assert rules.is_legal(two, Move(Position(0, 0), Position(3, 3))), "隔 2 子也应能吃到"
+    assert not rules.is_legal(two, Move(Position(0, 0), Position(1, 1))), "己方子所在格不能落"
+
+
+def test_pawn_charge_is_opt_in_and_never_captures():
+    """兵冲锋：开关默认关；开启后过阴山可直线多格，但不吃子、遇子即停。"""
+    red, black = kings()
+    profile = get_profile("desktop_complete")
+    on = RulesEngine(profile, profile.options.merged({"pawn_charge": True}))
+    off = RulesEngine(profile)
+
+    pawn = piece(PieceType.PAWN, Color.RED, 5, 3)
+    board = state(red, black, pawn)
+    assert on.is_legal(board, Move(Position(5, 3), Position(2, 3))), "过阴山后可冲锋多格"
+    assert off.is_legal(board, Move(Position(5, 3), Position(2, 3))) is False, "默认关不应生效"
+
+    # 未过阴山（row 6 是阴山行本身）不冲锋
+    middle = state(red, black, piece(PieceType.PAWN, Color.RED, 6, 3))
+    assert on.is_legal(middle, Move(Position(6, 3), Position(3, 3))) is False
+
+    # 路径有子：只能走到子前面
+    blocked = state(red, black, piece(PieceType.PAWN, Color.RED, 5, 3),
+                    piece(PieceType.PAWN, Color.RED, 4, 3))
+    assert on.is_legal(blocked, Move(Position(5, 3), Position(2, 3))) is False
+    assert on.is_legal(blocked, Move(Position(5, 3), Position(4, 3))) is False
+
+    # 目标有子：冲锋不吃子
+    occupied = state(red, black, piece(PieceType.PAWN, Color.RED, 5, 3),
+                     piece(PieceType.HORSE, Color.BLACK, 2, 3))
+    assert on.is_legal(occupied, Move(Position(5, 3), Position(2, 3))) is False
+
+
+def test_pawn_three_line_capture_is_opt_in():
+    """兵参与三连吃子：默认关；开启后「两枚己方兵 + 一枚敌子成线」吃掉敌子。"""
+    red, black = kings()
+    profile = get_profile("desktop_complete")
+    on = RulesEngine(profile, profile.options.merged({"pawn_three_line_capture": True}))
+    off = RulesEngine(profile)
+
+    board = state(red, black, piece(PieceType.PAWN, Color.RED, 7, 2),
+                  piece(PieceType.PAWN, Color.RED, 6, 3),
+                  piece(PieceType.HORSE, Color.BLACK, 6, 4))
+    move = Move(Position(7, 2), Position(6, 2))          # 落到 (6,2) 后成 6,2/6,3/6,4 三连
+    assert on.is_legal(board, move)
+    after = on.apply_unchecked(board, move, switch_turn=False)
+    assert not any(p.type is PieceType.HORSE for p in after.pieces), "开启三连应吃掉敌子"
+
+    after_off = off.apply_unchecked(board, move, switch_turn=False)
+    assert any(p.type is PieceType.HORSE for p in after_off.pieces), "默认关不应触发"
+
+
 def test_patrol_moves_four_ways_and_captures_at_distance_two():
     red, black = kings()
     patrol = piece(PieceType.PATROL, Color.RED, 6, 6)
