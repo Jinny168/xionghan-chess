@@ -8,14 +8,14 @@
 
 当前主线代码在 **[`xionghan-chess-next/`](xionghan-chess-next/)**，入口文档见 **[xionghan-chess-next/README.md](xionghan-chess-next/README.md)**（快速开始 / 三端构建 / 目录结构 / 规则要点 / 已知限制）。
 
-## 📁 仓库结构：两棵树
+## 📁 仓库结构
 
-| 目录 | 性质 | 说明 |
-|---|---|---|
-| [`xionghan-chess-next/`](xionghan-chess-next/) | ✅ **活体树（当前开发主线）** | `src/` 核心（规则 / AI / 服务）+ Web 客户端 + Android 客户端 + 测试 + 打包脚本 + 文档 |
-| 仓库根其余内容 | ✅ **已收敛** | 仓库根仅保留 `README.md` / `LICENSE` / `requirements.txt` / `.github/` / `xionghan-chess-next/`；**迁移前遗留树（`desktop/`、`web/`、`docker/`、`docs/`、`handoff.md`、`DEPLOYMENT.md`）已于 2026-10-30 删除**（`108b166`，324 文件 / −53,503 行） |
+| 目录 | 说明 |
+|---|---|
+| [`xionghan-chess-next/`](xionghan-chess-next/) | **当前开发主线**：`src/` 核心（规则 / AI / 服务）+ Web 客户端 + Android 客户端 + 测试 + 打包脚本 + 文档 |
+| 仓库根其余内容 | `README.md` / `LICENSE` / `requirements.txt` / `.github/`。迁移前遗留树（`desktop/`、`web/`、`docker/`、`docs/`、`handoff.md`、`DEPLOYMENT.md`）已于 2026-10-30 删除（`108b166`，324 文件 / −53,503 行） |
 
-> 首次访问请直接前往 [`xionghan-chess-next/README.md`](xionghan-chess-next/README.md)，其余目录可忽略。
+> 首次访问请直接前往 [`xionghan-chess-next/README.md`](xionghan-chess-next/README.md)。以上即仓库全部内容。
 
 ## 📝 项目简介（对外口径）
 
