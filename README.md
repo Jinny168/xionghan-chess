@@ -13,7 +13,7 @@
 | 目录 | 性质 | 说明 |
 |---|---|---|
 | [`xionghan-chess-next/`](xionghan-chess-next/) | ✅ **活体树（当前开发主线）** | `src/` 核心（规则 / AI / 服务）+ Web 客户端 + Android 客户端 + 测试 + 打包脚本 + 文档 |
-| 仓库根 `desktop/`、`web/`、`docker/`、`docs/`、`handoff.md`、`DEPLOYMENT.md` 等 | ⚠️ **迁移前的历史遗留树** | v2.0 时代的旧实现，**仅供追溯，不是当前代码**，不再维护 |
+| 仓库根其余内容 | ✅ **已收敛** | 仓库根仅保留 `README.md` / `LICENSE` / `requirements.txt` / `.github/` / `xionghan-chess-next/`；**迁移前遗留树（`desktop/`、`web/`、`docker/`、`docs/`、`handoff.md`、`DEPLOYMENT.md`）已于 2026-10-30 删除**（`108b166`，324 文件 / −53,503 行） |
 
 > 首次访问请直接前往 [`xionghan-chess-next/README.md`](xionghan-chess-next/README.md)，其余目录可忽略。
 
