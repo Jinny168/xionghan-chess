@@ -159,38 +159,37 @@ def _offline_capture_specs(game: Game, color: Color, targets=None) -> list[dict]
     return sorted(observed, key=lambda item: (item["row"], item["col"]))
 
 
-def test_assassin_exchange_keeps_shield_protected_piece_parity():
-    # An exchange is still a capture, so `PIECE_RULES.md:98` applies to the
-    # piece dragged behind the assassin: a pawn beside its own shield survives,
-    # while an identical pawn without one does not. Both engines have to report
-    # the same removal list, otherwise the shield immunity only exists on one
-    # side of the parity gate.
-    # The assassin slides (6,5) -> (6,6), so the piece it drags is the one
-    # standing at (6,4): the mirrored square behind its own origin.
-    protected = _sparse("desktop_complete", [
-        (PieceType.ASSASSIN, Color.RED, 6, 5),
-        (PieceType.PAWN, Color.BLACK, 6, 4),
-        (PieceType.SHIELD, Color.BLACK, 6, 3),    # protects the pawn at (6,4)
-    ])
-    unprotected = _sparse("desktop_complete", [
-        (PieceType.ASSASSIN, Color.RED, 6, 5),
-        (PieceType.PAWN, Color.BLACK, 6, 4),
-        (PieceType.SHIELD, Color.RED, 2, 2),
-    ])
-    _assert_parity(protected)
-    _assert_parity(unprotected)
-    for game, expected in ((protected, set()), (unprotected, {PieceType.PAWN})):
-        python_captured = {p.type for p in
-                           game.rules.captured_by_move(game.state, Move(Position(6, 5), Position(6, 6)))}
-        js_captured = {item["type"] for item in
-                       _offline_captured(game, Position(6, 5), Position(6, 6))}
-        assert python_captured == expected, f"python removed {sorted(python_captured)}"
-        assert js_captured == expected, f"offline.js removed {sorted(js_captured)}"
+def test_assassin_walks_one_step_and_captures_diagonally_parity():
+    """刺：**走**只有前进一格（与兵同）；**吃**是斜向任意距离（受夹逼）；没有拖拽交换。
 
+    （"车走"版本太强，用户已否；这里锁的是最终口径。）
+    """
+    # 前进一格 + 斜向两格吃 (9,7)：只有这两个落点
+    clear = _sparse("desktop_complete", [
+        (PieceType.ASSASSIN, Color.RED, 6, 4),
+        (PieceType.HORSE, Color.BLACK, 9, 7),
+    ])
+    _assert_targets(clear, (6, 4), [(5, 4), (9, 7)])
+
+    # 斜路被己方子挡住 → 吃不到，只剩前进一格
+    blocked = _sparse("desktop_complete", [
+        (PieceType.ASSASSIN, Color.RED, 6, 4),
+        (PieceType.PAWN, Color.RED, 7, 5),
+        (PieceType.HORSE, Color.BLACK, 9, 7),
+    ])
+    _assert_targets(blocked, (6, 4), [(5, 4)])
+
+    # 正前方的敌子：不能吃（走只能落空点），也不能横向/后退
+    straight = _sparse("desktop_complete", [
+        (PieceType.ASSASSIN, Color.RED, 6, 4),
+        (PieceType.HORSE, Color.BLACK, 6, 7),
+    ])
+    _assert_targets(straight, (6, 4), [(5, 4)])
 
 @pytest.mark.parametrize("profile_id", [
     "traditional", "web", "desktop_classic", "desktop_complete",
 ])
+
 def test_initial_legal_moves_and_check_match_android_offline(profile_id):
     game = Game(profile_id)
     expected = {_move_key(move) for move in game.rules.legal_moves(game.state)}
@@ -621,24 +620,33 @@ def test_shield_blocks_capture_of_protected_piece_parity():
     assert (6, 6) not in _targets_from(_assert_parity(game), (6, 4))
 
 
-def test_patrol_parity_home_rank_only():
-    # Patrol moves along its own rank by an even number of squares, and may only
-    # capture from distance 2 -- a longer hop needs an empty destination. Here the
-    # red patrol at (7,6) is walled in by the black patrol sitting on (5,6).
+def test_patrol_moves_on_rows_and_columns_parity():
+    """巡：横竖同规则，走偶数格，吃子仅限距离 2（不再限制在 5/7 行）。"""
     game = _sparse("desktop_complete", [
         (PieceType.PATROL, Color.RED, 7, 6),
         (PieceType.PATROL, Color.BLACK, 5, 6),
         (PieceType.PAWN, Color.BLACK, 7, 8),
     ])
-    _assert_targets(game, (7, 6), [(7, 0), (7, 2), (7, 4), (7, 8)])
-    # The black patrol cannot reach the red one at distance 2, so it is frozen.
-    _assert_targets(game, (5, 6), [])
+    # 横向：距离 2 可吃 (7,8)，距离 4/6 必须是空点；纵向同理（距离 2 可吃 (5,6)）
+    _assert_targets(game, (7, 6), [(7, 0), (7, 2), (7, 4), (7, 8),
+                                   (9, 6), (11, 6), (5, 6)])
+
+    # 黑方另起一局（`_assert_parity` 只列当前行棋方的着法）：
+    # 竖走 (1,6)/(3,6)/(7,6)/(9,6)/(11,6)，横走 (5,0)/(5,2)/(5,4) 与吃子 (5,8)
+    black = _sparse("desktop_complete", [
+        (PieceType.PATROL, Color.BLACK, 5, 6),
+        (PieceType.PAWN, Color.RED, 5, 8),
+    ], turn=Color.BLACK)
+    _assert_targets(black, (5, 6), [(1, 6), (3, 6), (5, 0), (5, 2), (5, 4),
+                                    (5, 8), (7, 6), (9, 6), (11, 6)])
 
 
-def test_patrol_cannot_leave_home_rank_parity():
-    # A patrol parked on any other rank has no legal move at all.
+def test_patrol_is_not_pinned_to_home_rank_parity():
+    """旧口径把巡锁在 5/7 行；新口径下任意行列都能走（偶数格）。"""
     game = _sparse("desktop_complete", [(PieceType.PATROL, Color.RED, 6, 6)])
-    assert not _targets_from(_assert_parity(game), (6, 6))
+    targets = _targets_from(_assert_parity(game), (6, 6))
+    assert (6, 0) in targets and (6, 12) in targets
+    assert (0, 6) in targets and (12, 6) in targets
 
 
 # --- rule interactions ------------------------------------------------------
@@ -1104,18 +1112,22 @@ def test_capture_kinds_match_across_engines():
     # cannot pass the gate.
     # 兵对放在 row 5：row 6 是阴山行，**不再**算敌境，红兵在那里不能横走吃子
     # （旧口径下这枚 direct 吃子靠的正是 row 6 横走，改口径后必须下移一行）。
+    # 刺的拖拽吃法已删除，`assassin_drag` 不再产生；这里只要 direct + armor_line：
+    # row 6 的一对兵给 `armor_line`（甲走到 (6,4) 凑成三连），row 5 的一对给 `direct`。
     game = _sparse("desktop_complete", [
         (PieceType.ARMOR, Color.RED, 6, 3),
+        (PieceType.PAWN, Color.RED, 6, 5),
+        (PieceType.PAWN, Color.BLACK, 6, 6),
         (PieceType.PAWN, Color.RED, 5, 5),
         (PieceType.PAWN, Color.BLACK, 5, 6),
-        (PieceType.ASSASSIN, Color.RED, 9, 4),
-        (PieceType.HORSE, Color.BLACK, 9, 2),
     ])
     python = _python_capture_specs(game, Color.RED)
     offline = _offline_capture_specs(game, Color.RED)
     assert python == offline
     kinds = {removal["kind"] for spec in python for removal in spec["removals"]}
-    assert {"direct", "armor_line", "assassin_drag"} <= kinds, kinds
+    # 刺的「拖拽/同归于尽」已删除，`assassin_drag` 不再产生
+    assert {"direct", "armor_line"} <= kinds, kinds
+    assert "assassin_drag" not in kinds
 
 
 # ---------------------------------------------------------------------------

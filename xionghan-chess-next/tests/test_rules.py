@@ -25,41 +25,112 @@ def test_king_can_leave_palace_when_enabled():
                            get_profile("desktop_complete").options.merged({"king_can_leave_palace": False})).is_legal(board, move)
 
 
-def test_shield_cannot_be_captured_and_protects_adjacent_piece():
+def test_shield_can_be_captured_when_unprotected():
+    """楯不再是绝对免疫：没有同阵营楯四正相贴时可以吃。"""
     red, black = kings()
     rook = piece(PieceType.ROOK, Color.RED, 6, 0)
     shield = piece(PieceType.SHIELD, Color.BLACK, 6, 3)
-    pawn = piece(PieceType.PAWN, Color.BLACK, 6, 4)
-    board = state(red, black, rook, shield, pawn)
+    board = state(red, black, rook, shield)
     rules = RulesEngine(get_profile("desktop_complete"))
-    assert not rules.is_legal(board, Move(rook.position, shield.position))
-    assert not rules.is_legal(board, Move(rook.position, pawn.position))
+    assert rules.is_legal(board, Move(rook.position, shield.position))
 
 
-def test_assassin_exchange_removes_both_pieces():
+def test_shield_protects_only_orthogonally_adjacent_pieces():
+    """保护收窄到**四正**：正侧相邻能护住，斜贴不算。"""
+    red, black = kings()
+    rules = RulesEngine(get_profile("desktop_complete"))
+
+    # 四正：楯在 (6,2)，被吃的子在 (6,3) → 护住
+    ortho = state(red, black, piece(PieceType.ROOK, Color.RED, 6, 0),
+                  piece(PieceType.SHIELD, Color.BLACK, 6, 2),
+                  piece(PieceType.PAWN, Color.BLACK, 6, 3))
+    assert not rules.is_legal(ortho, Move(Position(6, 0), Position(6, 3)))
+
+    # 斜贴：楯在 (5,2)，被吃的子在 (6,3) → 不护
+    diagonal = state(red, black, piece(PieceType.ROOK, Color.RED, 6, 0),
+                     piece(PieceType.SHIELD, Color.BLACK, 5, 2),
+                     piece(PieceType.PAWN, Color.BLACK, 6, 3))
+    assert rules.is_legal(diagonal, Move(Position(6, 0), Position(6, 3)))
+
+
+def test_assassin_walks_one_step_and_captures_diagonally():
     red, black = kings()
     assassin = piece(PieceType.ASSASSIN, Color.RED, 6, 4)
-    victim = piece(PieceType.HORSE, Color.BLACK, 6, 3)
+    victim = piece(PieceType.HORSE, Color.BLACK, 8, 2)   # 斜向两格；且不会将军红王（含直三马腿）
     board = state(red, black, assassin, victim)
     rules = RulesEngine(get_profile("desktop_complete"))
-    move = Move(assassin.position, Position(6, 5))
-    assert rules.is_legal(board, move)
-    result = rules.apply_unchecked(board, move)
-    assert all(p.id not in {assassin.id, victim.id} for p in result.pieces)
+
+    # 走：只前进一格
+    assert rules.is_legal(board, Move(assassin.position, Position(5, 4)))
+    # 走不能横向、也不能一次两格
+    assert not rules.is_legal(board, Move(assassin.position, Position(6, 5)))
+    assert not rules.is_legal(board, Move(assassin.position, Position(4, 4)))
+    # 吃：斜向任意距离；落子后目标消失，且**自己不会同归于尽**
+    capture = Move(assassin.position, victim.position)
+    assert rules.is_legal(board, capture)
+    after = rules.apply_unchecked(board, capture)
+    assert after.piece_at(victim.position) is not None
+    assert after.piece_at(victim.position).type is PieceType.ASSASSIN
+    # 直线上的敌子吃不到（只能走空点）
+    straight = state(red, black, piece(PieceType.ASSASSIN, Color.RED, 6, 4),
+                     piece(PieceType.HORSE, Color.BLACK, 6, 7))
+    assert not rules.is_legal(straight, Move(Position(6, 4), Position(6, 7)))
+
+
+def test_armor_moves_one_step_but_runs_like_a_rook_forward():
+    red, black = kings()
+    armor = piece(PieceType.ARMOR, Color.RED, 6, 3)
+    board = state(red, black, armor)
+    rules = RulesEngine(get_profile("desktop_complete"))
+
+    # 前方：车式，多格都可（(4,3)、(2,3)）
+    assert rules.is_legal(board, Move(armor.position, Position(4, 3)))
+    assert rules.is_legal(board, Move(armor.position, Position(2, 3)))
+    # 侧、后：只有一格
+    assert rules.is_legal(board, Move(armor.position, Position(6, 4)))
+    assert rules.is_legal(board, Move(armor.position, Position(7, 3)))
+    assert not rules.is_legal(board, Move(armor.position, Position(6, 5)))
+    assert not rules.is_legal(board, Move(armor.position, Position(8, 3)))
+    # 仍不能吃子：前方有敌子时既不能前进也不能吃
+    blocked = state(red, black, piece(PieceType.ARMOR, Color.RED, 6, 3),
+                    piece(PieceType.PAWN, Color.BLACK, 3, 3))
+    # 敌子在 (3,3)：甲**不能吃**，但可以走到它前面的 (4,3)
+    assert not rules.is_legal(blocked, Move(Position(6, 3), Position(3, 3)))
+    assert rules.is_legal(blocked, Move(Position(6, 3), Position(4, 3)))
 
 
 def test_armor_three_piece_line_captures_enemy():
+    """三连移除保持不变（甲只是"移动"，三连是走完后全盘结算）。"""
     red, black = kings()
-    armor = piece(PieceType.ARMOR, Color.RED, 6, 0)
+    armor = piece(PieceType.ARMOR, Color.RED, 6, 5)
     ally = piece(PieceType.PAWN, Color.RED, 6, 3)
-    enemy = piece(PieceType.HORSE, Color.BLACK, 6, 4)
+    enemy = piece(PieceType.HORSE, Color.BLACK, 6, 2)
     board = state(red, black, armor, ally, enemy)
     rules = RulesEngine(get_profile("desktop_complete"))
-    move = Move(armor.position, Position(6, 2))
+    move = Move(armor.position, Position(6, 4))
     assert rules.is_legal(board, move)
     result = rules.apply_unchecked(board, move)
     assert result.piece_at(enemy.position) is None
     assert rules.captured_by_move(board, move) == (enemy,)
+
+
+def test_patrol_moves_four_ways_and_captures_at_distance_two():
+    red, black = kings()
+    patrol = piece(PieceType.PATROL, Color.RED, 6, 6)
+    victim = piece(PieceType.PAWN, Color.BLACK, 6, 9)
+    board = state(red, black, patrol, victim)
+    rules = RulesEngine(get_profile("desktop_complete"))
+
+    # 横竖都行（不再限制在 5/7 行），偶数格
+    assert rules.is_legal(board, Move(patrol.position, Position(6, 4)))
+    assert rules.is_legal(board, Move(patrol.position, Position(2, 6)))
+    assert not rules.is_legal(board, Move(patrol.position, Position(6, 5)))   # 奇数格不行
+    # 吃子仅限距离 2
+    assert rules.is_legal(board, Move(patrol.position, Position(6, 8)))       # 走空点
+    assert not rules.is_legal(board, Move(patrol.position, Position(6, 9)))   # 距离 3 吃不到
+    near = state(red, black, piece(PieceType.PATROL, Color.RED, 6, 6),
+                 piece(PieceType.PAWN, Color.BLACK, 6, 8))
+    assert rules.is_legal(near, Move(Position(6, 6), Position(6, 8)))         # 距离 2 可吃
 
 
 def test_promotion_requires_captured_allowed_piece():

@@ -143,7 +143,9 @@ class RulesEngine:
         if piece is None or piece.color is not state.turn or piece.type not in self.enabled_piece_types:
             return False
         target = self.get(state, move.target)
-        if target and (target.color is piece.color or target.type is PieceType.SHIELD):
+        # 楯不再绝对免疫：它可以被吃，只有「四正相邻的同阵营楯」能保护它
+        # （保护判定见 `_protected_by_enemy_shield`）。
+        if target and target.color is piece.color:
             return False
         if move.promotion:
             if piece.type is not PieceType.PAWN or not self.options.pawn_promotion:
@@ -277,24 +279,6 @@ class RulesEngine:
                                             captured.color, captured.position,
                                             move.source, move.target))
 
-        if piece.type is PieceType.ASSASSIN:
-            dragged = self._assassin_drag_victim(clone, piece, move.source, move.target)
-            if dragged is not None:
-                clone.pieces.remove(dragged)
-                removals.append(Removal(CaptureKind.ASSASSIN_DRAG, dragged.id, dragged.type,
-                                        dragged.color, dragged.position,
-                                        move.source, move.target))
-                # An exchange removes the assassin itself too. That own-colour
-                # removal belongs to this move's set (and to its own side's
-                # pool), so it is recorded here; `capturable_squares`, which
-                # only reports enemy victims, filters it back out.
-                moved_piece = clone.piece_at(move.target)
-                if moved_piece:
-                    clone.pieces.remove(moved_piece)
-                    removals.append(Removal(CaptureKind.ASSASSIN_DRAG, moved_piece.id,
-                                            moved_piece.type, moved_piece.color,
-                                            moved_piece.position, move.source, move.target))
-
         if move.promotion and piece.type is PieceType.PAWN and self.options.pawn_promotion:
             promoted = clone.piece_at(move.target)
             if promoted:
@@ -303,24 +287,6 @@ class RulesEngine:
                 if dead:
                     clone.captured[piece.color].remove(dead)
         return clone, removals
-
-    def _assassin_drag_victim(self, state: GameState, piece: Piece,
-                              source: Position, target: Position) -> Piece | None:
-        """The piece an assassin drags once it has landed on `target` from `source`.
-
-        The assassin kills the enemy sitting on the mirror of its own origin, so
-        the victim is read off the state where the assassin has already moved.
-        An exchange is still a capture, which keeps the dragged piece's
-        `PIECE_RULES.md:98` shield immunity; only a shield itself (doc line 92)
-        is exempt for being a shield.
-        """
-        reverse = Position(2 * source.row - target.row, 2 * source.col - target.col)
-        dragged = state.piece_at(reverse)
-        if dragged and dragged.color is not piece.color and \
-                dragged.type is not PieceType.SHIELD and \
-                not self._protected_by_enemy_shield(state, dragged):
-            return dragged
-        return None
 
     def in_check(self, state: GameState, color: Color) -> bool:
         king = next((p for p in state.pieces if p.color is color and p.type is PieceType.KING), None)
@@ -428,11 +394,7 @@ class RulesEngine:
                 removals.append(Removal(CaptureKind.DIRECT, victim.id, victim.type,
                                         victim.color, victim.position,
                                         piece.position, victim.position))
-            if piece.type is PieceType.ASSASSIN:
-                mirrored = Position(2 * piece.position.row - victim.position.row,
-                                    2 * piece.position.col - victim.position.col)
-                landings = [mirrored] if self.inside(mirrored) else []
-            elif piece.type is PieceType.ARMOR:
+            if piece.type is PieceType.ARMOR:
                 landings = []
                 for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
                     for step in (1, 2):
@@ -451,9 +413,7 @@ class RulesEngine:
                     continue
                 after = self.apply_unchecked(state, move, switch_turn=False)
                 if victim.id not in {p.id for p in after.pieces}:
-                    kind = (CaptureKind.ASSASSIN_DRAG if piece.type is PieceType.ASSASSIN
-                            else CaptureKind.ARMOR_LINE)
-                    removals.append(Removal(kind, victim.id, victim.type,
+                    removals.append(Removal(CaptureKind.ARMOR_LINE, victim.id, victim.type,
                                             victim.color, victim.position,
                                             piece.position, landing))
         return removals
@@ -729,18 +689,39 @@ class RulesEngine:
             (not self._diagonal(move) or not self._diagonal_path_pinched(state, move))
 
     def _armor(self, state: GameState, piece: Piece, move: Move) -> bool:
-        return self.get(state, move.target) is None and self._rook(state, piece, move)
+        """甲：**只移动不吃子**。前后左右一格，且前方可像车一样直行（路径需空）。"""
+        if self.get(state, move.target) is not None:
+            return False
+        forward = -1 if piece.color is Color.RED else 1
+        dr = move.target.row - move.source.row
+        dc = move.target.col - move.source.col
+        if dc == 0 and dr * forward > 0:
+            return self._rook(state, piece, move)      # 前方车式（多格直行）
+        if dc == 0 and dr == -forward:
+            return True                                 # 后一格
+        return dr == 0 and abs(dc) == 1                 # 左右一格
 
     def _assassin(self, state: GameState, piece: Piece, move: Move) -> bool:
-        return self.get(state, move.target) is None and self._rook(state, piece, move)
+        """刺：**走**只有前进一格（与兵同）；**吃**是斜向任意距离（受斜向夹逼）。"""
+        target = self.get(state, move.target)
+        dr = move.target.row - move.source.row
+        dc = move.target.col - move.source.col
+        if target is None:
+            forward = -1 if piece.color is Color.RED else 1
+            return dc == 0 and dr == forward
+        if not self._diagonal(move):
+            return False
+        return self._clear(state, move.source, move.target) and \
+            not self._diagonal_path_pinched(state, move)
 
     def _shield(self, state: GameState, piece: Piece, move: Move) -> bool:
         return self._jump_over_one(state, move, False)
 
     def _patrol(self, state: GameState, piece: Piece, move: Move) -> bool:
-        if move.source.row not in PATROL_HOME_ROWS or move.target.row != move.source.row:
+        """巡：横竖**同规则**（不再绑死在 5/7 行），走偶数格；吃子仅限距离 2。"""
+        if move.target.row != move.source.row and move.target.col != move.source.col:
             return False
-        distance = abs(move.target.col - move.source.col)
+        distance = abs(move.target.row - move.source.row) + abs(move.target.col - move.source.col)
         if distance == 0 or distance % 2 or not self._clear(state, move.source, move.target):
             return False
         return self.get(state, move.target) is None or distance == 2
@@ -753,8 +734,13 @@ class RulesEngine:
         return True
 
     def _protected_by_enemy_shield(self, state: GameState, target: Piece) -> bool:
+        """同阵营的楯是否在**四正**（前后左右）贴着 `target`。
+
+        口径从"八向相邻"收窄到"四正"：斜贴不再提供保护。注意楯本身也算"同阵营邻子"，
+        所以两个楯四正相邻时会互相保护（此时仍然吃不到）。
+        """
         return any(p.type is PieceType.SHIELD and p.color is target.color and
-                   max(abs(p.position.row - target.position.row), abs(p.position.col - target.position.col)) == 1
+                   abs(p.position.row - target.position.row) + abs(p.position.col - target.position.col) == 1
                    for p in state.pieces)
 
     def _armor_removals(self, state: GameState, color: Color) -> list[Piece]:
