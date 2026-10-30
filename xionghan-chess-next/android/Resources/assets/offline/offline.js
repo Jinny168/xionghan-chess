@@ -46,7 +46,7 @@ class Rules{
  diagonalPinched(state,p,sr,sc){const a=pos(p.row,p.col+sc),b=pos(p.row+sr,p.col);return this.inside(a)&&this.inside(b)&&!!this.get(state,a)&&!!this.get(state,b)}
  diagonalPathPinched(state,m){if(!this.diagonal(m))return false;const sr=Math.sign(m.to.row-m.from.row),sc=Math.sign(m.to.col-m.from.col),d=Math.abs(m.to.row-m.from.row);for(let i=0;i<d;i++)if(this.diagonalPinched(state,pos(m.from.row+i*sr,m.from.col+i*sc),sr,sc))return true;return false}
  isolated(state,target){for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){const other=this.get(state,pos(target.row+dr,target.col+dc));if(other&&other.color===target.color)return false}return true}
- protectedByShield(state,target){return state.pieces.some(p=>p.type==='shield'&&p.color===target.color&&Math.abs(p.row-target.row)+Math.abs(p.col-target.col)===1)}
+ protectedByShield(state,target){if(target.type==='shield')return false;return state.pieces.some(p=>p.type==='shield'&&p.color===target.color&&Math.abs(p.row-target.row)+Math.abs(p.col-target.col)===1)}
  pinnedByGuard(state,piece){for(const g of state.pieces){if(g.type!=='guard'||g.color===piece.color)continue;if(g.row!==piece.row&&g.col!==piece.col)continue;if(this.clear(state,g,piece))return true}return false}
 adjacentEnemyShield(state,target){return state.pieces.some(p=>p.type==='shield'&&p.color!==target.color&&Math.max(Math.abs(p.row-target.row),Math.abs(p.col-target.col))===1)}
  jumpOverOne(state,m,diagonal){return(this.line(m)||(diagonal&&this.diagonal(m)))&&!this.get(state,m.to)&&this.between(state,m.from,m.to)===1}

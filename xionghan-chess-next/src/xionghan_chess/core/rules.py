@@ -755,9 +755,12 @@ class RulesEngine:
     def _protected_by_enemy_shield(self, state: GameState, target: Piece) -> bool:
         """同阵营的楯是否在**四正**（前后左右）贴着 `target`。
 
-        口径从"八向相邻"收窄到"四正"：斜贴不再提供保护。注意楯本身也算"同阵营邻子"，
-        所以两个楯四正相邻时会互相保护（此时仍然吃不到）。
+        口径：仅保护同阵营的**四正**相邻子（前后左右），斜贴不保护。
+        例外：**楯不保护楯** —— 否则两楯四正相邻会互相保护、成对无敌，
+              与"楯可以被吃"冲突。
         """
+        if target.type is PieceType.SHIELD:
+            return False
         return any(p.type is PieceType.SHIELD and p.color is target.color and
                    abs(p.position.row - target.position.row) + abs(p.position.col - target.position.col) == 1
                    for p in state.pieces)

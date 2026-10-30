@@ -1,7 +1,7 @@
 {
   "fingerprint": {
     "pieces": 62,
-    "legal": 118
+    "legal": 120
   },
   "note": "负对照（预算不是杠杆）：bench_roots 确定性局面策略生成 profile=desktop_complete, seed=700, plies=10；medium randomness=0 下 5s 与 6s 均为 depth 1（nodes 84-99，选点 9,1-9,6），d2 在 6s 内亦不可达 —— 用于验证“加预算是否白加”。生成策略为每步取合法着法中位（按 move.key() 排序），因此本局面可确定性重建，不依赖时间受限搜索。",
   "state": {

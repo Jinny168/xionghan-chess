@@ -53,6 +53,22 @@ def test_shield_protects_only_orthogonally_adjacent_pieces():
     assert rules.is_legal(diagonal, Move(Position(6, 0), Position(6, 3)))
 
 
+def test_shield_does_not_protect_another_shield():
+    """例外：楯不保护楯 —— 否则两楯四正相邻会成对无敌。"""
+    red, black = kings()
+    rules = RulesEngine(get_profile("desktop_complete"))
+    # 保护者在 (5,3)，不在攻击路径上；目标楯在 (6,3)
+    board = state(red, black, piece(PieceType.ROOK, Color.RED, 6, 0),
+                  piece(PieceType.SHIELD, Color.BLACK, 5, 3),
+                  piece(PieceType.SHIELD, Color.BLACK, 6, 3))
+    assert rules.is_legal(board, Move(Position(6, 0), Position(6, 3))), "楯不保护楯，应可吃"
+    # 但非楯的子仍然受四正保护
+    guarded = state(red, black, piece(PieceType.ROOK, Color.RED, 6, 0),
+                    piece(PieceType.SHIELD, Color.BLACK, 5, 3),
+                    piece(PieceType.PAWN, Color.BLACK, 6, 3))
+    assert not rules.is_legal(guarded, Move(Position(6, 0), Position(6, 3)))
+
+
 def test_assassin_walks_one_step_and_captures_diagonally():
     red, black = kings()
     assassin = piece(PieceType.ASSASSIN, Color.RED, 6, 4)

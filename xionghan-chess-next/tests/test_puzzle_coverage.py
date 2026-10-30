@@ -40,16 +40,31 @@ def _coverage() -> tuple[dict[str, int], dict[str, int]]:
     return pieces, kinds
 
 
+# ⚠️ 临时豁免：刺（ASSASSIN）在题库里暂时 0 覆盖。
+# 原因：`endgame-assassin-drag-01` 依赖的是已删除的「拖拽兑子」机制，题已不可解，
+# 本轮按裁决删除（见 `fix(rules): 删除失效题库题…`），而它是唯一一道让刺真正走动的题。
+# 恢复条件：设计侧另出一轮「刺的斜向滑吃」题后，**把 ASSASSIN 从这里删掉**，
+# 两条覆盖断言（子力全覆盖 / 特色子力覆盖）会自动重新生效。
+# 这里刻意保留在断言里而不是删掉整个测试，避免"守卫被静默拆掉"。
+_TEMPORARILY_UNCOVERED = {PieceType.ASSASSIN}
+
+
 def test_special_pieces_are_covered() -> None:
     """P1-M 的原始症状：甲/刺/楯零覆盖。这三种子力是匈汉象棋的特色，不能被漏掉。"""
     pieces, _ = _coverage()
-    for kind in (PieceType.ARMOR.value, PieceType.ASSASSIN.value, PieceType.SHIELD.value):
-        assert pieces.get(kind, 0) >= 1, f"题库没有任何一道题真的用到 {kind}"
+    for kind in (PieceType.ARMOR, PieceType.ASSASSIN, PieceType.SHIELD):
+        if kind in _TEMPORARILY_UNCOVERED:
+            continue
+        assert pieces.get(kind.value, 0) >= 1, f"题库没有任何一道题真的用到 {kind.value}"
+    for kind in _TEMPORARILY_UNCOVERED:
+        assert pieces.get(kind.value, 0) == 0, (
+            f"{kind.value} 已被临时豁免，若题库重新覆盖它，请从 _TEMPORARILY_UNCOVERED 里移除")
 
 
 def test_every_piece_type_is_covered() -> None:
     pieces, _ = _coverage()
-    missing = [kind.value for kind in PieceType if pieces.get(kind.value, 0) == 0]
+    missing = [kind.value for kind in PieceType
+               if kind not in _TEMPORARILY_UNCOVERED and pieces.get(kind.value, 0) == 0]
     assert not missing, f"以下子力在题库里没有任何一道题练到：{missing}"
 
 
@@ -57,7 +72,8 @@ def test_special_capture_kinds_are_covered() -> None:
     """成线吃与拖拽吃是甲的/刺的核心机制，光「能走」不算掌握。"""
     _, kinds = _coverage()
     assert kinds.get("armor_line", 0) >= 1, "没有一道题触发甲的成线吃"
-    assert kinds.get("assassin_drag", 0) >= 1, "没有一道题触发刺的拖拽吃"
+    # 刺的"拖拽/同归于尽"吃法已删除（改为兵走 + 斜向滑吃，归入 direct），
+    # 题库里不再可能触发 `assassin_drag`；这里不再要求该类覆盖。
 
 
 def test_puzzles_are_not_all_single_move_drills() -> None:
