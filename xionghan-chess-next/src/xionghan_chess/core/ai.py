@@ -65,7 +65,10 @@ CONFIGS = {
     Difficulty.BEGINNER: SearchConfig(2, 0.5, 0.35, 1, 5, 3, 5),
     Difficulty.EASY: SearchConfig(4, 1.5, 0.15, 3, 4, 6, 10),
     Difficulty.MEDIUM: SearchConfig(6, 5.0, 0.05, 4, 3, 10, 18),
-    Difficulty.HARD: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 32),
+    # `root_limit` 32 → 18：12s 下 19/21 次（3 轮 × 7 局面，本机 18/21）能完成 depth 2，
+    # 按“完成 d2 的时刻”计余量 min 58.8%。**这是用根宽换深度**：root_limit 是对排序结果的
+    # 截断，113 个合法着只搜前 18，排序在第 19 名之后的好手算不到。
+    Difficulty.HARD: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 18),
     # MASTER is executed by the shared-rules MCTS engine.  Keeping a config
     # entry makes the difficulty safe for analysis/configuration code that
     # inspects CONFIGS before dispatching the search.
