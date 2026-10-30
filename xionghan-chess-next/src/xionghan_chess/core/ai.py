@@ -107,11 +107,6 @@ CENTRAL_WEIGHTS = {
     PieceType.SHIELD: 1.0, PieceType.PATROL: 1.2,
 }
 
-# 结构项（只在评估里加，不动规则）。初值 30 来自权重扫描：<30 不改变选点，30 起才改。
-OPEN_FILE_ROOK_W = 30.0     # 车所在列没有己方兵
-OPEN_FILE_CANNON_W = 30.0   # 炮所在列没有己方兵
-BATTERY_W = 30.0            # 同色车炮同列/同行且中间无子（每对加一次）
-
 # A pool ("captured") piece is not lost material: it parks in its owner's pool,
 # where a pawn promoting on the last rank can become it (rules.py:96-104) and a
 # dead pawn can be revived out of it (game.py:167-169). `_evaluate` used to sum
@@ -514,11 +509,6 @@ class ChessAI:
         # subtracted -- symmetric with the board term's `sign` above.
         score += self._pool_value(game, color) - self._pool_value(game, color.opponent)
 
-        # 结构项：开放线 + 车炮同线（电池）。两侧同一套算法相减，天然零和。
-        own_pawn_cols, enemy_pawn_cols = self._pawn_columns(game, color)
-        score += (self._structure_score(game, color, own_pawn_cols)
-                  - self._structure_score(game, color.opponent, enemy_pawn_cols))
-
         own_attacks, own_pressure = self._activity_score(game, color)
         enemy_attacks, enemy_pressure = self._activity_score(game, color.opponent)
         score += (own_attacks - enemy_attacks) * 5
@@ -548,48 +538,6 @@ class ChessAI:
             self.in_check_memo.clear()
         self.in_check_memo[key] = value
         return value
-
-    @staticmethod
-    def _pawn_columns(game: Game, color: Color) -> tuple[set[int], set[int]]:
-        """一次遍历拿到 `color` 与其对手的兵列集合（供开放线判定）。"""
-        own: set[int] = set()
-        enemy: set[int] = set()
-        for piece in game.state.pieces:
-            if piece.type is PieceType.PAWN:
-                (own if piece.color is color else enemy).add(piece.position.col)
-        return own, enemy
-
-    @staticmethod
-    def _structure_score(game: Game, color: Color, pawn_columns: set[int]) -> float:
-        """`color` 一侧的结构分：开放线车/炮 + 车炮同线（电池）。
-
-        **零和**：调用方用 `同(己方) - 同(对方)` 相减，两侧走同一套算法。
-
-        - 开放线：车/炮所在列**没有己方兵** → 加对应权重（每枚各算一次，不是每方只算一次）；
-        - 电池：同色 `ROOK` 与 `CANNON` 同列或同行、且两者之间**无任何棋子** → 每对加一次。
-        """
-        pieces = [piece for piece in game.state.pieces if piece.color is color]
-        occupied = {(piece.position.row, piece.position.col) for piece in game.state.pieces}
-        score = 0.0
-        for piece in pieces:
-            if piece.type is PieceType.ROOK and piece.position.col not in pawn_columns:
-                score += OPEN_FILE_ROOK_W
-            elif piece.type is PieceType.CANNON and piece.position.col not in pawn_columns:
-                score += OPEN_FILE_CANNON_W
-
-        rooks = [piece for piece in pieces if piece.type is PieceType.ROOK]
-        cannons = [piece for piece in pieces if piece.type is PieceType.CANNON]
-        for rook in rooks:
-            for cannon in cannons:
-                if rook.position.row == cannon.position.row:
-                    low, high = sorted((rook.position.col, cannon.position.col))
-                    if not any((rook.position.row, col) in occupied for col in range(low + 1, high)):
-                        score += BATTERY_W
-                elif rook.position.col == cannon.position.col:
-                    low, high = sorted((rook.position.row, cannon.position.row))
-                    if not any((row, rook.position.col) in occupied for row in range(low + 1, high)):
-                        score += BATTERY_W
-        return score
 
     def _pool_value(self, game: Game, color: Color) -> float:
         """Material `color` still holds in its own pool (`state.captured[color]`).
