@@ -9,6 +9,7 @@ from typing import Any
 from .game import Game
 from .legacy import migrate_legacy_game
 from .model import GameState
+from .rules import POSITION_KEY_VERSION
 
 
 FORMAT_VERSION = 1
@@ -17,6 +18,10 @@ FORMAT_VERSION = 1
 def game_document(game: Game) -> dict[str, Any]:
     return {
         "formatVersion": FORMAT_VERSION,
+        # Which `position_key` format the `state.positionCounts` ledger is in, so
+        # a load can re-derive it instead of trusting keys it can no longer
+        # reproduce (see `_rebuild_position_counts`).
+        "positionKeyVersion": POSITION_KEY_VERSION,
         "profileId": game.profile.id,
         "options": asdict(game.options),
         "setup": game.setup.to_dict(),
@@ -24,6 +29,29 @@ def game_document(game: Game) -> dict[str, Any]:
         "snapshots": list(game._snapshots),
         "savedAt": datetime.now().isoformat(timespec="seconds"),
     }
+
+
+def _rebuild_position_counts(game: Game) -> dict[str, int]:
+    """Re-derive the repetition ledger in the *current* key format.
+
+    A document saved before `POSITION_KEY_VERSION` 2 carries a ledger keyed by
+    the old pool-blind `position_key`. Those keys can never be produced again, so
+    keeping them would silently drop every pre-load occurrence: a position seen
+    twice before the load and once after would sit at 2 and the threefold draw
+    would never fire (漏判). Replaying the document's own snapshots through
+    today's `position_key` rebuilds the exact ledger, so the count carries across
+    the version change instead of either side of it mis-judging (误判).
+
+    The snapshot list is the pre-move state of every ply and the live state is
+    the last one, which is exactly the set `Game._record_position` counted.
+    """
+    counts: dict[str, int] = {}
+    for snapshot in game._snapshots:
+        key = game.rules.position_key(GameState.from_dict(snapshot))
+        counts[key] = counts.get(key, 0) + 1
+    key = game.rules.position_key(game.state)
+    counts[key] = counts.get(key, 0) + 1
+    return counts
 
 
 def game_from_document(data: dict[str, Any]) -> Game:
@@ -53,6 +81,10 @@ def game_from_document(data: dict[str, Any]) -> Game:
         raise ValueError("棋谱步数与复盘数据不一致")
     game = Game.from_state(state, data.get("options", {}), data.get("setup"))
     game._snapshots = snapshots
+    # A document written before the pool entered the key cannot be trusted as-is;
+    # anything carrying today's marker is loaded verbatim.
+    if int(data.get("positionKeyVersion", 1)) < POSITION_KEY_VERSION:
+        game.state.position_counts = _rebuild_position_counts(game)
     game.state.turn_started_at = time.monotonic()
     return game
 

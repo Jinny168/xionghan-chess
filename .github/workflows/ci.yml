@@ -1,0 +1,124 @@
+name: CI
+
+# NOTE ON LOCATION: GitHub Actions only reads workflows from the repository
+# root's `.github/workflows/`. This repo's root also holds a migration-era
+# legacy tree (`desktop/`, `web/`, `docker/`, `docs/`, `handoff.md`) that is NOT
+# built or tested here; the live project is the `xionghan-chess-next/` subtree,
+# so every step runs with `working-directory: xionghan-chess-next`.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+defaults:
+  run:
+    working-directory: xionghan-chess-next
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Both platforms must report; a Windows-only failure must not hide the
+      # Ubuntu result (and vice versa).
+      fail-fast: false
+      matrix:
+        # Windows + Ubuntu on purpose: the cross-engine gate spawns `node`
+        # subprocesses and reads Android asset paths whose case/section
+        # comparison differs per platform (Windows is case-insensitive, Ubuntu
+        # is case-sensitive; line-ending and path-separator handling differ
+        # too). Running both surfaces those differences instead of hiding them.
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Binary assets (wav/png/webp/ico/pdf/apk…) are stored in Git LFS;
+          # the test job needs only source + node, so skip the LFS pull.
+          lfs: false
+
+      # Core of this gate. `tests/test_cross_engine.py` is the ONLY guard
+      # against the Python (`core/rules.py`) and offline (`offline.js`) rule
+      # engines drifting apart, and it skips itself when `node` is missing.
+      # Assert node BEFORE anything else so a missing binary fails the run
+      # loudly instead of letting the whole gate skip to a green line.
+      # (`tests/conftest.py` fails the parity suite by default for the same
+      # reason; this step is the second, earlier line of defence.)
+      - name: Assert node is present (cross-engine parity gate)
+        run: node --version
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install (test extra)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test]"
+
+      # `node --check` on the CommonJS-safe assets (no ESM `import`, so the
+      # result is identical across node versions). The web front-end files are
+      # ES modules and are checked by the project's own `npm run check`, whose
+      # ESM `--check` behaviour depends on the runner's node version.
+      - name: Node syntax check (JS assets)
+        run: |
+          node --check android/Resources/assets/offline/offline.js
+          node --check android/Resources/assets/offline/offline-locales.js
+          node --check scripts/offline_rules_probe.cjs
+
+      - name: pytest
+        run: pytest tests/ -q
+
+  # Desktop has ZERO automated coverage today: `tests/` greps 0 hits on desktop
+  # symbols and the `test` extra does not even install PySide6, so a broken
+  # desktop shell could only ever be discovered by a human running the app.
+  # This job is the first net. Windows-only on purpose: PySide6 on Ubuntu needs
+  # system GL libs (libEGL et al.) that are not worth the CI weight, and the
+  # desktop build script (`packaging/build_windows.ps1`) is Windows-only anyway.
+  desktop-smoke:
+    name: desktop smoke (windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: xionghan-chess-next
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Desktop resources (fonts / sounds / icon) live in Git LFS; without
+          # the pull they would be pointer files and the assembly chain would
+          # silently fall back to defaults instead of failing loudly.
+          lfs: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install (desktop extra)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[desktop]"
+
+      # Static gate for the thing runtime smoke CANNOT catch: a name that is only
+      # used on a rarely-taken branch (e.g. `math` inside an animation branch, or
+      # a resource path that silently resolves to a missing directory). Writing it
+      # caught two real bugs when BoardWidget moved out of app.py.
+      - name: Static check (undefined names in desktop package)
+        run: python scripts/check_undefined_names.py
+
+      # Stage-1 S1-4 gate: every parameter and return value in the desktop
+      # package must be annotated (>=85%; currently 100%). Without a gate the
+      # coverage silently regresses on the next refactor — app.py started at
+      # 6.2% and the classes moved out to ui/ were left at 30-45%.
+      - name: Static check (type annotation coverage)
+        run: python scripts/check_annotations.py
+
+      # `QT_QPA_PLATFORM=offscreen` lets Qt create a QApplication without a real
+      # display. `scripts/desktop_smoke.py` asserts the whole assembly chain
+      # (import -> QApplication -> MainWindow() -> close) plus the stage-0 guards
+      # (async HttpWorker/AnalysisWorker, resign confirmation) and exits non-zero
+      # on any failed check, so a broken shell cannot pass silently.
+      - name: Desktop offscreen smoke
+        run: python scripts/desktop_smoke.py
+        env:
+          QT_QPA_PLATFORM: offscreen

@@ -12,16 +12,25 @@
   静态估值。本方案改为**显式**计入池价值（`_pool_value`），把那条隐式路径从"可能"变
   成"明确"。
 
-为什么不把池塞进 `RulesEngine.position_key`（方案 C 的核心决定）：
+池与判和键（方案 C → 方案 A 的演进）：
 
-- `rules.py:286-288` 的 `position_key` 同时喂养**三次重复判和**
-  （`game.py:238-240` → `state.position_counts`），且被离线端**逐字镜像**
-  （`offline.js:84` `positionKey` → `offline.js:90` `recordPosition`）。
+- P0-F 当时把池放在 `RulesEngine.position_key` **之外**（方案 C 的核心决定），因为：
+- `rules.py` 的 `position_key` 同时喂养**三次重复判和**
+  （`game.py::_record_position` → `state.position_counts`），且被离线端**逐字镜像**
+  （`offline.js` `positionKey` → `recordPosition`）。
 - 把池纳入判和键 = **规则语义变更**（"池不同但盘面相同"不再算同一局面），需产品拍板并
-  三端同步，**不在本方案内** → 见 `test_position_key_ignores_capture_pool_guardrail`。
-- 但 AI 缓存若继续复用判和键，就会把池不同的两个局面算作同一局面而串用缓存
-  （P0-D/P0-E）。故 AI 侧改用池感知的 `evaluation_key`：`rules.py`／`game.py`／
-  `offline.js` 各 0 行改动。
+  三端同步，故 P0-F 当时**不动它**，AI 侧改用池感知的 `evaluation_key`，避免把池不同的
+  两个局面算作同一局面而串用缓存（P0-D/P0-E）。
+
+**方案 A 已获用户拍板，本条已翻转**（原话「大胆去做，我同意」）：
+
+- 池现已并入 `position_key`（`rules.py::pool_signature`），判和口径随之改变——"池不同
+  但盘面相同"不再算同一局面；`ai.py::evaluation_key` 归并为 `position_key` 本身，池不再
+  在键里出现两遍。
+- 旧 `.xhgame` 档的 `positionCounts` 是旧口径，由 `core/storage.py` 的
+  `positionKeyVersion` 标记识别并从快照**重建**，避免读旧档误判/漏判和棋。
+- 见 `test_position_key_includes_capture_pool`（本文件）与
+  `test_desktop_storage.py::test_legacy_document_rebuilds_the_ledger_in_the_current_key_format`。
 """
 
 from __future__ import annotations
@@ -44,12 +53,12 @@ def _board() -> list[Piece]:
     """两个变体共用的盘面：除 `captured` 池外完全相同的棋子布局。
 
     - 红兵在 (1,4)，再进一步到 (0,4) 即触底升变（红方朝 row 0 推进）；
-    - 双方王都在 row 12 但**不同列**，避开「照面」与将军噪音，
-      保证两个变体的 `in_check`、`_king_safety` 等输入一致。
+    - 两王**既不同行也不同列**（红 12,6 / 黑 11,0）。照面口径统一为「同列**或同行**」之后，
+      原来「同 row 12、不同列」的摆法会直接照面 → 整盘被将军过滤成无着法。
     """
     return [
         _piece(PieceType.KING, Color.RED, 12, 6),
-        _piece(PieceType.KING, Color.BLACK, 12, 0),
+        _piece(PieceType.KING, Color.BLACK, 11, 0),
         _piece(PieceType.PAWN, Color.RED, 1, 4),
     ]
 
@@ -63,7 +72,7 @@ def _see_board() -> list[Piece]:
     """给 SEE 用的小盘面：红车 (6,4) 可以合法吃掉黑兵 (6,6)。"""
     return [
         _piece(PieceType.KING, Color.RED, 12, 6),
-        _piece(PieceType.KING, Color.BLACK, 12, 0),
+        _piece(PieceType.KING, Color.BLACK, 11, 0),   # 与红王不同行也不同列，避免照面
         _piece(PieceType.ROOK, Color.RED, 6, 4),
         _piece(PieceType.PAWN, Color.BLACK, 6, 6),
     ]
@@ -181,20 +190,23 @@ def test_tactical_moves_reads_promotion_pool_contrast():
     assert with_pool == {PieceType.ROOK, PieceType.HORSE}
 
 
-# --- ③ 判和键护栏（方案 C 刻意不改）-----------------------------------------
+# --- ③ 判和键纳入池（方案 A，由用户拍板）------------------------------------
 
-def test_position_key_ignores_capture_pool_guardrail():
-    """`position_key` 仍**不含池** —— 这是方案 C 的刻意选择，不是漏改。
+def test_position_key_includes_capture_pool():
+    """`position_key` 现在**含池** —— 这是方案 A 的规则语义变更，用户已拍板。
 
-    `rules.py:286-288` 的 `position_key` 同时喂养三次重复判和（`game.py:238-240`）且被
-    离线端逐字镜像（`offline.js:84`）。把池纳入它属**规则语义变更**，需要产品拍板 +
-    三端同步，故本方案**不动它**。本断言是护栏：谁把池"顺手"塞进判和键，这里会红。
+    `rules.py::position_key` 同时喂养三次重复判和（`game.py::_record_position`
+    → `state.position_counts`）且被离线端逐字镜像（`offline.js::positionKey`）。
+    池决定可升变类型与复活名额，所以"盘面相同、池不同"是两个不同局面。
+
+    本条原为 `test_position_key_ignores_capture_pool_guardrail`（方案 C 的护栏），
+    **翻转依据是用户对方案 A 的拍板**（原话「大胆去做，我同意」），不是把测试改绿。
     """
     empty = _game_with_pool([])
     stocked = _game_with_pool(_stocked_pool())
     _assert_fixtures_differ_only_by_pool(empty, stocked)
 
-    assert empty.rules.position_key(empty.state) == \
+    assert empty.rules.position_key(empty.state) != \
            stocked.rules.position_key(stocked.state)
 
 

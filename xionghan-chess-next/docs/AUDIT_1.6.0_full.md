@@ -21,12 +21,12 @@
 | Web 端 | 729 行（app.js 300 + i18n.js 244 + index.html 185） | `wc -l` |
 | 规则开关 | **32 个**（17 行为 + 15 棋子显隐） | `profiles.py` |
 | 棋子种类 | **14 种** | `rules.py` |
-| profile | 4 个（desktop_complete/classic/web/traditional） | `profiles.py:199-227` |
+| profile | 4 个（desktop_complete/classic/web/traditional） | `profiles.py:210-238` |
 
 ### 代码卫生（正面）
 - 裸 `except:` = **0**；`TODO/FIXME/XXX/HACK` = **0**
 - 规则引擎**无状态可重入**（`apply_unchecked` 返回克隆，注释明言side-effect free）
-- 胜负判定**5 级 elif 优先级链清晰**（`game.py:203-217`）
+- 胜负判定**5 级 elif 优先级链清晰**（`game.py::_settle`）
 - 服务端并发正确：`asyncio.Lock` + AI 计算用 `asyncio.to_thread` 卸载（`rooms.py:359`），**无事件循环阻塞**
 - 协议已统一：`PROTOCOL_VERSION=1`，17 种MessageType
 
@@ -35,18 +35,21 @@
 ## 二、P0 阻断项（3 项，均已实测确认）
 
 ### P0-1 服务端后台任务无异常隔离
-**位置**：`service/app.py:36-42`
+**位置**：`service/app.py::maintenance`（隔离体见 `service/app.py::maintain_room`）
 ```python
-async def maintenance() -> None:
-    while True:
-        await asyncio.sleep(5)
-        for room in list(manager.rooms.values()):
-            await manager.tick(room)      # 任一房间抛异常 → 整个后台任务死亡
-            await manager.broadcast(room)
-        await manager.cleanup()
+# 现仓形态（service/app.py::maintain_room）：per-room 异常隔离
+async def maintain_room(room: Room) -> None:
+    try:
+        await manager.tick(room)
+        await manager.broadcast(room)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        LOGGER.exception("maintenance failed for room %s", room.id)
 ```
-**影响**：单个房间的异常会导致**所有房间**停止计时与广播，且无日志、无自愈。
+**原影响**：单个房间的异常会导致**所有房间**停止计时与广播，且无日志、无自愈（审计基线 `67fabf6` 的原引形态：`maintenance()` 循环内直接 `await manager.tick(room)`／`await manager.broadcast(room)`，无隔离）。
 **方案**：per-room `try/except` 隔离，异常日志带 `room_id`。
+> **O-1 已落地**：`service/app.py::maintenance` 已改为逐房间 `await maintain_room(room)`（隔离体见上），`cleanup()` 亦独立 `try/except`（`LOGGER.exception("maintenance cleanup failed")`），`asyncio.sleep(5)` 提为具名常量 `MAINTENANCE_INTERVAL_SECONDS = 5`（`service/app.py:37`）。
 
 ### P0-2 构建产物与规则源码副本污染版本库
 **实测**：`git ls-files | grep -c "core/rules.py"` = **13**
@@ -57,19 +60,23 @@ async def maintenance() -> None:
 **方案**：`git rm --cached`（**磁盘保留，可逆**）+ 补全 .gitignore + 截图移`docs/assets/`。
 
 ### P0-3 规则引擎存在人工双实现
-**位置**：`android/Resources/assets/offline/offline.js`（127 行）
+**位置**：`android/Resources/assets/offline/offline.js`（**172 行**；行数为 ⑦（`e7ffe02`）落地后 HEAD 实测值，审计基线 `67fabf6` 记 127 行）
 
 JS侧用**逐方法镜像**方式重写了Python 规则引擎：
 
 | offline.js | 内容 | Python 对应 |方法名对应 |
 |---|---|---|---|
 | :12 | `TYPES` 14 种棋子 | `model.py` PieceType | — |
-| :13 | `NAMES` 红黑棋名 | `profiles.py` | — |
-| :14 | `DEFAULT_OPTIONS` **18 开关硬编码** | `profiles.py:12-30` | — |
-| :18 | `side()` 初始摆位 | `setup.py` | — |
-| :21-27 | 4 个 profile 逐字段重定义 | `profiles.py:199-227` | — |
-| :29 | `FEN_PIECES` 棋谱映射 | — | — |
-| :32+ | `class Rules` 走法校验 | `rules.py` 34-494 | `diagonalPathPinched` ↔ `_diagonal_path_pinched` 等一一对应 |
+| :16 | `NAMES` 红黑棋名 | `profiles.py` | — |
+| :17 | `DEFAULT_OPTIONS` **18 开关硬编码** | `profiles.py:12-30` | — |
+| :21 | `side()` 初始摆位 | `setup.py` | — |
+| :25-31 | 4 个 profile 逐字段重定义 | `profiles.py:210-238` | — |
+| :32 | `FEN_PIECES` 棋谱映射 | — | — |
+| :34+ | `class Rules` 走法校验 | `rules.py::RulesEngine` | `diagonalPathPinched` ↔ `_diagonal_path_pinched` 等一一对应 |
+
+> 行号刷新：上表 offline.js 列与 `rules.py` 引用已按当前 HEAD（`e7ffe02`）实测重定位（初稿为审计基线 `67fabf6`）。offline.js 现 **172 行**（基线 127 行）；**表中静态锚点（`:12`~`:34`，含 `:23` `starPoints()`、`:61` `archer_enhanced_mode`）位于 O-6 提交 B、其后注释提交、方案 A 与 ⑦ 的插入点（均 ≥ `:85`）之上，故未被挪动**。
+
+> **O-6 收敛补记（提交 A `32ff35b` / 提交 B `e470df4`）**：上表「Python 对应」一列的**吃子关系读取**曾是 **6 份独立实现**（`apply_unchecked` 的落点/甲线/刺拖拽/升变移除、`captured_by_move` 的 ID 差集、`in_check` 的单子试探、`_indirect_king_capture`/`_kill_squares`/`_three_cell_neighbours`、`game.py::move` 的自有差集、offline.js 的镜像诸函数），**已由 O-6 提交 A（`32ff35b`）收敛为唯一纯函数 `capturable_squares`**（Python `rules.py::capturable_squares` ↔ JS `offline.js::capturableSquares`，两端同构），`in_check` 改走其点查询，三处 `_indirect*`/`_kill_squares`/`_three_cell_neighbours` 与 offline.js 对应函数已删除；提交 B（`e470df4`）进一步抽出 `rules.py::board_removals` 作为**写侧唯一移除生产者**（`game.py::move` 与 offline.js `move()` 的 `boardRemovals` 同源）。**注**：这里收敛的是**吃子关系的读取**；Python/offline.js 的**走法校验本体仍是两套实现**，本次 P0-3「人工双实现」结论不变。
 
 **重要澄清（纠正此前的误判）**：三端**并非各自实现规则**。
 - profile 选择**由服务端统一解析**（`rooms.py:104` `get_profile`），Web/桌面均从服务端拉取 → 规则唯一真相源在服务端
@@ -89,8 +96,8 @@ JS侧用**逐方法镜像**方式重写了Python 规则引擎：
 
 | ID | 问题 | 位置 | 影响 |
 |---|---|---|---|
-| P1-1 | `_patrol` 硬编码 `row not in {5,7}` | `rules.py:445` | 13 棋盘专属；traditional 10×9 无PATROL 故不出错，但语义不显式 |
-| P1-2 | `_nearest_archer_star_distance` 用 `max(rows, cols)` 当搜索上限 | `rules.py:385` | 语义不清晰 |
+| P1-1 | `_patrol` 硬编码 `row not in {5,7}` | `rules.py::_patrol` | 13 棋盘专属；traditional 10×9 无PATROL 故不出错，但语义不显式 |
+| P1-2 | `_nearest_archer_star_distance` 用 `max(rows, cols)` 当搜索上限 | `rules.py::_nearest_archer_star_distance` | 语义不清晰 |
 | P1-3 | 未使用参数（`piece` 传入未用） | `rules.py`多处 | 签名噪音 |
 | P1-4 | **`test_game.py` 仅 1 个用例**，而 `game.py` 含 5 级胜负判定 + 3 类和棋 | `tests/test_game.py` | 覆盖严重不足 |
 | P1-5 | **「巡」PATROL 零测试覆盖**（14 类中唯一） | `tests/test_rules.py` | 实测 `grep` 确认 |
@@ -115,8 +122,8 @@ armor 6,3->6,4 pseudo_legal    : True
 black king still on board      : False     ← 王被吃
 captured_by_move               : [('king', 'black')]
 ```
-**根因**：`rules.py:192-202` `in_check` 仅以 `pseudo_legal(opponent, Move(king_pos))` 试吃，
-而甲的连线吃在 `apply_unchecked:164-168` 才发生，`_armor` 验证器（:435-436）无法感知。
+**根因**：（修复前）`rules.py::in_check` 仅以 `pseudo_legal(opponent, Move(king_pos))` 试吃，
+而甲的连线吃在 `rules.py::_apply_move`（经 `_armor_removals`）才发生，`_armor` 验证器无法感知。
 **后果**：对局在**沉默中结束**，玩家看不到任何将军/将死提示 —— 属规则实现与文档不一致
 （`PIECE_RULES.md` 已写明甲可吃王），修复不违背「不擅改规则」约束。
 
@@ -145,7 +152,7 @@ protected pawn removed anyway  : True      ← 但刺兑子照样吃掉
 
 > **后续（2026-10-04 晚实现，2026-10-05 用户拍板保留）**：上面的"留 v1.7.0"与 5.3 表
 > 「R-4 = P0、与文档直接冲突、零跨端同步成本」自相矛盾；按后者执行了双写修复：
-> `rules.py:apply_unchecked` 与 `offline.js:applyUnchecked` 在刺拖拽前追加
+> `rules.py::_apply_move`（经 `_assassin_drag_victim`；O-6 前该盾保护判定挂在 `apply_unchecked` 内）与 `offline.js::applyUnchecked` 在刺拖拽前追加
 > `_protected_by_enemy_shield` / `protectedByShield` 判定（盾自身仍按"盾不可被兑"豁免），
 > 并补了跨引擎对拍 `test_assassin_exchange_keeps_shield_protected_piece_parity`。
 >
@@ -168,7 +175,7 @@ protected pawn removed anyway  : True      ← 但刺兑子照样吃掉
 moves 池空 vs 池有车  不同 = True   position_key 相同 = True
 moves 池有车 vs 池有马 不同 = True   position_key 相同 = True
 ```
-**根因**：`rules.py:210-212` 的 `position_key` 只吃 `(color, type, row, col) + turn`，
+**根因**：`rules.py::position_key` 只吃 `(color, type, row, col) + turn`，
 **完全不含 `captured`**。而升变是唯一「不改变棋盘、但改变合法走法集合」的状态变量
 —— 池里是车就只能升车。**且比"能否升变"更严重：池决定"升变成什么"，
 即整个升变目标集被漏掉。**
@@ -183,6 +190,8 @@ moves 池有车 vs 池有马 不同 = True   position_key 相同 = True
 **跨端同步**：`offline.js` 的 `positionKey` 有 2 处命中（三回合计数逻辑本身被镜像），
 **必须同步**，否则两端合计数分叉。
 
+> **方案 A 已落地（`403590d`，2026-10）**：把升变池纳入 `position_key` 的方案 **A** 已获用户批准（原话「大胆去做，我同意」）并由主程序实现落地。**`position_key` 现含池**（`rules.py::position_key` + `rules.py::pool_signature`），三回合判和口径随之改变——本节「只吃 `(color, type, row, col) + turn`」描述的是**方案 A 之前**的现状。
+
 ---
 
 ## 三·六、本次审计的「集体误判」记录（方法论价值）
@@ -196,7 +205,7 @@ moves 池有车 vs 池有马 不同 = True   position_key 相同 = True
 | 制作人 | 误判「池空不给升变是正确守恒」 | 同第一类：把空列表误读为 bug 缺失 |
 
 **由此固化为团队纪律**（已写入 R-7 交付要求）：
-1. 摆子类测试：**双方王必须异列**，否则 `kings_facing`（`rules.py:491-494`）返回 True，`is_legal` 全 False
+1. 摆子类测试：**双方王必须异列**，否则 `kings_facing`（`rules.py::_kings_facing`）返回 True，`is_legal` 全 False
 2. 摆子类测试：至少 2 个王 + 1 个待测子，且待测子必须在**有合法着法**的位置
 3. 统一抽 `tests/helpers.py` 的 `make_board()` 供所有摆子类测试复用
 
@@ -240,7 +249,7 @@ moves 池有车 vs 池有马 不同 = True   position_key 相同 = True
 在**等量回收下净 = −7**，与游有方第二次结论相反。**柯桥良正确。**
 
 ### 2. AI 升变估值 800 应为 900（会导致实现走偏的陷阱）
-实测 `ai.py:46-53` 与 `ai_see.py:84-87`：
+实测 `ai.py::VALUES` 与 `ai_see.py::_promotion_gain`：
 ```
 VALUES[PieceType.ROOK] = 900   VALUES[PieceType.PAWN] = 120
 _promotion_gain = values[promotion] - values[PieceType.PAWN]   # 车 900−120 = 780
@@ -254,23 +263,25 @@ _promotion_gain = values[promotion] - values[PieceType.PAWN]   # 车 900−120 =
 ---
 
 ### P0-F AI 评估缓存以漏池的 key 为键（R-8，最高优先）
-**实测确认**：`ai.py:361-365`
+**实测确认**：`ai.py::_evaluate`
 ```python
 def _evaluate(self, game: Game, color: Color) -> float:
     cache_key = (game.rules.position_key(game.state), color)   # ← 漏池的 key
     cached = self.evaluation_cache.get(cache_key)
 ```
-且 `_evaluate` 的计分循环（`ai.py:367-371`）只累加 `state.pieces`，同样不读素材池。
+> 注：本块为 **P0-F 之前**的形态；P0-F 落地后 `cache_key` 已改为 `evaluation_key(game.rules, game.state)`（见 `ai.py::_evaluate`），AI 缓存自此认池。**方案 A（`403590d`）后 AI 侧的 `evaluation_key` 归并为直接委托 `position_key`（`return rules.position_key(state)`，池不再在键里出现两遍）—— 后者自身已含池；`ai.py::_evaluate` 仍调用 `evaluation_key`，故「`cache_key` 用 `evaluation_key`」这一形态不变。**
+
+且 `_evaluate` 的计分循环（`ai.py::_evaluate`）只累加 `state.pieces`，同样不读素材池。
 
 **影响范围（精确版，已实测确认 `evaluation_cache` 生命周期）**：
-- `ai.py:118-124` 显示 `evaluation_cache.clear()` 在**每次搜索开始时**执行
+- `ai.py::choose_move` 中 `evaluation_cache.clear()`（现 :134）在**每次搜索开始时**执行
   → 缓存**不跨搜索存活**，仅在一次 `search()` 内复用
 - ❌ **不构成**「跨局棋力污染」
 - ✅ **构成**：「同一次搜索内」两次到达同布局但升变池不同的局面 → 缓存碰撞
   → 置换表/剪枝会重复访问同一布局，实战中升变消耗素材后池会变，**同一搜索内完全可能命中**
 
 **为何仍必须修**：`position_key` 服务的**不只是** `_evaluate` 复用 ——
-`game.py:215` 的三回合计数用它判和（**这是 P0-E 的真实 bug**）。
+`game.py::_record_position` 的三回合计数用它判和（**这是 P0-E 的真实 bug**）。
 AI 缓存这条是「顺手免疫」：若将来 `_evaluate` 要把「可升变的车」计入子力，
 漏池的 key 会立刻变成真 bug。**故 R-8 的核心价值是修 P0-E。**
 
@@ -287,20 +298,20 @@ AI 缓存这条是「顺手免疫」：若将来 `_evaluate` 要把「可升变�
 - 但 AI **从未把「我有升变权」计入估值** → 兵该不该冲底线与真实收益脱节
 
 **与 P0-F 的关系（关键区分）**：
-- **P0-F 是「键」的问题** → 修 `position_key` 即可，零平衡影响
+- **P0-F 是「键」的问题** → 修「漏池的键」即可，零平衡影响（P0-F 已按**方案 C**先只改 AI 缓存键 `evaluation_key`；**把升变池并入判和键 `position_key` 的方案 A 已落地 `403590d`**，见 P0-E）
 - **P0-G 是「值」的问题** → 改 `_evaluate` = **估值口径变更 = 新平衡问题**
 
 **分层结论（避免笼统说「AI 漏算」）**：
 | 层 | 素材池感知 | 状态 |
 |---|---|---|
-| `rules.captured_by_move`（`rules.py:143-150`） | ✅ 准确 | 已正确实现甲连线/刺兑子间接吃子 |
+| `rules.captured_by_move`（`rules.py::captured_by_move`） | ✅ 准确 | 已正确实现甲连线/刺兑子间接吃子 |
 | `ai_see.py:23-24` SEE 层 | ✅ 准确 | `sum(values[piece.type] for piece in captured)` |
-| `ai._evaluate`（`ai.py:361-405`） | ❌ **缺失** | 只读 `pieces`，漏升变潜力 |
+| `ai._evaluate`（`ai.py::_evaluate`） | ❌ **缺失** | 只读 `pieces`，漏升变潜力 |
 
 **本轮裁定（制作人）**：
-- ✅ 修 `position_key`（R-8）—— 因 `game.py:215` 三回合计数**真的读它**，是 P0-E 真实 bug
+- ✅ 修「漏池的键」（R-8）—— 因 `game.py::_record_position` 三回合计数**真的读它**，是 P0-E 真实 bug；**方案 A（把升变池并入 `position_key`）已落地 `403590d`**，P0-F 已先按方案 C（AI 缓存键 `evaluation_key`）落地
 - ✅ 加 `test_ai_paths_never_mutate_state_captured` 护栏（R-9a）——
-  把「AI 只读不写素材池」这个**隐式约定变成可执行护栏**（实测当前 `ai_see.py:23/42/65`
+  把「AI 只读不写素材池」这个**隐式约定变成可执行护栏**（实测当前 `ai_see.py` 的 3 处 `captured_by_move` 调用点 :23/:42/:66
   的 `captured` 均为局部变量，安全）
 - ❌ **不改 `_evaluate` 估值**（R-9b 延期 v1.7.0）——
   **理由：v1.6.0 的 master 棋力基线尚未建立**（VERSION_PLAN 记为"50 局非截断对弈未完成"）。
@@ -310,7 +321,7 @@ AI 缓存这条是「顺手免疫」：若将来 `_evaluate` 要把「可升变�
 
 ## 四、已确认修复的项（正面）
 
-- **F-9 衍生缺陷疑似已修复**：`pending_undo_offer` 在 `game.py:75/131/165` 三处正确清除；`revision` 在 `rooms.py` 有 6+ 处递增
+- **F-9 衍生缺陷疑似已修复**：`pending_undo_offer` 在 `game.py::move` / `game.py::respond_undo` / `game.py::resurrect_pawn` 三处正确清除；`revision` 在 `rooms.py` 有 6+ 处递增
 - **版本倒挂已消除**：M0 已 `git rm --cached` 2.0.0 孤儿发布树（147 文件）
 - **master 档已接入**：纯 UCB1 MCTS，50 局筛查单步均 0.417s（但均为 2 ply 截断局，**正式胜率未验收**）
 - **防漂移门禁已建立且生效**：`test_cross_engine.py` 实测 5 passed
@@ -321,7 +332,7 @@ AI 缓存这条是「顺手免疫」：若将来 `_evaluate` 要把「可升变�
 ## 五、本次迭代范围裁定
 
 ### 5.1 关键决策：R-1 必须「双写」而非单改Python
-制作人已实测确认：`offline.js` 的 `inCheck` 与 Python `in_check`（:192-202）**逐行等价**，
+制作人已实测确认：`offline.js` 的 `inCheck` 与 Python `in_check`（`rules.py::in_check`）**逐行等价**，
 且 `armorCaptures` 只在 `applyUnchecked` 内被调用，`inCheck` 同样看不到它。
 
 **因此：若只改 Python 的 `in_check`，分叉会从 0 处变成 2 处 —— 亲手制造刚建立的门禁要防的漂移。**
@@ -359,6 +370,36 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 | O-11 | master 正式棋力验收 | 需 50 局非截断完整对弈，属独立验收任务 |
 | O-12 | README 全面重写 | 工作量 M，改前应先合并 `xionghan-chess-next/README.md` |
 
+> **观察项｜甲线移除是「整盘扫描」，与读侧「按本次移动归因」在极罕见局面下存在差异（O-6 暴露的既有语义，非本次引入）**
+> 写侧 `rules.py::_apply_move` 调用 `rules.py::_armor_removals`，后者**遍历整盘**所有「甲 + 己方子 + 敌子」成三连的组合并移除其中的敌子，**不区分该三连是否由本次移动造成**；读侧 `rules.py::capturable_squares`（经 `_capture_removals`）则**按本次移动能否落到「穿过该受害者的落点」归因**。二者仅在「盘面已存在一条与本次移动无关的甲线三连」这类**极罕见局面**下给出不同移除集，现有测试未覆盖。**O-6 提交 A 保留了旧行为（写侧整盘扫描），非 O-6 引入**；提交 B（`e470df4`）抽出的 `rules.py::board_removals` 即这份「更宽语义」的唯一命名入口，建议后续在此补一条黄金用例固化口径。
+
+> **观察项｜`position_key` 跨引擎排序曾不一致（F1，已修 `b4d9dce`）**
+> **现象**：同一局面在 Python 与 offline.js 产出**不同的 `position_key`** ⇒ 两端三回合判和账本分叉（同一局面在一端计到 2、另一端计到 3，判和口径不一致）。
+> **最小构造**：13×13 盘面放两颗**同色同型**子、坐标跨 1↔2 位，例如红车在 `(2,0)` 与 `(10,0)`（两王置于对角 `(0,0)` / `(12,12)`）：
+> - Python `rules.py::position_key`：board 段按 `(color, type, **int** row, **int** col)` **元组序** → `…red:rook:2:0;red:rook:10:0`
+> - 旧 `offline.js::positionKey`：对整串 `color:type:row:col` 做**字典序**排序 → `…red:rook:10:0;red:rook:2:0`（字符串里 `'1' < '2'`）
+> **根因（函数级）**：两端排序键类型不同——Python 用整数元组序，JS 用字符串字典序。**方案 A 之前即存在**（两版排序逻辑均未改动，方案 A 仅追加 `||pool:` 段）。
+> **为什么既有测试没抓到**：方案 A 新加的 `tests/test_cross_engine.py::test_position_key_matches_offline_byte_for_byte` 的 fixture **只有 1 颗车、无「同型成对子跨界坐标」** ⇒ 对拍恒等，却证明不了「任意局面逐字符相等」这条契约。属典型的「**绿了但没证明**」（同 §5.2 对拍门禁能力边界）。
+> **处置**：已修 `b4d9dce`——`offline.js::positionKey` 排序改为**元组数值序**（color → type → int row → int col），board 段**格式不变**，故 `POSITION_KEY_VERSION` **不 bump**（依据：JS 档不含 `positionKeyVersion` 字段，无 JS 写出的 v2 档需迁移）。**建议**后续把「同型成对子跨界坐标」补入该对拍 fixture。
+
+> **观察项｜`capturable_squares` 的**结果**曾随升变池变化（F2，已修 `742909f`）＋ 契约文本同步更正**
+> **现象**：同一盘面、仅升变池不同时，`rules.py::capturable_squares` 返回**不同的移除集**；进而 `rules.py::in_check` 布尔值随之翻转（**将军假阴性**）。
+> **最小构造**：红兵在 `(1,5)`（其正前方 `(0,5)` 为红方升变线）直进吃 `(0,5)` 的黑子：
+> - 池空：`capturable_squares(red)` = `{(0,5): (DIRECT,)}`
+> - 池含可升变子（如被吃的红马）：旧实现返回 `{}`（**漏报**）
+> - 且「黑王在 `(0,5)`」时 `in_check(black)`：池空 `True` / 池非空 `False`
+> **根因（函数级）**：`rules.py::pseudo_legal` 的**必升变闸门**读 `state.captured`——兵到升变线、池中有可升变子时，**未声明升变**的走法 pseudo 非法；旧 `rules.py::_capture_removals` 只造**不带 `promotion`** 的 `Move(...)`，于是池非空时漏报该吃子（连带漏掉「升变吃王」造成的将军）。**方案 A 之前即存在。**
+> **契约文本更正（现仓口径）**：`rules.py::capturable_squares` docstring 原写 *"never reads `state.captured`"*——**不准确**。正确口径为：**「结果」对池盲**（同一盘面无论池如何，返回的移除集相同）；但函数**内部仍读池**（经 `rules.py::moves_to_target` 建模必升变），且**绝不产出池消耗升变**。`tests/test_capture_specs.py::G5` 名仍为 `…_is_blind_to_the_capture_pool`，其**真实断言是「结果池无关」**，fixture 已补入上述升变线吃子形状（更精确的名字应为 `…_result_is_independent_of_the_capture_pool`）。
+> **为什么既有测试没抓到**：原 G5 fixture 是 rook/horse、**不涉升变线** ⇒ 恒绿。与 F1 同类，属「绿了但没证明」。
+> **处置**：已修 `742909f`——新增单一来源 `rules.py::promotion_types` + `rules.py::moves_to_target`；`_capture_removals` 经 `moves_to_target` **补试升变吃子变体**；`ai_see.py::_captures_to` 改为复用并删本地重复。修后实测：`capturable_squares` 结果池无关、`in_check` 两态一致。
+
+> **待办项｜本轮复核衍生的三处一致性收口**
+> 1. **JS 档载入不重建判和账本** —— `offline.js::loadGameDocument` 载入时**曾**不按快照重建 `positionCounts`（Python 侧 `storage.py::_rebuild_position_counts` 一早已做），是「三端判和一致」的残口。**本轮已修 `e7ffe02`**：策略为「`snapshots` 非空即**一律重建**（重建是纯函数，无条件正确且幂等）；空 `snapshots` 则回退保留原账本」。**依据**：JS 侧从不给键格式版本戳（`formatVersion` 恒为 1、从不写 `positionKeyVersion`）⇒ 无字段可按版本分支 ⇒ 逻辑必然取「一律重建」。
+> 2. **`ai.py::_tactical_moves` 内联升变子集与 `rules.py::promotion_types` 有两处差异** —— **(a)** 缺 `enabled_piece_types` 过滤；**(b)** 用 `set`（无序）而非 `sorted(…, key=value)`。**但无可观测行为差异**，依据两条：① 池中可升变子只能来自 `*_appear` 过滤后的初始盘面 ⇒ 其 `type` **必属** `enabled_piece_types`，故 (a) 实际不筛掉任何项；② 紧随其后的 `game.rules.is_legal(...)` 兜底拒绝「升变到被禁子型」，(b) 只影响候选**次序**且被 `seen` 去重。⇒ 定性：**低危纯结构收敛 + 少量多余候选生成**。**记待办（低危，纯收敛）**。
+> 3. **`rules.py::pseudo_legal` 的必升变闸门 / `rules.py::legal_moves` 的内联升变集未复用 `rules.py::promotion_types`** —— 前者**只取布尔**（判非空），后者与 `promotion_types` **逐字等价**（可安全委派）。⇒ **纯结构收敛，无行为差异**。**记待办（纯结构收敛）**。
+
+> **说明｜⑦ 的 diff 里出现 `position_key` 字面量**不是**违规** —— O-6 的门禁「提交 A/B 的 diff 不得出现 `position_key`」只约束 **O-6 提交 A（`32ff35b`）/ 提交 B（`e470df4`）** 这两次**读侧/写侧收敛**提交（意在防止夹带 P0-F 语义）。⑦（`e7ffe02`）是**载入时按快照重建判和账本**，其语义**本就要求**调用 `position_key` 重算（`key = game.rules.position_key(GameState.from_dict(snapshot))`）。后人若 grep 到 ⑦ 的 diff 含 `position_key`，**不得据此判违规**。
+
 ### 5.5 范围蔓延风险控制
 初版审计的 7 项一度膨胀到 16 项。本轮最终锁定 **9 项**（上表 5.3），
 砍掉 3 项规则语义改动、2 项重写类任务，理由均为「需产品拍板」或「应独立版本做」。
@@ -378,7 +419,7 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 坐标: (0,0) (0,6) (0,12) (3,3) (3,9) (6,0) (6,6) (6,12)
       (9,3) (9,9) (12,0) (12,6) (12,12)
 ```
-`rules.py:18-27` 的 `(row//3 + col//3) % 2 == 0` 在 5×5 索引网格（0/3/6/9/12）上筛出
+`rules.py::archer_star_points` 的 `(row//3 + col//3) % 2 == 0` 在 5×5 索引网格（0/3/6/9/12）上筛出
 **13 个菱形点**，并非 25 个（25 需要 `(row//3)%2==0 and (col//3)%2==0`，是另一种算法）。
 **以代码为准**：13 个，成菱形/棋盘对称。
 
@@ -407,12 +448,12 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 | 1 | `service/app.py:34` `WEB_DIR = Path(__file__).resolve().parents[3] / "web"` 运行期解析为 `xionghan-chess-next/web`（**内层**），`WEB_DIR/'js'` 只有 `app.js`、`i18n.js`，`js/core` 不存在；服务只挂载 `/assets`、`/css`、`/js` 三个前缀，全部指向内层 | 外层 `web/**` 无法经 HTTP 抵达 |
 | 2 | 外层 `web/index.html` 全文仅 1 个 `<script>`，是内联背景图脚本，**无 `src`**；外层 `web/game.html:350` 的确加载 `js/core/game-rules.js`（行号引用准确，共 23 个 script 标签），但它在静态目录之外，直接访问 `/game.html` 也会 404 | 活体入口页不加载该文件 |
 | 3 | 活体树全量扫描（js/html/py/json/md/cjs/cs/ps1/bat/yml/toml）中，内容出现 `game-rules.js` 或 `web/game.html` 的**只有本文档自己**，无构建、无部署脚本、无入口引用 | 它是迁移前的历史快照，不是活代码 |
-| 4 | 活体侧三条链路**本来就都是 13 点菱形**：`rules.py:26` 过滤 `(row//3 + col//3) % 2 == 0` → `public_state["profile"]["archerStarPoints"]`；`web/js/app.js:180 drawStarPoints()` 直接读该字段作画；`offline.js:20 starPoints()` 用同条件 | C-2「按代码 13 个菱形」在活体侧**已满足** |
+| 4 | 活体侧三条链路**本来就都是 13 点菱形**：`rules.py::archer_star_points` 过滤 `(row//3 + col//3) % 2 == 0` → `public_state["profile"]["archerStarPoints"]`；`web/js/app.js::drawStarPoints()` 直接读该字段作画；`offline.js:23 starPoints()` 用同条件 | C-2「按代码 13 个菱形」在活体侧**已满足** |
 
 **处置**：C-2 判定为 **✅ 已完成（无需改代码）**。不再按原计划去改
 `web/js/core/game-rules.js:759/:809`——改它既不会到达浏览器，又会让它与历史快照产生无意义的分叉。
 改为新增回归测试 `tests/test_rules.py::test_archer_star_points_are_thirteen_diamonds_not_twenty_five`
-把活体侧的 13 点菱形钉死；该测试经变异测试验证敏感（把 `rules.py:26` 的过滤临时改成恒真，
+把活体侧的 13 点菱形钉死；该测试经变异测试验证敏感（把 `rules.py::archer_star_points` 的过滤临时改成恒真，
 用例立即失败并把 `test_archer_invalid_star_is_not_a_strong_mode_attack_origin` 一并带崩）。
 
 #### 6.1 收口后的含义
@@ -427,7 +468,7 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 | 端 | 规则实现 | 证据 |
 |---|---|---|
 | 服务端 / 桌面 | `core/rules.py` | 唯一权威引擎（14 种棋子） |
-| **Android 离线** | `offline.js` | **第二套真引擎**（127 行人工镜像，14 种棋子） |
+| **Android 离线** | `offline.js` | **第二套真引擎**（**172 行**人工镜像，14 种棋子） |
 | **Web 端** | **第三套残缺引擎** | `web/js/core/game-rules.js`，**仅 9/14 种棋子**，见 6.3 |
 
 > **订正记录（2026-10-04 下午）**：初稿称「Web 端零规则、判定全在服务端」——**这个结论是错的**。
@@ -480,7 +521,7 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 | 现有通道（options 空） | 3 |
 | 补传 `asdict(game.rules.options)` | **12**，与 Python `equal: True` |
 
-**结论**：`offline.js:58` 的 `archer_enhanced_mode` 分支本来就是对的，**不需要为「射」改 JS**；
+**结论**：`offline.js:61` 的 `archer_enhanced_mode` 分支本来就是对的，**不需要为「射」改 JS**；
 修复点只有测试通道一处。若当时据此去改 offline.js，会把一个正确的实现改坏。
 
 > **纪律沉淀**：这是本轮第 5 次出现「引用他人结论未复算」。涉及引擎对拍的结论，
@@ -493,14 +534,14 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 
 | ID | 决策 | 背景 | 取舍 |
 |---|---|---|---|
-| **复活** | ✅ **已拍板：补完，不是摘掉规则** | 初稿依据「UI 无入口」降级 P1-C，**依据有误**：`web/js/app.js:224` 的 `#resurrectButton` onclick 真绑着 `send('resurrect',{row,col})`，协议/服务端/桌面/Web 四段全通 | 落地=`core/game.py:146-165` 补 history + 终局判定 + position_counts + 出生行去硬编码；`offline.js` 补 `resurrectPawn`；`web/app.js:224` 与核心同源 |
+| **复活** | ✅ **已拍板：补完，不是摘掉规则** | 初稿依据「UI 无入口」降级 P1-C，**依据有误**：`web/js/app.js` 的 `#resurrectButton.onclick` 真绑着 `send('resurrect',{row,col})`，协议/服务端/桌面/Web 四段全通 | 落地=`core/game.py::resurrect_pawn` 补 history + 终局判定 + position_counts + 出生行去硬编码；`offline.js` 补 `resurrectPawn`；`web/js/app.js` 的 `#resurrectButton.onclick` 与核心同源 |
 | **C-2** | ✅ **已完成：活体侧本就是 13 个菱形，无需改代码** | 初稿以为不一致在文档，实测不一致在 `web/js/core/game-rules.js:759/809`（25 点）；复测发现该文件的静态目录在活体之外（服务 `WEB_DIR` 指向内层 `web/`，`/js` 无 `js/core`），改它到不了浏览器；见 6.1 补记 | 落地=**不做**代码改动，改为加回归测试 `test_archer_star_points_are_thirteen_diamonds_not_twenty_five` 钉死活体 13 点菱形；Python 与 offline.js 不动。遗留文件 `web/js/core/game-rules.js` 保留为历史快照，不归档删除（避免 228 条 tracked path 的破坏性改动） |
-| **C-1** | 夹逼是否拦「根线」第一格 | `rules.py:407-422` 从 `range(distance)` 循环含起点格，而 `_rook`/`_cannon` 的 `_clear` 从第二格起 | 越线夹击/夹逼的判定口径 —— **B组：维持现状，见 §7.1** |
+| **C-1** | 夹逼是否拦「根线」第一格 | `rules.py::_diagonal_path_pinched` 从 `range(distance)` 循环含起点格，而 `_rook`/`_cannon` 的 `_clear` 从第二格起 | 越线夹击/夹逼的判定口径 —— **B组：维持现状，见 §7.1** |
 | **C-3** | 「炮」是否改读夹击类定义 | 文档说读「本方任一棋子」，实现是标准隔一子炮 | 传统象棋玩家的认知适配 —— **B组：维持现状，见 §7.1** |
-| **C-4** | 「甲」三子连线可斜可直 | `rules.py:466` 含 4 个方向 | 连线方向的取舍 —— **B组：已改文档措辞为「含斜线」，见 §7.1** |
+| **C-4** | 「甲」三子连线可斜可直 | `rules.py::_armor_removals` 含 4 个方向 | 连线方向的取舍 —— **B组：已改文档措辞为「含斜线」，见 §7.1** |
 | **C-5** | 「刺」是否受「路被护子完全阻断」限制 | 文档明写该限制，实现**完全没有** | 文档与实现冲突，需择一 —— **B组：现仓无此规定、疑为 legacy GDD，维持现状，见 §7.1** |
-| **C-6** | 「兵卒到底线四向移动」是否等于「将」限制 | `rules.py:322-323` + `profiles.py` 开档 → 兵到底线即可获胜 | 胜势膨胀 —— **B组：维持默认，见 §7.1** |
-| **C-7** | 「象」是否受「象眼被阻则整条斜线不可走」约束 | `rules.py:255-277` 只查象眼，未查路径 | 文档明写该限制 —— **B组：现仓无此规定、疑为 legacy GDD，维持现状，见 §7.1** |
+| **C-6** | 「兵卒到底线四向移动」是否等于「将」限制 | `rules.py::_pawn`（`pawn_full_movement_at_base` 分支）+ `profiles.py` 开档 → 兵到底线即可获胜 | 胜势膨胀 —— **B组：维持默认，见 §7.1** |
+| **C-7** | 「象」是否受「象眼被阻则整条斜线不可走」约束 | `rules.py::_elephant` 只查象眼，未查路径 | 文档明写该限制 —— **B组：现仓无此规定、疑为 legacy GDD，维持现状，见 §7.1** |
 | **C-8** | 无进展和棋阈值 | 硬编码 120 ply 而非可配置 | 长局体验 —— **B组：现仓已是可配置字段（仅缺 UI），审计措辞不符，见 §7.1** |
 | **C-9** | 单方无「主动认输」按钮 | 请求 `resign` 返回 `error.resignUnavailable` | 交互缺口 —— **B组：❌ 关闭（该项已实现，审计措辞不成立），见 §7.1** |
 | **C-10** | 无 AI 悔棋/认输组合按钮 | 需连点两次，易误触 | 交互缺口 —— **B组：维持独立按钮，见 §7.1** |
@@ -510,36 +551,36 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 ### 7.1 C 项处置补注（2026-10-10；玩法侧口径落地，只读复核）
 
 > 依据：逐条 Read 现仓源码 + 只读 `python -c` 实测复现。凡「审计措辞与现仓对不上」者已显式标注，避免后续再被引用。
-> 行号已按**当前工作树**重定位（表中 C 项背景列的行号为 R-1a 之前版本）。
+> 行号已按**当前工作树**重定位（表中 C 项背景列的行号为 R-1a 之前版本）。**O-6（提交 A `32ff35b` +176/−83、提交 B `e470df4`）与方案 A（`403590d`）已再次挪动 `rules.py` 行号（现 726 行），故自本节起所有 `rules.py` 引用一律改用「`rules.py::函数名`」锚点，不再随行号漂移失效。**
 
 #### B1｜C-9「单方无主动认输按钮」——❌ 关闭（该项已实现）
 审计称「单方无主动认输按钮、请求 `resign` 返回 `error.resignUnavailable`」**不成立**。现仓证据：
-- `web/js/app.js:223` 绑定 `#resignButton → send('resign')`；
+- `web/js/app.js` 的 `#resignButton.onclick` 绑定 `send('resign')`；
 - `src/xionghan_chess/service/rooms.py:285-286` 直接执行 `Game.resign(seat.color)`；
-- `src/xionghan_chess/core/game.py:106 resign()` 正常实现；
+- `src/xionghan_chess/core/game.py::resign()` 正常实现（现 :109）；
 - **代码中** `resignUnavailable` **0 命中**；字面命中仅见于本审计文本自身（`:505`、`:516`、`:520`），非代码。
 **判定：关闭该项（已实现）。**
 
 #### B2｜C-4「甲」三子连线（可斜可直）—— 已改文档措辞
-现状实现：`src/xionghan_chess/core/rules.py` 的 `_armor_captures` 方向集为 `((0,1),(1,0),(1,1),(1,-1))` → **横、竖 + 两条对角**（实测：甲 + 我方子 + 敌子成对角三连时，敌子被移除）。
+现状实现：`src/xionghan_chess/core/rules.py` 的 `_armor_removals` 方向集为 `((0,1),(1,0),(1,1),(1,-1))` → **横、竖 + 两条对角**（实测：甲 + 我方子 + 敌子成对角三连时，敌子被移除）。
 文档原用「三子**直线**组合」有歧义 → **已改为「三子成一条直线（**含斜线**）的组合」**。两份 `PIECE_RULES.md`（`docs/PIECE_RULES.md:85` 与 `src/xionghan_chess/desktop/resources/docs/PIECE_RULES.md:85`）已同步，逐字一致。
 
 #### B2｜C-5「刺」线路阻断 —— 现仓无此规定，维持现状
 审计称「文档明写刺受『路被护子完全阻断』限制」——**现仓文档无此规定**（`docs/PIECE_RULES.md:88-92` 只写「路径不能有棋子 / 反向兑子 / 盾不可被兑」），**疑为 legacy GDD 原文**。
-现状实现：`rules.py:185-199`（刺客分支）仅排除「被拖拽者本身是盾」与「被拖拽者受盾保护」（后者为 R-4 新增，`:195`）；`rules.py:517-518 _assassin` 仅要求目标为空 + 车走法。**无整条线阻断判定。本轮维持现状。**
+现状实现：`rules.py::_apply_move`（刺客分支）仅排除「被拖拽者本身是盾」与「被拖拽者受盾保护」（后者为 R-4 新增，见 `rules.py::_assassin_drag_victim` / `_protected_by_enemy_shield`）；`rules.py::_assassin` 仅要求目标为空 + 车走法。**无整条线阻断判定。本轮维持现状。**
 
 #### B2｜C-7「象」整条斜线 —— 现仓无此规定，维持现状
 审计称「文档明写象眼被阻则整条斜线不可走」——**现仓文档无此规定**（`docs/PIECE_RULES.md:28-29` 明确「斜向两格」+ 查象眼），**疑为 legacy GDD 原文**。
-现状实现：`rules.py:331-353 _elephant` **固定斜走两格**、只查该步象眼（`:338-340`）。实测：象(5,5)、象眼(6,4)有子 → (7,3) 非法，但 (3,7)/(7,7)/(3,3) 合法。**本轮维持现状。**
+现状实现：`rules.py::_elephant` **固定斜走两格**、只查该步象眼（单点 `eye`，不查整条斜线）。实测：象(5,5)、象眼(6,4)有子 → (7,3) 非法，但 (3,7)/(7,7)/(3,3) 合法。**本轮维持现状。**
 
 #### B2｜C-6 底线兵四向移动边界 —— 维持默认
-`rules.py:397-399`：底线且 `pawn_full_movement_at_base` → `abs(dr)+abs(dc)==1`（正交 4 向，无范围限制）；`profiles.py:34-35` 两开关默认 True。实测红兵(0,5) 目标 = (0,4),(0,6),(1,5)。**补充**：其「横走」实来自「过河横走」(`rules.py:415`)，`pawn_full_movement_at_base` 只补「底线后退」，并与 `pawn_backward_at_base` 构成优先级对（`rules.py:398` 短路）。**本轮维持默认，仅建议补 UI 说明。**
+`rules.py::_pawn`：底线且 `pawn_full_movement_at_base` → `abs(dr)+abs(dc)==1`（正交 4 向，无范围限制）；`profiles.py:34-35` 两开关默认 True。实测红兵(0,5) 目标 = (0,4),(0,6),(1,5)。**补充**：其「横走」实来自「过河横走」(`rules.py::_pawn` 的 `crossed and dr == 0` 分支)，`pawn_full_movement_at_base` 只补「底线后退」，并与 `pawn_backward_at_base` 构成优先级对（同函数内短路）。**本轮维持默认，仅建议补 UI 说明。**
 
 #### B2｜C-8 无进展和棋阈值 —— 审计措辞与现仓不符
-审计称「硬编码 120 ply 而非可配置」——**现仓已是可配置字段**：`profiles.py:40 no_progress_draw_plies:int=120` 属 `RuleOptions`，可经 `merged()` 按 profile/局覆盖；判定在 `game.py:265`、`_no_progress_plies` 在 `game.py:268`。**缺的是 UI，不是可配置性。本轮维持默认 120。**
+审计称「硬编码 120 ply 而非可配置」——**现仓已是可配置字段**：`profiles.py:40 no_progress_draw_plies:int=120` 属 `RuleOptions`，可经 `merged()` 按 profile/局覆盖；判定在 `game.py::_settle`（no-progress 分支）、`_no_progress_plies` 在 `game.py::_no_progress_plies`。**缺的是 UI，不是可配置性。本轮维持默认 120。**
 
 #### B2｜C-10 悔棋/认输组合按钮 —— 维持独立按钮
-`web/js/app.js:223` 悔棋/认输为独立按钮；**认输无二次确认**（locales 已有 `dialog.confirm_resign` 文案但未被使用）。**本轮维持现状，仅建议对「认输」补二次确认（S 级）。**
+`web/js/app.js` 的 `#undoButton`/`#resignButton` 为独立按钮（现 :208）；**认输无二次确认**（locales 已有 `dialog.confirm_resign` 文案但未被使用）。**本轮维持现状，仅建议对「认输」补二次确认（S 级）。**
 
 #### B3｜C-11「单方在线 1200ms」—— 措辞混淆：1200ms 是重连退避基准，不是在线判定阈值
 
@@ -560,11 +601,11 @@ P0-R1/R2 这类漏洞两侧**同样错**时，对拍会显示绿色。
 > 补：若原意指「对手掉线后 UI 何时切到离线态」这类**体验一致性**议题，则应作为**独立于 1200 的 UI 议题**处理（客户端在 `onclose` 即时显示 `status.interrupted`，服务端 90s 内允许无感重连）——**该议题不能用改 1200 这个退避常量来解决**。
 
 #### B2｜C-12 开关 UI/文案覆盖 —— 审计措辞与现仓不符
-`RuleOptions`（`profiles.py:22-55`）共 32 项（17 行为 bool + 14 棋子显隐 + 1 阈值 int）。Web 活体设置弹窗（`web/js/app.js:249-250`）已覆盖 17 行为 + 14 显隐；桌面 `app.py` 引用全部 17 行为键；**唯一无 UI 的是 `no_progress_draw_plies`**。审计「缺 14 个」与现仓不符，疑为旧版/指某端。另：`web/js/app.js:61 labels`、`web/js/app.js:87 pieceDescriptions` 为**零引用死表**，宜删。**本轮维持，建议补阈值 UI + 删死表（S 级）。**
+`RuleOptions`（`profiles.py:22-55`）共 32 项（17 行为 bool + 14 棋子显隐 + 1 阈值 int）。Web 活体设置弹窗（`web/js/app.js` 的行为开关 + 棋子显隐选择器）已覆盖 17 行为 + 14 显隐；桌面 `app.py` 引用全部 17 行为键；**唯一无 UI 的是 `no_progress_draw_plies`**。审计「缺 14 个」与现仓不符，疑为旧版/指某端。另：旧稿所指的两张**零引用死表**（`labels`、`pieceDescriptions`）**已由 B4（C-12）清理删除**，现仓 `web/js/app.js` 已无此二表。**本轮维持，仅余「补阈值 UI」一项（S 级）。**
 
 #### 附｜C-1 / C-3（未在 B 组派单内，一并记录，均维持现状）
-- **C-1（夹逼含起点格）**：`rules.py:486-501 _diagonal_path_pinched` 用 `range(distance)`，**含起点格、不含落点格**；与 `docs/RULES.md:30`、`docs/PIECE_RULES.md:72` 一致。维持现状。
-- **C-3（炮屏限不限本方子）**：`rules.py:386-390 _cannon` 统计路径上**任意**棋子 → 屏可为敌我任意子（标准象棋）；实测以己方兵为屏吃敌马 = True。现仓文档未限定敌我。维持现状。
+- **C-1（夹逼含起点格）**：`rules.py::_diagonal_path_pinched` 用 `range(distance)`，**含起点格、不含落点格**；与 `docs/RULES.md:30`、`docs/PIECE_RULES.md:72` 一致。维持现状。
+- **C-3（炮屏限不限本方子）**：`rules.py::_cannon` 统计路径上**任意**棋子 → 屏可为敌我任意子（标准象棋）；实测以己方兵为屏吃敌马 = True。现仓文档未限定敌我。维持现状。
 
 > **B 组落地文件**：`docs/AUDIT_1.6.0_full.md`、`docs/PIECE_RULES.md`、`src/xionghan_chess/desktop/resources/docs/PIECE_RULES.md`（未 commit）。
 

@@ -4,6 +4,8 @@ import pytest
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.legacy import migrate_legacy_game
+from xionghan_chess.core.model import Color, GameState, Piece, PieceType
+from xionghan_chess.core.profiles import get_profile
 from xionghan_chess.desktop import storage
 from xionghan_chess.desktop.storage import game_document, game_from_document, load_game, save_game
 
@@ -47,6 +49,72 @@ def test_legacy_traditional_fen_is_migrated():
     assert document["profileId"] == "traditional"
     assert document["source"] == "legacy-fen"
     assert len(document["state"]["pieces"]) == 32
+
+
+def _downgrade_to_pre_pool_key(data: dict) -> dict:
+    """Turn a current document into what a pre-方案A build would have written.
+
+    Those builds had no `positionKeyVersion` marker and keyed `positionCounts`
+    with the pool-blind format, so strip the marker and cut every `||pool:` tail
+    back off the keys. This is the shape `game_from_document` has to migrate.
+    """
+    data.pop("positionKeyVersion", None)
+    counts = data["state"]["positionCounts"]
+    data["state"]["positionCounts"] = {key.split("||pool:")[0]: count
+                                       for key, count in counts.items()}
+    return data
+
+
+def test_legacy_document_rebuilds_the_ledger_in_the_current_key_format():
+    """A pre-方案A .xhgame can never reproduce its own keys, so loading it must
+    re-derive the ledger in today's pool-aware format.
+
+    Keeping the old keys would drop every pre-load occurrence (漏判); a load that
+    invented keys would mis-count (误判). This asserts the counts survive the
+    format change intact and no stale old-format key survives beside them.
+    """
+    game = Game("desktop_complete")
+    for _ in range(6):
+        game.move(sorted(game.rules.legal_moves(game.state), key=lambda move: move.key())[0])
+    live = dict(game.state.position_counts)
+    assert live, "the live game recorded its positions"
+
+    restored = game_from_document(_downgrade_to_pre_pool_key(game_document(game)))
+
+    assert restored.state.position_counts == live
+    assert all("||pool:" in key for key in restored.state.position_counts)
+
+
+def test_legacy_document_still_reaches_threefold_after_the_upgrade():
+    """The pool-aware rebuild must not cost a repetition: a game that saw a
+    position twice before 方案A still draws when it appears a third time."""
+    def sparse() -> Game:
+        profile = get_profile("desktop_complete")
+        pieces = [
+            Piece.create(PieceType.KING, Color.RED, 0, 0),
+            Piece.create(PieceType.KING, Color.BLACK, profile.rows - 1, profile.cols - 1),
+            Piece.create(PieceType.ROOK, Color.RED, 6, 4),
+            Piece.create(PieceType.ROOK, Color.BLACK, 3, 4),
+        ]
+        return Game.from_state(GameState(profile.id, pieces, turn=Color.RED))
+
+    def play(game: Game, sr: int, sc: int, tr: int, tc: int) -> None:
+        move = next(m for m in game.rules.legal_moves(game.state)
+                    if (m.source.row, m.source.col, m.target.row, m.target.col) == (sr, sc, tr, tc))
+        game.move(move)
+
+    cycle = [(6, 4, 6, 5), (3, 4, 3, 5), (6, 5, 6, 4), (3, 5, 3, 4)]
+    game = sparse()
+    for squares in cycle:                       # one full cycle: start position now seen twice
+        play(game, *squares)
+
+    restored = game_from_document(_downgrade_to_pre_pool_key(game_document(game)))
+    assert restored.state.draw is False
+
+    for squares in cycle:                       # return to it a third time
+        play(restored, *squares)
+    assert restored.state.draw is True
+    assert restored.state.result_reason == "threefold_repetition"
 
 
 def test_legacy_json_wrapped_fen_loads_from_desktop(tmp_path):

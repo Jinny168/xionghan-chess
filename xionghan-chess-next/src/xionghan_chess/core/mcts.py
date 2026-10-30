@@ -11,6 +11,12 @@ from .game import Game
 from .model import Move
 
 
+# SEE 预处理的候选上限：吃子再多也只估算前 N 个，其余直接进候选。
+# 理由：MCTS 的时间盒是 12s，而一次 SEE 约毫秒级；captures 上百个时预处理
+# 自己就能吃掉几秒，且这段时间里没有任何 cancel 检查。
+SEE_CANDIDATE_LIMIT = 16
+
+
 @dataclass
 class _Node:
     move: Move | None = None
@@ -35,6 +41,10 @@ class MCTS:
         self.completed_simulations = 0
 
     def choose_move(self, game: Game, cancel: threading.Event | None = None) -> Move | None:
+        # ⚠️ 时间盒必须在**任何预处理之前**开始：原来 `deadline` 建在 SEE 预处理之后，
+        # 那段完全不受预算约束（实测 12s 预算跑出过 62.6s），且循环里没有 cancel 检查，
+        # 暂停/悔棋都停不下来。这两条一起修。
+        deadline = time.monotonic() + self.time_limit
         legal = game.rules.legal_moves(game.state)
         if not legal:
             return None
@@ -45,10 +55,19 @@ class MCTS:
         captures = [move for move in legal if game.rules.captured_by_move(game.state, move)]
         candidates = captures or legal
         if captures and self.root_score is not None:
-            safe_captures = [move for move in captures if self.root_score(game, move) >= 0]
-            candidates = safe_captures or [move for move in legal if move not in captures] or legal
+            # 只对前 `SEE_CANDIDATE_LIMIT` 个吃子做 SEE 估算：吃子很多时，预处理本身
+            # 就能吃掉几秒。超限/超预算的那些**直接当候选**，不再消耗预算。
+            safe: list[Move] = []
+            for index, move in enumerate(captures):
+                if cancel is not None and cancel.is_set():
+                    return None
+                if index >= SEE_CANDIDATE_LIMIT or time.monotonic() >= deadline:
+                    safe.extend(captures[index:])
+                    break
+                if self.root_score(game, move) >= 0:
+                    safe.append(move)
+            candidates = safe or [move for move in legal if move not in captures] or legal
         root = _Node(unexpanded=list(candidates))
-        deadline = time.monotonic() + self.time_limit
         self.completed_simulations = 0
         while (self.simulations is None and time.monotonic() < deadline) or (
                 self.simulations is not None and self.completed_simulations < self.simulations):

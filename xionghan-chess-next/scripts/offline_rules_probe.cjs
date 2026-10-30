@@ -14,7 +14,7 @@ if (start < 0 || end < 0) throw new Error('offline rules markers not found');
 // message OfflineGame builds (resurrect notation included).
 const rulesSource = "const opposite=c=>c==='red'?'black':'red',pos=(row,col)=>({row,col}),tr=key=>key;\n" +
   source.slice(start, end) +
-  '\n;globalThis.__offline={Rules,PROFILES,OfflineGame};';
+  '\n;globalThis.__offline={Rules,PROFILES,OfflineGame,gameFromDocument};';
 const context = {console, performance};
 vm.createContext(context);
 vm.runInContext(rulesSource, context);
@@ -56,6 +56,11 @@ if (request.capturableSquares) {
   const queried = targets ? targets.map(item => ({row: item.row, col: item.col})) : null;
   result.capturableSquares = rules.capturableSquares(state, color, queried);
 }
+// Position-key leg: the repetition key must be byte-identical on both engines,
+// else the Python and offline ledgers split (方案 A folded the capture pool in).
+if (request.positionKey) {
+  result.positionKey = rules.positionKey(state);
+}
 if (request.checkmate !== undefined || request.stalemate !== undefined) {
   const moves = rules.legalAll(state, state.turn);
   if (request.checkmate !== undefined) {
@@ -83,6 +88,32 @@ if (request.resurrect) {
     result.resurrect = {ok: true, state: game.publicState(), error: null};
   } catch (error) {
     result.resurrect = {ok: false, state: null, error: error.message};
+  }
+}
+
+// Document-load leg: runs the DOM-free core of `loadGameDocument`
+// (`gameFromDocument`) so the repetition-ledger rebuild can be checked without a
+// browser. `thenPlay` replays moves after the load to observe the threefold
+// verdict, which is the very thing a re-derived ledger has to preserve.
+if (request.loadDocument !== undefined) {
+  const payload = request.loadDocument;
+  try {
+    const game = context.__offline.gameFromDocument(payload.document, payload.initialMinutes || 20);
+    // Snapshot the ledger right after the load: `recordPosition` mutates
+    // `positionCounts` in place, so a later replay would rewrite this reference.
+    const leg = {ok: true, error: null,
+                 loadedPositionCounts: JSON.parse(JSON.stringify(game.state.positionCounts))};
+    if (payload.thenPlay) {
+      for (const move of payload.thenPlay) {
+        game.move({from: move.from, to: move.to, promotion: move.promotion || null});
+      }
+      leg.draw = game.state.draw;
+      leg.resultReason = game.state.resultReason;
+      leg.positionCounts = game.state.positionCounts;
+    }
+    result.loadDocument = leg;
+  } catch (error) {
+    result.loadDocument = {ok: false, error: error.message, positionCounts: null};
   }
 }
 

@@ -104,7 +104,14 @@ class GameState:
         return self.winner is not None or self.draw
 
     def piece_at(self, position: Position) -> Piece | None:
-        return next((p for p in self.pieces if p.position == position), None)
+        # 搜索内每生成一个伪着法就要查一次目标格（cProfile：15 万次/5s），
+        # 直接比 row/col 比构造/比较 Position 快，语义完全等价（Position 是
+        # frozen dataclass，`==` 就是逐字段比）。
+        row, col = position.row, position.col
+        for piece in self.pieces:
+            if piece.position.row == row and piece.position.col == col:
+                return piece
+        return None
 
     def clone(self) -> "GameState":
         return GameState.from_dict(self.to_dict())

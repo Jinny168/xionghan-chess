@@ -1,4 +1,6 @@
 .venv/
+# setuptools 构建产物：`pip install -e .` 会重写它，不应入库（每次安装都会弄脏工作区）
+*.egg-info/
 .pytest_cache/
 __pycache__/
 *.py[cod]

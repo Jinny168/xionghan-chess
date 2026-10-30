@@ -1,0 +1,668 @@
+{
+  "fingerprint": {
+    "pieces": 62,
+    "legal": 120
+  },
+  "note": "负对照（预算不是杠杆）：bench_roots 确定性局面策略生成 profile=desktop_complete, seed=700, plies=10；medium randomness=0 下 5s 与 6s 均为 depth 1（nodes 84-99，选点 9,1-9,6），d2 在 6s 内亦不可达 —— 用于验证“加预算是否白加”。生成策略为每步取合法着法中位（按 move.key() 排序），因此本局面可确定性重建，不依赖时间受限搜索。",
+  "state": {
+    "profileId": "desktop_complete",
+    "turn": "red",
+    "pieces": [
+      {
+        "id": "12bc6c40d109",
+        "type": "archer",
+        "color": "black",
+        "row": 0,
+        "col": 0
+      },
+      {
+        "id": "1ecfb26266db",
+        "type": "shield",
+        "color": "black",
+        "row": 0,
+        "col": 1
+      },
+      {
+        "id": "c30be23cc5df",
+        "type": "armor",
+        "color": "black",
+        "row": 0,
+        "col": 2
+      },
+      {
+        "id": "b5bc6fc9ccf1",
+        "type": "assassin",
+        "color": "black",
+        "row": 0,
+        "col": 3
+      },
+      {
+        "id": "8d595160ca65",
+        "type": "thunder",
+        "color": "black",
+        "row": 0,
+        "col": 4
+      },
+      {
+        "id": "bef6a0ab7697",
+        "type": "guard",
+        "color": "black",
+        "row": 0,
+        "col": 6
+      },
+      {
+        "id": "8e72ce6fa599",
+        "type": "thunder",
+        "color": "black",
+        "row": 0,
+        "col": 8
+      },
+      {
+        "id": "61727370e5b9",
+        "type": "assassin",
+        "color": "black",
+        "row": 0,
+        "col": 9
+      },
+      {
+        "id": "2d093b4b2307",
+        "type": "armor",
+        "color": "black",
+        "row": 0,
+        "col": 10
+      },
+      {
+        "id": "c0e7dc4b7f4e",
+        "type": "shield",
+        "color": "black",
+        "row": 0,
+        "col": 11
+      },
+      {
+        "id": "b11972f344b0",
+        "type": "archer",
+        "color": "black",
+        "row": 0,
+        "col": 12
+      },
+      {
+        "id": "1044fe56c3b7",
+        "type": "rook",
+        "color": "black",
+        "row": 1,
+        "col": 2
+      },
+      {
+        "id": "a7a34ed59e1b",
+        "type": "horse",
+        "color": "black",
+        "row": 1,
+        "col": 3
+      },
+      {
+        "id": "ce73c9240f9f",
+        "type": "elephant",
+        "color": "black",
+        "row": 1,
+        "col": 4
+      },
+      {
+        "id": "86017a5b5904",
+        "type": "advisor",
+        "color": "black",
+        "row": 1,
+        "col": 5
+      },
+      {
+        "id": "e126516c7fc1",
+        "type": "king",
+        "color": "black",
+        "row": 1,
+        "col": 6
+      },
+      {
+        "id": "b22fb7019501",
+        "type": "advisor",
+        "color": "black",
+        "row": 1,
+        "col": 7
+      },
+      {
+        "id": "d63ec0d8cdc5",
+        "type": "elephant",
+        "color": "black",
+        "row": 1,
+        "col": 8
+      },
+      {
+        "id": "ca510ad12c4c",
+        "type": "horse",
+        "color": "black",
+        "row": 1,
+        "col": 9
+      },
+      {
+        "id": "842665d0bc07",
+        "type": "rook",
+        "color": "black",
+        "row": 1,
+        "col": 10
+      },
+      {
+        "id": "e400de1274d1",
+        "type": "cannon",
+        "color": "black",
+        "row": 2,
+        "col": 8
+      },
+      {
+        "id": "405d83631a72",
+        "type": "cannon",
+        "color": "black",
+        "row": 3,
+        "col": 4
+      },
+      {
+        "id": "21ba1d9a234b",
+        "type": "pawn",
+        "color": "black",
+        "row": 4,
+        "col": 0
+      },
+      {
+        "id": "7faf13c8a11f",
+        "type": "pawn",
+        "color": "black",
+        "row": 4,
+        "col": 2
+      },
+      {
+        "id": "c6ea32325077",
+        "type": "pawn",
+        "color": "black",
+        "row": 4,
+        "col": 4
+      },
+      {
+        "id": "af0743f48563",
+        "type": "pawn",
+        "color": "black",
+        "row": 4,
+        "col": 6
+      },
+      {
+        "id": "3c5c9479760b",
+        "type": "pawn",
+        "color": "black",
+        "row": 4,
+        "col": 8
+      },
+      {
+        "id": "197cdede57ec",
+        "type": "pawn",
+        "color": "black",
+        "row": 4,
+        "col": 10
+      },
+      {
+        "id": "55a9b25d2120",
+        "type": "pawn",
+        "color": "black",
+        "row": 4,
+        "col": 12
+      },
+      {
+        "id": "3146473ce2e9",
+        "type": "patrol",
+        "color": "black",
+        "row": 5,
+        "col": 0
+      },
+      {
+        "id": "313e4950380d",
+        "type": "patrol",
+        "color": "black",
+        "row": 5,
+        "col": 12
+      },
+      {
+        "id": "4e89af66c2b7",
+        "type": "archer",
+        "color": "red",
+        "row": 12,
+        "col": 0
+      },
+      {
+        "id": "91a7de4f7d32",
+        "type": "shield",
+        "color": "red",
+        "row": 12,
+        "col": 1
+      },
+      {
+        "id": "2cb656427d77",
+        "type": "armor",
+        "color": "red",
+        "row": 12,
+        "col": 2
+      },
+      {
+        "id": "bc1a747c960d",
+        "type": "assassin",
+        "color": "red",
+        "row": 12,
+        "col": 3
+      },
+      {
+        "id": "7505c6e10158",
+        "type": "thunder",
+        "color": "red",
+        "row": 12,
+        "col": 4
+      },
+      {
+        "id": "53ce26989a5d",
+        "type": "guard",
+        "color": "red",
+        "row": 12,
+        "col": 6
+      },
+      {
+        "id": "3524fbf07a9f",
+        "type": "thunder",
+        "color": "red",
+        "row": 12,
+        "col": 8
+      },
+      {
+        "id": "33c9d07c21da",
+        "type": "assassin",
+        "color": "red",
+        "row": 12,
+        "col": 9
+      },
+      {
+        "id": "43fdaccbfe0c",
+        "type": "armor",
+        "color": "red",
+        "row": 12,
+        "col": 10
+      },
+      {
+        "id": "2caeb434bfb5",
+        "type": "shield",
+        "color": "red",
+        "row": 12,
+        "col": 11
+      },
+      {
+        "id": "fa605a604787",
+        "type": "archer",
+        "color": "red",
+        "row": 12,
+        "col": 12
+      },
+      {
+        "id": "6029ba0b5ff3",
+        "type": "rook",
+        "color": "red",
+        "row": 11,
+        "col": 2
+      },
+      {
+        "id": "d2a01061ad7d",
+        "type": "horse",
+        "color": "red",
+        "row": 11,
+        "col": 3
+      },
+      {
+        "id": "e8c1066832e7",
+        "type": "elephant",
+        "color": "red",
+        "row": 11,
+        "col": 4
+      },
+      {
+        "id": "a74131fec44a",
+        "type": "advisor",
+        "color": "red",
+        "row": 11,
+        "col": 5
+      },
+      {
+        "id": "22408cc03499",
+        "type": "king",
+        "color": "red",
+        "row": 11,
+        "col": 6
+      },
+      {
+        "id": "8c12ca487ff4",
+        "type": "advisor",
+        "color": "red",
+        "row": 11,
+        "col": 7
+      },
+      {
+        "id": "c6ad22c043f1",
+        "type": "elephant",
+        "color": "red",
+        "row": 11,
+        "col": 8
+      },
+      {
+        "id": "e9e17b5167fb",
+        "type": "horse",
+        "color": "red",
+        "row": 11,
+        "col": 9
+      },
+      {
+        "id": "60335022cd06",
+        "type": "rook",
+        "color": "red",
+        "row": 11,
+        "col": 10
+      },
+      {
+        "id": "84ff65ea5f16",
+        "type": "cannon",
+        "color": "red",
+        "row": 9,
+        "col": 1
+      },
+      {
+        "id": "9829835b869f",
+        "type": "cannon",
+        "color": "red",
+        "row": 9,
+        "col": 11
+      },
+      {
+        "id": "8ccc10db9ebe",
+        "type": "pawn",
+        "color": "red",
+        "row": 8,
+        "col": 0
+      },
+      {
+        "id": "40ad1f67c855",
+        "type": "pawn",
+        "color": "red",
+        "row": 8,
+        "col": 2
+      },
+      {
+        "id": "27149ca0f16d",
+        "type": "pawn",
+        "color": "red",
+        "row": 8,
+        "col": 4
+      },
+      {
+        "id": "904f06937671",
+        "type": "pawn",
+        "color": "red",
+        "row": 8,
+        "col": 6
+      },
+      {
+        "id": "ebad261ffdae",
+        "type": "pawn",
+        "color": "red",
+        "row": 8,
+        "col": 8
+      },
+      {
+        "id": "03bdb6649015",
+        "type": "pawn",
+        "color": "red",
+        "row": 8,
+        "col": 10
+      },
+      {
+        "id": "01502ce08aa8",
+        "type": "pawn",
+        "color": "red",
+        "row": 8,
+        "col": 12
+      },
+      {
+        "id": "e2b4646f14af",
+        "type": "patrol",
+        "color": "red",
+        "row": 7,
+        "col": 0
+      },
+      {
+        "id": "2a7a4d000e29",
+        "type": "patrol",
+        "color": "red",
+        "row": 7,
+        "col": 10
+      }
+    ],
+    "history": [
+      {
+        "move": {
+          "from": {
+            "row": 7,
+            "col": 12
+          },
+          "to": {
+            "row": 7,
+            "col": 10
+          },
+          "promotion": null
+        },
+        "color": "red",
+        "pieceType": "patrol",
+        "captured": [],
+        "notation": "巡 8,13 至 8,11",
+        "timestamp": 1793340048.3050396,
+        "elapsedMs": 0
+      },
+      {
+        "move": {
+          "from": {
+            "row": 3,
+            "col": 1
+          },
+          "to": {
+            "row": 3,
+            "col": 2
+          },
+          "promotion": null
+        },
+        "color": "black",
+        "pieceType": "cannon",
+        "captured": [],
+        "notation": "砲 4,2 至 4,3",
+        "timestamp": 1793340048.406629,
+        "elapsedMs": 0
+      },
+      {
+        "move": {
+          "from": {
+            "row": 7,
+            "col": 10
+          },
+          "to": {
+            "row": 7,
+            "col": 12
+          },
+          "promotion": null
+        },
+        "color": "red",
+        "pieceType": "patrol",
+        "captured": [],
+        "notation": "巡 8,11 至 8,13",
+        "timestamp": 1793340048.514451,
+        "elapsedMs": 0
+      },
+      {
+        "move": {
+          "from": {
+            "row": 3,
+            "col": 11
+          },
+          "to": {
+            "row": 3,
+            "col": 4
+          },
+          "promotion": null
+        },
+        "color": "black",
+        "pieceType": "cannon",
+        "captured": [],
+        "notation": "砲 4,12 至 4,5",
+        "timestamp": 1793340048.6094415,
+        "elapsedMs": 0
+      },
+      {
+        "move": {
+          "from": {
+            "row": 7,
+            "col": 12
+          },
+          "to": {
+            "row": 7,
+            "col": 10
+          },
+          "promotion": null
+        },
+        "color": "red",
+        "pieceType": "patrol",
+        "captured": [],
+        "notation": "巡 8,13 至 8,11",
+        "timestamp": 1793340048.7250526,
+        "elapsedMs": 0
+      },
+      {
+        "move": {
+          "from": {
+            "row": 3,
+            "col": 2
+          },
+          "to": {
+            "row": 2,
+            "col": 2
+          },
+          "promotion": null
+        },
+        "color": "black",
+        "pieceType": "cannon",
+        "captured": [],
+        "notation": "砲 4,3 至 3,3",
+        "timestamp": 1793340048.809097,
+        "elapsedMs": 0
+      },
+      {
+        "move": {
+          "from": {
+            "row": 7,
+            "col": 10
+          },
+          "to": {
+            "row": 7,
+            "col": 12
+          },
+          "promotion": null
+        },
+        "color": "red",
+        "pieceType": "patrol",
+        "captured": [],
+        "notation": "巡 8,11 至 8,13",
+        "timestamp": 1793340048.9196296,
+        "elapsedMs": 0
+      },
+      {
+        "move": {
+          "from": {
+            "row": 2,
+            "col": 2
+          },
+          "to": {
+            "row": 2,
+            "col": 5
+          },
+          "promotion": null
+        },
+        "color": "black",
+        "pieceType": "cannon",
+        "captured": [],
+        "notation": "砲 3,3 至 3,6",
+        "timestamp": 1793340049.01306,
+        "elapsedMs": 0
+      },
+      {
+        "move": {
+          "from": {
+            "row": 7,
+            "col": 12
+          },
+          "to": {
+            "row": 7,
+            "col": 10
+          },
+          "promotion": null
+        },
+        "color": "red",
+        "pieceType": "patrol",
+        "captured": [],
+        "notation": "巡 8,13 至 8,11",
+        "timestamp": 1793340049.129733,
+        "elapsedMs": 0
+      },
+      {
+        "move": {
+          "from": {
+            "row": 2,
+            "col": 5
+          },
+          "to": {
+            "row": 2,
+            "col": 8
+          },
+          "promotion": null
+        },
+        "color": "black",
+        "pieceType": "cannon",
+        "captured": [],
+        "notation": "砲 3,6 至 3,9",
+        "timestamp": 1793340049.2263858,
+        "elapsedMs": 0
+      }
+    ],
+    "captured": {
+      "red": [],
+      "black": []
+    },
+    "winner": null,
+    "resultReason": null,
+    "draw": false,
+    "pendingDrawOffer": null,
+    "pendingUndoOffer": null,
+    "pendingRestartOffer": null,
+    "paused": false,
+    "pausedBy": null,
+    "clocksMs": {
+      "red": 1199455,
+      "black": 1199536
+    },
+    "positionCounts": {
+      "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
+      "black|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
+      "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:2;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
+      "black|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:2;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
+      "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:2;black:cannon:3:4;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
+      "black|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:2;black:cannon:3:4;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
+      "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:2:2;black:cannon:3:4;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
+      "black|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:2:2;black:cannon:3:4;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
+      "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:2:5;black:cannon:3:4;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
+      "black|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:2:5;black:cannon:3:4;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
+      "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:2:8;black:cannon:3:4;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1
+    }
+  }
+}

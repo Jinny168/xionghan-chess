@@ -15,6 +15,11 @@ class GameError(ValueError):
     pass
 
 
+# A side may never field more than this many pawns. It governs `resurrect_pawn`
+# here and the AI's pool valuation (ai.py), so the rule cap has a single home.
+RESTORE_PAWN_LIMIT = 7
+
+
 class Game:
     MAX_SNAPSHOTS = 512
     def __init__(self, profile: RuleProfile | str = "desktop_complete",
@@ -61,11 +66,9 @@ class Game:
             del self._snapshots[:-self.MAX_SNAPSHOTS]
         moving = self.state.piece_at(move.source)
         assert moving is not None
-        before_ids = {p.id: p for p in self.state.pieces}
         elapsed = int((time.monotonic() - self.state.turn_started_at) * 1000)
+        captured = self.rules.board_removals(self.state, move)
         next_state = self.rules.apply_unchecked(self.state, move)
-        after_ids = {p.id for p in next_state.pieces}
-        captured = tuple(p for pid, p in before_ids.items() if pid not in after_ids)
         for item in captured:
             next_state.captured[item.color].append(item)
         record = MoveRecord(move, moving.color, moving.type, captured, self.notation(moving, move, captured), elapsed_ms=elapsed)
@@ -165,7 +168,8 @@ class Game:
         if position not in self._pawn_home_squares(color) or self.state.piece_at(position):
             raise GameError(self._t("error.invalid_resurrect_position"))
         dead = next((p for p in self.state.captured[color] if p.type is PieceType.PAWN), None)
-        if dead is None or sum(p.type is PieceType.PAWN and p.color is color for p in self.state.pieces) >= 7:
+        if dead is None or sum(p.type is PieceType.PAWN and p.color is color
+                               for p in self.state.pieces) >= RESTORE_PAWN_LIMIT:
             raise GameError(self._t("error.no_resurrect_pawn"))
         self._snapshots.append(self.state.to_dict())
         if len(self._snapshots) > self.MAX_SNAPSHOTS:
