@@ -157,6 +157,11 @@ class ChessAI:
         self.history: dict[tuple[PieceType, int, int], int] = {}
         self.killers: dict[int, list[Move]] = {}
         self.evaluation_cache: dict[tuple[str, Color], float] = {}
+        # `in_check` 记忆化：`_evaluate` 对同一局面会分别按红/黑求值（评估缓存按 color 分键，
+        # 互相救不了），两次求值要问的是同两组「王是否被将」。实测一次 5s 搜索里
+        # 21%（36/172）的 `in_check` 调用是重复的。
+        # 键含 `evaluation_key`，不跨局面复用；容量与评估缓存一致，超限整表清空。
+        self.in_check_memo: dict[tuple[str, Color], bool] = {}
         self.see_cache: dict[tuple[str, str], int] = {}
         self.principal_move: Move | None = None
         # (score, move, truncated)：第三项是「该根着法这一轮的分数是否残缺」，
@@ -194,6 +199,7 @@ class ChessAI:
         self.history.clear()
         self.killers.clear()
         self.evaluation_cache.clear()
+        self.in_check_memo.clear()
         self.see_cache.clear()
         self.principal_move = None
         self.root_scores = []
@@ -511,14 +517,27 @@ class ChessAI:
                   self._mobility_score(game, color.opponent)) * (0.8 + phase * 0.5)
         score += self._king_safety(game, color, phase)
         score -= self._king_safety(game, color.opponent, phase)
-        if game.rules.in_check(game.state, color.opponent):
+        evaluation = cache_key[0]
+        if self._in_check(game, evaluation, color.opponent):
             score += 150
-        if game.rules.in_check(game.state, color):
+        if self._in_check(game, evaluation, color):
             score -= 210
         if len(self.evaluation_cache) >= 50_000:
             self.evaluation_cache.clear()
         self.evaluation_cache[cache_key] = score
         return score
+
+    def _in_check(self, game: Game, evaluation: str, color: Color) -> bool:
+        """`rules.in_check` 的记忆化版本；键 = (evaluation_key, color)，**不跨局面复用**。"""
+        key = (evaluation, color)
+        cached = self.in_check_memo.get(key)
+        if cached is not None:
+            return cached
+        value = game.rules.in_check(game.state, color)
+        if len(self.in_check_memo) >= 50_000:
+            self.in_check_memo.clear()
+        self.in_check_memo[key] = value
+        return value
 
     def _pool_value(self, game: Game, color: Color) -> float:
         """Material `color` still holds in its own pool (`state.captured[color]`).
