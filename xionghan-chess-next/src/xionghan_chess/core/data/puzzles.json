@@ -243,1338 +243,6 @@
     ]
   },
   {
-    "id": "endgame-armor-line-01",
-    "title": "甲线断粮",
-    "difficulty": "advanced",
-    "description": "甲只能横竖走。让甲与红炮、黑砲排成三子一条直线，线中的黑砲即被移除。",
-    "profileId": "desktop_complete",
-    "solution": [
-      {
-        "from": {
-          "row": 12,
-          "col": 2
-        },
-        "to": {
-          "row": 9,
-          "col": 2
-        }
-      }
-    ],
-    "hints": [
-      "甲本身只能直线移动，不能斜走。",
-      "把甲送到 (9,2)，使 (9,1)红炮、(9,2)甲、(9,3)黑砲 连成一线。",
-      "成线后，线中的黑砲会被额外移除。"
-    ],
-    "tags": [
-      "特色棋子",
-      "甲",
-      "残局"
-    ],
-    "pieceTypes": [
-      "armor",
-      "cannon"
-    ],
-    "captureKinds": [
-      "armor_line"
-    ],
-    "document": {
-      "formatVersion": 1,
-      "positionKeyVersion": 2,
-      "profileId": "desktop_complete",
-      "options": {
-        "king_can_leave_palace": true,
-        "king_diagonal_in_palace": true,
-        "king_lose_diagonal_outside_palace": true,
-        "invasion_victory": true,
-        "advisor_can_leave_palace": true,
-        "advisor_gain_straight_outside_palace": true,
-        "elephant_can_cross_river": true,
-        "elephant_gain_jump_two_enemy_territory": true,
-        "horse_straight_three": true,
-        "archer_enhanced_mode": false,
-        "pawn_fast_move_before_enemy_territory": true,
-        "pawn_backward_at_base": true,
-        "pawn_full_movement_at_base": true,
-        "pawn_resurrection": true,
-        "pawn_promotion": true,
-        "enforce_self_check": true,
-        "threefold_draw": true,
-        "no_progress_draw_plies": 120,
-        "rook_appear": true,
-        "horse_appear": true,
-        "elephant_appear": true,
-        "advisor_appear": true,
-        "king_appear": true,
-        "cannon_appear": true,
-        "pawn_appear": true,
-        "guard_appear": true,
-        "archer_appear": true,
-        "thunder_appear": true,
-        "armor_appear": true,
-        "assassin_appear": true,
-        "shield_appear": true,
-        "patrol_appear": true
-      },
-      "setup": {
-        "firstMove": "red",
-        "resolvedFirstMove": "red",
-        "redSlots": [
-          "red:archer:12:0",
-          "red:shield:12:1",
-          "red:armor:12:2",
-          "red:assassin:12:3",
-          "red:thunder:12:4",
-          "red:guard:12:6",
-          "red:thunder:12:8",
-          "red:assassin:12:9",
-          "red:armor:12:10",
-          "red:shield:12:11",
-          "red:archer:12:12",
-          "red:rook:11:2",
-          "red:horse:11:3",
-          "red:elephant:11:4",
-          "red:advisor:11:5",
-          "red:king:11:6",
-          "red:advisor:11:7",
-          "red:elephant:11:8",
-          "red:horse:11:9",
-          "red:rook:11:10",
-          "red:cannon:9:1",
-          "red:cannon:9:11",
-          "red:pawn:8:0",
-          "red:pawn:8:2",
-          "red:pawn:8:4",
-          "red:pawn:8:6",
-          "red:pawn:8:8",
-          "red:pawn:8:10",
-          "red:pawn:8:12",
-          "red:patrol:7:0",
-          "red:patrol:7:12"
-        ],
-        "blackSlots": [
-          "black:archer:0:0",
-          "black:shield:0:1",
-          "black:armor:0:2",
-          "black:assassin:0:3",
-          "black:thunder:0:4",
-          "black:guard:0:6",
-          "black:thunder:0:8",
-          "black:assassin:0:9",
-          "black:armor:0:10",
-          "black:shield:0:11",
-          "black:archer:0:12",
-          "black:rook:1:2",
-          "black:horse:1:3",
-          "black:elephant:1:4",
-          "black:advisor:1:5",
-          "black:king:1:6",
-          "black:advisor:1:7",
-          "black:elephant:1:8",
-          "black:horse:1:9",
-          "black:rook:1:10",
-          "black:cannon:3:1",
-          "black:cannon:3:11",
-          "black:pawn:4:0",
-          "black:pawn:4:2",
-          "black:pawn:4:4",
-          "black:pawn:4:6",
-          "black:pawn:4:8",
-          "black:pawn:4:10",
-          "black:pawn:4:12",
-          "black:patrol:5:0",
-          "black:patrol:5:12"
-        ],
-        "handicap": false
-      },
-      "state": {
-        "profileId": "desktop_complete",
-        "turn": "red",
-        "pieces": [
-          {
-            "id": "05349a32a213",
-            "type": "archer",
-            "color": "black",
-            "row": 0,
-            "col": 0
-          },
-          {
-            "id": "af68b463eb13",
-            "type": "shield",
-            "color": "black",
-            "row": 0,
-            "col": 1
-          },
-          {
-            "id": "fe64c4cf6746",
-            "type": "armor",
-            "color": "black",
-            "row": 0,
-            "col": 2
-          },
-          {
-            "id": "91e2af33bbc5",
-            "type": "assassin",
-            "color": "black",
-            "row": 0,
-            "col": 3
-          },
-          {
-            "id": "a78a4a0cfb73",
-            "type": "thunder",
-            "color": "black",
-            "row": 0,
-            "col": 4
-          },
-          {
-            "id": "95995e2391d7",
-            "type": "guard",
-            "color": "black",
-            "row": 0,
-            "col": 6
-          },
-          {
-            "id": "b98648e64ed1",
-            "type": "thunder",
-            "color": "black",
-            "row": 0,
-            "col": 8
-          },
-          {
-            "id": "1bff650fdf60",
-            "type": "assassin",
-            "color": "black",
-            "row": 0,
-            "col": 9
-          },
-          {
-            "id": "0243e2c2815f",
-            "type": "armor",
-            "color": "black",
-            "row": 0,
-            "col": 10
-          },
-          {
-            "id": "e1a63f886352",
-            "type": "shield",
-            "color": "black",
-            "row": 0,
-            "col": 11
-          },
-          {
-            "id": "5f6f011898ee",
-            "type": "archer",
-            "color": "black",
-            "row": 0,
-            "col": 12
-          },
-          {
-            "id": "0764548f300e",
-            "type": "rook",
-            "color": "black",
-            "row": 1,
-            "col": 2
-          },
-          {
-            "id": "4cb4f31185da",
-            "type": "horse",
-            "color": "black",
-            "row": 1,
-            "col": 3
-          },
-          {
-            "id": "563296c17993",
-            "type": "elephant",
-            "color": "black",
-            "row": 1,
-            "col": 4
-          },
-          {
-            "id": "1f4599a72ed7",
-            "type": "advisor",
-            "color": "black",
-            "row": 1,
-            "col": 5
-          },
-          {
-            "id": "c7c8e92359a2",
-            "type": "king",
-            "color": "black",
-            "row": 1,
-            "col": 6
-          },
-          {
-            "id": "e9d9deebf0c8",
-            "type": "advisor",
-            "color": "black",
-            "row": 1,
-            "col": 7
-          },
-          {
-            "id": "873ca9cab4a2",
-            "type": "elephant",
-            "color": "black",
-            "row": 1,
-            "col": 8
-          },
-          {
-            "id": "542116a6d973",
-            "type": "horse",
-            "color": "black",
-            "row": 1,
-            "col": 9
-          },
-          {
-            "id": "941f76c703ee",
-            "type": "rook",
-            "color": "black",
-            "row": 1,
-            "col": 10
-          },
-          {
-            "id": "fbcc4d5a8c59",
-            "type": "cannon",
-            "color": "black",
-            "row": 3,
-            "col": 1
-          },
-          {
-            "id": "fc5f6da6988a",
-            "type": "cannon",
-            "color": "black",
-            "row": 9,
-            "col": 3
-          },
-          {
-            "id": "49e1ed87f861",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 0
-          },
-          {
-            "id": "9cbc2ccb0620",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 2
-          },
-          {
-            "id": "669f89ce427b",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 4
-          },
-          {
-            "id": "a0e4a0361ef2",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 6
-          },
-          {
-            "id": "faf1e194fdbd",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 8
-          },
-          {
-            "id": "127975e71d3e",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 10
-          },
-          {
-            "id": "06dcad892797",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 12
-          },
-          {
-            "id": "25da715fadcc",
-            "type": "patrol",
-            "color": "black",
-            "row": 5,
-            "col": 0
-          },
-          {
-            "id": "a3e48dcc1d90",
-            "type": "patrol",
-            "color": "black",
-            "row": 5,
-            "col": 12
-          },
-          {
-            "id": "efc2f7d4b94c",
-            "type": "archer",
-            "color": "red",
-            "row": 12,
-            "col": 0
-          },
-          {
-            "id": "78317914289c",
-            "type": "shield",
-            "color": "red",
-            "row": 12,
-            "col": 1
-          },
-          {
-            "id": "c37cf89f142b",
-            "type": "armor",
-            "color": "red",
-            "row": 12,
-            "col": 2
-          },
-          {
-            "id": "0c2ac47984d7",
-            "type": "assassin",
-            "color": "red",
-            "row": 12,
-            "col": 3
-          },
-          {
-            "id": "a6f5a2e737b9",
-            "type": "thunder",
-            "color": "red",
-            "row": 12,
-            "col": 4
-          },
-          {
-            "id": "c5400927020d",
-            "type": "guard",
-            "color": "red",
-            "row": 12,
-            "col": 6
-          },
-          {
-            "id": "a2090d597791",
-            "type": "thunder",
-            "color": "red",
-            "row": 12,
-            "col": 8
-          },
-          {
-            "id": "24c8b277a120",
-            "type": "assassin",
-            "color": "red",
-            "row": 12,
-            "col": 9
-          },
-          {
-            "id": "ebb4c8f24a4c",
-            "type": "armor",
-            "color": "red",
-            "row": 12,
-            "col": 10
-          },
-          {
-            "id": "49e338f7021e",
-            "type": "shield",
-            "color": "red",
-            "row": 12,
-            "col": 11
-          },
-          {
-            "id": "20f9cf765c86",
-            "type": "archer",
-            "color": "red",
-            "row": 12,
-            "col": 12
-          },
-          {
-            "id": "c92a4ff2746b",
-            "type": "rook",
-            "color": "red",
-            "row": 11,
-            "col": 1
-          },
-          {
-            "id": "13c59f3d0f70",
-            "type": "horse",
-            "color": "red",
-            "row": 11,
-            "col": 3
-          },
-          {
-            "id": "a19b19fbbf5a",
-            "type": "elephant",
-            "color": "red",
-            "row": 11,
-            "col": 4
-          },
-          {
-            "id": "8a3911aae1da",
-            "type": "advisor",
-            "color": "red",
-            "row": 11,
-            "col": 5
-          },
-          {
-            "id": "66376afc9a66",
-            "type": "king",
-            "color": "red",
-            "row": 11,
-            "col": 6
-          },
-          {
-            "id": "859389833387",
-            "type": "advisor",
-            "color": "red",
-            "row": 11,
-            "col": 7
-          },
-          {
-            "id": "5c690b340015",
-            "type": "elephant",
-            "color": "red",
-            "row": 11,
-            "col": 8
-          },
-          {
-            "id": "cc86ae893646",
-            "type": "horse",
-            "color": "red",
-            "row": 11,
-            "col": 9
-          },
-          {
-            "id": "cca268201c03",
-            "type": "rook",
-            "color": "red",
-            "row": 11,
-            "col": 10
-          },
-          {
-            "id": "4322bc58b276",
-            "type": "cannon",
-            "color": "red",
-            "row": 9,
-            "col": 1
-          },
-          {
-            "id": "a634e8f97b22",
-            "type": "cannon",
-            "color": "red",
-            "row": 9,
-            "col": 11
-          },
-          {
-            "id": "6a4a09010b50",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 0
-          },
-          {
-            "id": "1e86a8f4401a",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 2
-          },
-          {
-            "id": "417ef9d774b0",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 4
-          },
-          {
-            "id": "e1ab83785745",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 6
-          },
-          {
-            "id": "743236f6a3b6",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 8
-          },
-          {
-            "id": "f018d3433194",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 10
-          },
-          {
-            "id": "45fabc4f490d",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 12
-          },
-          {
-            "id": "f80403deeae1",
-            "type": "patrol",
-            "color": "red",
-            "row": 7,
-            "col": 2
-          },
-          {
-            "id": "170c6903b90a",
-            "type": "patrol",
-            "color": "red",
-            "row": 7,
-            "col": 12
-          }
-        ],
-        "history": [
-          {
-            "move": {
-              "from": {
-                "row": 11,
-                "col": 2
-              },
-              "to": {
-                "row": 11,
-                "col": 1
-              },
-              "promotion": null
-            },
-            "color": "red",
-            "pieceType": "rook",
-            "captured": [],
-            "notation": "俥 12,3 至 12,2",
-            "timestamp": 1792769994.4263034,
-            "elapsedMs": 1
-          },
-          {
-            "move": {
-              "from": {
-                "row": 3,
-                "col": 11
-              },
-              "to": {
-                "row": 3,
-                "col": 3
-              },
-              "promotion": null
-            },
-            "color": "black",
-            "pieceType": "cannon",
-            "captured": [],
-            "notation": "砲 4,12 至 4,4",
-            "timestamp": 1792769994.6352792,
-            "elapsedMs": 1
-          },
-          {
-            "move": {
-              "from": {
-                "row": 7,
-                "col": 0
-              },
-              "to": {
-                "row": 7,
-                "col": 2
-              },
-              "promotion": null
-            },
-            "color": "red",
-            "pieceType": "patrol",
-            "captured": [],
-            "notation": "巡 8,1 至 8,3",
-            "timestamp": 1792769994.8950222,
-            "elapsedMs": 1
-          },
-          {
-            "move": {
-              "from": {
-                "row": 3,
-                "col": 3
-              },
-              "to": {
-                "row": 9,
-                "col": 3
-              },
-              "promotion": null
-            },
-            "color": "black",
-            "pieceType": "cannon",
-            "captured": [],
-            "notation": "砲 4,4 至 10,4",
-            "timestamp": 1792769995.0883665,
-            "elapsedMs": 1
-          }
-        ],
-        "captured": {
-          "red": [],
-          "black": []
-        },
-        "winner": null,
-        "resultReason": null,
-        "draw": false,
-        "pendingDrawOffer": null,
-        "pendingUndoOffer": null,
-        "pendingRestartOffer": null,
-        "paused": false,
-        "pausedBy": null,
-        "clocksMs": {
-          "red": 1199742,
-          "black": 1199602
-        },
-        "positionCounts": {
-          "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
-          "black|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:1;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
-          "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:1;black:cannon:3:3;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:1;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
-          "black|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:1;black:cannon:3:3;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:2;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:1;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
-          "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:1;black:cannon:9:3;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:2;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:1;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1
-        }
-      },
-      "savedAt": "2026-10-23T23:39:55"
-    }
-  },
-  {
-    "id": "endgame-shield-empty-01",
-    "title": "楯只落空",
-    "difficulty": "beginner",
-    "description": "楯沿横竖隔一子跳，落点必须为空——楯不能吃子。别被列上的黑砲骗了。",
-    "profileId": "desktop_complete",
-    "solution": [
-      {
-        "from": {
-          "row": 12,
-          "col": 11
-        },
-        "to": {
-          "row": 8,
-          "col": 11
-        }
-      }
-    ],
-    "hints": [
-      "列上 (9,11) 有一枚红炮，正好当跳板。",
-      "再往上是 (3,11) 的黑砲，但楯吃不掉它。",
-      "只能跳到空位：(8,11)。"
-    ],
-    "tags": [
-      "特色棋子",
-      "楯",
-      "规则"
-    ],
-    "pieceTypes": [
-      "shield"
-    ],
-    "document": {
-      "formatVersion": 1,
-      "positionKeyVersion": 2,
-      "profileId": "desktop_complete",
-      "options": {
-        "king_can_leave_palace": true,
-        "king_diagonal_in_palace": true,
-        "king_lose_diagonal_outside_palace": true,
-        "invasion_victory": true,
-        "advisor_can_leave_palace": true,
-        "advisor_gain_straight_outside_palace": true,
-        "elephant_can_cross_river": true,
-        "elephant_gain_jump_two_enemy_territory": true,
-        "horse_straight_three": true,
-        "archer_enhanced_mode": false,
-        "pawn_fast_move_before_enemy_territory": true,
-        "pawn_backward_at_base": true,
-        "pawn_full_movement_at_base": true,
-        "pawn_resurrection": true,
-        "pawn_promotion": true,
-        "enforce_self_check": true,
-        "threefold_draw": true,
-        "no_progress_draw_plies": 120,
-        "rook_appear": true,
-        "horse_appear": true,
-        "elephant_appear": true,
-        "advisor_appear": true,
-        "king_appear": true,
-        "cannon_appear": true,
-        "pawn_appear": true,
-        "guard_appear": true,
-        "archer_appear": true,
-        "thunder_appear": true,
-        "armor_appear": true,
-        "assassin_appear": true,
-        "shield_appear": true,
-        "patrol_appear": true
-      },
-      "setup": {
-        "firstMove": "red",
-        "resolvedFirstMove": "red",
-        "redSlots": [
-          "red:archer:12:0",
-          "red:shield:12:1",
-          "red:armor:12:2",
-          "red:assassin:12:3",
-          "red:thunder:12:4",
-          "red:guard:12:6",
-          "red:thunder:12:8",
-          "red:assassin:12:9",
-          "red:armor:12:10",
-          "red:shield:12:11",
-          "red:archer:12:12",
-          "red:rook:11:2",
-          "red:horse:11:3",
-          "red:elephant:11:4",
-          "red:advisor:11:5",
-          "red:king:11:6",
-          "red:advisor:11:7",
-          "red:elephant:11:8",
-          "red:horse:11:9",
-          "red:rook:11:10",
-          "red:cannon:9:1",
-          "red:cannon:9:11",
-          "red:pawn:8:0",
-          "red:pawn:8:2",
-          "red:pawn:8:4",
-          "red:pawn:8:6",
-          "red:pawn:8:8",
-          "red:pawn:8:10",
-          "red:pawn:8:12",
-          "red:patrol:7:0",
-          "red:patrol:7:12"
-        ],
-        "blackSlots": [
-          "black:archer:0:0",
-          "black:shield:0:1",
-          "black:armor:0:2",
-          "black:assassin:0:3",
-          "black:thunder:0:4",
-          "black:guard:0:6",
-          "black:thunder:0:8",
-          "black:assassin:0:9",
-          "black:armor:0:10",
-          "black:shield:0:11",
-          "black:archer:0:12",
-          "black:rook:1:2",
-          "black:horse:1:3",
-          "black:elephant:1:4",
-          "black:advisor:1:5",
-          "black:king:1:6",
-          "black:advisor:1:7",
-          "black:elephant:1:8",
-          "black:horse:1:9",
-          "black:rook:1:10",
-          "black:cannon:3:1",
-          "black:cannon:3:11",
-          "black:pawn:4:0",
-          "black:pawn:4:2",
-          "black:pawn:4:4",
-          "black:pawn:4:6",
-          "black:pawn:4:8",
-          "black:pawn:4:10",
-          "black:pawn:4:12",
-          "black:patrol:5:0",
-          "black:patrol:5:12"
-        ],
-        "handicap": false
-      },
-      "state": {
-        "profileId": "desktop_complete",
-        "turn": "red",
-        "pieces": [
-          {
-            "id": "39692560c94b",
-            "type": "archer",
-            "color": "black",
-            "row": 0,
-            "col": 0
-          },
-          {
-            "id": "3451f5f1e7c3",
-            "type": "shield",
-            "color": "black",
-            "row": 0,
-            "col": 1
-          },
-          {
-            "id": "20ebab3f503c",
-            "type": "armor",
-            "color": "black",
-            "row": 0,
-            "col": 2
-          },
-          {
-            "id": "d56b6296e061",
-            "type": "assassin",
-            "color": "black",
-            "row": 0,
-            "col": 3
-          },
-          {
-            "id": "6a3cde510beb",
-            "type": "thunder",
-            "color": "black",
-            "row": 0,
-            "col": 4
-          },
-          {
-            "id": "205197933823",
-            "type": "guard",
-            "color": "black",
-            "row": 0,
-            "col": 6
-          },
-          {
-            "id": "59d82554ff48",
-            "type": "thunder",
-            "color": "black",
-            "row": 0,
-            "col": 8
-          },
-          {
-            "id": "d2a4d8868338",
-            "type": "assassin",
-            "color": "black",
-            "row": 0,
-            "col": 9
-          },
-          {
-            "id": "f69ed944751e",
-            "type": "armor",
-            "color": "black",
-            "row": 0,
-            "col": 10
-          },
-          {
-            "id": "534c61b97d68",
-            "type": "shield",
-            "color": "black",
-            "row": 0,
-            "col": 11
-          },
-          {
-            "id": "45d4d61025aa",
-            "type": "archer",
-            "color": "black",
-            "row": 0,
-            "col": 12
-          },
-          {
-            "id": "a840a01d6dc7",
-            "type": "rook",
-            "color": "black",
-            "row": 1,
-            "col": 2
-          },
-          {
-            "id": "bcd56dcc288d",
-            "type": "horse",
-            "color": "black",
-            "row": 1,
-            "col": 3
-          },
-          {
-            "id": "50a075f8beff",
-            "type": "elephant",
-            "color": "black",
-            "row": 1,
-            "col": 4
-          },
-          {
-            "id": "6b2729b75289",
-            "type": "advisor",
-            "color": "black",
-            "row": 1,
-            "col": 5
-          },
-          {
-            "id": "d1597163e882",
-            "type": "king",
-            "color": "black",
-            "row": 1,
-            "col": 6
-          },
-          {
-            "id": "0fd7b8df47f3",
-            "type": "advisor",
-            "color": "black",
-            "row": 1,
-            "col": 7
-          },
-          {
-            "id": "be7a7af73f60",
-            "type": "elephant",
-            "color": "black",
-            "row": 1,
-            "col": 8
-          },
-          {
-            "id": "09822c9a31b1",
-            "type": "horse",
-            "color": "black",
-            "row": 1,
-            "col": 9
-          },
-          {
-            "id": "fc4203b9fe99",
-            "type": "rook",
-            "color": "black",
-            "row": 1,
-            "col": 10
-          },
-          {
-            "id": "4e707d0924f4",
-            "type": "cannon",
-            "color": "black",
-            "row": 3,
-            "col": 1
-          },
-          {
-            "id": "4924ec7b7000",
-            "type": "cannon",
-            "color": "black",
-            "row": 3,
-            "col": 11
-          },
-          {
-            "id": "91b2c00bd0dd",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 0
-          },
-          {
-            "id": "03e174cdba16",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 2
-          },
-          {
-            "id": "95c0d1f3d8a3",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 4
-          },
-          {
-            "id": "24ffbe438954",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 6
-          },
-          {
-            "id": "74c43f037169",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 8
-          },
-          {
-            "id": "b1ad7e6eb2c3",
-            "type": "pawn",
-            "color": "black",
-            "row": 5,
-            "col": 10
-          },
-          {
-            "id": "2d0e93892c77",
-            "type": "pawn",
-            "color": "black",
-            "row": 4,
-            "col": 12
-          },
-          {
-            "id": "13cf1bbf6ed4",
-            "type": "patrol",
-            "color": "black",
-            "row": 5,
-            "col": 0
-          },
-          {
-            "id": "8d9fcf8b73e0",
-            "type": "patrol",
-            "color": "black",
-            "row": 5,
-            "col": 12
-          },
-          {
-            "id": "0d165e654956",
-            "type": "archer",
-            "color": "red",
-            "row": 12,
-            "col": 0
-          },
-          {
-            "id": "617487760c68",
-            "type": "shield",
-            "color": "red",
-            "row": 12,
-            "col": 1
-          },
-          {
-            "id": "d252853b1ecb",
-            "type": "armor",
-            "color": "red",
-            "row": 12,
-            "col": 2
-          },
-          {
-            "id": "de0d23754861",
-            "type": "assassin",
-            "color": "red",
-            "row": 12,
-            "col": 3
-          },
-          {
-            "id": "baa66da1d3dc",
-            "type": "thunder",
-            "color": "red",
-            "row": 12,
-            "col": 4
-          },
-          {
-            "id": "b553691ced44",
-            "type": "guard",
-            "color": "red",
-            "row": 12,
-            "col": 6
-          },
-          {
-            "id": "709eb75053c1",
-            "type": "thunder",
-            "color": "red",
-            "row": 12,
-            "col": 8
-          },
-          {
-            "id": "4cf2ce1a6546",
-            "type": "assassin",
-            "color": "red",
-            "row": 12,
-            "col": 9
-          },
-          {
-            "id": "484d48c47111",
-            "type": "armor",
-            "color": "red",
-            "row": 12,
-            "col": 10
-          },
-          {
-            "id": "21d160ae3ac1",
-            "type": "shield",
-            "color": "red",
-            "row": 12,
-            "col": 11
-          },
-          {
-            "id": "96ae90141d7f",
-            "type": "archer",
-            "color": "red",
-            "row": 12,
-            "col": 12
-          },
-          {
-            "id": "6e2c9e301080",
-            "type": "rook",
-            "color": "red",
-            "row": 11,
-            "col": 2
-          },
-          {
-            "id": "0e6424002623",
-            "type": "horse",
-            "color": "red",
-            "row": 11,
-            "col": 3
-          },
-          {
-            "id": "c48ae2e4249e",
-            "type": "elephant",
-            "color": "red",
-            "row": 11,
-            "col": 4
-          },
-          {
-            "id": "6a1151d5496a",
-            "type": "advisor",
-            "color": "red",
-            "row": 11,
-            "col": 5
-          },
-          {
-            "id": "bc6a1d2ac083",
-            "type": "king",
-            "color": "red",
-            "row": 11,
-            "col": 6
-          },
-          {
-            "id": "1eeafd74857b",
-            "type": "advisor",
-            "color": "red",
-            "row": 11,
-            "col": 7
-          },
-          {
-            "id": "92c027527223",
-            "type": "elephant",
-            "color": "red",
-            "row": 11,
-            "col": 8
-          },
-          {
-            "id": "f7d731584609",
-            "type": "horse",
-            "color": "red",
-            "row": 11,
-            "col": 9
-          },
-          {
-            "id": "5e38fb4bf26f",
-            "type": "rook",
-            "color": "red",
-            "row": 11,
-            "col": 10
-          },
-          {
-            "id": "ebfe76fe7c3e",
-            "type": "cannon",
-            "color": "red",
-            "row": 9,
-            "col": 1
-          },
-          {
-            "id": "64f9fb84a9be",
-            "type": "cannon",
-            "color": "red",
-            "row": 9,
-            "col": 11
-          },
-          {
-            "id": "30fe3da91f76",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 0
-          },
-          {
-            "id": "2733377fb6e9",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 2
-          },
-          {
-            "id": "64fe8a3e9bbd",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 4
-          },
-          {
-            "id": "6358aa761cf8",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 6
-          },
-          {
-            "id": "1860fe0930d5",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 8
-          },
-          {
-            "id": "4eaff1c2fc02",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 10
-          },
-          {
-            "id": "80c8a5727c76",
-            "type": "pawn",
-            "color": "red",
-            "row": 8,
-            "col": 12
-          },
-          {
-            "id": "50bc5036e12f",
-            "type": "patrol",
-            "color": "red",
-            "row": 7,
-            "col": 0
-          },
-          {
-            "id": "6bddea5b7fa6",
-            "type": "patrol",
-            "color": "red",
-            "row": 7,
-            "col": 10
-          }
-        ],
-        "history": [
-          {
-            "move": {
-              "from": {
-                "row": 7,
-                "col": 12
-              },
-              "to": {
-                "row": 7,
-                "col": 10
-              },
-              "promotion": null
-            },
-            "color": "red",
-            "pieceType": "patrol",
-            "captured": [],
-            "notation": "巡 8,13 至 8,11",
-            "timestamp": 1792769997.506815,
-            "elapsedMs": 1
-          },
-          {
-            "move": {
-              "from": {
-                "row": 4,
-                "col": 10
-              },
-              "to": {
-                "row": 5,
-                "col": 10
-              },
-              "promotion": null
-            },
-            "color": "black",
-            "pieceType": "pawn",
-            "captured": [],
-            "notation": "卒 5,11 至 6,11",
-            "timestamp": 1792769997.7160835,
-            "elapsedMs": 1
-          }
-        ],
-        "captured": {
-          "red": [],
-          "black": []
-        },
-        "winner": null,
-        "resultReason": null,
-        "draw": false,
-        "pendingDrawOffer": null,
-        "pendingUndoOffer": null,
-        "pendingRestartOffer": null,
-        "paused": false,
-        "pausedBy": null,
-        "clocksMs": {
-          "red": 1200000,
-          "black": 1199793
-        },
-        "positionCounts": {
-          "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
-          "black|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1,
-          "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:armor:0:2;black:armor:0:10;black:assassin:0:3;black:assassin:0:9;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:12;black:pawn:5:10;black:rook:1:2;black:rook:1:10;black:shield:0:1;black:shield:0:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:armor:12:2;red:armor:12:10;red:assassin:12:3;red:assassin:12:9;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:shield:12:1;red:shield:12:11;red:thunder:12:4;red:thunder:12:8||pool:": 1
-        }
-      },
-      "savedAt": "2026-10-23T23:39:57"
-    }
-  },
-  {
     "id": "endgame-cannon-screen-01",
     "title": "炮借兵架",
     "difficulty": "advanced",
@@ -1650,15 +318,11 @@
         "resolvedFirstMove": "red",
         "redSlots": [
           "red:archer:12:0",
-          "red:shield:12:1",
-          "red:armor:12:2",
           "red:assassin:12:3",
           "red:thunder:12:4",
           "red:guard:12:6",
           "red:thunder:12:8",
           "red:assassin:12:9",
-          "red:armor:12:10",
-          "red:shield:12:11",
           "red:archer:12:12",
           "red:rook:11:2",
           "red:horse:11:3",
@@ -1683,15 +347,11 @@
         ],
         "blackSlots": [
           "black:archer:0:0",
-          "black:shield:0:1",
-          "black:armor:0:2",
           "black:assassin:0:3",
           "black:thunder:0:4",
           "black:guard:0:6",
           "black:thunder:0:8",
           "black:assassin:0:9",
-          "black:armor:0:10",
-          "black:shield:0:11",
           "black:archer:0:12",
           "black:rook:1:2",
           "black:horse:1:3",
@@ -1728,20 +388,6 @@
             "col": 0
           },
           {
-            "id": "877523ead0f4",
-            "type": "shield",
-            "color": "black",
-            "row": 0,
-            "col": 1
-          },
-          {
-            "id": "91a3a3a8c00d",
-            "type": "armor",
-            "color": "black",
-            "row": 0,
-            "col": 2
-          },
-          {
             "id": "875d6e0fbd7a",
             "type": "assassin",
             "color": "black",
@@ -1775,20 +421,6 @@
             "color": "black",
             "row": 0,
             "col": 9
-          },
-          {
-            "id": "1f2b4ef30644",
-            "type": "armor",
-            "color": "black",
-            "row": 0,
-            "col": 10
-          },
-          {
-            "id": "47d43cc855b0",
-            "type": "shield",
-            "color": "black",
-            "row": 0,
-            "col": 11
           },
           {
             "id": "edc931a76a6b",
@@ -1945,20 +577,6 @@
             "col": 0
           },
           {
-            "id": "92030564bdfc",
-            "type": "shield",
-            "color": "red",
-            "row": 12,
-            "col": 1
-          },
-          {
-            "id": "b7e27c673975",
-            "type": "armor",
-            "color": "red",
-            "row": 12,
-            "col": 2
-          },
-          {
             "id": "7579b9f0337a",
             "type": "assassin",
             "color": "red",
@@ -1992,20 +610,6 @@
             "color": "red",
             "row": 12,
             "col": 9
-          },
-          {
-            "id": "8c38c9fcf6f0",
-            "type": "armor",
-            "color": "red",
-            "row": 12,
-            "col": 10
-          },
-          {
-            "id": "3bad33c1c6af",
-            "type": "shield",
-            "color": "red",
-            "row": 12,
-            "col": 11
           },
           {
             "id": "e15f29a8d02b",
@@ -2296,15 +900,11 @@
         "resolvedFirstMove": "red",
         "redSlots": [
           "red:archer:12:0",
-          "red:shield:12:1",
-          "red:armor:12:2",
           "red:assassin:12:3",
           "red:thunder:12:4",
           "red:guard:12:6",
           "red:thunder:12:8",
           "red:assassin:12:9",
-          "red:armor:12:10",
-          "red:shield:12:11",
           "red:archer:12:12",
           "red:rook:11:2",
           "red:horse:11:3",
@@ -2329,15 +929,11 @@
         ],
         "blackSlots": [
           "black:archer:0:0",
-          "black:shield:0:1",
-          "black:armor:0:2",
           "black:assassin:0:3",
           "black:thunder:0:4",
           "black:guard:0:6",
           "black:thunder:0:8",
           "black:assassin:0:9",
-          "black:armor:0:10",
-          "black:shield:0:11",
           "black:archer:0:12",
           "black:rook:1:2",
           "black:horse:1:3",
@@ -2374,20 +970,6 @@
             "col": 0
           },
           {
-            "id": "d3f35e9fb086",
-            "type": "shield",
-            "color": "black",
-            "row": 0,
-            "col": 1
-          },
-          {
-            "id": "9670f7637cdc",
-            "type": "armor",
-            "color": "black",
-            "row": 0,
-            "col": 2
-          },
-          {
             "id": "ef55c2232de1",
             "type": "assassin",
             "color": "black",
@@ -2421,20 +1003,6 @@
             "color": "black",
             "row": 0,
             "col": 9
-          },
-          {
-            "id": "fa1c25b03047",
-            "type": "armor",
-            "color": "black",
-            "row": 0,
-            "col": 10
-          },
-          {
-            "id": "b5529f9e0e34",
-            "type": "shield",
-            "color": "black",
-            "row": 0,
-            "col": 11
           },
           {
             "id": "0920718adf6f",
@@ -2591,20 +1159,6 @@
             "col": 0
           },
           {
-            "id": "d199f647bb92",
-            "type": "shield",
-            "color": "red",
-            "row": 12,
-            "col": 1
-          },
-          {
-            "id": "a7e9e076c507",
-            "type": "armor",
-            "color": "red",
-            "row": 12,
-            "col": 2
-          },
-          {
             "id": "e62180ed6531",
             "type": "assassin",
             "color": "red",
@@ -2638,20 +1192,6 @@
             "color": "red",
             "row": 12,
             "col": 9
-          },
-          {
-            "id": "8c53e2c550d6",
-            "type": "armor",
-            "color": "red",
-            "row": 12,
-            "col": 10
-          },
-          {
-            "id": "f165c59188d5",
-            "type": "shield",
-            "color": "red",
-            "row": 12,
-            "col": 11
           },
           {
             "id": "ed05a50fb642",
@@ -3111,15 +1651,11 @@
         "resolvedFirstMove": "red",
         "redSlots": [
           "red:archer:12:0",
-          "red:shield:12:1",
-          "red:armor:12:2",
           "red:assassin:12:3",
           "red:thunder:12:4",
           "red:guard:12:6",
           "red:thunder:12:8",
           "red:assassin:12:9",
-          "red:armor:12:10",
-          "red:shield:12:11",
           "red:archer:12:12",
           "red:rook:11:2",
           "red:horse:11:3",
@@ -3144,15 +1680,11 @@
         ],
         "blackSlots": [
           "black:archer:0:0",
-          "black:shield:0:1",
-          "black:armor:0:2",
           "black:assassin:0:3",
           "black:thunder:0:4",
           "black:guard:0:6",
           "black:thunder:0:8",
           "black:assassin:0:9",
-          "black:armor:0:10",
-          "black:shield:0:11",
           "black:archer:0:12",
           "black:rook:1:2",
           "black:horse:1:3",
@@ -3189,20 +1721,6 @@
             "col": 0
           },
           {
-            "id": "4a88a66eced7",
-            "type": "shield",
-            "color": "black",
-            "row": 0,
-            "col": 1
-          },
-          {
-            "id": "fef7bbfc4eb9",
-            "type": "armor",
-            "color": "black",
-            "row": 0,
-            "col": 2
-          },
-          {
             "id": "f5b58a52377d",
             "type": "assassin",
             "color": "black",
@@ -3236,20 +1754,6 @@
             "color": "black",
             "row": 0,
             "col": 9
-          },
-          {
-            "id": "5d033b4a0887",
-            "type": "armor",
-            "color": "black",
-            "row": 0,
-            "col": 10
-          },
-          {
-            "id": "2c1f5cd2fd86",
-            "type": "shield",
-            "color": "black",
-            "row": 0,
-            "col": 11
           },
           {
             "id": "034200355db3",
@@ -3406,20 +1910,6 @@
             "col": 0
           },
           {
-            "id": "60237d78b8dd",
-            "type": "shield",
-            "color": "red",
-            "row": 12,
-            "col": 1
-          },
-          {
-            "id": "246152869d5f",
-            "type": "armor",
-            "color": "red",
-            "row": 12,
-            "col": 2
-          },
-          {
             "id": "59da6805f928",
             "type": "assassin",
             "color": "red",
@@ -3453,20 +1943,6 @@
             "color": "red",
             "row": 12,
             "col": 9
-          },
-          {
-            "id": "3d6a73bb44cc",
-            "type": "armor",
-            "color": "red",
-            "row": 12,
-            "col": 10
-          },
-          {
-            "id": "e186309875b0",
-            "type": "shield",
-            "color": "red",
-            "row": 12,
-            "col": 11
           },
           {
             "id": "3f5c446f4baa",
@@ -3966,15 +2442,11 @@
         "resolvedFirstMove": "red",
         "redSlots": [
           "red:archer:12:0",
-          "red:shield:12:1",
-          "red:armor:12:2",
           "red:assassin:12:3",
           "red:thunder:12:4",
           "red:guard:12:6",
           "red:thunder:12:8",
           "red:assassin:12:9",
-          "red:armor:12:10",
-          "red:shield:12:11",
           "red:archer:12:12",
           "red:rook:11:2",
           "red:horse:11:3",
@@ -3999,15 +2471,11 @@
         ],
         "blackSlots": [
           "black:archer:0:0",
-          "black:shield:0:1",
-          "black:armor:0:2",
           "black:assassin:0:3",
           "black:thunder:0:4",
           "black:guard:0:6",
           "black:thunder:0:8",
           "black:assassin:0:9",
-          "black:armor:0:10",
-          "black:shield:0:11",
           "black:archer:0:12",
           "black:rook:1:2",
           "black:horse:1:3",
@@ -4044,20 +2512,6 @@
             "col": 0
           },
           {
-            "id": "60413dab1940",
-            "type": "shield",
-            "color": "black",
-            "row": 0,
-            "col": 1
-          },
-          {
-            "id": "83eba87bb51d",
-            "type": "armor",
-            "color": "black",
-            "row": 0,
-            "col": 2
-          },
-          {
             "id": "aca3d807b53c",
             "type": "assassin",
             "color": "black",
@@ -4091,20 +2545,6 @@
             "color": "black",
             "row": 0,
             "col": 9
-          },
-          {
-            "id": "18586051a3fb",
-            "type": "armor",
-            "color": "black",
-            "row": 0,
-            "col": 10
-          },
-          {
-            "id": "addf68df3f8c",
-            "type": "shield",
-            "color": "black",
-            "row": 0,
-            "col": 11
           },
           {
             "id": "a38aed44d599",
@@ -4261,20 +2701,6 @@
             "col": 0
           },
           {
-            "id": "cc7e9b23f5db",
-            "type": "shield",
-            "color": "red",
-            "row": 12,
-            "col": 1
-          },
-          {
-            "id": "e23008f33728",
-            "type": "armor",
-            "color": "red",
-            "row": 12,
-            "col": 2
-          },
-          {
             "id": "2c66874f461c",
             "type": "assassin",
             "color": "red",
@@ -4308,20 +2734,6 @@
             "color": "red",
             "row": 12,
             "col": 9
-          },
-          {
-            "id": "d0850a7a2334",
-            "type": "armor",
-            "color": "red",
-            "row": 12,
-            "col": 10
-          },
-          {
-            "id": "06e56bdc755a",
-            "type": "shield",
-            "color": "red",
-            "row": 12,
-            "col": 11
           },
           {
             "id": "6d5dedecb8e1",

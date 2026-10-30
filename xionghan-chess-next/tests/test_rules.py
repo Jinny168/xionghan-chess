@@ -97,7 +97,7 @@ def test_armor_moves_one_step_but_runs_like_a_rook_forward():
     red, black = kings()
     armor = piece(PieceType.ARMOR, Color.RED, 6, 3)
     board = state(red, black, armor)
-    rules = RulesEngine(get_profile("desktop_complete"))
+    rules = armor_rules()
 
     # 前方：车式，多格都可（(4,3)、(2,3)）
     assert rules.is_legal(board, Move(armor.position, Position(4, 3)))
@@ -122,12 +122,19 @@ def test_armor_three_piece_line_captures_enemy():
     ally = piece(PieceType.PAWN, Color.RED, 6, 3)
     enemy = piece(PieceType.HORSE, Color.BLACK, 6, 2)
     board = state(red, black, armor, ally, enemy)
-    rules = RulesEngine(get_profile("desktop_complete"))
+    rules = armor_rules()
     move = Move(armor.position, Position(6, 4))
     assert rules.is_legal(board, move)
     result = rules.apply_unchecked(board, move)
     assert result.piece_at(enemy.position) is None
     assert rules.captured_by_move(board, move) == (enemy,)
+
+
+def armor_rules() -> RulesEngine:
+    """软删甲/楯后，用选项把它们临时打开 —— 测的是保留下来的规则分支。"""
+    profile = get_profile("desktop_complete")
+    return RulesEngine(profile, profile.options.merged(
+        {"armor_appear": True, "shield_appear": True}))
 
 
 def test_archer_captures_through_blockers_but_moves_only_on_clear_path():

@@ -608,11 +608,12 @@ def test_armor_line_squeeze_capture_parity():
     # reads lines through the armor's destination square, so a squeeze only exists
     # once the armor has landed at (6,4); starting on (6,4) would leave the line
     # (6,4),(6,5),(6,6) broken by the armor's own departure and capture nothing.
+    # 软删甲/楯后，用选项把甲打开（测的是保留的规则分支）
     game = _sparse("desktop_complete", [
         (PieceType.ARMOR, Color.RED, 6, 3),
         (PieceType.PAWN, Color.RED, 6, 5),
         (PieceType.PAWN, Color.BLACK, 6, 6),
-    ])
+    ], options={"armor_appear": True})
     moves = _assert_parity(game)
     assert (6, 6) not in _targets_from(moves, (6, 3)), "armor cannot capture by sliding"
     slide = next(m for m in moves if m[:2] == (6, 3) and m[2:4] == (6, 4))
@@ -641,7 +642,7 @@ def test_shield_parity_jump_one_piece_orthogonal_only():
         (PieceType.PAWN, Color.BLACK, 5, 4),
         (PieceType.PAWN, Color.BLACK, 6, 6),
         (PieceType.SHIELD, Color.BLACK, 2, 2),
-    ])
+    ], options={"shield_appear": True})
     # A shield hops over exactly one piece, on straight lines only. The pawn at
     # (5,4) opens the whole upward ray; the pawn at (6,6) opens the rightward ray.
     _assert_targets(game, (6, 4), [(0, 4), (1, 4), (2, 4), (3, 4), (4, 4),
@@ -772,13 +773,17 @@ def test_traditional_palace_edge_parity():
 
 
 def test_all_piece_types_present_in_complete_profile_parity():
-    # Smoke check that every one of the 14 types is reachable from the engine's
-    # dispatch table, so the per-type cases above cannot silently skip a type.
+    # Smoke check on the dispatch table. 软删甲/楯后仅 12 类默认在场：
+    # 这两类仍留在 `profile.enabled_piece_types`（可回滚），但被 `*_appear=False` 挡在引擎之外。
     profile = PROFILES["desktop_complete"]
     engine = RulesEngine(profile)
+    removed = {PieceType.ARMOR, PieceType.SHIELD}
     for kind in PieceType:
         assert kind in profile.enabled_piece_types, f"{kind} missing from complete profile"
-        assert kind in engine.enabled_piece_types
+        if kind in removed:
+            assert kind not in engine.enabled_piece_types, f"{kind} 已软删，不应进引擎"
+        else:
+            assert kind in engine.enabled_piece_types
 
 
 @pytest.mark.parametrize("profile_id", ["desktop_complete", "desktop_classic", "web"])
@@ -1160,7 +1165,7 @@ def test_capture_kinds_match_across_engines():
         (PieceType.PAWN, Color.BLACK, 6, 6),
         (PieceType.PAWN, Color.RED, 5, 5),
         (PieceType.PAWN, Color.BLACK, 5, 6),
-    ])
+    ], options={"armor_appear": True})   # 软删甲：用选项把甲打开
     python = _python_capture_specs(game, Color.RED)
     offline = _offline_capture_specs(game, Color.RED)
     assert python == offline
