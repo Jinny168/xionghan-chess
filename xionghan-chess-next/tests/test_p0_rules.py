@@ -26,7 +26,10 @@ OFFLINE = ROOT / "android" / "Resources" / "assets" / "offline" / "offline.js"
 
 
 def engine() -> RulesEngine:
-    return RulesEngine(get_profile("desktop_complete"))
+    """软删甲/楯后，用选项把它们临时打开 —— 本文件测的是**保留下来的规则分支**，不是出场配置。"""
+    profile = get_profile("desktop_complete")
+    return RulesEngine(profile, profile.options.merged(
+        {"armor_appear": True, "shield_appear": True}))
 
 
 def board(*pieces, turn=Color.RED) -> GameState:

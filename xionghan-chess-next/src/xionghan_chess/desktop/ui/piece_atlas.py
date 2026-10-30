@@ -54,9 +54,9 @@ REGULAR_KINDS: tuple[PieceType, ...] = (
     PieceType.ADVISOR, PieceType.CANNON, PieceType.PAWN,
 )
 SPECIAL_KINDS: tuple[PieceType, ...] = (
-    PieceType.GUARD, PieceType.ARCHER, PieceType.THUNDER, PieceType.ARMOR,
-    PieceType.ASSASSIN, PieceType.SHIELD, PieceType.PATROL,
-)
+    PieceType.GUARD, PieceType.ARCHER, PieceType.THUNDER,
+    PieceType.ASSASSIN, PieceType.PATROL,
+)   # 甲/楯已软删，不再进图鉴
 
 # 每型在该档案下会影响它的规则开关（与 `SettingsDialog` 的棋子分组成员一致）。
 PIECE_OPTION_KEYS: dict[PieceType, tuple[str, ...]] = {
@@ -72,9 +72,7 @@ PIECE_OPTION_KEYS: dict[PieceType, tuple[str, ...]] = {
     PieceType.GUARD: (),
     PieceType.ARCHER: ("archer_enhanced_mode",),
     PieceType.THUNDER: (),
-    PieceType.ARMOR: (),
     PieceType.ASSASSIN: (),
-    PieceType.SHIELD: (),
     PieceType.PATROL: (),
 }
 

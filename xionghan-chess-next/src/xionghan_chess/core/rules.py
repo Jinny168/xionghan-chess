@@ -275,7 +275,7 @@ class RulesEngine:
                                     target.color, target.position, move.source, move.target))
         clone.pieces[clone.pieces.index(piece)] = piece.at(move.target)
 
-        if piece.type is PieceType.ARMOR:
+        if self._three_line_mover(piece):
             for captured in self._armor_removals(clone, piece.color):
                 if captured in clone.pieces:
                     clone.pieces.remove(captured)
@@ -398,7 +398,7 @@ class RulesEngine:
                 removals.append(Removal(CaptureKind.DIRECT, victim.id, victim.type,
                                         victim.color, victim.position,
                                         piece.position, victim.position))
-            if piece.type is PieceType.ARMOR:
+            if self._three_line_mover(piece):
                 landings = []
                 for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
                     for step in (1, 2):
@@ -591,6 +591,16 @@ class RulesEngine:
                 self.get(state, Position(move.source.row + forward * step, move.source.col)) is None
                 for step in range(1, distance)
             )
+        # 敌阵冲锋（开关，默认关）：过阴山后沿直线任意格前进，不吃子、路径须全空。
+        # 放在"前进一格"之前，否则只会被一格判定截住。
+        if self.options.pawn_charge and dc == 0 and dr == forward * distance and distance >= 1:
+            if crossed:
+                if self.get(state, move.target):
+                    return False
+                return all(
+                    self.get(state, Position(move.source.row + forward * step, move.source.col)) is None
+                    for step in range(1, distance)
+                )
         if dr == forward and dc == 0:
             return True
         if crossed and dr == 0 and abs(dc) == 1:
@@ -630,11 +640,13 @@ class RulesEngine:
 
         if self._diagonal_path_pinched(state, move):
             return False
-        for step in range(1, distance):
-            position = Position(move.source.row + step * step_row,
-                                move.source.col + step * step_col)
-            if self.get(state, position):
-                return False
+        # 位移仍要求路径无子；**吃子无视阻挡**（射程/星点/夹逼三项不变）。
+        if target is None:
+            for step in range(1, distance):
+                position = Position(move.source.row + step * step_row,
+                                    move.source.col + step * step_col)
+                if self.get(state, position):
+                    return False
         return True
 
     def _nearest_archer_star_distance(self, source: Position,
@@ -765,7 +777,20 @@ class RulesEngine:
                    abs(p.position.row - target.position.row) + abs(p.position.col - target.position.col) == 1
                    for p in state.pieces)
 
+    def _three_line_mover(self, piece: Piece) -> bool:
+        """这枚子移动后是否结算"三连吃子"：甲恒定；兵需开关（`pawn_three_line_capture`，默认关）。"""
+        if piece.type is PieceType.ARMOR:
+            return True
+        return piece.type is PieceType.PAWN and self.options.pawn_three_line_capture
+
     def _armor_removals(self, state: GameState, color: Color) -> list[Piece]:
+        """三连吃子：己方两子 + 敌方一子成直线 → 吃掉敌方那一枚。
+
+        触发源有两种（`or` 合并）：
+        - 己方两子里至少一枚 **甲**（原有）；
+        - 己方两子里至少一枚 **兵**，且 `pawn_three_line_capture` 开启（新增，默认关）。
+        两条都保留"不跨楯 / 不靠敌楯"的现有豁免，也都不吃楯。
+        """
         captures: dict[str, Piece] = {}
         directions = ((0, 1), (1, 0), (1, 1), (1, -1))
         for row in range(self.profile.rows):
@@ -777,7 +802,10 @@ class RulesEngine:
                     pieces = [p for p in group if p is not None]
                     allies = [p for p in pieces if p.color is color]
                     enemies = [p for p in pieces if p.color is not color]
-                    if len(allies) != 2 or len(enemies) != 1 or not any(p.type is PieceType.ARMOR for p in allies):
+                    triggers = any(p.type is PieceType.ARMOR for p in allies) or (
+                        self.options.pawn_three_line_capture
+                        and any(p.type is PieceType.PAWN for p in allies))
+                    if len(allies) != 2 or len(enemies) != 1 or not triggers:
                         continue
                     if any(p.type is PieceType.SHIELD for p in allies):
                         continue

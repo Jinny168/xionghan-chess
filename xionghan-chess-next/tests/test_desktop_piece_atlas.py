@@ -72,14 +72,16 @@ def test_constructs_without_a_game(qt_app: QApplication, config: dict) -> None:
     dialog.deleteLater()
 
 
-def test_lists_all_fourteen_piece_types(atlas: PieceAtlasDialog) -> None:
+def test_lists_twelve_piece_types(atlas: PieceAtlasDialog) -> None:
+    """软删甲/楯后图鉴只剩 12 型（常规 7 + 特色 5）。"""
     listed = kind_items(atlas)
     assert listed == [kind.value for kind in (*REGULAR_KINDS, *SPECIAL_KINDS)]
-    assert len(listed) == 14
+    assert len(listed) == 12
+    assert "armor" not in listed and "shield" not in listed
 
 
 def test_unavailable_pieces_are_marked_and_greyed(qt_app: QApplication) -> None:
-    """`traditional` 档案没有甲/刺/楯/巡等特色子 —— 必须灰显并注明「本档案不使用」。"""
+    """`traditional` 档案没有特色子（刺/巡等）—— 必须灰显并注明「本档案不使用」。"""
     config = {"profile": "traditional", "language": "zh-CN",
               "piece_style": "traditional", "piece_render": "glyph", "rule_options": {}}
     dialog = PieceAtlasDialog(config)
@@ -89,9 +91,8 @@ def test_unavailable_pieces_are_marked_and_greyed(qt_app: QApplication) -> None:
         value = item.data(0x0100)
         if value:
             rows[value] = item
-    assert "本档案不使用" in rows["armor"].text()
     assert "本档案不使用" in rows["patrol"].text()
-    assert rows["armor"].foreground().color().lightness() < 200, "未启用项没有灰显"
+    assert rows["patrol"].foreground().color().lightness() < 200, "未启用项没有灰显"
     assert "本档案不使用" not in rows["rook"].text()
     dialog.deleteLater()
 

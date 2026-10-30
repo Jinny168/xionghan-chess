@@ -143,8 +143,9 @@
 
 ## 五、遗留根树（`master-588c86fc/` 级，与活体树分开评）
 - **性质**：迁移前遗留树。内容 = `desktop/`、`docker/`、`docs/`、`web/`、`handoff.md`、`DEPLOYMENT.md`、`README.md`（已改写为落地页）、`LICENSE`、`requirements.txt`。
-- **关键点**：`../web/js/core/game-rules.js`（"第三套引擎"）**在此树**，且 HTTP 不可达（活体 `service` 只挂内层 `web/`）——**属遗留，非活体风险**。
+- **关键点**：`../web/js/core/game-rules.js`（"第三套引擎"）**在此树**，且 HTTP 不可达（活体 `service` 只挂内层 `web/`）——**属遗留，非活体风险**。**已消除（2026-10-30 随遗留树删除）**。
 - **处置建议**：**去/留/归档三选一** —— 建议 **归档**（`git mv` 到 `legacy/` 或打 tag 后删工作副本），保留可追溯性；`README` 已声明"两棵树"，但**物理上仍并存**，建议归档时同步更新 README 的"追溯指引路径"。**P2**。
+- **现状（2026-10-30 更新）**：本节所列遗留树（`desktop/`、`web/`、`docker/`、`docs/`、`handoff.md`、`DEPLOYMENT.md`）**已随根遗留树删除**；仓库根现仅保留 `README.md`、`LICENSE`、`.github/`、`.gitignore`、`.gitattributes`、`.workbuddy/`、`requirements.txt` 与活体子树 `xionghan-chess-next/`。
 
 ---
 

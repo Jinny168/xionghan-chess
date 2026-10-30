@@ -35,6 +35,8 @@ class RuleOptions:
     pawn_full_movement_at_base: bool = True
     pawn_resurrection: bool = True
     pawn_promotion: bool = True
+    pawn_charge: bool = False                 # 敌阵冲锋（过阴山后直线多格，不吃子）
+    pawn_three_line_capture: bool = False     # 兵参与"三连吃子"（与甲同构）
     enforce_self_check: bool = True
     threefold_draw: bool = True
     no_progress_draw_plies: int = 120
@@ -49,9 +51,9 @@ class RuleOptions:
     guard_appear: bool = True
     archer_appear: bool = True
     thunder_appear: bool = True
-    armor_appear: bool = True
+    armor_appear: bool = False          # 软删：不出场（分支与枚举保留）
     assassin_appear: bool = True
-    shield_appear: bool = True
+    shield_appear: bool = False         # 软删：不出场（分支与枚举保留）
     patrol_appear: bool = True
 
     def merged(self, values: dict[str, object] | None) -> "RuleOptions":
@@ -71,6 +73,8 @@ class RuleOptions:
             "pawn_promotion_enabled": "pawn_promotion",
             "pawn_backward_at_base_enabled": "pawn_backward_at_base",
             "pawn_full_movement_at_base_enabled": "pawn_full_movement_at_base",
+            "pawn_charge_enabled": "pawn_charge",
+            "pawn_three_line_capture_enabled": "pawn_three_line_capture",
             "ju_appear": "rook_appear", "ma_appear": "horse_appear",
             "xiang_appear": "elephant_appear", "shi_appear": "advisor_appear",
             "pao_appear": "cannon_appear", "wei_appear": "guard_appear",
@@ -155,12 +159,11 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
     flip = (lambda row: XIONGHAN_ROWS - 1 - row) if color is Color.RED else (lambda row: row)
     items: list[tuple[PieceType, int, int]] = []
     if complete:
+        # 软删甲/楯：后排只保留 (0,1)(0,2)(0,10)(0,11) 之外的子
         items += [
-            (PieceType.ARCHER, 0, 0), (PieceType.SHIELD, 0, 1),
-            (PieceType.ARMOR, 0, 2), (PieceType.ASSASSIN, 0, 3),
+            (PieceType.ARCHER, 0, 0), (PieceType.ASSASSIN, 0, 3),
             (PieceType.THUNDER, 0, 4), (PieceType.GUARD, 0, 6),
             (PieceType.THUNDER, 0, 8), (PieceType.ASSASSIN, 0, 9),
-            (PieceType.ARMOR, 0, 10), (PieceType.SHIELD, 0, 11),
             (PieceType.ARCHER, 0, 12),
         ]
     elif web:

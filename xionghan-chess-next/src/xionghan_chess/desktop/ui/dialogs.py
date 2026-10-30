@@ -151,9 +151,7 @@ class SettingsDialog(QDialog):
             PieceType.GUARD:("piece.guard_label","piece_rule.guard_long",()),
             PieceType.ARCHER:("piece.archer_label","piece_rule.archer_long",("archer_enhanced_mode",)),
             PieceType.THUNDER:("piece.thunder_label","piece_rule.thunder_long",()),
-            PieceType.ARMOR:("piece.armor_label","piece_rule.armor_long",()),
             PieceType.ASSASSIN:("piece.assassin_label","piece_rule.assassin_long",()),
-            PieceType.SHIELD:("piece.shield_label","piece_rule.shield_long",()),
             PieceType.PATROL:("piece.patrol_label","piece_rule.patrol_long",()),
         }
         content=QWidget();content_layout=QVBoxLayout(content);self.piece_groups={}
@@ -195,7 +193,10 @@ class SettingsDialog(QDialog):
     def _update_piece_availability(self) -> None:
         profile=PROFILES[self.profile.currentData()]
         for kind in PieceType:
-            check=self.checks[f"{kind.value}_appear"]
+            # 软删的兵种（甲/楯）不在弹窗里，没有对应复选框 → 跳过而不是 KeyError
+            check=self.checks.get(f"{kind.value}_appear")
+            if check is None:
+                continue
             available=kind in profile.enabled_piece_types
             self.piece_groups[kind].setEnabled(available)
             check.setEnabled(available and kind is not PieceType.KING)

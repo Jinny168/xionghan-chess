@@ -28,7 +28,16 @@ from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import GameState
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "positions"
-SNAPSHOTS = sorted(FIXTURES.glob("*.json")) if FIXTURES.is_dir() else []
+def _is_retired(path: Path) -> bool:
+    """`retired: true` 的快照只作历史对照（例如软删兵种后已不可复现的旧布局），不参与校验。"""
+    try:
+        return bool(json.loads(path.read_text(encoding="utf-8")).get("retired"))
+    except (OSError, ValueError):
+        return False
+
+
+SNAPSHOTS = ([path for path in sorted(FIXTURES.glob("*.json")) if not _is_retired(path)]
+             if FIXTURES.is_dir() else [])
 
 
 def _load(path: Path) -> tuple[Game, dict]:

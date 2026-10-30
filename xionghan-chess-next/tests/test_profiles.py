@@ -8,8 +8,14 @@ def test_delivery_profiles_have_distinct_piece_sets():
     web = get_profile("web")
     traditional = get_profile("traditional")
 
-    assert len(complete.initial_pieces()) == 62
-    assert PieceType.SHIELD in complete.enabled_piece_types
+    # 软删甲/楯后：完整档 62 → 54 子（每方 27）；两者不在初始布局里，且默认 `*_appear` 为 False。
+    # 注意 `enabled_piece_types` 仍是"该档**可以**出场的类型集合"（含甲/楯），
+    # 这样把 `armor_appear` 打开就能回滚，规则分支也仍可被测试覆盖。
+    assert len(complete.initial_pieces()) == 54
+    assert PieceType.SHIELD not in {p.type for p in complete.initial_pieces()}
+    assert PieceType.ARMOR not in {p.type for p in complete.initial_pieces()}
+    assert complete.options.piece_enabled(PieceType.ARMOR) is False
+    assert complete.options.piece_enabled(PieceType.SHIELD) is False
     assert PieceType.SHIELD not in web.enabled_piece_types
     assert PieceType.ARCHER in web.enabled_piece_types
     assert traditional.rows == 10 and traditional.cols == 9
@@ -61,4 +67,4 @@ def test_profile_rule_values_do_not_leak_traditional_piece_disabling():
     assert not traditional["armor_appear"]
     assert complete["archer_appear"]
     assert complete["thunder_appear"]
-    assert complete["armor_appear"]
+    assert not complete["armor_appear"], "甲已软删：完整档也不再出场"

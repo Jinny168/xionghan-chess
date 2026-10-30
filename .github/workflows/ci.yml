@@ -1,10 +1,10 @@
 name: CI
 
 # NOTE ON LOCATION: GitHub Actions only reads workflows from the repository
-# root's `.github/workflows/`. This repo's root also holds a migration-era
-# legacy tree (`desktop/`, `web/`, `docker/`, `docs/`, `handoff.md`) that is NOT
-# built or tested here; the live project is the `xionghan-chess-next/` subtree,
-# so every step runs with `working-directory: xionghan-chess-next`.
+# root's `.github/workflows/`. The migration-era legacy tree (`desktop/`, `web/`,
+# `docker/`, `docs/`, `handoff.md`, `DEPLOYMENT.md`) was **removed on 2026-10-30**;
+# the live project is the `xionghan-chess-next/` subtree, so every step still runs
+# with `working-directory: xionghan-chess-next`.
 
 on:
   push:

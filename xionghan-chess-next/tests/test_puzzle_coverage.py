@@ -45,16 +45,18 @@ def _coverage() -> tuple[dict[str, int], dict[str, int]]:
 def test_special_pieces_are_covered() -> None:
     """P1-M 的原始症状：甲/刺/楯零覆盖。这三种子力是匈汉象棋的特色，不能被漏掉。"""
     pieces, _ = _coverage()
-    for kind in (PieceType.ARMOR, PieceType.SHIELD):
+    # 甲/楯已软删（`*_appear=False` + 布局移除），题库里不再有它们的题；
+    # 刺暂时缺题，缺口由下方 xfail(strict) 用例显式钉住。
+    for kind in (PieceType.GUARD, PieceType.ARCHER, PieceType.THUNDER, PieceType.PATROL):
         assert pieces.get(kind.value, 0) >= 1, f"题库没有任何一道题真的用到 {kind.value}"
-    # 刺暂时缺题，缺口由 `test_assassin_is_covered`（xfail strict）显式钉住，见下方。
 
 
 def test_every_piece_type_is_covered() -> None:
     pieces, _ = _coverage()
-    # 13 类：ASSASSIN 暂时缺题，由 `test_assassin_is_covered` 单独钉（不在此静默放过）
+    # 甲/楯软删、刺暂时缺题：这三类由下方 xfail(strict) 单独钉，不在此静默放过
+    skipped = {PieceType.ARMOR, PieceType.SHIELD, PieceType.ASSASSIN}
     missing = [kind.value for kind in PieceType
-               if kind is not PieceType.ASSASSIN and pieces.get(kind.value, 0) == 0]
+               if kind not in skipped and pieces.get(kind.value, 0) == 0]
     assert not missing, f"以下子力在题库里没有任何一道题练到：{missing}"
 
 
@@ -69,10 +71,23 @@ def test_assassin_is_covered() -> None:
     assert pieces.get(PieceType.ASSASSIN.value, 0) >= 1
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="甲/楯已软删（appear=False + 布局移除），题库里不再有它们的题；"
+           "若将来恢复甲/楯并重新补题，本用例会通过，届时 strict 会报错提醒去掉本标记",
+)
+def test_soft_removed_pieces_are_covered() -> None:
+    """甲（ARMOR）与楯（SHIELD）应至少各有一道题真的走到 —— 软删期间预期失败。"""
+    pieces, _ = _coverage()
+    for kind in (PieceType.ARMOR, PieceType.SHIELD):
+        assert pieces.get(kind.value, 0) >= 1
+
+
 def test_special_capture_kinds_are_covered() -> None:
     """成线吃与拖拽吃是甲的/刺的核心机制，光「能走」不算掌握。"""
     _, kinds = _coverage()
-    assert kinds.get("armor_line", 0) >= 1, "没有一道题触发甲的成线吃"
+    # 甲的成线吃随甲一起软删（原 assert armor_line >= 1 已不适用）；
+    # 兵三连是开关项（默认关），题库里也没有题触发它。
     # 刺的"拖拽/同归于尽"吃法已删除（改为兵走 + 斜向滑吃，归入 direct），
     # 题库里不再可能触发 `assassin_drag`；这里不再要求该类覆盖。
 

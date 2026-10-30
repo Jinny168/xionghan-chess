@@ -46,10 +46,18 @@ def test_different_plies_produce_different_positions() -> None:
     assert len(set(keys.values())) == 3, f"plies 4/8/12 只产出 {len(set(keys.values()))} 个局面"
 
 
-def _assert_no_loop(game, plies: int) -> None:
-    """两步互逆 + position_key 重复上限；重放用 `apply_unchecked`（不跑合法性/终局判定）。"""
+def _assert_no_loop(game, plies: int, *, allow_early_finish: bool = False) -> None:
+    """两步互逆 + position_key 重复上限；重放用 `apply_unchecked`（不跑合法性/终局判定）。
+
+    `allow_early_finish=True`：局面对抗到底（将死/无着）时提前收工是**正常**的，
+    断言的是"没有因为生成器自己打转而停"。
+    """
     history = [record.move for record in game.state.history]
-    assert len(history) == plies, f"只走了 {len(history)} 手就停了"
+    if allow_early_finish:
+        assert len(history) == plies or game.state.finished, (
+            f"只走了 {len(history)} 手就停了，且局面未终局（生成器打了死结）")
+    else:
+        assert len(history) == plies, f"只走了 {len(history)} 手就停了"
 
     reversals = [f"{a.key()} → {b.key()}" for a, b in zip(history, history[1:]) if _is_reverse(a, b)]
     assert not reversals, f"出现 {len(reversals)} 次立刻回头：{reversals[:3]}"
@@ -57,8 +65,8 @@ def _assert_no_loop(game, plies: int) -> None:
     rules = Game(PROFILE).rules
     state = Game(PROFILE).state
     counter = collections.Counter({rules.position_key(state): 1})
-    for record in history:
-        state = rules.apply_unchecked(state, record)
+    for move in history:
+        state = rules.apply_unchecked(state, move)
         counter[rules.position_key(state)] += 1
     assert max(counter.values()) <= REPETITION_LIMIT, (
         f"同一局面出现 {max(counter.values())} 次，超过上限 {REPETITION_LIMIT}")
@@ -78,4 +86,6 @@ def test_200_ply_run_never_walks_back_and_forth() -> None:
     所以标 `slow`：默认套件跑上面那条 24 手的，CI 全量跑这条。
     """
     game, _played = build_position(PROFILE, 700, 200)
-    _assert_no_loop(game, 200)
+    # 软删甲/楯后（54 子布局）这局在 173 手左右就分出胜负/无着 —— 提前终局是正常结果，
+    # 这里仍然钉住"不是生成器自己打转停下的"。
+    _assert_no_loop(game, 200, allow_early_finish=True)
