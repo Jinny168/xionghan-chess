@@ -64,7 +64,11 @@ class SearchConfig:
 CONFIGS = {
     Difficulty.BEGINNER: SearchConfig(2, 0.5, 0.35, 1, 5, 3, 5),
     Difficulty.EASY: SearchConfig(4, 1.5, 0.15, 3, 4, 6, 10),
-    Difficulty.MEDIUM: SearchConfig(6, 5.0, 0.05, 4, 3, 10, 18),
+    # `time_limit` 5.0 → 6.0：L6 的 t_d2 = 4.35s，5s 只剩 1%（轻载就会掉层），6s 有 17%。
+    # ⚠️ 将来的「提前收手」必须做成**全档通用机制**（按各档预算跑同一套规则），
+    #    **不许写成 hard 专属** —— 否则 medium 会固定磨满 6 秒，与 hard 收手后的 4.5s 倒挂。
+    #    倒挂的根源不是 6 秒，而是「只给一个档做提前收手」。
+    Difficulty.MEDIUM: SearchConfig(6, 6.0, 0.05, 4, 3, 10, 18),
     # `root_limit` 32 → 18：12s 下 19/21 次（3 轮 × 7 局面，本机 18/21）能完成 depth 2，
     # 按“完成 d2 的时刻”计余量 min 58.8%。**这是用根宽换深度**：root_limit 是对排序结果的
     # 截断，113 个合法着只搜前 18，排序在第 19 名之后的好手算不到。

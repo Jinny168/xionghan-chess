@@ -126,7 +126,8 @@ def test_progress_uses_config_time_limit(qt_app: QApplication) -> None:
     board = make_board()
     board.begin_thinking(CONFIGS[Difficulty.MEDIUM].time_limit)
     assert board.thinking_limit == pytest.approx(CONFIGS[Difficulty.MEDIUM].time_limit)
-    assert board.thinking_limit == pytest.approx(5.0)
+    # 不写死秒数：medium 预算会随产品调整（5s→6s），写死就变成「改预算必红」的假测试
+    assert board.thinking_limit == pytest.approx(CONFIGS[Difficulty.MEDIUM].time_limit)
 
 
 # ---------------------------------------------------------------------------
