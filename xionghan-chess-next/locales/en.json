@@ -91,7 +91,7 @@
     "label": "AI difficulty",
     "beginner": "Beginner · about 0.5 s per move",
     "easy": "Easy · about 1.5 s per move",
-    "medium": "Medium · about 6 s per move",
+    "medium": "Medium · about 5 s per move",
       "hard": "Hard · about 12 s per move",
       "master": "Master · about 12 s per move (search-based)"
   },

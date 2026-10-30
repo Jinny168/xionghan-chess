@@ -64,18 +64,23 @@ class SearchConfig:
 CONFIGS = {
     Difficulty.BEGINNER: SearchConfig(2, 0.5, 0.35, 1, 5, 3, 5),
     Difficulty.EASY: SearchConfig(4, 1.5, 0.15, 3, 4, 6, 10),
-    # `time_limit` 5.0 → 6.0：L6 的 t_d2 = 4.35s，5s 只剩 1%（轻载就会掉层），6s 有 17%。
-    # ⚠️ 将来的「提前收手」必须做成**全档通用机制**（按各档预算跑同一套规则），
-    #    **不许写成 hard 专属** —— 否则 medium 会固定磨满 6 秒，与 hard 收手后的 4.5s 倒挂。
-    #    倒挂的根源不是 6 秒，而是「只给一个档做提前收手」。
-    Difficulty.MEDIUM: SearchConfig(6, 6.0, 0.05, 4, 3, 10, 18),
+    # `time_limit` 维持 5.0（试过 6.0，退回）：预算本身是**软上限** —— `_guard` 逐子节点检查，
+    # 允许一个根着法越过 deadline 再跑完（实测越界 0.1–0.5s），+1 秒只是把结算点往后挪，
+    # 治不了"同一配置一会儿 d2 一会儿 d1"的抖动。
+    # 真正的解有两条：① 每层子节点做**硬检查**；② 「提前收手」做成**全档通用机制**，
+    # 不许写成 hard 专属（否则 medium 固定磨满、与 hard 收手后倒挂）。
+    Difficulty.MEDIUM: SearchConfig(6, 5.0, 0.05, 4, 3, 10, 18),
     # `root_limit` 32 → 18：12s 下 19/21 次（3 轮 × 7 局面，本机 18/21）能完成 depth 2，
     # 按“完成 d2 的时刻”计余量 min 58.8%。**这是用根宽换深度**：root_limit 是对排序结果的
     # 截断，113 个合法着只搜前 18，排序在第 19 名之后的好手算不到。
     Difficulty.HARD: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 18),
-    # MASTER is executed by the shared-rules MCTS engine.  Keeping a config
-    # entry makes the difficulty safe for analysis/configuration code that
-    # inspects CONFIGS before dispatching the search.
+    # MASTER 走 MCTS（`mcts.choose_move`），**只取 `time_limit` 生效**；
+    # `root_limit` / `branch_limit` / `depth` / `quiescence_depth` 对大师档是**无效字段**。
+    # 因此：
+    #   · H18（根宽 32→18）不适用于大师档 —— 不要把这里的 32 改成 18，那是无操作；
+    #   · 也不能拿这里的 32 去反驳 H18 —— 两者含义不同（一个是迭代加深的根宽，
+    #     一个是 MCTS 的 SEE 候选上限 `SEE_CANDIDATE_LIMIT=16`）。
+    # 保留 config 条目是为了让 analysis / 配置类代码在分发搜索前能安全读 `CONFIGS`。
     Difficulty.MASTER: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 32),
 }
 
