@@ -65,7 +65,9 @@ CONFIGS = {
     Difficulty.BEGINNER: SearchConfig(2, 0.5, 0.35, 1, 5, 3, 5),
     Difficulty.EASY: SearchConfig(4, 1.5, 0.15, 3, 4, 6, 10),
     Difficulty.MEDIUM: SearchConfig(6, 5.0, 0.05, 4, 3, 10, 18),
-    Difficulty.HARD: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 32),
+    # `root_limit` 32 → 24：12s 预算下，更多局面能完成 depth 2（7 局面实测 6/7，
+    # 三次重复全中）。`branch_limit`/`time_limit`/`randomness` 与 medium 均未动。
+    Difficulty.HARD: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 24),
     # MASTER is executed by the shared-rules MCTS engine.  Keeping a config
     # entry makes the difficulty safe for analysis/configuration code that
     # inspects CONFIGS before dispatching the search.
