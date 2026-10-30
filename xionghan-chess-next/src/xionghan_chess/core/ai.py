@@ -88,9 +88,9 @@ CONFIGS = {
 VALUES = {
     PieceType.KING: 50_000, PieceType.ROOK: 900, PieceType.CANNON: 500,
     PieceType.HORSE: 450, PieceType.ELEPHANT: 260, PieceType.ADVISOR: 240,
-    PieceType.PAWN: 120, PieceType.GUARD: 520, PieceType.ARCHER: 480,
-    PieceType.THUNDER: 650, PieceType.ARMOR: 420, PieceType.ASSASSIN: 430,
-    PieceType.SHIELD: 600, PieceType.PATROL: 360,
+    PieceType.PAWN: 120, PieceType.GUARD: 420, PieceType.ARCHER: 480,
+    PieceType.THUNDER: 490, PieceType.ARMOR: 400, PieceType.ASSASSIN: 380,
+    PieceType.SHIELD: 410, PieceType.PATROL: 420,
 }
 
 MOBILE_PIECES = {
