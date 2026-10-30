@@ -493,3 +493,5 @@ pwsh scripts/run_desktop.ps1    # 启动 PySide6 桌面端
 > **交付物索引**：本报告为 `docs/AUDIT_v1.4.0_full.md`；配套依据：`docs/QA_v1.3.0.md`（47 条 + 二次审计）、`docs/QA_REPORT_1.4.0.md`、`docs/DELIVERY_1.4.0.md`、`docs/GAP_ANALYSIS_vs_legacy.md`、`release/v1.4.0-delivery/`。
 >
 > **审计师签字**：资深跨端棋牌全栈工程审计 & 交付工程师 ｜ 基准日 2026-08-16
+
+> **（2026-10-31 补注）甲/楯 已于 2026-10-31 移除（软删），本文中"14 种棋子"等表述为当时快照。**
