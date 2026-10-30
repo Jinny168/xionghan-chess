@@ -38,11 +38,11 @@ def test_label_seconds_match_config(locale: str, difficulty: Difficulty) -> None
     numbers = NUMBER.findall(label)
     assert numbers, f"{locale}/{difficulty.value} 文案里没有秒数：{label!r}"
     listed, actual = float(numbers[0]), CONFIGS[difficulty].time_limit
-    # ±10% 容差：文案是"约 N 秒"，而实测可能 12.2s（3/3）——既不让措辞噪声把测试弄脆，
-    # 又能抓住"配置 6 秒、文案 5 秒"这类真实错配（那是 17%，超容差）。
-    assert listed == pytest.approx(actual, rel=0.10), (
+    # **严格对齐，不放宽**：文案对应的是**配置值**，不是实测值 —— "约 12 秒"与实测 12.2s
+    # 并不冲突（差 1.7%），但"配置 6 秒、文案 5 秒"这种错配必须红。
+    assert listed == pytest.approx(actual), (
         f"{locale}/{difficulty.value} 文案写 {listed} 秒，"
-        f"CONFIGS 实际 {actual} 秒（超出 ±10%）—— 改预算时忘了改文案？")
+        f"CONFIGS 实际 {actual} 秒 —— 改预算时忘了改文案？")
 
 
 @pytest.mark.parametrize("locale", list(LOCALES))
