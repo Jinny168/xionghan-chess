@@ -66,17 +66,20 @@ def test_g2_armor_line_removes_the_piece_it_never_lands_on():
     assert removal.landing != removal.victim_position
 
 
-def test_g3_assassin_drag_removes_the_piece_behind_its_origin():
+def test_g3_assassin_captures_diagonally_and_is_not_removed():
+    """刺的吃法：斜向任意距离；**不再有同归于尽**，落子后刺自己留在盘上。"""
     assassin = piece(PieceType.ASSASSIN, Color.RED, 5, 5)
-    victim = piece(PieceType.KING, Color.BLACK, 5, 4)
+    victim = piece(PieceType.HORSE, Color.BLACK, 8, 8)
     state = board(assassin, victim)
     spec = engine().capturable_squares(state, Color.RED)[victim.position]
     assert len(spec.removals) == 1
     removal = spec.removals[0]
-    assert removal.kind is CaptureKind.ASSASSIN_DRAG
+    assert removal.kind is CaptureKind.DIRECT
     assert removal.origin == Position(5, 5)
-    assert removal.landing == Position(5, 6)
-    assert removal.victim_position == Position(5, 4)
+    assert removal.landing == Position(8, 8)
+    # 走完只剩"被吃的那一枚"被移除，刺自己还在
+    after = engine().apply_unchecked(state, Move(assassin.position, victim.position), switch_turn=False)
+    assert any(p.type is PieceType.ASSASSIN for p in after.pieces)
 
 
 def test_g4_capturable_squares_never_emits_a_pool_consume():
@@ -149,7 +152,10 @@ def test_g6_in_check_is_the_boolean_of_the_point_query():
 
 
 def _mixed_capture_board() -> GameState:
-    """A position that exposes all three capture kinds at once."""
+    """A position that exposes both remaining capture kinds (direct + armor_line).
+
+    刺的拖拽吃法已删除，所以这里不再有 `assassin_drag`。
+    """
     return board(
         piece(PieceType.KING, Color.RED, 12, 12),
         piece(PieceType.KING, Color.BLACK, 0, 0),
@@ -158,7 +164,7 @@ def _mixed_capture_board() -> GameState:
         piece(PieceType.ARMOR, Color.RED, 6, 3),     # armor_line: squeezes the pawn below
         piece(PieceType.PAWN, Color.RED, 6, 5),
         piece(PieceType.PAWN, Color.BLACK, 6, 6),
-        piece(PieceType.ASSASSIN, Color.RED, 9, 4),  # assassin_drag: drags the horse behind it
+        piece(PieceType.ASSASSIN, Color.RED, 9, 4),  # 斜吃已并入 direct，不再单独产生 kind
         piece(PieceType.HORSE, Color.BLACK, 9, 2),
     )
 
@@ -168,7 +174,7 @@ def test_g7_point_query_matches_full_enumeration():
     rules = engine()
     full = rules.capturable_squares(state, Color.RED)
     kinds = {removal.kind for spec in full.values() for removal in spec.removals}
-    assert {CaptureKind.DIRECT, CaptureKind.ARMOR_LINE, CaptureKind.ASSASSIN_DRAG} <= kinds
+    assert {CaptureKind.DIRECT, CaptureKind.ARMOR_LINE} <= kinds
     for key in [*full, Position(5, 5), Position(0, 12)]:
         expected = {key: full[key]} if key in full else {}
         assert rules.capturable_squares(state, Color.RED, targets=(key,)) == expected
@@ -205,23 +211,19 @@ def test_g9_capturable_squares_is_pure_and_idempotent():
     assert state.to_dict() == snapshot.to_dict()
 
 
-def test_g10_board_removals_keeps_the_movers_own_assassin():
-    # An assassin exchange lands the assassin and drags the enemy behind its
-    # origin, so BOTH pieces leave the board. `board_removals` reports the whole
-    # set (the mover's own assassin included, because it belongs to its own
-    # side's pool and `Game.move()` must log it); `capturable_squares` /
-    # `captured_by_move` report only the enemy victim. This is the one place the
-    # wider write-side set and the read-side view deliberately disagree.
+def test_g10_board_removals_matches_captured_by_move_without_exchange():
+    """刺不再同归于尽：`board_removals` 与 `captured_by_move` 对被吃目标给出同一枚。"""
     assassin = piece(PieceType.ASSASSIN, Color.RED, 6, 5)
-    victim = piece(PieceType.HORSE, Color.BLACK, 6, 4)
+    victim = piece(PieceType.HORSE, Color.BLACK, 8, 7)
     state = board(assassin, victim)
     rules = engine()
-    move = Move(Position(6, 5), Position(6, 6))
+    move = Move(Position(6, 5), victim.position)
     board_ids = {p.id for p in rules.board_removals(state, move)}
     enemy_ids = {p.id for p in rules.captured_by_move(state, move)}
-    assert board_ids == {assassin.id, victim.id}
+    assert board_ids == {victim.id}
     assert enemy_ids == {victim.id}
-    assert assassin.id in board_ids and assassin.id not in enemy_ids
+    after = rules.apply_unchecked(state, move, switch_turn=False)
+    assert any(p.id == assassin.id for p in after.pieces)
 
 
 def test_g11_a_preexisting_line_is_swept_by_an_unrelated_armor_move():

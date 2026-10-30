@@ -99,18 +99,30 @@ def test_armor_line_capture_reports_check_in_both_engines():
 # P0-R2: the assassin drags the king standing behind it into the exchange.
 # --------------------------------------------------------------------------
 
-def test_assassin_exchange_reports_check_in_both_engines():
+def test_assassin_diagonal_capture_reports_check_in_both_engines():
+    """刺沿斜线可吃 → 斜线上的敌王处于被将（两引擎一致）。"""
     state = board(
         Piece.create(PieceType.ASSASSIN, Color.RED, 5, 5),
-        Piece.create(PieceType.KING, Color.BLACK, 5, 4),
+        Piece.create(PieceType.KING, Color.BLACK, 2, 2),
     )
     assert engine().in_check(state, Color.BLACK) is True
     assert _offline_check(state, Color.BLACK) is True
     assassin = state.pieces[0]
-    after = engine().apply_unchecked(state, Move(assassin.position, Position(5, 6)), switch_turn=False)
+    after = engine().apply_unchecked(state, Move(assassin.position, Position(2, 2)), switch_turn=False)
     assert not any(p.type is PieceType.KING for p in after.pieces)
-    assert [p.type for p in engine().captured_by_move(state, Move(assassin.position, Position(5, 6)))] \
+    assert [p.type for p in engine().captured_by_move(state, Move(assassin.position, Position(2, 2)))] \
         == [PieceType.KING]
+
+
+def test_assassin_blocked_diagonal_leaves_the_opponent_safe():
+    """斜线被挡 → 吃不到 → 不将军（两引擎一致）。"""
+    state = board(
+        Piece.create(PieceType.ASSASSIN, Color.RED, 5, 5),
+        Piece.create(PieceType.KING, Color.BLACK, 2, 2),
+        Piece.create(PieceType.PAWN, Color.RED, 4, 4),
+    )
+    assert engine().in_check(state, Color.BLACK) is False
+    assert _offline_check(state, Color.BLACK) is False
 
 
 # --------------------------------------------------------------------------
@@ -121,18 +133,6 @@ def test_armor_that_cannot_form_a_line_leaves_the_opponent_safe():
     state = board(
         Piece.create(PieceType.ARMOR, Color.RED, 0, 0),
         Piece.create(PieceType.KING, Color.BLACK, 6, 6),
-    )
-    assert engine().in_check(state, Color.BLACK) is False
-    assert _offline_check(state, Color.BLACK) is False
-
-
-def test_assassin_that_cannot_reach_the_mirror_square_leaves_the_opponent_safe():
-    # The assassin would kill by dragging whatever stands directly behind it, so
-    # the mirrored square (10,10) has to be unreachable: it sits on a diagonal
-    # from the assassin, and no enemy stands behind the black king either.
-    state = board(
-        Piece.create(PieceType.ASSASSIN, Color.RED, 5, 5),
-        Piece.create(PieceType.KING, Color.BLACK, 0, 0),
     )
     assert engine().in_check(state, Color.BLACK) is False
     assert _offline_check(state, Color.BLACK) is False
