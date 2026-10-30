@@ -1,0 +1,2202 @@
+[
+ {
+  "id": "1ee348514a0098a2",
+  "fp": "54/109",
+  "red": 22.4,
+  "black": -22.4,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 700,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "c879a685ccbc5293",
+  "fp": "54/104",
+  "red": 6.1,
+  "black": -6.1,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 700,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "2d86f0c1d4153351",
+  "fp": "54/100",
+  "red": -48.3,
+  "black": 48.3,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 700,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "befd138469ba3e55",
+  "fp": "54/99",
+  "red": -9.6,
+  "black": 9.6,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 700,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "0abef93bd2155caf",
+  "fp": "54/105",
+  "red": -20.1,
+  "black": 20.1,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 700,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "eafbfcc0716e62fa",
+  "fp": "54/95",
+  "red": 1.0,
+  "black": -1.0,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 701,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "e99fb54fcad0b724",
+  "fp": "54/95",
+  "red": -128.0,
+  "black": 128.0,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 701,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "3e9c536ba88aa473",
+  "fp": "54/97",
+  "red": -113.4,
+  "black": 113.4,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 701,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "08c1d38c5c8e305f",
+  "fp": "53/92",
+  "red": 9.437125,
+  "black": -9.437125,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 701,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "361350c8ffacaf70",
+  "fp": "53/90",
+  "red": -22.193129,
+  "black": 22.193129,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 701,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "dfc76c1e5dcc9b11",
+  "fp": "54/97",
+  "red": -23.4,
+  "black": 23.4,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 702,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "eb8cc7e2acddeaee",
+  "fp": "54/104",
+  "red": 10.4,
+  "black": -10.4,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 702,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "7880192e029aa216",
+  "fp": "54/93",
+  "red": -15.7,
+  "black": 15.7,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 702,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "47901cf39ffcc18e",
+  "fp": "54/85",
+  "red": -210.7,
+  "black": 210.7,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 702,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "3d591d4b5a87a4ea",
+  "fp": "54/84",
+  "red": -118.5,
+  "black": 118.5,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 702,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "438109dddbefbabb",
+  "fp": "54/102",
+  "red": 27.3,
+  "black": -27.3,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 703,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "433f309b7e6b3a5e",
+  "fp": "54/95",
+  "red": -76.7,
+  "black": 76.7,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 703,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "4e07df71ac062021",
+  "fp": "54/84",
+  "red": -113.1,
+  "black": 113.1,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 703,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "f214bfba3ff188ed",
+  "fp": "54/85",
+  "red": -115.1,
+  "black": 115.1,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 703,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "29230da7e8dd47d9",
+  "fp": "54/72",
+  "red": -140.8,
+  "black": 140.8,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 703,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "9feca425b5bc3d41",
+  "fp": "54/101",
+  "red": 109.9,
+  "black": -109.9,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 704,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "ce8e7bc7b36dadc6",
+  "fp": "54/91",
+  "red": 105.6,
+  "black": -105.6,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 704,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "b5453d0c08f64328",
+  "fp": "54/89",
+  "red": 88.3,
+  "black": -88.3,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 704,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "d042947921d58e8c",
+  "fp": "54/98",
+  "red": 128.7,
+  "black": -128.7,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 704,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "cd1b806ce2e87833",
+  "fp": "54/93",
+  "red": 94.9,
+  "black": -94.9,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 704,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "7d27b0e0a0fd0728",
+  "fp": "54/93",
+  "red": 2.4,
+  "black": -2.4,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 705,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "811eb14b1dc5b5c1",
+  "fp": "54/88",
+  "red": -206.5,
+  "black": 206.5,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 705,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "2fa2cb34fb77a697",
+  "fp": "54/86",
+  "red": -273.0,
+  "black": 273.0,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 705,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "9b3a8832dcaf72ff",
+  "fp": "54/88",
+  "red": -249.5,
+  "black": 249.5,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 705,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "6b777bb8c1dbbffa",
+  "fp": "54/85",
+  "red": -279.5,
+  "black": 279.5,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 705,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "57b08a70269cb5f6",
+  "fp": "54/102",
+  "red": 5.5,
+  "black": -5.5,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 706,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "0127cc19a5a09900",
+  "fp": "54/102",
+  "red": 36.8,
+  "black": -36.8,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 706,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "b113ae860e1275d0",
+  "fp": "54/97",
+  "red": -14.9,
+  "black": 14.9,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 706,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "0828b63585832893",
+  "fp": "54/77",
+  "red": -135.9,
+  "black": 135.9,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 706,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "82ff8a2fb4151b16",
+  "fp": "54/76",
+  "red": -9.7,
+  "black": 9.7,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 706,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "105b2ff9c4488451",
+  "fp": "54/100",
+  "red": -90.1,
+  "black": 90.1,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 707,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "e14849a4a0d7ef00",
+  "fp": "54/103",
+  "red": -16.6,
+  "black": 16.6,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 707,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "d2bab32aa7dd11c8",
+  "fp": "54/94",
+  "red": -87.9,
+  "black": 87.9,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 707,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "57e6d278f7196448",
+  "fp": "54/90",
+  "red": -91.6,
+  "black": 91.6,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 707,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "dce91d3714414d32",
+  "fp": "54/83",
+  "red": -90.2,
+  "black": 90.2,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 707,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "3e9c9f013d03397d",
+  "fp": "54/93",
+  "red": 2.1,
+  "black": -2.1,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 708,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "65a0c56afd0fdce1",
+  "fp": "54/98",
+  "red": 31.0,
+  "black": -31.0,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 708,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "37fabf03e222bebb",
+  "fp": "54/90",
+  "red": 73.5,
+  "black": -73.5,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 708,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "87034e178fed1d15",
+  "fp": "54/91",
+  "red": 192.9,
+  "black": -192.9,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 708,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "59c353619d2b2675",
+  "fp": "54/86",
+  "red": 97.6,
+  "black": -97.6,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 708,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "23561a6c9a2283f0",
+  "fp": "54/102",
+  "red": 42.0,
+  "black": -42.0,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 709,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "5b406250bcee4a11",
+  "fp": "54/100",
+  "red": 78.6,
+  "black": -78.6,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 709,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "b0c415171462e0a6",
+  "fp": "54/99",
+  "red": 55.1,
+  "black": -55.1,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 709,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "c3a5258710e3da52",
+  "fp": "54/87",
+  "red": -62.8,
+  "black": 62.8,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 709,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "1c118f9defcf6e8c",
+  "fp": "54/83",
+  "red": -112.6,
+  "black": 112.6,
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 709,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "d79cc484d3820218",
+  "fp": "48/92",
+  "red": -58.1,
+  "black": 58.1,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 700,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "2347376facef9c89",
+  "fp": "48/111",
+  "red": 4.3,
+  "black": -4.3,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 700,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "b0465e4cd8ec951e",
+  "fp": "48/103",
+  "red": -97.4,
+  "black": 97.4,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 700,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "8d5703c8987f4f14",
+  "fp": "48/106",
+  "red": 7.1,
+  "black": -7.1,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 700,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "79d34af3385c7a38",
+  "fp": "48/111",
+  "red": -59.6,
+  "black": 59.6,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 700,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "686727964b750aee",
+  "fp": "48/110",
+  "red": 1.9,
+  "black": -1.9,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 701,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "825f2668cfdd42f2",
+  "fp": "48/102",
+  "red": 8.1,
+  "black": -8.1,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 701,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "186004be89d8dae4",
+  "fp": "48/97",
+  "red": -10.1,
+  "black": 10.1,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 701,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "c3c3387ba119618a",
+  "fp": "48/91",
+  "red": -83.5,
+  "black": 83.5,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 701,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "377be0d946b343f9",
+  "fp": "47/94",
+  "red": -214.9,
+  "black": 214.9,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 701,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "c5c40761f1d1d775",
+  "fp": "48/107",
+  "red": 118.0,
+  "black": -118.0,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 702,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "1d2a78a966ea8e5f",
+  "fp": "48/108",
+  "red": 115.4,
+  "black": -115.4,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 702,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "f1af192ec70d23ed",
+  "fp": "48/119",
+  "red": 117.9,
+  "black": -117.9,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 702,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "1f6cafc7a2369b67",
+  "fp": "48/115",
+  "red": 12.9,
+  "black": -12.9,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 702,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "39851c081a5cd5df",
+  "fp": "48/107",
+  "red": -12.2,
+  "black": 12.2,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 702,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "b34e82c3f33d96ea",
+  "fp": "48/115",
+  "red": 36.0,
+  "black": -36.0,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 703,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "006eb0a2404e5b1b",
+  "fp": "48/114",
+  "red": 31.3,
+  "black": -31.3,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 703,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "1535ddd444b3affc",
+  "fp": "48/112",
+  "red": 40.2,
+  "black": -40.2,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 703,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "e8ecb3ec84b9e224",
+  "fp": "48/102",
+  "red": 17.7,
+  "black": -17.7,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 703,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "6231282c82575002",
+  "fp": "48/99",
+  "red": 16.6,
+  "black": -16.6,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 703,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "0e3987c9f632af98",
+  "fp": "48/116",
+  "red": 19.1,
+  "black": -19.1,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 704,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "183fd06fcc94a35c",
+  "fp": "48/114",
+  "red": -16.3,
+  "black": 16.3,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 704,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "4b7d73c236448873",
+  "fp": "48/110",
+  "red": -10.2,
+  "black": 10.2,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 704,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "eac20a7db3e18eb1",
+  "fp": "48/99",
+  "red": -75.1,
+  "black": 75.1,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 704,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "a67212ebc2d98853",
+  "fp": "48/99",
+  "red": -110.2,
+  "black": 110.2,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 704,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "fb467820b59c9bcf",
+  "fp": "48/108",
+  "red": 10.2,
+  "black": -10.2,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 705,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "98da224fc2262b06",
+  "fp": "48/109",
+  "red": 1.0,
+  "black": -1.0,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 705,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "ff5f1439141b069a",
+  "fp": "48/99",
+  "red": -4.9,
+  "black": 4.9,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 705,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "e7d54c380c52367c",
+  "fp": "48/99",
+  "red": -10.1,
+  "black": 10.1,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 705,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "e1d1c6d666309431",
+  "fp": "48/102",
+  "red": 26.3,
+  "black": -26.3,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 705,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "e5d21f72932e91ba",
+  "fp": "48/98",
+  "red": -28.7,
+  "black": 28.7,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 706,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "6171a59d1c4fee85",
+  "fp": "48/98",
+  "red": -3.4,
+  "black": 3.4,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 706,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "306cc1715367a7ea",
+  "fp": "48/95",
+  "red": -12.8,
+  "black": 12.8,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 706,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "42fe96edbc975c66",
+  "fp": "48/95",
+  "red": -31.7,
+  "black": 31.7,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 706,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "769aba215771f576",
+  "fp": "48/86",
+  "red": -1.4,
+  "black": 1.4,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 706,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "f939f875b9f27119",
+  "fp": "48/107",
+  "red": -5.8,
+  "black": 5.8,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 707,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "8d681db26ec0d723",
+  "fp": "48/100",
+  "red": -33.3,
+  "black": 33.3,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 707,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "4ba680e0cfe05d41",
+  "fp": "48/95",
+  "red": -28.1,
+  "black": 28.1,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 707,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "e8fbcdfb7f7374fc",
+  "fp": "48/95",
+  "red": -12.9,
+  "black": 12.9,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 707,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "cef845a938f89b26",
+  "fp": "48/94",
+  "red": -24.6,
+  "black": 24.6,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 707,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "a04eef5d643e0ae4",
+  "fp": "48/95",
+  "red": -10.5,
+  "black": 10.5,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 708,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "dcc83abc64088410",
+  "fp": "48/106",
+  "red": 54.1,
+  "black": -54.1,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 708,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "91c364432ddba209",
+  "fp": "47/101",
+  "red": -165.7,
+  "black": 165.7,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 708,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "234f1318963fc553",
+  "fp": "47/95",
+  "red": -232.98,
+  "black": 232.98,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 708,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "417813ad6c3a22ee",
+  "fp": "47/106",
+  "red": -221.28,
+  "black": 221.28,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 708,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "71f5348a0646383f",
+  "fp": "48/103",
+  "red": 16.6,
+  "black": -16.6,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 709,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "c9a138e942a170a2",
+  "fp": "48/97",
+  "red": 34.6,
+  "black": -34.6,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 709,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "a02dda3b2d5e8a29",
+  "fp": "48/87",
+  "red": 0.4,
+  "black": -0.4,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 709,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "7d13973957218eb2",
+  "fp": "48/82",
+  "red": 76.6,
+  "black": -76.6,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 709,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "b7c083e1b2a0c706",
+  "fp": "48/82",
+  "red": 73.8,
+  "black": -73.8,
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 709,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "2790bdcbb2d00c0b",
+  "fp": "44/104",
+  "red": -10.4,
+  "black": 10.4,
+  "src": {
+   "profile": "web",
+   "seed": 700,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "43c3ee39b47c8703",
+  "fp": "44/104",
+  "red": -41.6,
+  "black": 41.6,
+  "src": {
+   "profile": "web",
+   "seed": 700,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "a8e8ab195d9915e0",
+  "fp": "44/97",
+  "red": -82.8,
+  "black": 82.8,
+  "src": {
+   "profile": "web",
+   "seed": 700,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "a0ffc53c62f671e5",
+  "fp": "44/91",
+  "red": -83.5,
+  "black": 83.5,
+  "src": {
+   "profile": "web",
+   "seed": 700,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "beaef94072c04f07",
+  "fp": "44/87",
+  "red": -96.3,
+  "black": 96.3,
+  "src": {
+   "profile": "web",
+   "seed": 700,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "78669dc9ccdfc5b1",
+  "fp": "44/118",
+  "red": 42.0,
+  "black": -42.0,
+  "src": {
+   "profile": "web",
+   "seed": 701,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "c725e3e5a9bfca40",
+  "fp": "44/117",
+  "red": 73.4,
+  "black": -73.4,
+  "src": {
+   "profile": "web",
+   "seed": 701,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "a82b617ed2a6ff0c",
+  "fp": "44/120",
+  "red": 160.1,
+  "black": -160.1,
+  "src": {
+   "profile": "web",
+   "seed": 701,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "a809960d02cca50c",
+  "fp": "44/127",
+  "red": 181.2,
+  "black": -181.2,
+  "src": {
+   "profile": "web",
+   "seed": 701,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "ea0aaf112ba18bb0",
+  "fp": "44/119",
+  "red": 153.9,
+  "black": -153.9,
+  "src": {
+   "profile": "web",
+   "seed": 701,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "61e3a99bf479df46",
+  "fp": "44/109",
+  "red": 77.6,
+  "black": -77.6,
+  "src": {
+   "profile": "web",
+   "seed": 702,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "b9c4c78d23df0b68",
+  "fp": "44/100",
+  "red": 46.0,
+  "black": -46.0,
+  "src": {
+   "profile": "web",
+   "seed": 702,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "008f6b1a40480035",
+  "fp": "44/103",
+  "red": -39.0,
+  "black": 39.0,
+  "src": {
+   "profile": "web",
+   "seed": 702,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "8539aceb58c70e74",
+  "fp": "44/104",
+  "red": -31.2,
+  "black": 31.2,
+  "src": {
+   "profile": "web",
+   "seed": 702,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "33fa634654241287",
+  "fp": "44/105",
+  "red": -25.8,
+  "black": 25.8,
+  "src": {
+   "profile": "web",
+   "seed": 702,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "cdf84e2e8f448a42",
+  "fp": "44/103",
+  "red": -201.3,
+  "black": 201.3,
+  "src": {
+   "profile": "web",
+   "seed": 703,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "ede97810861c7312",
+  "fp": "44/102",
+  "red": -218.4,
+  "black": 218.4,
+  "src": {
+   "profile": "web",
+   "seed": 703,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "b58e36dc4ae40361",
+  "fp": "44/106",
+  "red": -190.0,
+  "black": 190.0,
+  "src": {
+   "profile": "web",
+   "seed": 703,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "9763f5145830e3a0",
+  "fp": "44/98",
+  "red": -249.9,
+  "black": 249.9,
+  "src": {
+   "profile": "web",
+   "seed": 703,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "97df84c23ec05f0e",
+  "fp": "44/97",
+  "red": -216.1,
+  "black": 216.1,
+  "src": {
+   "profile": "web",
+   "seed": 703,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "fa52beeedad16d6a",
+  "fp": "44/108",
+  "red": -6.5,
+  "black": 6.5,
+  "src": {
+   "profile": "web",
+   "seed": 704,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "d09d71449c6dc27b",
+  "fp": "44/107",
+  "red": -12.8,
+  "black": 12.8,
+  "src": {
+   "profile": "web",
+   "seed": 704,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "aaa4fe72e8797fa4",
+  "fp": "44/95",
+  "red": -8.9,
+  "black": 8.9,
+  "src": {
+   "profile": "web",
+   "seed": 704,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "3881d79a55c49984",
+  "fp": "44/94",
+  "red": 3.8,
+  "black": -3.8,
+  "src": {
+   "profile": "web",
+   "seed": 704,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "9adc7ed3baa2d4d1",
+  "fp": "44/90",
+  "red": -29.8,
+  "black": 29.8,
+  "src": {
+   "profile": "web",
+   "seed": 704,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "b757773f84f957b1",
+  "fp": "44/104",
+  "red": -27.5,
+  "black": 27.5,
+  "src": {
+   "profile": "web",
+   "seed": 705,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "cccdf6b5df2e7961",
+  "fp": "44/102",
+  "red": -116.3,
+  "black": 116.3,
+  "src": {
+   "profile": "web",
+   "seed": 705,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "ac19a34b321e4dee",
+  "fp": "44/98",
+  "red": -82.3,
+  "black": 82.3,
+  "src": {
+   "profile": "web",
+   "seed": 705,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "da4047bdc6e23297",
+  "fp": "44/99",
+  "red": -91.7,
+  "black": 91.7,
+  "src": {
+   "profile": "web",
+   "seed": 705,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "a30804e648ce1dba",
+  "fp": "44/97",
+  "red": -108.1,
+  "black": 108.1,
+  "src": {
+   "profile": "web",
+   "seed": 705,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "5e78743d49ffc04e",
+  "fp": "44/113",
+  "red": -1.1,
+  "black": 1.1,
+  "src": {
+   "profile": "web",
+   "seed": 706,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "bae680befda573f8",
+  "fp": "44/110",
+  "red": 12.3,
+  "black": -12.3,
+  "src": {
+   "profile": "web",
+   "seed": 706,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "dd8ac28912864f01",
+  "fp": "44/103",
+  "red": -28.1,
+  "black": 28.1,
+  "src": {
+   "profile": "web",
+   "seed": 706,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "09f9bcf1ddeb014c",
+  "fp": "44/110",
+  "red": -35.3,
+  "black": 35.3,
+  "src": {
+   "profile": "web",
+   "seed": 706,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "4c9e3021b989e816",
+  "fp": "44/115",
+  "red": -69.7,
+  "black": 69.7,
+  "src": {
+   "profile": "web",
+   "seed": 706,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "0793f51f1dfbc489",
+  "fp": "44/99",
+  "red": -27.5,
+  "black": 27.5,
+  "src": {
+   "profile": "web",
+   "seed": 707,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "ec1525c19cb8d8ec",
+  "fp": "44/103",
+  "red": 33.7,
+  "black": -33.7,
+  "src": {
+   "profile": "web",
+   "seed": 707,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "946db2e97574550c",
+  "fp": "44/112",
+  "red": 55.8,
+  "black": -55.8,
+  "src": {
+   "profile": "web",
+   "seed": 707,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "12cbe7cd2aaf0545",
+  "fp": "44/113",
+  "red": 61.0,
+  "black": -61.0,
+  "src": {
+   "profile": "web",
+   "seed": 707,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "52ba83dd4878ce36",
+  "fp": "44/111",
+  "red": 147.9,
+  "black": -147.9,
+  "src": {
+   "profile": "web",
+   "seed": 707,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "02865539d0338a5c",
+  "fp": "44/101",
+  "red": -29.6,
+  "black": 29.6,
+  "src": {
+   "profile": "web",
+   "seed": 708,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "e30e9910ad38b303",
+  "fp": "44/97",
+  "red": -71.6,
+  "black": 71.6,
+  "src": {
+   "profile": "web",
+   "seed": 708,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "a5a3a9adf35684f1",
+  "fp": "44/102",
+  "red": -53.1,
+  "black": 53.1,
+  "src": {
+   "profile": "web",
+   "seed": 708,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "e7b02bab876fc9b5",
+  "fp": "43/107",
+  "red": -189.3,
+  "black": 189.3,
+  "src": {
+   "profile": "web",
+   "seed": 708,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "6640b892469f297b",
+  "fp": "43/105",
+  "red": -155.2,
+  "black": 155.2,
+  "src": {
+   "profile": "web",
+   "seed": 708,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "713ec9abf6fdd805",
+  "fp": "44/102",
+  "red": 51.6,
+  "black": -51.6,
+  "src": {
+   "profile": "web",
+   "seed": 709,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "ac01eb3f638a4a11",
+  "fp": "44/110",
+  "red": -28.0,
+  "black": 28.0,
+  "src": {
+   "profile": "web",
+   "seed": 709,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "b47556fc1cd61a40",
+  "fp": "44/118",
+  "red": 54.5,
+  "black": -54.5,
+  "src": {
+   "profile": "web",
+   "seed": 709,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "9d4cd56dc3bbf0fb",
+  "fp": "44/117",
+  "red": -58.2,
+  "black": 58.2,
+  "src": {
+   "profile": "web",
+   "seed": 709,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "02cb2188e0677951",
+  "fp": "44/113",
+  "red": -105.6,
+  "black": 105.6,
+  "src": {
+   "profile": "web",
+   "seed": 709,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "77db85001b675222",
+  "fp": "32/41",
+  "red": 34.7,
+  "black": -34.7,
+  "src": {
+   "profile": "traditional",
+   "seed": 700,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "b4934b209d1633d4",
+  "fp": "32/38",
+  "red": 104.8,
+  "black": -104.8,
+  "src": {
+   "profile": "traditional",
+   "seed": 700,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "8807c42f10635ca8",
+  "fp": "32/36",
+  "red": 119.1,
+  "black": -119.1,
+  "src": {
+   "profile": "traditional",
+   "seed": 700,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "a2550f49e3960786",
+  "fp": "32/42",
+  "red": 92.2,
+  "black": -92.2,
+  "src": {
+   "profile": "traditional",
+   "seed": 700,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "00004be50164d581",
+  "fp": "32/41",
+  "red": 3.5,
+  "black": -3.5,
+  "src": {
+   "profile": "traditional",
+   "seed": 700,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "e37e55b9bdb1deb5",
+  "fp": "32/45",
+  "red": -0.0,
+  "black": 0.0,
+  "src": {
+   "profile": "traditional",
+   "seed": 701,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "3f3314e24dad77ff",
+  "fp": "32/42",
+  "red": -110.7,
+  "black": 110.7,
+  "src": {
+   "profile": "traditional",
+   "seed": 701,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "902abccb943b42d5",
+  "fp": "32/51",
+  "red": -67.86,
+  "black": 67.86,
+  "src": {
+   "profile": "traditional",
+   "seed": 701,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "9c5ee0503469af6f",
+  "fp": "32/43",
+  "red": -114.16,
+  "black": 114.16,
+  "src": {
+   "profile": "traditional",
+   "seed": 701,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "fa444f72f1ef04cb",
+  "fp": "32/44",
+  "red": -106.06,
+  "black": 106.06,
+  "src": {
+   "profile": "traditional",
+   "seed": 701,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "c1f263b8af3c589c",
+  "fp": "32/48",
+  "red": 40.5,
+  "black": -40.5,
+  "src": {
+   "profile": "traditional",
+   "seed": 702,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "411204d13291ef30",
+  "fp": "32/48",
+  "red": -61.4,
+  "black": 61.4,
+  "src": {
+   "profile": "traditional",
+   "seed": 702,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "71a30b470e7cfa03",
+  "fp": "32/42",
+  "red": -37.2,
+  "black": 37.2,
+  "src": {
+   "profile": "traditional",
+   "seed": 702,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "cd04740e9b9434fd",
+  "fp": "32/37",
+  "red": -96.94,
+  "black": 96.94,
+  "src": {
+   "profile": "traditional",
+   "seed": 702,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "eaaae695772c002e",
+  "fp": "32/43",
+  "red": 13.76,
+  "black": -13.76,
+  "src": {
+   "profile": "traditional",
+   "seed": 702,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "040edcba4abdbc62",
+  "fp": "32/37",
+  "red": -34.3,
+  "black": 34.3,
+  "src": {
+   "profile": "traditional",
+   "seed": 703,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "4bfe49658fcc2768",
+  "fp": "32/32",
+  "red": -32.7,
+  "black": 32.7,
+  "src": {
+   "profile": "traditional",
+   "seed": 703,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "73ed5dcc43e23b4d",
+  "fp": "32/35",
+  "red": -47.6,
+  "black": 47.6,
+  "src": {
+   "profile": "traditional",
+   "seed": 703,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "de879fc92b5891d2",
+  "fp": "32/38",
+  "red": 124.54,
+  "black": -124.54,
+  "src": {
+   "profile": "traditional",
+   "seed": 703,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "ee0dad5aaf2b77fb",
+  "fp": "32/39",
+  "red": 119.94,
+  "black": -119.94,
+  "src": {
+   "profile": "traditional",
+   "seed": 703,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "ceba3a1cea34ae89",
+  "fp": "32/34",
+  "red": 0.1,
+  "black": -0.1,
+  "src": {
+   "profile": "traditional",
+   "seed": 704,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "e6af20b833141510",
+  "fp": "32/40",
+  "red": -2.3,
+  "black": 2.3,
+  "src": {
+   "profile": "traditional",
+   "seed": 704,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "65f345eb60374c1c",
+  "fp": "32/42",
+  "red": 21.0,
+  "black": -21.0,
+  "src": {
+   "profile": "traditional",
+   "seed": 704,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "40c6359bd11d868c",
+  "fp": "32/36",
+  "red": 46.76,
+  "black": -46.76,
+  "src": {
+   "profile": "traditional",
+   "seed": 704,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "97b21876c36f1d63",
+  "fp": "32/41",
+  "red": 99.64,
+  "black": -99.64,
+  "src": {
+   "profile": "traditional",
+   "seed": 704,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "bad2a259fa38986c",
+  "fp": "32/41",
+  "red": -8.9,
+  "black": 8.9,
+  "src": {
+   "profile": "traditional",
+   "seed": 705,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "adbc799c73c65dc4",
+  "fp": "32/39",
+  "red": 95.3,
+  "black": -95.3,
+  "src": {
+   "profile": "traditional",
+   "seed": 705,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "1cc8dd0d6e2637be",
+  "fp": "32/41",
+  "red": 139.4,
+  "black": -139.4,
+  "src": {
+   "profile": "traditional",
+   "seed": 705,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "6b257d2f7f746ee7",
+  "fp": "32/44",
+  "red": 63.5,
+  "black": -63.5,
+  "src": {
+   "profile": "traditional",
+   "seed": 705,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "9389726e9162f922",
+  "fp": "32/46",
+  "red": 79.4,
+  "black": -79.4,
+  "src": {
+   "profile": "traditional",
+   "seed": 705,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "0b2dae078e145f9a",
+  "fp": "32/35",
+  "red": 11.5,
+  "black": -11.5,
+  "src": {
+   "profile": "traditional",
+   "seed": 706,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "9b43ba815404d45e",
+  "fp": "32/41",
+  "red": 6.0,
+  "black": -6.0,
+  "src": {
+   "profile": "traditional",
+   "seed": 706,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "06def125fb285210",
+  "fp": "32/40",
+  "red": 13.6,
+  "black": -13.6,
+  "src": {
+   "profile": "traditional",
+   "seed": 706,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "0cac28be7e3b8590",
+  "fp": "32/32",
+  "red": 195.04,
+  "black": -195.04,
+  "src": {
+   "profile": "traditional",
+   "seed": 706,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "6e9e20c73ccf257c",
+  "fp": "32/40",
+  "red": 274.74,
+  "black": -274.74,
+  "src": {
+   "profile": "traditional",
+   "seed": 706,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "bdaf36390d53fb7f",
+  "fp": "32/43",
+  "red": 19.7,
+  "black": -19.7,
+  "src": {
+   "profile": "traditional",
+   "seed": 707,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "43139e05f21d7884",
+  "fp": "32/41",
+  "red": -0.3,
+  "black": 0.3,
+  "src": {
+   "profile": "traditional",
+   "seed": 707,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "84c9de80b1eb2cf1",
+  "fp": "32/48",
+  "red": -32.5,
+  "black": 32.5,
+  "src": {
+   "profile": "traditional",
+   "seed": 707,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "77a4cea25d96c421",
+  "fp": "32/44",
+  "red": -19.4,
+  "black": 19.4,
+  "src": {
+   "profile": "traditional",
+   "seed": 707,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "163f943967f0af59",
+  "fp": "32/34",
+  "red": -32.3,
+  "black": 32.3,
+  "src": {
+   "profile": "traditional",
+   "seed": 707,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "961dbf7c880cf09f",
+  "fp": "32/38",
+  "red": 18.8,
+  "black": -18.8,
+  "src": {
+   "profile": "traditional",
+   "seed": 708,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "ee4f18addf34f549",
+  "fp": "31/31",
+  "red": 443.052394,
+  "black": -443.052394,
+  "src": {
+   "profile": "traditional",
+   "seed": 708,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "66c63eda6ccb560c",
+  "fp": "31/31",
+  "red": 397.567819,
+  "black": -397.567819,
+  "src": {
+   "profile": "traditional",
+   "seed": 708,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "0c25d94bff2bf08a",
+  "fp": "31/37",
+  "red": 405.389628,
+  "black": -405.389628,
+  "src": {
+   "profile": "traditional",
+   "seed": 708,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "36cbd5dcc7bf0d09",
+  "fp": "31/45",
+  "red": 411.267553,
+  "black": -411.267553,
+  "src": {
+   "profile": "traditional",
+   "seed": 708,
+   "stateIndex": 10
+  }
+ },
+ {
+  "id": "c20e73ad57f8a18d",
+  "fp": "32/38",
+  "red": 3.2,
+  "black": -3.2,
+  "src": {
+   "profile": "traditional",
+   "seed": 709,
+   "stateIndex": 2
+  }
+ },
+ {
+  "id": "65962acc2f8fbabd",
+  "fp": "32/34",
+  "red": 39.2,
+  "black": -39.2,
+  "src": {
+   "profile": "traditional",
+   "seed": 709,
+   "stateIndex": 4
+  }
+ },
+ {
+  "id": "799fcdd0a5e8bb95",
+  "fp": "31/32",
+  "red": -22.85,
+  "black": 22.85,
+  "src": {
+   "profile": "traditional",
+   "seed": 709,
+   "stateIndex": 6
+  }
+ },
+ {
+  "id": "51a83bc48ecd4cb0",
+  "fp": "31/31",
+  "red": -47.75,
+  "black": 47.75,
+  "src": {
+   "profile": "traditional",
+   "seed": 709,
+   "stateIndex": 8
+  }
+ },
+ {
+  "id": "e963f2b30a719bb2",
+  "fp": "31/34",
+  "red": 29.0,
+  "black": -29.0,
+  "src": {
+   "profile": "traditional",
+   "seed": 709,
+   "stateIndex": 10
+  }
+ }
+]

@@ -1,0 +1,25 @@
+[corpus16] n=16 互异 16/16
+  desktop_complete   s700 p 4  c879a685ccbc5293  54/104
+  desktop_complete   s701 p 4  e99fb54fcad0b724  54/95
+  desktop_complete   s702 p 4  eb8cc7e2acddeaee  54/104
+  desktop_complete   s703 p 4  433f309b7e6b3a5e  54/95
+  desktop_complete   s700 p 8  befd138469ba3e55  54/99
+  desktop_complete   s701 p 8  08c1d38c5c8e305f  53/92
+  desktop_complete   s702 p 8  47901cf39ffcc18e  54/85
+  desktop_complete   s703 p 8  f214bfba3ff188ed  54/85
+  desktop_complete   s700 p12  95b18d62c505def0  54/106
+  desktop_complete   s701 p12  bd12780a22d10518  53/102
+  desktop_complete   s702 p12  c5e21ca33b04f8c2  54/86
+  desktop_complete   s703 p12  eb77d0b543dcd015  54/81
+  web                s700 p 8  a0ffc53c62f671e5  44/91
+  web                s701 p 8  a809960d02cca50c  44/127
+  traditional        s700 p 8  a2550f49e3960786  32/42
+  traditional        s701 p 8  9c5ee0503469af6f  32/43
+[eval] desktop_complete 累计 50 条 13s
+[eval] desktop_classic 累计 100 条 24s
+[eval] web 累计 150 条 34s
+[eval] traditional 累计 200 条 37s
+[eval200] n=200 零和 200/200 sha256=12655bc918b3c70e
+[check20] n=20 sum=-60 的 20/20 来源分布={'A:seed700-709': 20, 'B:seed710-729': 0}
+[mobility] 空盘中心 仕(advisor)@6,6=8, 相(elephant)@6,6=4, 傌(horse)@6,6=12, 俥(rook)@6,6=23, 炮(cannon)@6,6=23, 兵(pawn)@5,6=3, 兵(pawn)@6,6=1, 尉(guard)@6,6=0, 刺(assassin)@6,6=2, 巡(patrol)@6,6=11, 射(archer)@6,6=12, 檑(thunder)@6,6=46
+[mobility] 初始局面红方首着: 射(archer)=6(3+3), 刺(assassin)=0(0+0), 檑(thunder)=2(1+1), 尉(guard)=6(6), 俥(rook)=10(5+5), 傌(horse)=6(3+3), 相(elephant)=4(2+2), 仕(advisor)=4(2+2), 漢(king)=3(3), 炮(cannon)=36(18+18), 兵(pawn)=15(0+3+3+3+3+3+0), 巡(patrol)=12(6+6)
