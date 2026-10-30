@@ -224,3 +224,47 @@ QT_QPA_PLATFORM=offscreen ./.venv/Scripts/python.exe -m pytest tests/test_bench_
 | P2 | 完整 PST（分棋子位置表） | 当前位置项只有“到中心距离” |
 | P3 | 硬配额（D9，按层分配时间） | 唯一不依赖预测的“吃白等”方案 |
 | P0（服务端） | D6：AI 并发上限 | 多房间并发时所有房间 AI 同时降一层 |
+
+---
+
+# 第三部分：规则口径修正（用户授权改动）
+
+`VERSION_PLAN_1.6.0.md:82` 规定“不改规则语义”，**本轮经用户明确授权**，按下列三项修正。提交 `aa6bb23`。
+
+## 一、三项改动
+
+| # | 项 | 改法 | 依据 |
+|---|---|---|---|
+| 1 | **敌境口径统一为 row 5** | `_pawn` 的 `crossed`：`<= middle` → `< middle`（黑方 `>=` → `>`）；`_elephant` 的 `in_enemy_territory` 同步收紧 | 文档“过阴山后”与另两处判定（快速行军、象过界）都指向 row 5；原 `crossed` 用 row 6，造成同文件口径分裂 |
+| 2 | **照面含横向** | `_kings_facing`：同列**或**同行且中间无子即判照面 | 文档写“不能同一直线照面”；原实现只比 `col`，横向照面形同虚设 |
+| 3 | **升变保留强制** | 不改代码，只补文档 | 强制升变 + 扣阵亡池是“池”机制的意义所在；文档原写“可升变”属描述滞后 |
+
+## 二、实现范围：实际只有两份，不是三份
+
+- `src/xionghan_chess/core/rules.py`（Python 核心，桌面/服务端共用）；
+- `android/Resources/assets/offline/offline.js`（**对拍门禁比对的那份**，`tests/test_cross_engine.py:22`）。
+
+`web/js/core/game-rules.js` 与 `desktop/core/game_rules.py` **均不存在**——web 端没有独立规则副本、desktop 只是 UI。所以“三端同构”在这一层实际是“Python 核心 + 离线 JS”两份。
+
+## 三、连带调整的测试夹具（不是放宽，是被新规则逼出来的）
+
+| 文件 | 调整 | 原因 |
+|---|---|---|
+| `test_cross_engine.py` | 象在 row 6 的落点集去掉正交两格，另加 row 5 对照 | row 6 已非敌境，能力边界下移一格 |
+| `test_cross_engine.py` | 三吃法夹具的兵对 row 6 → row 5 | 原夹具的 `direct` 吃子依赖的正是 row 6 横走 |
+| `test_ai_pool_blindness.py` | 黑王 `(12,0)` → `(11,0)` | 原摆法与红王同行，新照面口径下整盘被将军过滤为空 |
+| `test_rule_divergences.py` | 兵/照面两条语义反转；口径一致性那条**去掉 `xfail`** | 偏差已修正，锁定用例应改成“锁新行为” |
+
+## 四、验收
+
+| 项 | 结果 |
+|---|---|
+| 跨引擎对拍 | **84/84** |
+| 全量 | **772 passed / 0 failed**（`xfail` 转正、合并 1 条重复对照，773 → 772） |
+| 残局题库 | `test_offline_puzzles` / `test_puzzle_coverage` / `test_desktop_puzzle_store` **全绿、0 失败，题库未改** |
+| 新行为断言 | 红兵 row6 横走 `False` / row5 `True`；两王同行无遮挡 `in_check=True` |
+
+## 五、已知遗留
+
+1. **旧棋谱重放**：按旧规则合法、新规则非法的着法（row 6 横走、同行照面局面）会让历史存档重放失败。仓库里**没有回放校验测试**，存档格式未动；若要“旧棋谱兼容”，需单独一轮（选项：版本标记 + 按旧规则重放，或只读展示不校验）。
+2. **AI 数据全部失效**：规则改了，`t_d2`、选点、一致率等此前所有 AI 测量不再可比，需用新基线重标。
