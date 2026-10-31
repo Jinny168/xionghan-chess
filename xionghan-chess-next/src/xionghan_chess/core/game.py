@@ -278,7 +278,10 @@ class Game:
             self.state.winner, self.state.result_reason = mover, "checkmate"
         elif self.rules.stalemate(self.state, enemy):
             self.state.winner, self.state.result_reason = mover, "stalemate"
-        elif self.options.threefold_draw and max(self.state.position_counts.values(), default=0) >= 3:
+        elif (self.options.threefold_draw
+              # L-06：**只看当前局面**的计数。用 `max(...)` 会让"历史上任何局面重复三次"
+              # 触发判和（注入 stale key 就能误判），而重复判定只对当前局面有意义。
+              and self.state.position_counts.get(self.rules.position_key(self.state), 0) >= 3):
             self.state.draw, self.state.result_reason = True, "threefold_repetition"
         elif self.options.no_progress_draw_plies and self._no_progress_plies() >= self.options.no_progress_draw_plies:
             self.state.draw, self.state.result_reason = True, "no_progress"

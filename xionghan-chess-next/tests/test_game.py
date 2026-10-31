@@ -81,8 +81,29 @@ def _settle(game: Game, moved=None):
     return game.state
 
 
-def _repeat(game: Game, occurrences: int) -> None:
-    game.state.position_counts = {"whatever": occurrences}
+CYCLE = [(Position(9, 9), Position(9, 10)), (Position(0, 4), Position(0, 5)),
+         (Position(9, 10), Position(9, 9)), (Position(0, 5), Position(0, 4))]
+"""4 拍一轮、回到同一局面的真实循环（红车来回 + 黑王在宫内来回）。
+
+黑王必须在 `(0,4)↔(0,5)`：走到 `(0,6)` 会与红王 `(11,6)` 同列**照面**，直接非法走棋 ——
+这条路我试过了，别再把黑王放回 `(0,6)`。
+"""
+
+
+def _cycle_board(**overrides) -> Game:
+    """专门用来制造重复局面的小局面：红王 + 黑王 + 红车。"""
+    return _game([piece(PieceType.KING, Color.RED, 11, 6),
+                  piece(PieceType.KING, Color.BLACK, 0, 4),
+                  piece(PieceType.ROOK, Color.RED, 9, 9)], **overrides)
+
+
+def _play_cycles(game: Game, times: int) -> None:
+    """真走棋 `times` 轮（每轮回到同一局面）。**不注入 counts** —— 这是行为测试。"""
+    for _ in range(times):
+        for source, target in CYCLE:
+            if game.state.finished:
+                return
+            game.move(Move(source, target))
 
 
 def _history(plies: int, *, captured=()) -> list[MoveRecord]:
@@ -121,38 +142,48 @@ def test_settle_reports_checkmate_and_stalemate_on_their_own():
 
 
 def test_settle_prefers_stalemate_over_a_threefold_repetition():
+    # 白盒：直接给**当前局面**注入 3 次计数，专测 settle 的判定顺序（僵局先于重复）。
     game = _stalemate_board()
-    _repeat(game, 3)
+    game.state.position_counts = {game.rules.position_key(game.state): 3}
     state = _settle(game)
     assert state.winner is Color.RED
     assert state.result_reason == "stalemate"
 
 
-def test_settle_reports_threefold_repetition_only_from_the_third_occurrence():
-    for occurrences, finished in ((2, False), (3, True)):
-        game = _open_board()
-        _repeat(game, occurrences)
-        state = _settle(game)
-        assert state.finished is finished
-        if finished:
-            assert state.draw is True
-            assert state.winner is None
-            assert state.result_reason == "threefold_repetition"
+def test_threefold_repetition_fires_only_on_the_third_occurrence():
+    """真走棋：走 2 轮回到同一局面两次**不判和**，第 3 次才判和。"""
+    game = _cycle_board()
+    _play_cycles(game, 2)
+    assert game.state.finished is False, "第 2 次重复不该判和"
+
+    _play_cycles(game, 1)
+    assert game.state.finished is True
+    assert game.state.draw is True
+    assert game.state.winner is None
+    assert game.state.result_reason == "threefold_repetition"
 
 
 def test_threefold_repetition_is_skipped_when_the_switch_is_off():
-    game = _open_board(threefold_draw=False)
-    _repeat(game, 3)
+    game = _cycle_board(threefold_draw=False)
+    _play_cycles(game, 3)
+    assert game.state.finished is False
     state = _settle(game)
     assert state.finished is False
     assert state.draw is False
 
 
-def test_settle_prefers_threefold_repetition_over_no_progress():
-    game = _open_board(no_progress_draw_plies=2)
+def test_threefold_repetition_is_reported_instead_of_no_progress():
+    """同一次落子同时满足"三次重复"与"无进展"时，报 `threefold_repetition`。
+
+    为什么用白盒：真走棋时 `no_progress_draw_plies=2` 会在第 2 拍就先判无进展，
+    根本走不到第 3 次重复 —— 那样测的是"谁先发生"，不是"同时满足时谁优先"。
+    """
+    game = _cycle_board(no_progress_draw_plies=2)
     game.state.history = _history(4)
-    _repeat(game, 3)
-    assert _settle(game).result_reason == "threefold_repetition"
+    game.state.position_counts = {game.rules.position_key(game.state): 3}
+    _settle(game)
+    assert game.state.finished is True
+    assert game.state.result_reason == "threefold_repetition"
 
 
 def test_settle_reports_no_progress_and_restarts_on_a_capture():
@@ -177,3 +208,17 @@ def test_resurrection_runs_the_same_terminal_chain():
     game.resurrect_pawn(Color.RED, Position(8, 0))
     assert game.state.winner is Color.RED
     assert game.state.result_reason == "stalemate"
+
+
+def test_stale_injected_counts_never_cause_a_draw():
+    """白盒：直接注入 counts —— 别的 key 上挂着 5 次，当前局面只有 1 次，**不许判和**。
+
+    这条守的是 L-06 的真实影响路径：counts 会随存档/导入/网络从外部进来。
+    删掉"假构造器"不该把这个风险一起删掉，但它必须以白盒身份存在，不能冒充行为测试。
+    """
+    game = _cycle_board()
+    current = game.rules.position_key(game.state)
+    game.state.position_counts = {"stale-key": 5, current: 1}
+    _settle(game)
+    assert game.state.finished is False
+    assert game.state.draw is False
