@@ -417,12 +417,12 @@
     "advisor_long": "Normally moves one point diagonally inside the palace",
     "cannon_long": "Moves straight; captures with exactly one screen",
     "pawn_long": "Advances forward and can move sideways in enemy territory",
-    "guard_long": "Jumps to an empty square over one piece on straight or diagonal lines",
+    "guard_long": "Moves and captures any distance along a diagonal; stops at the first piece in the way. Never moves orthogonally.",
     "archer_long": "Weak mode follows valid star tracks; enhanced mode can move diagonally off track",
     "thunder_long": "Moves in eight directions and only attacks adjacent isolated enemies",
-    "armor_long": "Moves straight and triggers flanking captures in three-in-a-line formations (including diagonals)",
-    "assassin_long": "Moves straight to an empty square and performs a backward exchange",
-    "shield_long": "Jumps over one piece; cannot be captured and protects neighbors",
+    "armor_long": "Removed on 2026-10-31 (soft delete, reversible). Was: moves straight and captures through three-in-a-line.",
+    "assassin_long": "Removed on 2026-10-31 (soft delete, reversible). Was: one step forward plus a diagonal capture at any distance.",
+    "shield_long": "Removed on 2026-10-31 (soft delete, reversible). Was: protects orthogonally adjacent allies.",
     "patrol_long": "Moves an even number of points along specified boundary lines"
   },
   "rule": {

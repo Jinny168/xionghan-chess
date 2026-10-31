@@ -1,6 +1,6 @@
 # 匈汉象棋 (Xionghan Chess)
 
-一款融合中国传统象棋与匈奴、东汉历史文化元素的创新象棋变体：**13×13 扩展盘面**，在传统七种棋子之外新增**尉、射、檑、刺、巡**五种特色棋子，共 12 种棋子（甲/楯 已于 2026-10-31 移除）；规则差异由可配置的规则档案描述，并同时保留传统 10×9 模式。
+一款融合中国传统象棋与匈奴、东汉历史文化元素的创新象棋变体：**13×13 扩展盘面**，在传统七种棋子之外新增**尉、射、檑、巡**四种特色棋子，共 **11 种**棋子（每方 25 枚、全场 50 枚；甲/楯/刺 已于 2026-10-31 移除）；规则差异由可配置的规则档案描述，并同时保留传统 10×9 模式。
 
 支持 **Windows 桌面端、Web 端与 Android 端**三种形态，三端共享同一套规则、AI、联机协议与 `.xhgame` 棋谱格式。**双人同机与人机对战可离线运行**，联机对战需自建服务端。
 
@@ -20,7 +20,7 @@
 ## 📝 项目简介（对外口径）
 
 **中文：**
-匈汉象棋是一款在 13×13 扩展棋盘上进行的中国象棋变体，融合匈奴与东汉历史文化元素。除传统七种棋子外，它还引入了尉、射、檑、刺、巡五种特色棋子（甲/楯 已于 2026-10-31 移除），并以可配置的规则档案适配不同玩法。项目提供 Windows 桌面端、Web 端与 Android 端三种形态，三者共享同一套规则、AI 与联机协议。双人同机与人机对战可离线运行，网络对战通过自建的 FastAPI 服务进行。
+匈汉象棋是一款在 13×13 扩展棋盘上进行的中国象棋变体，融合匈奴与东汉历史文化元素。除传统七种棋子外，它还引入了尉、射、檑、巡四种特色棋子，共 11 种棋子、每方 25 枚（甲/楯/刺 已于 2026-10-31 移除），并以可配置的规则档案适配不同玩法。项目提供 Windows 桌面端、Web 端与 Android 端三种形态，三者共享同一套规则、AI 与联机协议。双人同机与人机对战可离线运行，网络对战通过自建的 FastAPI 服务进行。
 
 **English:**
 Xionghan Chess is a Chinese chess variant played on a 13×13 expanded board, blending Xiongnu and Eastern Han historical themes. Beyond the seven traditional piece types, it adds five special pieces — Guard, Archer, Thunder, Assassin, and Patrol (Armor and Shield were removed on 2026-10-31) — with configurable rule profiles for different modes. It ships as a Windows desktop app, a web client, and an Android app that share one rules engine, AI, and online protocol. Pass-and-play and AI games run offline; online play uses a self-hosted FastAPI server.
