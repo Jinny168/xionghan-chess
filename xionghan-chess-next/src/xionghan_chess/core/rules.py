@@ -721,29 +721,37 @@ class RulesEngine:
 
     def _three_line_removals(self, state: GameState, color: Color,
                              landing: Position) -> list[Piece]:
-        """三连吃子：己方两子（至少一枚是兵）+ 敌方一子成直线 → 吃掉敌方那一枚。
+        """三连吃子：**只结算落点所在的线**。
 
-        甲/楯移除后只剩一条触发源：**己方两子里至少一枚兵**，且
-        `pawn_three_line_capture` 开启（默认关）。
+        口径（规则作者定稿）：
+        - 三子**紧挨**（相邻，窗口步长 1，天然满足）；
+        - **两枚我方 + 一枚敌方**，**任意顺序**（兵兵敌 / 兵敌兵 / 敌兵兵 都算）；
+        - 至少一枚是兵，且**移动的那枚兵必须在这个窗口里**；
+        - `pawn_three_line_capture` 开启（默认关）。
+
+        为什么按落点枚举而不是全盘扫描：全盘扫描会把"移动前就已存在的线"一并收割 ——
+        走一步无关的兵，远处已成线的敌子也会被吃，这既反直觉也让"能吃到"与"实际吃到"分叉。
         """
-        _ = landing  # Step 2 起使用：落点用于把全盘扫描收窄到 12 个窗口
+        if not self.options.pawn_three_line_capture:
+            return []
         captures: dict[str, Piece] = {}
-        directions = ((0, 1), (1, 0), (1, 1), (1, -1))
-        for row in range(self.profile.rows):
-            for col in range(self.profile.cols):
-                for dr, dc in directions:
-                    group = [self.get(state, Position(row + i * dr, col + i * dc)) for i in range(3)]
-                    if any(p is None for p in group):
-                        continue
-                    pieces = [p for p in group if p is not None]
-                    allies = [p for p in pieces if p.color is color]
-                    enemies = [p for p in pieces if p.color is not color]
-                    has_pawn = any(p.type is PieceType.PAWN for p in allies)
-                    if len(allies) != 2 or len(enemies) != 1 or not has_pawn:
-                        continue
-                    if not self.options.pawn_three_line_capture:
-                        continue
-                    captures[enemies[0].id] = enemies[0]
+        for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
+            # 落点可能落在窗口的第 1/2/3 格 → 3 个偏移；4 向共 12 个窗口
+            for offset in (-2, -1, 0):
+                group = [self.get(state, Position(landing.row + (offset + i) * dr,
+                                                  landing.col + (offset + i) * dc))
+                         for i in range(3)]
+                if any(p is None for p in group):
+                    continue
+                allies = [p for p in group if p.color is color]
+                enemies = [p for p in group if p.color is not color]
+                if len(allies) != 2 or len(enemies) != 1:
+                    continue
+                if not any(p.type is PieceType.PAWN for p in allies):
+                    continue
+                if not any(p.position == landing for p in allies):
+                    continue
+                captures[enemies[0].id] = enemies[0]
         return list(captures.values())
 
     def _kings_facing(self, state: GameState) -> bool:
