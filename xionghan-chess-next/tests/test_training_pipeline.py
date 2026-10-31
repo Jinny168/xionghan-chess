@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -30,17 +33,25 @@ def test_selfplay_writes_versioned_local_jsonl(tmp_path):
     assert loaded == samples
 
 
-def test_numpy_policy_value_training_smoke(tmp_path):
-    pytest.importorskip("numpy")
-    from xionghan_chess.training.network import NumpyPolicyValueNet
+def test_numpy_policy_value_training_smoke() -> None:
+    """训练链路冒烟：**在独立子进程里跑** `tests/_smoke_training_impl.py`。
 
-    samples = collect_game(simulations=1, max_plies=1, seed=8)
-    dataset = tmp_path / "samples.jsonl"
-    append_jsonl(dataset, samples)
-    network = NumpyPolicyValueNet(hidden=4, seed=2)
-    metrics = network.train_jsonl(dataset, epochs=1)
-    model = tmp_path / "model.npz"
-    network.save(model)
-    assert metrics["samples"] == 1
-    assert metrics["loss"] > 0
-    assert model.exists()
+    ## 为什么隔离（不是跳过、也不是标 slow 摘出门禁）
+
+    整跑 `pytest tests/` 时，这条排在最后，会在原生层把进程打死（无 traceback）。
+    复现与排除：`git stash` 回到 `512cb56` 干净树仍崩；逐文件跑 / 分段跑都过；
+    把它排到最前跑也过。所以不是断言逻辑的问题，而是"累积的进程状态 + 一次大块 numpy 分配"
+    触发的原生崩溃，根因未定（疑似 Qt 对象/位图缓存与 numpy 的内存交互）。
+
+    处置＝**隔离执行、保留覆盖**：换一个干净解释器跑同一段逻辑，断言退出码与完成标记。
+    """
+    pytest.importorskip("numpy")
+    script = Path(__file__).with_name("_smoke_training_impl.py")
+    completed = subprocess.run(
+        [sys.executable, str(script)],
+        capture_output=True, text=True, timeout=300, cwd=str(script.parent.parent),
+    )
+    output = (completed.stdout or "") + (completed.stderr or "")
+    if completed.returncode != 0 or "TRAINING_SMOKE_OK" not in output:
+        tail = "\n".join(output.strip().splitlines()[-30:])
+        pytest.fail(f"训练冒烟子进程失败（returncode={completed.returncode}）\n{tail}")
