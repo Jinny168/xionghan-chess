@@ -24,27 +24,27 @@ from xionghan_chess.desktop import net
 
 
 def test_ws_url_http_becomes_ws() -> None:
-    assert net.ws_url("http://127.0.0.1:8000", "ABC123", "tok") == "ws://127.0.0.1:8000/ws/ABC123?token=tok"
+    assert net.ws_url("http://127.0.0.1:8000", "ABC123") == "ws://127.0.0.1:8000/ws/ABC123"
 
 
 def test_ws_url_https_becomes_wss() -> None:
-    assert net.ws_url("https://example.com", "R1", "t") == "wss://example.com/ws/R1?token=t"
+    assert net.ws_url("https://example.com", "R1") == "wss://example.com/ws/R1"
 
 
 def test_ws_url_spectator_adds_segment() -> None:
-    url = net.ws_url("http://h:8000", "R1", "t", spectator=True)
-    assert url == "ws://h:8000/ws/R1/spectate?token=t"
+    url = net.ws_url("http://h:8000", "R1", spectator=True)
+    assert url == "ws://h:8000/ws/R1/spectate"
 
 
 def test_ws_url_replaces_only_first_scheme() -> None:
     """`replace(..., 1)` —— 路径里再出现 http:// 不应被二次替换。"""
-    url = net.ws_url("http://h/api?next=http://x", "R1", "t")
+    url = net.ws_url("http://h/api?next=http://x", "R1")
     assert url.startswith("ws://h/api?next=http://x")
 
 
 def test_ws_url_does_not_mangle_plain_host() -> None:
     """没有 scheme 的地址保持原样（防御性：配置里写漏 scheme 时不静默变空）。"""
-    assert net.ws_url("example.com", "R", "t") == "example.com/ws/R?token=t"
+    assert net.ws_url("example.com", "R") == "example.com/ws/R"
 
 
 # --------------------------------------------------------------------------- #

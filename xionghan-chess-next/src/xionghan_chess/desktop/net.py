@@ -63,16 +63,24 @@ def request_json(
     return (transport or _urllib_transport)(url, body, headers, method)
 
 
-def ws_url(base: str, room_id: str, token: str, spectator: bool = False) -> str:
+def ws_url(base: str, room_id: str, spectator: bool = False) -> str:
     """把 HTTP(S) 服务地址转成 WebSocket 地址。
 
-    http://host:8000 → ws://host:8000/ws/<room>?token=...
+    http://host:8000 → ws://host:8000/ws/<room>
     https://...      → wss://...
     观战额外加 `/spectate` 段。
+
+    **token 不再放 URL**：连接后由客户端发首帧 `auth`（见 `encode_auth`）。
+    URL 会进访问日志、浏览器历史、Referer —— 那是泄露渠道。
     """
     scheme_swapped = base.replace("https://", "wss://", 1).replace("http://", "ws://", 1)
     suffix = "/spectate" if spectator else ""
-    return f"{scheme_swapped}/ws/{room_id}{suffix}?token={token}"
+    return f"{scheme_swapped}/ws/{room_id}{suffix}"
+
+
+def encode_auth(token: str) -> str:
+    """WS 首帧：`{"type": "auth", "token": ...}`。服务端 5 秒内收不到就 close(4401)。"""
+    return json.dumps({"type": "auth", "token": token}, ensure_ascii=False)
 
 
 def encode_message(type_: str, room_id: str | None, revision: int, payload: Any = None) -> str:

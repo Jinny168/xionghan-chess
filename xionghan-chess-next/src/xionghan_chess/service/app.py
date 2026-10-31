@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 
 from fastapi.responses import JSONResponse
-from fastapi import FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -298,8 +298,19 @@ async def join_room(room_id: str, request: JoinRoomRequest) -> dict:
         raise HTTPException(400, str(exc)) from exc
 
 
+def _reject_query_token(request: Request) -> None:
+    """query 里的 token 一律拒绝 —— 它会进访问日志、浏览器历史、Referer。
+
+    不做兼容期：留一条兼容路径，等于把泄露渠道留着。
+    """
+    if request.query_params.get("token"):
+        raise HTTPException(400, "token 请放请求头 X-Room-Token，不要放在 query string")
+
+
 @app.get("/api/rooms/{room_id}")
-async def room_state(room_id: str, token: str | None = None) -> dict:
+async def room_state(room_id: str, request: Request,
+                     token: str | None = Header(None, alias="X-Room-Token")) -> dict:
+    _reject_query_token(request)
     try:
         return manager.require(room_id).snapshot(token)
     except GameError as exc:
@@ -317,7 +328,9 @@ async def spectate_room(room_id: str, request: SpectateRequest) -> dict:
 
 
 @app.get("/api/rooms/{room_id}/legal")
-async def legal_moves(room_id: str, token: str, row: int, col: int) -> dict:
+async def legal_moves(room_id: str, request: Request, row: int, col: int,
+                      token: str = Header(..., alias="X-Room-Token")) -> dict:
+    _reject_query_token(request)
     try:
         room = manager.require(room_id)
         seat = manager.seat_for(room, token)
@@ -341,11 +354,49 @@ async def legal_moves(room_id: str, token: str, row: int, col: int) -> dict:
         raise HTTPException(403, str(exc)) from exc
 
 
+AUTH_TIMEOUT_SECONDS = 5.0
+
+
+async def _await_auth_token(websocket: WebSocket) -> str:
+    """accept 之后读**首帧** `{"type": "auth", "token": ...}`，返回 token。
+
+    为什么不把 token 放 query：它会进访问日志 / 浏览器历史 / Referer。
+    为什么不放 `Sec-WebSocket-Protocol`：部分代理会剥掉该头，且浏览器兼容参差。
+    首帧方案两端（web / Android WebView / 桌面）都是同一套代码。
+
+    首帧非法、类型不对、或 5 秒内没来 → 直接 close(4401)，**不留半连接**。
+    """
+    await websocket.accept()
+    try:
+        raw = await asyncio.wait_for(websocket.receive_text(), timeout=AUTH_TIMEOUT_SECONDS)
+    except asyncio.TimeoutError:
+        await websocket.close(code=4401, reason="认证超时：首帧必须是 {type:auth, token:...}")
+        raise WebSocketDisconnect(code=4401)
+    except Exception:                      # noqa: BLE001 - 对端直接断开
+        raise WebSocketDisconnect(code=1006) from None
+    try:
+        message = json.loads(raw)
+    except json.JSONDecodeError:
+        await websocket.close(code=4401, reason="首帧不是合法 JSON")
+        raise WebSocketDisconnect(code=4401)
+    token = message.get("token") if isinstance(message, dict) else None
+    if not isinstance(token, str) or not token:
+        await websocket.close(code=4401, reason="首帧必须是 {type:auth, token:...}")
+        raise WebSocketDisconnect(code=4401)
+    return token
+
+
 @app.websocket("/ws/{room_id}")
-async def websocket_room(websocket: WebSocket, room_id: str, token: str) -> None:
+async def websocket_room(websocket: WebSocket, room_id: str) -> None:
+    if websocket.query_params.get("token"):
+        await websocket.accept()
+        await websocket.close(code=4401, reason="token 请放在首帧 auth，不要放 query string")
+        return
+    token: str | None = None
     try:
         room = manager.require(room_id)
-        seat = await manager.connect(room, token, websocket)
+        token = await _await_auth_token(websocket)
+        seat = await manager.connect(room, token, websocket, accepted=True)
         await manager.broadcast(room)
         while True:
             envelope = await receive_envelope(websocket)
@@ -357,17 +408,23 @@ async def websocket_room(websocket: WebSocket, room_id: str, token: str) -> None
                                                    revision=room.revision,
                                                    payload={"message": str(exc), "state": room.snapshot(token)}).wire())
     except WebSocketDisconnect:
-        if "room" in locals():
+        if "room" in locals() and token:
             await manager.disconnect(room, token, websocket)
     except GameError as exc:
         await websocket.close(code=4403, reason=str(exc))
 
 
 @app.websocket("/ws/{room_id}/spectate")
-async def websocket_spectator(websocket: WebSocket, room_id: str, token: str) -> None:
+async def websocket_spectator(websocket: WebSocket, room_id: str) -> None:
+    if websocket.query_params.get("token"):
+        await websocket.accept()
+        await websocket.close(code=4401, reason="token 请放在首帧 auth，不要放 query string")
+        return
+    token: str | None = None
     try:
         room = manager.require(room_id)
-        spectator = await manager.connect_spectator(room, token, websocket)
+        token = await _await_auth_token(websocket)
+        spectator = await manager.connect_spectator(room, token, websocket, accepted=True)
         while True:
             envelope = await receive_envelope(websocket)
             if envelope.type is not MessageType.CHAT:
@@ -384,7 +441,7 @@ async def websocket_spectator(websocket: WebSocket, room_id: str, token: str) ->
                                                    revision=room.revision,
                                                    payload={"message": str(exc)}).wire())
     except WebSocketDisconnect:
-        if "room" in locals():
+        if "room" in locals() and token:
             await manager.disconnect_spectator(room, token, websocket)
     except GameError as exc:
         await websocket.close(code=4403, reason=str(exc))

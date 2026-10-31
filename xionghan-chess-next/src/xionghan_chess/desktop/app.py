@@ -739,11 +739,13 @@ class MainWindow(QMainWindow):
 
     def _connect_network(self) -> None:
         if not self.room_id or not self.token or not self.network_base:return
-        lang=self.config.get("language","zh-CN");ws=net.ws_url(self.network_base,self.room_id,self.token,self.spectator)
+        lang=self.config.get("language","zh-CN");ws=net.ws_url(self.network_base,self.room_id,self.spectator)
         socket=QWebSocket();self.network=socket;socket.textMessageReceived.connect(self.network_message);socket.connected.connect(lambda:self._network_connected(socket));socket.disconnected.connect(lambda:self._network_disconnected(socket));socket.open(QUrl(ws));self.statusBar().showMessage(f"{'房间' if lang!='en' else 'Room'} {self.room_id} · {'正在连接' if lang!='en' else 'Connecting'}")
 
     def _network_connected(self, socket: QWebSocket) -> None:
         if socket is not self.network:return
+        # 首帧必须是 auth（token 不再放 URL）。
+        socket.sendTextMessage(net.encode_auth(self.token))
         self.network_reconnect_attempts=0;lang=self.config.get("language","zh-CN");self.statusBar().showMessage("网络已恢复" if lang!="en" else "Network restored",5000)
 
     def _network_disconnected(self, socket: QWebSocket) -> None:

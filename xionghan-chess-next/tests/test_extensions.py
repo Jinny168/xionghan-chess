@@ -95,7 +95,8 @@ def test_spectator_channel_is_read_only():
         spectator = client.post(f"/api/rooms/{room['roomId']}/spectate",
                                 json={"displayName": "viewer"}).json()
         with client.websocket_connect(
-                f"/ws/{room['roomId']}/spectate?token={spectator['token']}") as socket:
+                f"/ws/{room['roomId']}/spectate") as socket:
+            socket.send_json({"type": "auth", "token": spectator["token"]})
             state = socket.receive_json()
             assert state["type"] == "state"
             assert state["payload"]["youAre"] is None

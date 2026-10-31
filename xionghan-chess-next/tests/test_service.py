@@ -13,7 +13,8 @@ def test_websocket_rejects_unsupported_protocol_version():
             "profileId": "traditional", "mode": "local", "playerName": "本机玩家"
         }).json()
         room_id, token = created["roomId"], created["token"]
-        with client.websocket_connect(f"/ws/{room_id}?token={token}") as socket:
+        with client.websocket_connect(f"/ws/{room_id}") as socket:
+            socket.send_json({"type": "auth", "token": token})
             socket.receive_json()
             socket.send_json({"type": "ping", "protocolVersion": 2})
             # B-02 起：先回一条协议错误帧，**再**关闭连接（以前直接关，对端只看到断线）。
@@ -30,7 +31,8 @@ def test_legal_move_endpoint_uses_authoritative_engine():
             "profileId": "web", "mode": "online", "playerName": "red", "playerColor": "red"
         }).json()
         room_id, token = created["roomId"], created["token"]
-        response = client.get(f"/api/rooms/{room_id}/legal", params={"token": token, "row": 8, "col": 0})
+        response = client.get(f"/api/rooms/{room_id}/legal",
+                              headers={"X-Room-Token": token}, params={"row": 8, "col": 0})
         assert response.status_code == 200
         assert {"row": 7, "col": 0} in response.json()["moves"]
         assert "captures" in response.json()
@@ -53,7 +55,8 @@ def test_chat_broadcast_does_not_advance_revision():
         }).json()
         room_id, token = created["roomId"], created["token"]
         revision = created["snapshot"]["revision"]
-        with client.websocket_connect(f"/ws/{room_id}?token={token}") as socket:
+        with client.websocket_connect(f"/ws/{room_id}") as socket:
+            socket.send_json({"type": "auth", "token": token})
             state = socket.receive_json()
             assert state["type"] == "state"
             socket.send_json({"type": "chat", "roomId": room_id, "revision": revision,
@@ -72,7 +75,8 @@ def test_local_mode_controls_both_colors_and_undoes_one_ply():
             "profileId": "traditional", "mode": "local", "playerName": "本机玩家"
         }).json()
         room_id, token = created["roomId"], created["token"]
-        with client.websocket_connect(f"/ws/{room_id}?token={token}") as socket:
+        with client.websocket_connect(f"/ws/{room_id}") as socket:
+            socket.send_json({"type": "auth", "token": token})
             snapshot = socket.receive_json()["payload"]
             first = snapshot["game"]["replay"][0]
             move = next(iter(Game("traditional").rules.legal_moves(Game("traditional").state)))
@@ -84,9 +88,9 @@ def test_local_mode_controls_both_colors_and_undoes_one_ply():
             assert after_move["game"]["turn"] == "black"
             legal_moves = []
             for black_piece in (p for p in after_move["game"]["pieces"] if p["color"] == "black"):
-                legal = client.get(f"/api/rooms/{room_id}/legal", params={
-                    "token": token, "row": black_piece["row"], "col": black_piece["col"]
-                })
+                legal = client.get(f"/api/rooms/{room_id}/legal",
+                                   headers={"X-Room-Token": token},
+                                   params={"row": black_piece["row"], "col": black_piece["col"]})
                 legal_moves.extend(legal.json()["moves"])
             assert legal_moves
             socket.send_json({"type": "undo_request", "roomId": room_id,
@@ -129,16 +133,16 @@ def test_pause_is_synchronized_and_blocks_legal_moves():
             "profileId": "traditional", "mode": "local", "playerName": "本机玩家"
         }).json()
         room_id, token = created["roomId"], created["token"]
-        with client.websocket_connect(f"/ws/{room_id}?token={token}") as socket:
+        with client.websocket_connect(f"/ws/{room_id}") as socket:
+            socket.send_json({"type": "auth", "token": token})
             snapshot = socket.receive_json()["payload"]
             socket.send_json({"type": "pause", "roomId": room_id,
                               "revision": snapshot["revision"], "protocolVersion": 1,
                               "payload": {"paused": True}})
             paused = socket.receive_json()["payload"]
             assert paused["game"]["paused"] is True
-            legal = client.get(f"/api/rooms/{room_id}/legal", params={
-                "token": token, "row": 6, "col": 0
-            })
+            legal = client.get(f"/api/rooms/{room_id}/legal",
+                               headers={"X-Room-Token": token}, params={"row": 6, "col": 0})
             assert legal.json()["moves"] == []
 
             socket.send_json({"type": "pause", "roomId": room_id,
@@ -154,9 +158,11 @@ def test_online_restart_requires_opponent_acceptance():
             "profileId": "traditional", "mode": "online", "playerName": "red", "playerColor": "red"
         }).json()
         black = client.post(f"/api/rooms/{red['roomId']}/join", json={"playerName": "black"}).json()
-        with client.websocket_connect(f"/ws/{red['roomId']}?token={red['token']}") as red_socket:
+        with client.websocket_connect(f"/ws/{red['roomId']}") as red_socket:
+            red_socket.send_json({"type": "auth", "token": red['token']})
             red_socket.receive_json()
-            with client.websocket_connect(f"/ws/{red['roomId']}?token={black['token']}") as black_socket:
+            with client.websocket_connect(f"/ws/{red['roomId']}") as black_socket:
+                black_socket.send_json({"type": "auth", "token": black['token']})
                 black_state = black_socket.receive_json()["payload"]
                 red_socket.receive_json()
                 red_socket.send_json({"type": "restart_request", "revision": black_state["revision"], "protocolVersion": 1, "payload": {}})

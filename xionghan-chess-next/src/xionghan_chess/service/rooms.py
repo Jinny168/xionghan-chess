@@ -186,12 +186,13 @@ class RoomManager:
             room.spectators[token] = spectator
             return room, spectator
 
-    async def connect_spectator(self, room: Room, token: str,
-                                websocket: WebSocket) -> Spectator:
+    async def connect_spectator(self, room: Room, token: str, websocket: WebSocket,
+                                accepted: bool = False) -> Spectator:
         spectator = room.spectators.get(token)
         if spectator is None:
             raise GameError(room.tr("error.invalid_token"))
-        await websocket.accept()
+        if not accepted:
+            await websocket.accept()
         async with room.lock:
             previous = room.spectator_sockets.get(token)
             room.spectator_sockets[token] = websocket
@@ -222,9 +223,12 @@ class RoomManager:
             "quick": False, "timestamp": int(time.time() * 1000),
         })
 
-    async def connect(self, room: Room, token: str, websocket: WebSocket) -> PlayerSeat:
+    async def connect(self, room: Room, token: str, websocket: WebSocket,
+                      accepted: bool = False) -> PlayerSeat:
         seat = self.seat_for(room, token)
-        await websocket.accept()
+        # WS 现在**先握手再认证**（token 在首帧），握手已经做过了，这里不能再 accept 一次。
+        if not accepted:
+            await websocket.accept()
         async with room.lock:
             previous = room.sockets.get(token)
             room.sockets[token] = websocket

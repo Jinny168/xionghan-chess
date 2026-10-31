@@ -96,7 +96,8 @@ def test_invalid_json_goes_through_the_normal_disconnect_path() -> None:
     room_id, token = created["roomId"], created["token"]
 
     received: list[dict] = []
-    with client.websocket_connect(f"/ws/{room_id}?token={token}") as socket:
+    with client.websocket_connect(f"/ws/{room_id}") as socket:
+        socket.send_json({"type": "auth", "token": token})
         received.append(socket.receive_json())        # 首帧 STATE
         socket.send_text("这不是 JSON")
         try:
