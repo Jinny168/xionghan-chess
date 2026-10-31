@@ -75,7 +75,10 @@ def archer_star_segments(profile: RuleProfile) -> tuple[tuple[Position, Position
 # stamps it into every saved document, so a load can tell whether a repetition
 # ledger was written in the *current* format and re-derive it if not (see
 # `game_from_document`). Version 2 is "the key that includes the capture pool".
-POSITION_KEY_VERSION = 2
+POSITION_KEY_VERSION = 3
+# v3：key 里加入**影响合法着法的选项摘要**（`||opt:`）。
+# 旧存档的 `positionCounts` 作废：key 不匹配即从 0 计，最坏结果是"已重复 2 次的局面重新计"，
+# 不会误判和 —— 反向（沿用旧 key 的计数）才是会误判和的方向。
 
 
 def pool_signature(state: GameState) -> str:
@@ -451,7 +454,19 @@ class RulesEngine:
         """
         pieces = sorted((p.color.value, p.type.value, p.position.row, p.position.col) for p in state.pieces)
         board = ";".join(f"{color}:{kind}:{row}:{col}" for color, kind, row, col in pieces)
-        return f"{state.turn.value}|{board}||pool:{pool_signature(state)}"
+        return (f"{state.turn.value}|{board}||pool:{pool_signature(state)}"
+                f"||opt:{self._option_digest()}")
+
+    def _option_digest(self) -> str:
+        """影响合法着法/吃子的选项摘要。
+
+        为什么 key 里要有它：`positionCounts` 会随存档/导入/网络带进选项不同的新对局，
+        那些计数是按**旧选项**算的。不含摘要时，两种不同规则下的同一盘面会共用一份计数。
+        只挑"改变合法着法"的字段，避免无谓抖动。
+        """
+        return (f"p3l{int(self.options.pawn_three_line_capture)}"
+                f"-promo{int(self.options.pawn_promotion)}"
+                f"-self{int(self.options.enforce_self_check)}")
 
     def _clear(self, state: GameState, source: Position, target: Position) -> bool:
         dr = (target.row > source.row) - (target.row < source.row)
