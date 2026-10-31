@@ -190,30 +190,184 @@
   },
   {
     "id": "master-guard-01",
-    "title": "尉卫跳阵",
+    "title": "尉卫斜取",
     "difficulty": "master",
-    "description": "理解尉卫隔子跳跃的起跳条件。",
+    "description": "尉沿斜线任意距离吃子；路径必须无子。",
     "profileId": "desktop_complete",
     "solution": [
       {
         "from": {
-          "row": 12,
+          "row": 6,
           "col": 6
         },
         "to": {
-          "row": 10,
-          "col": 6
+          "row": 8,
+          "col": 8
         }
       }
     ],
     "hints": [
-      "尉需要隔一枚棋子起跳。",
-      "观察正前方的主帅与后续落点。"
+      "尉只能走斜线，不能直走。",
+      "斜线上没有遮挡时，可以直接吃掉远处的敌子。"
     ],
     "tags": [
       "特色棋子",
       "尉"
-    ]
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 2,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "archer_enhanced_mode": false,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": true,
+        "pawn_full_movement_at_base": true,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": false,
+        "pawn_three_line_capture": false,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "armor_appear": false,
+        "assassin_appear": false,
+        "shield_appear": false,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "23fc48f83be3",
+            "type": "king",
+            "color": "red",
+            "row": 12,
+            "col": 12
+          },
+          {
+            "id": "acc7a3cc3194",
+            "type": "king",
+            "color": "black",
+            "row": 1,
+            "col": 1
+          },
+          {
+            "id": "71e754e8d729",
+            "type": "guard",
+            "color": "red",
+            "row": 6,
+            "col": 6
+          },
+          {
+            "id": "616e421a4dd4",
+            "type": "horse",
+            "color": "black",
+            "row": 8,
+            "col": 8
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 1200000,
+          "black": 1200000
+        },
+        "positionCounts": {}
+      },
+      "snapshots": [],
+      "savedAt": "2026-10-31T08:48:29"
+    }
   },
   {
     "id": "master-rook-01",
@@ -318,11 +472,9 @@
         "resolvedFirstMove": "red",
         "redSlots": [
           "red:archer:12:0",
-          "red:assassin:12:3",
           "red:thunder:12:4",
           "red:guard:12:6",
           "red:thunder:12:8",
-          "red:assassin:12:9",
           "red:archer:12:12",
           "red:rook:11:2",
           "red:horse:11:3",
@@ -347,11 +499,9 @@
         ],
         "blackSlots": [
           "black:archer:0:0",
-          "black:assassin:0:3",
           "black:thunder:0:4",
           "black:guard:0:6",
           "black:thunder:0:8",
-          "black:assassin:0:9",
           "black:archer:0:12",
           "black:rook:1:2",
           "black:horse:1:3",
@@ -388,13 +538,6 @@
             "col": 0
           },
           {
-            "id": "875d6e0fbd7a",
-            "type": "assassin",
-            "color": "black",
-            "row": 0,
-            "col": 3
-          },
-          {
             "id": "158c2fb6bfea",
             "type": "thunder",
             "color": "black",
@@ -414,13 +557,6 @@
             "color": "black",
             "row": 0,
             "col": 8
-          },
-          {
-            "id": "6f83a3c321e0",
-            "type": "assassin",
-            "color": "black",
-            "row": 0,
-            "col": 9
           },
           {
             "id": "edc931a76a6b",
@@ -577,13 +713,6 @@
             "col": 0
           },
           {
-            "id": "7579b9f0337a",
-            "type": "assassin",
-            "color": "red",
-            "row": 12,
-            "col": 3
-          },
-          {
             "id": "e8f457eb2dfa",
             "type": "thunder",
             "color": "red",
@@ -603,13 +732,6 @@
             "color": "red",
             "row": 12,
             "col": 8
-          },
-          {
-            "id": "349c92df521d",
-            "type": "assassin",
-            "color": "red",
-            "row": 12,
-            "col": 9
           },
           {
             "id": "e15f29a8d02b",
@@ -900,11 +1022,9 @@
         "resolvedFirstMove": "red",
         "redSlots": [
           "red:archer:12:0",
-          "red:assassin:12:3",
           "red:thunder:12:4",
           "red:guard:12:6",
           "red:thunder:12:8",
-          "red:assassin:12:9",
           "red:archer:12:12",
           "red:rook:11:2",
           "red:horse:11:3",
@@ -929,11 +1049,9 @@
         ],
         "blackSlots": [
           "black:archer:0:0",
-          "black:assassin:0:3",
           "black:thunder:0:4",
           "black:guard:0:6",
           "black:thunder:0:8",
-          "black:assassin:0:9",
           "black:archer:0:12",
           "black:rook:1:2",
           "black:horse:1:3",
@@ -970,13 +1088,6 @@
             "col": 0
           },
           {
-            "id": "ef55c2232de1",
-            "type": "assassin",
-            "color": "black",
-            "row": 0,
-            "col": 3
-          },
-          {
             "id": "781b048ae07a",
             "type": "thunder",
             "color": "black",
@@ -996,13 +1107,6 @@
             "color": "black",
             "row": 0,
             "col": 8
-          },
-          {
-            "id": "46d1b505bcd1",
-            "type": "assassin",
-            "color": "black",
-            "row": 0,
-            "col": 9
           },
           {
             "id": "0920718adf6f",
@@ -1159,13 +1263,6 @@
             "col": 0
           },
           {
-            "id": "e62180ed6531",
-            "type": "assassin",
-            "color": "red",
-            "row": 12,
-            "col": 3
-          },
-          {
             "id": "af289a82f0df",
             "type": "thunder",
             "color": "red",
@@ -1185,13 +1282,6 @@
             "color": "red",
             "row": 12,
             "col": 8
-          },
-          {
-            "id": "d93d061bbffe",
-            "type": "assassin",
-            "color": "red",
-            "row": 12,
-            "col": 9
           },
           {
             "id": "ed05a50fb642",
@@ -1651,11 +1741,9 @@
         "resolvedFirstMove": "red",
         "redSlots": [
           "red:archer:12:0",
-          "red:assassin:12:3",
           "red:thunder:12:4",
           "red:guard:12:6",
           "red:thunder:12:8",
-          "red:assassin:12:9",
           "red:archer:12:12",
           "red:rook:11:2",
           "red:horse:11:3",
@@ -1680,11 +1768,9 @@
         ],
         "blackSlots": [
           "black:archer:0:0",
-          "black:assassin:0:3",
           "black:thunder:0:4",
           "black:guard:0:6",
           "black:thunder:0:8",
-          "black:assassin:0:9",
           "black:archer:0:12",
           "black:rook:1:2",
           "black:horse:1:3",
@@ -1721,13 +1807,6 @@
             "col": 0
           },
           {
-            "id": "f5b58a52377d",
-            "type": "assassin",
-            "color": "black",
-            "row": 0,
-            "col": 3
-          },
-          {
             "id": "042b25435101",
             "type": "thunder",
             "color": "black",
@@ -1747,13 +1826,6 @@
             "color": "black",
             "row": 0,
             "col": 8
-          },
-          {
-            "id": "2ec2883d8512",
-            "type": "assassin",
-            "color": "black",
-            "row": 0,
-            "col": 9
           },
           {
             "id": "034200355db3",
@@ -1910,13 +1982,6 @@
             "col": 0
           },
           {
-            "id": "59da6805f928",
-            "type": "assassin",
-            "color": "red",
-            "row": 12,
-            "col": 3
-          },
-          {
             "id": "54cac416b8b6",
             "type": "thunder",
             "color": "red",
@@ -1936,13 +2001,6 @@
             "color": "red",
             "row": 12,
             "col": 8
-          },
-          {
-            "id": "03e49582da96",
-            "type": "assassin",
-            "color": "red",
-            "row": 12,
-            "col": 9
           },
           {
             "id": "3f5c446f4baa",
@@ -2442,11 +2500,9 @@
         "resolvedFirstMove": "red",
         "redSlots": [
           "red:archer:12:0",
-          "red:assassin:12:3",
           "red:thunder:12:4",
           "red:guard:12:6",
           "red:thunder:12:8",
-          "red:assassin:12:9",
           "red:archer:12:12",
           "red:rook:11:2",
           "red:horse:11:3",
@@ -2471,11 +2527,9 @@
         ],
         "blackSlots": [
           "black:archer:0:0",
-          "black:assassin:0:3",
           "black:thunder:0:4",
           "black:guard:0:6",
           "black:thunder:0:8",
-          "black:assassin:0:9",
           "black:archer:0:12",
           "black:rook:1:2",
           "black:horse:1:3",
@@ -2512,13 +2566,6 @@
             "col": 0
           },
           {
-            "id": "aca3d807b53c",
-            "type": "assassin",
-            "color": "black",
-            "row": 0,
-            "col": 3
-          },
-          {
             "id": "6331397b2f6a",
             "type": "thunder",
             "color": "black",
@@ -2538,13 +2585,6 @@
             "color": "black",
             "row": 0,
             "col": 8
-          },
-          {
-            "id": "17c3f0ef63c0",
-            "type": "assassin",
-            "color": "black",
-            "row": 0,
-            "col": 9
           },
           {
             "id": "a38aed44d599",
@@ -2701,13 +2741,6 @@
             "col": 0
           },
           {
-            "id": "2c66874f461c",
-            "type": "assassin",
-            "color": "red",
-            "row": 12,
-            "col": 3
-          },
-          {
             "id": "984c8f2c715f",
             "type": "thunder",
             "color": "red",
@@ -2727,13 +2760,6 @@
             "color": "red",
             "row": 12,
             "col": 8
-          },
-          {
-            "id": "9ef1d42fd669",
-            "type": "assassin",
-            "color": "red",
-            "row": 12,
-            "col": 9
           },
           {
             "id": "6d5dedecb8e1",
