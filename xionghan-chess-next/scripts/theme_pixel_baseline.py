@@ -32,10 +32,33 @@ THEMES = ("classic", "green", "blue", "purple", "dark")
 #   `--noise` 报 classic 206px、其余 0px —— 但那 206px 是**首次渲染的预热效应**
 #   （同一进程里第 1 次与第 2 次 `_render()` 比较）；用写好的基线做 `--check` 时，
 #   连跑两次均为 **0 px**。所以判据就用 0，容差留字段以便换机器时按 `--noise` 重测。
-NOISE_FLOOR = {"classic": 260, "green": 260, "blue": 260, "purple": 260, "dark": 260}
+NOISE_FLOOR = {"classic": 0, "green": 0, "blue": 0, "purple": 0, "dark": 0}
+# 噪声底 **0**：时钟已在 `_freeze_clock()` 里冻结（停 QTimer + 把 `game.tick` 打成空操作 +
+# 钉死 `clocks_ms`）。**不要**为了"让测试过"把这里调大 —— 那等于给真实回归开后门；
+# 若哪天又出现非 0，先找是哪个随时间变化的元素混进了基线，而不是调容差。
 # 噪声底不是 0：侧栏时钟的数字会随秒变化，相邻两次渲染约差 **206 px**（实测在 classic/green/purple
 # 之间漂移）。所以容差取 260（206 + 余量）。判据仍是"超过容差才算视觉变了"，
 # 但**不能**把容差当"允许回归"——B 阶段的判据是"差异必须落在预期区域"，看的是区域归因而不是这个数。
+
+
+def _freeze_clock(window) -> None:
+    """冻结侧栏时钟 —— 基线截图里不允许出现随时间变化的内容。
+
+    窗口的 `self.timer` 每 250ms 触发 `refresh()`，而 `refresh()` 会调 `game.tick()` 按真实时间扣钟。
+    所以只停 QTimer 还不够：先停表，再把 `tick` 打成空操作、并把剩余时间钉死，
+    否则"冻结时已扣了多少"仍取决于 processEvents 的调度。
+    """
+    from PySide6.QtCore import QTimer
+
+    for timer in window.findChildren(QTimer):
+        timer.stop()
+    game = getattr(window, "game", None)
+    if game is None:
+        return
+    game.tick = lambda *args, **kwargs: None
+    from xionghan_chess.core.model import Color
+
+    game.state.clocks_ms = {Color.RED: 20 * 60_000, Color.BLACK: 20 * 60_000}
 
 
 def _check_game():
@@ -73,6 +96,11 @@ def _render(app, theme_name: str, state: str = "init"):
     window.resize(*SIZE)
     window.show()
     for _ in range(3):
+        app.processEvents()
+    if "--no-freeze" not in sys.argv:
+        _freeze_clock(window)
+        window.refresh()
+    for _ in range(2):
         app.processEvents()
     image = window.grab().toImage()
     regions = _regions(window)

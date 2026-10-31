@@ -40,3 +40,17 @@ python scripts/theme_pixel_baseline.py --write
 | `<theme>_check.png` | `--check --state=check` | **将军态**（`#b21f1f` 只在将军时渲染） |
 
 将军态夹具：黑王 `(0,4)`、红车 `(0,10)` 沿第 0 行打将、轮到黑走（`_check_game()`），固定不随机。
+
+## 基线里不允许出现"随时间变化的内容"
+
+**判据**：基线截图里不得包含时钟、动画、随机种子等随时间/随机的元素。
+若无法消除，必须**点名是哪个元素**并在报告里单列该区域——**不许**用"容差"糊住。
+
+本工具的处理：`_freeze_clock()` 在抓图前
+1. 停掉窗口内所有 `QTimer`（`self.timer` 每 250ms 触发 `refresh()`）；
+2. 把 `game.tick` 打成空操作（否则 `refresh()` 仍会按真实时间扣钟）；
+3. 钉死 `game.state.clocks_ms = {RED: 20min, BLACK: 20min}`。
+
+之后 `--noise` 与 `--check` 均为 **0**。`NOISE_FLOOR` 保持全 0——
+**不要为了"让测试过"调大它**，那等于给真实回归开后门。
+调试需要动态界面时可用 `--no-freeze`（此时不做零差异断言）。
