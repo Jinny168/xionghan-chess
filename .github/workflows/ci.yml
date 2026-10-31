@@ -67,11 +67,8 @@ jobs:
           node --check android/Resources/assets/offline/offline-locales.js
           node --check scripts/offline_rules_probe.cjs
 
-      # `-m "not slow"`：默认门禁只跑快测（约 84s）。`slow` 里是专家档 14 条深度用例
-      # （每条 10–30s）与性能护栏 —— 它们由独立的 `slow.yml`（手动/每周定时、不阻塞合并）覆盖。
-      # 这里**不写 `cd`**：`defaults.run.working-directory` 已经指到 `xionghan-chess-next`。
       - name: pytest
-        run: python -m pytest tests/ -m "not slow" -q
+        run: pytest tests/ -m "not slow" -q
 
   # Desktop has ZERO automated coverage today: `tests/` greps 0 hits on desktop
   # symbols and the `test` extra does not even install PySide6, so a broken
