@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
         about=QAction(t("menu.about", lang),self);about.triggered.connect(self.show_about);help_menu.addAction(about)
         root=QWidget();root.setObjectName("root");self.setCentralWidget(root);layout=QVBoxLayout(root);self.banner=QLabel();self.banner.setAlignment(Qt.AlignmentFlag.AlignCenter);self.banner.setObjectName("banner");layout.addWidget(self.banner)
         split=QSplitter();layout.addWidget(split,1);self.board=BoardWidget();self.board.move_requested.connect(self.human_move);self.board.piece_selected.connect(lambda:self.audio.play("select"));split.addWidget(self.board)
-        side_inner=QWidget();right=QVBoxLayout(side_inner);self.side=QScrollArea();self.side.setWidgetResizable(True);self.side.setFrameShape(QFrame.Shape.NoFrame);self.side.setMaximumWidth(330);self.side.setWidget(side_inner);self.black=QLabel();self.red=QLabel();self.history=QListWidget();self.history.setMinimumHeight(120);self.captured=QLabel();self.captured.setWordWrap(True)
+        side_inner=QWidget();right=QVBoxLayout(side_inner);self.side=QScrollArea();self.side.setWidgetResizable(True);self.side.setFrameShape(QFrame.Shape.NoFrame);self.side.setMaximumWidth(330);self.side.setMinimumWidth(330);self.side.setWidget(side_inner);self.black=QLabel();self.red=QLabel();self.history=QListWidget();self.history.setMinimumHeight(120);self.captured=QLabel();self.captured.setWordWrap(True)
         right.addWidget(self.black);right.addWidget(self.red)
         side_tabs=QTabWidget();record_page=QWidget();record_layout=QVBoxLayout(record_page);record_layout.addWidget(self.history)
         chat_page=QWidget();chat_layout=QVBoxLayout(chat_page);self.chat_messages=QListWidget();chat_layout.addWidget(self.chat_messages,1)
@@ -160,7 +160,9 @@ class MainWindow(QMainWindow):
         actions=QGridLayout();self.undo=QPushButton(t("action.undo", lang));self.undo.clicked.connect(self.undo_move);self.pause=QPushButton(t("action.pause", lang));self.pause.clicked.connect(self.toggle_pause);self.resign=QPushButton(t("action.resign", lang));self.resign.clicked.connect(self.resign_game);self.draw=QPushButton(t("action.draw", lang));self.draw.clicked.connect(self.draw_game);self.resurrect=QPushButton(t("action.resurrect", lang));self.resurrect.clicked.connect(self.resurrect_pawn);self.again=QPushButton(t("action.play_again", lang));self.again.clicked.connect(self.trigger_play_again)
         self.flip=QPushButton(dl("翻转"));self.flip.clicked.connect(self.flip_board)
         for i,b in enumerate((self.undo,self.pause,self.resign,self.draw,self.resurrect,self.flip,self.again)):
-            b.setMinimumWidth(182);actions.addWidget(b,i//2,i%2)
+            # 单列：182 + 边距 18 = 200 ≤ 侧栏 330。原来两列要 364，横向溢出 99–193px，
+            # 第二列只露出 50%。182 不降 —— 那是为「未来语言不截断」留的余量（英文实测只用 95）。
+            b.setMinimumWidth(182);actions.addWidget(b,i,0)
         right.addLayout(actions);split.addWidget(self.side);split.setSizes([850,300])
         self.apply_appearance()
 
