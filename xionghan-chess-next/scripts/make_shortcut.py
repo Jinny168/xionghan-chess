@@ -14,7 +14,8 @@ import sys
 from pathlib import Path
 from ctypes import POINTER, Structure, byref, c_ulong, c_ushort, c_void_p, c_wchar_p
 
-ole32 = ctypes.oledll.ole32                 # oledll：HRESULT 失败自动抛 OSError
+ole32 = ctypes.oledll.ole32
+shell32 = ctypes.oledll.shell32                 # oledll：HRESULT 失败自动抛 OSError
 ole32.CoInitializeEx.argtypes = [c_void_p, c_ulong]
 ole32.CoInitializeEx.restype = ctypes.HRESULT
 ole32.CoCreateInstance.argtypes = [c_void_p, c_void_p, c_ulong, c_void_p, c_void_p]
@@ -39,7 +40,7 @@ IID_IPERSIST_FILE = "{0000010B-0000-0000-C000-000000000046}"
 
 # IShellLinkW vtable 下标（IUnknown 占 0..2）
 QI, RELEASE = 0, 2
-SET_DESCRIPTION, SET_WORKING_DIR, SET_ICON_LOCATION, SET_PATH = 7, 9, 17, 20
+SET_ID_LIST, SET_DESCRIPTION, SET_WORKING_DIR, SET_ICON_LOCATION, SET_PATH = 5, 7, 9, 17, 20
 PERSIST_SAVE = 6
 
 
@@ -71,6 +72,19 @@ def make_shortcut(lnk: str, target: str, workdir: str, icon: str, description: s
                            ctypes.cast(byref(link), c_void_p))
     if not link.value:
         raise OSError("CoCreateInstance 返回空指针")
+
+    # 先给 IDList（`SHParseDisplayName` 解析出的 PIDL）：
+    # 只有 SetPath 时 shell 不会写 LinkTargetIDList，产物约 500 B —— Explorer 能靠相对路径猜，
+    # 但"目标/图标"这类字段在多数读取端都是空的（本次用户遇到的正是这种半残 lnk）。
+    pidl = c_void_p()
+    attributes = c_ulong(0)
+    shell32.SHParseDisplayName.argtypes = [c_wchar_p, c_void_p, c_void_p, c_ulong, c_void_p]
+    shell32.SHParseDisplayName.restype = ctypes.HRESULT
+    shell32.SHParseDisplayName(c_wchar_p(target), None, ctypes.cast(byref(pidl), c_void_p),
+                               0, ctypes.cast(byref(attributes), c_void_p))
+    if pidl.value:
+        _call(link.value, SET_ID_LIST, pidl)
+        ole32.CoTaskMemFree(pidl)
 
     _call(link.value, SET_PATH, target)
     _call(link.value, SET_WORKING_DIR, workdir)
