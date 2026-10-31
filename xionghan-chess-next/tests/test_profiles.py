@@ -1,4 +1,4 @@
-from xionghan_chess.core.model import PieceType
+from xionghan_chess.core.model import PieceType, Position
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.profiles import get_profile, profile_rule_values
 
@@ -70,3 +70,32 @@ def test_profile_rule_values_do_not_leak_traditional_piece_disabling():
     assert complete["archer_appear"]
     assert complete["thunder_appear"]
     assert not complete["armor_appear"], "甲已软删：完整档也不再出场"
+
+
+def test_guard_and_advisor_are_swapped_at_the_opening() -> None:
+    """尉与仕对调（红 (11,5)↔(12,6)，黑镜像 (1,5)↔(0,6)）。
+
+    尉改成标准主教后，原来的 (12,6) 两侧斜格被两只仕同时占死、首着 0；
+    对调后尉首着 4，且仕/檑/王的首着数一格不变。
+    """
+    from xionghan_chess.core.model import Color
+
+    game = Game("desktop_complete")
+    rules = game.rules
+
+    def moves_from(row: int, col: int, color: Color) -> int:
+        return sum(1 for m in rules.legal_moves(game.state, color)
+                   if (m.source.row, m.source.col) == (row, col))
+
+    # 红方：尉在 (11,5) 有 4 着；仕在 (12,6) 与 (11,7) 各 2 着
+    assert game.state.piece_at(Position(11, 5)).type is PieceType.GUARD
+    assert game.state.piece_at(Position(12, 6)).type is PieceType.ADVISOR
+    assert moves_from(11, 5, Color.RED) == 4
+    assert moves_from(12, 6, Color.RED) == 2
+    assert moves_from(11, 7, Color.RED) == 2
+
+    # 黑方镜像逐位对称：(1,5) 是尉、(0,6) 是仕
+    assert game.state.piece_at(Position(1, 5)).type is PieceType.GUARD
+    assert game.state.piece_at(Position(0, 6)).type is PieceType.ADVISOR
+    assert moves_from(1, 5, Color.BLACK) == 4
+    assert moves_from(0, 6, Color.BLACK) == 2

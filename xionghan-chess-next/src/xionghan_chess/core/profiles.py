@@ -159,10 +159,12 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
     flip = (lambda row: XIONGHAN_ROWS - 1 - row) if color is Color.RED else (lambda row: row)
     items: list[tuple[PieceType, int, int]] = []
     if complete:
-        # 软删甲/楯/刺：后排只保留射、檑、尉
+        # 软删甲/楯/刺：后排只保留射、仕、檑
+        # 尉与仕对调（(0,6)↔(1,5)）：尉改主教后原本两侧斜格被两只仕同时占死、首着 0，
+        # 玩家不愿动仕 → 整局可能不动尉。对调后尉首着 4，且仕/檑/王的首着数完全不变。
         items += [
             (PieceType.ARCHER, 0, 0), (PieceType.THUNDER, 0, 4),
-            (PieceType.GUARD, 0, 6), (PieceType.THUNDER, 0, 8),
+            (PieceType.ADVISOR, 0, 6), (PieceType.THUNDER, 0, 8),
             (PieceType.ARCHER, 0, 12),
         ]
     elif web:
@@ -177,7 +179,7 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
         ]
     items += [
         (PieceType.ROOK, 1, 2), (PieceType.HORSE, 1, 3),
-        (PieceType.ELEPHANT, 1, 4), (PieceType.ADVISOR, 1, 5),
+        (PieceType.ELEPHANT, 1, 4), (PieceType.GUARD, 1, 5),
         (PieceType.KING, 1, 6), (PieceType.ADVISOR, 1, 7),
         (PieceType.ELEPHANT, 1, 8), (PieceType.HORSE, 1, 9),
         (PieceType.ROOK, 1, 10), (PieceType.CANNON, 3, 1),
