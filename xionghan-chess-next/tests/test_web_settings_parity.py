@@ -53,3 +53,23 @@ def test_play_again_is_always_clickable_and_confirms_mid_game() -> None:
     """再来一局：局中点击先确认，确认后才重开（桌面语义）。"""
     assert "restartButton" in HTML and "再来一局" in HTML
     assert "confirm(" in APP_JS and "对局尚未结束" in APP_JS, "局中点击应弹确认"
+
+
+def test_pawn_switches_are_exposed_in_web_rule_options() -> None:
+    """P2：兵的两个开关必须在网页规则分组里（与桌面 `dialogs.py` 的兵组一致）。"""
+    start = APP_JS.find("pawn:[")
+    assert start >= 0, "app.js 里找不到 pawn 的开关分组"
+    end = APP_JS.find("]", start)
+    block = APP_JS[start:end]
+    keys = re.findall(r"'([a-z_]+)'", block)
+    assert "pawn_charge" in keys, f"缺少「过长城后可直冲」开关：{keys}"
+    assert "pawn_three_line_capture" in keys, f"缺少「两兵夹一敌子」开关：{keys}"
+
+
+def test_pawn_switches_default_to_off() -> None:
+    """两个开关的默认值必须是关（与服务端 `RuleOptions` 一致）。"""
+    from xionghan_chess.core.profiles import RuleOptions
+
+    options = RuleOptions()
+    assert options.pawn_charge is False
+    assert options.pawn_three_line_capture is False

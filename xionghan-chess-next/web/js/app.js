@@ -68,7 +68,7 @@ const pieceRuleKeys={
   king:['king_can_leave_palace','king_diagonal_in_palace','king_lose_diagonal_outside_palace','invasion_victory'],
   horse:['horse_straight_three'],elephant:['elephant_can_cross_river','elephant_gain_jump_two_enemy_territory'],
   advisor:['advisor_can_leave_palace','advisor_gain_straight_outside_palace'],
-  pawn:['pawn_fast_move_before_enemy_territory','pawn_backward_at_base','pawn_full_movement_at_base','pawn_resurrection','pawn_promotion'],
+  pawn:['pawn_fast_move_before_enemy_territory','pawn_charge','pawn_three_line_capture','pawn_backward_at_base','pawn_full_movement_at_base','pawn_resurrection','pawn_promotion'],
   archer:['archer_enhanced_mode']
 };
 const names = {red:{king:'漢',rook:'俥',horse:'傌',elephant:'相',advisor:'仕',cannon:'炮',pawn:'兵',guard:'尉',archer:'射',thunder:'檑',patrol:'巡'},black:{king:'汗',rook:'車',horse:'馬',elephant:'象',advisor:'士',cannon:'砲',pawn:'卒',guard:'衛',archer:'䠶',thunder:'礌',patrol:'廵'}};
