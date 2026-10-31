@@ -412,7 +412,7 @@
     "elephant_long": "Moves two points diagonally, constrained by eye and boundary rules",
     "advisor_long": "Normally moves one point diagonally inside the palace",
     "cannon_long": "Moves straight; captures with exactly one screen",
-    "pawn_long": "Advances forward and can move sideways in enemy territory",
+    "pawn_long": "Advances forward and can move sideways in enemy territory; with three-in-line capture on, a moved pawn that forms an adjacent line (two of yours, one enemy, any order) captures that enemy",
     "guard_long": "Moves and captures any distance along a diagonal; stops at the first piece in the way. Never moves orthogonally.",
     "archer_long": "Weak mode follows valid star tracks; enhanced mode can move diagonally off track",
     "thunder_long": "Moves in eight directions and only attacks adjacent isolated enemies",
