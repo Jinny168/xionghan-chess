@@ -1,6 +1,6 @@
 """网页「棋子图谱」首屏静态快照：4 个预设必须各自演示出对应规则。
 
-网页没有本地规则引擎（不加载 `offline.js`），首屏靠 `web/data/piece_atlas.json`。
+网页没有本地规则引擎（不加载 `offline.js`），首屏靠 `web/data/atlas_presets.json`。
 所以这些断言**只读静态数据**，不依赖服务：数据错了就是演示错了。
 """
 
@@ -12,16 +12,16 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SNAPSHOT = ROOT / "web" / "data" / "piece_atlas.json"
+SNAPSHOT = ROOT / "web" / "data" / "atlas_presets.json"
 PRESETS = {item["id"]: item for item in json.loads(SNAPSHOT.read_text(encoding="utf-8"))["presets"]}
 
 
 def test_snapshot_matches_generator() -> None:
     """快照必须与生成脚本一致（改了脚本忘了重跑 → 红）。"""
     before = SNAPSHOT.read_text(encoding="utf-8")
-    subprocess.run([sys.executable, str(ROOT / "scripts" / "build_web_atlas.py")],
+    subprocess.run([sys.executable, str(ROOT / "scripts" / "gen_atlas_presets.py")],
                    check=True, capture_output=True)
-    assert SNAPSHOT.read_text(encoding="utf-8") == before, "快照过期，请重跑 scripts/build_web_atlas.py"
+    assert SNAPSHOT.read_text(encoding="utf-8") == before, "快照过期，请重跑 scripts/gen_atlas_presets.py"
 
 
 def test_clamp_preset_blocks_the_far_diagonal() -> None:

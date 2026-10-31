@@ -1,11 +1,11 @@
-"""生成网页「棋子图谱」的首屏静态快照：`web/data/piece_atlas.json`。
+"""生成网页「棋子图谱」的首屏静态快照：`web/data/atlas_presets.json`。
 
 为什么是静态快照（C 方案）：
 网页端**没有本地规则引擎**（不加载 `offline.js`，以免变成第三套引擎）。
 首屏只需"预设局面 + 该子可走格"，构建时用服务端同源的 `RulesEngine` 算好导出即可，
 零请求、零漂移；用户真的走第二步时才打 `/api/analysis/legal`。
 
-用法：python scripts/build_web_atlas.py
+用法：python scripts/gen_atlas_presets.py
 """
 from __future__ import annotations
 
@@ -90,7 +90,7 @@ PRESETS = [
 
 def main() -> None:
     out = {"profile": PROFILE, "presets": PRESETS}
-    path = ROOT / "web" / "data" / "piece_atlas.json"
+    path = ROOT / "web" / "data" / "atlas_presets.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     for item in PRESETS:
