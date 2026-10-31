@@ -74,6 +74,8 @@ def test_dialogs_declare_audit_minimum_sizes() -> None:
     用源码断言而不是全部实例化：`HandicapDialog`/`TrainingDialog` 需要 parent 提供
     `config`，`ReplayDialog` 需要房间对象，为一个数值断言去构造整套依赖不值得。
     """
+    # 权威来源：`docs/UI_GEOMETRY_AUDIT_2026-10-31.md` §3「对话框最小尺寸」表。
+    # 表变了就改这里；这里变了说明实现偏离审计 —— 两边必须同步，别只改一边。
     expected = {
         "HandicapDialog": "setMinimumSize(520,480)",
         "ReplayDialog": "setMinimumSize(820,560)",
@@ -101,3 +103,39 @@ def test_board_fills_the_limiting_dimension(window, qt_app) -> None:
         expected = min(host.width(), host.height())
         assert abs(board.width() - expected) <= 1, (
             f"{size}: 棋盘边长 {board.width()} != 容器短边 {expected}（限制维度没顶满）")
+
+
+def test_document_dialog_body_is_usable(qt_app) -> None:
+    """`DocumentDialog` 能**无依赖构造**（只吃 title/content），所以在这里做真实测量。
+
+    判据用**绝对像素 120**，不用 sizeHint 百分比：`QTextBrowser` 的 sizeHint 依赖内容，
+    拿它算比例会把"内容短"误判成"布局差"。
+    """
+    from xionghan_chess.desktop.ui.dialogs import DocumentDialog
+
+    dialog = DocumentDialog("t", "正文" * 200)
+    dialog.resize(dialog.minimumSize())
+    dialog.show()
+    qt_app.processEvents()
+    body = dialog.findChild(type(dialog.findChildren(type(dialog))[0])) if False else None
+    from PySide6.QtWidgets import QTextBrowser
+    browser = dialog.findChild(QTextBrowser)
+    assert browser is not None, "DocumentDialog 里没有正文控件"
+    assert browser.height() >= 120, f"最小尺寸下正文只有 {browser.height()}px"
+    dialog.close()
+
+
+def test_library_dialog_list_is_usable(qt_app, tmp_path) -> None:
+    """`GameLibraryDialog` 只吃 (folder, config)，可无依赖构造 → 真实测量列表高度。"""
+    from xionghan_chess.desktop.ui.dialogs import GameLibraryDialog
+
+    dialog = GameLibraryDialog(tmp_path, {})
+    dialog.resize(dialog.minimumSize())
+    dialog.show()
+    qt_app.processEvents()
+    from PySide6.QtWidgets import QListWidget
+    lists = dialog.findChildren(QListWidget)
+    assert lists, "GameLibraryDialog 里没有列表控件"
+    assert max(x.height() for x in lists) >= 120, (
+        f"最小尺寸下列表最高只有 {max(x.height() for x in lists)}px")
+    dialog.close()

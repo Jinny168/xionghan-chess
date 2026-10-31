@@ -179,3 +179,14 @@ for cls in (SettingsDialog, TrainingDialog, DocumentDialog):
 
 - `docs/UI_AUDIT_2026-10-31.md` 的 **U-06（最小窗口 760×560 vs minHint 740）已随 1.7.5 修复**：现在 `setMinimumSize` 是 900×680、侧栏已包进 `QScrollArea`、`minimumSizeHint` 降到 526×541。**但修复方式留下了一个新问题，就是本文的 G-01**——侧栏能滚了，可内容比视口宽 99–193px，滚动条常驻。
 - U-09（棋盘非正方形）在本文用三档实测坐实（G-02），严重度维持 P2→P1（因为最小窗口下死区仍有 70px）。
+
+## 守卫覆盖情况（2026-10-31 补）
+
+| 项 | 守卫 |
+|---|---|
+| 侧栏不横溢 | `test_sidebar_never_scrolls_horizontally`（真实测量，三档） |
+| 棋盘正方 / 顶满短边 | `test_board_is_square` / `test_board_fills_the_limiting_dimension`（真实测量） |
+| Document 正文高度 | `test_document_dialog_body_is_usable`（真实测量，≥120px） |
+| Library 列表高度 | `test_library_dialog_list_is_usable`（真实测量，≥120px） |
+| Handicap / Replay / Training 最小尺寸 | **静态断言 + 需人工抽查**（构造要 parent.config / 房间对象，造 mock 的代价大于收益） |
+| Handicap / Replay / Training 可视高度 | **需人工抽查**（同上） |
