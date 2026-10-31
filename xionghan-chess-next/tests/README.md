@@ -21,6 +21,17 @@ comm -23 /tmp/old.txt /tmp/new.txt   # 删除
 comm -13 /tmp/old.txt /tmp/new.txt   # 新增
 ```
 
+### 2026-10-31 · 定向 removals 对拍（79 ⇒ 81）
+
+批量门禁只比 `legalAll` + `inCheck`。**三连吃子这类"只改变移走哪些子、不改变合法着集合"的规则，
+批量对拍一条都不会红** —— 所以补了 2 条**定向**对拍，用探针已有的 `capturedByMove` 支路
+（一次请求只算指定的一步，不改批量契约、不变慢）：
+
+1. `test_three_line_capture_parity_when_the_moved_pawn_joins_the_line`：移动兵参与成线 → 两侧都吃那枚士；
+2. `test_three_line_capture_parity_ignores_a_far_line`：走无关兵、远处已成线 → 两侧都为空。
+
+两条都**先断言"非空 / 为空"再比相等** —— 只比相等的话两边都返回 `[]` 也会绿。
+
 ### 2026-10-31 · 甲/楯/刺硬删除 → 87 ⇒ **79**
 
 净减 8（删 9、新增 1）。**不是被削弱**：删掉的 9 条全部是专测这三个兵种的用例，

@@ -1361,3 +1361,57 @@ def test_random_sample_set_covers_every_piece_type():
     assert not missing, (
         f"{PARITY_SAMPLES} samples never exercised: {sorted(kind.value for kind in missing)}"
     )
+
+# --------------------------------------------------------------------------
+# 定向 removals 对拍：只改变"移走哪些子"、不改变合法着集合的规则（如三连吃子），
+# 批量门禁比的是 legalAll/inCheck，抓不到它 —— 这两条用已有的 `capturedByMove`
+# 定向支路（一次请求只算**指定的一步**，不影响 79 条批量用例的耗时与契约）。
+# --------------------------------------------------------------------------
+
+THREE_LINE_OPTIONS = {"pawn_three_line_capture": True}
+
+
+def _three_line_game(placements, options=None):
+    return _sparse("desktop_complete",
+                   [(PieceType.KING, Color.RED, 11, 6), (PieceType.KING, Color.BLACK, 0, 4)]
+                   + placements,
+                   kings=False, options=options or THREE_LINE_OPTIONS)
+
+
+def test_three_line_capture_parity_when_the_moved_pawn_joins_the_line():
+    """参与则吃：`(6,4)→(5,4)` 与 `(5,5)` 兵、`(5,6)` 黑士成线 → 两侧都吃掉那枚士。"""
+    game = _three_line_game([
+        (PieceType.PAWN, Color.RED, 6, 4),
+        (PieceType.PAWN, Color.RED, 5, 5),
+        (PieceType.ADVISOR, Color.BLACK, 5, 6),
+    ])
+    move = Move(Position(6, 4), Position(5, 4))
+
+    python_captured = sorted((piece.type.value, piece.color.value)
+                             for piece in game.rules.captured_by_move(game.state, move))
+    js_captured = sorted((item["type"], item["color"])
+                         for item in _offline_captured(game, move.source, move.target))
+
+    # 先断言**非空**：只比相等的话，两边都返回 [] 也会绿（假绿）。
+    assert python_captured, "三连吃子没吃到任何子 —— 收窄可能过头了"
+    assert js_captured == python_captured, f"python={python_captured} js={js_captured}"
+    assert ("advisor", "black") in python_captured
+
+
+def test_three_line_capture_parity_ignores_a_far_line():
+    """不参与不吃：走无关的兵 `(8,4)→(7,4)`，远处 `(2,8)(2,9)(2,10)` 成线 → 两侧都为空。"""
+    game = _three_line_game([
+        (PieceType.PAWN, Color.RED, 8, 4),
+        (PieceType.PAWN, Color.RED, 2, 8),
+        (PieceType.PAWN, Color.RED, 2, 9),
+        (PieceType.ADVISOR, Color.BLACK, 2, 10),
+    ])
+    move = Move(Position(8, 4), Position(7, 4))
+
+    python_captured = sorted((piece.type.value, piece.color.value)
+                             for piece in game.rules.captured_by_move(game.state, move))
+    js_captured = sorted((item["type"], item["color"])
+                         for item in _offline_captured(game, move.source, move.target))
+
+    assert python_captured == [], f"不该收割远线，实际 {python_captured}"
+    assert js_captured == python_captured, f"python={python_captured} js={js_captured}"
