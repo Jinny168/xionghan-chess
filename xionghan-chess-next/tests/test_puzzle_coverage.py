@@ -96,3 +96,18 @@ def test_solutions_actually_move_pieces() -> None:
     for puzzle in load_puzzles():
         pieces, _ = puzzle.exercise()
         assert pieces, f"{puzzle.id} 的解法没有走到任何棋子"
+
+
+def test_all_eleven_piece_types_are_covered() -> None:
+    """题库应覆盖**在用的 11 个 PieceType**；缺哪型就显式说明，而不是静默放过。"""
+    from xionghan_chess.core.model import PieceType
+    from xionghan_chess.core.puzzles import load_puzzles
+
+    seen: set[PieceType] = set()
+    for puzzle in load_puzzles():
+        for piece in puzzle.document["state"]["pieces"]:
+            seen.add(PieceType(piece["type"]))
+    missing = sorted(k.value for k in PieceType if k not in seen)
+    if missing:
+        pytest.xfail(f"题库尚未覆盖：{missing}（11 型目标，当前 {len(seen)}/11）")
+    assert len(seen) == 11

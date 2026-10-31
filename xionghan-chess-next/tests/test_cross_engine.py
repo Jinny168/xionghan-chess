@@ -457,6 +457,40 @@ def test_pawn_fast_move_toggle_parity():
 
 
 
+def test_thunder_parity_line_diagonal_and_isolated_capture():
+    """檑：直线/斜线 + 只吃孤立敌子。本条与任何已删除兵种无关，纯 parity。"""
+    game = _sparse("desktop_complete", [
+        (PieceType.THUNDER, Color.RED, 6, 4),
+        (PieceType.PAWN, Color.BLACK, 4, 4),      # 孤立：两格内可吃
+        (PieceType.PAWN, Color.BLACK, 7, 4),
+        (PieceType.PAWN, Color.RED, 7, 4),        # 挡住下方那只黑兵 → 它不算孤立
+        (PieceType.THUNDER, Color.BLACK, 6, 8),
+    ])
+    _assert_parity(game)
+
+
+def test_promotion_candidates_are_subset_of_enabled_types():
+    """升变候选必须 ⊆ 当前档案**启用**的类型（`*_appear` 关掉的不许出现）。
+
+    这是原 `test_promotion_never_offers_a_soft_deleted_type` 的替代版：那个 bug
+    （JS 只按 `profile.enabled` 过滤、漏了 `*_appear`）在硬删除后无法再用"甲"触发，
+    所以改成人为关掉一个**在用**类型（檑）来造同一条件。
+    """
+    off = _sparse("desktop_complete", [
+        (PieceType.KING, Color.RED, 12, 12),
+        (PieceType.KING, Color.BLACK, 0, 10),
+        (PieceType.PAWN, Color.RED, 1, 3),
+    ], kings=False, options={"thunder_appear": False})
+    off.state.captured[Color.RED].append(Piece.create(PieceType.THUNDER, Color.RED, 0, 0))
+    off.state.captured[Color.RED].append(Piece.create(PieceType.GUARD, Color.RED, 0, 0))
+
+    _assert_parity(off)
+    promotions = {m.promotion for m in off.rules.legal_moves(off.state)
+                  if m.source == Position(1, 3)}
+    assert PieceType.THUNDER not in promotions, "被 `*_appear=False` 关掉的类型不得出现在升变候选"
+    assert PieceType.GUARD in promotions, "启用的池内类型必须可选"
+
+
 def test_guard_parity_slides_diagonally():
     """尉＝标准主教：两引擎都必须只给斜线目标、且遇子即停（照面钉住已删）。"""
     game = _sparse("desktop_complete", [

@@ -67,3 +67,17 @@ def test_guard_and_advisor_are_swapped_at_the_opening() -> None:
     assert game.state.piece_at(Position(0, 6)).type is PieceType.ADVISOR
     assert moves_from(1, 5, Color.BLACK) == 4
     assert moves_from(0, 6, Color.BLACK) == 2
+
+
+def test_delivery_profiles_have_distinct_piece_sets() -> None:
+    """各交付档的初始棋子集必须互不相同（否则"选档案"没有意义）。"""
+    sets = {}
+    for profile_id in ("desktop_complete", "web", "traditional", "desktop_classic"):
+        profile = get_profile(profile_id)
+        sets[profile_id] = {(p.type, p.position) for p in profile.initial_pieces()}
+
+    complete = get_profile("desktop_complete")
+    assert len(complete.initial_pieces()) == 50, "完整档应为 50 子（每方 25）"
+
+    distinct = {frozenset(v) for v in sets.values()}
+    assert len(distinct) == len(sets), f"有档案的棋子集重复：{sorted(sets)}"

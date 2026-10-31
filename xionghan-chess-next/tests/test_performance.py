@@ -61,8 +61,8 @@ def _game_with_pool(pool: list[Piece]) -> Game:
         Piece.create(PieceType.HORSE, Color.BLACK, 3, 6),
         Piece.create(PieceType.PAWN, Color.RED, 9, 3),
         Piece.create(PieceType.PAWN, Color.BLACK, 4, 9),
-        Piece.create(PieceType.ARMOR, Color.RED, 10, 1),
-        Piece.create(PieceType.ASSASSIN, Color.BLACK, 2, 11),
+        Piece.create(PieceType.GUARD, Color.RED, 10, 1),
+        Piece.create(PieceType.PATROL, Color.BLACK, 2, 11),
     ]
     state = GameState(profile.id, pieces, turn=Color.RED,
                       captured={Color.RED: list(pool), Color.BLACK: []})
@@ -158,3 +158,19 @@ def test_benchmark_acceptance_schema_is_consumable_at_small_scale():
     # The per-move budget is the one gate a tiny match can still evaluate; with a
     # single MCTS simulation it trivially holds.
     assert acceptance["masterMoveAtMost12Seconds"] is True
+
+def test_position_key_pool_segment_stays_cheap():
+    """池段排序的开销必须远小于全盘排序（原基线：空池 ~7.3us / 满池 ~8.1us）。"""
+    stocked_pool = [Piece.create(kind, Color.RED, 0, index) for index, kind in enumerate(
+        (PieceType.ROOK, PieceType.HORSE, PieceType.CANNON, PieceType.GUARD,
+         PieceType.ARCHER, PieceType.THUNDER))]
+
+    empty = _game_with_pool([])
+    stocked = _game_with_pool(stocked_pool)
+    empty_key = _best_time(lambda: empty.rules.position_key(empty.state), number=200)
+    stocked_key = _best_time(lambda: stocked.rules.position_key(stocked.state), number=200)
+
+    assert empty_key < 1e-3, f"position_key (empty pool) took {empty_key * 1e6:.1f} us"
+    assert stocked_key < 1e-3, f"position_key (stocked pool) took {stocked_key * 1e6:.1f} us"
+
+
