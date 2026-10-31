@@ -87,7 +87,7 @@ DEFAULTS: dict[str, Any] = {
     "music_volume": 40,
     "theme": "classic",
     "font": "system",
-    "background": "none",
+    "background": "1",
     "piece_style": "glyph",
     # 棋子画法：`glyph` = 1.7.0 的字形棋子（默认，界面逐像素不变）；`image` = 三风格美术图。
     # 新增键不 bump CONFIG_VERSION：`{**DEFAULTS, **data}` 会自动给旧配置补上默认值。
@@ -206,6 +206,13 @@ def _normalize_piece_style(style: object, render: object) -> tuple[str, str]:
     return "traditional", "image"
 
 
+def _normalize_background(value: object) -> str:
+    """背景图只有 1–5 五张；老配置里的 `"none"`（已下线的「原色」项）一律落到 `"1"`。"""
+    if value in ("1", "2", "3", "4", "5"):
+        return str(value)
+    return "1"
+
+
 def load_config() -> dict[str, Any]:
     try:
         raw = json.loads(config_path().read_text(encoding="utf-8"))
@@ -218,6 +225,10 @@ def load_config() -> dict[str, Any]:
     style, render = _normalize_piece_style(merged.get("piece_style"), merged.get("piece_render"))
     if (merged.get("piece_style"), merged.get("piece_render")) != (style, render):
         merged["piece_style"], merged["piece_render"] = style, render
+        changed = True
+    background = _normalize_background(merged.get("background"))
+    if merged.get("background") != background:
+        merged["background"] = background
         changed = True
     if changed:
         # 迁移结果回写一次，之后每次启动都是「已是最新版本」，不再重复跑。

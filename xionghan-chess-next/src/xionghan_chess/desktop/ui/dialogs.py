@@ -83,7 +83,8 @@ class SettingsDialog(QDialog):
         self.music_volume=QSlider(Qt.Orientation.Horizontal);self.music_volume.setRange(0,100);self.music_volume.setValue(config.get("music_volume",40))
         self.theme=QComboBox();[(self.theme.addItem(t(f"option.theme_{value}", self.language),value)) for value in ("classic","green","blue","purple","dark")];self.theme.setCurrentIndex(max(0,self.theme.findData(config.get("theme","classic"))))
         self.font=QComboBox();[(self.font.addItem(text,value)) for value,text in (("system",dl("微软雅黑")),("kaiti",dl("楷体")),("songti",dl("宋体")),("fangsong",dl("仿宋")))];self.font.setCurrentIndex(max(0,self.font.findData(config.get("font","system"))))
-        self.background=QComboBox();self.background.addItem(dl("原色（无背景图片）"),"none");[(self.background.addItem(dlf("背景 {index}", index=index),str(index))) for index in range(1,6)];self.background.setCurrentIndex(max(0,self.background.findData(str(config.get("background","none")))))
+        # 背景只保留 5 张图（「原色（无背景图片）」已下线；老配置的 "none" 由 config 迁移到 "1"）
+        self.background=QComboBox();[(self.background.addItem(dlf("背景 {index}", index=index),str(index))) for index in range(1,6)];self.background.setCurrentIndex(max(0,self.background.findData(str(config.get("background","1")))))
         # 「棋子美术风格」下拉的第一项是**回退项**：选中它 = `piece_render="glyph"`。
         # 没有它就成了单向门 —— 用户切到图片风格后再也回不到 1.7.0 的字形棋子。
         # 只有四个值：字形 + 三套美术（`piece_render` 由它派生，不再单独让用户选）
