@@ -79,3 +79,34 @@ def test_online_room_without_socket_is_reclaimed() -> None:
 
     still_there = asyncio.run(scenario())
     assert not still_there, "从未连 socket 的 online 房没有被回收"
+
+
+def test_invalid_json_goes_through_the_normal_disconnect_path() -> None:
+    """B-02：发非法 JSON 后，连接关闭、**座位离线**、房间 socket 清空。
+
+    以前 `json.JSONDecodeError` 会穿透 `receive_envelope`：既不回错误帧，
+    也不进 `except WebSocketDisconnect` 的清理，结果"连接断了但座位仍在线"。
+    """
+    from xionghan_chess.service.app import manager
+    from starlette.websockets import WebSocketDisconnect
+
+    client = TestClient(app)
+    created = client.post("/api/rooms", json={
+        "profileId": "desktop_complete", "mode": "local", "playerName": "P1"}).json()
+    room_id, token = created["roomId"], created["token"]
+
+    received: list[dict] = []
+    with client.websocket_connect(f"/ws/{room_id}?token={token}") as socket:
+        received.append(socket.receive_json())        # 首帧 STATE
+        socket.send_text("这不是 JSON")
+        try:
+            received.append(socket.receive_json())    # 协议错误帧
+        except WebSocketDisconnect:
+            pass
+
+    assert any(item.get("type") == "error" for item in received), f"没收到协议错误帧：{received}"
+    room = manager.rooms.get(room_id)
+    assert room is not None
+    assert token not in room.sockets, "socket 没被清理"
+    seat = next(s for s in room.seats.values() if s.token == token)
+    assert seat.connected is False, "座位仍标记在线"

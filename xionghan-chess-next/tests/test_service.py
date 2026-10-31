@@ -16,6 +16,9 @@ def test_websocket_rejects_unsupported_protocol_version():
         with client.websocket_connect(f"/ws/{room_id}?token={token}") as socket:
             socket.receive_json()
             socket.send_json({"type": "ping", "protocolVersion": 2})
+            # B-02 起：先回一条协议错误帧，**再**关闭连接（以前直接关，对端只看到断线）。
+            error = socket.receive_json()
+            assert error["type"] == "error"
             with pytest.raises(WebSocketDisconnect) as closed:
                 socket.receive_json()
             assert closed.value.code == 1002

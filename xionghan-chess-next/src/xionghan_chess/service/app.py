@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager, suppress
 import asyncio
+import json
 from dataclasses import asdict
 import logging
 import os
@@ -363,11 +364,33 @@ async def websocket_spectator(websocket: WebSocket, room_id: str, token: str) ->
         await websocket.close(code=4403, reason=str(exc))
 
 
-async def receive_envelope(websocket: WebSocket) -> Envelope:
+async def _reject_protocol(websocket: WebSocket, reason: str) -> None:
+    """回一条协议错误帧，再关闭连接。
+
+    "发得出去就发"：对端已经断掉时 `send_json` 会抛，这里吞掉——**关闭与清理不能因为
+    发不出错误帧就跳过**（那正是审计里"连接断了但座位不清理"的成因）。
+    """
     try:
-        return Envelope.model_validate(await websocket.receive_json())
+        await websocket.send_json(Envelope(type=MessageType.ERROR,
+                                           payload={"message": reason}).wire())
+    except Exception:      # noqa: BLE001 - 对端已断属正常分支
+        pass
+    await websocket.close(code=1002, reason="Unsupported or invalid protocol message")
+
+
+async def receive_envelope(websocket: WebSocket) -> Envelope:
+    # `receive_json()` 对**非法 JSON** 抛的是 `json.JSONDecodeError`，不是 pydantic 的
+    # `ValidationError` —— 以前它直接穿透出去，既不回错误帧，也不进 `except WebSocketDisconnect`
+    # 的 `manager.disconnect()`，于是"连接断了但座位仍显示在线"。
+    try:
+        raw = await websocket.receive_json()
+    except json.JSONDecodeError as exc:
+        await _reject_protocol(websocket, "消息不是合法 JSON")
+        raise WebSocketDisconnect(code=1002) from exc
+    try:
+        return Envelope.model_validate(raw)
     except ValidationError as exc:
-        await websocket.close(code=1002, reason="Unsupported or invalid protocol message")
+        await _reject_protocol(websocket, "不支持的协议消息")
         raise WebSocketDisconnect(code=1002) from exc
 
 
