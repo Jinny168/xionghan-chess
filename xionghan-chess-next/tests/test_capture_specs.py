@@ -17,10 +17,10 @@ from xionghan_chess.core.rules import CaptureKind, CaptureSpec, Removal, RulesEn
 
 
 def engine() -> RulesEngine:
-    """软删甲/楯后，用选项把它们临时打开 —— 本文件测的是**保留下来的规则分支**，不是出场配置。"""
+    """软删的甲/楯/刺用选项临时打开 —— 本文件测的是**保留下来的规则分支**，不是出场配置。"""
     profile = get_profile("desktop_complete")
     return RulesEngine(profile, profile.options.merged(
-        {"armor_appear": True, "shield_appear": True}))
+        {"armor_appear": True, "shield_appear": True, "assassin_appear": True}))
 
 
 def piece(kind: PieceType, color: Color, row: int, col: int) -> Piece:

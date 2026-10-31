@@ -159,32 +159,26 @@ def _offline_capture_specs(game: Game, color: Color, targets=None) -> list[dict]
     return sorted(observed, key=lambda item: (item["row"], item["col"]))
 
 
-def test_assassin_walks_one_step_and_captures_diagonally_parity():
-    """刺：**走**只有前进一格（与兵同）；**吃**是斜向任意距离（受夹逼）；没有拖拽交换。
-
-    （"车走"版本太强，用户已否；这里锁的是最终口径。）
-    """
-    # 前进一格 + 斜向两格吃 (9,7)：只有这两个落点
-    clear = _sparse("desktop_complete", [
+def test_assassin_parity_when_soft_delete_is_lifted():
+    """刺默认软删：两引擎都不生成它的着法；显式 `assassin_appear` 后走法一致。"""
+    off = _sparse("desktop_complete", [
         (PieceType.ASSASSIN, Color.RED, 6, 4),
         (PieceType.HORSE, Color.BLACK, 9, 7),
     ])
-    _assert_targets(clear, (6, 4), [(5, 4), (9, 7)])
+    assert _targets_from(_assert_parity(off), (6, 4)) == set(), "默认档案里刺不能动"
 
-    # 斜路被己方子挡住 → 吃不到，只剩前进一格
+    on = _sparse("desktop_complete", [
+        (PieceType.ASSASSIN, Color.RED, 6, 4),
+        (PieceType.HORSE, Color.BLACK, 9, 7),
+    ], options={"assassin_appear": True})
+    assert _targets_from(_assert_parity(on), (6, 4)) == {(5, 4), (9, 7)}
+
     blocked = _sparse("desktop_complete", [
         (PieceType.ASSASSIN, Color.RED, 6, 4),
         (PieceType.PAWN, Color.RED, 7, 5),
         (PieceType.HORSE, Color.BLACK, 9, 7),
-    ])
-    _assert_targets(blocked, (6, 4), [(5, 4)])
-
-    # 正前方的敌子：不能吃（走只能落空点），也不能横向/后退
-    straight = _sparse("desktop_complete", [
-        (PieceType.ASSASSIN, Color.RED, 6, 4),
-        (PieceType.HORSE, Color.BLACK, 6, 7),
-    ])
-    _assert_targets(straight, (6, 4), [(5, 4)])
+    ], options={"assassin_appear": True})
+    assert _targets_from(_assert_parity(blocked), (6, 4)) == {(5, 4)}
 
 @pytest.mark.parametrize("profile_id", [
     "traditional", "web", "desktop_classic", "desktop_complete",
@@ -481,19 +475,43 @@ def test_pawn_fast_move_toggle_parity():
     _assert_targets(blocked, (7, 4), [])
 
 
-def test_guard_parity_jumps_one_piece():
-    # A guard may hop over exactly one piece to any empty square on a line or a
-    # diagonal; squares with zero or two pieces between stay closed.
+def test_promotion_never_offers_a_soft_deleted_type():
+    """阵亡池里只剩"已软删"的子时，两引擎都**不得**把兵升变成它。
+
+    这条守的是 `1571ca8` 里抓到的真分歧：Python 的升变候选按引擎启用集（含 `*_appear`）过滤，
+    而 JS 当时只按 `profile.enabled` 过滤 —— 软删刺之后，**JS 会把兵升变成刺**。
+    这里构造"池中只有刺"的局面，若任一端仍生成刺升变，`_assert_parity` 会直接报 legalAll mismatch。
+    """
+    game = _sparse("desktop_complete", [
+        (PieceType.KING, Color.RED, 12, 12),
+        (PieceType.KING, Color.BLACK, 0, 10),
+        (PieceType.PAWN, Color.RED, 1, 3),        # 一步就到红方底线 row 0
+    ], kings=False)
+    game.state.captured[Color.RED].append(Piece.create(PieceType.ASSASSIN, Color.RED, 0, 0))
+
+    _assert_parity(game)                           # 两引擎 legalAll 必须完全一致
+
+    moves = game.rules.legal_moves(game.state)
+    promotions = {m.promotion for m in moves if m.source == Position(1, 3)}
+    assert PieceType.ASSASSIN not in promotions, "软删的子不得作为升变目标"
+    assert None in promotions, "池里没有可升变类型时，应当允许以兵的身份走到底线"
+
+
+def test_guard_parity_slides_diagonally():
+    """尉＝标准主教：两引擎都必须只给斜线目标、且遇子即停（照面钉住已删）。"""
     game = _sparse("desktop_complete", [
         (PieceType.GUARD, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 4, 4),
-        (PieceType.PAWN, Color.BLACK, 8, 4),
-        (PieceType.PAWN, Color.BLACK, 6, 7),
+        (PieceType.PAWN, Color.RED, 8, 6),        # 斜线上挡一枚己方子
+        (PieceType.HORSE, Color.BLACK, 2, 0),     # 另一条斜线上的敌子（可吃）
     ])
-    _assert_targets(game, (6, 4), [
-        (0, 4), (1, 4), (2, 4), (3, 4), (9, 4), (10, 4), (11, 4), (12, 4),
-        (6, 8), (6, 9), (6, 10), (6, 11), (6, 12),
-    ])
+    targets = _targets_from(_assert_parity(game), (6, 4))
+    expected = {(5, 3), (4, 2), (3, 1), (2, 0),                     # 左上：一路通到 (2,0) 的敌子
+                (7, 5),                                              # 右下：一步就撞己方兵 (8,6)
+                (5, 5), (4, 6), (3, 7), (2, 8), (1, 9), (0, 10),      # 右上整条
+                (7, 3), (8, 2), (9, 1), (10, 0)}                      # 左下整条
+    assert targets == expected, sorted(targets ^ expected)
+    # 正交一律不给
+    assert (6, 5) not in targets and (6, 3) not in targets
 
 
 def test_archer_weak_mode_lattice_parity():
@@ -777,7 +795,7 @@ def test_all_piece_types_present_in_complete_profile_parity():
     # 这两类仍留在 `profile.enabled_piece_types`（可回滚），但被 `*_appear=False` 挡在引擎之外。
     profile = PROFILES["desktop_complete"]
     engine = RulesEngine(profile)
-    removed = {PieceType.ARMOR, PieceType.SHIELD}
+    removed = {PieceType.ARMOR, PieceType.SHIELD, PieceType.ASSASSIN}
     for kind in PieceType:
         assert kind in profile.enabled_piece_types, f"{kind} missing from complete profile"
         if kind in removed:

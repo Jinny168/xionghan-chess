@@ -69,25 +69,27 @@ def test_shield_does_not_protect_another_shield():
     assert not rules.is_legal(guarded, Move(Position(6, 0), Position(6, 3)))
 
 
-def test_assassin_walks_one_step_and_captures_diagonally():
+def test_assassin_is_soft_deleted_but_still_works_when_enabled():
+    """刺已软删：默认档案里**不存在**；显式打开 `assassin_appear` 时走法仍正确（可回滚）。"""
     red, black = kings()
-    assassin = piece(PieceType.ASSASSIN, Color.RED, 6, 4)
-    victim = piece(PieceType.HORSE, Color.BLACK, 8, 2)   # 斜向两格；且不会将军红王（含直三马腿）
-    board = state(red, black, assassin, victim)
-    rules = RulesEngine(get_profile("desktop_complete"))
+    profile = get_profile("desktop_complete")
 
-    # 走：只前进一格
+    # ① 默认：不出场 → 任何着法都不合法
+    default_rules = RulesEngine(profile)
+    assassin = piece(PieceType.ASSASSIN, Color.RED, 6, 4)
+    board = state(red, black, assassin, piece(PieceType.HORSE, Color.BLACK, 8, 2))
+    assert not default_rules.is_legal(board, Move(assassin.position, Position(5, 4)))
+    assert PieceType.ASSASSIN not in {p.type for p in
+                                      Game(profile.id).state.pieces}
+
+    # ② 显式打开：前进一格 + 斜向吃，规则分支仍在
+    rules = RulesEngine(profile, profile.options.merged({"assassin_appear": True}))
     assert rules.is_legal(board, Move(assassin.position, Position(5, 4)))
-    # 走不能横向、也不能一次两格
     assert not rules.is_legal(board, Move(assassin.position, Position(6, 5)))
-    assert not rules.is_legal(board, Move(assassin.position, Position(4, 4)))
-    # 吃：斜向任意距离；落子后目标消失，且**自己不会同归于尽**
-    capture = Move(assassin.position, victim.position)
+    capture = Move(assassin.position, Position(8, 2))
     assert rules.is_legal(board, capture)
     after = rules.apply_unchecked(board, capture)
-    assert after.piece_at(victim.position) is not None
-    assert after.piece_at(victim.position).type is PieceType.ASSASSIN
-    # 直线上的敌子吃不到（只能走空点）
+    assert after.piece_at(Position(8, 2)).type is PieceType.ASSASSIN, "吃后自己留在盘上"
     straight = state(red, black, piece(PieceType.ASSASSIN, Color.RED, 6, 4),
                      piece(PieceType.HORSE, Color.BLACK, 6, 7))
     assert not rules.is_legal(straight, Move(Position(6, 4), Position(6, 7)))
