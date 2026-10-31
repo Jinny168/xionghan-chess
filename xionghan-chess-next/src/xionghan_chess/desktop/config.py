@@ -84,6 +84,7 @@ DEFAULTS: dict[str, Any] = {
     "music": False,
     "music_style": "fc",
     "sound_volume": 70,
+    "sound_pack": "classic",
     "music_volume": 40,
     "theme": "classic",
     "font": "system",

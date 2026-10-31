@@ -364,7 +364,7 @@ class MainWindow(QMainWindow):
         原实现无条件 `_build() + new_game()`，改个主题或音量都会丢掉整局。
         """
         previous=self.config
-        self.config=new_config;save_config(self.config);self.audio.configure(self.config)
+        self.config=new_config;save_config(self.config);self.audio.configure(self.config);self.audio.set_sound_pack(str(self.config.get("sound_pack","classic")), audition=True)
         self.setWindowTitle(t("app.name", self.config.get("language","zh-CN")))
         breaking=settings_differ_in_game_breaking_keys(previous,self.config)
         preserved=None if breaking else getattr(self,"game",None)
