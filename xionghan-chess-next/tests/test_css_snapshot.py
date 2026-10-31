@@ -62,3 +62,15 @@ def test_dark_snapshot_differs_from_light() -> None:
     """两份必须**内容不同**：完全相同说明暗色变量没被收集到（脚本静默退化成单表）。"""
     light, dark = _snapshots()
     assert light != dark, "亮/暗两份一样 —— 暗色作用域的变量没被展开"
+
+
+def test_snapshot_has_no_cr() -> None:
+    """快照文本里不得出现 `\\r`。
+
+    这是**接口形态**的断言：`print`/`sys.stdout.write` 在 Windows 上会把 LF 转成 CRLF，
+    于是"脚本输出 vs LF 基线"的 diff 会报"全文件都不同"（其实一行内容都没变）。
+    把"比较双方必须是同一形态"写成断言，比每次人工 `tr -d '\\r'` 可靠。
+    """
+    light, dark = _snapshots()
+    assert b"\r\n" not in light and b"\r" not in light, "亮色快照含 CR"
+    assert b"\r\n" not in dark and b"\r" not in dark, "暗色快照含 CR"
