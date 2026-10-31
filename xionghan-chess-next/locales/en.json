@@ -470,7 +470,9 @@
     "pawn_backward_at_base_short": "May move backward on the back rank",
     "pawn_full_movement_at_base_short": "Moves four directions on the back rank",
     "pawn_resurrection_short": "Allow resurrection",
-    "pawn_promotion_short": "Allow promotion"
+    "pawn_promotion_short": "Allow promotion",
+    "pawn_charge_short": "May charge straight forward past the Great Wall (never captures)",
+    "pawn_three_line_capture_short": "Two allied pawns sandwiching an enemy in a line capture it"
   },
   "error": {
     "game_finished": "The game is already over",

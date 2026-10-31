@@ -147,7 +147,7 @@ class SettingsDialog(QDialog):
             PieceType.ELEPHANT:("piece.elephant_label","piece_rule.elephant_long",("elephant_can_cross_river","elephant_gain_jump_two_enemy_territory")),
             PieceType.ADVISOR:("piece.advisor_label","piece_rule.advisor_long",("advisor_can_leave_palace","advisor_gain_straight_outside_palace")),
             PieceType.CANNON:("piece.cannon_label","piece_rule.cannon_long",()),
-            PieceType.PAWN:("piece.pawn_label","piece_rule.pawn_long",("pawn_fast_move_before_enemy_territory","pawn_backward_at_base","pawn_full_movement_at_base","pawn_resurrection","pawn_promotion")),
+            PieceType.PAWN:("piece.pawn_label","piece_rule.pawn_long",("pawn_fast_move_before_enemy_territory","pawn_charge","pawn_three_line_capture","pawn_backward_at_base","pawn_full_movement_at_base","pawn_resurrection","pawn_promotion")),
             PieceType.GUARD:("piece.guard_label","piece_rule.guard_long",()),
             PieceType.ARCHER:("piece.archer_label","piece_rule.archer_long",("archer_enhanced_mode",)),
             PieceType.THUNDER:("piece.thunder_label","piece_rule.thunder_long",()),

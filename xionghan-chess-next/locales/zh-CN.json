@@ -470,7 +470,9 @@
     "pawn_backward_at_base_short": "到底线可后退",
     "pawn_full_movement_at_base_short": "到底线四向移动",
     "pawn_resurrection_short": "允许复活",
-    "pawn_promotion_short": "允许升变"
+    "pawn_promotion_short": "允许升变",
+    "pawn_charge_short": "过长城后可沿直线直冲（不吃子）",
+    "pawn_three_line_capture_short": "两己方兵夹一敌子成线即可吃"
   },
   "error": {
     "game_finished": "对局已经结束",
