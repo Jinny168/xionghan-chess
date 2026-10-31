@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt, QThreadPool, QTimer, Signal, QUrl
 from PySide6.QtGui import QAction, QDesktopServices, QFont, QIcon, QKeySequence
 from PySide6.QtWebSockets import QWebSocket
 from PySide6.QtWidgets import (
-    QApplication, QComboBox, QFileDialog, QFrame, QGridLayout, QGroupBox, QHBoxLayout,
+    QApplication, QComboBox, QFileDialog, QFrame, QGridLayout, QGroupBox, QHBoxLayout, QScrollArea,
     QInputDialog, QLabel, QLineEdit, QListWidget, QMainWindow, QMessageBox, QPushButton,
     QSpinBox, QSplitter, QTabWidget, QVBoxLayout, QWidget,
 )
@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
         icon_path = theme.resource("icon.ico")
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
-        self.resize(1260,850);self.setMinimumSize(760,560);self._build();self.new_game()
+        self.resize(1260,850);self.setMinimumSize(900,680);self._build();self.new_game()
         # P1-S：先挂回调再 configure —— 否则 configure 期间（切 BGM/设音量）暴露的
         # 加载失败会被漏掉，玩家只看到「没声音」。
         self.audio.on_failure=self._report_audio_failure;self.audio.configure(self.config);self.apply_appearance()
@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
         about=QAction(t("menu.about", lang),self);about.triggered.connect(self.show_about);help_menu.addAction(about)
         root=QWidget();root.setObjectName("root");self.setCentralWidget(root);layout=QVBoxLayout(root);self.banner=QLabel();self.banner.setAlignment(Qt.AlignmentFlag.AlignCenter);self.banner.setObjectName("banner");layout.addWidget(self.banner)
         split=QSplitter();layout.addWidget(split,1);self.board=BoardWidget();self.board.move_requested.connect(self.human_move);self.board.piece_selected.connect(lambda:self.audio.play("select"));split.addWidget(self.board)
-        self.side=QWidget();self.side.setMaximumWidth(330);right=QVBoxLayout(self.side);self.black=QLabel();self.red=QLabel();self.history=QListWidget();self.captured=QLabel();self.captured.setWordWrap(True)
+        side_inner=QWidget();right=QVBoxLayout(side_inner);self.side=QScrollArea();self.side.setWidgetResizable(True);self.side.setFrameShape(QFrame.Shape.NoFrame);self.side.setMaximumWidth(330);self.side.setWidget(side_inner);self.black=QLabel();self.red=QLabel();self.history=QListWidget();self.history.setMinimumHeight(120);self.captured=QLabel();self.captured.setWordWrap(True)
         right.addWidget(self.black);right.addWidget(self.red)
         side_tabs=QTabWidget();record_page=QWidget();record_layout=QVBoxLayout(record_page);record_layout.addWidget(self.history)
         chat_page=QWidget();chat_layout=QVBoxLayout(chat_page);self.chat_messages=QListWidget();chat_layout.addWidget(self.chat_messages,1)
@@ -159,7 +159,8 @@ class MainWindow(QMainWindow):
         side_tabs.addTab(record_page,t("panel.moves", lang));side_tabs.addTab(chat_page,t("panel.chat", lang));right.addWidget(side_tabs,1);right.addWidget(QLabel("阵亡子力" if lang!="en" else "Captured pieces"));right.addWidget(self.captured)
         actions=QGridLayout();self.undo=QPushButton(t("action.undo", lang));self.undo.clicked.connect(self.undo_move);self.pause=QPushButton(t("action.pause", lang));self.pause.clicked.connect(self.toggle_pause);self.resign=QPushButton(t("action.resign", lang));self.resign.clicked.connect(self.resign_game);self.draw=QPushButton(t("action.draw", lang));self.draw.clicked.connect(self.draw_game);self.resurrect=QPushButton(t("action.resurrect", lang));self.resurrect.clicked.connect(self.resurrect_pawn);self.again=QPushButton(t("action.play_again", lang));self.again.clicked.connect(self.trigger_play_again)
         self.flip=QPushButton(dl("翻转"));self.flip.clicked.connect(self.flip_board)
-        for i,b in enumerate((self.undo,self.pause,self.resign,self.draw,self.resurrect,self.flip,self.again)):actions.addWidget(b,i//2,i%2)
+        for i,b in enumerate((self.undo,self.pause,self.resign,self.draw,self.resurrect,self.flip,self.again)):
+            b.setMinimumWidth(182);actions.addWidget(b,i//2,i%2)
         right.addLayout(actions);split.addWidget(self.side);split.setSizes([850,300])
         self.apply_appearance()
 
@@ -399,7 +400,7 @@ class MainWindow(QMainWindow):
         QApplication.instance().setFont(QFont(font,10));self.configure_board()
         text="#f3ead7" if self.config.get("theme")=="dark" else "#211b17"
         hover="#4a433b" if self.config.get("theme")=="dark" else "#f1dfbf"
-        self.setStyleSheet(f"""QMainWindow,#root{{background:{palette['window']};color:{text}}}QMenuBar,QMenu,QToolBar{{background:{palette['panel']};color:{text};border-bottom:1px solid {palette['line']};padding:5px}}#banner{{background:{palette['banner_bg']};color:{palette['banner_fg']};padding:8px;font-weight:bold;font-size:15px}}QListWidget,QLabel,QFrame,QGroupBox,QComboBox,QSpinBox,QLineEdit{{background:{palette['panel']};color:{text};border:1px solid {palette['line']};padding:7px}}QPushButton{{min-height:35px;background:{palette['panel']};color:{text};border:1px solid {palette['line']}}}QPushButton:disabled{{color:{palette['disabled_fg']};background:{palette['disabled_bg']};border:1px solid {palette['line']}}}QPushButton:hover{{background:{hover}}}""")
+        self.setStyleSheet(f"""QMainWindow,#root{{background:{palette['window']};color:{text}}}QMenuBar,QMenu,QToolBar{{background:{palette['panel']};color:{text};border-bottom:1px solid {palette['line']};padding:5px}}#banner{{background:{palette['banner_bg']};color:{palette['banner_fg']};padding:8px;font-weight:bold;font-size:15px}}QListWidget,QLabel,QFrame,QGroupBox,QComboBox,QSpinBox,QLineEdit{{background:{palette['panel']};color:{text};border:1px solid {palette['line']};padding:7px}}QPushButton{{min-height:35px;background:{palette['panel']};color:{text};border:1px solid {palette['line']}}}QPushButton:disabled{{color:{palette['disabled_fg']};background:{palette['disabled_bg']};border:1px solid {palette['line']}}}QPushButton:hover{{background:{hover}}}QPushButton:focus{{border:2px solid {palette['banner_bg']}}}QListWidget:focus,QLineEdit:focus,QComboBox:focus{{border:2px solid {palette['banner_bg']}}}""")
 
     def _report_audio_failure(self, message: str) -> None:
         """P1-S：音效加载/播放失败时在状态栏说一句。
