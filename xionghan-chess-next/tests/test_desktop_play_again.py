@@ -118,14 +118,31 @@ def test_dialog_choice_starts_exactly_one_new_game(window, monkeypatch) -> None:
 # ---------------------------------------------------------------------------
 # 2) 右栏按钮的启用状态
 # ---------------------------------------------------------------------------
-def test_again_button_is_disabled_until_the_game_ends(window) -> None:
+def test_again_button_is_available_before_the_game_ends(window) -> None:
+    """语义已改：按钮**始终可点**（未终局时点开要二次确认）。"""
     window.refresh()
     assert window.again.text() == "再来一局"
-    assert not window.again.isEnabled(), "未终局时不该能点"
+    assert window.again.isEnabled(), "未终局也应可点（要随时能重开）"
 
     _finish(window)
     window.refresh()
     assert window.again.isEnabled(), "终局后应当可点"
+
+
+def test_restart_while_unfinished_asks_before_dropping_the_game(window, monkeypatch) -> None:
+    """未终局 → 先弹确认；取消则一局不动，确认才新开。"""
+    window.refresh()
+    before = window.game
+
+    monkeypatch.setattr(window, "_confirm_restart_unfinished", lambda: False)
+    window.trigger_play_again()
+    drain(QApplication.instance())
+    assert window.game is before, "取消确认后不得重开"
+
+    monkeypatch.setattr(window, "_confirm_restart_unfinished", lambda: True)
+    window.trigger_play_again()
+    drain(QApplication.instance())
+    assert window.game is not before and window.game.state.history == []
 
 
 def test_again_is_disabled_by_pending_guard(window) -> None:

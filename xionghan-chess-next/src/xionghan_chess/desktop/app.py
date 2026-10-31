@@ -865,16 +865,28 @@ class MainWindow(QMainWindow):
     def can_play_again(self) -> bool:
         """「再来一局」是否可用。
 
-        三种局面刻意不给这个入口：**残局题**（重开会丢掉题目会话）、
-        **联机局**（新局要双方重新进房，不是本地能决定的）、以及**未终局**。
+        只有两种局面不给入口：**残局题**（重开会丢掉题目会话）、
+        **联机局**（新局要双方重新进房，不是本地能决定的）。
+        **未终局也允许**——用户要的是"随时重开"，未结束时由 `trigger_play_again`
+        弹一次确认，避免误点丢棋。
         """
-        if self.game is None or not self.game.state.finished:
+        if self.game is None:
             return False
         if self.puzzle_session is not None:
             return False
         if self.network:
             return False
         return True
+
+    def _confirm_restart_unfinished(self) -> bool:
+        """未终局时重开的二次确认（单独成方法，便于测试 patch）。"""
+        lang = self.config.get("language", "zh-CN")
+        title = "确认" if lang != "en" else "Confirm"
+        return QMessageBox.question(
+            self, title, t("dialog.confirm_restart", lang),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        ) == QMessageBox.StandardButton.Yes
 
     def trigger_play_again(self) -> None:
         """「再来一局」的唯一入口：右键、结果弹窗、Enter 都走这里。
@@ -885,6 +897,9 @@ class MainWindow(QMainWindow):
         """
         if self._play_again_pending or not self.can_play_again():
             return
+        if self.game is not None and not self.game.state.finished:
+            if not self._confirm_restart_unfinished():
+                return
         self._play_again_pending = True
         self.again.setEnabled(False)
         QTimer.singleShot(0, self._play_again_now)
