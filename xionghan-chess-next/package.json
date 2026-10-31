@@ -1,6 +1,6 @@
 {
   "name": "xionghan-chess-web",
-  "version": "1.7.0",
+  "version": "1.7.5",
   "private": true,
   "description": "Static frontend for Xionghan Chess",
   "scripts": {

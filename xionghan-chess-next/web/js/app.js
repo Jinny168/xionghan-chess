@@ -1,4 +1,4 @@
-import { applyStaticI18n, currentLanguage, currentLocale, setLanguage, t } from './i18n.js?v=1.7.0';
+import { applyStaticI18n, currentLanguage, currentLocale, setLanguage, t } from './i18n.js?v=1.7.5';
 import { ribbonClass, CHECK_PULSE_MID } from './ribbon.js';
 
 const $ = (selector) => document.querySelector(selector);

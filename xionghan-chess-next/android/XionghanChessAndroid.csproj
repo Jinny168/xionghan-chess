@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>com.xionghan.chess</ApplicationId>
     <ApplicationVersion>9</ApplicationVersion>
-    <ApplicationDisplayVersion>1.7.0</ApplicationDisplayVersion>
+    <ApplicationDisplayVersion>1.7.5</ApplicationDisplayVersion>
     <PublishTrimmed>false</PublishTrimmed>
     <RunAOTCompilation>false</RunAOTCompilation>
   </PropertyGroup>

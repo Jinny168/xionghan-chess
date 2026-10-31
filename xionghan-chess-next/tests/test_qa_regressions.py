@@ -203,7 +203,14 @@ def test_release_version_sources_agree():
     sources: dict[str, str] = {"package.json:version": base}
 
     with (root / "pyproject.toml").open("rb") as handle:
-        sources["pyproject.toml:[project].version"] = tomllib.load(handle)["project"]["version"]
+        pyproject = tomllib.load(handle)
+    # 版本号已改为**单一来源**：`pyproject` 用 dynamic 从 `xionghan_chess.__version__` 读，
+    # 不再有 `[project].version` 字面量。有则比字面量，无则确认它确实指向 __version__。
+    if "version" in pyproject["project"]:
+        sources["pyproject.toml:[project].version"] = pyproject["project"]["version"]
+    else:
+        attr = pyproject["tool"]["setuptools"]["dynamic"]["version"]["attr"]
+        assert attr == "xionghan_chess.__version__", f"动态版本指向了 {attr}"
 
     sources["xionghan_chess.__version__"] = xionghan_chess.__version__
 
