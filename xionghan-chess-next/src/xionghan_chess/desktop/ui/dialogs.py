@@ -45,10 +45,31 @@ from .workers import AnalysisWorker
 GLYPH_STYLE_DATA = "glyph"   # 四值之一，见 config.PIECE_STYLES
 
 
+
+def _fit_to_content(dialog: QDialog, ratio: float = 1.2) -> None:
+    """把初始窗口收到"内容 × ratio"，减少大片空白（几何审计 §4：最大 87% 是空的）。
+
+    为什么不在构造里直接算 `sizeHint()`：`__init__` 阶段的 sizeHint 还没把
+    子控件的样式/字体算进去（`load_bundled_fonts` 之后还会变），量出来偏小。
+    所以排到事件循环第一拍再收 —— 那时布局已完成，`sizeHint()` 是真实需求。
+
+    **不动 `setMinimumSize`**：最小尺寸是另一套判据（审计 §3，且有守卫测试）。
+    """
+    from PySide6.QtCore import QTimer
+
+    def apply() -> None:
+        hint = dialog.sizeHint()
+        width = max(dialog.minimumWidth(), min(dialog.width(), int(hint.width() * ratio)))
+        height = max(dialog.minimumHeight(), min(dialog.height(), int(hint.height() * ratio)))
+        dialog.resize(width, height)
+
+    QTimer.singleShot(0, apply)
+
+
 class SettingsDialog(QDialog):
     def __init__(self, config: dict, parent: QWidget | None = None,
                  initial_tab: int = 0) -> None:
-        super().__init__(parent); self.language=normalize_language(config.get("language")); self.setWindowTitle(t("settings.desktop_title", self.language)); self.resize(720, 760)
+        super().__init__(parent); self.language=normalize_language(config.get("language")); self.setWindowTitle(t("settings.desktop_title", self.language)); self.resize(720, 760);_fit_to_content(self)
         self._config=config
         layout=QVBoxLayout(self); tabs=QTabWidget(); layout.addWidget(tabs,1)
         self.profile=QComboBox(); [self.profile.addItem(t(f"profile.{p.id}", self.language),p.id) for p in PROFILES.values()]
@@ -237,7 +258,7 @@ class SettingsDialog(QDialog):
 class HandicapDialog(QDialog):
     def __init__(self, profile_id: str, options: dict, selected: dict | None = None, parent: QWidget | None = None) -> None:
         lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
-        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.handicap_title",lang));self.resize(720,620);self.setMinimumSize(520,480)
+        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.handicap_title",lang));self.resize(720,620);self.setMinimumSize(520,480);_fit_to_content(self)
         profile=PROFILES[profile_id];active=profile.options.merged(options);slots=profile_slots(profile,active)
         defaults={color:[slot["id"] for slot in slots if slot["color"]==color] for color in ("red","black")}
         self.selected={color:list((selected or {}).get(color,defaults[color])) for color in defaults};self.checks={}
@@ -276,7 +297,7 @@ class ReplayDialog(QDialog):
     def __init__(self, game: Game, config: dict, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.language=normalize_language(config.get("language"));self.setWindowTitle(t("dialog.replay_title",self.language))
-        self.resize(960, 820);self.setMinimumSize(820,560)
+        self.resize(960, 820);self.setMinimumSize(820,560);_fit_to_content(self)
         # 复盘分析的取消信号：关窗即置位，让后台分析在下一手前退出
         # （否则关窗后还要等 `40 手 × 每手预算` 才停得下来）。
         self._analysis_cancel = threading.Event()
@@ -352,7 +373,7 @@ class ReplayDialog(QDialog):
 class TrainingDialog(QDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
-        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.training_title",lang));self.resize(760,560);self.setMinimumSize(560,420);self.selected_game=None;self.selected_puzzle=None
+        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.training_title",lang));self.resize(760,560);self.setMinimumSize(560,420);_fit_to_content(self);self.selected_game=None;self.selected_puzzle=None
         layout=QVBoxLayout(self);filters=QHBoxLayout();self.level=QComboBox();self.level.addItem(t("desktop.beginner",lang),"beginner");self.level.addItem(t("desktop.advanced",lang),"advanced");self.level.addItem(t("desktop.master",lang),"master");filters.addWidget(self.level);import_button=QPushButton(t("desktop.import_puzzles",lang));import_button.clicked.connect(self.import_puzzles);filters.addWidget(import_button);layout.addLayout(filters)
         self.list=QListWidget();self.list.itemDoubleClicked.connect(lambda _:self.start_selected());layout.addWidget(self.list,1)
         actions=QHBoxLayout();self.hint=QPushButton(t("desktop.hint",lang));self.hint.clicked.connect(self.show_hint);start=QPushButton(t("desktop.start_training",lang));start.clicked.connect(self.start_selected);close=QPushButton(t("common.close",lang));close.clicked.connect(self.reject);actions.addWidget(self.hint);actions.addStretch();actions.addWidget(start);actions.addWidget(close);layout.addLayout(actions)
@@ -396,7 +417,7 @@ class TrainingDialog(QDialog):
 
 class GameLibraryDialog(QDialog):
     def __init__(self, folder: Path, config: dict, parent: QWidget | None = None) -> None:
-        super().__init__(parent);self.setWindowTitle(dl("本地棋谱库"));self.resize(700,520);self.setMinimumSize(560,380)
+        super().__init__(parent);self.setWindowTitle(dl("本地棋谱库"));self.resize(700,520);self.setMinimumSize(560,380);_fit_to_content(self)
         self.folder=folder;self.config=config;self.selected_path:Path|None=None
         self.folder.mkdir(parents=True,exist_ok=True)
         layout=QVBoxLayout(self);layout.addWidget(QLabel(dlf("棋谱目录：{path}", path=self.folder)))
@@ -432,7 +453,7 @@ class GameLibraryDialog(QDialog):
 
 class DocumentDialog(QDialog):
     def __init__(self, title: str, content: str, parent: QWidget | None = None) -> None:
-        super().__init__(parent);self.setWindowTitle(title);self.resize(760,680);self.setMinimumSize(420,360)
+        super().__init__(parent);self.setWindowTitle(title);self.resize(760,680);self.setMinimumSize(420,360);_fit_to_content(self)
         layout=QVBoxLayout(self);browser=QTextBrowser();browser.setHtml(content) if content.lstrip().startswith("<") else browser.setMarkdown(content);layout.addWidget(browser)
         lang=getattr(parent,"config",{}).get("language","zh-CN") if parent else "zh-CN"
         close=QPushButton(t("common.close", lang));close.clicked.connect(self.accept);layout.addWidget(close)
