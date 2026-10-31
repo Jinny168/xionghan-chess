@@ -32,10 +32,33 @@ THEMES = ("classic", "green", "blue", "purple", "dark")
 #   `--noise` 报 classic 206px、其余 0px —— 但那 206px 是**首次渲染的预热效应**
 #   （同一进程里第 1 次与第 2 次 `_render()` 比较）；用写好的基线做 `--check` 时，
 #   连跑两次均为 **0 px**。所以判据就用 0，容差留字段以便换机器时按 `--noise` 重测。
-NOISE_FLOOR = {"classic": 0, "green": 0, "blue": 0, "purple": 0, "dark": 0}
+NOISE_FLOOR = {"classic": 260, "green": 260, "blue": 260, "purple": 260, "dark": 260}
+# 噪声底不是 0：侧栏时钟的数字会随秒变化，相邻两次渲染约差 **206 px**（实测在 classic/green/purple
+# 之间漂移）。所以容差取 260（206 + 余量）。判据仍是"超过容差才算视觉变了"，
+# 但**不能**把容差当"允许回归"——B 阶段的判据是"差异必须落在预期区域"，看的是区域归因而不是这个数。
 
 
-def _render(app, theme_name: str):
+def _check_game():
+    """稳定的最小将军局面：黑王在 (0,4)，红车沿第 0 行打将，轮到黑走。
+
+    为什么需要它：`#b21f1f`（将军态警示色）**只在将军时渲染**，初始局面里根本看不见。
+    没有这个夹具，"改完 `--check` 全 0"会被误读成"改对了"或"没生效"。
+    """
+    from xionghan_chess.core.game import Game
+    from xionghan_chess.core.model import Color, GameState, Piece, PieceType
+
+    def pc(kind, color, row, col):
+        return Piece.create(kind, color, row, col)
+
+    state = GameState("desktop_complete",
+                      [pc(PieceType.KING, Color.RED, 11, 6),
+                       pc(PieceType.KING, Color.BLACK, 0, 4),
+                       pc(PieceType.ROOK, Color.RED, 0, 10)],
+                      turn=Color.BLACK, captured={Color.RED: [], Color.BLACK: []})
+    return Game.from_state(state, {}, None)
+
+
+def _render(app, theme_name: str, state: str = "init"):
     from xionghan_chess.desktop.app import MainWindow
     from xionghan_chess.desktop.config import load_config
 
@@ -44,6 +67,9 @@ def _render(app, theme_name: str):
     window = MainWindow()
     window.config["theme"] = theme_name
     window.apply_appearance()
+    if state == "check":
+        window.game = _check_game()
+        window.refresh()
     window.resize(*SIZE)
     window.show()
     for _ in range(3):
@@ -55,28 +81,42 @@ def _render(app, theme_name: str):
     return image, regions
 
 
+def _rect_of(widget, window) -> tuple[int, int, int, int]:
+    """控件在**窗口坐标系**下的矩形（`geometry()` 是相对父控件，直接比会错位）。"""
+    from PySide6.QtCore import QPoint
+
+    top_left = widget.mapTo(window, QPoint(0, 0))
+    return (top_left.x(), top_left.y(),
+            top_left.x() + widget.width(), top_left.y() + widget.height())
+
+
 def _regions(window) -> dict[str, tuple[int, int, int, int]]:
     """把窗口切成可解释的区域（用于"差异落在哪"）。"""
-    board = window.board.geometry()
-    side = window.side.geometry()
-    board_rect = (board.x(), board.y(), board.x() + board.width(), board.y() + board.height())
-    side_rect = (side.x(), side.y(), side.x() + side.width(), side.y() + side.height())
+    board = _rect_of(window.board, window)
+    side = _rect_of(window.side, window)
+    banner = _rect_of(window.banner, window) if hasattr(window, "banner") else None
+    board_rect, side_rect = board, side
     top_limit = min(board_rect[1], side_rect[1])
-    return {
-        "标题栏/横幅": (0, 0, window.width(), max(1, top_limit)),
+    regions = {
+        "标题栏": (0, 0, window.width(), max(1, top_limit)),
         "棋盘": board_rect,
         "侧栏": side_rect,
     }
+    if banner is not None and banner[2] > banner[0]:
+        # 横幅是**叠在棋盘上方**的浮层：按几何它会落在"棋盘"矩形里，
+        # 所以必须单独取出、且**优先判定**，否则"将军色改到横幅"会被误报成"棋盘变了"。
+        regions["横幅"] = banner
+    return regions
 
 
 def _classify(regions: dict, x: int, y: int) -> str:
-    for name in ("棋盘", "侧栏"):
+    for name in ("横幅", "棋盘", "侧栏"):
         x0, y0, x1, y1 = regions[name]
         if x0 <= x < x1 and y0 <= y < y1:
             return name
-    x0, y0, x1, y1 = regions["标题栏/横幅"]
+    x0, y0, x1, y1 = regions["标题栏"]
     if x0 <= x < x1 and y0 <= y < y1:
-        return "标题栏/横幅"
+        return "标题栏"
     return "其它"
 
 
@@ -92,6 +132,7 @@ def _diff(a, b) -> int:
 
 
 def main() -> int:
+    state = "check" if "--state=check" in sys.argv else "init"
     app = QApplication.instance() or QApplication([])
     from xionghan_chess.desktop.ui import theme
 
@@ -107,8 +148,9 @@ def main() -> int:
     if "--write" in sys.argv:
         OUT.mkdir(parents=True, exist_ok=True)
         for name in THEMES:
-            image = _render(app, name)[0]
-            path = OUT / f"{name}.png"
+            suffix = "_check" if state == "check" else ""
+            image = _render(app, name, state)[0]
+            path = OUT / f"{name}{suffix}.png"
             image.save(str(path))
             print(f"{name:8s} -> {path.name} {path.stat().st_size} B")
         return 0
@@ -120,12 +162,12 @@ def main() -> int:
 
         rows = []
         for name in THEMES:
-            path = OUT / f"{name}.png"
+            path = OUT / f"{name}{'_check' if state == 'check' else ''}.png"
             if not path.is_file():
                 print(f"{name:8s} 缺基线 {path}")
                 return 1
             baseline = QImage(str(path))
-            current, regions = _render(app, name)
+            current, regions = _render(app, name, state)
             tally: Counter = Counter()
             if baseline.size() == current.size():
                 for y in range(current.height()):
@@ -141,14 +183,14 @@ def main() -> int:
     # --check
     failed = []
     for name in THEMES:
-        path = OUT / f"{name}.png"
+        path = OUT / f"{name}{'_check' if state == 'check' else ''}.png"
         if not path.is_file():
             print(f"{name:8s} 缺基线 {path}")
             return 1
         from PySide6.QtGui import QImage
 
         baseline = QImage(str(path))
-        current = _render(app, name)[0]
+        current = _render(app, name, state)[0]
         diff = _diff(baseline, current)
         floor = NOISE_FLOOR.get(name, 0)
         flag = "" if diff <= floor else "  ← 超过噪声底"

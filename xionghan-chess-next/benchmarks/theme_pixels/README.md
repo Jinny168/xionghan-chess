@@ -20,3 +20,23 @@ version https://git-lfs.github.com/spec/
 python scripts/theme_pixel_baseline.py --write
 ```
 换机器（字体/DPI 不同）前，先跑 `--noise` 重测噪声底，再决定是否重写基线。
+
+## 区域定义（`--diff-report`）
+| 区域 | 对应控件 | 几何来源 |
+|---|---|---|
+| `标题栏` | 窗口顶部条（宽度取整窗，高度到棋盘/侧栏顶边） | `(0, 0, window.w, min(board.top, side.top))` |
+| `横幅` | `MainWindow.banner`（QSS `#banner`，**浮在棋盘上方**） | 控件 `mapTo(window)` 后的矩形 |
+| `棋盘` | `MainWindow.board`（BoardWidget） | 同上 |
+| `侧栏` | `MainWindow.side`（QScrollArea，宽 330） | 同上 |
+| `其它` | 棋盘外阴影与留白 | 不属于以上任何矩形 |
+
+**判定顺序：横幅 → 棋盘 → 侧栏 → 标题栏 → 其它。** 横幅必须优先，
+否则它按几何落在棋盘矩形里，"将军色改到横幅"会被误报成"棋盘变了"（这个坑踩过）。
+
+## 两种状态
+| 基线 | 命令 | 用途 |
+|---|---|---|
+| `<theme>.png` | `--check` | 初始局面 |
+| `<theme>_check.png` | `--check --state=check` | **将军态**（`#b21f1f` 只在将军时渲染） |
+
+将军态夹具：黑王 `(0,4)`、红车 `(0,10)` 沿第 0 行打将、轮到黑走（`_check_game()`），固定不随机。
