@@ -191,16 +191,22 @@ def window(monkeypatch: pytest.MonkeyPatch, tmp_path, qt_app: QApplication):
     win.deleteLater()
 
 
-def test_help_menu_lists_atlas_above_piece_rules(window) -> None:
-    """菜单「帮助 → 棋子图谱」必须排在「棋子规则」之上。"""
+def test_help_menu_has_exactly_one_rules_entry(window) -> None:
+    """规则已并入图谱：帮助菜单里**只能有一个**入口，且它就是「棋子图谱」。
+
+    原来还有一项「棋子规则」，两块内容各看一半；合并后旧项删掉，
+    `menu.piece_rules` 这个键改作图谱项的提示语（不再有第二个"规则"入口）。
+    """
     titles: list[str] = []
     for top in window.menuBar().actions():
         submenu = top.menu()
-        if submenu is not None and any(action.text() == "棋子规则" for action in submenu.actions()):
+        if submenu is not None and any(action.text() == "棋子图谱" for action in submenu.actions()):
             titles = [action.text() for action in submenu.actions()]
-    assert titles, "找不到含「棋子规则」的菜单"
+    assert titles, "找不到含「棋子图谱」的菜单"
     assert "棋子图谱" in titles
-    assert titles.index("棋子图谱") < titles.index("棋子规则")
+    assert "棋子规则" not in titles, "旧「棋子规则」菜单项必须删除，不能留第二个入口"
+    rules_entries = [title for title in titles if "规则" in title]
+    assert rules_entries == [], f"菜单里不该再有独立的规则入口：{rules_entries}"
 
 
 def test_switching_style_keeps_the_game(window, monkeypatch: pytest.MonkeyPatch) -> None:

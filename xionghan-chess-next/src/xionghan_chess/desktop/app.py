@@ -138,9 +138,11 @@ class MainWindow(QMainWindow):
         account=QAction(dl("账号与云同步"),self);account.triggered.connect(self.account_sync);settings_menu.addAction(account)
         help_menu=self.menuBar().addMenu(t("menu.help", lang))
         guide=QAction(t("menu.guide", lang),self);guide.setShortcut(QKeySequence("F1"));guide.triggered.connect(self.show_help);help_menu.addAction(guide)
-        # 棋子图谱排在「棋子规则」**之上**：它是规则的「带图索引」，先看图谱再看全文。
-        atlas=QAction(t("desktop.piece_atlas", lang),self);atlas.triggered.connect(self.show_piece_atlas);help_menu.addAction(atlas)
-        rules=QAction(t("menu.piece_rules", lang),self);rules.triggered.connect(self.show_rules);help_menu.addAction(rules)
+        # 规则已并入图谱：这里只留一个入口，「完整规则文档」在图谱里点。
+        # `menu.piece_rules` 键保留但改作提示语 —— 不再有第二个"规则"菜单项。
+        atlas=QAction(t("desktop.piece_atlas", lang),self);atlas.triggered.connect(self.show_piece_atlas)
+        atlas.setToolTip(t("menu.piece_rules", lang))
+        help_menu.addAction(atlas)
         check_update=QAction("检查更新" if lang!="en" else "Check for updates",self);check_update.triggered.connect(self.check_updates);help_menu.addAction(check_update)
         help_menu.addSeparator()
         about=QAction(t("menu.about", lang),self);about.triggered.connect(self.show_about);help_menu.addAction(about)

@@ -190,6 +190,7 @@ class PieceAtlasDialog(QDialog):
                 elif not enabled:
                     text += "　·　" + t("desktop.atlas_unavailable", self.language)
                 item = QListWidgetItem(text)
+                item.setToolTip(self._summary(kind))
                 # 存字符串而不是 PieceType：`PieceType` 是 StrEnum，经 QVariant
                 # 往返后可能变成普通 str，直接拿枚举比较会静默失配。
                 item.setData(Qt.ItemDataRole.UserRole, kind.value)
@@ -443,6 +444,24 @@ class PieceAtlasDialog(QDialog):
             self._restart_cb()
         self._rebuild_detail()
 
+    def _summary(self, kind: PieceType) -> str:
+        """列表摘要：取 `piece_rule.*_long` 的**首句**并截断。
+
+        为什么不用短文案：`piece_rule.<kind>` 那 12 条已删（规则并入图谱后没有第二份来源），
+        但甲/楯/刺这三型**本来就只有 `_long`**，直接删会得到空摘要 —— 所以统一从 `_long` 取首句。
+        软删兵种（甲/楯）连 `_long` 都没有，返回「未登场」提示而不是空串。
+        """
+        text = t(f"piece_rule.{kind.value}_long", self.language)
+        if text.startswith("piece_rule."):
+            return t("desktop.atlas_legacy", self.language)
+        cut = len(text)
+        for sep in ("。", "；", ". ", "\n"):
+            pos = text.find(sep)
+            if pos != -1:
+                cut = min(cut, pos)
+        head = text[:cut].strip()
+        return head if len(head) <= 24 else head[:23] + "…"
+
     def _cell_pixmap(self, choice: str, color: Color, edge: int) -> QPixmap:
         """一枚棋子的缩略图（边长 = 盘径）。
 
@@ -540,6 +559,11 @@ class PieceAtlasDialog(QDialog):
             label.setFont(QFont(theme.UI_FONT, 12, QFont.Weight.Bold))
             label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
             column.addWidget(label)
+            summary = QLabel(self._summary(self.kind))
+            summary.setWordWrap(True)
+            summary.setStyleSheet("color:#6f6254")
+            summary.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            column.addWidget(summary)
             column.addStretch(1)
             layout.addLayout(column)
         text = QVBoxLayout()
