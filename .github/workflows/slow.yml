@@ -1,0 +1,47 @@
+name: Slow tests (expert-depth coverage)
+
+# 与 `ci.yml` 的**主门禁分开**：这里跑的是"墙钟级"用例 ——
+#   · `test_expert_level.py` 里 14 条专家档深度用例（每条 10–30s，要真的跑完 d3）；
+#   · `test_performance.py` 的性能护栏。
+# 为什么独立且不设 required check：35s 级用例在 CI 机器上更慢、更易抖动，
+# 设成必绿迟早会有人把它注释掉。这里「可查、可手动触发、失败不阻塞合并」。
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 18 * * 0"   # 每周日 18:00 UTC（周一 02:00 北京时间）
+
+defaults:
+  run:
+    working-directory: xionghan-chess-next
+
+jobs:
+  slow:
+    # 单平台即可：验的是"深度能不能跑完"，不是平台差异（平台差异由 ci.yml 的双 OS 矩阵覆盖）。
+    runs-on: ubuntu-latest
+    # 14 × 35s 上限 ≈ 8min，留足余量防止慢机上拖死整个 job。
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      # 下面三步是"能跑起来"的最小前提：runner 自带 `python`，但没有 pytest、
+      # 没有本项目包、也没有 PySide6 —— 少了它们，`pytest` 这一步只会报 ImportError，
+      # 那样的 workflow 等于没写。安装口径与 ci.yml 的 test job 保持一致。
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install (test + desktop extras)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test,desktop]"
+
+      # 桌面测试走 offscreen；PySide6 在无显示环境需要这几个运行库。
+      - name: Qt runtime libs (offscreen)
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0
+
+      - name: run slow tests
+        run: python -m pytest tests/ -m slow -q
+        env:
+          QT_QPA_PLATFORM: offscreen
