@@ -33,7 +33,7 @@ from collections.abc import Callable
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPixmap
 from PySide6.QtWidgets import (
-    QComboBox,
+    QCheckBox, QComboBox, QMessageBox,
     QButtonGroup, QDialog, QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QScrollArea, QSizePolicy, QTextBrowser, QVBoxLayout, QWidget,
 )
@@ -101,7 +101,8 @@ DEMO_PRESETS: tuple[str, ...] = ("free", "clamp", "three", "facing")
 
 class PieceAtlasDialog(QDialog):
     def __init__(self, config: dict, parent: QWidget | None = None,
-                 apply_style: Callable[[str], None] | None = None) -> None:
+                 apply_style: Callable[[str], None] | None = None,
+                 restart_game: Callable[[], None] | None = None) -> None:
         super().__init__(parent)
         self.config = config
         self.language = normalize_language(config.get("language"))
@@ -110,6 +111,7 @@ class PieceAtlasDialog(QDialog):
         # 「登场开关」算进去，才能回答「本档案下这枚子到底会不会出现」。
         self.rules = RulesEngine(self.profile, self.profile.options.merged(config.get("rule_options")))
         self._apply_style_cb = apply_style
+        self._restart_cb = restart_game
         self.style = piece_assets.normalize_style(config.get("piece_style"))
         self.kind: PieceType = PieceType.KING
         self.setWindowTitle(t("desktop.piece_atlas", self.language))
@@ -385,7 +387,61 @@ class PieceAtlasDialog(QDialog):
         self._detail_layout.addWidget(self._card_row())
         self._detail_layout.addWidget(self._moves_row())
         self._detail_layout.addWidget(self._rule_state_row())
+        self._detail_layout.addWidget(self._switches_section())
         self._detail_layout.addStretch(1)
+
+    def _switches_section(self) -> QWidget:
+        """右栏「本子开关」：**可写**，勾选即写 config 并提示重开。
+
+        - 只放**单子**开关（`PIECE_OPTION_KEYS`），`*_appear` 与全局开关（禁送将/和棋/长将）不在这里；
+        - 立即写 `config["rule_options"]` 并落盘，然后问「现在重开 / 稍后」。
+        """
+        box = QFrame()
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        layout.addWidget(self._heading(t("desktop.atlas_switch_title", self.language)))
+
+        options = self.rules.options
+        keys = [key for key in PIECE_OPTION_KEYS.get(self.kind, ())
+                if hasattr(options, key)]
+        if not keys:
+            hint = QLabel(t("desktop.atlas_switch_none", self.language))
+            hint.setWordWrap(True)
+            hint.setStyleSheet("color:#6f6254")
+            layout.addWidget(hint)
+            return box
+
+        for key in keys:
+            check = QCheckBox(t(f"rule.{key}_short", self.language), box)
+            check.setChecked(bool(getattr(options, key)))
+            check.toggled.connect(lambda checked, k=key: self.set_option(k, checked))
+            layout.addWidget(check)
+        return box
+
+    def _ask_restart(self) -> bool:
+        """「现在重开 / 稍后」——单独成方法，测试可直接 patch。"""
+        box = QMessageBox(self)
+        box.setWindowTitle(t("desktop.atlas_rule_changed", self.language))
+        box.setText(t("desktop.atlas_rule_changed", self.language))
+        now = box.addButton(t("desktop.atlas_restart_now", self.language),
+                            QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(t("desktop.atlas_restart_later", self.language),
+                      QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        return box.clickedButton() is now
+
+    def set_option(self, key: str, enabled: bool) -> None:
+        """写一个单子开关：落到 `config["rule_options"]`、落盘、再问是否重开。"""
+        overrides = dict(self.config.get("rule_options") or {})
+        overrides[key] = bool(enabled)
+        self.config["rule_options"] = overrides
+        save_config(self.config)
+        self.rules = RulesEngine(self.profile, self.profile.options.merged(overrides))
+        self.status.setText(t("desktop.atlas_rule_saved", self.language))
+        if self._ask_restart() and self._restart_cb is not None:
+            self._restart_cb()
+        self._rebuild_detail()
 
     def _cell_pixmap(self, choice: str, color: Color, edge: int) -> QPixmap:
         """一枚棋子的缩略图（边长 = 盘径）。

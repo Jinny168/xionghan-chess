@@ -310,3 +310,47 @@ def test_demo_preset_facing_puts_the_king_in_check(atlas: PieceAtlasDialog) -> N
     assert board.game.rules.in_check(board.game.state, board.game.state.turn)
     for move in board.legal:
         assert move.target.col != 6, "王不能留在照面的那一线上"
+
+
+# ---------------------------------------------------------------------------
+# 右栏开关：可写、只放单子开关、改完提示重开
+# ---------------------------------------------------------------------------
+def test_switches_are_piece_scoped_only(atlas: PieceAtlasDialog) -> None:
+    """图谱只放**单子**开关：`*_appear` 与全局开关（禁送将/和棋/长将）都不在这里。"""
+    labels = [atlas._list.item(i).data(0x0100) for i in range(atlas._list.count())]
+    atlas._list.setCurrentRow(labels.index("pawn"))
+    QApplication.processEvents()
+
+    from PySide6.QtWidgets import QCheckBox
+    boxes = atlas._detail.findChildren(QCheckBox)
+    texts = " ".join(box.text() for box in boxes)
+    assert "直冲" in texts and "夹一敌子" in texts, "兵的两个开关必须在图谱里可写"
+    for forbidden in ("登场", "送将", "和棋", "长将"):
+        assert forbidden not in texts, f"图谱不该出现 {forbidden} 类开关"
+
+
+def test_toggling_a_switch_writes_config_and_offers_restart(qt_app: QApplication) -> None:
+    """勾选 → 写 config["rule_options"] → 问「现在重开」→ 选现在则回调 new_game。"""
+    from PySide6.QtWidgets import QCheckBox
+
+    restarted: list[int] = []
+    config = dict(load_config())
+    config["rule_options"] = {}
+    dialog = PieceAtlasDialog(config, restart_game=lambda: restarted.append(1))
+    labels = [dialog._list.item(i).data(0x0100) for i in range(dialog._list.count())]
+    dialog._list.setCurrentRow(labels.index("pawn"))
+    QApplication.processEvents()
+
+    dialog._ask_restart = lambda: True          # 模拟点「现在重开」
+    box = next(b for b in dialog._detail.findChildren(QCheckBox) if "直冲" in b.text())
+    box.setChecked(True)
+    QApplication.processEvents()
+
+    assert config["rule_options"]["pawn_charge"] is True
+    assert window_rules_have_charge(dialog), "规则应立刻按新开关重建"
+    assert restarted == [1], "选「现在重开」必须回调 new_game"
+    dialog.deleteLater()
+
+
+def window_rules_have_charge(dialog: PieceAtlasDialog) -> bool:
+    return bool(dialog.rules.options.pawn_charge)

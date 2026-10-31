@@ -560,7 +560,13 @@
     "atlas_rule_state": "本局规则现状",
     "atlas_glyph_mode": "书法字形",
     "atlas_glyph_mode_default": "书法字形（默认）",
-    "atlas_image_note": "以上为图片棋子样式的效果"
+    "atlas_image_note": "以上为图片棋子样式的效果",
+    "atlas_switch_title": "本子开关（改动会写进配置）",
+    "atlas_switch_none": "这枚棋子没有可调开关。",
+    "atlas_rule_changed": "规则已改，需重开对局生效。",
+    "atlas_restart_now": "现在重开",
+    "atlas_restart_later": "稍后",
+    "atlas_rule_saved": "规则已保存，重开对局后生效。"
   },
   "android": {
     "app_name": "匈汉象棋",

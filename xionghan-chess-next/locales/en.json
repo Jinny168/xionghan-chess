@@ -560,7 +560,13 @@
     "atlas_rule_state": "Rule state in this game",
     "atlas_glyph_mode": "Calligraphic glyphs",
     "atlas_glyph_mode_default": "Calligraphic glyphs (default)",
-    "atlas_image_note": "Shown with piece artwork"
+    "atlas_image_note": "Shown with piece artwork",
+    "atlas_switch_title": "Switches for this piece (saved to config)",
+    "atlas_switch_none": "This piece has no adjustable rule.",
+    "atlas_rule_changed": "Rule updated — restart the game to apply it.",
+    "atlas_restart_now": "Restart now",
+    "atlas_restart_later": "Later",
+    "atlas_rule_saved": "Saved; takes effect after you restart the game."
   },
   "android": {
     "app_name": "Xionghan Chess",

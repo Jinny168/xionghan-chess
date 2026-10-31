@@ -330,7 +330,7 @@ class MainWindow(QMainWindow):
 
     def show_piece_atlas(self) -> None:
         """帮助 → 棋子图谱（与设置里「预览三风格」同一个窗口）。"""
-        PieceAtlasDialog(self.config,self,self.apply_piece_style).exec()
+        PieceAtlasDialog(self.config,self,self.apply_piece_style,self.new_game).exec()
 
     def apply_piece_style(self, style: str) -> None:
         """棋子美术风格**即时生效**：不重开对局、不重建界面。
