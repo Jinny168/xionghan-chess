@@ -49,9 +49,35 @@ def _render(app, theme_name: str):
     for _ in range(3):
         app.processEvents()
     image = window.grab().toImage()
+    regions = _regions(window)
     window.close()
     app.processEvents()
-    return image
+    return image, regions
+
+
+def _regions(window) -> dict[str, tuple[int, int, int, int]]:
+    """把窗口切成可解释的区域（用于"差异落在哪"）。"""
+    board = window.board.geometry()
+    side = window.side.geometry()
+    board_rect = (board.x(), board.y(), board.x() + board.width(), board.y() + board.height())
+    side_rect = (side.x(), side.y(), side.x() + side.width(), side.y() + side.height())
+    top_limit = min(board_rect[1], side_rect[1])
+    return {
+        "标题栏/横幅": (0, 0, window.width(), max(1, top_limit)),
+        "棋盘": board_rect,
+        "侧栏": side_rect,
+    }
+
+
+def _classify(regions: dict, x: int, y: int) -> str:
+    for name in ("棋盘", "侧栏"):
+        x0, y0, x1, y1 = regions[name]
+        if x0 <= x < x1 and y0 <= y < y1:
+            return name
+    x0, y0, x1, y1 = regions["标题栏/横幅"]
+    if x0 <= x < x1 and y0 <= y < y1:
+        return "标题栏/横幅"
+    return "其它"
 
 
 def _diff(a, b) -> int:
@@ -73,17 +99,43 @@ def main() -> int:
 
     if "--noise" in sys.argv:
         for name in THEMES:
-            first, second = _render(app, name), _render(app, name)
+            first = _render(app, name)[0]
+            second = _render(app, name)[0]
             print(f"{name:8s} 噪声底 {_diff(first, second)} px")
         return 0
 
     if "--write" in sys.argv:
         OUT.mkdir(parents=True, exist_ok=True)
         for name in THEMES:
-            image = _render(app, name)
+            image = _render(app, name)[0]
             path = OUT / f"{name}.png"
             image.save(str(path))
             print(f"{name:8s} -> {path.name} {path.stat().st_size} B")
+        return 0
+
+    if "--diff-report" in sys.argv:
+        from collections import Counter
+
+        from PySide6.QtGui import QImage
+
+        rows = []
+        for name in THEMES:
+            path = OUT / f"{name}.png"
+            if not path.is_file():
+                print(f"{name:8s} 缺基线 {path}")
+                return 1
+            baseline = QImage(str(path))
+            current, regions = _render(app, name)
+            tally: Counter = Counter()
+            if baseline.size() == current.size():
+                for y in range(current.height()):
+                    for x in range(current.width()):
+                        if baseline.pixel(x, y) != current.pixel(x, y):
+                            tally[_classify(regions, x, y)] += 1
+            total = sum(tally.values())
+            detail = "  ".join(f"{k} {v}" for k, v in tally.most_common()) or "无差异"
+            rows.append(f"{name:8s} 合计 {total:6d} px | {detail}")
+        print("\n".join(rows))
         return 0
 
     # --check
@@ -96,7 +148,7 @@ def main() -> int:
         from PySide6.QtGui import QImage
 
         baseline = QImage(str(path))
-        current = _render(app, name)
+        current = _render(app, name)[0]
         diff = _diff(baseline, current)
         floor = NOISE_FLOOR.get(name, 0)
         flag = "" if diff <= floor else "  ← 超过噪声底"
