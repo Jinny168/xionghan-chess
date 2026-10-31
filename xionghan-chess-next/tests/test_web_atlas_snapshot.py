@@ -1,18 +1,19 @@
 """网页「棋子图谱」首屏静态快照：4 个预设必须各自演示出对应规则。
 
-网页没有本地规则引擎（不加载 `offline.js`），首屏靠 `web/data/atlas_presets.json`。
+网页没有本地规则引擎（不加载 `offline.js`），首屏靠 `web/assets/data/atlas_presets.json`。
 所以这些断言**只读静态数据**，不依赖服务：数据错了就是演示错了。
 """
 
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SNAPSHOT = ROOT / "web" / "data" / "atlas_presets.json"
+SNAPSHOT = ROOT / "web" / "assets" / "data" / "atlas_presets.json"
 PRESETS = {item["id"]: item for item in json.loads(SNAPSHOT.read_text(encoding="utf-8"))["presets"]}
 
 
@@ -50,3 +51,21 @@ def test_free_preset_has_ordinary_moves() -> None:
     preset = PRESETS["free"]
     assert len(preset["moves"]) >= 8
     assert preset["check"] is False
+
+
+def test_atlas_fetch_path_is_served() -> None:
+    """`atlas.js` 请求的 JSON 必须①文件真存在 ②前缀属于 `app.py` 已挂载的静态目录。
+
+    防的是"路径看起来对、但没有任何东西服务它"——上一版 fetch 的是 `/data/...`，
+    服务端只挂了 `/assets` `/css` `/js` `/locales`，打开图谱就是空的。
+    """
+    atlas_js = (ROOT / "web" / "js" / "atlas.js").read_text(encoding="utf-8")
+    match = re.search(r"fetch\('(/[^']+\.json)'\)", atlas_js)
+    assert match, "atlas.js 里找不到 fetch 的 JSON 路径"
+    url = match.group(1)
+    assert (ROOT / "web" / url.lstrip("/")).is_file(), f"{url} 在 web/ 下没有对应文件"
+
+    app_py = (ROOT / "src" / "xionghan_chess" / "service" / "app.py").read_text(encoding="utf-8")
+    mounts = set(re.findall(r'app\.mount\("(/[a-z]+)"', app_py))
+    prefix = "/" + url.lstrip("/").split("/")[0]
+    assert prefix in mounts, f"{prefix} 不在已挂载目录 {sorted(mounts)} 里，运行时会 404"

@@ -1,4 +1,4 @@
-"""生成网页「棋子图谱」的首屏静态快照：`web/data/atlas_presets.json`。
+"""生成网页「棋子图谱」的首屏静态快照：`web/assets/data/atlas_presets.json`。
 
 为什么是静态快照（C 方案）：
 网页端**没有本地规则引擎**（不加载 `offline.js`，以免变成第三套引擎）。
@@ -90,7 +90,7 @@ PRESETS = [
 
 def main() -> None:
     out = {"profile": PROFILE, "presets": PRESETS}
-    path = ROOT / "web" / "data" / "atlas_presets.json"
+    path = ROOT / "web" / "assets" / "data" / "atlas_presets.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     for item in PRESETS:

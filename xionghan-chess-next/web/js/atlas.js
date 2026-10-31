@@ -9,7 +9,7 @@ let currentPreset = 'clamp';
 let currentKind = null;
 
 async function ensureSnapshot() {
-  if (!snapshot) snapshot = await (await fetch('/data/atlas_presets.json')).json();
+  if (!snapshot) snapshot = await (await fetch('/assets/data/atlas_presets.json')).json();
   return snapshot;
 }
 
