@@ -52,7 +52,7 @@ EN: dict[str, str] = {
     "棋谱读取失败": "Could not read game file",
     "AI 异常": "AI error",
     # 箭号 ↕ 不在随包字体子集里（GB2312 之外），英文侧不要带它
-    "↕ 翻转": "Flip",
+    "翻转": "Flip",
     "红方": "Red",
     "黑方": "Black",
     # ---- 对局操作 ----

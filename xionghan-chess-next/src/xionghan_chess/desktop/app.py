@@ -156,7 +156,7 @@ class MainWindow(QMainWindow):
         self.chat_input.returnPressed.connect(self.send_chat);chat_send=QPushButton(dl("发送"));chat_send.clicked.connect(self.send_chat);chat_row.addWidget(self.chat_input,1);chat_row.addWidget(chat_send);chat_layout.addLayout(chat_row)
         side_tabs.addTab(record_page,t("panel.moves", lang));side_tabs.addTab(chat_page,t("panel.chat", lang));right.addWidget(side_tabs,1);right.addWidget(QLabel("阵亡子力" if lang!="en" else "Captured pieces"));right.addWidget(self.captured)
         actions=QGridLayout();self.undo=QPushButton(t("action.undo", lang));self.undo.clicked.connect(self.undo_move);self.pause=QPushButton(t("action.pause", lang));self.pause.clicked.connect(self.toggle_pause);self.resign=QPushButton(t("action.resign", lang));self.resign.clicked.connect(self.resign_game);self.draw=QPushButton(t("action.draw", lang));self.draw.clicked.connect(self.draw_game);self.resurrect=QPushButton(t("action.resurrect", lang));self.resurrect.clicked.connect(self.resurrect_pawn);self.again=QPushButton(t("action.play_again", lang));self.again.clicked.connect(self.trigger_play_again)
-        self.flip=QPushButton(dl("↕ 翻转"));self.flip.clicked.connect(self.flip_board)
+        self.flip=QPushButton(dl("翻转"));self.flip.clicked.connect(self.flip_board)
         for i,b in enumerate((self.undo,self.pause,self.resign,self.draw,self.resurrect,self.flip,self.again)):actions.addWidget(b,i//2,i%2)
         right.addLayout(actions);split.addWidget(self.side);split.setSizes([850,300])
         self.apply_appearance()
