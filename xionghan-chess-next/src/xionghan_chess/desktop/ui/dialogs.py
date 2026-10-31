@@ -42,7 +42,7 @@ from .board_widget import BoardWidget
 from .workers import AnalysisWorker
 
 # 「棋子美术风格」下拉里的回退项：选中它 = 回到 1.7.0 的字形棋子（`piece_render="glyph"`）。
-GLYPH_STYLE_DATA = "__glyph__"
+GLYPH_STYLE_DATA = "glyph"   # 四值之一，见 config.PIECE_STYLES
 
 
 class SettingsDialog(QDialog):
@@ -86,9 +86,13 @@ class SettingsDialog(QDialog):
         self.background=QComboBox();self.background.addItem(dl("原色（无背景图片）"),"none");[(self.background.addItem(dlf("背景 {index}", index=index),str(index))) for index in range(1,6)];self.background.setCurrentIndex(max(0,self.background.findData(str(config.get("background","none")))))
         # 「棋子美术风格」下拉的第一项是**回退项**：选中它 = `piece_render="glyph"`。
         # 没有它就成了单向门 —— 用户切到图片风格后再也回不到 1.7.0 的字形棋子。
-        self.piece_style=QComboBox();self.piece_style.addItem(t("desktop.atlas_glyph_mode_default", self.language),GLYPH_STYLE_DATA)
+        # 只有四个值：字形 + 三套美术（`piece_render` 由它派生，不再单独让用户选）
+        self.piece_style=QComboBox()
+        self.piece_style.addItem(t("desktop.atlas_glyph_mode_default", self.language),GLYPH_STYLE_DATA)
         [(self.piece_style.addItem(t(f"option.piece_{value}", self.language),value)) for value in ("traditional","modern","cartoon")]
-        current=GLYPH_STYLE_DATA if config.get("piece_render","glyph")=="glyph" else config.get("piece_style","traditional")
+        current=config.get("piece_style","glyph")
+        if current not in ("glyph","traditional","modern","cartoon"):
+            current="glyph"
         self.piece_style.setCurrentIndex(max(0,self.piece_style.findData(current)))
         # 整套风格资源缺失（目录被改名的极端情况）时，该风格在下拉里**不可选** ——
         # 与图谱的「该风格资源缺失」保持一致；棋盘另有字形回退，所以程序不崩。
@@ -220,11 +224,11 @@ class SettingsDialog(QDialog):
         self._capture_profile_values()
         values=self._profile_values[self._active_profile_id]
         previous=self.parent().config if self.parent() else {}
-        # 回退项（书法字形）不覆盖 `piece_style`：只把画法切回 glyph，风格偏好留着，
-        # 下次再选图片风格时仍是用户上一次挑的那一套。
+        # 画法就是一个字段：选中「书法字形」= `piece_style="glyph"`（不再保留旧美术偏好，
+        # 四个值互斥才不会有"风格是现代但画法是字形"这种自相矛盾的配置）。
         choice=self.piece_style.currentData()
-        piece_style=previous.get("piece_style","traditional") if choice==GLYPH_STYLE_DATA else choice
-        piece_render="glyph" if choice==GLYPH_STYLE_DATA else "image"
+        piece_style=choice if choice in ("glyph","traditional","modern","cartoon") else "glyph"
+        piece_render="glyph" if piece_style==GLYPH_STYLE_DATA else "image"
         return {"profile":self.profile.currentData(),"language":self.language_select.currentData(),"game_mode":self.game_mode.currentData(),"difficulty":self.difficulty.currentData(),"human_color":self.color.currentData(),"first_move":self.first_move.currentData(),"initial_minutes":self.minutes.value(),"countdown_seconds":self.countdown.currentData(),"sound":self.sound.isChecked(),"music":self.music.isChecked(),"music_style":self.music_style.currentData(),"sound_volume":self.sound_volume.value(),"music_volume":self.music_volume.value(),"theme":self.theme.currentData(),"font":self.font.currentData(),"background":self.background.currentData(),"piece_style":piece_style,"piece_render":piece_render,"flipped":previous.get("flipped",False),"setup_slots":previous.get("setup_slots",{}),"account_token":previous.get("account_token",""),"animations":self.animations.isChecked(),"selection_highlight":self.selection_highlight.isChecked(),"legal_targets":self.legal_targets.isChecked(),"capture_hints":self.capture_hints.isChecked(),"taunts":self.taunts.isChecked(),"autosave":self.autosave.isChecked(),"server_url":previous.get("server_url","http://127.0.0.1:8000"),"rule_options":values}
 
 

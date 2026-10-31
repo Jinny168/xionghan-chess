@@ -88,7 +88,7 @@ DEFAULTS: dict[str, Any] = {
     "theme": "classic",
     "font": "system",
     "background": "none",
-    "piece_style": "traditional",
+    "piece_style": "glyph",
     # 棋子画法：`glyph` = 1.7.0 的字形棋子（默认，界面逐像素不变）；`image` = 三风格美术图。
     # 新增键不 bump CONFIG_VERSION：`{**DEFAULTS, **data}` 会自动给旧配置补上默认值。
     "piece_render": "glyph",
@@ -185,6 +185,27 @@ def migrate(data: dict[str, Any]) -> tuple[dict[str, Any], bool]:
     return result, raw_version != CONFIG_VERSION
 
 
+# 棋子画法的**唯一**枚举：字形 + 三套美术。`piece_render` 只是它的派生字段
+# （`glyph` → "glyph"，其余 → "image"），老配置由 `_normalize_piece_style` 迁移。
+PIECE_STYLES: tuple[str, ...] = ("glyph", "traditional", "modern", "cartoon")
+
+
+def _normalize_piece_style(style: object, render: object) -> tuple[str, str]:
+    """把 `(piece_style, piece_render)` 收敛成 4 个 style 值 + 派生 render。
+
+    - 新配置：`piece_style` 已是四值之一，render 由它决定；
+    - 老配置：`piece_render == "glyph"` 一律视为 `style == "glyph"`（1.7.0 观感）；
+    - 其它未知值：回落 traditional（与 `piece_assets.normalize_style` 同口径）。
+    """
+    # **老配置优先**：`piece_render == "glyph"` 时必须回到字形（哪怕当时还存着
+    # `piece_style="cartoon"` 的美术偏好 —— 那只是"下次再选图片风格时"的记忆位）。
+    if render == "glyph":
+        return "glyph", "glyph"
+    if isinstance(style, str) and style in PIECE_STYLES and style != "glyph":
+        return style, "image"
+    return "traditional", "image"
+
+
 def load_config() -> dict[str, Any]:
     try:
         raw = json.loads(config_path().read_text(encoding="utf-8"))
@@ -194,6 +215,10 @@ def load_config() -> dict[str, Any]:
         return dict(DEFAULTS)
     migrated, changed = migrate(raw)
     merged = {**DEFAULTS, **migrated}
+    style, render = _normalize_piece_style(merged.get("piece_style"), merged.get("piece_render"))
+    if (merged.get("piece_style"), merged.get("piece_render")) != (style, render):
+        merged["piece_style"], merged["piece_render"] = style, render
+        changed = True
     if changed:
         # 迁移结果回写一次，之后每次启动都是「已是最新版本」，不再重复跑。
         try:

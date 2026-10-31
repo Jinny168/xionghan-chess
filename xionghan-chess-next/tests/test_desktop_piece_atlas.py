@@ -127,12 +127,12 @@ def test_thumbnail_edge_is_a_single_value(atlas: PieceAtlasDialog) -> None:
     assert len(set(sizes)) == 1, f"缩略图尺寸随窗口变了：{sizes}"
 
 
-def test_glyph_choice_restores_glyph_render_without_losing_style(atlas: PieceAtlasDialog) -> None:
-    """「书法字形」是回退项：切回 glyph，但 `piece_style` 保留原值（不是单向门）。"""
+def test_glyph_choice_restores_glyph_style(atlas: PieceAtlasDialog) -> None:
+    """「书法字形」也是四值之一：选中即 `piece_style="glyph"`，不是单向门。"""
     atlas.config["piece_style"] = "cartoon"
     atlas.apply_style(GLYPH_STYLE_DATA)
     assert atlas.config["piece_render"] == "glyph"
-    assert atlas.config["piece_style"] == "cartoon"
+    assert atlas.config["piece_style"] == "glyph"
 
 
 def test_style_choice_enables_image_render(atlas: PieceAtlasDialog) -> None:
@@ -223,7 +223,10 @@ def test_switching_back_to_glyph_keeps_the_game(window) -> None:
     window.apply_piece_style(GLYPH_STYLE_DATA)
     assert len(window.game.state.history) == history
     assert window.board.piece_render == "glyph"
-    assert window.board.piece_style == "cartoon", "回退字形不该抹掉风格偏好"
+    # `board.piece_style` 是**图片风格**（`glyph` 不是美术风格，会被归一成 traditional 用于预热），
+    # 统一的四值写在 config 里；棋盘侧只认 `piece_render`。
+    assert window.config["piece_style"] == "glyph"
+    assert window.board.piece_render == "glyph"
 
 
 def test_settings_dialog_exposes_the_same_atlas(window, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -250,14 +253,14 @@ def test_settings_dialog_exposes_the_same_atlas(window, monkeypatch: pytest.Monk
 
 
 def test_settings_choice_maps_to_piece_render(window) -> None:
-    """下拉选「书法字形」→ 回写 `piece_render="glyph"` 且不动 `piece_style`。"""
+    """下拉选「书法字形」→ `piece_style="glyph"` 且 `piece_render="glyph"`（派生态）。"""
     window.config["piece_style"] = "modern"
     window.config["piece_render"] = "image"
     dialog = SettingsDialog(window.config, window)
     dialog.piece_style.setCurrentIndex(dialog.piece_style.findData(GLYPH_STYLE_DATA))
     values = dialog.value()
     assert values["piece_render"] == "glyph"
-    assert values["piece_style"] == "modern"
+    assert values["piece_style"] == "glyph"
     dialog.piece_style.setCurrentIndex(dialog.piece_style.findData("cartoon"))
     values = dialog.value()
     assert values["piece_render"] == "image"

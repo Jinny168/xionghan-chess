@@ -64,14 +64,15 @@ def test_dropdown_first_item_is_the_glyph_fallback(qt_app: QApplication) -> None
     dialog.deleteLater()
 
 
-def test_glyph_choice_maps_back_to_glyph_and_keeps_style(qt_app: QApplication) -> None:
+def test_glyph_choice_maps_to_the_glyph_style(qt_app: QApplication) -> None:
     parent = _Parent(_config(piece_style="cartoon", piece_render="image"))
     dialog = SettingsDialog(parent.config, parent)
     index = dialog.piece_style.findData(GLYPH_STYLE_DATA)
     dialog.piece_style.setCurrentIndex(index)
     value = dialog.value()
     assert value["piece_render"] == "glyph"
-    assert value["piece_style"] == "cartoon", "切回字形不应丢掉风格偏好"
+    # 四值互斥：选了「书法字形」就等于 style="glyph"（不再保留旧美术偏好）
+    assert value["piece_style"] == "glyph"
     dialog.deleteLater()
 
 

@@ -344,6 +344,7 @@ class MainWindow(QMainWindow):
         """
         glyph = style == GLYPH_STYLE_DATA
         if glyph:
+            self.config["piece_style"]="glyph"
             self.config["piece_render"]="glyph"
         else:
             self.config["piece_style"]=style

@@ -226,12 +226,8 @@ class PieceAtlasDialog(QDialog):
         self._rebuild_detail()
 
     def _is_active(self, choice: str) -> bool:
-        """这一格是否就是当前生效的渲染方式。"""
-        render = self.config.get("piece_render", GLYPH_MODE)
-        if choice == GLYPH_STYLE_DATA:
-            return render != IMAGE_MODE
-        return (render == IMAGE_MODE
-                and piece_assets.normalize_style(self.config.get("piece_style")) == choice)
+        """这一格是否就是当前生效的渲染方式（四值互斥，直接比 `piece_style`）。"""
+        return self.config.get("piece_style") == choice
 
     def apply_style(self, choice: str) -> None:
         """「使用此风格」：原地生效，不重开对局、不重建界面。
@@ -241,6 +237,7 @@ class PieceAtlasDialog(QDialog):
         """
         glyph = choice == GLYPH_STYLE_DATA
         if glyph:
+            self.config["piece_style"] = GLYPH_STYLE_DATA
             self.config["piece_render"] = GLYPH_MODE
         else:
             self.config["piece_style"] = piece_assets.normalize_style(choice)
