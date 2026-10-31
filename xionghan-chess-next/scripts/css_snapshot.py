@@ -130,7 +130,8 @@ def main() -> None:
             path.write_text(body, encoding="utf-8", newline="\n")
             print(f"{path.name}: {len(body.splitlines())} 行")
     else:
-        sys.stdout.write(light)
+        # 走 buffer：Windows 上 sys.stdout 会把 \n 转成 \r\n，手工 diff 会误判"全文件都变了"
+        sys.stdout.buffer.write(light.encode("utf-8"))
 
 
 if __name__ == "__main__":
