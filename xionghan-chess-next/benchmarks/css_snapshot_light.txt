@@ -114,7 +114,7 @@ button.primary:disabled|border-color|#d8cbb8
 .mode-panel label|gap|8px
 .mode-panel label|color|#695b4c
 .mode-panel select,.mode-panel input|height|36px
-.mode-panel select,.mode-panel input|border|1px solid #b5a184
+.mode-panel select,.mode-panel input|border|1px solid #af8a5a
 .mode-panel select,.mode-panel input|background|#fffcf5
 .mode-panel select,.mode-panel input|padding|0 9px
 .mode-panel select,.mode-panel input|color|#211b17
@@ -189,7 +189,7 @@ canvas|touch-action|none
 .panel-title|display|flex
 .panel-title|align-items|center
 .panel-title|justify-content|space-between
-.panel-title|border-bottom|1px solid #d7c5a8
+.panel-title|border-bottom|1px solid #b59366
 .panel-title h2,.captured-panel h2|font-size|15px
 .panel-title h2,.captured-panel h2|margin|0
 .panel-title span|font-size|12px
@@ -199,7 +199,7 @@ canvas|touch-action|none
 .record-panel ol|overflow|auto
 .record-panel ol|font-size|13px
 .record-panel li|padding|7px 4px
-.record-panel li|border-bottom|1px dashed #d9cab2
+.record-panel li|border-bottom|1px dashed #c4a985
 .captured-panel|padding|12px
 .captured-panel h2|margin-bottom|9px
 .captured-panel h2|color|#675748
@@ -236,7 +236,7 @@ dialog form|padding|18px
 .dialog-title|display|flex
 .dialog-title|align-items|center
 .dialog-title|justify-content|space-between
-.dialog-title|border-bottom|1px solid #ddc9a9
+.dialog-title|border-bottom|1px solid #bc9d75
 .dialog-title|padding-bottom|12px
 .dialog-title h2|margin|0
 .dialog-title h2|font|24px KaiTi,serif
@@ -341,7 +341,7 @@ body|transition|background-image .25s,background-color .25s
 .preference-options label|gap|8px
 .preference-options label|font-size|13px
 .preference-options select|height|32px
-.preference-options select|border|1px solid #b5a184
+.preference-options select|border|1px solid #af8a5a
 .preference-options select|background|#fffcf5
 .preference-options select|padding|0 8px
 .preference-options select|min-width|0
@@ -367,7 +367,7 @@ body|transition|background-image .25s,background-color .25s
 .replay-header|align-items|center
 .replay-header|justify-content|space-between
 .replay-header|padding|14px 16px
-.replay-header|border-bottom|1px solid #ddc9a9
+.replay-header|border-bottom|1px solid #bc9d75
 .replay-header|font|20px KaiTi,serif
 .replay-toolbar|display|grid
 .replay-toolbar|grid-template-columns|repeat(4,1fr)
@@ -388,12 +388,12 @@ body|transition|background-image .25s,background-color .25s
 .replay-sidebar ol|padding|8px 14px 24px 38px
 .replay-sidebar ol|overflow|auto
 .replay-sidebar li|padding|7px 4px
-.replay-sidebar li|border-bottom|1px dashed #d9cab2
+.replay-sidebar li|border-bottom|1px dashed #c4a985
 .replay-sidebar li|cursor|pointer
 .replay-sidebar li.active|background|#f1dfb7
 .replay-sidebar li.active|color|#9d2525
 .replay-sidebar li.active|font-weight|700
-.saved-replays|border-top|1px solid #ddc9a9
+.saved-replays|border-top|1px solid #bc9d75
 .saved-replays|padding|12px
 .saved-replays|max-height|42%
 .saved-replays|overflow|auto
@@ -407,7 +407,7 @@ body|transition|background-image .25s,background-color .25s
 .saved-replay|grid-template-columns|1fr auto
 .saved-replay|gap|8px
 .saved-replay|padding|8px 0
-.saved-replay|border-bottom|1px dashed #d9cab2
+.saved-replay|border-bottom|1px dashed #c4a985
 .saved-replay|font-size|12px
 .saved-replay strong,.saved-replay span|display|block
 .saved-replay span|color|#776653
@@ -435,11 +435,11 @@ body|transition|background-image .25s,background-color .25s
 .chat-messages|flex|1
 .chat-messages|min-height|150px
 .chat-messages|overflow|auto
-.chat-messages|border|1px solid #d7c5a8
+.chat-messages|border|1px solid #b59366
 .chat-messages|background|rgba(255,252,245,.62)
 .chat-messages|padding|8px
 .chat-message|padding|6px 4px
-.chat-message|border-bottom|1px dashed #d9cab2
+.chat-message|border-bottom|1px dashed #c4a985
 .chat-message|font-size|12px
 .chat-message|word-break|break-word
 .chat-message.red strong|color|#9d2525
@@ -447,7 +447,7 @@ body|transition|background-image .25s,background-color .25s
 .chat-quick-row,.chat-input-row|display|grid
 .chat-quick-row,.chat-input-row|grid-template-columns|1fr auto
 .chat-quick-row select,.chat-input-row input|min-width|0
-.chat-quick-row select,.chat-input-row input|border|1px solid #b5a184
+.chat-quick-row select,.chat-input-row input|border|1px solid #af8a5a
 .chat-quick-row select,.chat-input-row input|background|#fffcf5
 .chat-quick-row select,.chat-input-row input|padding|0 8px
 .chat-quick-row button,.chat-input-row button|min-height|34px
@@ -485,7 +485,7 @@ body[data-board-background="none"] .board-shell:before|display|none
 .custom-background-actions button|min-height|32px
 .custom-background-actions button|padding|4px 10px
 .custom-backgrounds select|height|32px
-.custom-backgrounds select|border|1px solid #b5a184
+.custom-backgrounds select|border|1px solid #af8a5a
 .custom-backgrounds select|background|#fffcf5
 .custom-backgrounds select|padding|0 8px
 .custom-backgrounds select|min-width|0
@@ -538,7 +538,7 @@ body[data-board-background="none"] .board-shell:before|display|none
 .menu-popup button|gap|12px
 .menu-popup button:hover|background|#f1dfbf
 .menu-popup hr|border|0
-.menu-popup hr|border-top|1px solid #ddc9a9
+.menu-popup hr|border-top|1px solid #bc9d75
 .menu-popup hr|width|100%
 .menu-popup hr|margin|4px 0
 .menu-popup kbd|font|11px Consolas,monospace
@@ -574,7 +574,7 @@ body[data-board-background="none"] .board-shell:before|display|none
 .replay-board-wrap|position|relative
 .replay-board-wrap|min-width|0
 .replay-board-wrap|background|#f9e8c4
-.replay-board-wrap|border-right|1px solid #c8ad84
+.replay-board-wrap|border-right|1px solid #8c6c43
 .replay-board-wrap canvas|position|absolute
 .replay-board-wrap canvas|inset|12px
 .replay-board-wrap canvas|width|calc(100% - 24px)
@@ -589,7 +589,7 @@ body[data-board-background="none"] .board-shell:before|display|none
 .replay-controls ol|flex|1
 .replay-controls ol|min-height|120px
 .replay-controls li|padding|7px 4px
-.replay-controls li|border-bottom|1px dashed #d9cab2
+.replay-controls li|border-bottom|1px dashed #c4a985
 .replay-controls li|cursor|pointer
 .replay-controls li.active|background|#f1dfb7
 .replay-controls li.active|color|#9d2525
@@ -625,7 +625,7 @@ body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-
 @media(max-width:760px)|height|100vh}.replay-layout{display:flex
 @media(max-width:760px)|flex-direction|column}.replay-board-wrap{flex:0 0 min(56vh,100vw)
 @media(max-width:760px)|border-right|0
-@media(max-width:760px)|border-bottom|1px solid #c8ad84}.replay-controls{flex:1}.saved-replays{max-height:160px}.game-actions button{min-width:64px
+@media(max-width:760px)|border-bottom|1px solid #8c6c43}.replay-controls{flex:1}.saved-replays{max-height:160px}.game-actions button{min-width:64px
 @media(max-width:760px)|padding|6px 9px}
 .pause-overlay|position|absolute
 .pause-overlay|inset|0
@@ -693,7 +693,7 @@ body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-
 .piece-slot-list label|grid-template-columns|auto 28px 1fr
 .piece-slot-list label|align-items|center
 .piece-slot-list label|gap|6px
-.piece-slot-list label|border-bottom|1px dashed #ddc9a9
+.piece-slot-list label|border-bottom|1px dashed #bc9d75
 .piece-slot-list label|padding|6px
 .piece-slot-list small|overflow|hidden
 .piece-slot-list small|text-overflow|ellipsis
@@ -713,7 +713,7 @@ body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-
 #accountGuest label|align-items|center
 #accountGuest label|gap|10px
 #accountGuest input|height|38px
-#accountGuest input|border|1px solid #b5a184
+#accountGuest input|border|1px solid #af8a5a
 #accountGuest input|padding|0 9px
 .cloud-game-list|display|grid
 .cloud-game-list|max-height|430px
@@ -723,7 +723,7 @@ body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-
 .cloud-game|gap|8px
 .cloud-game|align-items|center
 .cloud-game|padding|9px 0
-.cloud-game|border-bottom|1px dashed #d9cab2
+.cloud-game|border-bottom|1px dashed #c4a985
 .cloud-game strong,.cloud-game span|display|block
 .cloud-game button|min-height|30px
 .cloud-game button|padding|4px 8px
