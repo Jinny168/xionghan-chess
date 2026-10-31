@@ -8,7 +8,9 @@ import logging
 import os
 from pathlib import Path
 
+from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
@@ -80,10 +82,31 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="匈汉象棋 API", version="1.7.0", lifespan=lifespan)
 
 
+@app.exception_handler(RequestValidationError)
+async def _validation_as_400(request, exc: RequestValidationError):
+    """请求体校验失败统一回 **400**（而不是 FastAPI 默认的 422），并给一句人话。
+
+    为什么改：422 是个协议细节，客户端只看到"unprocessable"；而这里最常见的失败是
+    **玩家名超长**（曾有人用 1MB 的名字让快照涨到 1.01MB）。要让人一眼知道改了哪里。
+    顺带也避免"静默截断"——截断会让两个不同的名字撞成一个。
+    """
+    details = []
+    for item in exc.errors():
+        field = ".".join(str(part) for part in item.get("loc", ()) if part != "body")
+        details.append(f"{field or '请求体'}：{item.get('msg', '无效')}")
+    return JSONResponse(status_code=400,
+                        content={"detail": "；".join(details) or "请求参数无效"})
+
+
+# 玩家名上限（**按码点**，pydantic 的 max_length 就是字符数）：
+# 1MB 的名字曾让一次快照从 13KB 涨到 1.01MB，而它是**每 5 秒广播**的。
+# 超长要 400 而不是截断 —— 截断会让两个不同的名字变成同一个。
+MAX_PLAYER_NAME = 24
+
 class CreateRoomRequest(BaseModel):
     profile_id: str = Field("web", alias="profileId")
     mode: str = "online"
-    player_name: str = Field("玩家", alias="playerName")
+    player_name: str = Field("玩家", alias="playerName", max_length=MAX_PLAYER_NAME)
     avatar_url: str = Field("", alias="avatarUrl", max_length=500)
     player_color: Color = Field(Color.RED, alias="playerColor")
     difficulty: Difficulty = Difficulty(os.getenv("AI_DEFAULT_DIFFICULTY", "medium"))
@@ -98,7 +121,7 @@ class CreateRoomRequest(BaseModel):
 
 
 class JoinRoomRequest(BaseModel):
-    player_name: str = Field("玩家", alias="playerName")
+    player_name: str = Field("玩家", alias="playerName", max_length=MAX_PLAYER_NAME)
     avatar_url: str = Field("", alias="avatarUrl", max_length=500)
     language: str = "zh-CN"
     model_config = {"populate_by_name": True}
@@ -107,7 +130,7 @@ class JoinRoomRequest(BaseModel):
 class ImportGameRequest(BaseModel):
     document: dict
     mode: str = "local"
-    player_name: str = Field("玩家", alias="playerName")
+    player_name: str = Field("玩家", alias="playerName", max_length=MAX_PLAYER_NAME)
     player_color: Color = Field(Color.RED, alias="playerColor")
     difficulty: Difficulty = Difficulty.MEDIUM
     language: str = "zh-CN"

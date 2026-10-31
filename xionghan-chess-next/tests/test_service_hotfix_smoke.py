@@ -110,3 +110,35 @@ def test_invalid_json_goes_through_the_normal_disconnect_path() -> None:
     assert token not in room.sockets, "socket 没被清理"
     seat = next(s for s in room.seats.values() if s.token == token)
     assert seat.connected is False, "座位仍标记在线"
+
+
+def test_player_name_length_is_capped(client: TestClient) -> None:
+    """S4：玩家名按**码点**限 24；超长回 400 并点名字段，不静默截断。
+
+    1MB 的名字曾让一次快照从 13 KB 涨到 1.01 MB，而快照是每 5 秒广播的。
+    """
+    for name in ("A" * 1024, "A" * 1_000_000):
+        response = client.post("/api/rooms", json={
+            "profileId": "traditional", "mode": "local", "playerName": name})
+        assert response.status_code == 400, response.status_code
+        assert "playerName" in response.json()["detail"]
+
+    ok = client.post("/api/rooms", json={
+        "profileId": "traditional", "mode": "local", "playerName": "名" * 24})
+    assert ok.status_code == 200, ok.text
+
+
+def test_player_name_length_is_capped(client: TestClient) -> None:
+    """S4：玩家名按**码点**限 24；超长回 400 并点名字段，不静默截断。
+
+    1MB 的名字曾让一次快照从 13 KB 涨到 1.01 MB，而快照是每 5 秒广播的。
+    """
+    for name in ("A" * 1024, "A" * 1_000_000):
+        response = client.post("/api/rooms", json={
+            "profileId": "traditional", "mode": "local", "playerName": name})
+        assert response.status_code == 400, response.status_code
+        assert "playerName" in response.json()["detail"]
+
+    ok = client.post("/api/rooms", json={
+        "profileId": "traditional", "mode": "local", "playerName": "名" * 24})
+    assert ok.status_code == 200, ok.text
