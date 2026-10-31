@@ -71,6 +71,27 @@ THEMES = {
     "dark": {"board": "#34302b", "line": "#c9b58e", "frame": "#171513", "panel": "#29241f", "window": "#1d1a17", "accent": "#8e3b32"},
 }
 
+# §5 审计（UI_AUDIT_2026-10-31）落地的调色键：**只加数据，不改任何结构**。
+# 浅色 4 主题与暗色各一套；比值（WCAG）见提交信息。
+_BANNER = {"light": ("#7f1d1d", "#ffffff"), "dark": ("#f2b8b5", "#410002")}
+_SECONDARY = {"light": "#5c5048", "dark": "#c6beb1"}
+_DISABLED = {"light": ("#7d7368", "#f0e9dc"), "dark": ("#948a7d", "#2f2a24")}
+for _name, _palette in THEMES.items():
+    _mode = "dark" if _name == "dark" else "light"
+    _palette["banner_bg"], _palette["banner_fg"] = _BANNER[_mode]
+    _palette["secondary"] = _SECONDARY[_mode]
+    _palette["disabled_fg"], _palette["disabled_bg"] = _DISABLED[_mode]
+
+
+# 缩略图/角标画在**固定浅色美术底**上，不随主题走
+SECONDARY_ON_ARTWORK = "#5c5048"
+
+
+def secondary(theme_name: str) -> str:
+    """次要文字色：随主题取，不再散落硬编码 `#6f6254`（暗面板下只有 2.60:1）。"""
+    return THEMES.get(theme_name, THEMES["classic"])["secondary"]
+
+
 FONT_CHOICES = {"system": UI_FONT, "kaiti": PIECE_FONT, "songti": "SimSun", "fangsong": "FangSong"}
 
 

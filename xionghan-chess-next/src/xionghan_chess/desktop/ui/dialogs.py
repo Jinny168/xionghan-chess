@@ -161,7 +161,8 @@ class SettingsDialog(QDialog):
         content=QWidget();content_layout=QVBoxLayout(content);self.piece_groups={}
         for kind,(title_key,description_key,rules) in piece_definitions.items():
             group=QGroupBox(t(title_key, self.language));group_layout=QVBoxLayout(group);self.piece_groups[kind]=group
-            detail=QLabel(t(description_key, self.language));detail.setWordWrap(True);detail.setStyleSheet("color:#6f6254");group_layout.addWidget(detail)
+            detail=QLabel(t(description_key, self.language));detail.setWordWrap(True);detail.setStyleSheet(
+                f"color:{theme.secondary(str(self._config.get('theme', 'classic')))}");group_layout.addWidget(detail)
             appear_key=f"{kind.value}_appear";appear=QCheckBox(t("settings.piece_appear", self.language))
             appear.setChecked(bool(getattr(options,appear_key)));self.checks[appear_key]=appear;group_layout.addWidget(appear)
             for key in rules:

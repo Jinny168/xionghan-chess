@@ -399,7 +399,7 @@ class MainWindow(QMainWindow):
         QApplication.instance().setFont(QFont(font,10));self.configure_board()
         text="#f3ead7" if self.config.get("theme")=="dark" else "#211b17"
         hover="#4a433b" if self.config.get("theme")=="dark" else "#f1dfbf"
-        self.setStyleSheet(f"""QMainWindow,#root{{background:{palette['window']};color:{text}}}QMenuBar,QMenu,QToolBar{{background:{palette['panel']};color:{text};border-bottom:1px solid {palette['line']};padding:5px}}#banner{{background:{palette['accent']};color:white;padding:8px;font-weight:bold;font-size:15px}}QListWidget,QLabel,QFrame,QGroupBox,QComboBox,QSpinBox,QLineEdit{{background:{palette['panel']};color:{text};border:1px solid {palette['line']};padding:7px}}QPushButton{{min-height:35px;background:{palette['panel']};color:{text};border:1px solid {palette['line']}}}QPushButton:hover{{background:{hover}}}""")
+        self.setStyleSheet(f"""QMainWindow,#root{{background:{palette['window']};color:{text}}}QMenuBar,QMenu,QToolBar{{background:{palette['panel']};color:{text};border-bottom:1px solid {palette['line']};padding:5px}}#banner{{background:{palette['banner_bg']};color:{palette['banner_fg']};padding:8px;font-weight:bold;font-size:15px}}QListWidget,QLabel,QFrame,QGroupBox,QComboBox,QSpinBox,QLineEdit{{background:{palette['panel']};color:{text};border:1px solid {palette['line']};padding:7px}}QPushButton{{min-height:35px;background:{palette['panel']};color:{text};border:1px solid {palette['line']}}}QPushButton:disabled{{color:{palette['disabled_fg']};background:{palette['disabled_bg']};border:1px solid {palette['line']}}}QPushButton:hover{{background:{hover}}}""")
 
     def _report_audio_failure(self, message: str) -> None:
         """P1-S：音效加载/播放失败时在状态栏说一句。

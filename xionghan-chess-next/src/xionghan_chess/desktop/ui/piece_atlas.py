@@ -89,7 +89,8 @@ PIECE_RULES_TAB = 2
 
 def _draw_glyph_badge(painter: QPainter, edge: int, text: str) -> None:
     """缺图格左下角的 10px「字」小标：说明这枚子是字形回退，不是美术。"""
-    painter.setPen(QColor("#6f6254"))
+    # 缩略图固定画在**浅色美术底**上（与主题无关），所以这里用浅色次要文字
+    painter.setPen(QColor(theme.SECONDARY_ON_ARTWORK))
     painter.setFont(QFont(theme.UI_FONT, 7))
     painter.drawText(int(edge * 0.06), int(edge * 0.94), text)
 
@@ -216,7 +217,8 @@ class PieceAtlasDialog(QDialog):
 
         self._demo_note = QLabel("", frame)
         self._demo_note.setWordWrap(True)
-        self._demo_note.setStyleSheet("color:#6f6254")
+        self._demo_note.setStyleSheet(
+            f"color:{theme.secondary(str(self.config.get('theme', 'classic')))}")
         layout.addWidget(self._demo_note)
         return frame
 
@@ -314,7 +316,7 @@ class PieceAtlasDialog(QDialog):
         # 图谱固定按图片路径展示，与棋盘的 `piece_render` 无关 —— 明说一句，
         # 免得默认（字形）模式下用户以为「点了立刻变」，结果棋盘没动。
         note = QLabel(t("desktop.atlas_image_note", self.language))
-        note.setStyleSheet("color:#6f6254")
+        note.setStyleSheet(f"color:{theme.secondary(str(self.config.get('theme', 'classic')))}")
         layout.addWidget(note)
         close = QPushButton(t("common.close", self.language))
         close.clicked.connect(self.accept)
@@ -399,7 +401,7 @@ class PieceAtlasDialog(QDialog):
         if not keys:
             hint = QLabel(t("desktop.atlas_switch_none", self.language))
             hint.setWordWrap(True)
-            hint.setStyleSheet("color:#6f6254")
+            hint.setStyleSheet(f"color:{theme.secondary(str(self.config.get('theme', 'classic')))}")
             layout.addWidget(hint)
             return box
 
@@ -550,7 +552,7 @@ class PieceAtlasDialog(QDialog):
             column.addWidget(label)
             summary = QLabel(self._summary(self.kind))
             summary.setWordWrap(True)
-            summary.setStyleSheet("color:#6f6254")
+            summary.setStyleSheet(f"color:{theme.secondary(str(self.config.get('theme', 'classic')))}")
             summary.setAlignment(Qt.AlignmentFlag.AlignHCenter)
             column.addWidget(summary)
             column.addStretch(1)
@@ -565,7 +567,7 @@ class PieceAtlasDialog(QDialog):
         if piece_assets.resolve(self.style, Color.RED, self.kind) is None:
             fallback = QLabel(t("desktop.atlas_glyph_family_note", self.language))
             fallback.setWordWrap(True)
-            fallback.setStyleSheet("color:#6f6254")
+            fallback.setStyleSheet(f"color:{theme.secondary(str(self.config.get('theme', 'classic')))}")
             text.addWidget(fallback)
         text.addStretch(1)
         layout.addLayout(text, 1)
