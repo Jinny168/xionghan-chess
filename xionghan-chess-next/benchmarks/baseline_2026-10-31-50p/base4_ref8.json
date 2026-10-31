@@ -5,8 +5,8 @@
   "plies": 4,
   "fp": "50/102",
   "ref_move": "9,1-9,11",
-  "ref_depth": 4,
-  "wall": 48.1,
+  "ref_depth": 3,
+  "wall": 48.0,
   "in_eight": true
  },
  "f2fc8f96a6f1b415": {
@@ -16,7 +16,7 @@
   "fp": "50/101",
   "ref_move": "7,12-5,12",
   "ref_depth": 3,
-  "wall": 48.0,
+  "wall": 48.1,
   "in_eight": true
  },
  "cc217fd258296f75": {
@@ -26,7 +26,7 @@
   "fp": "50/116",
   "ref_move": "7,0-5,0",
   "ref_depth": 3,
-  "wall": 48.1,
+  "wall": 48.0,
   "in_eight": true
  },
  "c2c43f4f145beaa7": {
@@ -35,7 +35,7 @@
   "plies": 4,
   "fp": "50/106",
   "ref_move": "9,11-9,6",
-  "ref_depth": 4,
+  "ref_depth": 3,
   "wall": 48.0,
   "in_eight": true
  },
@@ -46,7 +46,7 @@
   "fp": "50/101",
   "ref_move": "9,1-9,11",
   "ref_depth": 3,
-  "wall": 48.0,
+  "wall": 48.1,
   "in_eight": true
  },
  "502da69fa7818de0": {
@@ -85,7 +85,7 @@
   "plies": 12,
   "fp": "49/100",
   "ref_move": "7,0-5,0",
-  "ref_depth": 3,
+  "ref_depth": 4,
   "wall": 48.0,
   "in_eight": false
  }

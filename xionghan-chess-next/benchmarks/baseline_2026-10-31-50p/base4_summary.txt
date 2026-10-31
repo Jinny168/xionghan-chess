@@ -15,10 +15,10 @@
   web                s701 p 8  6efe360746a3ea79  44/93
   traditional        s700 p 8  a2550f49e3960786  32/42
   traditional        s701 p 8  9c5ee0503469af6f  32/43
-[eval] desktop_complete 累计 50 条 10s
-[eval] desktop_classic 累计 100 条 20s
-[eval] web 累计 150 条 28s
-[eval] traditional 累计 200 条 31s
+[eval] desktop_complete 累计 50 条 11s
+[eval] desktop_classic 累计 100 条 22s
+[eval] web 累计 150 条 32s
+[eval] traditional 累计 200 条 35s
 [eval200] n=200 零和 200/200 sha256=738a1dbb410edd61
 [check20] n=20 sum=-60 的 20/20 来源分布={'A:seed700-709': 20, 'B:seed710-729': 0}
 [mobility] 空盘中心 仕(advisor)@6,6=8, 相(elephant)@6,6=4, 傌(horse)@6,6=12, 俥(rook)@6,6=23, 炮(cannon)@6,6=23, 兵(pawn)@5,6=3, 兵(pawn)@6,6=1, 尉(guard)@6,6=24, 巡(patrol)@6,6=11, 射(archer)@6,6=12, 檑(thunder)@6,6=46
