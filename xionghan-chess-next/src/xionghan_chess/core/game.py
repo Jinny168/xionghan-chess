@@ -228,7 +228,12 @@ class Game:
             action = self._t("notation.capture") if captured else self._t("notation.move")
         return f"{name} {move.source.row + 1},{move.source.col + 1} {action} {move.target.row + 1},{move.target.col + 1}"
 
-    def public_state(self) -> dict:
+    def public_state(self, include_replay: bool = True) -> dict:
+        """局面快照。`include_replay=False` 用于**常规广播**。
+
+        `replay` 是每一步的完整局面历史，随步数线性膨胀（60 手约 2.29 MB），
+        而广播每 5 秒一次、每个 socket 单独序列化 —— 放进广播等于每 5 秒传一次全量历史。
+        """
         data = self.state.to_dict()
         data["profile"] = {"id": self.profile.id, "title": self.profile.title,
                            "rows": self.profile.rows, "cols": self.profile.cols,
@@ -250,7 +255,8 @@ class Game:
                            ]}
         data["check"] = self.rules.in_check(self.state, self.state.turn) if not self.state.finished else False
         data["setup"] = self.setup.to_dict()
-        data["replay"] = [snapshot for snapshot in self._snapshots] + [self.state.to_dict()]
+        if include_replay:
+            data["replay"] = [snapshot for snapshot in self._snapshots] + [self.state.to_dict()]
         return data
 
     def _record_position(self) -> None:

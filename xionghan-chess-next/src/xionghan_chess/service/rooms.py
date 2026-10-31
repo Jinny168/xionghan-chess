@@ -60,11 +60,14 @@ class Room:
     taunts_enabled: bool = True
     taunt_events: set[str] = field(default_factory=set)
     chat_history: list[dict[str, Any]] = field(default_factory=list)
+    # 刚接入/重连的 token：它们的**下一条** STATE 带完整 replay，之后一律不带
+    fresh_tokens: set[str] = field(default_factory=set)
 
     def tr(self, key: str, **params: object) -> str:
         return t(key, self.language, **params)
 
-    def snapshot(self, token: str | None = None) -> dict[str, Any]:
+    def snapshot(self, token: str | None = None,
+                 include_replay: bool = True) -> dict[str, Any]:
         seat = next((s for s in self.seats.values() if s.token == token), None)
         players = ([
             {"color": Color.RED.value, "name": self.tr("common.local_player_one"),
@@ -84,7 +87,7 @@ class Room:
             "players": players,
             "chatHistory": list(self.chat_history),
             "spectatorCount": sum(item.connected for item in self.spectators.values()),
-            "game": self.game.public_state(),
+            "game": self.game.public_state(include_replay=include_replay),
         }
 
 
@@ -225,6 +228,10 @@ class RoomManager:
         async with room.lock:
             previous = room.sockets.get(token)
             room.sockets[token] = websocket
+            fresh = getattr(room, "fresh_tokens", None)
+            if fresh is None:
+                fresh = room.fresh_tokens = set()
+            fresh.add(token)          # 这一条 STATE 带完整 replay
             seat.connected = True
             seat.disconnected_at = None
             room.last_activity = time.time()
@@ -409,14 +416,20 @@ class RoomManager:
             revision = room.revision
             player_sockets = list(room.sockets.items())
             spectator_sockets = list(room.spectator_sockets.items())
+            # 刚接入/重连的 socket 第一条 STATE 带完整 replay，之后一律不带。
+            # 为什么不在 connect 里额外发一帧：那会让"一问一答"的时序整体后移一帧，
+            # 客户端按 revision 对齐的用例会读到上一条。
+            fresh = getattr(room, "fresh_tokens", set())
             player_messages = {
                 token: Envelope(type=MessageType.STATE, roomId=room.id, revision=revision,
-                                payload=room.snapshot(token)).wire()
+                                payload=room.snapshot(token, include_replay=token in fresh)).wire()
                 for token in room.sockets
             }
+            if fresh:
+                room.fresh_tokens = set()
             spectator_message = Envelope(
                 type=MessageType.STATE, roomId=room.id, revision=revision,
-                payload=room.snapshot(None)).wire()
+                payload=room.snapshot(None, include_replay=False)).wire()
         dead: list[tuple[str, WebSocket]] = []
         for token, socket in player_sockets:
             try:
