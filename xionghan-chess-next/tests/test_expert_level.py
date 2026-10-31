@@ -1,7 +1,22 @@
 """「专家」档：固定 d3、35s 上限、root_limit 沿用 18。
 
-为什么单独一个文件：深度测试要跑满 16 个局面（每个可能十几秒），标 `slow`；
-而"配置对不对""下拉里有没有这一档"是毫秒级断言，不能被拖成慢测。
+## 为什么要单独一个文件、还要拆快慢
+
+深度测试每个局面要真跑 10–30 秒。16 条全开时整跑从 ~70s 涨到 ~230s（3.5 倍），
+**改一行代码等四分钟**不划算；全关又不甘心（专家档的价值就是"能不能跑完 d3"）。
+
+所以按**成本**拆：
+- **默认只跑 2 条代表局面**（合计约 42s）：
+  * `2719dd6f` —— 实测 27.7s，**最坏情况**，最容易回落 d2 的那条，必须留在默认集；
+  * `c2c43f4f` —— 实测 14.6s，中位偏上。
+  两端覆盖住了，默认门禁才既便宜又有意义（把最坏那条挪进 slow 等于自废门禁）。
+- **其余 14 条标 `@pytest.mark.slow`**：`-m slow` 时全跑。
+
+## 什么时候必须跑全 16 条
+
+改了**评估函数 / 着法排序 / 搜索参数（depth、root_limit、branch_limit、quiescence）/
+难度参数**之后 —— 这些都会改变各局面的分支宽度，只看 2 条会漏掉"某些局面突然回落 d2"。
+命令：`pytest tests/test_expert_level.py -m slow`（14 条）+ 默认跑（2 条）= 全 16 条。
 """
 
 from __future__ import annotations
@@ -54,8 +69,19 @@ def test_expert_is_in_the_difficulty_dropdown() -> None:
     dialog.deleteLater()
 
 
-@pytest.mark.slow
-@pytest.mark.parametrize("entry", CORPUS, ids=[item["id"][:8] for item in CORPUS])
+# 默认集：最坏 + 中位偏上两条；其余标 slow（见模块 docstring 的取舍说明）
+DEFAULT_CORPUS_IDS = {"2719dd6f26e881f3", "c2c43f4f145beaa7"}
+CORPUS_PARAMS = [
+    pytest.param(
+        entry,
+        id=entry["id"][:8],
+        marks=[] if entry["id"] in DEFAULT_CORPUS_IDS else [pytest.mark.slow],
+    )
+    for entry in CORPUS
+]
+
+
+@pytest.mark.parametrize("entry", CORPUS_PARAMS)
 def test_expert_completes_depth_3_on_corpus(entry: dict) -> None:
     """16 局面语料：每个都必须真的跑完 d3（`completed_depth == 3`）。
 
