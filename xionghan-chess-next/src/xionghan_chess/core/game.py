@@ -56,6 +56,9 @@ class Game:
             raise GameError(self._t("error.game_finished"))
         if self.state.paused:
             raise GameError(self._t("error.game_paused"))
+        # L-03：`tick()` 在未超时时会把 `turn_started_at` 重置为 now，
+        # 之后再拿它算 elapsed 就恒为 0。所以**先取快照**。
+        started_at = self.state.turn_started_at
         self.tick()
         if self.state.finished:
             raise GameError(self._t("error.turn_timeout"))
@@ -66,7 +69,7 @@ class Game:
             del self._snapshots[:-self.MAX_SNAPSHOTS]
         moving = self.state.piece_at(move.source)
         assert moving is not None
-        elapsed = int((time.monotonic() - self.state.turn_started_at) * 1000)
+        elapsed = int((time.monotonic() - started_at) * 1000)
         captured = self.rules.board_removals(self.state, move)
         next_state = self.rules.apply_unchecked(self.state, move)
         for item in captured:
@@ -82,7 +85,15 @@ class Game:
         self._settle_after_move(moving.color, move)
         return record
 
-    def undo(self, plies: int = 1) -> None:
+    def undo(self, plies: int = 1, *, allow_finished: bool = False) -> None:
+        """撤销 `plies` 步。
+
+        L-02：终局后默认拒绝 —— 否则认输/被将死后撤销会"复活棋盘"（finished=False / winner=None）。
+        题目/训练里"重来一题"是**有意允许**的，它们显式传 `allow_finished=True`，
+        而不是靠一个隐式开关（隐式开关最容易在别的路径上被误开）。
+        """
+        if self.state.finished and not allow_finished:
+            raise GameError(self._t("error.game_finished"))
         if plies < 1 or len(self._snapshots) < plies:
             raise GameError(self._t("error.no_undo"))
         snapshot = self._snapshots[-plies]
@@ -107,6 +118,9 @@ class Game:
             self.state.turn_started_at = time.monotonic()
 
     def resign(self, color: Color) -> None:
+        # L-01：终局后认输会把 winner 从 draw 翻转成对手胜，且 draw 仍为 True。
+        if self.state.finished:
+            raise GameError(self._t("error.game_finished"))
         self.state.winner = color.opponent
         self.state.result_reason = "resignation"
 
