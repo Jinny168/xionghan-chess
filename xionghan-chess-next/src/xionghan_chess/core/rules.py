@@ -264,7 +264,7 @@ class RulesEngine:
         clone.pieces[clone.pieces.index(piece)] = piece.at(move.target)
 
         if self._three_line_mover(piece):
-            for captured in self._three_line_removals(clone, piece.color):
+            for captured in self._three_line_removals(clone, piece.color, move.target):
                 if captured in clone.pieces:
                     clone.pieces.remove(captured)
                     removals.append(Removal(CaptureKind.THREE_LINE, captured.id, captured.type,
@@ -719,12 +719,14 @@ class RulesEngine:
         """这枚子移动后是否结算"三连吃子"：只有兵，且需 `pawn_three_line_capture` 开关（默认关）。"""
         return piece.type is PieceType.PAWN and self.options.pawn_three_line_capture
 
-    def _three_line_removals(self, state: GameState, color: Color) -> list[Piece]:
+    def _three_line_removals(self, state: GameState, color: Color,
+                             landing: Position) -> list[Piece]:
         """三连吃子：己方两子（至少一枚是兵）+ 敌方一子成直线 → 吃掉敌方那一枚。
 
         甲/楯移除后只剩一条触发源：**己方两子里至少一枚兵**，且
         `pawn_three_line_capture` 开启（默认关）。
         """
+        _ = landing  # Step 2 起使用：落点用于把全盘扫描收窄到 12 个窗口
         captures: dict[str, Piece] = {}
         directions = ((0, 1), (1, 0), (1, 1), (1, -1))
         for row in range(self.profile.rows):
