@@ -117,10 +117,12 @@ class PieceAtlasDialog(QDialog):
         root.setContentsMargins(16, 16, 16, 16)
         root.setSpacing(10)
         root.addWidget(self._top_bar())
+        # 三栏：左＝棋子清单 / 中＝走法演示盘 / 右＝规则正文 + 开关
         body = QHBoxLayout()
         body.setSpacing(12)
         body.addWidget(self._piece_list())
-        body.addWidget(self._detail_area(), 1)
+        body.addWidget(self._demo_area(), 3)
+        body.addWidget(self._detail_area(), 2)
         root.addLayout(body, 1)
         root.addWidget(self._bottom_bar())
 
@@ -156,7 +158,10 @@ class PieceAtlasDialog(QDialog):
         layout.setContentsMargins(6, 6, 6, 6)
         self._list = QListWidget()
         self._list.setFrameShape(QFrame.Shape.NoFrame)
-        for label, kinds in ((dl("常规棋子"), REGULAR_KINDS), (dl("特色棋子"), SPECIAL_KINDS)):
+        # 甲/楯/刺已软删，但仍要在清单里**可见**（灰态 + 「未登场」），否则用户会以为漏了
+        legacy = (PieceType.ARMOR, PieceType.SHIELD)
+        for label, kinds in ((dl("常规棋子"), REGULAR_KINDS),
+                             (dl("特色棋子"), SPECIAL_KINDS + legacy)):
             header = QListWidgetItem(label)
             header.setFlags(Qt.ItemFlag.NoItemFlags)
             header.setForeground(QColor("#8a7b68"))
@@ -164,9 +169,16 @@ class PieceAtlasDialog(QDialog):
             for kind in kinds:
                 enabled = kind in self.rules.enabled_piece_types
                 # 红黑字形对照：漢/汗 这种一眼看出双方的写法差异
-                glyphs = f"{theme.NAMES[Color.RED][kind]}/{theme.NAMES[Color.BLACK][kind]}"
-                text = f"{glyphs}　{t(f'piece_name.{kind.value}', self.language)}"
-                if not enabled:
+                glyphs = (f"{theme.NAMES[Color.RED].get(kind, '·')}"
+                          f"/{theme.NAMES[Color.BLACK].get(kind, '·')}")
+                # 软删的棋型 `piece_name.*` 已下线，改走 `atlas_legacy_piece_*`（i18n，不写死中文）
+                name = t(f"piece_name.{kind.value}", self.language)
+                if name.startswith("piece_name."):
+                    name = t(f"desktop.atlas_legacy_piece_{kind.value}", self.language)
+                text = f"{glyphs}　{name}"
+                if kind in legacy:
+                    text += "　·　" + t("desktop.atlas_legacy", self.language)
+                elif not enabled:
                     text += "　·　" + t("desktop.atlas_unavailable", self.language)
                 item = QListWidgetItem(text)
                 # 存字符串而不是 PieceType：`PieceType` 是 StrEnum，经 QVariant
@@ -178,6 +190,27 @@ class PieceAtlasDialog(QDialog):
         self._list.setCurrentRow(1)
         self._list.currentItemChanged.connect(self._selection_changed)
         layout.addWidget(self._list)
+        return frame
+
+    def _demo_area(self) -> QWidget:
+        """中栏：走法演示盘（第 2 块填内容，这里先立骨架与预设下拉的挂点）。"""
+        frame = QFrame()
+        frame.setFrameShape(QFrame.Shape.StyledPanel)
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+        self._demo_title = self._heading(t("desktop.atlas_demo_title", self.language))
+        self._demo_title.setParent(frame)
+        layout.addWidget(self._demo_title)
+        # 显式给父对象：图谱在测试里是 `deleteLater()` 的，子控件无父时会在
+        # Qt 已析构后由 Python GC 回收，整跑套件时表现为末尾的原生崩溃。
+        self._demo_host = QWidget(frame)
+        self._demo_host.setMinimumHeight(360)
+        layout.addWidget(self._demo_host, 1)
+        self._demo_note = QLabel(t("desktop.atlas_demo_pending", self.language), frame)
+        self._demo_note.setWordWrap(True)
+        self._demo_note.setStyleSheet("color:#6f6254")
+        layout.addWidget(self._demo_note)
         return frame
 
     def _detail_area(self) -> QWidget:

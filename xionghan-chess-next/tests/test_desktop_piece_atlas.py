@@ -72,12 +72,20 @@ def test_constructs_without_a_game(qt_app: QApplication, config: dict) -> None:
     dialog.deleteLater()
 
 
-def test_lists_twelve_piece_types(atlas: PieceAtlasDialog) -> None:
-    """软删甲/楯后图鉴只剩 12 型（常规 7 + 特色 5）。"""
+def test_lists_twelve_enabled_types_plus_two_grey_legacy(atlas: PieceAtlasDialog) -> None:
+    """清单=12 个在用棋型 + 甲/楯两条**灰态**（软删但要看得见，否则用户以为漏了）。"""
     listed = kind_items(atlas)
-    assert listed == [kind.value for kind in (*REGULAR_KINDS, *SPECIAL_KINDS)]
-    assert len(listed) == 12
-    assert "armor" not in listed and "shield" not in listed
+    assert listed == [kind.value for kind in (*REGULAR_KINDS, *SPECIAL_KINDS)] + ["armor", "shield"]
+    enabled = [kind for kind in (*REGULAR_KINDS, *SPECIAL_KINDS)]
+    assert len(enabled) == 12
+
+    texts = {}
+    for row in range(atlas._list.count()):
+        item = atlas._list.item(row)
+        value = item.data(0x0100)
+        if value:
+            texts[value] = item.text()
+    assert "未登场" in texts["armor"] and "未登场" in texts["shield"]
 
 
 def test_unavailable_pieces_are_marked_and_greyed(qt_app: QApplication) -> None:
