@@ -36,9 +36,11 @@ where = ["src"]
 pythonpath = ["src"]
 testpaths = ["tests"]
 # `--strict-markers` turns a mistyped `@pytest.mark.<name>` into an error instead
-# of a silently-ignored no-op. `slow` marks the wall-clock performance guardrails
-# (tests/test_performance.py): run them with the full suite (CI does), skip them
-# locally with `-m "not slow"`.
+# of a silently-ignored no-op. `slow` marks wall-clock tests: 性能护栏（test_performance.py）
+# 与专家档 14 条深度用例（test_expert_level.py）。
+# **这里刻意不放 `-m "not slow"`**：全局默认会让任何人的裸 pytest 静默少跑 13 条，
+# 想快请显式写命令 —— 主门禁 `pytest tests/ -m "not slow"`（CI 主 job 就是这么跑的），
+# 全量 `pytest tests/ -m slow`（CI 独立 slow job，手动/定时触发，不阻塞合并）。
 addopts = ["--strict-markers"]
 markers = [
   "slow: wall-clock performance regression guardrail (`-m 'not slow'` to skip)",
