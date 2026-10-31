@@ -19,6 +19,7 @@ from xionghan_chess.core.taunts import choose_taunt
 from xionghan_chess.i18n import normalize_language, t
 
 
+ZOMBIE_ROOM_SECONDS = 600   # 10 分钟没人连的 online 房视为僵尸
 RECONNECT_GRACE_SECONDS = int(os.getenv("RECONNECT_GRACE_SECONDS", "90"))
 
 
@@ -488,7 +489,12 @@ class RoomManager:
                     changed.append(room)
                 abandoned = (room.mode in {"ai", "local"} and not room.sockets
                              and now - room.last_activity > 1800)
-                if abandoned or (room.game.state.finished and now - room.last_activity > 3600):
+                # S2：online 房如果**从未建立 socket**（匿名建房把配额占满的那条路），
+                # `disconnected_at` 恒为空、`abandoned` 又不覆盖 online → 永不回收。
+                # 用"创建时间"兜底，10 分钟没人连就清掉。
+                zombie = (room.mode == "online" and not room.sockets
+                          and now - getattr(room, "created_at", now) > ZOMBIE_ROOM_SECONDS)
+                if abandoned or zombie or (room.game.state.finished and now - room.last_activity > 3600):
                     stale.append(room_id)
         for room in changed:
             await self.broadcast(room)

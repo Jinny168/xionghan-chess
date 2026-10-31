@@ -21,7 +21,7 @@ from xionghan_chess.core.profiles import PROFILES
 from xionghan_chess.core.protocol import Envelope, MessageType
 from .rooms import Room, RoomManager
 from xionghan_chess.core.rules import archer_star_points
-from xionghan_chess.core.storage import game_from_content
+from xionghan_chess.core.storage import game_from_content, game_from_document
 from xionghan_chess.core.storage import game_document
 from xionghan_chess.core.puzzles import load_puzzles, puzzle_by_id
 from xionghan_chess.core.setup import FirstMove, profile_slots
@@ -185,6 +185,35 @@ async def profiles() -> list[dict]:
              "options": asdict(p.options)} for p in PROFILES.values()]
 
 
+
+def validate_rule_options(values: dict[str, object]) -> dict[str, object]:
+    """按 `RuleOptions` 的字段类型校验，**未知键直接拒绝**。
+
+    为什么要这道关：`options` 一路是 `dict[str, object]`，`{"pawn_promotion": "yes"}`
+    会被当成 truthy 打开一条规则 —— 用户传了字符串也能"生效"，事后无从排查。
+    """
+    from dataclasses import fields as dc_fields
+
+    from xionghan_chess.core.profiles import RuleOptions
+
+    schema = {f.name: f.type for f in dc_fields(RuleOptions)}
+    cleaned: dict[str, object] = {}
+    for key, value in values.items():
+        if key not in schema:
+            raise ValueError(f"未知规则开关：{key}")
+        expected = schema[key]
+        if expected is bool or expected == "bool":
+            if not isinstance(value, bool):
+                raise ValueError(f"{key} 需要布尔值，收到 {type(value).__name__}")
+        elif expected is int or expected == "int":
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise ValueError(f"{key} 需要整数，收到 {type(value).__name__}")
+            if key == "no_progress_draw_plies" and not 10 <= value <= 500:
+                raise ValueError(f"{key} 超出合理范围 10–500：{value}")
+        cleaned[key] = value
+    return cleaned
+
+
 @app.post("/api/rooms")
 async def create_room(request: CreateRoomRequest) -> dict:
     if request.mode not in {"online", "ai", "local"}:
@@ -193,7 +222,8 @@ async def create_room(request: CreateRoomRequest) -> dict:
         language = normalize_language(request.language)
         avatar_url = normalize_avatar(request.avatar_url)
         room, seat = await manager.create(request.profile_id, request.mode, request.player_name,
-                                          request.player_color, request.difficulty, request.options,
+                                          request.player_color, request.difficulty,
+                                          validate_rule_options(request.options),
                                           request.initial_minutes, language, {
                                               "firstMove": request.first_move.value,
                                               "redSlots": request.red_slots,
