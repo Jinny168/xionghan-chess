@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
+from xionghan_chess.core.model import Color, GameState, Piece, PieceType
 from xionghan_chess.core.profiles import get_profile
 from xionghan_chess.core.rules import RulesEngine
 
@@ -74,12 +74,6 @@ def _offline_check(state: GameState, color: Color) -> bool:
 # P0-R1: the armor completes a three-cell line and squeezes the king out.
 # --------------------------------------------------------------------------
 
-def _armor_position() -> GameState:
-    return board(
-        Piece.create(PieceType.ARMOR, Color.RED, 6, 3),
-        Piece.create(PieceType.ELEPHANT, Color.RED, 6, 5),
-        Piece.create(PieceType.KING, Color.BLACK, 6, 6),
-    )
 
 
 

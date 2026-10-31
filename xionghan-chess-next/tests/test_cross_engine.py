@@ -13,8 +13,7 @@ import pytest
 
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
-from xionghan_chess.core.profiles import PROFILES, get_profile
-from xionghan_chess.core.rules import RulesEngine
+from xionghan_chess.core.profiles import get_profile
 
 
 ROOT = Path(__file__).resolve().parents[1]

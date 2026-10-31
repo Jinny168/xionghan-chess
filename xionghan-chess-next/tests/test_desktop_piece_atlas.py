@@ -19,11 +19,11 @@ from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
 from xionghan_chess.core.model import Color, PieceType, Position  # noqa: E402
 from xionghan_chess.desktop import app as appmod  # noqa: E402
 from xionghan_chess.desktop.config import load_config  # noqa: E402
-from xionghan_chess.desktop.ui import piece_assets, theme  # noqa: E402
+from xionghan_chess.desktop.ui import theme  # noqa: E402
 from xionghan_chess.desktop.ui.dialogs import GLYPH_STYLE_DATA, SettingsDialog  # noqa: E402
 from xionghan_chess.desktop.ui.dialogs import GLYPH_STYLE_DATA  # noqa: E402
 from xionghan_chess.desktop.ui.piece_atlas import (  # noqa: E402
-    PIECE_OPTION_KEYS, REGULAR_KINDS, SPECIAL_KINDS, THUMB, PieceAtlasDialog,
+    PIECE_OPTION_KEYS, THUMB, PieceAtlasDialog,
 )
 
 

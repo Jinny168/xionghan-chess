@@ -37,11 +37,6 @@ def test_king_can_leave_palace_when_enabled():
 
 
 
-def armor_rules() -> RulesEngine:
-    """软删甲/楯后，用选项把它们临时打开 —— 测的是保留下来的规则分支。"""
-    profile = get_profile("desktop_complete")
-    return RulesEngine(profile, profile.options.merged(
-        {"armor_appear": True, "shield_appear": True}))
 
 
 def test_archer_captures_through_blockers_but_moves_only_on_clear_path():

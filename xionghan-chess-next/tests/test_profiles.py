@@ -1,6 +1,6 @@
 from xionghan_chess.core.model import PieceType, Position
 from xionghan_chess.core.game import Game
-from xionghan_chess.core.profiles import get_profile, profile_rule_values
+from xionghan_chess.core.profiles import get_profile
 
 
 
