@@ -20,8 +20,8 @@ WEB = SOUNDS / "web"
 
 # 目标时长（秒）与 ±5% 容差
 EXPECTED = {
-    "select": 0.07, "move": 0.17, "capture": 0.13, "check": 0.23,
-    "win": 0.54, "lose": 0.69, "click": 0.035, "undo": 0.12,
+    "select": 0.07, "move": 0.11, "capture": 0.13, "check": 0.23,
+    "win": 0.54, "lose": 0.56, "click": 0.035, "undo": 0.12,
 }
 
 

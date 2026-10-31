@@ -6,11 +6,11 @@
 | 事件 | 参数 |
 |---|---|
 | select  | sine 760Hz, 0.07s, gain .10 |
-| move    | sine 190Hz, 0.11s, gain .24, slide −70 + 噪声(0.06s, .10, lowpass 900, 接在音后) |
+| move    | sine 190Hz, 0.11s, gain .24, slide −70 + 噪声(0.06s, .10, lowpass 900，与音同时起) |
 | capture | triangle 320Hz, 0.09s, gain .20, slide −180 + 噪声(0.12s, .16, lowpass 1600, delay .01) |
 | check   | triangle 620Hz 0.16s .18 + triangle 930Hz 0.14s .12, delay .09 |
 | win     | 523/659/784/1046Hz sine, 0.24s, gain .16, 逐音延迟 0.1s |
-| lose    | 392/330/262Hz sine, 0.30s, gain .16, 逐音延迟 0.13s（含 0.13s 起手静默，总长 0.69s） |
+| lose    | 392/330/262Hz sine, 0.30s, gain .16, 逐音延迟 0/0.13/0.26s（总长 0.56s） |
 | click   | square 520Hz, 0.035s, gain .06 |
 | undo    | sine 300Hz, 0.12s, gain .14, slide +120 |
 
@@ -19,6 +19,21 @@
 随机源固定种子 —— **重跑必须逐字节一致**，否则每次构建都会把二进制改脏。
 
 只用标准库：`wave` / `math` / `struct` / `random`。
+
+## 时长以**原实现的时序**为准，不以验收表为准
+| 事件 | 时长 | 推导 |
+|---|---|---|
+| select | 0.070 | tone 0.07 |
+| move | **0.110** | tone 0.11 与 noise 0.06 重叠（noise 无 delay） |
+| capture | 0.130 | tone 0.09；noise delay 0.01 + 0.12 |
+| check | 0.230 | 0.09 + 0.14 |
+| win | 0.540 | 0.30 + 0.24 |
+| lose | **0.560** | 0.26 + 0.30 |
+| click | 0.035 | tone 0.035 |
+| undo | 0.120 | tone 0.12 |
+
+**验收表若与代码不符，先质疑表。** 这一轮的教训不是"表算错了"，而是为了对上表去改声音 ——
+参数复刻的本义是"听起来一样"，不是"数字看着一样"。
 """
 from __future__ import annotations
 
@@ -128,7 +143,7 @@ def main() -> None:
     write_wav("select", tone(760, 0.07, 0.10))
     write_wav("move", mix(
         (0.0, tone(190, 0.11, 0.24, slide=-70)),
-        (0.11, noise(0.06, 0.10, 900, rng)),   # 噪声尾接在音后，总长 0.17s
+        (0.0, noise(0.06, 0.10, 900, rng)),     # 与音同时起 → 重叠，总长 0.11s
     ))
     write_wav("capture", mix(
         (0.0, tone(320, 0.09, 0.20, wave_type="triangle", slide=-180)),
@@ -140,7 +155,7 @@ def main() -> None:
     ))
     write_wav("win", mix(*[(0.1 * i, tone(f, 0.24, 0.16)) for i, f in
                            enumerate((523, 659, 784, 1046))]))
-    write_wav("lose", mix(*[(0.13 * (i + 1), tone(f, 0.30, 0.16)) for i, f in
+    write_wav("lose", mix(*[(0.13 * i, tone(f, 0.30, 0.16)) for i, f in
                             enumerate((392, 330, 262))]))
     write_wav("click", tone(520, 0.035, 0.06, wave_type="square"))
     write_wav("undo", tone(300, 0.12, 0.14, slide=120))
