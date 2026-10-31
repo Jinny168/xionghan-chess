@@ -19,6 +19,9 @@ from PySide6.QtWidgets import (
 from xionghan_chess import __version__
 from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
 from xionghan_chess.core.ai import CONFIGS, Difficulty
+
+# AI 看门狗：思考预算耗尽后再等这么久，仍无信号就判定 worker 不会回来了（毫秒）。
+AI_WATCHDOG_GRACE_MS = 5000
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position
 from xionghan_chess.core.profiles import PROFILES, profile_rule_values
@@ -266,19 +269,51 @@ class MainWindow(QMainWindow):
 
     def start_ai(self) -> None:
         if self.board.locked or self.game.state.finished or self.game.state.paused:return
-        self.board.locked=True;self._begin_thinking();worker=AIWorker(self.game,self.config["difficulty"],self.cancel);worker.signals.finished.connect(self.finish_ai);worker.signals.failed.connect(self.ai_failed);self.pool.start(worker)
+        self.board.locked=True;self._begin_thinking()
+        # 看门狗：worker 万一**不发任何信号**（崩溃、卡死在原生代码），棋盘会永久锁死。
+        # 用一个单次定时器兜底，到点走**与正常结束同一条**收尾路径。
+        # 世代号防止"上一次的看门狗"误伤新一局。
+        self._ai_generation = getattr(self, "_ai_generation", 0) + 1
+        generation = self._ai_generation
+        limit_ms = int(CONFIGS[Difficulty(self.config.get("difficulty", "medium"))].time_limit * 1000)
+        QTimer.singleShot(limit_ms + AI_WATCHDOG_GRACE_MS, lambda: self._ai_watchdog(generation))
+        worker=AIWorker(self.game,self.config["difficulty"],self.cancel);worker.signals.finished.connect(self.finish_ai);worker.signals.failed.connect(self.ai_failed);self.pool.start(worker)
+
+    def _release_ai(self) -> None:
+        """AI 收尾的**唯一**出口：停读条、解锁、重绘。
+
+        成功 / 失败 / 超时三条路都走这里 —— 以前解锁散落在各分支，
+        多一条路径就多一次状态不一致的机会。
+        """
+        self._end_thinking()
+        self.board.locked = False
+        self.refresh()
+
+    def _ai_watchdog(self, generation: int) -> None:
+        if getattr(self, "_ai_generation", 0) != generation:
+            return                     # 这一局已经正常结束了
+        if not self.board.locked:
+            return
+        # 先置取消位：迟到的 worker 结果会在 `finish_ai` 里被丢弃，不会在超时后又走一步。
+        self.cancel.set()
+        self._release_ai()
+        self.statusBar().showMessage(
+            "AI 思考超时，已解除锁定" if self.config.get("language") != "en" else "AI timed out, board unlocked", 6000)
 
     def finish_ai(self, result: tuple[Move | None, threading.Event]) -> None:
         move,cancel=result
         # 读条必须在**每个出口**停掉并归零：成功 / move is None / 取消都一样，
         # 否则取消后条会一直往前爬（预算耗尽了也不会自己归零）。
+        # 读条必须在**每个出口**停掉：取消路径甚至不进入下面的解锁分支，
+        # 少这一行就会出现"取消后条还在爬"（有回归用例盯着）。
         self._end_thinking()
-        if cancel.is_set():return
+        if cancel.is_set():
+            return
         try:
             if move:
                 record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound();scene="victory" if self.game.state.finished else ("check" if self.game.rules.in_check(self.game.state,self.game.state.turn) else ("opening" if len(self.game.state.history)<=2 else None));self.add_ai_taunt(scene)
         except GameError as exc:self.ai_failed(str(exc));return
-        self.board.locked=False;self.refresh()
+        self._release_ai()
 
     def add_ai_taunt(self, scene: str | None) -> None:
         if not scene or not self.config.get("taunts",True):return
@@ -288,8 +323,11 @@ class MainWindow(QMainWindow):
     def ai_failed(self, result: object) -> None:
         message,cancel=result if isinstance(result,tuple) else (str(result),self.cancel)
         self._end_thinking()
-        if cancel.is_set():return
-        self.board.locked=False;self.refresh();QMessageBox.warning(self,dl("AI 异常"),message)
+        self._end_thinking()
+        if cancel.is_set():
+            return
+        self._release_ai()
+        QMessageBox.warning(self,dl("AI 异常"),message)
     def play_sound(self) -> None:
         if not self.game or not self.game.state.history:return
         record=self.game.state.history[-1]
