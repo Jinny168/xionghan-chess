@@ -85,3 +85,19 @@ def test_dialogs_declare_audit_minimum_sizes() -> None:
         block = re.search(rf"class {name}\b[\s\S]*?(?=\nclass |\Z)", DIALOGS_PY)
         assert block, f"找不到类 {name}"
         assert snippet in block.group(0), f"{name} 缺少 {snippet}"
+
+
+def test_board_fills_the_limiting_dimension(window, qt_app) -> None:
+    """空带只允许出现在**非限制维度**：边长 == min(容器宽, 容器高)，±1px。
+
+    这是不变量，比任何像素阈值稳。曾写过"空带 <= 72px"，那是拍出来的数：
+    1260x850 档棋盘列 890 宽、737 高，正方形顶满高度后水平空带必然是 (890-737)/2 = 76.5，
+    要压到 72 只能让棋盘小于可用高度 —— 拿真实尺寸换阈值，不划算。旧阈值作废。
+    """
+    for size in SIZES:
+        window.resize(*size)
+        qt_app.processEvents()
+        board, host = window.board, window._board_host
+        expected = min(host.width(), host.height())
+        assert abs(board.width() - expected) <= 1, (
+            f"{size}: 棋盘边长 {board.width()} != 容器短边 {expected}（限制维度没顶满）")
