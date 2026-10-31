@@ -44,3 +44,35 @@ def test_piece_rules_copies_are_identical() -> None:
             f"{name} 两份不一致（{a[:12]} vs {b[:12]}）。"
             "注意：改 docs/ 那份对用户无效，请同步 resources/docs/ 那份（进包的是它）")
     assert checked >= 1, "一份双份文档都没检查到，路径是不是变了？"
+
+
+def test_web_version_strings_match() -> None:
+    """网页与安卓壳里出现的版本号必须都等于 `__version__`。
+
+    抓两类：`?v=X.Y.Z` 缓存号，与「版本 X.Y.Z」「vX.Y.Z」这类展示字符串。
+    `atlas.js` 曾把 `i18n.js?v=1.7.0` 写死，而 `app.js` 是 `?v=1.7.5` ——
+    **同一个文件两个缓存号**，浏览器可能命中旧缓存，改了等于没改。
+    """
+    import re
+
+    import xionghan_chess
+
+    expected = xionghan_chess.__version__
+    patterns = [re.compile(r"\?v=(\d+\.\d+\.\d+)"), re.compile(r"[vV](\d+\.\d+\.\d+)")]
+    targets = list((ROOT / "web").rglob("*.html")) + list((ROOT / "web").rglob("*.js"))
+    targets.append(ROOT / "android" / "Resources" / "assets" / "offline" / "welcome.html")
+
+    bad: list[str] = []
+    seen = 0
+    for path in targets:
+        if not path.is_file():
+            continue
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for pattern in patterns:
+                for found in pattern.findall(line):
+                    seen += 1
+                    if found != expected:
+                        rel = path.relative_to(ROOT)
+                        bad.append(f"{rel}:{lineno} 抓到 {found}，期望 {expected}")
+    assert not bad, "版本号不一致：\n" + "\n".join(sorted(set(bad)))
+    assert seen >= 4, f"只查到 {seen} 处版本号，正则是不是失效了？"
