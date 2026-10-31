@@ -21,6 +21,7 @@ class Difficulty(StrEnum):
     EASY = "easy"
     MEDIUM = "medium"
     HARD = "hard"
+    EXPERT = "expert"
     MASTER = "master"
 
 
@@ -82,6 +83,13 @@ CONFIGS = {
     #   · 也不能拿这里的 32 去反驳 H18 —— 两者含义不同（一个是迭代加深的根宽，
     #     一个是 MCTS 的 SEE 候选上限 `SEE_CANDIDATE_LIMIT=16`）。
     # 保留 config 条目是为了让 analysis / 配置类代码在分发搜索前能安全读 `CONFIGS`。
+    # EXPERT（专家）：**固定 d3**，不靠时间收敛。
+    #   · `depth=3` 是硬上限：迭代加深到 3 就停，35s 只是"别跑飞"的安全网；
+    #   · 实测 d3 最慢 28.78s，35s 留约 20% 余量；超时仍按迭代加深回落到 d2（语义不变）；
+    #   · `root_limit` 沿用 HARD 的 18 —— 不改根宽，才能把"深度"这个变量单独归因；
+    #   · `quiescence_depth` / `branch_limit` / `candidate_count` 与 HARD 一致。
+    #   HARD 档的 12s / depth 8 / root 18 **一格未动**。
+    Difficulty.EXPERT: SearchConfig(3, 35.0, 0.0, 6, 1, 18, 18),
     Difficulty.MASTER: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 32),
 }
 

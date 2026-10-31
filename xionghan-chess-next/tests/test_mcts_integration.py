@@ -44,7 +44,8 @@ def test_ucb_reverses_exploitation_for_opponent_nodes():
     assert engine._ucb(favorable, 8, maximizing=False) < engine._ucb(unfavorable, 8, maximizing=False)
 
 
-def test_master_is_exposed_as_fifth_ai_tier():
+def test_master_is_exposed_as_the_top_ai_tier():
+    """六档（expert 插在 hard 与 master 之间）；master 仍是最高档。"""
     assert [item.value for item in Difficulty] == [
-        "beginner", "easy", "medium", "hard", "master"
+        "beginner", "easy", "medium", "hard", "expert", "master"
     ]

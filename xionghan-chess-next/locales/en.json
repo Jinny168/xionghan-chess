@@ -93,6 +93,7 @@
     "easy": "Easy · about 1.5 s per move",
     "medium": "Medium · about 5 s per move",
       "hard": "Hard · about 12 s per move",
+      "expert": "Expert · fixed 3 plies, 35 s cap (measured 10–30 s)",
       "master": "Master · about 12 s per move (search-based)"
   },
   "settings": {

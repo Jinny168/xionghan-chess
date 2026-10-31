@@ -23,6 +23,11 @@ from xionghan_chess.core.ai import CONFIGS, Difficulty
 ROOT = Path(__file__).resolve().parents[1]
 LOCALES = {"zh-CN": ROOT / "locales" / "zh-CN.json", "en": ROOT / "locales" / "en.json"}
 NUMBER = re.compile(r"\d+(?:\.\d+)?")
+# 深度档（如 expert）的墙钟是**上限**而不是固定预算：文案写「上限 35 秒」时，
+# 取这个 35 与 `time_limit` 比对，而不是取句子里的第一个数字（那会是"3 层"）。
+CAP_SECONDS = re.compile(
+    r"(?:上限\s*(\d+(?:\.\d+)?))|((\d+(?:\.\d+)?)\s*s?\s*cap)"
+)
 # 明确禁止的措辞：两档同深度、同选点，写"更强/更深"是与实测冲突的假承诺。
 FORBIDDEN = ("更强", "更深", "更慢", "stronger", "deeper")
 
@@ -37,7 +42,10 @@ def test_label_seconds_match_config(locale: str, difficulty: Difficulty) -> None
     label = load(locale)[difficulty.value]
     numbers = NUMBER.findall(label)
     assert numbers, f"{locale}/{difficulty.value} 文案里没有秒数：{label!r}"
-    listed, actual = float(numbers[0]), CONFIGS[difficulty].time_limit
+    cap = CAP_SECONDS.search(label)
+    # 中文「上限 35 秒」→ group(1)；英文「35 s cap」→ group(3)
+    listed = float(cap.group(1) or cap.group(3)) if cap else float(numbers[0])
+    actual = CONFIGS[difficulty].time_limit
     # **严格对齐，不放宽**：文案对应的是**配置值**，不是实测值 —— "约 12 秒"与实测 12.2s
     # 并不冲突（差 1.7%），但"配置 6 秒、文案 5 秒"这种错配必须红。
     assert listed == pytest.approx(actual), (

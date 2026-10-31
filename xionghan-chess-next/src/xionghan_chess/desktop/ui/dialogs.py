@@ -59,7 +59,7 @@ class SettingsDialog(QDialog):
         # 而不是 `CONFIGS[d].time_limit`。hard=12 就是教训：12 是配置上限，而玩家实际等待
         # 将来会变成"提前返回时刻"，两者不再相等。当前文案仍是 12 秒（本版本确实跑满 12s），
         # 等"提前收手"落地后要连同大师档一起改（大师不吃提前收手，"与高级同预算"会说谎）。
-        self.difficulty=QComboBox();[(self.difficulty.addItem(t(f"difficulty.{value}", self.language),value)) for value in ("beginner","easy","medium","hard","master")]
+        self.difficulty=QComboBox();[(self.difficulty.addItem(t(f"difficulty.{value}", self.language),value)) for value in ("beginner","easy","medium","hard","expert","master")]
         # 未知档位（旧档 / 手改 / 将来并档）**显式回落**到默认，并把原值作为不可选条目
         # 显示出来。原来的 `max(0, findData(...))` 会静默落到「入门」——并档那天就成了
         # 「所有高级玩家无声降级」，而且用户在界面上看不出任何异样。
