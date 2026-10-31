@@ -68,7 +68,11 @@ def test_constructs_without_a_game(qt_app: QApplication, config: dict) -> None:
     """图谱不依赖 `game`：没有对局也能开（构造时不碰 MainWindow）。"""
     dialog = PieceAtlasDialog(dict(config))
     assert dialog.size().width() == 900 and dialog.size().height() == 640
-    assert dialog.minimumWidth() == 760 and dialog.minimumHeight() == 560
+    # 最小尺寸改为「≥ minimumSizeHint」：原来钉死 760×560 < hint(750×585)，
+    # 高度少 25px，中栏演示被挤到 420。这里断言不变量而不是具体数字。
+    hint = dialog.minimumSizeHint()
+    assert hint.width() <= dialog.minimumWidth(), f"hint {hint.width()} > min {dialog.minimumWidth()}"
+    assert hint.height() <= dialog.minimumHeight(), f"hint {hint.height()} > min {dialog.minimumHeight()}"
     dialog.deleteLater()
 
 

@@ -115,8 +115,11 @@ class PieceAtlasDialog(QDialog):
         self.kind: PieceType = PieceType.KING
         self.setWindowTitle(t("desktop.piece_atlas", self.language))
         self.resize(900, 640)
-        self.setMinimumSize(760, 560)
         self._build()
+        # 最小尺寸必须 ≥ `minimumSizeHint`：改前 760×560 < hint(750×585)，高度差 25px，
+        # 中栏演示被挤成 420。这里按 hint 与设计下限取大者。
+        hint = self.minimumSizeHint()
+        self.setMinimumSize(max(900, hint.width()), max(640, hint.height()))
         self._load_demo()
 
     # ------------------------------------------------------------------ 布局
@@ -129,8 +132,9 @@ class PieceAtlasDialog(QDialog):
         body = QHBoxLayout()
         body.setSpacing(12)
         body.addWidget(self._piece_list())
-        body.addWidget(self._demo_area(), 3)
-        body.addWidget(self._detail_area(), 2)
+        # 1:1：3:2 会让演示盘优先吃宽度，窄窗时被压的是右侧详情（实测 218 → 78）
+        body.addWidget(self._demo_area(), 1)
+        body.addWidget(self._detail_area(), 1)
         root.addLayout(body, 1)
         root.addWidget(self._bottom_bar())
 
@@ -160,7 +164,10 @@ class PieceAtlasDialog(QDialog):
 
     def _piece_list(self) -> QWidget:
         frame = QFrame()
-        frame.setFixedWidth(188)
+        # 原来 `setFixedWidth(188)` 把清单钉死，而 sizeHint 要 270（名称 + 红黑字形）
+        frame.setMinimumWidth(200)
+        frame.setMaximumWidth(280)
+        self._list_frame = frame
         frame.setFrameShape(QFrame.Shape.StyledPanel)
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(6, 6, 6, 6)
@@ -196,6 +203,8 @@ class PieceAtlasDialog(QDialog):
     def _demo_area(self) -> QWidget:
         """中栏：走法演示盘（第 2 块填内容，这里先立骨架与预设下拉的挂点）。"""
         frame = QFrame()
+        frame.setMinimumWidth(320)      # 窄窗按宽度等比缩，不再硬撑 sizeHint 438
+        self._demo_frame = frame
         frame.setFrameShape(QFrame.Shape.StyledPanel)
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -211,7 +220,7 @@ class PieceAtlasDialog(QDialog):
         layout.addWidget(self._preset)
 
         self._demo_board = BoardWidget(frame)
-        self._demo_board.setMinimumHeight(360)
+        self._demo_board.setMinimumSize(240, 240)   # 允许 640→560 高度时按比例缩
         self._demo_board.move_requested.connect(self._demo_moved)
         layout.addWidget(self._demo_board, 1)
 
@@ -296,6 +305,8 @@ class PieceAtlasDialog(QDialog):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setMinimumWidth(300)     # sizeHint 432；300 保证正文与开关不被压扁
+        self._detail_frame = scroll
         self._detail = QWidget()
         self._detail_layout = QVBoxLayout(self._detail)
         self._detail_layout.setContentsMargins(0, 0, 0, 0)
