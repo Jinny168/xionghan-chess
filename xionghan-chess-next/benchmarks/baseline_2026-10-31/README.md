@@ -104,3 +104,5 @@ python .../scripts/stage1_baseline.py /tmp/b/xionghan-chess-next <out_dir>
 python .../scripts/stage2_td2.py       /tmp/b/xionghan-chess-next <out_dir>/base3_td2_16.json
 python .../scripts/stage3.py           /tmp/b/xionghan-chess-next <out_dir>/base3_ref8.json <out_dir>/base3_sel8.json
 ```
+
+> **2026-10-31 起刺移除**：当前布局为 **50 子 / 11 型**；本目录语料仍基于 54 子，**不可与当前布局跨版本比较**（数据保留作历史对照）。
