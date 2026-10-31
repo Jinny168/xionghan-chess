@@ -1,4 +1,5 @@
 import { applyStaticI18n, currentLanguage, currentLocale, setLanguage, t } from './i18n.js?v=1.7.0';
+import { ribbonClass, CHECK_PULSE_MID } from './ribbon.js';
 
 const $ = (selector) => document.querySelector(selector);
 const board = $('#board');
@@ -111,7 +112,7 @@ function showRecordView(view){const chat=view==='chat';$('#chatView').hidden=!ch
 function receiveSnapshot(snapshot){
   const previous=app.state,revisionChanged=snapshot.revision!==app.revision;app.revision=snapshot.revision;app.state=snapshot.game;app.mode=snapshot.mode;app.options=snapshot.game.profile.options;$('#modeSelect').value=app.mode;syncModeControls();if(revisionChanged){app.selected=null;app.legal=[];app.capturable=[]}
   if(!previous&&snapshot.chatHistory?.length){$('#chatMessages').innerHTML='';snapshot.chatHistory.forEach(appendChat)}
-  $('#roomCode').textContent=snapshot.roomId;$('#roomInput').value=snapshot.roomId;const turnRibbon=$('#turnRibbon');turnRibbon.textContent=app.state.finished?t('status.game_over'):(app.state.paused?t('status.paused'):(app.state.check?`${t('status.check')} · `:'')+t('status.turn',{color:t(`common.${app.state.turn}`)}));if(app.state.check&&turnRibbon.animate)turnRibbon.animate([{transform:'scale(1)',color:'inherit'},{transform:'scale(1.08)',color:'#b21f1f'},{transform:'scale(1)',color:'inherit'}],{duration:900,iterations:2});
+  $('#roomCode').textContent=snapshot.roomId;$('#roomInput').value=snapshot.roomId;const turnRibbon=$('#turnRibbon');turnRibbon.className=ribbonClass(app.state);turnRibbon.textContent=app.state.finished?t('status.game_over'):(app.state.paused?t('status.paused'):(app.state.check?`${t('status.check')} · `:'')+t('status.turn',{color:t(`common.${app.state.turn}`)}));if(app.state.check&&turnRibbon.animate)turnRibbon.animate([{transform:'scale(1)',color:'inherit'},{transform:'scale(1.08)',color:CHECK_PULSE_MID},{transform:'scale(1)',color:'inherit'}],{duration:900,iterations:2});
   $('#spectatorCount').textContent=`${snapshot.spectatorCount||0} 人观战`;
   $('#thinking').hidden=!(snapshot.mode==='ai'&&app.state.turn!==app.color&&!app.state.finished&&!app.state.paused);$('#pauseOverlay').hidden=!app.state.paused;renderMeta(snapshot);resizeBoard();
   if(previous&&app.state.history.length>previous.history.length){const last=app.state.history.at(-1);playSound(last.captured?.length?'capture':app.state.check?'check':'move');if(app.preferences.animation!==false){app.animation={source:last.move.from,target:last.move.to,capture:!!last.captured?.length,started:performance.now()};requestAnimationFrame(animate)}checkPuzzleProgress()}
