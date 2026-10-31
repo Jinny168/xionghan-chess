@@ -32,6 +32,16 @@ class PieceType(StrEnum):
 
 @dataclass(frozen=True, slots=True, order=True)
 class Position:
+    """棋盘坐标。
+
+    ⚠️ **这里不校验范围**：AI 与规则引擎会用 `Position(row + dr, col + dc)` 去"探测"越界格，
+    再靠 `get()` 返回 None 判断出界（`rules.py:55/193/476`、`ai.py:589/603/630`）。
+    在 `__post_init__` 里禁负会直接打断这套写法（实测 63 条测试红）。
+
+    越界防线放在**输入边界**：`storage.game_from_document()` 按 `profile.rows/cols`
+    校验存档里的每一枚子（见 `_assert_in_bounds`）——那里才是"外部数据进来"的地方。
+    """
+
     row: int
     col: int
 

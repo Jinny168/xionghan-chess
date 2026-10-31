@@ -8,7 +8,8 @@ from typing import Any
 
 from .game import Game
 from .legacy import migrate_legacy_game
-from .model import GameState
+from .model import GameState, UnsupportedSaveError
+from .profiles import get_profile
 from .rules import POSITION_KEY_VERSION
 
 
@@ -54,6 +55,20 @@ def _rebuild_position_counts(game: Game) -> dict[str, int]:
     return counts
 
 
+def _assert_in_bounds(profile, state, where: str) -> None:
+    """按 `profile.rows/cols` 校验坐标上界。
+
+    `Position` 只管非负；上界依赖棋盘尺寸，所以在这里查。
+    越界会让 `piece_at` 静默取不到，最后变成"无王可吃"的僵尸局。
+    """
+    for piece in state.pieces:
+        row, col = piece.position.row, piece.position.col
+        # 上下界都查：`Position` 本身允许负值（引擎用它探测越界格），
+        # 所以"存档里出现负坐标"只能在这里拦。
+        if row < 0 or col < 0 or row >= profile.rows or col >= profile.cols:
+            raise UnsupportedSaveError(
+                f"{where}坐标越界：row={row}, col={col}（棋盘 {profile.rows}×{profile.cols}）")
+
 def game_from_document(data: dict[str, Any]) -> Game:
     if not isinstance(data, dict):
         raise ValueError("棋谱文件内容无效")
@@ -66,6 +81,8 @@ def game_from_document(data: dict[str, Any]) -> Game:
     profile_id = str(data.get("profileId", state.profile_id))
     if profile_id != state.profile_id:
         raise ValueError("棋谱规则档案与局面不一致")
+    _profile = get_profile(profile_id)
+    _assert_in_bounds(_profile, state, "当前局面")
     raw_snapshots = data.get("snapshots", [])
     if not isinstance(raw_snapshots, list):
         raise ValueError("棋谱复盘数据无效")
@@ -76,6 +93,7 @@ def game_from_document(data: dict[str, Any]) -> Game:
         snapshot = GameState.from_dict(item)
         if snapshot.profile_id != profile_id:
             raise ValueError("棋谱包含不同规则档案的局面")
+        _assert_in_bounds(_profile, snapshot, f"复盘第 {len(snapshots) + 1} 步")
         snapshots.append(snapshot.to_dict())
     if snapshots and len(snapshots) != len(state.history):
         raise ValueError("棋谱步数与复盘数据不一致")
