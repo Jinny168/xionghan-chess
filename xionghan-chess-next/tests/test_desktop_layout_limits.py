@@ -8,6 +8,11 @@
   · `QFont(theme.UI_FONT, 10)`：**182 px**（该子集字体缺拉丁字形，走回退，量出来偏大）
   · **按钮实际 fontMetrics**（Noto Sans SC Subset 10pt，即 QSS 生效后）：**95 px**
 本节断言用**第三个数**，因为那才是用户看到的。
+
+## 182 的定位：**余量，不是补丁**
+真实渲染 95px，用 120 也不截断；182 是按"最长英文文案 × 未来语言更长"留的结构性余量
+（德语 `Bauern wiederbeleben`、俄语更长）。**不要把这个改动记成"修了一个截断 bug"** ——
+此前"168px 需 182"的说法用的是默认字体（未 `load_bundled_fonts()`），是错误测量。
 """
 
 from __future__ import annotations
