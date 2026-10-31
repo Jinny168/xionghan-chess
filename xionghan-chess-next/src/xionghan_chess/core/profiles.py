@@ -52,7 +52,7 @@ class RuleOptions:
     archer_appear: bool = True
     thunder_appear: bool = True
     armor_appear: bool = False          # 软删：不出场（分支与枚举保留）
-    assassin_appear: bool = True
+    assassin_appear: bool = False        # 软删：不出场（分支与枚举保留）
     shield_appear: bool = False         # 软删：不出场（分支与枚举保留）
     patrol_appear: bool = True
 
@@ -159,11 +159,10 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
     flip = (lambda row: XIONGHAN_ROWS - 1 - row) if color is Color.RED else (lambda row: row)
     items: list[tuple[PieceType, int, int]] = []
     if complete:
-        # 软删甲/楯：后排只保留 (0,1)(0,2)(0,10)(0,11) 之外的子
+        # 软删甲/楯/刺：后排只保留射、檑、尉
         items += [
-            (PieceType.ARCHER, 0, 0), (PieceType.ASSASSIN, 0, 3),
-            (PieceType.THUNDER, 0, 4), (PieceType.GUARD, 0, 6),
-            (PieceType.THUNDER, 0, 8), (PieceType.ASSASSIN, 0, 9),
+            (PieceType.ARCHER, 0, 0), (PieceType.THUNDER, 0, 4),
+            (PieceType.GUARD, 0, 6), (PieceType.THUNDER, 0, 8),
             (PieceType.ARCHER, 0, 12),
         ]
     elif web:

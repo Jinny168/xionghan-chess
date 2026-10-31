@@ -145,10 +145,6 @@ class RulesEngine:
         target = self.get(state, move.target)
         # 楯不再绝对免疫：它可以被吃，只有「四正相邻的同阵营楯」能保护它
         # （保护判定见 `_protected_by_enemy_shield`）。
-        # 尉的照面钉住：与敌方尉同一横/竖线、中间无子，且自己是沿线遇到的第一个子 → 不能动。
-        # 两尉互照 → 双方都被钉住（各自由对方的尉钉）。
-        if self._pinned_by_guard(state, piece):
-            return False
         if target and target.color is piece.color:
             return False
         if move.promotion:
@@ -613,8 +609,15 @@ class RulesEngine:
         return self.get(state, move.target) is None and self._between(state, move.source, move.target) == 1
 
     def _guard(self, state: GameState, piece: Piece, move: Move) -> bool:
-        return self._jump_over_one(state, move, True) and \
-            (not self._diagonal(move) or not self._diagonal_path_pinched(state, move))
+        """尉：**斜向任意距离**，路径必须无子（标准主教）；落点有敌子即吃。
+
+        夹逼口径与其它斜走子一致（`_diagonal_path_pinched`），不经 `_jump_over_one`。
+        """
+        if not self._diagonal(move):
+            return False
+        if self._diagonal_path_pinched(state, move):
+            return False
+        return self._clear(state, move.source, move.target)
 
     def _archer(self, state: GameState, piece: Piece, move: Move) -> bool:
         if not self._diagonal(move):
@@ -748,21 +751,6 @@ class RulesEngine:
             if other and other.color is target.color:
                 return False
         return True
-
-    def _pinned_by_guard(self, state: GameState, piece: Piece) -> bool:
-        """`piece` 是否被敌方尉「照面钉住」。
-
-        沿四个正方向看**第一个**遇到的棋子：若那是敌方（= `piece` 所属方的尉）的尉，
-        则 `piece` 被钉住，任何着法都不合法。照面不跨越任何棋子，所以只看第一个。
-        """
-        for guard in state.pieces:
-            if guard.type is not PieceType.GUARD or guard.color is piece.color:
-                continue
-            if guard.position.row != piece.position.row and guard.position.col != piece.position.col:
-                continue
-            if self._clear(state, guard.position, piece.position):
-                return True
-        return False
 
     def _protected_by_enemy_shield(self, state: GameState, target: Piece) -> bool:
         """同阵营的楯是否在**四正**（前后左右）贴着 `target`。
