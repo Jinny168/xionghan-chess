@@ -142,3 +142,48 @@ def test_player_name_length_is_capped(client: TestClient) -> None:
     ok = client.post("/api/rooms", json={
         "profileId": "traditional", "mode": "local", "playerName": "名" * 24})
     assert ok.status_code == 200, ok.text
+
+
+def test_oversized_frame_is_rejected() -> None:
+    """B-05：单帧超过 64 KB → 回 ERROR 帧 + 抛 WebSocketDisconnect（走正常断开路径）。
+
+    用桩对象直测 `receive_envelope`：走真实 WS 时"发 65 KB 文本"在不同 TestClient 版本上
+    会阻塞（实测本机超时），而这里要验的是**判据**，不是传输层。
+    """
+    import asyncio
+
+    from starlette.websockets import WebSocketDisconnect
+
+    from xionghan_chess.service.app import MAX_FRAME_BYTES, receive_envelope
+
+    class Stub:
+        def __init__(self, text: str) -> None:
+            self.text = text
+            self.sent: list[dict] = []
+            self.closed: int | None = None
+
+        async def receive_text(self) -> str:
+            return self.text
+
+        async def send_json(self, payload: dict) -> None:
+            self.sent.append(payload)
+
+        async def close(self, code: int = 1000, reason: str | None = None) -> None:
+            self.closed = code
+
+    # ① 超大帧：先回 ERROR，再断开
+    big = Stub("x" * (MAX_FRAME_BYTES + 1024))
+    try:
+        asyncio.run(receive_envelope(big))
+    except WebSocketDisconnect as exc:
+        assert exc.code == 1002
+    else:
+        raise AssertionError("超大帧没有断开连接")
+    assert big.sent and big.sent[0]["type"] == "error", big.sent
+    assert big.closed == 1002
+
+    # ② 正常帧：照常返回信封（防止把上限做成 0 也能过）
+    ok = Stub('{"type": "ping", "roomId": "A", "revision": 0, "protocolVersion": 1, "payload": {}}')
+    envelope = asyncio.run(receive_envelope(ok))
+    assert envelope.type.value == "ping"
+    assert ok.closed is None

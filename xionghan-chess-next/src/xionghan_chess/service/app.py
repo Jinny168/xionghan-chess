@@ -103,6 +103,9 @@ async def _validation_as_400(request, exc: RequestValidationError):
 # 超长要 400 而不是截断 —— 截断会让两个不同的名字变成同一个。
 MAX_PLAYER_NAME = 24
 
+# 单帧上限（B-05）：正常消息都在 1 KB 量级，64 KB 留两个数量级余量。
+MAX_FRAME_BYTES = 64 * 1024
+
 class CreateRoomRequest(BaseModel):
     profile_id: str = Field("web", alias="profileId")
     mode: str = "online"
@@ -405,8 +408,19 @@ async def receive_envelope(websocket: WebSocket) -> Envelope:
     # `receive_json()` 对**非法 JSON** 抛的是 `json.JSONDecodeError`，不是 pydantic 的
     # `ValidationError` —— 以前它直接穿透出去，既不回错误帧，也不进 `except WebSocketDisconnect`
     # 的 `manager.disconnect()`，于是"连接断了但座位仍显示在线"。
+    # 单帧体积上限：先收文本再判长，因为 `receive_json()` 不暴露原始长度。
+    # 64 KB 的依据：正常消息（着法/聊天/心跳）都在 1 KB 量级，64 KB 留了两个数量级的余量，
+    # 又足以在有人用 1 MB 帧打 DoS 时立刻断开。做成常量而不是配置项：
+    # 这不是可调业务参数，调大只会放大风险。
     try:
-        raw = await websocket.receive_json()
+        text = await websocket.receive_text()
+    except Exception:                     # noqa: BLE001 - 对端直接断开
+        raise WebSocketDisconnect(code=1002) from None
+    if len(text.encode("utf-8")) > MAX_FRAME_BYTES:
+        await _reject_protocol(websocket, f"消息过大（上限 {MAX_FRAME_BYTES // 1024} KB）")
+        raise WebSocketDisconnect(code=1002)
+    try:
+        raw = json.loads(text)
     except json.JSONDecodeError as exc:
         await _reject_protocol(websocket, "消息不是合法 JSON")
         raise WebSocketDisconnect(code=1002) from exc
