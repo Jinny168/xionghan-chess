@@ -76,6 +76,21 @@ def _move(data: dict[str, Any]) -> Move:
     return Move(Position(**data["from"]), Position(**data["to"]))
 
 
+def _validate_solution(puzzle: "Puzzle") -> None:
+    """加载期校验：解法必须**一步步都能走**。
+
+    原来的写法是在 `exercise()` 里 `except ValueError: break` —— 题目照常进列表，
+    但永远解不掉，而且没有任何信号。内置题库是**随代码发布的产物**，
+    坏题属于构建期缺陷，所以这里**直接抛**（启动即失败），而不是跳过。
+    """
+    game = game_from_document(puzzle.document)
+    for index, step in enumerate(puzzle.solution, 1):
+        try:
+            game.move(step)
+        except Exception as exc:      # noqa: BLE001 - 任何解不出的原因都要点名
+            raise ValueError(
+                f"题目 {puzzle.id}《{puzzle.title}》第 {index} 步无法走：{step.key()}（{exc}）") from exc
+
 def load_puzzles(path: str | Path | None = None) -> list[Puzzle]:
     source = Path(path) if path else Path(__file__).with_name("data") / "puzzles.json"
     raw = json.loads(source.read_text(encoding="utf-8"))
@@ -95,13 +110,15 @@ def load_puzzles(path: str | Path | None = None) -> list[Puzzle]:
             for raw_move in item.get("positionMoves", []):
                 game.move(_move(raw_move))
             document = game_document(game)
-        puzzles.append(Puzzle(
+        puzzle = Puzzle(
             puzzle_id, str(item["title"]), str(item["difficulty"]),
             str(item.get("description", "")), document,
             tuple(_move(move) for move in item["solution"]),
             tuple(str(hint) for hint in item.get("hints", [])),
             tuple(str(tag) for tag in item.get("tags", [])),
-        ))
+        )
+        _validate_solution(puzzle)
+        puzzles.append(puzzle)
     return puzzles
 
 
