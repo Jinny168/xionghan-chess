@@ -84,6 +84,26 @@ def show_result_dialog(parent: QWidget, title: str, text: str, lang: str,
     return again is not None and box.clickedButton() is again
 
 
+class _SquareHost(QWidget):
+    """把子控件锁成**正方形**并居中：长边两侧留白 = (宿主长边 − 正方形)/2。
+
+    为什么不改 `BoardWidget` 自身：格子算法（`board_geometry`）按控件矩形摊格，
+    控件一旦非正方，格子就是矩形；这里只改"棋盘控件占多大"，算法一行不动。
+    """
+
+    def __init__(self, child: QWidget) -> None:
+        super().__init__()
+        self._child = child
+        child.setParent(self)
+        self.setMinimumSize(320, 320)
+
+    def resizeEvent(self, event) -> None:      # noqa: N802 - Qt 命名
+        side = min(self.width(), self.height())
+        self._child.setGeometry((self.width() - side) // 2,
+                               (self.height() - side) // 2, side, side)
+        super().resizeEvent(event)
+
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__();theme.load_bundled_fonts();self.config=load_config();set_language(self.config.get("language","zh-CN"));self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._shown_result=False;self._play_again_pending=False
@@ -147,7 +167,7 @@ class MainWindow(QMainWindow):
         help_menu.addSeparator()
         about=QAction(t("menu.about", lang),self);about.triggered.connect(self.show_about);help_menu.addAction(about)
         root=QWidget();root.setObjectName("root");self.setCentralWidget(root);layout=QVBoxLayout(root);self.banner=QLabel();self.banner.setAlignment(Qt.AlignmentFlag.AlignCenter);self.banner.setObjectName("banner");layout.addWidget(self.banner)
-        split=QSplitter();layout.addWidget(split,1);self.board=BoardWidget();self.board.move_requested.connect(self.human_move);self.board.piece_selected.connect(lambda:self.audio.play("select"));split.addWidget(self.board)
+        split=QSplitter();layout.addWidget(split,1);self.board=BoardWidget();self.board.move_requested.connect(self.human_move);self.board.piece_selected.connect(lambda:self.audio.play("select"));self._board_host=_SquareHost(self.board);split.addWidget(self._board_host)
         side_inner=QWidget();right=QVBoxLayout(side_inner);self.side=QScrollArea();self.side.setWidgetResizable(True);self.side.setFrameShape(QFrame.Shape.NoFrame);self.side.setMaximumWidth(330);self.side.setMinimumWidth(330);self.side.setWidget(side_inner);self.black=QLabel();self.red=QLabel();self.history=QListWidget();self.history.setMinimumHeight(120);self.captured=QLabel();self.captured.setWordWrap(True)
         right.addWidget(self.black);right.addWidget(self.red)
         side_tabs=QTabWidget();record_page=QWidget();record_layout=QVBoxLayout(record_page);record_layout.addWidget(self.history)

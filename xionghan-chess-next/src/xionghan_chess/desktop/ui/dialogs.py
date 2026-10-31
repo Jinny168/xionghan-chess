@@ -237,7 +237,7 @@ class SettingsDialog(QDialog):
 class HandicapDialog(QDialog):
     def __init__(self, profile_id: str, options: dict, selected: dict | None = None, parent: QWidget | None = None) -> None:
         lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
-        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.handicap_title",lang));self.resize(720,620)
+        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.handicap_title",lang));self.resize(720,620);self.setMinimumSize(520,480)
         profile=PROFILES[profile_id];active=profile.options.merged(options);slots=profile_slots(profile,active)
         defaults={color:[slot["id"] for slot in slots if slot["color"]==color] for color in ("red","black")}
         self.selected={color:list((selected or {}).get(color,defaults[color])) for color in defaults};self.checks={}
@@ -276,7 +276,7 @@ class ReplayDialog(QDialog):
     def __init__(self, game: Game, config: dict, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.language=normalize_language(config.get("language"));self.setWindowTitle(t("dialog.replay_title",self.language))
-        self.resize(960, 820)
+        self.resize(960, 820);self.setMinimumSize(820,560)
         # 复盘分析的取消信号：关窗即置位，让后台分析在下一手前退出
         # （否则关窗后还要等 `40 手 × 每手预算` 才停得下来）。
         self._analysis_cancel = threading.Event()
@@ -352,7 +352,7 @@ class ReplayDialog(QDialog):
 class TrainingDialog(QDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
-        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.training_title",lang));self.resize(760,560);self.selected_game=None;self.selected_puzzle=None
+        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.training_title",lang));self.resize(760,560);self.setMinimumSize(560,420);self.selected_game=None;self.selected_puzzle=None
         layout=QVBoxLayout(self);filters=QHBoxLayout();self.level=QComboBox();self.level.addItem(t("desktop.beginner",lang),"beginner");self.level.addItem(t("desktop.advanced",lang),"advanced");self.level.addItem(t("desktop.master",lang),"master");filters.addWidget(self.level);import_button=QPushButton(t("desktop.import_puzzles",lang));import_button.clicked.connect(self.import_puzzles);filters.addWidget(import_button);layout.addLayout(filters)
         self.list=QListWidget();self.list.itemDoubleClicked.connect(lambda _:self.start_selected());layout.addWidget(self.list,1)
         actions=QHBoxLayout();self.hint=QPushButton(t("desktop.hint",lang));self.hint.clicked.connect(self.show_hint);start=QPushButton(t("desktop.start_training",lang));start.clicked.connect(self.start_selected);close=QPushButton(t("common.close",lang));close.clicked.connect(self.reject);actions.addWidget(self.hint);actions.addStretch();actions.addWidget(start);actions.addWidget(close);layout.addLayout(actions)
@@ -396,7 +396,7 @@ class TrainingDialog(QDialog):
 
 class GameLibraryDialog(QDialog):
     def __init__(self, folder: Path, config: dict, parent: QWidget | None = None) -> None:
-        super().__init__(parent);self.setWindowTitle(dl("本地棋谱库"));self.resize(700,520)
+        super().__init__(parent);self.setWindowTitle(dl("本地棋谱库"));self.resize(700,520);self.setMinimumSize(560,380)
         self.folder=folder;self.config=config;self.selected_path:Path|None=None
         self.folder.mkdir(parents=True,exist_ok=True)
         layout=QVBoxLayout(self);layout.addWidget(QLabel(dlf("棋谱目录：{path}", path=self.folder)))
@@ -432,7 +432,7 @@ class GameLibraryDialog(QDialog):
 
 class DocumentDialog(QDialog):
     def __init__(self, title: str, content: str, parent: QWidget | None = None) -> None:
-        super().__init__(parent);self.setWindowTitle(title);self.resize(760,680)
+        super().__init__(parent);self.setWindowTitle(title);self.resize(760,680);self.setMinimumSize(420,360)
         layout=QVBoxLayout(self);browser=QTextBrowser();browser.setHtml(content) if content.lstrip().startswith("<") else browser.setMarkdown(content);layout.addWidget(browser)
         lang=getattr(parent,"config",{}).get("language","zh-CN") if parent else "zh-CN"
         close=QPushButton(t("common.close", lang));close.clicked.connect(self.accept);layout.addWidget(close)
