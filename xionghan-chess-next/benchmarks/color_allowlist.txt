@@ -1,6 +1,6 @@
 src/xionghan_chess/desktop/app.py:#211b17:1
 src/xionghan_chess/desktop/app.py:#4a433b:1
-src/xionghan_chess/desktop/app.py:#b21f1f:2
+src/xionghan_chess/desktop/app.py:#b21f1f:1
 src/xionghan_chess/desktop/app.py:#f1dfbf:1
 src/xionghan_chess/desktop/app.py:#f3ead7:1
 src/xionghan_chess/desktop/ui/board_widget.py:#24211e:2

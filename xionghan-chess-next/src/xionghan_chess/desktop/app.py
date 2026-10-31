@@ -796,7 +796,15 @@ class MainWindow(QMainWindow):
         # 将军时横幅**加粗 + 换警示色**（与棋盘外框脉冲、王格红圈同一时刻出现）。
         # `_check_state` 有局面指纹缓存，这里再调一次不会重复算 `in_check`。
         checking = (not state.finished) and self._check_state(state)
-        style = "font-weight:700; color:#b21f1f;" if checking else ""
+        # 横幅底色是 `#7f1d1d`（U-15 的 danger-surface）。原先把文字也写成深红 `#b21f1f`，
+        # 实测 1.48:1 —— 深红压深红，四个浅色主题全不达标。改用主题里的 `banner_fg`
+        # （浅色白字 10.02:1 / 暗色 #410002 10.03:1）。
+        # 用 `.get("banner_fg")` 再兜底到 classic 的同一个键：不写字面量颜色，
+        # 否则裸色禁令会给它记一条新账（进度条只该往下走）。
+        banner_fg = (theme.THEMES.get(self.config.get("theme", "classic"),
+                                      theme.THEMES["classic"]).get("banner_fg")
+                     or theme.THEMES["classic"]["banner_fg"])
+        style = f"font-weight:700; color:{banner_fg};" if checking else ""
         if self.banner.styleSheet() != style:
             self.banner.setStyleSheet(style)
 
