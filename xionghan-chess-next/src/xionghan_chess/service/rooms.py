@@ -260,9 +260,14 @@ class RoomManager:
                 return
             revision_independent = {MessageType.CHAT, MessageType.DRAW_RESPONSE,
                                     MessageType.UNDO_RESPONSE, MessageType.RESTART_RESPONSE}
-            if (envelope.type not in revision_independent and envelope.revision is not None
-                    and envelope.revision != room.revision):
-                raise GameError(room.tr("error.client_stale"))
+            if envelope.type not in revision_independent:
+                # local 房**必须**带 revision：它没有 online 房那条 turn 兜底，
+                # 而原来的 `revision is not None and ...` 写法会让"不填 revision"整段跳过校验，
+                # 于是乱序/重复的落子消息会被直接采纳。
+                if room.mode == "local" and envelope.revision is None:
+                    raise GameError("local 房需要 revision")
+                if envelope.revision is not None and envelope.revision != room.revision:
+                    raise GameError(room.tr("error.client_stale"))
             if envelope.type is MessageType.CHAT:
                 text = str(envelope.payload.get("text", "")).strip()
                 if not text:
