@@ -48,6 +48,15 @@ py -3.11 -m venv .venv
 > 日常门禁用 `-m "not slow"`（约 83s）；**改评估 / 走法排序 / 搜索参数 / 难度参数后必须跑全量**
 > （`-m slow`，约 132s）。裸 `pytest` 会跑全量、更慢 —— 门禁命令请显式写出来，不要靠全局默认。
 
+## 功能摘要
+
+13×13 匈汉象棋；11 类棋子（完整档 50 子 / 每方 25）；六档 AI（入门→初级→中级→高级→专家→大师）；
+桌面 / 网页 / 安卓三端共用同一套 Python 规则核心，安卓内置离线规则镜像并有跨引擎对拍门禁；
+内置题库、棋谱回放、本地棋谱库与棋子图谱。
+
+- 详细架构与功能：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- 全部文档索引：[docs/README.md](docs/README.md)
+
 ## 二、三端构建
 
 打包脚本都在 `packaging/` 下，产物统一输出到 `release/`。
@@ -113,7 +122,7 @@ xionghan-chess-next/
 - 架构与技术选型：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - WebSocket 协议：[docs/WEBSOCKET_PROTOCOL.md](docs/WEBSOCKET_PROTOCOL.md)
 - Android 构建与连服：[docs/ANDROID.md](docs/ANDROID.md)
-- Linux 服务器部署：[docs/LINUX_DEPLOY.md](docs/LINUX_DEPLOY.md)、Docker 部署：[docs/DOCKER_DEPLOY.md](docs/DOCKER_DEPLOY.md)
+- Linux 服务器部署：[docs/LINUX_DEPLOY.md](docs/LINUX_DEPLOY.md)、运行与部署（桌面/网页/Docker）：[docs/release/RUN.md](docs/release/RUN.md)
 - 玩家帮助与 FAQ：[HELP.md](src/xionghan_chess/desktop/resources/docs/HELP.md)（**仓库内唯一一份**：桌面端运行期加载并随包分发，`docs/HELP.md` 旧副本已删除）
 - 项目愿景：[ABOUT.md](src/xionghan_chess/desktop/resources/docs/ABOUT.md)（**仓库内唯一一份**：桌面端运行期加载并随包分发的权威副本，`docs/ABOUT.md` 旧副本已删除）
 - 变更记录：[docs/CHANGELOG_1.6.0.md](docs/CHANGELOG_1.6.0.md)；当前版本计划：[docs/VERSION_PLAN_1.6.0.md](docs/VERSION_PLAN_1.6.0.md)
