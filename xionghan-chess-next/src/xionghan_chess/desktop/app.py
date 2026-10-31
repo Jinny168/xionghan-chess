@@ -847,9 +847,14 @@ class MainWindow(QMainWindow):
 
     def _update_clock_warning(self, state: GameState) -> None:
         threshold = max(0, int(self.config.get("countdown_seconds", 30))) * 1000
+        danger_fg = (theme.THEMES.get(self.config.get("theme", "classic"),
+                                      theme.THEMES["classic"]).get("danger")
+                     or theme.THEMES["classic"]["danger"])
         for color, label in ((Color.RED, self.red), (Color.BLACK, self.black)):
             warn = bool(threshold) and state.clocks_ms[color] <= threshold and not state.paused
-            style = "color:#b21f1f;font-weight:bold" if warn else ""
+            # 时钟告警压在**面板底**上，用 danger（浅底深红 / 深底浅红）：
+            # 原来写死 `#b21f1f`，在 dark 主题的面板底上只有 2.28:1。
+            style = (f"color:{danger_fg};font-weight:bold" if warn else "")
             if label.styleSheet() != style:
                 label.setStyleSheet(style)
 

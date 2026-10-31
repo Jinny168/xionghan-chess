@@ -41,7 +41,7 @@ NOISE_FLOOR = {"classic": 0, "green": 0, "blue": 0, "purple": 0, "dark": 0}
 # 但**不能**把容差当"允许回归"——B 阶段的判据是"差异必须落在预期区域"，看的是区域归因而不是这个数。
 
 
-def _freeze_clock(window) -> None:
+def _freeze_clock(window, clocks_ms: int = 20 * 60_000) -> None:
     """冻结侧栏时钟 —— 基线截图里不允许出现随时间变化的内容。
 
     窗口的 `self.timer` 每 250ms 触发 `refresh()`，而 `refresh()` 会调 `game.tick()` 按真实时间扣钟。
@@ -58,7 +58,7 @@ def _freeze_clock(window) -> None:
     game.tick = lambda *args, **kwargs: None
     from xionghan_chess.core.model import Color
 
-    game.state.clocks_ms = {Color.RED: 20 * 60_000, Color.BLACK: 20 * 60_000}
+    game.state.clocks_ms = {Color.RED: clocks_ms, Color.BLACK: clocks_ms}
 
 
 def _check_game():
@@ -98,7 +98,9 @@ def _render(app, theme_name: str, state: str = "init"):
     for _ in range(3):
         app.processEvents()
     if "--no-freeze" not in sys.argv:
-        _freeze_clock(window)
+        # 时钟告警夹具：剩余压到 10s，`warn` 才会为真；否则这条样式根本不渲染。
+        # 必须**在冻结时**给值 —— 先设 10s 再冻结会被 20min 覆盖掉（踩过）。
+        _freeze_clock(window, 10_000 if state == "lowtime" else 20 * 60_000)
         window.refresh()
     for _ in range(2):
         app.processEvents()
@@ -160,7 +162,7 @@ def _diff(a, b) -> int:
 
 
 def main() -> int:
-    state = "check" if "--state=check" in sys.argv else "init"
+    state = "check" if "--state=check" in sys.argv else ("lowtime" if "--state=lowtime" in sys.argv else "init")
     app = QApplication.instance() or QApplication([])
     from xionghan_chess.desktop.ui import theme
 
@@ -176,7 +178,7 @@ def main() -> int:
     if "--write" in sys.argv:
         OUT.mkdir(parents=True, exist_ok=True)
         for name in THEMES:
-            suffix = "_check" if state == "check" else ""
+            suffix = {"check": "_check", "lowtime": "_lowtime"}.get(state, "")
             image = _render(app, name, state)[0]
             path = OUT / f"{name}{suffix}.png"
             image.save(str(path))
@@ -190,7 +192,8 @@ def main() -> int:
 
         rows = []
         for name in THEMES:
-            path = OUT / f"{name}{'_check' if state == 'check' else ''}.png"
+            suffix = {"check": "_check", "lowtime": "_lowtime"}.get(state, "")
+            path = OUT / f"{name}{suffix}.png"
             if not path.is_file():
                 print(f"{name:8s} 缺基线 {path}")
                 return 1
@@ -211,7 +214,8 @@ def main() -> int:
     # --check
     failed = []
     for name in THEMES:
-        path = OUT / f"{name}{'_check' if state == 'check' else ''}.png"
+        suffix = {"check": "_check", "lowtime": "_lowtime"}.get(state, "")
+        path = OUT / f"{name}{suffix}.png"
         if not path.is_file():
             print(f"{name:8s} 缺基线 {path}")
             return 1

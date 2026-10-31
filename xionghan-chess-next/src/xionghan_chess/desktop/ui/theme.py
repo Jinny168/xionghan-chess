@@ -74,11 +74,15 @@ THEMES = {
 # §5 审计（UI_AUDIT_2026-10-31）落地的调色键：**只加数据，不改任何结构**。
 # 浅色 4 主题与暗色各一套；比值（WCAG）见提交信息。
 _BANNER = {"light": ("#7f1d1d", "#ffffff"), "dark": ("#f2b8b5", "#410002")}
+# 危险文字色：**浅底用深红、深底用浅红**。只用于"压在面板/卡片底上的警示文字"，
+# 不要拿去压在品牌色横幅上（横幅有自己的 `banner_fg`）。
+_DANGER = {"light": "#7f1d1d", "dark": "#f2b8b5"}
 _SECONDARY = {"light": "#5c5048", "dark": "#c6beb1"}
 _DISABLED = {"light": ("#7d7368", "#f0e9dc"), "dark": ("#948a7d", "#2f2a24")}
 for _name, _palette in THEMES.items():
     _mode = "dark" if _name == "dark" else "light"
     _palette["banner_bg"], _palette["banner_fg"] = _BANNER[_mode]
+    _palette["danger"] = _DANGER[_mode]
     _palette["secondary"] = _SECONDARY[_mode]
     _palette["disabled_fg"], _palette["disabled_bg"] = _DISABLED[_mode]
 
