@@ -151,7 +151,20 @@ def test_settle_prefers_stalemate_over_a_threefold_repetition():
 
 
 def test_threefold_repetition_fires_only_on_the_third_occurrence():
-    """真走棋：走 2 轮回到同一局面两次**不判和**，第 3 次才判和。"""
+    """真走棋：走 2 轮回到同一局面两次**不判和**，第 3 次才判和。
+
+    为什么这条必须走真棋：旧的 `_repeat` 只有一行
+    `position_counts = {"whatever": n}` —— **一步都没走**，验的是 `max()` 的实现细节。
+
+    这也是 L-06 的直接证据：**用旧的 `max(...)` 实现跑这个 `CYCLE`，第 3 轮内就会
+    `GameError("对局已经结束")`** —— 因为只要"历史上任何局面"计数到 3 就判和，
+    与"当前局面是否重复"无关。改成 `get(当前 key)` 之后，轨迹才是：
+    ```
+    第1轮后 counts=[1,1,1,1]  finished=False
+    第2轮后 counts=[2,2,2,2]  finished=False
+    第3轮后 counts=[3,2,2,2]  finished=True reason=threefold_repetition
+    ```
+    """
     game = _cycle_board()
     _play_cycles(game, 2)
     assert game.state.finished is False, "第 2 次重复不该判和"
