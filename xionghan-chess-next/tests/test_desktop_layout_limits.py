@@ -81,6 +81,10 @@ def test_longest_button_label_is_not_truncated(window: MainWindow) -> None:
     """最长英文文案放得进按钮可用内宽（结构保证，不针对某一句文案）。
 
     用按钮**实际 fontMetrics**（QSS 生效后的字体），不是默认字体。
+
+    定性（三处一致，勿改）：95px 是真实渲染值；**182 是「为未来语言留的结构性余量」，
+    不是「修截断」** —— 用 120 也不截断。此前"168px 需 182"用的是默认字体（未
+    `load_bundled_fonts()`），属错误测量。
     """
     button = window.resurrect
     for text in ("Resurrect pawn", button.text()):
