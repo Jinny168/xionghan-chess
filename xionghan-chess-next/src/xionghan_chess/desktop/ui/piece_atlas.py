@@ -33,11 +33,13 @@ from collections.abc import Callable
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPixmap
 from PySide6.QtWidgets import (
+    QComboBox,
     QButtonGroup, QDialog, QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QScrollArea, QSizePolicy, QTextBrowser, QVBoxLayout, QWidget,
 )
 
-from xionghan_chess.core.model import Color, Piece, PieceType
+from xionghan_chess.core.game import Game
+from xionghan_chess.core.model import Color, GameState, Piece, PieceType, Position
 from xionghan_chess.core.profiles import PROFILES, profile_rule_values
 from xionghan_chess.core.rules import RulesEngine
 from xionghan_chess.i18n import normalize_language, t
@@ -45,7 +47,8 @@ from xionghan_chess.i18n import normalize_language, t
 from ..config import save_config
 from ..texts import dl
 from . import piece_assets, theme
-from .board_widget import GLYPH_MODE, IMAGE_MODE, draw_fallback_piece, draw_piece_glyph
+from .board_widget import (GLYPH_MODE, IMAGE_MODE, BoardWidget, draw_fallback_piece,
+                           draw_piece_glyph)
 from .dialogs import GLYPH_STYLE_DATA, DocumentDialog
 
 # 左侧清单的顺序：先「常规 7 型」（任何档案都有），再「特色 7 型」。
@@ -93,6 +96,9 @@ def _draw_glyph_badge(painter: QPainter, edge: int, text: str) -> None:
     painter.drawText(int(edge * 0.06), int(edge * 0.94), text)
 
 
+DEMO_PRESETS: tuple[str, ...] = ("free", "clamp", "three", "facing")
+
+
 class PieceAtlasDialog(QDialog):
     def __init__(self, config: dict, parent: QWidget | None = None,
                  apply_style: Callable[[str], None] | None = None) -> None:
@@ -110,6 +116,7 @@ class PieceAtlasDialog(QDialog):
         self.resize(900, 640)
         self.setMinimumSize(760, 560)
         self._build()
+        self._load_demo()
 
     # ------------------------------------------------------------------ 布局
     def _build(self) -> None:
@@ -202,16 +209,93 @@ class PieceAtlasDialog(QDialog):
         self._demo_title = self._heading(t("desktop.atlas_demo_title", self.language))
         self._demo_title.setParent(frame)
         layout.addWidget(self._demo_title)
-        # 显式给父对象：图谱在测试里是 `deleteLater()` 的，子控件无父时会在
-        # Qt 已析构后由 Python GC 回收，整跑套件时表现为末尾的原生崩溃。
-        self._demo_host = QWidget(frame)
-        self._demo_host.setMinimumHeight(360)
-        layout.addWidget(self._demo_host, 1)
-        self._demo_note = QLabel(t("desktop.atlas_demo_pending", self.language), frame)
+
+        self._preset = QComboBox(frame)
+        for key in DEMO_PRESETS:
+            self._preset.addItem(t(f"desktop.atlas_preset_{key}", self.language), key)
+        self._preset.currentIndexChanged.connect(lambda _i: self._load_demo())
+        layout.addWidget(self._preset)
+
+        self._demo_board = BoardWidget(frame)
+        self._demo_board.setMinimumHeight(360)
+        self._demo_board.move_requested.connect(self._demo_moved)
+        layout.addWidget(self._demo_board, 1)
+
+        self._demo_note = QLabel("", frame)
         self._demo_note.setWordWrap(True)
         self._demo_note.setStyleSheet("color:#6f6254")
         layout.addWidget(self._demo_note)
         return frame
+
+    # ------------------------------------------------------------- 演示盘
+    def _demo_pieces(self, preset: str) -> tuple[list[Piece], dict]:
+        """预设局面的棋子与说明。
+
+        **空盘演示不出任何规则** —— 夹逼、三连、照面都必须靠摆好的局面才看得见，
+        所以这里给的是固定 mini 局，不是让用户自己摆。
+        """
+        def pc(kind, color, row, col):
+            return Piece.create(kind, color, row, col)
+
+        kings = [pc(PieceType.KING, Color.RED, 12, 12), pc(PieceType.KING, Color.BLACK, 0, 10)]
+        if preset == "clamp":
+            return kings + [
+                pc(PieceType.ARCHER, Color.RED, 6, 6),
+                pc(PieceType.PAWN, Color.RED, 7, 6),      # 起点夹逼的一侧
+                pc(PieceType.PAWN, Color.RED, 6, 7),      # 起点夹逼的另一侧 → 该斜段无效
+                pc(PieceType.HORSE, Color.BLACK, 9, 9),   # 沿同一条斜线更远处（本应可吃，被夹逼挡住）
+            ], {"kind": PieceType.ARCHER, "options": {}}
+        if preset == "three":
+            return kings + [
+                pc(PieceType.PAWN, Color.RED, 7, 2),
+                pc(PieceType.PAWN, Color.RED, 6, 3),
+                pc(PieceType.HORSE, Color.BLACK, 6, 4),
+            ], {"kind": PieceType.PAWN, "options": {"pawn_three_line_capture": True}}
+        if preset == "facing":
+            return [pc(PieceType.KING, Color.RED, 6, 3), pc(PieceType.KING, Color.BLACK, 6, 9)], \
+                {"kind": PieceType.KING, "options": {}}
+        # free：按左侧选中的棋型摆一个"这个子 + 两个陪练"
+        kind = self.kind
+        return kings + [
+            pc(kind, Color.RED, 6, 6),
+            pc(PieceType.PAWN, Color.BLACK, 4, 6),
+            pc(PieceType.PAWN, Color.BLACK, 6, 9),
+        ], {"kind": kind, "options": {}}
+
+    def _load_demo(self) -> None:
+        preset = self._preset.currentData() or DEMO_PRESETS[0]
+        pieces, meta = self._demo_pieces(preset)
+        state = GameState(self.profile.id, pieces, turn=Color.RED)
+        game = Game.from_state(state, meta["options"], None)
+        self._demo_game = game
+        self._demo_board.set_game(game, Color.RED, control_both=True)
+        self._demo_board.set_assists(selection=True, legal_targets=True,
+                                     capture_hints=True, animations=False)
+        # 优先选 (6,6) 那枚"主角"：free 局里王也在盘上，按类型找会先撞到王
+        demo_piece = game.state.piece_at(Position(6, 6))
+        if demo_piece is None or demo_piece.type is not meta["kind"]:
+            demo_piece = next((p for p in game.state.pieces
+                               if p.type is meta["kind"] and p.color is Color.RED), None)
+        if demo_piece is not None:
+            self._demo_board._select(demo_piece.position)
+        self._demo_note.setText(t(f"desktop.atlas_preset_{preset}_note", self.language))
+        self._demo_board.update()
+
+    def _demo_moved(self, move) -> None:
+        """演示盘只允许走一步：走完就重算高亮，并把这一子重新选中。"""
+        game = getattr(self, "_demo_game", None)
+        if game is None:
+            return
+        try:
+            game.move(move)
+        except Exception:
+            return
+        self._demo_board.selected, self._demo_board.legal, self._demo_board.capturable = None, [], set()
+        self._demo_board.set_game(game, Color.RED, control_both=True)
+        self._demo_board.set_assists(selection=True, legal_targets=True,
+                                     capture_hints=True, animations=False)
+        self._demo_board._select(move.target)
+        self._demo_board.update()
 
     def _detail_area(self) -> QWidget:
         scroll = QScrollArea()
@@ -253,6 +337,7 @@ class PieceAtlasDialog(QDialog):
             return
         self.kind = PieceType(value)
         self._rebuild_detail()
+        self._load_demo()
 
     def _preview_style(self, style: str) -> None:
         self.style = piece_assets.normalize_style(style)

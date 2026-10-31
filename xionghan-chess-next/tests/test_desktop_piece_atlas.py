@@ -16,7 +16,7 @@ pytest.importorskip("PySide6", reason="图谱依赖 PySide6")
 
 from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
 
-from xionghan_chess.core.model import Color, PieceType  # noqa: E402
+from xionghan_chess.core.model import Color, PieceType, Position  # noqa: E402
 from xionghan_chess.desktop import app as appmod  # noqa: E402
 from xionghan_chess.desktop.config import load_config  # noqa: E402
 from xionghan_chess.desktop.ui import piece_assets, theme  # noqa: E402
@@ -274,3 +274,39 @@ def test_settings_choice_maps_to_piece_render(window) -> None:
     assert values["piece_render"] == "image"
     assert values["piece_style"] == "cartoon"
     dialog.deleteLater()
+
+
+# ---------------------------------------------------------------------------
+# 演示盘：三个预设必须能**演示出**各自的规则（空盘演示不出任何东西）
+# ---------------------------------------------------------------------------
+def _load_preset(atlas: PieceAtlasDialog, key: str):
+    index = atlas._preset.findData(key)
+    assert index >= 0, f"预设 {key} 不在下拉里"
+    atlas._preset.setCurrentIndex(index)
+    QApplication.processEvents()
+    return atlas._demo_board
+
+
+def test_demo_preset_pinch_blocks_the_pinched_diagonal(atlas: PieceAtlasDialog) -> None:
+    """夹逼局：射起点两侧都有子 → 同一条斜线再远的敌子也吃不到。"""
+    board = _load_preset(atlas, "clamp")
+    targets = [move.target for move in board.legal]
+    assert Position(9, 9) not in targets, "被夹逼的斜线不该给出落点"
+    assert targets, "其它方向仍应有合法着法（否则演示盘像坏图）"
+
+
+def test_demo_preset_three_in_a_line_offers_the_sandwiched_enemy(atlas: PieceAtlasDialog) -> None:
+    """三连局：己方两兵夹住敌子 → 该敌子出现在"可吃"里（兵三连开关在演示局里打开）。"""
+    board = _load_preset(atlas, "three")
+    caps = board.game.rules.capturable_squares(board.game.state, board.game.state.turn)
+    assert Position(6, 4) in caps, "被夹住的敌子必须可吃"
+    kinds = {removal.kind.value for spec in caps.values() for removal in spec.removals}
+    assert "armor_line" in kinds
+
+
+def test_demo_preset_facing_puts_the_king_in_check(atlas: PieceAtlasDialog) -> None:
+    """照面局：两王同线无子 → 被将；王只能走到离开该线的格。"""
+    board = _load_preset(atlas, "facing")
+    assert board.game.rules.in_check(board.game.state, board.game.state.turn)
+    for move in board.legal:
+        assert move.target.col != 6, "王不能留在照面的那一线上"
