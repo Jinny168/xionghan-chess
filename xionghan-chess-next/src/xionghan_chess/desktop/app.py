@@ -768,6 +768,12 @@ class MainWindow(QMainWindow):
                      else f"　·　Puzzle “{session.puzzle.title}” step {step}/{session.total}")
         if self.banner.text() != text:
             self.banner.setText(text)
+        # 将军时横幅**加粗 + 换警示色**（与棋盘外框脉冲、王格红圈同一时刻出现）。
+        # `_check_state` 有局面指纹缓存，这里再调一次不会重复算 `in_check`。
+        checking = (not state.finished) and self._check_state(state)
+        style = "font-weight:700; color:#b21f1f;" if checking else ""
+        if self.banner.styleSheet() != style:
+            self.banner.setStyleSheet(style)
 
     def _check_state(self, state: GameState) -> bool:
         """轮到的一方是否被将（**同一局面只算一次**，横幅与脉冲共用）。

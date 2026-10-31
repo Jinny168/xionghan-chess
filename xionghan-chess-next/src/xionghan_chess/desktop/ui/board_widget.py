@@ -332,6 +332,7 @@ class BoardWidget(QWidget):
         self._draw_marks(painter, left, top, cw, ch)
         for piece in self.game.state.pieces:
             self._draw_piece(painter, piece, left, top, cw, ch)
+        self._draw_check_pulse_overlay(painter, rect, left, top, cw, ch)
         self._draw_check_label(painter, left, top, cw, ch)
         # 「思索中」遮罩必须画在**棋子之后、走子动画之前**：
         # `human_move` 落子后立刻 `start_ai()`，于是玩家自己这一手的 350ms 动画
@@ -651,6 +652,39 @@ class BoardWidget(QWidget):
         color = QColor(self.theme["accent"])
         color.setAlphaF(LEGAL_DOT_ALPHA_LIGHT)
         return color
+
+    def _draw_check_pulse_overlay(self, painter: QPainter, rect,
+                                  left: float, top: float, cw: float, ch: float) -> None:
+        """将军时的**可视**反馈：棋盘外框红脉冲 + 被将方王格红圈。
+
+        为什么要画在棋子**之后**：`_draw_marks` 里的将军标记画在棋子之前，棋子一盖就看不见；
+        这里用描边（无填充）压在棋子上面，任何遮挡下都能看到"谁被将了"。
+        周期：`CHECK_PULSE_FRAMES` 帧（30 帧 × 40ms ≈ 1.2s），随 `check_pulse_frame` 递减亮度。
+        """
+        if not self.game or self.check_pulse_frame >= CHECK_PULSE_FRAMES:
+            return
+        state = self.game.state
+        if not self.game.rules.in_check(state, state.turn):
+            return
+        king = next((p for p in state.pieces
+                     if p.type is PieceType.KING and p.color is state.turn), None)
+        progress = min(1.0, self.check_pulse_frame / CHECK_PULSE_FRAMES)
+        alpha = int(200 * (1.0 - progress))
+        color = QColor(200, 32, 32, alpha)
+
+        # 外框：贴着棋盘边两像素，线宽 4
+        painter.save()
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(color, 4))
+        painter.drawRect(rect.adjusted(2, 2, -2, -2))
+
+        # 王格：空心圆环（半径 0.42 格），盖在棋子上也看得见
+        if king is not None:
+            shown = self._view_position(king.position)
+            center = QPointF(left + (shown.col + .5) * cw, top + (shown.row + .5) * ch)
+            painter.setPen(QPen(color, max(2.5, min(cw, ch) * .06)))
+            painter.drawEllipse(center, cw * .42, ch * .42)
+        painter.restore()
 
     def _draw_check_label(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         """「将军」二字单独一层，画在**棋子之后**。
