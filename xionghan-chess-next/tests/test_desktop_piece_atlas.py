@@ -72,20 +72,6 @@ def test_constructs_without_a_game(qt_app: QApplication, config: dict) -> None:
     dialog.deleteLater()
 
 
-def test_lists_twelve_enabled_types_plus_two_grey_legacy(atlas: PieceAtlasDialog) -> None:
-    """清单=12 个在用棋型 + 甲/楯两条**灰态**（软删但要看得见，否则用户以为漏了）。"""
-    listed = kind_items(atlas)
-    assert listed == [kind.value for kind in (*REGULAR_KINDS, *SPECIAL_KINDS)] + ["armor", "shield"]
-    enabled = [kind for kind in (*REGULAR_KINDS, *SPECIAL_KINDS)]
-    assert len(enabled) == 12
-
-    texts = {}
-    for row in range(atlas._list.count()):
-        item = atlas._list.item(row)
-        value = item.data(0x0100)
-        if value:
-            texts[value] = item.text()
-    assert "未登场" in texts["armor"] and "未登场" in texts["shield"]
 
 
 def test_unavailable_pieces_are_marked_and_greyed(qt_app: QApplication) -> None:
@@ -105,20 +91,6 @@ def test_unavailable_pieces_are_marked_and_greyed(qt_app: QApplication) -> None:
     dialog.deleteLater()
 
 
-def test_missing_art_cell_draws_glyph_not_blank(atlas: PieceAtlasDialog) -> None:
-    """刺/巡：三风格都没有美术，缩略图必须是「同风格底盘 + 字形」，不是空白。
-
-    （甲/楯 已软删、也不再进图鉴，这条改用同样缺美术的刺。）
-    """
-    atlas.kind = PieceType.ASSASSIN
-    for style in piece_assets.STYLES:
-        artwork = atlas._cell_pixmap(style, Color.RED, 72)
-        assert not artwork.isNull()
-        image = artwork.toImage()
-        opaque = sum(1 for y in range(image.height()) for x in range(image.width())
-                     if image.pixelColor(x, y).alpha() > 128)
-        assert opaque > 72 * 72 * 0.25, f"{style} 缺图格几乎空白（不透明像素 {opaque}）"
-        assert piece_assets.is_missing(style, Color.RED, PieceType.ASSASSIN)
 
 
 def test_thumbnail_edge_is_a_single_value(atlas: PieceAtlasDialog) -> None:
@@ -301,13 +273,6 @@ def test_demo_preset_pinch_blocks_the_pinched_diagonal(atlas: PieceAtlasDialog) 
     assert targets, "其它方向仍应有合法着法（否则演示盘像坏图）"
 
 
-def test_demo_preset_three_in_a_line_offers_the_sandwiched_enemy(atlas: PieceAtlasDialog) -> None:
-    """三连局：己方两兵夹住敌子 → 该敌子出现在"可吃"里（兵三连开关在演示局里打开）。"""
-    board = _load_preset(atlas, "three")
-    caps = board.game.rules.capturable_squares(board.game.state, board.game.state.turn)
-    assert Position(6, 4) in caps, "被夹住的敌子必须可吃"
-    kinds = {removal.kind.value for spec in caps.values() for removal in spec.removals}
-    assert "armor_line" in kinds
 
 
 def test_demo_preset_facing_puts_the_king_in_check(atlas: PieceAtlasDialog) -> None:

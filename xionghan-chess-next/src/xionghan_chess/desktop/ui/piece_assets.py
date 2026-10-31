@@ -44,8 +44,7 @@ from xionghan_chess.core.model import Color, PieceType
 from . import theme
 
 # 与 `web/js/app.js` 的 `pieceAssetTypes` **逐键一致**（测试会解析那一行比对）。
-# 桌面端 `PieceType` 有 14 型，这里只有 11 型 —— armor / assassin / shield 没有美术，
-# 必须回退字形，不要报错也不要留空白。
+# `PieceType` 与美术一一对应（11 型 × 3 风格），不存在「缺图回退」。
 SUFFIX: dict[PieceType, str] = {
     PieceType.KING: "han",
     PieceType.ROOK: "che",

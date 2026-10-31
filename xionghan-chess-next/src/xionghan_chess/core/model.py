@@ -27,9 +27,6 @@ class PieceType(StrEnum):
     GUARD = "guard"       # 尉/衛
     ARCHER = "archer"     # 射/䠶
     THUNDER = "thunder"   # 檑/礌
-    ARMOR = "armor"       # 甲/胄
-    ASSASSIN = "assassin" # 刺/伺
-    SHIELD = "shield"     # 楯/碷
     PATROL = "patrol"     # 巡/廵
 
 
@@ -189,6 +186,24 @@ def piece_to_dict(piece: Piece) -> dict[str, Any]:
             "row": piece.position.row, "col": piece.position.col}
 
 
+class UnsupportedSaveError(ValueError):
+    """存档里出现已被移除的兵种（甲/楯/刺）。
+
+    1.7.5 起这三个类型从枚举里删掉了，旧存档直接 `PieceType(...)` 会抛一个
+    没有上下文的 `ValueError`；这里换成一句人话，并提示用哪个版本打开。
+    """
+
+
+REMOVED_PIECE_NAMES = {"armor": "甲/胄", "shield": "楯/碷", "assassin": "刺/伺"}
+
+
 def piece_from_dict(data: dict[str, Any]) -> Piece:
-    return Piece(data["id"], PieceType(data["type"]), Color(data["color"]),
+    raw = data["type"]
+    try:
+        kind = PieceType(raw)
+    except ValueError as exc:
+        name = REMOVED_PIECE_NAMES.get(str(raw), str(raw))
+        raise UnsupportedSaveError(
+            f"存档包含已移除的兵种：{name}；请用 1.7.4 或更早版本打开") from exc
+    return Piece(data["id"], kind, Color(data["color"]),
                  Position(int(data["row"]), int(data["col"])))

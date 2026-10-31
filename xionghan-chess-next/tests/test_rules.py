@@ -25,111 +25,16 @@ def test_king_can_leave_palace_when_enabled():
                            get_profile("desktop_complete").options.merged({"king_can_leave_palace": False})).is_legal(board, move)
 
 
-def test_shield_can_be_captured_when_unprotected():
-    """楯不再是绝对免疫：没有同阵营楯四正相贴时可以吃。"""
-    red, black = kings()
-    rook = piece(PieceType.ROOK, Color.RED, 6, 0)
-    shield = piece(PieceType.SHIELD, Color.BLACK, 6, 3)
-    board = state(red, black, rook, shield)
-    rules = RulesEngine(get_profile("desktop_complete"))
-    assert rules.is_legal(board, Move(rook.position, shield.position))
 
 
-def test_shield_protects_only_orthogonally_adjacent_pieces():
-    """保护收窄到**四正**：正侧相邻能护住，斜贴不算。"""
-    red, black = kings()
-    rules = RulesEngine(get_profile("desktop_complete"))
-
-    # 四正：楯在 (6,2)，被吃的子在 (6,3) → 护住
-    ortho = state(red, black, piece(PieceType.ROOK, Color.RED, 6, 0),
-                  piece(PieceType.SHIELD, Color.BLACK, 6, 2),
-                  piece(PieceType.PAWN, Color.BLACK, 6, 3))
-    assert not rules.is_legal(ortho, Move(Position(6, 0), Position(6, 3)))
-
-    # 斜贴：楯在 (5,2)，被吃的子在 (6,3) → 不护
-    diagonal = state(red, black, piece(PieceType.ROOK, Color.RED, 6, 0),
-                     piece(PieceType.SHIELD, Color.BLACK, 5, 2),
-                     piece(PieceType.PAWN, Color.BLACK, 6, 3))
-    assert rules.is_legal(diagonal, Move(Position(6, 0), Position(6, 3)))
 
 
-def test_shield_does_not_protect_another_shield():
-    """例外：楯不保护楯 —— 否则两楯四正相邻会成对无敌。"""
-    red, black = kings()
-    rules = RulesEngine(get_profile("desktop_complete"))
-    # 保护者在 (5,3)，不在攻击路径上；目标楯在 (6,3)
-    board = state(red, black, piece(PieceType.ROOK, Color.RED, 6, 0),
-                  piece(PieceType.SHIELD, Color.BLACK, 5, 3),
-                  piece(PieceType.SHIELD, Color.BLACK, 6, 3))
-    assert rules.is_legal(board, Move(Position(6, 0), Position(6, 3))), "楯不保护楯，应可吃"
-    # 但非楯的子仍然受四正保护
-    guarded = state(red, black, piece(PieceType.ROOK, Color.RED, 6, 0),
-                    piece(PieceType.SHIELD, Color.BLACK, 5, 3),
-                    piece(PieceType.PAWN, Color.BLACK, 6, 3))
-    assert not rules.is_legal(guarded, Move(Position(6, 0), Position(6, 3)))
 
 
-def test_assassin_is_soft_deleted_but_still_works_when_enabled():
-    """刺已软删：默认档案里**不存在**；显式打开 `assassin_appear` 时走法仍正确（可回滚）。"""
-    red, black = kings()
-    profile = get_profile("desktop_complete")
-
-    # ① 默认：不出场 → 任何着法都不合法
-    default_rules = RulesEngine(profile)
-    assassin = piece(PieceType.ASSASSIN, Color.RED, 6, 4)
-    board = state(red, black, assassin, piece(PieceType.HORSE, Color.BLACK, 8, 2))
-    assert not default_rules.is_legal(board, Move(assassin.position, Position(5, 4)))
-    assert PieceType.ASSASSIN not in {p.type for p in
-                                      Game(profile.id).state.pieces}
-
-    # ② 显式打开：前进一格 + 斜向吃，规则分支仍在
-    rules = RulesEngine(profile, profile.options.merged({"assassin_appear": True}))
-    assert rules.is_legal(board, Move(assassin.position, Position(5, 4)))
-    assert not rules.is_legal(board, Move(assassin.position, Position(6, 5)))
-    capture = Move(assassin.position, Position(8, 2))
-    assert rules.is_legal(board, capture)
-    after = rules.apply_unchecked(board, capture)
-    assert after.piece_at(Position(8, 2)).type is PieceType.ASSASSIN, "吃后自己留在盘上"
-    straight = state(red, black, piece(PieceType.ASSASSIN, Color.RED, 6, 4),
-                     piece(PieceType.HORSE, Color.BLACK, 6, 7))
-    assert not rules.is_legal(straight, Move(Position(6, 4), Position(6, 7)))
 
 
-def test_armor_moves_one_step_but_runs_like_a_rook_forward():
-    red, black = kings()
-    armor = piece(PieceType.ARMOR, Color.RED, 6, 3)
-    board = state(red, black, armor)
-    rules = armor_rules()
-
-    # 前方：车式，多格都可（(4,3)、(2,3)）
-    assert rules.is_legal(board, Move(armor.position, Position(4, 3)))
-    assert rules.is_legal(board, Move(armor.position, Position(2, 3)))
-    # 侧、后：只有一格
-    assert rules.is_legal(board, Move(armor.position, Position(6, 4)))
-    assert rules.is_legal(board, Move(armor.position, Position(7, 3)))
-    assert not rules.is_legal(board, Move(armor.position, Position(6, 5)))
-    assert not rules.is_legal(board, Move(armor.position, Position(8, 3)))
-    # 仍不能吃子：前方有敌子时既不能前进也不能吃
-    blocked = state(red, black, piece(PieceType.ARMOR, Color.RED, 6, 3),
-                    piece(PieceType.PAWN, Color.BLACK, 3, 3))
-    # 敌子在 (3,3)：甲**不能吃**，但可以走到它前面的 (4,3)
-    assert not rules.is_legal(blocked, Move(Position(6, 3), Position(3, 3)))
-    assert rules.is_legal(blocked, Move(Position(6, 3), Position(4, 3)))
 
 
-def test_armor_three_piece_line_captures_enemy():
-    """三连移除保持不变（甲只是"移动"，三连是走完后全盘结算）。"""
-    red, black = kings()
-    armor = piece(PieceType.ARMOR, Color.RED, 6, 5)
-    ally = piece(PieceType.PAWN, Color.RED, 6, 3)
-    enemy = piece(PieceType.HORSE, Color.BLACK, 6, 2)
-    board = state(red, black, armor, ally, enemy)
-    rules = armor_rules()
-    move = Move(armor.position, Position(6, 4))
-    assert rules.is_legal(board, move)
-    result = rules.apply_unchecked(board, move)
-    assert result.piece_at(enemy.position) is None
-    assert rules.captured_by_move(board, move) == (enemy,)
 
 
 def armor_rules() -> RulesEngine:

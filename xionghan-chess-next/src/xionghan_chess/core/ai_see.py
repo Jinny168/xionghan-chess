@@ -14,7 +14,7 @@ def static_exchange_score(game: Game, move: Move, values: Mapping[PieceType, int
     """Evaluate the forced capture sequence on a move's destination square.
 
     The exchange is played on cloned authoritative states, so screens, pins,
-    x-ray attacks, shield protection, promotion and custom captures keep using
+    x-ray attacks, promotion and three-line captures keep using
     the shared rules engine instead of a chess-specific attack approximation.
     """
     moving = game.state.piece_at(move.source)

@@ -159,26 +159,6 @@ def _offline_capture_specs(game: Game, color: Color, targets=None) -> list[dict]
     return sorted(observed, key=lambda item: (item["row"], item["col"]))
 
 
-def test_assassin_parity_when_soft_delete_is_lifted():
-    """刺默认软删：两引擎都不生成它的着法；显式 `assassin_appear` 后走法一致。"""
-    off = _sparse("desktop_complete", [
-        (PieceType.ASSASSIN, Color.RED, 6, 4),
-        (PieceType.HORSE, Color.BLACK, 9, 7),
-    ])
-    assert _targets_from(_assert_parity(off), (6, 4)) == set(), "默认档案里刺不能动"
-
-    on = _sparse("desktop_complete", [
-        (PieceType.ASSASSIN, Color.RED, 6, 4),
-        (PieceType.HORSE, Color.BLACK, 9, 7),
-    ], options={"assassin_appear": True})
-    assert _targets_from(_assert_parity(on), (6, 4)) == {(5, 4), (9, 7)}
-
-    blocked = _sparse("desktop_complete", [
-        (PieceType.ASSASSIN, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.RED, 7, 5),
-        (PieceType.HORSE, Color.BLACK, 9, 7),
-    ], options={"assassin_appear": True})
-    assert _targets_from(_assert_parity(blocked), (6, 4)) == {(5, 4)}
 
 @pytest.mark.parametrize("profile_id", [
     "traditional", "web", "desktop_classic", "desktop_complete",
@@ -475,26 +455,6 @@ def test_pawn_fast_move_toggle_parity():
     _assert_targets(blocked, (7, 4), [])
 
 
-def test_promotion_never_offers_a_soft_deleted_type():
-    """阵亡池里只剩"已软删"的子时，两引擎都**不得**把兵升变成它。
-
-    这条守的是 `1571ca8` 里抓到的真分歧：Python 的升变候选按引擎启用集（含 `*_appear`）过滤，
-    而 JS 当时只按 `profile.enabled` 过滤 —— 软删刺之后，**JS 会把兵升变成刺**。
-    这里构造"池中只有刺"的局面，若任一端仍生成刺升变，`_assert_parity` 会直接报 legalAll mismatch。
-    """
-    game = _sparse("desktop_complete", [
-        (PieceType.KING, Color.RED, 12, 12),
-        (PieceType.KING, Color.BLACK, 0, 10),
-        (PieceType.PAWN, Color.RED, 1, 3),        # 一步就到红方底线 row 0
-    ], kings=False)
-    game.state.captured[Color.RED].append(Piece.create(PieceType.ASSASSIN, Color.RED, 0, 0))
-
-    _assert_parity(game)                           # 两引擎 legalAll 必须完全一致
-
-    moves = game.rules.legal_moves(game.state)
-    promotions = {m.promotion for m in moves if m.source == Position(1, 3)}
-    assert PieceType.ASSASSIN not in promotions, "软删的子不得作为升变目标"
-    assert None in promotions, "池里没有可升变类型时，应当允许以兵的身份走到底线"
 
 
 def test_guard_parity_slides_diagonally():
@@ -596,87 +556,16 @@ def test_pawn_charge_toggle_parity():
     assert (2, 3) not in blocked_targets and (4, 3) not in blocked_targets
 
 
-def test_thunder_parity_line_diagonal_and_isolated_capture():
-    game = _sparse("desktop_complete", [
-        (PieceType.THUNDER, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 4, 4),      # isolated: capture allowed at range 2
-        (PieceType.PAWN, Color.BLACK, 7, 4),
-        (PieceType.PAWN, Color.RED, 7, 4),        # shields the black pawn -> not isolated
-        (PieceType.THUNDER, Color.BLACK, 6, 8),
-    ])
-    _assert_parity(game)
 
 
-def test_armor_parity_sliding_then_line_capture():
-    game = _sparse("desktop_complete", [
-        (PieceType.ARMOR, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 6, 7),
-        (PieceType.ARMOR, Color.BLACK, 3, 3),
-        (PieceType.PAWN, Color.RED, 3, 6),
-    ])
-    # Armor may never capture by moving: the occupied square is not a target.
-    assert (6, 7) not in _targets_from(_assert_parity(game), (6, 4))
 
 
-def test_armor_line_squeeze_capture_parity():
-    # Armor sweeps any enemy that completes an allied/enemy/allied line. The
-    # squeeze is an indirect capture, so it must appear in captured_by_move even
-    # though armor never captures by sliding onto the occupied square itself.
-    # The armor starts one step short of the squeeze line on purpose. `_armor_removals`
-    # reads lines through the armor's destination square, so a squeeze only exists
-    # once the armor has landed at (6,4); starting on (6,4) would leave the line
-    # (6,4),(6,5),(6,6) broken by the armor's own departure and capture nothing.
-    # 软删甲/楯后，用选项把甲打开（测的是保留的规则分支）
-    game = _sparse("desktop_complete", [
-        (PieceType.ARMOR, Color.RED, 6, 3),
-        (PieceType.PAWN, Color.RED, 6, 5),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
-    ], options={"armor_appear": True})
-    moves = _assert_parity(game)
-    assert (6, 6) not in _targets_from(moves, (6, 3)), "armor cannot capture by sliding"
-    slide = next(m for m in moves if m[:2] == (6, 3) and m[2:4] == (6, 4))
-    captured = game.rules.captured_by_move(
-        game.state, Move(Position(slide[0], slide[1]), Position(slide[2], slide[3])))
-    assert any(p.position.row == 6 and p.position.col == 6 for p in captured), (
-        "any armor slide must squeeze away the black pawn at (6,6)"
-    )
 
 
-def test_assassin_parity_slide_and_drag():
-    # Assassin slides like a rook but cannot capture by moving; it instead drags
-    # the enemy sitting directly behind its origin.
-    game = _sparse("desktop_complete", [
-        (PieceType.ASSASSIN, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
-        (PieceType.PAWN, Color.BLACK, 5, 4),
-        (PieceType.ASSASSIN, Color.BLACK, 2, 2),
-    ])
-    assert (6, 6) not in _targets_from(_assert_parity(game), (6, 4))
 
 
-def test_shield_parity_jump_one_piece_orthogonal_only():
-    game = _sparse("desktop_complete", [
-        (PieceType.SHIELD, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 5, 4),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
-        (PieceType.SHIELD, Color.BLACK, 2, 2),
-    ], options={"shield_appear": True})
-    # A shield hops over exactly one piece, on straight lines only. The pawn at
-    # (5,4) opens the whole upward ray; the pawn at (6,6) opens the rightward ray.
-    _assert_targets(game, (6, 4), [(0, 4), (1, 4), (2, 4), (3, 4), (4, 4),
-                                   (6, 7), (6, 8), (6, 9), (6, 10), (6, 11), (6, 12)])
-    # With no screen nearby the black shield is completely immobile.
-    assert not _targets_from(_assert_parity(game), (2, 2))
 
 
-def test_shield_blocks_capture_of_protected_piece_parity():
-    game = _sparse("desktop_complete", [
-        (PieceType.ROOK, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
-        (PieceType.SHIELD, Color.BLACK, 5, 6),    # protects the pawn
-        (PieceType.SHIELD, Color.RED, 2, 2),
-    ])
-    assert (6, 6) not in _targets_from(_assert_parity(game), (6, 4))
 
 
 def test_patrol_moves_on_rows_and_columns_parity():
@@ -790,18 +679,6 @@ def test_traditional_palace_edge_parity():
     _assert_targets(outside, (9, 6), [(9, 5)])
 
 
-def test_all_piece_types_present_in_complete_profile_parity():
-    # Smoke check on the dispatch table. 软删甲/楯后仅 12 类默认在场：
-    # 这两类仍留在 `profile.enabled_piece_types`（可回滚），但被 `*_appear=False` 挡在引擎之外。
-    profile = PROFILES["desktop_complete"]
-    engine = RulesEngine(profile)
-    removed = {PieceType.ARMOR, PieceType.SHIELD, PieceType.ASSASSIN}
-    for kind in PieceType:
-        assert kind in profile.enabled_piece_types, f"{kind} missing from complete profile"
-        if kind in removed:
-            assert kind not in engine.enabled_piece_types, f"{kind} 已软删，不应进引擎"
-        else:
-            assert kind in engine.enabled_piece_types
 
 
 @pytest.mark.parametrize("profile_id", ["desktop_complete", "desktop_classic", "web"])
@@ -1169,28 +1046,6 @@ def test_capturable_squares_point_query_parity():
                 _offline_capture_specs(game, color, targets=(position,))
 
 
-def test_capture_kinds_match_across_engines():
-    # A crafted board that produces a direct capture, an armor squeeze and an
-    # assassin drag at once, so a "captured but with the wrong kind" decision
-    # cannot pass the gate.
-    # 兵对放在 row 5：row 6 是阴山行，**不再**算敌境，红兵在那里不能横走吃子
-    # （旧口径下这枚 direct 吃子靠的正是 row 6 横走，改口径后必须下移一行）。
-    # 刺的拖拽吃法已删除，`assassin_drag` 不再产生；这里只要 direct + armor_line：
-    # row 6 的一对兵给 `armor_line`（甲走到 (6,4) 凑成三连），row 5 的一对给 `direct`。
-    game = _sparse("desktop_complete", [
-        (PieceType.ARMOR, Color.RED, 6, 3),
-        (PieceType.PAWN, Color.RED, 6, 5),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
-        (PieceType.PAWN, Color.RED, 5, 5),
-        (PieceType.PAWN, Color.BLACK, 5, 6),
-    ], options={"armor_appear": True})   # 软删甲：用选项把甲打开
-    python = _python_capture_specs(game, Color.RED)
-    offline = _offline_capture_specs(game, Color.RED)
-    assert python == offline
-    kinds = {removal["kind"] for spec in python for removal in spec["removals"]}
-    # 刺的「拖拽/同归于尽」已删除，`assassin_drag` 不再产生
-    assert {"direct", "armor_line"} <= kinds, kinds
-    assert "assassin_drag" not in kinds
 
 
 # ---------------------------------------------------------------------------

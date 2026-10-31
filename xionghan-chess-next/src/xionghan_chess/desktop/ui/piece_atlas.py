@@ -57,9 +57,8 @@ REGULAR_KINDS: tuple[PieceType, ...] = (
     PieceType.ADVISOR, PieceType.CANNON, PieceType.PAWN,
 )
 SPECIAL_KINDS: tuple[PieceType, ...] = (
-    PieceType.GUARD, PieceType.ARCHER, PieceType.THUNDER,
-    PieceType.ASSASSIN, PieceType.PATROL,
-)   # 甲/楯已软删，不再进图鉴
+    PieceType.GUARD, PieceType.ARCHER, PieceType.THUNDER, PieceType.PATROL,
+)
 
 # 每型在该档案下会影响它的规则开关（与 `SettingsDialog` 的棋子分组成员一致）。
 PIECE_OPTION_KEYS: dict[PieceType, tuple[str, ...]] = {
@@ -76,7 +75,6 @@ PIECE_OPTION_KEYS: dict[PieceType, tuple[str, ...]] = {
     PieceType.GUARD: (),
     PieceType.ARCHER: ("archer_enhanced_mode",),
     PieceType.THUNDER: (),
-    PieceType.ASSASSIN: (),
     PieceType.PATROL: (),
 }
 
@@ -167,10 +165,7 @@ class PieceAtlasDialog(QDialog):
         layout.setContentsMargins(6, 6, 6, 6)
         self._list = QListWidget()
         self._list.setFrameShape(QFrame.Shape.NoFrame)
-        # 甲/楯/刺已软删，但仍要在清单里**可见**（灰态 + 「未登场」），否则用户会以为漏了
-        legacy = (PieceType.ARMOR, PieceType.SHIELD)
-        for label, kinds in ((dl("常规棋子"), REGULAR_KINDS),
-                             (dl("特色棋子"), SPECIAL_KINDS + legacy)):
+        for label, kinds in ((dl("常规棋子"), REGULAR_KINDS), (dl("特色棋子"), SPECIAL_KINDS)):
             header = QListWidgetItem(label)
             header.setFlags(Qt.ItemFlag.NoItemFlags)
             header.setForeground(QColor("#8a7b68"))
@@ -180,14 +175,9 @@ class PieceAtlasDialog(QDialog):
                 # 红黑字形对照：漢/汗 这种一眼看出双方的写法差异
                 glyphs = (f"{theme.NAMES[Color.RED].get(kind, '·')}"
                           f"/{theme.NAMES[Color.BLACK].get(kind, '·')}")
-                # 软删的棋型 `piece_name.*` 已下线，改走 `atlas_legacy_piece_*`（i18n，不写死中文）
                 name = t(f"piece_name.{kind.value}", self.language)
-                if name.startswith("piece_name."):
-                    name = t(f"desktop.atlas_legacy_piece_{kind.value}", self.language)
                 text = f"{glyphs}　{name}"
-                if kind in legacy:
-                    text += "　·　" + t("desktop.atlas_legacy", self.language)
-                elif not enabled:
+                if not enabled:
                     text += "　·　" + t("desktop.atlas_unavailable", self.language)
                 item = QListWidgetItem(text)
                 item.setToolTip(self._summary(kind))
@@ -447,13 +437,12 @@ class PieceAtlasDialog(QDialog):
     def _summary(self, kind: PieceType) -> str:
         """列表摘要：取 `piece_rule.*_long` 的**首句**并截断。
 
-        为什么不用短文案：`piece_rule.<kind>` 那 12 条已删（规则并入图谱后没有第二份来源），
-        但甲/楯/刺这三型**本来就只有 `_long`**，直接删会得到空摘要 —— 所以统一从 `_long` 取首句。
-        软删兵种（甲/楯）连 `_long` 都没有，返回「未登场」提示而不是空串。
+        短文案 `piece_rule.<kind>` 已删（规则并入图谱后没有第二份来源），
+        统一从 `_long` 取首句；键缺失时返回空串而不是把原始 key 显示出来。
         """
         text = t(f"piece_rule.{kind.value}_long", self.language)
         if text.startswith("piece_rule."):
-            return t("desktop.atlas_legacy", self.language)
+            return ""
         cut = len(text)
         for sep in ("。", "；", ". ", "\n"):
             pos = text.find(sep)

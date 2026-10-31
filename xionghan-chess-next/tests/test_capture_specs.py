@@ -53,36 +53,8 @@ def test_g1_direct_capture_is_filed_under_the_landing_square():
     )
 
 
-def test_g2_armor_line_removes_the_piece_it_never_lands_on():
-    armor = piece(PieceType.ARMOR, Color.RED, 6, 3)
-    ally = piece(PieceType.ELEPHANT, Color.RED, 6, 5)
-    victim = piece(PieceType.KING, Color.BLACK, 6, 6)
-    state = board(armor, ally, victim)
-    spec = engine().capturable_squares(state, Color.RED)[victim.position]
-    assert len(spec.removals) == 1
-    removal = spec.removals[0]
-    assert removal.kind is CaptureKind.ARMOR_LINE
-    assert removal.victim_position == Position(6, 6)
-    assert removal.origin == Position(6, 3)
-    # The armor squeezes with a landing that is not the square the king stood on.
-    assert removal.landing == Position(6, 4)
-    assert removal.landing != removal.victim_position
 
 
-def test_g3_assassin_captures_diagonally_and_is_not_removed():
-    """刺的吃法：斜向任意距离；**不再有同归于尽**，落子后刺自己留在盘上。"""
-    assassin = piece(PieceType.ASSASSIN, Color.RED, 5, 5)
-    victim = piece(PieceType.HORSE, Color.BLACK, 8, 8)
-    state = board(assassin, victim)
-    spec = engine().capturable_squares(state, Color.RED)[victim.position]
-    assert len(spec.removals) == 1
-    removal = spec.removals[0]
-    assert removal.kind is CaptureKind.DIRECT
-    assert removal.origin == Position(5, 5)
-    assert removal.landing == Position(8, 8)
-    # 走完只剩"被吃的那一枚"被移除，刺自己还在
-    after = engine().apply_unchecked(state, Move(assassin.position, victim.position), switch_turn=False)
-    assert any(p.type is PieceType.ASSASSIN for p in after.pieces)
 
 
 def test_g4_capturable_squares_never_emits_a_pool_consume():
@@ -155,53 +127,24 @@ def test_g6_in_check_is_the_boolean_of_the_point_query():
 
 
 def _mixed_capture_board() -> GameState:
-    """A position that exposes both remaining capture kinds (direct + armor_line).
+    """同时暴露两种现存吃法：`direct`（落点吃）与 `three_line`（兵三连）。
 
-    刺的拖拽吃法已删除，所以这里不再有 `assassin_drag`。
+    甲/楯/刺硬删除后，间接吃法只剩"兵三连"，且必须打开
+    `pawn_three_line_capture`（默认关）。
     """
     return board(
         piece(PieceType.KING, Color.RED, 12, 12),
         piece(PieceType.KING, Color.BLACK, 0, 0),
         piece(PieceType.ROOK, Color.RED, 3, 0),      # direct: takes the horse on row 3
         piece(PieceType.HORSE, Color.BLACK, 3, 5),
-        piece(PieceType.ARMOR, Color.RED, 6, 3),     # armor_line: squeezes the pawn below
+        piece(PieceType.PAWN, Color.RED, 6, 3),      # three_line: 两兵夹一敌子
         piece(PieceType.PAWN, Color.RED, 6, 5),
         piece(PieceType.PAWN, Color.BLACK, 6, 6),
-        piece(PieceType.ASSASSIN, Color.RED, 9, 4),  # 斜吃已并入 direct，不再单独产生 kind
-        piece(PieceType.HORSE, Color.BLACK, 9, 2),
     )
 
 
-def test_g7_point_query_matches_full_enumeration():
-    state = _mixed_capture_board()
-    rules = engine()
-    full = rules.capturable_squares(state, Color.RED)
-    kinds = {removal.kind for spec in full.values() for removal in spec.removals}
-    assert {CaptureKind.DIRECT, CaptureKind.ARMOR_LINE} <= kinds
-    for key in [*full, Position(5, 5), Position(0, 12)]:
-        expected = {key: full[key]} if key in full else {}
-        assert rules.capturable_squares(state, Color.RED, targets=(key,)) == expected
 
 
-def test_g8_captured_by_move_matches_capturable_squares_attribution():
-    red_king = piece(PieceType.KING, Color.RED, 12, 12)
-    black_king = piece(PieceType.KING, Color.BLACK, 0, 0)
-    armor = piece(PieceType.ARMOR, Color.RED, 6, 3)
-    ally = piece(PieceType.PAWN, Color.RED, 6, 5)
-    victim = piece(PieceType.PAWN, Color.BLACK, 6, 6)
-    state = board(red_king, black_king, armor, ally, victim)
-    rules = engine()
-    saw_capture = False
-    for move in rules.legal_moves(state):
-        moving = rules.get(state, move.source)
-        specs = rules.capturable_squares(state, moving.color)
-        attributed = {removal.victim_id for spec in specs.values()
-                      for removal in spec.removals
-                      if removal.origin == move.source and removal.landing == move.target}
-        actual = {p.id for p in rules.captured_by_move(state, move)}
-        assert attributed == actual, f"move {move.key()} attribution disagrees"
-        saw_capture = saw_capture or bool(actual)
-    assert saw_capture, "the fixture must include at least one capturing legal move"
 
 
 def test_g9_capturable_squares_is_pure_and_idempotent():
@@ -214,60 +157,8 @@ def test_g9_capturable_squares_is_pure_and_idempotent():
     assert state.to_dict() == snapshot.to_dict()
 
 
-def test_g10_board_removals_matches_captured_by_move_without_exchange():
-    """刺不再同归于尽：`board_removals` 与 `captured_by_move` 对被吃目标给出同一枚。"""
-    assassin = piece(PieceType.ASSASSIN, Color.RED, 6, 5)
-    victim = piece(PieceType.HORSE, Color.BLACK, 8, 7)
-    state = board(assassin, victim)
-    rules = engine()
-    move = Move(Position(6, 5), victim.position)
-    board_ids = {p.id for p in rules.board_removals(state, move)}
-    enemy_ids = {p.id for p in rules.captured_by_move(state, move)}
-    assert board_ids == {victim.id}
-    assert enemy_ids == {victim.id}
-    after = rules.apply_unchecked(state, move, switch_turn=False)
-    assert any(p.id == assassin.id for p in after.pieces)
 
 
-def test_g11_a_preexisting_line_is_swept_by_an_unrelated_armor_move():
-    # THIS PINS CURRENT-RULE SEMANTICS, NOT DESIRED BEHAVIOUR.
-    #
-    # The armor sweep is a whole-board scan (`_armor_removals`, mirrored by the
-    # JS `armorCaptures`): whenever the *moving* piece is an armor, every
-    # complete ally-ally-enemy line on the board is cleared, whether or not this
-    # move built it. So a line that was assembled by an earlier, NON-armor move
-    # sits in wait -- forming it removes nothing -- until some armour moves
-    # anywhere, and only then is its enemy swept. Here the line is built by a
-    # rook step and then taken by an armour move that neither makes nor touches
-    # it.
-    #
-    # If the product later narrows this to "only clear lines this very move
-    # creates", this case MUST be flipped in the same commit -- it is a
-    # regression guard on the status quo, not an endorsement of it.
-    anchor = piece(PieceType.ARMOR, Color.RED, 5, 5)     # lives in the line, never moves
-    builder = piece(PieceType.ROOK, Color.RED, 9, 6)     # non-armor; steps in to complete it
-    victim = piece(PieceType.PAWN, Color.BLACK, 5, 7)    # the line's enemy
-    mover = piece(PieceType.ARMOR, Color.RED, 0, 5)      # unrelated armour, far from row 5
-    red_king = piece(PieceType.KING, Color.RED, 12, 0)
-    black_king = piece(PieceType.KING, Color.BLACK, 0, 12)
-    state = board(anchor, builder, victim, mover, red_king, black_king)
-    rules = engine()
-
-    build = Move(Position(9, 6), Position(5, 6))
-    assert rules.is_legal(state, build)
-    formed = rules.apply_unchecked(state, build, switch_turn=False)
-    # The line (5,5)-(5,6)-(5,7) now exists, but a non-armor move sweeps nothing.
-    assert victim.id in {p.id for p in formed.pieces}
-
-    sweep = Move(Position(0, 5), Position(0, 6))
-    assert rules.is_legal(formed, sweep)
-    assert {p.id for p in rules.board_removals(formed, sweep)} == {victim.id}
-    after = rules.apply_unchecked(formed, sweep, switch_turn=False)
-    gone = {p.id for p in after.pieces}
-    assert victim.id not in gone          # the pre-existing line's enemy, swept
-    assert anchor.id in gone              # ...by an armour move that never joined it
-    assert builder.id in gone
-    assert mover.id in gone
 
 
 def test_g12_promotion_rank_check_is_not_hidden_by_a_stocked_pool():

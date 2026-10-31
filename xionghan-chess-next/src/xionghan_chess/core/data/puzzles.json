@@ -249,9 +249,6 @@
         "guard_appear": true,
         "archer_appear": true,
         "thunder_appear": true,
-        "armor_appear": false,
-        "assassin_appear": false,
-        "shield_appear": false,
         "patrol_appear": true
       },
       "setup": {
@@ -462,9 +459,6 @@
         "guard_appear": true,
         "archer_appear": true,
         "thunder_appear": true,
-        "armor_appear": true,
-        "assassin_appear": true,
-        "shield_appear": true,
         "patrol_appear": true
       },
       "setup": {
@@ -1012,9 +1006,6 @@
         "guard_appear": true,
         "archer_appear": true,
         "thunder_appear": true,
-        "armor_appear": true,
-        "assassin_appear": true,
-        "shield_appear": true,
         "patrol_appear": true
       },
       "setup": {
@@ -1731,9 +1722,6 @@
         "guard_appear": true,
         "archer_appear": true,
         "thunder_appear": true,
-        "armor_appear": true,
-        "assassin_appear": true,
-        "shield_appear": true,
         "patrol_appear": true
       },
       "setup": {
@@ -2490,9 +2478,6 @@
         "guard_appear": true,
         "archer_appear": true,
         "thunder_appear": true,
-        "armor_appear": true,
-        "assassin_appear": true,
-        "shield_appear": true,
         "patrol_appear": true
       },
       "setup": {

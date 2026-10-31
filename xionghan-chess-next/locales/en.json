@@ -92,9 +92,9 @@
     "beginner": "Beginner · about 0.5 s per move",
     "easy": "Easy · about 1.5 s per move",
     "medium": "Medium · about 5 s per move",
-      "hard": "Hard · about 12 s per move",
-      "expert": "Expert · fixed 3 plies, 35 s cap (measured 10–30 s)",
-      "master": "Master · about 12 s per move (search-based)"
+    "hard": "Hard · about 12 s per move",
+    "expert": "Expert · fixed 3 plies, 35 s cap (measured 10–30 s)",
+    "master": "Master · about 12 s per move (search-based)"
   },
   "settings": {
     "title": "Rule settings",
@@ -208,10 +208,10 @@
     "server": "Server",
     "upload": "Upload",
     "rename": "Rename",
-    "delete": "Delete"
-    ,"confirm": "OK"
-    ,"cancel": "Cancel"
-    ,"reset": "Reset"
+    "delete": "Delete",
+    "confirm": "OK",
+    "cancel": "Cancel",
+    "reset": "Reset"
   },
   "placeholder": {
     "room": "Room code",
@@ -278,28 +278,28 @@
     "invalid_promotion": "Invalid promotion choice",
     "resurrect_col": "Enter a valid column",
     "saved": "Game saved",
-    "retrying": "Retrying server connection"
-    ,"storage_full": "Local storage is full; data was not saved"
-    ,"file_too_large": "Files larger than 10 MB are not accepted"
-    ,"invalid_puzzle": "Invalid puzzle structure"
-    ,"spectate_joined": "Entered spectator mode"
-    ,"room_prompt": "Enter a room code"
-    ,"puzzle_started": "Training started. Complete the target moves"
-    ,"puzzle_wrong": "That is not the target move. Undo and try again"
-    ,"puzzle_solved": "Puzzle solved"
-    ,"puzzle_continue": "Correct. Continue to the next move"
-    ,"no_more_hints": "No more hints"
-    ,"no_game_to_upload": "There is no game to upload"
-    ,"cloud_saved": "Game synced to the cloud"
-    ,"no_game_to_analyze": "There are no moves to analyze"
-    ,"confirm_delete_cloud": "Delete this cloud game?"
-    ,"cloud_empty": "No cloud games"
-    ,"image_only": "Choose an image file"
-    ,"image_too_large": "Images cannot exceed 12 MB"
-    ,"image_uploaded": "Custom image uploaded"
-    ,"image_renamed": "Image renamed"
-    ,"confirm_delete_image": "Delete this custom image?"
-    ,"image_deleted": "Image deleted"
+    "retrying": "Retrying server connection",
+    "storage_full": "Local storage is full; data was not saved",
+    "file_too_large": "Files larger than 10 MB are not accepted",
+    "invalid_puzzle": "Invalid puzzle structure",
+    "spectate_joined": "Entered spectator mode",
+    "room_prompt": "Enter a room code",
+    "puzzle_started": "Training started. Complete the target moves",
+    "puzzle_wrong": "That is not the target move. Undo and try again",
+    "puzzle_solved": "Puzzle solved",
+    "puzzle_continue": "Correct. Continue to the next move",
+    "no_more_hints": "No more hints",
+    "no_game_to_upload": "There is no game to upload",
+    "cloud_saved": "Game synced to the cloud",
+    "no_game_to_analyze": "There are no moves to analyze",
+    "confirm_delete_cloud": "Delete this cloud game?",
+    "cloud_empty": "No cloud games",
+    "image_only": "Choose an image file",
+    "image_too_large": "Images cannot exceed 12 MB",
+    "image_uploaded": "Custom image uploaded",
+    "image_renamed": "Image renamed",
+    "confirm_delete_image": "Delete this custom image?",
+    "image_deleted": "Image deleted"
   },
   "prompt": {
     "promotion": "Choose promotion piece: {choices}",
@@ -353,7 +353,6 @@
     "guard": "Guard",
     "archer": "Archer",
     "thunder": "Thunder",
-    "assassin": "Assassin",
     "patrol": "Patrol",
     "king_label": "King",
     "rook_label": "Rook",
@@ -365,7 +364,6 @@
     "guard_label": "Guard",
     "archer_label": "Archer",
     "thunder_label": "Thunder",
-    "assassin_label": "Assassin",
     "patrol_label": "Patrol",
     "red": {
       "king": "漢",
@@ -378,7 +376,6 @@
       "guard": "尉",
       "archer": "射",
       "thunder": "檑",
-      "assassin": "刺",
       "patrol": "巡"
     },
     "black": {
@@ -392,7 +389,6 @@
       "guard": "衛",
       "archer": "䠶",
       "thunder": "礌",
-      "assassin": "伺",
       "patrol": "廵"
     }
   },
@@ -407,7 +403,6 @@
     "guard": "Guard",
     "archer": "Archer",
     "thunder": "Thunder",
-    "assassin": "Assassin",
     "patrol": "Patrol"
   },
   "piece_rule": {
@@ -421,9 +416,6 @@
     "guard_long": "Moves and captures any distance along a diagonal; stops at the first piece in the way. Never moves orthogonally.",
     "archer_long": "Weak mode follows valid star tracks; enhanced mode can move diagonally off track",
     "thunder_long": "Moves in eight directions and only attacks adjacent isolated enemies",
-    "armor_long": "Removed on 2026-10-31 (soft delete, reversible). Was: moves straight and captures through three-in-a-line.",
-    "assassin_long": "Removed on 2026-10-31 (soft delete, reversible). Was: one step forward plus a diagonal capture at any distance.",
-    "shield_long": "Removed on 2026-10-31 (soft delete, reversible). Was: protects orthogonally adjacent allies.",
     "patrol_long": "Moves an even number of points along specified boundary lines"
   },
   "rule": {
@@ -531,9 +523,6 @@
     "atlas_glyph_family_note": "Glyph family follows the style (traditional: serif / modern, cartoon: sans); ink matches neighbouring pieces closely.",
     "atlas_missing_asset": "Art missing for this style",
     "atlas_unavailable": "Not used in this profile",
-    "atlas_legacy": "Not fielded",
-    "atlas_legacy_piece_armor": "Armor",
-    "atlas_legacy_piece_shield": "Shield",
     "atlas_preset_free": "Free position",
     "atlas_preset_free_note": "A small position built around the selected piece: green dots are moves, red crosses are captures. Click a square to play one move.",
     "atlas_preset_clamp": "Diagonal pinch",

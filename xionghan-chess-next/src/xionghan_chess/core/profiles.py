@@ -51,9 +51,6 @@ class RuleOptions:
     guard_appear: bool = True
     archer_appear: bool = True
     thunder_appear: bool = True
-    armor_appear: bool = False          # 软删：不出场（分支与枚举保留）
-    assassin_appear: bool = False        # 软删：不出场（分支与枚举保留）
-    shield_appear: bool = False         # 软删：不出场（分支与枚举保留）
     patrol_appear: bool = True
 
     def merged(self, values: dict[str, object] | None) -> "RuleOptions":
@@ -79,8 +76,7 @@ class RuleOptions:
             "xiang_appear": "elephant_appear", "shi_appear": "advisor_appear",
             "pao_appear": "cannon_appear", "wei_appear": "guard_appear",
             "she_appear": "archer_appear", "lei_appear": "thunder_appear",
-            "jia_appear": "armor_appear", "ci_appear": "assassin_appear",
-            "dun_appear": "shield_appear", "xun_appear": "patrol_appear",
+            "xun_appear": "patrol_appear",
         }
         normalized = {aliases.get(key, key): value for key, value in values.items()
                       if key not in {"archer_weak_mode", "sheWeakMode", "she_weak_mode"}}
@@ -139,15 +135,13 @@ RED_NAMES = {
     PieceType.KING: "漢", PieceType.ROOK: "俥", PieceType.HORSE: "傌",
     PieceType.ELEPHANT: "相", PieceType.ADVISOR: "仕", PieceType.CANNON: "炮",
     PieceType.PAWN: "兵", PieceType.GUARD: "尉", PieceType.ARCHER: "射",
-    PieceType.THUNDER: "檑", PieceType.ARMOR: "甲", PieceType.ASSASSIN: "刺",
-    PieceType.SHIELD: "楯", PieceType.PATROL: "巡",
+    PieceType.THUNDER: "檑", PieceType.PATROL: "巡",
 }
 BLACK_NAMES = {
     PieceType.KING: "汗", PieceType.ROOK: "車", PieceType.HORSE: "馬",
     PieceType.ELEPHANT: "象", PieceType.ADVISOR: "士", PieceType.CANNON: "砲",
     PieceType.PAWN: "卒", PieceType.GUARD: "衛", PieceType.ARCHER: "䠶",
-    PieceType.THUNDER: "礌", PieceType.ARMOR: "胄", PieceType.ASSASSIN: "伺",
-    PieceType.SHIELD: "碷", PieceType.PATROL: "廵",
+    PieceType.THUNDER: "礌", PieceType.PATROL: "廵",
 }
 
 

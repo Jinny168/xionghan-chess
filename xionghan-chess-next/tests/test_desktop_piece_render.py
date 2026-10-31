@@ -34,8 +34,8 @@ from xionghan_chess.desktop.ui.board_widget import (  # noqa: E402
 
 SIZE = 620
 STYLES = ("traditional", "modern", "cartoon")
-# 甲/楯 已软删（不再有棋子文案与字形），剩下唯一没有美术的棋型是刺
-MISSING = (PieceType.ASSASSIN,)
+# 美术已覆盖全部 11 型（2026-10-31 起无缺图型）：没有"回退绘制"的样本
+MISSING: tuple[PieceType, ...] = ()
 
 
 @pytest.fixture(scope="module")
@@ -167,7 +167,9 @@ def test_config_without_piece_render_stays_glyph(qt_app: QApplication) -> None:
 #   · 画布底填**该风格盘面色**；
 #   · 字用**该风格该色的字色**（不是纯黑，否则色距掩膜会把字形权重算偏）；
 #   · 只统计 `r < 0.62R` 的圆盘内部，排除外环与描边。
-FALLBACK_KINDS = (PieceType.ASSASSIN,)   # 甲/楯 已软删，回退绘制只剩刺
+# 回退渲染**与具体兵种无关**（画的是字形，不看美术在不在），
+# 所以用在用 11 型做样本即可 —— 既保住这条管线，又不依赖"缺图型"。
+FALLBACK_KINDS: tuple[PieceType, ...] = tuple(piece_assets.SUFFIX)
 ART_KINDS = tuple(piece_assets.SUFFIX)
 SAMPLE_RADIUS = 55.0          # 盘径 110px：密度只在 dev ≥ 110px 档有意义
 FILL_COLOR = {

@@ -82,63 +82,20 @@ def _armor_position() -> GameState:
     )
 
 
-def test_armor_line_capture_reports_check_in_both_engines():
-    state = _armor_position()
-    # The armor only becomes lethal once it has stepped to (6,4), so at rest no
-    # attacker can move onto the king's square -- yet the king is doomed, and
-    # both engines have to say "in check" or the game ends without a word.
-    assert engine().in_check(state, Color.BLACK) is True
-    assert _offline_check(state, Color.BLACK) is True
-    # Confirm the shape that makes the case worth having: replaying the move
-    # through `apply_unchecked` really does remove the king.
-    armor = state.pieces[0]
-    after = engine().apply_unchecked(state, Move(armor.position, Position(6, 4)), switch_turn=False)
-    assert not any(p.type is PieceType.KING for p in after.pieces)
-    assert [p.type for p in engine().captured_by_move(state, Move(armor.position, Position(6, 4)))] \
-        == [PieceType.KING]
 
 
 # --------------------------------------------------------------------------
 # P0-R2: the assassin drags the king standing behind it into the exchange.
 # --------------------------------------------------------------------------
 
-def test_assassin_diagonal_capture_reports_check_in_both_engines():
-    """刺沿斜线可吃 → 斜线上的敌王处于被将（两引擎一致）。"""
-    state = board(
-        Piece.create(PieceType.ASSASSIN, Color.RED, 5, 5),
-        Piece.create(PieceType.KING, Color.BLACK, 2, 2),
-    )
-    assert engine().in_check(state, Color.BLACK) is True
-    assert _offline_check(state, Color.BLACK) is True
-    assassin = state.pieces[0]
-    after = engine().apply_unchecked(state, Move(assassin.position, Position(2, 2)), switch_turn=False)
-    assert not any(p.type is PieceType.KING for p in after.pieces)
-    assert [p.type for p in engine().captured_by_move(state, Move(assassin.position, Position(2, 2)))] \
-        == [PieceType.KING]
 
 
-def test_assassin_blocked_diagonal_leaves_the_opponent_safe():
-    """斜线被挡 → 吃不到 → 不将军（两引擎一致）。"""
-    state = board(
-        Piece.create(PieceType.ASSASSIN, Color.RED, 5, 5),
-        Piece.create(PieceType.KING, Color.BLACK, 2, 2),
-        Piece.create(PieceType.PAWN, Color.RED, 4, 4),
-    )
-    assert engine().in_check(state, Color.BLACK) is False
-    assert _offline_check(state, Color.BLACK) is False
 
 
 # --------------------------------------------------------------------------
 # Controls: a killer on the board must not manufacture checks.
 # --------------------------------------------------------------------------
 
-def test_armor_that_cannot_form_a_line_leaves_the_opponent_safe():
-    state = board(
-        Piece.create(PieceType.ARMOR, Color.RED, 0, 0),
-        Piece.create(PieceType.KING, Color.BLACK, 6, 6),
-    )
-    assert engine().in_check(state, Color.BLACK) is False
-    assert _offline_check(state, Color.BLACK) is False
 
 
 # --------------------------------------------------------------------------

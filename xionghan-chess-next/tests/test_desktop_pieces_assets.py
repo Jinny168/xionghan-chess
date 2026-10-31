@@ -95,12 +95,6 @@ def test_all_11_art_types_resolve_in_all_styles() -> None:
     assert len(paths) == len(STYLES) * 2 * len(piece_assets.SUFFIX) == 66
 
 
-@pytest.mark.parametrize("kind", [PieceType.ARMOR, PieceType.ASSASSIN, PieceType.SHIELD])
-def test_missing_types_resolve_to_none_without_raising(kind: PieceType) -> None:
-    """甲/刺/楯 三种风格都没有美术 —— 必须返回 None，不能抛、不能编个路径。"""
-    for style in STYLES:
-        for color in (Color.RED, Color.BLACK):
-            assert piece_assets.resolve(style, color, kind) is None
 
 
 def test_unknown_style_falls_back_to_traditional() -> None:
@@ -163,21 +157,6 @@ def test_device_edge_is_disk_diameter_in_device_pixels() -> None:
     assert piece_assets.device_edge(60.97, 1.0) == 48
 
 
-def test_missing_piece_is_remembered_and_not_probed_again(monkeypatch: pytest.MonkeyPatch) -> None:
-    """缺图只判一次：`paintEvent` 每帧 62 枚棋子，重复 stat() 是纯浪费。"""
-    piece_assets.clear_cache()
-    calls: list[PieceType] = []
-    real = piece_assets.resolve
-
-    def counting(style, color, kind):
-        calls.append(kind)
-        return real(style, color, kind)
-
-    monkeypatch.setattr(piece_assets, "resolve", counting)
-    for _ in range(5):
-        assert piece_assets.pixmap("traditional", Color.RED, PieceType.ARMOR, 60) is None
-    assert calls == [PieceType.ARMOR], f"缺图被重复探测了 {len(calls)} 次"
-    assert piece_assets.is_missing("traditional", Color.RED, PieceType.ARMOR)
 
 
 def test_broken_image_is_treated_as_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -220,3 +199,49 @@ def test_bundled_path_wins_when_it_exists(
                         lambda *parts: tmp_path.joinpath(*parts))
     resolved = piece_assets.resolve("traditional", Color.RED, PieceType.ROOK)
     assert resolved == target
+
+
+def test_missing_art_still_falls_back_and_caches(monkeypatch: pytest.MonkeyPatch) -> None:
+    """回退路径**不依赖具体兵种**：把解析器打成"永远找不到图"，验证三条语义。
+
+    甲/楯/刺硬删除后，真实世界已没有"缺图型"；但回退分支必须留着（将来新增兵种
+    美术没跟上时兜底），所以这里用 monkeypatch 造一个"没有美术"的输入，
+    而不是拿某个具体类型当样本。
+    """
+    piece_assets.clear_cache()
+    calls: list[PieceType] = []
+    real = piece_assets.resolve
+
+    def missing(style, color, kind):
+        calls.append(kind)
+        return None
+
+    monkeypatch.setattr(piece_assets, "resolve", missing)
+    for _ in range(5):
+        assert piece_assets.pixmap("traditional", Color.RED, PieceType.PAWN, 60) is None
+    assert calls == [PieceType.PAWN], f"缺图被重复探测了 {len(calls)} 次（缓存失效）"
+    assert piece_assets.is_missing("traditional", Color.RED, PieceType.PAWN)
+    monkeypatch.setattr(piece_assets, "resolve", real)
+
+
+def test_missing_art_still_falls_back_and_caches(monkeypatch: pytest.MonkeyPatch) -> None:
+    """回退路径**不依赖具体兵种**：把解析器打成"永远找不到图"，验证三条语义。
+
+    甲/楯/刺硬删除后，真实世界已没有"缺图型"；但回退分支必须留着（将来新增兵种
+    美术没跟上时兜底），所以这里用 monkeypatch 造一个"没有美术"的输入，
+    而不是拿某个具体类型当样本。
+    """
+    piece_assets.clear_cache()
+    calls: list[PieceType] = []
+    real = piece_assets.resolve
+
+    def missing(style, color, kind):
+        calls.append(kind)
+        return None
+
+    monkeypatch.setattr(piece_assets, "resolve", missing)
+    for _ in range(5):
+        assert piece_assets.pixmap("traditional", Color.RED, PieceType.PAWN, 60) is None
+    assert calls == [PieceType.PAWN], f"缺图被重复探测了 {len(calls)} 次（缓存失效）"
+    assert piece_assets.is_missing("traditional", Color.RED, PieceType.PAWN)
+    monkeypatch.setattr(piece_assets, "resolve", real)

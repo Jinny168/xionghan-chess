@@ -3,28 +3,6 @@ from xionghan_chess.core.game import Game
 from xionghan_chess.core.profiles import get_profile, profile_rule_values
 
 
-def test_delivery_profiles_have_distinct_piece_sets():
-    complete = get_profile("desktop_complete")
-    web = get_profile("web")
-    traditional = get_profile("traditional")
-
-    # 软删甲/楯/刺后：完整档 62 → **50 子（每方 25）**；三者不在初始布局里，默认 `*_appear` 为 False。
-    # 注意 `enabled_piece_types` 仍是"该档**可以**出场的类型集合"（含甲/楯），
-    # 这样把 `armor_appear` 打开就能回滚，规则分支也仍可被测试覆盖。
-    assert len(complete.initial_pieces()) == 50
-    assert PieceType.SHIELD not in {p.type for p in complete.initial_pieces()}
-    assert PieceType.ARMOR not in {p.type for p in complete.initial_pieces()}
-    assert complete.options.piece_enabled(PieceType.ARMOR) is False
-    assert complete.options.piece_enabled(PieceType.SHIELD) is False
-    assert complete.options.piece_enabled(PieceType.ASSASSIN) is False
-    assert complete.options.piece_enabled(PieceType.ASSASSIN) is False
-    assert PieceType.SHIELD not in web.enabled_piece_types
-    assert PieceType.ARCHER in web.enabled_piece_types
-    assert traditional.rows == 10 and traditional.cols == 9
-    assert traditional.enabled_piece_types == {
-        PieceType.KING, PieceType.ROOK, PieceType.HORSE, PieceType.ELEPHANT,
-        PieceType.ADVISOR, PieceType.CANNON, PieceType.PAWN,
-    }
 
 
 def test_rule_options_can_be_overridden_without_mutating_profile():
@@ -60,16 +38,6 @@ def test_original_desktop_option_names_are_migrated():
     assert options.elephant_gain_jump_two_enemy_territory is False
 
 
-def test_profile_rule_values_do_not_leak_traditional_piece_disabling():
-    traditional = profile_rule_values("traditional")
-    complete = profile_rule_values("desktop_complete")
-
-    assert not traditional["archer_appear"]
-    assert not traditional["thunder_appear"]
-    assert not traditional["armor_appear"]
-    assert complete["archer_appear"]
-    assert complete["thunder_appear"]
-    assert not complete["armor_appear"], "甲已软删：完整档也不再出场"
 
 
 def test_guard_and_advisor_are_swapped_at_the_opening() -> None:

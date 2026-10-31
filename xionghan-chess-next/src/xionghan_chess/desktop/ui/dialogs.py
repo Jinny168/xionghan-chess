@@ -156,7 +156,6 @@ class SettingsDialog(QDialog):
             PieceType.GUARD:("piece.guard_label","piece_rule.guard_long",()),
             PieceType.ARCHER:("piece.archer_label","piece_rule.archer_long",("archer_enhanced_mode",)),
             PieceType.THUNDER:("piece.thunder_label","piece_rule.thunder_long",()),
-            PieceType.ASSASSIN:("piece.assassin_label","piece_rule.assassin_long",()),
             PieceType.PATROL:("piece.patrol_label","piece_rule.patrol_long",()),
         }
         content=QWidget();content_layout=QVBoxLayout(content);self.piece_groups={}

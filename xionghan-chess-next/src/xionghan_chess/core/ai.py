@@ -97,22 +97,19 @@ VALUES = {
     PieceType.KING: 50_000, PieceType.ROOK: 900, PieceType.CANNON: 500,
     PieceType.HORSE: 450, PieceType.ELEPHANT: 260, PieceType.ADVISOR: 240,
     PieceType.PAWN: 120, PieceType.GUARD: 420, PieceType.ARCHER: 480,
-    PieceType.THUNDER: 490, PieceType.ARMOR: 400, PieceType.ASSASSIN: 380,
-    PieceType.SHIELD: 410, PieceType.PATROL: 420,
+    PieceType.THUNDER: 490, PieceType.PATROL: 420,
 }
 
 MOBILE_PIECES = {
     PieceType.ROOK, PieceType.HORSE, PieceType.CANNON, PieceType.GUARD,
-    PieceType.ARCHER, PieceType.THUNDER, PieceType.ARMOR, PieceType.ASSASSIN,
-    PieceType.SHIELD, PieceType.PATROL,
+    PieceType.ARCHER, PieceType.THUNDER, PieceType.PATROL,
 }
 
 CENTRAL_WEIGHTS = {
     PieceType.KING: -1.0, PieceType.ROOK: 1.4, PieceType.CANNON: 1.8,
     PieceType.HORSE: 2.8, PieceType.ELEPHANT: .8, PieceType.ADVISOR: .5,
     PieceType.PAWN: 1.4, PieceType.GUARD: 1.7, PieceType.ARCHER: 1.8,
-    PieceType.THUNDER: 2.4, PieceType.ARMOR: 1.8, PieceType.ASSASSIN: 2.2,
-    PieceType.SHIELD: 1.0, PieceType.PATROL: 1.2,
+    PieceType.THUNDER: 2.4, PieceType.PATROL: 1.2,
 }
 
 # A pool ("captured") piece is not lost material: it parks in its owner's pool,
@@ -464,22 +461,6 @@ class ChessAI:
                         if move not in seen and game.rules.is_legal(state, move):
                             tactical.append(move)
                             seen.add(move)
-            if moving.type in {PieceType.ARMOR, PieceType.ASSASSIN}:
-                targets = {enemy.position for enemy in enemies}
-                for enemy in enemies:
-                    for dr in (-1, 0, 1):
-                        for dc in (-1, 0, 1):
-                            targets.add(Position(enemy.position.row + dr, enemy.position.col + dc))
-                for target in targets:
-                    self._guard(deadline, cancel)
-                    if not (0 <= target.row < game.profile.rows and 0 <= target.col < game.profile.cols):
-                        continue
-                    move = Move(moving.position, target)
-                    if move in seen or not game.rules.is_legal(state, move):
-                        continue
-                    if self._capture_value(game, move):
-                        tactical.append(move)
-                        seen.add(move)
         return tactical
 
     def _evaluate(self, game: Game, color: Color) -> float:
@@ -602,8 +583,7 @@ class ChessAI:
     def _mobility_targets(game: Game, piece) -> list[Position]:
         row, col = piece.position.row, piece.position.col
         candidates: set[Position] = set()
-        if piece.type in {PieceType.ROOK, PieceType.CANNON, PieceType.ARMOR,
-                          PieceType.ASSASSIN, PieceType.THUNDER}:
+        if piece.type in {PieceType.ROOK, PieceType.CANNON, PieceType.THUNDER}:
             for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 for delta in range(1, max(game.profile.rows, game.profile.cols)):
                     target = Position(row + dr * delta, col + dc * delta)
@@ -639,7 +619,6 @@ class ChessAI:
                              (1, 0), (-1, 0), (0, 1), (0, -1)),
             PieceType.PAWN: ((1, 0), (-1, 0), (0, 1), (0, -1),
                              (2, 0), (-2, 0), (3, 0), (-3, 0)),
-            PieceType.SHIELD: ((2, 0), (-2, 0), (0, 2), (0, -2)),
             PieceType.GUARD: ((2, 0), (-2, 0), (0, 2), (0, -2),
                               (2, 2), (2, -2), (-2, 2), (-2, -2),
                               (3, 0), (-3, 0), (0, 3), (0, -3),
@@ -716,8 +695,6 @@ class ChessAI:
             return dr == 0 and dc == 2
         if moving.type is PieceType.GUARD:
             return dr == 0 or dc == 0 or dr == dc
-        if moving.type is PieceType.SHIELD:
-            return (dr == 0) != (dc == 0)
         return False
 
     def _is_developed(self, game: Game, piece) -> bool:
@@ -863,8 +840,6 @@ class ChessAI:
             return True
         mover = game.state.piece_at(move.source)
         if mover is None or move.promotion is not None:
-            return True
-        if mover.type in (PieceType.ARMOR, PieceType.ASSASSIN):
             return True
         if self._aligned(move.source, king.position):
             return True

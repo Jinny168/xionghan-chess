@@ -19,8 +19,7 @@ PATROL_HOME_ROWS = frozenset({PATROL_HOME_ROW, XIONGHAN_ROWS - 1 - PATROL_HOME_R
 class CaptureKind(StrEnum):
     """How a move takes an enemy piece off the board."""
     DIRECT = "direct"                        # the landing square is the victim's square
-    ARMOR_LINE = "armor_line"                # armor completes an allied/enemy/allied line
-    ASSASSIN_DRAG = "assassin_drag"          # assassin drags the enemy behind its origin
+    THREE_LINE = "three_line"                # 己方两子夹一敌子成线（兵，开关控制）
     PROMOTION_CONSUME = "promotion_consume"  # reserved; never emitted by capturable_squares
 
 
@@ -143,8 +142,6 @@ class RulesEngine:
         if piece is None or piece.color is not state.turn or piece.type not in self.enabled_piece_types:
             return False
         target = self.get(state, move.target)
-        # 楯不再绝对免疫：它可以被吃，只有「四正相邻的同阵营楯」能保护它
-        # （保护判定见 `_protected_by_enemy_shield`）。
         if target and target.color is piece.color:
             return False
         if move.promotion:
@@ -161,20 +158,17 @@ class RulesEngine:
             # path, and `promotable_types` skips `promotion_types`' sort.
             if self.promotable_types(state, piece.color):
                 return False
-        if target and self._protected_by_enemy_shield(state, target):
-            return False
 
         # Every validator shares the (state, piece, move) signature so this table
         # stays homogeneous; a validator that does not need `piece` (rook, horse,
-        # cannon, guard, archer, thunder, shield, patrol) simply ignores it.
+        # cannon, guard, archer, thunder, patrol) simply ignores it.
         validators: dict[PieceType, Callable[[GameState, Piece, Move], bool]] = {
             PieceType.ROOK: self._rook, PieceType.HORSE: self._horse,
             PieceType.ELEPHANT: self._elephant, PieceType.ADVISOR: self._advisor,
             PieceType.KING: self._king, PieceType.CANNON: self._cannon,
             PieceType.PAWN: self._pawn, PieceType.GUARD: self._guard,
             PieceType.ARCHER: self._archer, PieceType.THUNDER: self._thunder,
-            PieceType.ARMOR: self._armor, PieceType.ASSASSIN: self._assassin,
-            PieceType.SHIELD: self._shield, PieceType.PATROL: self._patrol,
+            PieceType.PATROL: self._patrol,
         }
         return validators[piece.type](state, piece, move)
 
@@ -233,9 +227,7 @@ class RulesEngine:
 
         The single removal producer is `_apply_move`; this reads it back as whole
         pieces so `Game.move()` can log each removal into the matching
-        `state.captured` pool. It is wider than `capturable_squares` in exactly
-        one way: an assassin exchange also removes the assassin itself, so the
-        mover's own piece is present here (it lands in its own side's pool).
+        `state.captured` pool.
         `captured_by_move` is this same set narrowed to the enemy.
         """
         if self.get(state, move.source) is None:
@@ -257,9 +249,9 @@ class RulesEngine:
 
         This is the single writer behind both `apply_unchecked` and
         `captured_by_move`, so a move has exactly one implementation of "what do
-        I capture, and how" -- the indirect armor/assassin sweeps below are the
-        same predicates `capturable_squares` reads back when it answers the
-        question from the other direction.
+        I capture, and how" -- the indirect three-line sweep below is the same
+        predicate `capturable_squares` reads back when it answers the question
+        from the other direction.
         """
         clone = state.clone()
         piece = clone.piece_at(move.source)
@@ -272,10 +264,10 @@ class RulesEngine:
         clone.pieces[clone.pieces.index(piece)] = piece.at(move.target)
 
         if self._three_line_mover(piece):
-            for captured in self._armor_removals(clone, piece.color):
+            for captured in self._three_line_removals(clone, piece.color):
                 if captured in clone.pieces:
                     clone.pieces.remove(captured)
-                    removals.append(Removal(CaptureKind.ARMOR_LINE, captured.id, captured.type,
+                    removals.append(Removal(CaptureKind.THREE_LINE, captured.id, captured.type,
                                             captured.color, captured.position,
                                             move.source, move.target))
 
@@ -300,8 +292,8 @@ class RulesEngine:
         """Map every square `color` can capture to the removals that do it.
 
         The key is the victim's square: a direct capture is filed under the
-        square the attacker lands on, while an armor squeeze or an assassin drag
-        is filed under the square its victim occupied. `targets=None` enumerates
+        square the attacker lands on, while a three-line capture is filed under
+        the square its victim occupied. `targets=None` enumerates
         the whole board and exists for the HUD and the cross-engine parity gate
         -- it is not a hot path. `targets=(k,)` is a point query that only looks
         at the attackers which could reach `k`, keeping `in_check` the same order
@@ -377,8 +369,8 @@ class RulesEngine:
 
         The candidate attackers are copied verbatim from the direct/indirect
         scans this replaces, so the point query stays the same order of work: a
-        piece that can land on the victim, an armor whose landing could complete
-        a three-cell line through it, or the assassin landing that mirrors it.
+        piece that can land on the victim, or a pawn whose landing completes a
+        three-cell line through it.
 
         A direct capture is tested through `moves_to_target`, not a single bare
         move: a pawn taking on its promotion rank only has legal *promotion*
@@ -413,7 +405,7 @@ class RulesEngine:
                     continue
                 after = self.apply_unchecked(state, move, switch_turn=False)
                 if victim.id not in {p.id for p in after.pieces}:
-                    removals.append(Removal(CaptureKind.ARMOR_LINE, victim.id, victim.type,
+                    removals.append(Removal(CaptureKind.THREE_LINE, victim.id, victim.type,
                                             victim.color, victim.position,
                                             piece.position, landing))
         return removals
@@ -707,35 +699,6 @@ class RulesEngine:
         return self._clear(state, move.source, move.target) and \
             (not self._diagonal(move) or not self._diagonal_path_pinched(state, move))
 
-    def _armor(self, state: GameState, piece: Piece, move: Move) -> bool:
-        """甲：**只移动不吃子**。前后左右一格，且前方可像车一样直行（路径需空）。"""
-        if self.get(state, move.target) is not None:
-            return False
-        forward = -1 if piece.color is Color.RED else 1
-        dr = move.target.row - move.source.row
-        dc = move.target.col - move.source.col
-        if dc == 0 and dr * forward > 0:
-            return self._rook(state, piece, move)      # 前方车式（多格直行）
-        if dc == 0 and dr == -forward:
-            return True                                 # 后一格
-        return dr == 0 and abs(dc) == 1                 # 左右一格
-
-    def _assassin(self, state: GameState, piece: Piece, move: Move) -> bool:
-        """刺：**走**只有前进一格（与兵同）；**吃**是斜向任意距离（受斜向夹逼）。"""
-        target = self.get(state, move.target)
-        dr = move.target.row - move.source.row
-        dc = move.target.col - move.source.col
-        if target is None:
-            forward = -1 if piece.color is Color.RED else 1
-            return dc == 0 and dr == forward
-        if not self._diagonal(move):
-            return False
-        return self._clear(state, move.source, move.target) and \
-            not self._diagonal_path_pinched(state, move)
-
-    def _shield(self, state: GameState, piece: Piece, move: Move) -> bool:
-        return self._jump_over_one(state, move, False)
-
     def _patrol(self, state: GameState, piece: Piece, move: Move) -> bool:
         """巡：横竖**同规则**（不再绑死在 5/7 行），走偶数格；吃子仅限距离 2。"""
         if move.target.row != move.source.row and move.target.col != move.source.col:
@@ -752,32 +715,15 @@ class RulesEngine:
                 return False
         return True
 
-    def _protected_by_enemy_shield(self, state: GameState, target: Piece) -> bool:
-        """同阵营的楯是否在**四正**（前后左右）贴着 `target`。
-
-        口径：仅保护同阵营的**四正**相邻子（前后左右），斜贴不保护。
-        例外：**楯不保护楯** —— 否则两楯四正相邻会互相保护、成对无敌，
-              与"楯可以被吃"冲突。
-        """
-        if target.type is PieceType.SHIELD:
-            return False
-        return any(p.type is PieceType.SHIELD and p.color is target.color and
-                   abs(p.position.row - target.position.row) + abs(p.position.col - target.position.col) == 1
-                   for p in state.pieces)
-
     def _three_line_mover(self, piece: Piece) -> bool:
-        """这枚子移动后是否结算"三连吃子"：甲恒定；兵需开关（`pawn_three_line_capture`，默认关）。"""
-        if piece.type is PieceType.ARMOR:
-            return True
+        """这枚子移动后是否结算"三连吃子"：只有兵，且需 `pawn_three_line_capture` 开关（默认关）。"""
         return piece.type is PieceType.PAWN and self.options.pawn_three_line_capture
 
-    def _armor_removals(self, state: GameState, color: Color) -> list[Piece]:
-        """三连吃子：己方两子 + 敌方一子成直线 → 吃掉敌方那一枚。
+    def _three_line_removals(self, state: GameState, color: Color) -> list[Piece]:
+        """三连吃子：己方两子（至少一枚是兵）+ 敌方一子成直线 → 吃掉敌方那一枚。
 
-        触发源有两种（`or` 合并）：
-        - 己方两子里至少一枚 **甲**（原有）；
-        - 己方两子里至少一枚 **兵**，且 `pawn_three_line_capture` 开启（新增，默认关）。
-        两条都保留"不跨楯 / 不靠敌楯"的现有豁免，也都不吃楯。
+        甲/楯移除后只剩一条触发源：**己方两子里至少一枚兵**，且
+        `pawn_three_line_capture` 开启（默认关）。
         """
         captures: dict[str, Piece] = {}
         directions = ((0, 1), (1, 0), (1, 1), (1, -1))
@@ -790,23 +736,13 @@ class RulesEngine:
                     pieces = [p for p in group if p is not None]
                     allies = [p for p in pieces if p.color is color]
                     enemies = [p for p in pieces if p.color is not color]
-                    triggers = any(p.type is PieceType.ARMOR for p in allies) or (
-                        self.options.pawn_three_line_capture
-                        and any(p.type is PieceType.PAWN for p in allies))
-                    if len(allies) != 2 or len(enemies) != 1 or not triggers:
+                    has_pawn = any(p.type is PieceType.PAWN for p in allies)
+                    if len(allies) != 2 or len(enemies) != 1 or not has_pawn:
                         continue
-                    if any(p.type is PieceType.SHIELD for p in allies):
+                    if not self.options.pawn_three_line_capture:
                         continue
-                    if any(self._adjacent_enemy_shield(state, p) for p in allies):
-                        continue
-                    if enemies[0].type is not PieceType.SHIELD:
-                        captures[enemies[0].id] = enemies[0]
+                    captures[enemies[0].id] = enemies[0]
         return list(captures.values())
-
-    def _adjacent_enemy_shield(self, state: GameState, piece: Piece) -> bool:
-        return any(p.type is PieceType.SHIELD and p.color is not piece.color and
-                   max(abs(p.position.row - piece.position.row), abs(p.position.col - piece.position.col)) == 1
-                   for p in state.pieces)
 
     def _kings_facing(self, state: GameState) -> bool:
         """两王同一**直线**（同列或同行）且中间无子 → 照面，计入被将。"""

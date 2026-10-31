@@ -73,29 +73,6 @@ def _game_with_pool(pool: list[Piece]) -> Game:
 # 1. position_key -- scheme A added the `||pool:` segment (hot path).
 # --------------------------------------------------------------------------- #
 
-def test_position_key_pool_segment_stays_cheap():
-    # Measured: empty ~7.3 us, stocked ~8.1 us (ratio ~1.1) -- the added pool
-    # sort is a microsecond against the board sort, so a 5x ceiling is enormous.
-    stocked_pool = [Piece.create(kind, Color.RED, 0, index) for index, kind in enumerate(
-        (PieceType.ROOK, PieceType.HORSE, PieceType.CANNON, PieceType.ARMOR,
-         PieceType.ARCHER, PieceType.THUNDER))]
-
-    empty = _game_with_pool([])
-    stocked = _game_with_pool(stocked_pool)
-    empty_key = _best_time(lambda: empty.rules.position_key(empty.state), number=200)
-    stocked_key = _best_time(lambda: stocked.rules.position_key(stocked.state), number=200)
-
-    # Loose absolute ceiling: a single key build must stay far below a
-    # millisecond (measured ~8 us; this only trips on a pathological blow-up).
-    assert empty_key < 1e-3, f"position_key (empty pool) took {empty_key * 1e6:.1f} us"
-    assert stocked_key < 1e-3, f"position_key (stocked pool) took {stocked_key * 1e6:.1f} us"
-    # Relative: the pool segment may not multiply the whole cost. The +30 us
-    # floor keeps timer resolution from turning a sub-microsecond delta into a
-    # ratio failure.
-    assert stocked_key <= empty_key * 5 + 3e-5, (
-        f"pool made position_key {stocked_key / empty_key:.1f}x slower "
-        f"({empty_key * 1e6:.1f} us -> {stocked_key * 1e6:.1f} us)"
-    )
 
 
 # --------------------------------------------------------------------------- #

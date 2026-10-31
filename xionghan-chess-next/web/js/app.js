@@ -61,7 +61,7 @@ async function importDocument(document,mode){const targetMode=mode||(app.mode===
 const pieceLabels = {
   king:'汉/汗登场',rook:'车登场',horse:'马登场',elephant:'相/象登场',advisor:'仕/士登场',
   cannon:'炮登场',pawn:'兵/卒登场',guard:'尉/卫登场',archer:'射登场',thunder:'檑登场',
-  assassin:'刺/伺登场',patrol:'巡/廵登场'
+  patrol:'巡/廵登场'
 };
 const pieceRuleKeys={
   king:['king_can_leave_palace','king_diagonal_in_palace','king_lose_diagonal_outside_palace','invasion_victory'],
@@ -70,7 +70,7 @@ const pieceRuleKeys={
   pawn:['pawn_fast_move_before_enemy_territory','pawn_backward_at_base','pawn_full_movement_at_base','pawn_resurrection','pawn_promotion'],
   archer:['archer_enhanced_mode']
 };
-const names = {red:{king:'漢',rook:'俥',horse:'傌',elephant:'相',advisor:'仕',cannon:'炮',pawn:'兵',guard:'尉',archer:'射',thunder:'檑',assassin:'刺',patrol:'巡'},black:{king:'汗',rook:'車',horse:'馬',elephant:'象',advisor:'士',cannon:'砲',pawn:'卒',guard:'衛',archer:'䠶',thunder:'礌',assassin:'伺',patrol:'廵'}};
+const names = {red:{king:'漢',rook:'俥',horse:'傌',elephant:'相',advisor:'仕',cannon:'炮',pawn:'兵',guard:'尉',archer:'射',thunder:'檑',patrol:'巡'},black:{king:'汗',rook:'車',horse:'馬',elephant:'象',advisor:'士',cannon:'砲',pawn:'卒',guard:'衛',archer:'䠶',thunder:'礌',patrol:'廵'}};
 
 async function api(path, options={}) {const headers={'Content-Type':'application/json',...(app.authToken?{Authorization:`Bearer ${app.authToken}`}:{}) ,...(options.headers||{})};const response=await fetch(path,{...options,headers});const data=await response.json();if(!response.ok)throw new Error(data.detail||t('error.request_failed'));return data;}
 function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),2200)}
