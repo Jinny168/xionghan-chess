@@ -22,6 +22,9 @@ from xionghan_chess.core.ai import CONFIGS, Difficulty
 
 # AI 看门狗：思考预算耗尽后再等这么久，仍无信号就判定 worker 不会回来了（毫秒）。
 AI_WATCHDOG_GRACE_MS = 5000
+
+# 聊天区上限：长局只追加不清空会让内存线性涨（审计 2-1）。
+CHAT_HISTORY_LIMIT = 200
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position
 from xionghan_chess.core.profiles import PROFILES, profile_rule_values
@@ -191,6 +194,7 @@ class MainWindow(QMainWindow):
 
     def new_game(self) -> None:
         self.puzzle_session=None
+        self.chat_messages.clear()      # 换局清空（悔棋不清，聊天是历史）
         self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local";self._reset_ui_cache();self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh();
         if not local and self.game.state.turn is not human:self.start_ai()
 
@@ -315,10 +319,21 @@ class MainWindow(QMainWindow):
         except GameError as exc:self.ai_failed(str(exc));return
         self._release_ai()
 
+    def _append_chat(self, text: str) -> None:
+        """聊天区的**唯一**追加入口：超出上限丢最旧的一条。
+
+        换局时清空（`new_game`），但**悔棋/撤销不清空** —— 聊天是历史，
+        不该被悔棋回滚。
+        """
+        self.chat_messages.addItem(text)
+        while self.chat_messages.count() > CHAT_HISTORY_LIMIT:
+            self.chat_messages.takeItem(0)
+        self.chat_messages.scrollToBottom()
+
     def add_ai_taunt(self, scene: str | None) -> None:
         if not scene or not self.config.get("taunts",True):return
         sender="Xionghan AI" if self.config.get("language")=="en" else "匈汉棋灵"
-        self.chat_messages.addItem(f"{sender}：{choose_taunt(scene)}");self.chat_messages.scrollToBottom()
+        self._append_chat(f"{sender}：{choose_taunt(scene)}")
 
     def ai_failed(self, result: object) -> None:
         message,cancel=result if isinstance(result,tuple) else (str(result),self.cancel)
@@ -748,7 +763,7 @@ class MainWindow(QMainWindow):
         elif message["type"]=="chat":
             payload=message["payload"]
             if payload.get("automated") and not self.config.get("taunts",True):return
-            self.chat_messages.addItem(f"{payload.get('sender',dl('玩家'))}：{payload.get('text','')}");self.chat_messages.scrollToBottom()
+            self._append_chat(f"{payload.get('sender',dl('玩家'))}：{payload.get('text','')}")
         elif message["type"]=="state":
             snapshot=message["payload"];game_data=snapshot["game"]
             self.apply_network_state(snapshot)
