@@ -49,6 +49,7 @@
 | [CHANGELOG_1.5.0.md](CHANGELOG_1.5.0.md) | 匈汉象棋 v1.5.0 更新日志 | ❌ 历史快照 |
 | [CHANGELOG_1.6.0.md](CHANGELOG_1.6.0.md) | 匈汉象棋 v1.6.0 更新日志（已收尾） | ❌ 历史快照 |
 | [CHANGELOG_1.7.0.md](CHANGELOG_1.7.0.md) | 匈汉象棋 v1.7.0 更新日志 | ❌ 历史快照 |
+| [CHANGELOG_1.8.1.md](CHANGELOG_1.8.1.md) | 匈汉象棋 v1.8.1 更新日志 | ✅ 当前 |
 | [CHANGELOG_1.8.0.md](CHANGELOG_1.8.0.md) | 匈汉象棋 v1.8.0 更新日志 | ❌ 历史快照 |
 | [DELIVERY_1.4.0.md](DELIVERY_1.4.0.md) | 匈汉象棋 v1.4.0 交付说明 | ❌ 历史快照 |
 | [DELIVERY_1.5.0.md](DELIVERY_1.5.0.md) | 匈汉象棋 v1.5.0 交付说明 | ❌ 历史快照 |
