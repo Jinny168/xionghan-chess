@@ -48,6 +48,7 @@
 | [CHANGELOG_1.5.0.md](CHANGELOG_1.5.0.md) | 匈汉象棋 v1.5.0 更新日志 | ❌ 历史快照 |
 | [CHANGELOG_1.6.0.md](CHANGELOG_1.6.0.md) | 匈汉象棋 v1.6.0 更新日志（已收尾） | ❌ 历史快照 |
 | [CHANGELOG_1.7.0.md](CHANGELOG_1.7.0.md) | 匈汉象棋 v1.7.0 更新日志 | ❌ 历史快照 |
+| [CHANGELOG_1.8.0.md](CHANGELOG_1.8.0.md) | 匈汉象棋 v1.8.0 更新日志 | ❌ 历史快照 |
 | [DELIVERY_1.4.0.md](DELIVERY_1.4.0.md) | 匈汉象棋 v1.4.0 交付说明 | ❌ 历史快照 |
 | [DELIVERY_1.5.0.md](DELIVERY_1.5.0.md) | 匈汉象棋 v1.5.0 交付说明 | ❌ 历史快照 |
 | [DELIVERY_AI_2026-10-30.md](DELIVERY_AI_2026-10-30.md) | AI 对战体验：本轮交付与结论（2026-10-30） | ❌ 历史快照 |
