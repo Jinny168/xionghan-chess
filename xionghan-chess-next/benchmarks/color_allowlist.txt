@@ -66,12 +66,12 @@ web/css/app.css:#34383a:1
 web/css/app.css:#3a3229:1
 web/css/app.css:#410002:1
 web/css/app.css:#554b40:1
-web/css/app.css:#5e4125:1
 web/css/app.css:#5f5145:1
 web/css/app.css:#675748:2
 web/css/app.css:#695b4c:1
 web/css/app.css:#6f6558:2
 web/css/app.css:#704d35:2
+web/css/app.css:#73573a:1
 web/css/app.css:#746353:1
 web/css/app.css:#756555:9
 web/css/app.css:#765a36:1

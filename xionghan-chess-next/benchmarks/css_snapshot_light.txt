@@ -143,7 +143,7 @@ body[data-system-theme="dark"] .turn-ribbon.is-check|color|#410002
 .board-shell|width|min(100%,calc(100vh - 190px))
 .board-shell|aspect-ratio|1
 .board-shell|background|#f1dfb7
-.board-shell|border|9px solid #5e4125
+.board-shell|border|9px solid #73573a
 .board-shell|box-shadow|inset 0 0 0 3px #c0904f,0 12px 34px rgba(35,24,14,.18)
 .board-shell|overflow|hidden
 .board-shell:before|content|""
@@ -199,7 +199,7 @@ canvas|touch-action|none
 .record-panel ol|overflow|auto
 .record-panel ol|font-size|13px
 .record-panel li|padding|7px 4px
-.record-panel li|border-bottom|1px dashed #c2aa84
+.record-panel li|border-bottom|1px dashed #cbb694
 .captured-panel|padding|12px
 .captured-panel h2|margin-bottom|9px
 .captured-panel h2|color|#675748
@@ -236,7 +236,7 @@ dialog form|padding|18px
 .dialog-title|display|flex
 .dialog-title|align-items|center
 .dialog-title|justify-content|space-between
-.dialog-title|border-bottom|1px solid #c09c62
+.dialog-title|border-bottom|1px solid #c8a975
 .dialog-title|padding-bottom|12px
 .dialog-title h2|margin|0
 .dialog-title h2|font|24px KaiTi,serif
@@ -367,7 +367,7 @@ body|transition|background-image .25s,background-color .25s
 .replay-header|align-items|center
 .replay-header|justify-content|space-between
 .replay-header|padding|14px 16px
-.replay-header|border-bottom|1px solid #c09c62
+.replay-header|border-bottom|1px solid #c8a975
 .replay-header|font|20px KaiTi,serif
 .replay-toolbar|display|grid
 .replay-toolbar|grid-template-columns|repeat(4,1fr)
@@ -388,12 +388,12 @@ body|transition|background-image .25s,background-color .25s
 .replay-sidebar ol|padding|8px 14px 24px 38px
 .replay-sidebar ol|overflow|auto
 .replay-sidebar li|padding|7px 4px
-.replay-sidebar li|border-bottom|1px dashed #c2aa84
+.replay-sidebar li|border-bottom|1px dashed #cbb694
 .replay-sidebar li|cursor|pointer
 .replay-sidebar li.active|background|#f1dfb7
 .replay-sidebar li.active|color|#9d2525
 .replay-sidebar li.active|font-weight|700
-.saved-replays|border-top|1px solid #c09c62
+.saved-replays|border-top|1px solid #c8a975
 .saved-replays|padding|12px
 .saved-replays|max-height|42%
 .saved-replays|overflow|auto
@@ -407,7 +407,7 @@ body|transition|background-image .25s,background-color .25s
 .saved-replay|grid-template-columns|1fr auto
 .saved-replay|gap|8px
 .saved-replay|padding|8px 0
-.saved-replay|border-bottom|1px dashed #c2aa84
+.saved-replay|border-bottom|1px dashed #cbb694
 .saved-replay|font-size|12px
 .saved-replay strong,.saved-replay span|display|block
 .saved-replay span|color|#776653
@@ -439,7 +439,7 @@ body|transition|background-image .25s,background-color .25s
 .chat-messages|background|rgba(255,252,245,.62)
 .chat-messages|padding|8px
 .chat-message|padding|6px 4px
-.chat-message|border-bottom|1px dashed #c2aa84
+.chat-message|border-bottom|1px dashed #cbb694
 .chat-message|font-size|12px
 .chat-message|word-break|break-word
 .chat-message.red strong|color|#9d2525
@@ -538,7 +538,7 @@ body[data-board-background="none"] .board-shell:before|display|none
 .menu-popup button|gap|12px
 .menu-popup button:hover|background|#f1dfbf
 .menu-popup hr|border|0
-.menu-popup hr|border-top|1px solid #c09c62
+.menu-popup hr|border-top|1px solid #c8a975
 .menu-popup hr|width|100%
 .menu-popup hr|margin|4px 0
 .menu-popup kbd|font|11px Consolas,monospace
@@ -574,7 +574,7 @@ body[data-board-background="none"] .board-shell:before|display|none
 .replay-board-wrap|position|relative
 .replay-board-wrap|min-width|0
 .replay-board-wrap|background|#f9e8c4
-.replay-board-wrap|border-right|1px solid #8a6b3e
+.replay-board-wrap|border-right|1px solid #96794c
 .replay-board-wrap canvas|position|absolute
 .replay-board-wrap canvas|inset|12px
 .replay-board-wrap canvas|width|calc(100% - 24px)
@@ -589,7 +589,7 @@ body[data-board-background="none"] .board-shell:before|display|none
 .replay-controls ol|flex|1
 .replay-controls ol|min-height|120px
 .replay-controls li|padding|7px 4px
-.replay-controls li|border-bottom|1px dashed #c2aa84
+.replay-controls li|border-bottom|1px dashed #cbb694
 .replay-controls li|cursor|pointer
 .replay-controls li.active|background|#f1dfb7
 .replay-controls li.active|color|#9d2525
@@ -625,7 +625,7 @@ body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-
 @media(max-width:760px)|height|100vh}.replay-layout{display:flex
 @media(max-width:760px)|flex-direction|column}.replay-board-wrap{flex:0 0 min(56vh,100vw)
 @media(max-width:760px)|border-right|0
-@media(max-width:760px)|border-bottom|1px solid #8a6b3e}.replay-controls{flex:1}.saved-replays{max-height:160px}.game-actions button{min-width:64px
+@media(max-width:760px)|border-bottom|1px solid #96794c}.replay-controls{flex:1}.saved-replays{max-height:160px}.game-actions button{min-width:64px
 @media(max-width:760px)|padding|6px 9px}
 .pause-overlay|position|absolute
 .pause-overlay|inset|0
@@ -693,7 +693,7 @@ body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-
 .piece-slot-list label|grid-template-columns|auto 28px 1fr
 .piece-slot-list label|align-items|center
 .piece-slot-list label|gap|6px
-.piece-slot-list label|border-bottom|1px dashed #c09c62
+.piece-slot-list label|border-bottom|1px dashed #c8a975
 .piece-slot-list label|padding|6px
 .piece-slot-list small|overflow|hidden
 .piece-slot-list small|text-overflow|ellipsis
@@ -723,7 +723,7 @@ body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-
 .cloud-game|gap|8px
 .cloud-game|align-items|center
 .cloud-game|padding|9px 0
-.cloud-game|border-bottom|1px dashed #c2aa84
+.cloud-game|border-bottom|1px dashed #cbb694
 .cloud-game strong,.cloud-game span|display|block
 .cloud-game button|min-height|30px
 .cloud-game button|padding|4px 8px
