@@ -107,8 +107,19 @@ def test_quiescence_truncations_is_reported_and_reset():
 
 
 def test_truncated_root_moves_never_become_best(monkeypatch):
-    """把上限压到 0 → 所有根着法的静态搜索都被截断 → 必须退回初始序首着。"""
+    """把上限压到 0 → 所有根着法的静态搜索都被截断 → 必须退回初始序首着。
+
+    **时间无关**：本用例验的是"残缺分不许夺标"，不是"0.5 s 内算得完"。原版直接跑
+    beginner 的 0.5 s 预算，整机满载时 `_guard` 会在第一个根着法的搜索到达叶子前就抛
+    `SearchTimeout`（返回 best-so-far），于是一个 qnode 都没进、`quiescence_truncations == 0`
+    —— 断言随机红。
+
+    修法：沿用引擎既有的 `AI_TIME_SCALE` 把预算放大 1000×（0.5 s → 500 s），
+    让"截断"成为唯一会提前结束搜索的原因。放大预算不会拖慢用例：上限为 0 时
+    每次静态搜索都在第一个节点返回，整局仍是毫秒级。
+    """
     monkeypatch.setattr("xionghan_chess.core.ai.QUIESCENCE_NODE_LIMIT", 0)
+    monkeypatch.setenv("AI_TIME_SCALE", "1000")
     game = Game("web")
     engine = ChessAI(Difficulty.BEGINNER, seed=11)
     legal = game.rules.legal_moves(game.state)
@@ -118,6 +129,7 @@ def test_truncated_root_moves_never_become_best(monkeypatch):
     move = engine.choose_move(game)
 
     assert engine.quiescence_truncations > 0, "上限 0 时应当发生截断"
+    assert engine.no_candidate_fallbacks > 0, "全部根着法被截断时应走兜底分支"
     assert move == expected, "全部根着法被截断时必须退回初始序首着"
 
 
