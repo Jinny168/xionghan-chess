@@ -40,7 +40,8 @@ from PySide6.QtWidgets import (
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, Piece, PieceType, Position
-from xionghan_chess.core.profiles import PROFILES, profile_rule_values, display_value, stored_value
+from xionghan_chess.core.profiles import (OPTION_DEPENDS_ON, PROFILES, display_value,
+                                          profile_rule_values, stored_value)
 from xionghan_chess.core.rules import RulesEngine
 from xionghan_chess.i18n import normalize_language, t
 
@@ -162,13 +163,28 @@ class PieceAtlasDialog(QDialog):
         root.setContentsMargins(16, 16, 16, 16)
         root.setSpacing(10)
         root.addWidget(self._top_bar())
-        # 三栏：左＝棋子清单 / 中＝走法演示盘 / 右＝规则正文 + 开关
+        # 两栏：左＝棋子清单；右＝自上而下「美术风格 → 走法演示 → 规则正文/开关」。
+        # 原来演示盘与详情是并排两栏，用户要求这两块改成竖排（横排时两边都在抢宽度）。
         body = QHBoxLayout()
         body.setSpacing(12)
         body.addWidget(self._piece_list())
-        # 1:1：3:2 会让演示盘优先吃宽度，窄窗时被压的是右侧详情（实测 218 → 78）
-        body.addWidget(self._demo_area(), 1)
-        body.addWidget(self._detail_area(), 1)
+        right_inner = QWidget()
+        right = QVBoxLayout(right_inner)
+        right.setSpacing(10)
+        right.setContentsMargins(0, 0, 0, 0)
+        self._style_host = QWidget()
+        self._style_layout = QVBoxLayout(self._style_host)
+        self._style_layout.setContentsMargins(0, 0, 0, 0)
+        right.addWidget(self._style_host)
+        right.addWidget(self._demo_area())
+        right.addWidget(self._detail_area())
+        right.addStretch(1)
+        # 三段叠起来必然超过一屏：外层滚动，别让规则正文被窗口底边裁掉
+        self._right_scroll = QScrollArea()
+        self._right_scroll.setWidgetResizable(True)
+        self._right_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._right_scroll.setWidget(right_inner)
+        body.addWidget(self._right_scroll, 1)
         root.addLayout(body, 1)
         root.addWidget(self._bottom_bar())
 
@@ -253,7 +269,8 @@ class PieceAtlasDialog(QDialog):
         layout.addWidget(self._preset)
 
         self._demo_board = BoardWidget(frame)
-        self._demo_board.setMinimumSize(240, 240)   # 允许 640→560 高度时按比例缩
+        # 竖排后演示盘与详情共用一列，240 会把窗口顶到 747px（1366x768 放不下），收到 200
+        self._demo_board.setMinimumSize(200, 200)
         self._demo_board.move_requested.connect(self._demo_moved)
         layout.addWidget(self._demo_board, 1)
 
@@ -366,18 +383,15 @@ class PieceAtlasDialog(QDialog):
         self._demo_board.update()
 
     def _detail_area(self) -> QWidget:
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setMinimumWidth(300)     # sizeHint 432；300 保证正文与开关不被压扁
-        self._detail_frame = scroll
+        """规则正文 + 开关。**不再自带滚动条** —— 右栏整体是一个滚动区，
+        嵌套滚动会让滚轮在两层之间跳，也很难滚到底部的开关。"""
         self._detail = QWidget()
+        self._detail.setMinimumWidth(300)
         self._detail_layout = QVBoxLayout(self._detail)
         self._detail_layout.setContentsMargins(0, 0, 0, 0)
         self._detail_layout.setSpacing(10)
-        scroll.setWidget(self._detail)
         self._rebuild_detail()
-        return scroll
+        return self._detail
 
     def _bottom_bar(self) -> QWidget:
         bar = QWidget()
@@ -452,12 +466,25 @@ class PieceAtlasDialog(QDialog):
             if widget is not None:
                 widget.setParent(None)
                 widget.deleteLater()
-        self._detail_layout.addWidget(self._style_row())
+        self._rebuild_style()
         self._detail_layout.addWidget(self._card_row())
         self._detail_layout.addWidget(self._moves_row())
         self._detail_layout.addWidget(self._rule_state_row())
         self._detail_layout.addWidget(self._switches_section())
         self._detail_layout.addStretch(1)
+
+    def _rebuild_style(self) -> None:
+        """重建右栏顶部的「美术风格」块（缩略图随选中棋型变化）。"""
+        layout = getattr(self, "_style_layout", None)
+        if layout is None:
+            return
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+        layout.addWidget(self._style_row())
 
     def _switches_section(self) -> QWidget:
         """右栏「本子开关」：**可写**，勾选即写 config 并提示重开。
@@ -484,6 +511,12 @@ class PieceAtlasDialog(QDialog):
         for key in keys:
             check = QCheckBox(t(f"rule.{key}_short", self.language), box)
             check.setChecked(display_value(key, getattr(options, key)))
+            # 上游关掉时，这个开关**必然无效**（引擎里被 and 住）：置灰并说明原因，
+            # 否则会看到"勾着却不生效"的歧义状态（例：经典模式下三格可吃子）。
+            parents = OPTION_DEPENDS_ON.get(key, ())
+            if parents and not all(getattr(options, parent) for parent in parents):
+                check.setEnabled(False)
+                check.setToolTip(t("rule.depends_disabled", self.language))
             check.toggled.connect(lambda checked, k=key: self.set_option(k, checked))
             layout.addWidget(check)
         return box

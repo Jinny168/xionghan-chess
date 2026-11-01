@@ -67,9 +67,10 @@ def kind_items(dialog: PieceAtlasDialog) -> list[str]:
 def test_constructs_without_a_game(qt_app: QApplication, config: dict) -> None:
     """图谱不依赖 `game`：没有对局也能开（构造时不碰 MainWindow）。"""
     dialog = PieceAtlasDialog(dict(config))
-    assert dialog.size().width() == 900 and dialog.size().height() == 640
-    # 最小尺寸改为「≥ minimumSizeHint」：原来钉死 760×560 < hint(750×585)，
-    # 高度少 25px，中栏演示被挤到 420。这里断言不变量而不是具体数字。
+    # 两栏竖排后窗口比原来高（右栏是「风格 → 演示 → 详情」三段叠放），
+    # 断言下限而不是具体尺寸，同时守住"768 高的屏幕放得下"这条线。
+    assert dialog.size().width() >= 900 and dialog.size().height() >= 640
+    assert dialog.height() <= 720, f"窗口高 {dialog.height()}px，1366x768 的屏幕放不下"
     hint = dialog.minimumSizeHint()
     assert hint.width() <= dialog.minimumWidth(), f"hint {hint.width()} > min {dialog.minimumWidth()}"
     assert hint.height() <= dialog.minimumHeight(), f"hint {hint.height()} > min {dialog.minimumHeight()}"
@@ -329,6 +330,22 @@ def test_pawn_three_line_demo_follows_the_toggle(qt_app: QApplication, config: d
     _select_kind(off, PieceType.PAWN)
     assert "three" not in _preset_keys(off), "关掉三连后不该再演示它"
     off.close(); off.deleteLater()
+
+
+def test_dependent_switch_is_greyed_with_a_reason(qt_app: QApplication) -> None:
+    """上游关闭时，下游开关必须置灰并给出原因 —— 不能出现"勾着却不生效"。"""
+    from PySide6.QtWidgets import QCheckBox
+
+    dialog = PieceAtlasDialog({"profile": "desktop_classic", "language": "zh-CN",
+                               "piece_style": "traditional", "piece_render": "glyph",
+                               "rule_options": {}})
+    _select_kind(dialog, PieceType.HORSE)
+    boxes = {b.text(): b for b in dialog._detail.findChildren(QCheckBox)}
+    dependent = next(b for text, b in boxes.items() if "可吃子" in text)
+    assert dependent.isChecked() is True, "经典模式默认允许吃子（存储 False 的反向显示）"
+    assert dependent.isEnabled() is False, "上游「允许直走三格」关着，这个开关应无效并置灰"
+    assert dependent.toolTip(), "置灰时必须说明原因"
+    dialog.deleteLater()
 
 
 def test_king_demo_never_shows_two_red_kings(atlas: PieceAtlasDialog) -> None:
