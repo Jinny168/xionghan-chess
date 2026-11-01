@@ -127,6 +127,31 @@ def option_dependencies() -> dict[str, list[str]]:
     return {child: list(parents) for child, parents in OPTION_DEPENDS_ON.items()}
 
 
+# 反向呈现的开关：**存储值 True 表示"削弱"**，界面勾选必须表示"增强"。
+#
+# 判据：这个键的 True 是否在描述"少了一种能力"。三条都符合 ——
+#   出宫后**失去**斜走 / 马**受**别腿限制 / 直走三格**不可**吃子。
+# 其余键（能出宫、能过河、能复活……）True 本身就是增强，不需要转。
+# 只改呈现，不改存储：老配置、存档、AI 参数、对拍全部按原键原值走。
+NEGATED_OPTIONS: frozenset[str] = frozenset({
+    "king_lose_diagonal_outside_palace",
+    "horse_blocked_by_leg",
+    "horse_straight_three_move_only",
+})
+
+
+def display_value(key: str, stored: object) -> bool:
+    """存储值 → 界面值（勾选=增强）。"""
+    flag = bool(stored)
+    return (not flag) if key in NEGATED_OPTIONS else flag
+
+
+def stored_value(key: str, shown: object) -> bool:
+    """界面值（勾选=增强）→ 存储值。"""
+    flag = bool(shown)
+    return (not flag) if key in NEGATED_OPTIONS else flag
+
+
 @dataclass(frozen=True, slots=True)
 class PieceSpec:
     type: PieceType

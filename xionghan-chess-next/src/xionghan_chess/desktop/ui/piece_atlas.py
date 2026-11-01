@@ -40,7 +40,7 @@ from PySide6.QtWidgets import (
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, Piece, PieceType, Position
-from xionghan_chess.core.profiles import PROFILES, profile_rule_values
+from xionghan_chess.core.profiles import PROFILES, profile_rule_values, display_value, stored_value
 from xionghan_chess.core.rules import RulesEngine
 from xionghan_chess.i18n import normalize_language, t
 
@@ -97,6 +97,39 @@ def _draw_glyph_badge(painter: QPainter, edge: int, text: str) -> None:
 
 
 DEMO_PRESETS: tuple[str, ...] = ("free", "clamp", "three", "facing")
+
+# 「夹逼」只作用于**斜走**形成的"段"。这些棋型才有斜线走法：
+# 士/象/尉/射/檑 恒有；将/帅要看当前规则（宫内斜走、出宫后是否保留斜走）。
+# 车、炮、马、兵、巡没有斜线段 —— 给它们看夹逼演示等于演示一个不存在的走法。
+PINCH_KINDS: frozenset[PieceType] = frozenset({
+    PieceType.ADVISOR, PieceType.ELEPHANT, PieceType.GUARD,
+    PieceType.ARCHER, PieceType.THUNDER,
+})
+
+
+def pinch_applies(kind: PieceType, options) -> bool:
+    """该棋型在当前规则下是否存在"受夹逼约束的斜走"。"""
+    if kind in PINCH_KINDS:
+        return True
+    if kind is PieceType.KING:
+        if options.king_diagonal_in_palace:
+            return True
+        return bool(options.king_can_leave_palace and not options.king_lose_diagonal_outside_palace)
+    return False
+
+
+def demo_presets_for(kind: PieceType, options) -> tuple[str, ...]:
+    """该棋型真正可演示的预设。**演示范围 = 这枚子实际能做的动作**。"""
+    presets = ["free"]
+    if pinch_applies(kind, options):
+        presets.append("clamp")
+    # 三连吃子只有兵参与；开关关掉时演示什么也看不到，索性不提供
+    if kind is PieceType.PAWN and options.pawn_three_line_capture:
+        presets.append("three")
+    # 照面是双方将/帅之间的事
+    if kind is PieceType.KING:
+        presets.append("facing")
+    return tuple(presets)
 
 
 class PieceAtlasDialog(QDialog):
@@ -215,8 +248,7 @@ class PieceAtlasDialog(QDialog):
         layout.addWidget(self._demo_title)
 
         self._preset = QComboBox(frame)
-        for key in DEMO_PRESETS:
-            self._preset.addItem(t(f"desktop.atlas_preset_{key}", self.language), key)
+        self._rebuild_presets()
         self._preset.currentIndexChanged.connect(lambda _i: self._load_demo())
         layout.addWidget(self._preset)
 
@@ -233,6 +265,21 @@ class PieceAtlasDialog(QDialog):
         return frame
 
     # ------------------------------------------------------------- 演示盘
+    def _rebuild_presets(self) -> None:
+        """按当前选中的棋型重建预设下拉：**只保留这枚子真能做的动作**。
+
+        切换棋型时必须重建，否则会给车看夹逼、给兵看照面 —— 演示的是不存在的走法。
+        """
+        previous = self._preset.currentData()
+        allowed = demo_presets_for(self.kind, self.rules.options)
+        self._preset.blockSignals(True)
+        self._preset.clear()
+        for key in allowed:
+            self._preset.addItem(t(f"desktop.atlas_preset_{key}", self.language), key)
+        index = self._preset.findData(previous) if previous in allowed else 0
+        self._preset.setCurrentIndex(max(0, index))
+        self._preset.blockSignals(False)
+
     def _demo_pieces(self, preset: str) -> tuple[list[Piece], dict]:
         """预设局面的棋子与说明。
 
@@ -242,30 +289,46 @@ class PieceAtlasDialog(QDialog):
         def pc(kind, color, row, col):
             return Piece.create(kind, color, row, col)
 
-        kings = [pc(PieceType.KING, Color.RED, 12, 12), pc(PieceType.KING, Color.BLACK, 0, 10)]
+        subject = self.kind
+        # 主角本身是将/帅时不能再摆一枚红王，否则盘上会出现两个红王
+        backdrop = [pc(PieceType.KING, Color.BLACK, 0, 10)]
+        if subject is not PieceType.KING:
+            backdrop.insert(0, pc(PieceType.KING, Color.RED, 12, 12))
+
         if preset == "clamp":
-            return kings + [
-                pc(PieceType.ARCHER, Color.RED, 6, 6),
+            # 夹逼演示**必须用当前选中的那枚子当主角**（原来硬编码成射，等于给所有子演射）。
+            # 士在"不可出宫"的规则下只能待在九宫，摆到 (6,6) 会一格都走不了 → 换九宫内的摆法。
+            confined_advisor = (subject is PieceType.ADVISOR
+                                and not self.rules.options.advisor_can_leave_palace)
+            if confined_advisor:
+                return backdrop + [
+                    pc(subject, Color.RED, 10, 6),
+                    pc(PieceType.PAWN, Color.RED, 11, 6),     # 夹逼一侧
+                    pc(PieceType.PAWN, Color.RED, 10, 7),     # 夹逼另一侧
+                    pc(PieceType.HORSE, Color.BLACK, 11, 7),  # 本应可吃，被夹逼挡住
+                ], {"kind": subject, "options": {}}
+            return backdrop + [
+                pc(subject, Color.RED, 6, 6),
                 pc(PieceType.PAWN, Color.RED, 7, 6),      # 起点夹逼的一侧
                 pc(PieceType.PAWN, Color.RED, 6, 7),      # 起点夹逼的另一侧 → 该斜段无效
                 pc(PieceType.HORSE, Color.BLACK, 9, 9),   # 沿同一条斜线更远处（本应可吃，被夹逼挡住）
-            ], {"kind": PieceType.ARCHER, "options": {}}
+            ], {"kind": subject, "options": {}}
         if preset == "three":
-            return kings + [
+            return backdrop + [
                 pc(PieceType.PAWN, Color.RED, 7, 2),
                 pc(PieceType.PAWN, Color.RED, 6, 3),
                 pc(PieceType.HORSE, Color.BLACK, 6, 4),
-            ], {"kind": PieceType.PAWN, "options": {"pawn_three_line_capture": True}}
+            ], {"kind": PieceType.PAWN,
+                "options": {"pawn_three_line_capture": True}}
         if preset == "facing":
             return [pc(PieceType.KING, Color.RED, 6, 3), pc(PieceType.KING, Color.BLACK, 6, 9)], \
                 {"kind": PieceType.KING, "options": {}}
         # free：按左侧选中的棋型摆一个"这个子 + 两个陪练"
-        kind = self.kind
-        return kings + [
-            pc(kind, Color.RED, 6, 6),
+        return backdrop + [
+            pc(subject, Color.RED, 6, 6),
             pc(PieceType.PAWN, Color.BLACK, 4, 6),
             pc(PieceType.PAWN, Color.BLACK, 6, 9),
-        ], {"kind": kind, "options": {}}
+        ], {"kind": subject, "options": {}}
 
     def _load_demo(self) -> None:
         preset = self._preset.currentData() or DEMO_PRESETS[0]
@@ -344,6 +407,7 @@ class PieceAtlasDialog(QDialog):
             return
         self.kind = PieceType(value)
         self._rebuild_detail()
+        self._rebuild_presets()   # 预设随棋型变化：车/炮/马/兵/巡 不提供夹逼，兵才提供三连
         self._load_demo()
 
     def _preview_style(self, style: str) -> None:
@@ -419,7 +483,7 @@ class PieceAtlasDialog(QDialog):
 
         for key in keys:
             check = QCheckBox(t(f"rule.{key}_short", self.language), box)
-            check.setChecked(bool(getattr(options, key)))
+            check.setChecked(display_value(key, getattr(options, key)))
             check.toggled.connect(lambda checked, k=key: self.set_option(k, checked))
             layout.addWidget(check)
         return box
@@ -439,10 +503,13 @@ class PieceAtlasDialog(QDialog):
     def set_option(self, key: str, enabled: bool) -> None:
         """写一个单子开关：落到 `config["rule_options"]`、落盘、再问是否重开。"""
         overrides = dict(self.config.get("rule_options") or {})
-        overrides[key] = bool(enabled)
+        overrides[key] = stored_value(key, enabled)   # 界面"增强" → 存储语义
         self.config["rule_options"] = overrides
         save_config(self.config)
         self.rules = RulesEngine(self.profile, self.profile.options.merged(overrides))
+        # 开关会改变"哪些演示还有意义"（例如关掉三连吃子后兵不该再演示三连）
+        self._rebuild_presets()
+        self._load_demo()
         self.status.setText(t("desktop.atlas_rule_saved", self.language))
         if self._ask_restart() and self._restart_cb is not None:
             self._restart_cb()

@@ -30,7 +30,8 @@ from PySide6.QtWidgets import (
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, PieceType
 from xionghan_chess.core.profiles import (OPTION_DEPENDS_ON, PROFILES,
-                                          profile_rule_values)
+                                          display_value, profile_rule_values,
+                                          stored_value)
 from xionghan_chess.core.setup import profile_slots
 from xionghan_chess.core.storage import game_from_document
 from xionghan_chess.i18n import normalize_language, t
@@ -165,7 +166,7 @@ class SettingsDialog(QDialog):
             self._profile_values[self._active_profile_id])
         general=QGroupBox(t("settings.general_rules", self.language));general_layout=QVBoxLayout(general)
         for key in ("enforce_self_check","threefold_draw"):
-            check=QCheckBox(t(f"rule.{key}", self.language));check.setChecked(bool(getattr(options,key)));self.checks[key]=check;general_layout.addWidget(check)
+            check=QCheckBox(t(f"rule.{key}", self.language));check.setChecked(display_value(key,getattr(options,key)));self.checks[key]=check;general_layout.addWidget(check)
         game_layout.addWidget(general);game_layout.addStretch()
 
         piece_definitions={
@@ -189,7 +190,7 @@ class SettingsDialog(QDialog):
             appear_key=f"{kind.value}_appear";appear=QCheckBox(t("settings.piece_appear", self.language))
             appear.setChecked(bool(getattr(options,appear_key)));self.checks[appear_key]=appear;group_layout.addWidget(appear)
             for key in rules:
-                check=QCheckBox(t(f"rule.{key}_short", self.language));check.setChecked(bool(getattr(options,key)));self.checks[key]=check;group_layout.addWidget(check)
+                check=QCheckBox(t(f"rule.{key}_short", self.language));check.setChecked(display_value(key,getattr(options,key)));check._option_key=key;self.checks[key]=check;group_layout.addWidget(check)
             content_layout.addWidget(group)
         content_layout.addStretch()
         self.checks["king_appear"].setChecked(True);self.checks["king_appear"].setEnabled(False)
@@ -232,7 +233,8 @@ class SettingsDialog(QDialog):
             elif kind is PieceType.KING:check.setChecked(True)
 
     def _capture_profile_values(self) -> None:
-        values = {key: check.isChecked() for key, check in self.checks.items()}
+        # 界面勾选 = 正向增强；写回配置前必须换回存储语义（见 NEGATED_OPTIONS）
+        values = {key: stored_value(key, check.isChecked()) for key, check in self.checks.items()}
         values["king_appear"] = True
         self._profile_values[self._active_profile_id] = values
 
@@ -241,7 +243,7 @@ class SettingsDialog(QDialog):
         self._active_profile_id = self.profile.currentData()
         values = self._profile_values[self._active_profile_id]
         for key, check in self.checks.items():
-            check.setChecked(bool(values.get(key, False)))
+            check.setChecked(display_value(key, values.get(key, False)))
         self._update_piece_availability()
         self._sync_option_dependencies()
 
@@ -268,7 +270,11 @@ class SettingsDialog(QDialog):
             self._apply_dependency(box, sources)
 
     def _apply_dependency(self, box, sources) -> None:
-        enabled = all(source.isChecked() for source in sources)
+        enabled = True
+        for source in sources:
+            key = getattr(source, "_option_key", None)
+            checked = source.isChecked()
+            enabled = enabled and (checked if key is None else stored_value(key, checked))
         if box.isEnabled() != enabled:
             box.setEnabled(enabled)
         box.setToolTip("" if enabled else t("rule.depends_disabled", self.language))

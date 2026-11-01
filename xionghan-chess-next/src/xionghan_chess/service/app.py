@@ -15,12 +15,14 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
+from xionghan_chess import __version__
 from xionghan_chess.core.ai import Difficulty
 from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.avatars import normalize_avatar
 from xionghan_chess.core.game import GameError
 from xionghan_chess.core.model import Color, PieceType, Position
-from xionghan_chess.core.profiles import PROFILES, option_dependencies
+from xionghan_chess.core.profiles import (NEGATED_OPTIONS, PROFILES,
+                                          option_dependencies)
 from xionghan_chess.core.protocol import Envelope, MessageType
 from .rooms import Room, RoomManager
 from xionghan_chess.core.rules import archer_star_points
@@ -79,7 +81,7 @@ async def lifespan(_: FastAPI):
         await task
 
 
-app = FastAPI(title="匈汉象棋 API", version="1.7.0", lifespan=lifespan)
+app = FastAPI(title="匈汉象棋 API", version=__version__, lifespan=lifespan)
 
 
 @app.exception_handler(RequestValidationError)
@@ -212,7 +214,10 @@ async def profiles() -> list[dict]:
              "options": asdict(p.options),
              # 规则依赖：子键要成立必须先开启的上游键。三端 UI 用它把"上游关掉后
              # 必然无意义"的开关置灰，避免用户以为设了有用（引擎侧本来就有 and 守卫）。
-             "optionDependencies": option_dependencies()} for p in PROFILES.values()]
+             "optionDependencies": option_dependencies(),
+             # 反向呈现的开关（存储 True = 削弱）：前端勾选状态要取反，
+             # 保证"勾选 = 增强"这条约定在三端一致。
+             "negatedOptions": sorted(NEGATED_OPTIONS)} for p in PROFILES.values()]
 
 
 

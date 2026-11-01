@@ -576,7 +576,9 @@ class MainWindow(QMainWindow):
         lang=self.config.get("language","zh-CN")
         if lang=="en":
             DocumentDialog(t("dialog.about_title", lang),t("docs.about", lang),self).exec();return
-        DocumentDialog(t("dialog.about_title", lang),theme.read_docs("ABOUT.md",dl("关于文档")),self).exec()
+        DocumentDialog(t("dialog.about_title", lang),
+                       theme.read_docs("ABOUT.md",dl("关于文档")).replace("{{VERSION}}", __version__),
+                       self).exec()
 
     def check_updates(self) -> None:
         """帮助 → 检查更新（S2-3）：只查版本、只开下载页，**不做静默自更新**。

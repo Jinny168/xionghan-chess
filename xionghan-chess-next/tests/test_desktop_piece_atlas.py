@@ -269,8 +269,80 @@ def _load_preset(atlas: PieceAtlasDialog, key: str):
     return atlas._demo_board
 
 
+def _select_kind(atlas: PieceAtlasDialog, kind: PieceType) -> None:
+    """把左侧清单切到指定棋型（预设会随之重建）。"""
+    for row in range(atlas._list.count()):
+        if atlas._list.item(row).data(0x0100) == kind.value:
+            atlas._list.setCurrentRow(row)
+            QApplication.processEvents()
+            return
+    raise AssertionError(f"清单里没有 {kind.value}")
+
+
+def _preset_keys(atlas: PieceAtlasDialog) -> list[str]:
+    return [atlas._preset.itemData(i) for i in range(atlas._preset.count())]
+
+
+@pytest.mark.parametrize("kind", [PieceType.ROOK, PieceType.CANNON, PieceType.HORSE,
+                                  PieceType.PAWN, PieceType.PATROL])
+def test_non_diagonal_pieces_are_not_offered_pinch_demos(atlas, kind) -> None:
+    """车/炮/马/兵/巡没有斜走段 —— 不该给它们演示夹逼。"""
+    _select_kind(atlas, kind)
+    assert "clamp" not in _preset_keys(atlas)
+
+
+@pytest.mark.parametrize("kind", [PieceType.ADVISOR, PieceType.ELEPHANT, PieceType.GUARD,
+                                  PieceType.ARCHER, PieceType.THUNDER])
+def test_diagonal_pieces_are_offered_pinch_demos(atlas, kind) -> None:
+    _select_kind(atlas, kind)
+    assert "clamp" in _preset_keys(atlas)
+
+
+def test_only_the_king_gets_the_facing_demo(atlas: PieceAtlasDialog) -> None:
+    for kind in (PieceType.ROOK, PieceType.ADVISOR, PieceType.PAWN, PieceType.GUARD):
+        _select_kind(atlas, kind)
+        assert "facing" not in _preset_keys(atlas), f"{kind.value} 不该有照面演示"
+    _select_kind(atlas, PieceType.KING)
+    assert "facing" in _preset_keys(atlas)
+
+
+def test_clamp_demo_uses_the_selected_piece_as_subject(atlas: PieceAtlasDialog) -> None:
+    """夹逼演示的主角必须是左侧选中的那枚子（原来硬编码成射）。"""
+    for kind in (PieceType.GUARD, PieceType.ARCHER, PieceType.ELEPHANT):
+        _select_kind(atlas, kind)
+        board = _load_preset(atlas, "clamp")
+        subject = board.game.state.piece_at(Position(6, 6))
+        assert subject is not None and subject.type is kind, (
+            f"{kind.value} 的夹逼演示主角变成了 {subject.type if subject else None}")
+        assert not [m for m in board.legal if m.target == Position(9, 9)], "被夹逼的斜线不该给出落点"
+
+
+def test_pawn_three_line_demo_follows_the_toggle(qt_app: QApplication, config: dict) -> None:
+    on = PieceAtlasDialog(dict(config))
+    _select_kind(on, PieceType.PAWN)
+    assert "three" in _preset_keys(on), "完整模式默认开启三连，应提供演示"
+    on.close(); on.deleteLater()
+
+    off_config = dict(config)
+    off_config["rule_options"] = {"pawn_three_line_capture": False}
+    off = PieceAtlasDialog(off_config)
+    _select_kind(off, PieceType.PAWN)
+    assert "three" not in _preset_keys(off), "关掉三连后不该再演示它"
+    off.close(); off.deleteLater()
+
+
+def test_king_demo_never_shows_two_red_kings(atlas: PieceAtlasDialog) -> None:
+    _select_kind(atlas, PieceType.KING)
+    for preset in _preset_keys(atlas):
+        board = _load_preset(atlas, preset)
+        red_kings = [p for p in board.game.state.pieces
+                     if p.type is PieceType.KING and p.color is Color.RED]
+        assert len(red_kings) == 1, f"{preset} 局里出现了 {len(red_kings)} 个红王"
+
+
 def test_demo_preset_pinch_blocks_the_pinched_diagonal(atlas: PieceAtlasDialog) -> None:
     """夹逼局：射起点两侧都有子 → 同一条斜线再远的敌子也吃不到。"""
+    _select_kind(atlas, PieceType.ARCHER)
     board = _load_preset(atlas, "clamp")
     targets = [move.target for move in board.legal]
     assert Position(9, 9) not in targets, "被夹逼的斜线不该给出落点"
