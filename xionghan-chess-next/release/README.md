@@ -6,9 +6,9 @@
 
 ```bash
 # 在仓库根目录，用现有 spec（packaging/build_windows.spec），不要自创参数
-XIONGHAN_EXE_NAME="匈漢象棋-1.7.1-桌面版" \
+XIONGHAN_EXE_NAME="匈漢象棋-1.8.0-桌面版" \
   .venv/Scripts/pyinstaller.exe packaging/build_windows.spec \
-  --noconfirm --distpath release --workpath build/1.7.1
+  --noconfirm --distpath release --workpath build/1.8.0
 ```
 
 - 产物：`release/匈漢象棋-<版本>-桌面版.exe`（onefile，约 55 MB）
@@ -20,6 +20,7 @@ XIONGHAN_EXE_NAME="匈漢象棋-1.7.1-桌面版" \
 
 | 版本 | 内容 | 代码来源 |
 |---|---|---|
+| **1.8.0** | **座位 token 移出 query（改请求头 + WS 首帧，破坏性变更）+ 审计 P0/P1 修复（端点 500、僵尸房、广播去 replay、坐标越界、WS 64 KB、名字 24 码点、聊天 200 条、AI 看门狗）+ 网页令牌化与桌面危险色校正** | `53aa536` |
 | **1.7.5** | **新增「网页合成」音效包（复刻投稿版 WebAudio 合成，8 事件）+ 设置里「音效风格」切换** | `ae68a01` |
 | **1.7.4** | **尉与仕对调开局位（红 (12,6)↔(11,5)，黑镜像）—— 尉首着 0→4，其余子着数不变** | `756a938` |
 | **1.7.3** | **50 子布局（每方 25、11 型，甲/楯/刺 移除）+ 尉改标准主教 + 图谱三栏合并（演示盘/可写开关）+ 兵两开关暴露** | `3b30104` |
