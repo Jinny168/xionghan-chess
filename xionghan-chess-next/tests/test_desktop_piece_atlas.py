@@ -318,11 +318,14 @@ def test_toggling_a_switch_writes_config_and_offers_restart(qt_app: QApplication
 
     dialog._ask_restart = lambda: True          # 模拟点「现在重开」
     box = next(b for b in dialog._detail.findChildren(QCheckBox) if "直冲" in b.text())
-    box.setChecked(True)
+    # 完整模式默认开启冲锋，所以这里**反向**拨一次来验证"写回配置"这条链路；
+    # 若仍写成 setChecked(True)，在默认已勾选时不会发 toggled，测试会假绿。
+    assert box.isChecked(), "完整模式默认应已开启冲锋"
+    box.setChecked(False)
     QApplication.processEvents()
 
-    assert config["rule_options"]["pawn_charge"] is True
-    assert window_rules_have_charge(dialog), "规则应立刻按新开关重建"
+    assert config["rule_options"]["pawn_charge"] is False
+    assert window_rules_have_charge(dialog) is False, "规则应立刻按新开关重建"
     assert restarted == [1], "选「现在重开」必须回调 new_game"
     dialog.deleteLater()
 

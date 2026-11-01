@@ -601,16 +601,21 @@ class RulesEngine:
                 self.get(state, Position(move.source.row + forward * step, move.source.col)) is None
                 for step in range(1, distance)
             )
-        # 敌阵冲锋（开关，默认关）：过阴山后沿直线任意格前进，不吃子、路径须全空。
+        # 敌阵冲锋（开关）：过阴山后沿直线任意格前进，不吃子、路径须全空。
         # 放在"前进一格"之前，否则只会被一格判定截住。
+        #
+        # **只在能走通时返回 True，走不通就落到下面的常规判定**：
+        # 早期写成"落点有子一律 return False"，于是开启冲锋后，过河兵**连正前方一格吃子
+        # 都被禁掉**（冲锋的"不吃子"把常规吃子吞了）。实测后果：升变位的兵无法吃子，
+        # 连带 `in_check` 漏判（test_capture_specs 的 g5/g12 就是这条）。
+        # 现在：多格冲锋仍不吃子；一格吃子交回常规分支处理。
         if self.options.pawn_charge and dc == 0 and dr == forward * distance and distance >= 1:
-            if crossed:
-                if self.get(state, move.target):
-                    return False
-                return all(
+            if crossed and self.get(state, move.target) is None:
+                if all(
                     self.get(state, Position(move.source.row + forward * step, move.source.col)) is None
                     for step in range(1, distance)
-                )
+                ):
+                    return True
         if dr == forward and dc == 0:
             return True
         if crossed and dr == 0 and abs(dc) == 1:

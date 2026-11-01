@@ -299,7 +299,7 @@ def test_horse_parity_leg_block_and_straight_three():
         (PieceType.HORSE, Color.RED, 6, 4),
         (PieceType.PAWN, Color.RED, 5, 4),
         (PieceType.HORSE, Color.BLACK, 3, 4),
-    ])
+    ], options={"horse_blocked_by_leg": True})
     _assert_targets(game, (6, 4), [(5, 2), (5, 6), (7, 2), (7, 6),
                                    (6, 1), (6, 7), (8, 3), (8, 5), (9, 4)])
 
@@ -465,7 +465,8 @@ def test_pawn_fast_move_toggle_parity():
     # The leap window is measured from the river outwards: a red pawn only
     # qualifies from row 7 down (distance_to_enemy_territory >= 2), so row 5
     # keeps the plain single step plus the sideways move it earned by crossing.
-    own_side = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 4)])
+    own_side = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 4)],
+                       options={"pawn_charge": False})
     _assert_targets(own_side, (5, 4), [(4, 4), (5, 3), (5, 5)])
 
     # Row 7 qualifies: the two-step leap appears only with the option enabled.
@@ -543,13 +544,15 @@ def test_archer_weak_mode_lattice_parity():
     # The up-left ray is capped at two steps rather than three: (0,0) is a star
     # point, but it also holds the red king, and an archer cannot step onto its
     # own king. The other three rays reach their star point in full.
-    on_star = _sparse("desktop_complete", [(PieceType.ARCHER, Color.RED, 3, 3)])
+    on_star = _sparse("desktop_complete", [(PieceType.ARCHER, Color.RED, 3, 3)],
+                      options={"archer_enhanced_mode": False})
     _assert_targets(on_star, (3, 3), [
         (0, 6), (1, 1), (1, 5), (2, 2), (2, 4),
         (4, 2), (4, 4), (5, 1), (5, 5), (6, 0), (6, 6),
     ])
     # Off the lattice the weak archer has no reachable star point at all.
-    off_star = _sparse("desktop_complete", [(PieceType.ARCHER, Color.RED, 4, 4)])
+    off_star = _sparse("desktop_complete", [(PieceType.ARCHER, Color.RED, 4, 4)],
+                       options={"archer_enhanced_mode": False})
     _assert_targets(off_star, (4, 4), [(3, 3), (5, 5), (6, 6)])
 
 
@@ -608,7 +611,8 @@ def test_pawn_charge_toggle_parity():
     targets = _targets_from(_assert_parity(on), (5, 3))
     assert (2, 3) in targets and (0, 3) in targets
 
-    off = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 3)])
+    off = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 3)],
+                  options={"pawn_charge": False})
     assert (2, 3) not in _targets_from(_assert_parity(off), (5, 3))
 
     blocked = _sparse("desktop_complete", [

@@ -7,17 +7,23 @@ from xionghan_chess.core.profiles import get_profile
 
 def test_rule_options_can_be_overridden_without_mutating_profile():
     profile = get_profile("web")
-    options = profile.options.merged({"pawn_resurrection": True})
-    assert options.pawn_resurrection is True
-    assert profile.options.pawn_resurrection is False
+    assert profile.options.horse_straight_three_move_only is False
+    options = profile.options.merged({"horse_straight_three_move_only": True})
+    assert options.horse_straight_three_move_only is True
+    assert profile.options.horse_straight_three_move_only is False
 
 
-def test_archer_defaults_to_weak_mode_and_legacy_switch_is_migrated():
-    profile = get_profile("desktop_complete")
-    assert profile.options.archer_enhanced_mode is False
-    assert profile.options.merged({"archer_enhanced_mode": True}).archer_enhanced_mode is True
-    assert profile.options.merged({"archer_weak_mode": False}).archer_enhanced_mode is True
-    assert profile.options.merged({"archer_weak_mode": True}).archer_enhanced_mode is False
+def test_archer_enhancement_is_per_profile_and_legacy_switch_is_migrated():
+    """射的加强按档案而定：完整/精简=加强版，经典/传统=基础版；旧键仍能迁移。"""
+    complete = get_profile("desktop_complete")
+    assert complete.options.archer_enhanced_mode is True
+    assert get_profile("web").options.archer_enhanced_mode is True
+    assert get_profile("desktop_classic").options.archer_enhanced_mode is False
+
+    assert complete.options.merged({"archer_enhanced_mode": False}).archer_enhanced_mode is False
+    # 旧键 archer_weak_mode 与 archer_enhanced_mode 语义相反，迁移后必须逐值对应
+    assert complete.options.merged({"archer_weak_mode": False}).archer_enhanced_mode is True
+    assert complete.options.merged({"archer_weak_mode": True}).archer_enhanced_mode is False
 
 
 def test_piece_appearance_filters_initial_layout_but_king_is_mandatory():
@@ -80,5 +86,14 @@ def test_delivery_profiles_have_distinct_piece_sets() -> None:
     complete = get_profile("desktop_complete")
     assert len(complete.initial_pieces()) == 50, "完整档应为 50 子（每方 25）"
 
-    distinct = {frozenset(v) for v in sets.values()}
-    assert len(distinct) == len(sets), f"有档案的棋子集重复：{sorted(sets)}"
+    # 完整与经典**子集相同**（都部署全部 11 型），区别只在规则 —— 这是刻意设计：
+    # 用户换模式时只需理解"规则变不变"，不用重新认棋子。
+    assert sets["desktop_classic"] == sets["desktop_complete"], (
+        "经典模式应与完整模式部署同一批棋子，差异只来自规则")
+    assert get_profile("desktop_classic").options != get_profile("desktop_complete").options, (
+        "经典模式必须真的把传统棋子回退成经典规则，否则与完整模式没有区别")
+
+    # 精简模式去掉尉/巡，棋子集必须与前两者不同
+    assert sets["web"] not in (sets["desktop_complete"], sets["traditional"])
+    distinct = {frozenset(v) for k, v in sets.items() if k != "desktop_classic"}
+    assert len(distinct) == len(sets) - 1, f"有档案的棋子集重复：{sorted(sets)}"

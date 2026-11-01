@@ -20,9 +20,11 @@ def test_key_version_is_bumped() -> None:
 
 
 def test_same_board_different_options_yield_different_keys() -> None:
-    base = _game()
+    # 完整模式现在默认开启三连吃子，所以"关"的基线必须显式给，
+    # 否则 base 与 with_flag 是同一套选项、key 自然相同（断言会失去意义）。
+    base = _game(pawn_three_line_capture=False)
     with_flag = _game(pawn_three_line_capture=True)
-    no_promo = _game(pawn_promotion=False)
+    no_promo = _game(pawn_three_line_capture=False, pawn_promotion=False)
     keys = {base.rules.position_key(base.state),
             with_flag.rules.position_key(with_flag.state),
             no_promo.rules.position_key(no_promo.state)}

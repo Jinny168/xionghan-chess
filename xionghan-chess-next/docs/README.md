@@ -7,6 +7,7 @@
 | 文件 | 用途 | 是否权威 |
 |---|---|---|
 | [PIECE_RULES.md](PIECE_RULES.md) | 棋子行棋规则 | ✅ 权威 |
+| [GAME_MODES.md](GAME_MODES.md) | 三种对弈模式的定义、实现对照与验收清单 | ✅ 权威 |
 | [RULES.md](RULES.md) | 规则基线 | ✅ 权威 |
 
 ## ui · 界面与体验

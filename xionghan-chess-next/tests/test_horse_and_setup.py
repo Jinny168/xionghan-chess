@@ -35,12 +35,16 @@ def _horse_targets(extra: tuple[Piece, ...] = (), **overrides: object) -> set[tu
 
 # --- 别马腿 ---------------------------------------------------------------
 
-def test_horse_leg_blocking_is_on_by_default() -> None:
-    """默认别马腿：右腿被己兵堵住时，(5,8)/(7,8) 不可走，其余 6 处仍可走。"""
+def test_horse_leg_blocking_blocks_when_enabled() -> None:
+    """开启别马腿：右腿被己兵堵住时 (5,8)/(7,8) 不可走，其余 6 处仍可走。
+
+    注意"默认值"分档案而定：完整/精简模式关闭它（加强版），经典模式开启（传统）。
+    数据类的字段默认值仍是 True，这里先钉住这个默认，再验证开关行为。
+    """
     assert RuleOptions().horse_blocked_by_leg is True
 
     blocker = (Piece.create(PieceType.PAWN, Color.RED, 6, 7),)
-    targets = _horse_targets(blocker, horse_straight_three=False)
+    targets = _horse_targets(blocker, horse_straight_three=False, horse_blocked_by_leg=True)
 
     assert (5, 8) not in targets and (7, 8) not in targets, "马腿没生效"
     assert targets == {(4, 5), (4, 7), (5, 4), (7, 4), (8, 5), (8, 7)}
@@ -49,7 +53,7 @@ def test_horse_leg_blocking_is_on_by_default() -> None:
 def test_turning_leg_off_restores_chess_knight_moves() -> None:
     """关闭别马腿后走法同国际象棋：只多出被挡住的两格，其余不变。"""
     blocker = (Piece.create(PieceType.PAWN, Color.RED, 6, 7),)
-    blocked = _horse_targets(blocker, horse_straight_three=False)
+    blocked = _horse_targets(blocker, horse_straight_three=False, horse_blocked_by_leg=True)
     free = _horse_targets(blocker, horse_straight_three=False, horse_blocked_by_leg=False)
 
     assert free - blocked == {(5, 8), (7, 8)}, "关掉别马腿只该多出被腿挡住的两格"

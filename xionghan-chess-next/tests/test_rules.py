@@ -59,11 +59,15 @@ def test_archer_captures_through_blockers_but_moves_only_on_clear_path():
 
 
 def test_pawn_charge_is_opt_in_and_never_captures():
-    """兵冲锋：开关默认关；开启后过阴山可直线多格，但不吃子、遇子即停。"""
+    """兵冲锋：开启后过阴山可直线多格，但不吃子、遇子即停。
+
+    **默认值按模式而定**：完整/精简模式开启（加强版），经典/传统关闭。
+    本用例需要"关"的基线，所以显式关掉而不是依赖档案默认。
+    """
     red, black = kings()
     profile = get_profile("desktop_complete")
     on = RulesEngine(profile, profile.options.merged({"pawn_charge": True}))
-    off = RulesEngine(profile)
+    off = RulesEngine(profile, profile.options.merged({"pawn_charge": False}))
 
     pawn = piece(PieceType.PAWN, Color.RED, 5, 3)
     board = state(red, black, pawn)
@@ -87,11 +91,14 @@ def test_pawn_charge_is_opt_in_and_never_captures():
 
 
 def test_pawn_three_line_capture_is_opt_in():
-    """兵参与三连吃子：默认关；开启后「两枚己方兵 + 一枚敌子成线」吃掉敌子。"""
+    """兵参与三连吃子：开启后「两枚己方兵 + 一枚敌子成线」吃掉敌子。
+
+    默认值按模式而定（完整/精简开、经典/传统关），故基线显式关闭。
+    """
     red, black = kings()
     profile = get_profile("desktop_complete")
     on = RulesEngine(profile, profile.options.merged({"pawn_three_line_capture": True}))
-    off = RulesEngine(profile)
+    off = RulesEngine(profile, profile.options.merged({"pawn_three_line_capture": False}))
 
     board = state(red, black, piece(PieceType.PAWN, Color.RED, 7, 2),
                   piece(PieceType.PAWN, Color.RED, 6, 3),
@@ -226,11 +233,17 @@ def test_archer_default_mode_connects_corner_to_adjacent_star():
     assert not rules.pseudo_legal(board, Move(archer.position, Position(4, 4)))
 
 
-def test_archer_default_mode_stays_inside_one_valid_star_segment():
+def test_archer_base_mode_stays_inside_one_valid_star_segment():
+    """射的**基础**模式（经典/传统档案的默认）限于单个星位区间。
+
+    完整/精简模式是"加强射"（archer_enhanced_mode=True），射可自由斜走三格，
+    因此这里显式关掉加强项来测基础走法。
+    """
     red, black = kings()
     archer = piece(PieceType.ARCHER, Color.RED, 1, 1)
     board = state(red, black, archer)
-    rules = RulesEngine(get_profile("desktop_complete"))
+    _profile = get_profile("desktop_complete")
+    rules = RulesEngine(_profile, _profile.options.merged({"archer_enhanced_mode": False}))
     assert rules.pseudo_legal(board, Move(archer.position, Position(0, 0)))
     assert rules.pseudo_legal(board, Move(archer.position, Position(3, 3)))
     assert not rules.pseudo_legal(board, Move(archer.position, Position(4, 4)))

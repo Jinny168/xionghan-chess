@@ -238,21 +238,71 @@ ALL = frozenset(PieceType)
 WEB = STANDARD | {PieceType.ARCHER, PieceType.THUNDER}
 CLASSIC = WEB | {PieceType.PATROL}
 
+# ---------------------------------------------------------------------------
+# 三种对弈模式的规则基线（定义见 `docs/GAME_MODES.md`）
+#
+# 设计原则：**两个正交维度** —— 棋子构成（全子 / 减子）与规则强度（全加强 / 传统）。
+#   完整 = 全子 + 全加强
+#   经典 = 全子 + 传统棋子回退经典规则（特色棋子保留自身规则）
+#   精简 = 减子 + 全加强（差异只来自棋子构成，规则与完整完全一致）
+# 这样"少了几枚子"和"规则变不变"互不纠缠，用户换模式时只需理解一个变量。
+# ---------------------------------------------------------------------------
+
+# 完整模式：所有自定义规则开启、所有棋子加强。
+# 显式写出与默认值不同的四项 —— 只看这一处就知道"加强"加了什么。
+COMPLETE_OPTIONS = RuleOptions(
+    horse_blocked_by_leg=False,        # 加强：不别马腿（日字走法同国际象棋）
+    archer_enhanced_mode=True,         # 加强：射/䠶 自由斜走三格
+    pawn_charge=True,                  # 敌阵冲锋：过阴山后沿直线多格（不吃子）
+    pawn_three_line_capture=True,      # 兵参与三连吃子
+    # 其余项默认已是加强值：出宫/宫内斜走、仕出宫直走、相过河+敌境跳两格、
+    # 马直走三格、兵快速行军/底线后退/四向/复活/升变。
+)
+
+# 经典模式：**同样全子**，但士/象/马/兵/将回退到最经典的中国象棋走法。
+# 特色棋子（尉/射/檑/巡）没有"经典原型"，保留自身规则，故只关传统棋子的加强项。
+CLASSIC_OPTIONS = RuleOptions(
+    king_can_leave_palace=False,
+    king_diagonal_in_palace=False,
+    advisor_can_leave_palace=False,
+    advisor_gain_straight_outside_palace=False,
+    elephant_can_cross_river=False,
+    elephant_gain_jump_two_enemy_territory=False,
+    horse_blocked_by_leg=True,          # 经典：必别马腿
+    horse_straight_three=False,
+    horse_straight_three_move_only=False,
+    archer_enhanced_mode=False,
+    pawn_fast_move_before_enemy_territory=False,
+    pawn_backward_at_base=False,
+    pawn_full_movement_at_base=False,
+    pawn_resurrection=False,
+    pawn_promotion=False,
+    pawn_charge=False,
+    pawn_three_line_capture=False,
+    # 出宫关闭后 `king_lose_diagonal_outside_palace` / `advisor_gain_straight...` /
+    # `elephant_gain_jump_two...` 都成了无效项（引擎里本就被 `and` 住），
+    # 设置界面会按依赖表把它们置灰。
+)
+
+# 精简模式：棋子减到 9 型，规则**与完整模式完全一致**。
+WEB_OPTIONS = COMPLETE_OPTIONS
+
 PROFILES: dict[str, RuleProfile] = {
     "desktop_complete": RuleProfile(
         "desktop_complete", "完整模式", 13, 13,
         tuple(xionghan_side(Color.BLACK, True) + xionghan_side(Color.RED, True)), ALL,
-        RuleOptions(), RED_NAMES, BLACK_NAMES,
+        COMPLETE_OPTIONS, RED_NAMES, BLACK_NAMES,
     ),
     "desktop_classic": RuleProfile(
         "desktop_classic", "经典模式", 13, 13,
-        tuple(xionghan_side(Color.BLACK, False) + xionghan_side(Color.RED, False)), CLASSIC,
-        RuleOptions(), RED_NAMES, BLACK_NAMES,
+        # 与完整模式同一套布局、同一批兵种，只有规则不同
+        tuple(xionghan_side(Color.BLACK, True) + xionghan_side(Color.RED, True)), ALL,
+        CLASSIC_OPTIONS, RED_NAMES, BLACK_NAMES,
     ),
     "web": RuleProfile(
         "web", "精简模式", 13, 13,
         tuple(xionghan_side(Color.BLACK, False, True) + xionghan_side(Color.RED, False, True)), WEB,
-        RuleOptions(pawn_resurrection=False, pawn_promotion=False), RED_NAMES, BLACK_NAMES,
+        WEB_OPTIONS, RED_NAMES, BLACK_NAMES,
     ),
     "traditional": RuleProfile(
         "traditional", "传统象棋", 10, 9,
