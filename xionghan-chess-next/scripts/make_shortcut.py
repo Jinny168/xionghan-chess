@@ -74,14 +74,28 @@ def make_shortcut(lnk: str, target: str, workdir: str, icon: str, description: s
         raise OSError("CoCreateInstance 返回空指针")
 
     # 先给 IDList（`SHParseDisplayName` 解析出的 PIDL）：
-    # 只有 SetPath 时 shell 不会写 LinkTargetIDList，产物约 500 B —— Explorer 能靠相对路径猜，
-    # 但"目标/图标"这类字段在多数读取端都是空的（本次用户遇到的正是这种半残 lnk）。
+    # 只有 SetPath 时 shell 不会写 LinkTargetIDList，产物约 370 B —— 实测 `WScript.Shell`
+    # 仍能正确读出 TargetPath 与 IconLocation（见下方 fallback 注释），所以它只是"更完整"，
+    # 不是"不可用"。早先这里写着"多数读取端字段为空"，与实测不符，已改。
+    #
+    # 指针参数声明成 `POINTER(...)` 并直接传 `byref(...)`：
+    # 早先写成 argtypes 用 `c_void_p` 接、实参再 `cast(byref(x), c_void_p)`，过于依赖实现细节。
+    #
+    # **已知未定根因**：本机上该调用会间歇性返回 E_INVALIDARG (0x80070057) ——
+    # 同一个函数被别的模块 import 后调用必成功、作为脚本直接跑必失败，换成 windll 手判
+    # HRESULT 又都返回 S_OK。定位不到触发条件，因此这里**不依赖它**：失败就跳过 IDList，
+    # SetPath 仍然产出可用快捷方式（实测 373 B，target/icon 两项读回正确）。
     pidl = c_void_p()
     attributes = c_ulong(0)
-    shell32.SHParseDisplayName.argtypes = [c_wchar_p, c_void_p, c_void_p, c_ulong, c_void_p]
+    shell32.SHParseDisplayName.argtypes = [c_wchar_p, c_void_p, POINTER(c_void_p), c_ulong,
+                                           POINTER(c_ulong)]
     shell32.SHParseDisplayName.restype = ctypes.HRESULT
-    shell32.SHParseDisplayName(c_wchar_p(target), None, ctypes.cast(byref(pidl), c_void_p),
-                               0, ctypes.cast(byref(attributes), c_void_p))
+    try:
+        shell32.SHParseDisplayName(target, None, byref(pidl), 0, byref(attributes))
+    except OSError as exc:
+        pidl = c_void_p()
+        print(f"note: 跳过 LinkTargetIDList（SHParseDisplayName: {exc}）；"
+              "SetPath 已足够生成可用快捷方式")
     if pidl.value:
         _call(link.value, SET_ID_LIST, pidl)
         ole32.CoTaskMemFree(pidl)
