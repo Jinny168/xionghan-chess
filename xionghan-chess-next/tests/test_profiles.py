@@ -40,11 +40,11 @@ def test_original_desktop_option_names_are_migrated():
 
 
 
-def test_guard_and_advisor_are_swapped_at_the_opening() -> None:
-    """尉与仕对调（红 (11,5)↔(12,6)，黑镜像 (1,5)↔(0,6)）。
+def test_guard_sits_behind_king_and_advisors_flank_it() -> None:
+    """开局布局：尉在将**正后方**、士在将两侧各一枚（红 (11,5)/(11,7)）。
 
-    尉改成标准主教后，原来的 (12,6) 两侧斜格被两只仕同时占死、首着 0；
-    对调后尉首着 4，且仕/檑/王的首着数一格不变。
+    尉 (12,6) 的两条斜线正好被这两只士占住 → 首着 0。**这是刻意的平衡约束**，
+    不是缺陷（1.7.4 曾对调成尉 (11,5) 首着 4，用户明确该限制要保留）。
     """
     from xionghan_chess.core.model import Color
 
@@ -55,19 +55,20 @@ def test_guard_and_advisor_are_swapped_at_the_opening() -> None:
         return sum(1 for m in rules.legal_moves(game.state, color)
                    if (m.source.row, m.source.col) == (row, col))
 
-    # 红方：尉在 (11,5) 有 4 着；仕在 (12,6) 与 (11,7) 各 2 着
-    assert game.state.piece_at(Position(11, 5)).type is PieceType.GUARD
-    assert game.state.piece_at(Position(12, 6)).type is PieceType.ADVISOR
-    assert moves_from(11, 5, Color.RED) == 4
-    assert moves_from(12, 6, Color.RED) == 2
+    # 红方：尉在将后 (12,6) 首着 0；士在 (11,5)/(11,7) 各 2 着
+    assert game.state.piece_at(Position(12, 6)).type is PieceType.GUARD
+    assert game.state.piece_at(Position(11, 5)).type is PieceType.ADVISOR
+    assert game.state.piece_at(Position(11, 7)).type is PieceType.ADVISOR
+    assert moves_from(12, 6, Color.RED) == 0, "尉开局不该有子可动（强子的平衡约束）"
+    assert moves_from(11, 5, Color.RED) == 2
     assert moves_from(11, 7, Color.RED) == 2
 
-    # 黑方镜像逐位对称：(1,5) 是尉、(0,6) 是仕
-    assert game.state.piece_at(Position(1, 5)).type is PieceType.GUARD
-    assert game.state.piece_at(Position(0, 6)).type is PieceType.ADVISOR
-    assert moves_from(1, 5, Color.BLACK) == 4
-    assert moves_from(0, 6, Color.BLACK) == 2
-
+    # 黑方镜像逐位对称：尉 (0,6)、士 (1,5)/(1,7)
+    assert game.state.piece_at(Position(0, 6)).type is PieceType.GUARD
+    assert game.state.piece_at(Position(1, 5)).type is PieceType.ADVISOR
+    assert game.state.piece_at(Position(1, 7)).type is PieceType.ADVISOR
+    assert moves_from(0, 6, Color.BLACK) == 0
+    assert moves_from(1, 5, Color.BLACK) == 2
 
 def test_delivery_profiles_have_distinct_piece_sets() -> None:
     """各交付档的初始棋子集必须互不相同（否则"选档案"没有意义）。"""

@@ -502,9 +502,16 @@ class RulesEngine:
         dr, dc = move.target.row - move.source.row, move.target.col - move.source.col
         ar, ac = abs(dr), abs(dc)
         if self.options.horse_straight_three and ((ar == 3 and ac == 0) or (ar == 0 and ac == 3)):
+            # 直走三格：默认可吃子；开"仅可移动"后是纯机动手段。
+            # 口径与兵冲锋一致 —— 落点有子就整着不合法（不是"吃掉但不计入胜负"）。
+            if self.options.horse_straight_three_move_only and self.get(state, move.target) is not None:
+                return False
             return self._clear(state, move.source, move.target)
         if (ar, ac) not in {(2, 1), (1, 2)}:
             return False
+        # 别马腿只管日字这一路；直走三格没有"马腿"概念，不受这个开关影响。
+        if not self.options.horse_blocked_by_leg:
+            return True
         leg = Position(move.source.row + (dr // 2 if ar == 2 else 0),
                        move.source.col + (dc // 2 if ac == 2 else 0))
         return self.get(state, leg) is None

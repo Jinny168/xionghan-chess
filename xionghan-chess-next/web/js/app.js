@@ -66,7 +66,7 @@ const pieceLabels = {
 };
 const pieceRuleKeys={
   king:['king_can_leave_palace','king_diagonal_in_palace','king_lose_diagonal_outside_palace','invasion_victory'],
-  horse:['horse_straight_three'],elephant:['elephant_can_cross_river','elephant_gain_jump_two_enemy_territory'],
+  horse:['horse_blocked_by_leg','horse_straight_three','horse_straight_three_move_only'],elephant:['elephant_can_cross_river','elephant_gain_jump_two_enemy_territory'],
   advisor:['advisor_can_leave_palace','advisor_gain_straight_outside_palace'],
   pawn:['pawn_fast_move_before_enemy_territory','pawn_charge','pawn_three_line_capture','pawn_backward_at_base','pawn_full_movement_at_base','pawn_resurrection','pawn_promotion'],
   archer:['archer_enhanced_mode']
@@ -238,7 +238,11 @@ $('#settingsButton').onclick=()=>{
     // select instead of a checkbox; the "" value means "off" (0 disables the check).
     +`<label>${t('rule.no_progress_draw_plies')} <select data-option-int="no_progress_draw_plies">${[0,60,120,180,240].map(plies=>`<option value="${plies}" ${Number(app.options.no_progress_draw_plies)===plies?'selected':''}>${plies||t('settings.no_progress_off')}</option>`).join('')}</select></label>`;
   const pieces=Object.entries(pieceLabels).map(([kind])=>{const key=`${kind}_appear`,enabled=available.has(kind),mandatory=kind==='king',rules=(pieceRuleKeys[kind]||[]).map(rule=>`<label><input type="checkbox" data-option="${rule}" ${app.options[rule]!==false?'checked':''}>${t(`rule.${rule}`)}</label>`).join('');return `<fieldset class="piece-rule-group ${enabled?'':'unavailable'}"><legend>${t(`piece.${kind}`)}</legend><p>${ruleText(kind)}</p><label><input type="checkbox" data-option="${key}" ${mandatory||app.options[key]!==false?'checked':''} ${!enabled||mandatory?'disabled':''}>${t('settings.piece_appear')}</label>${rules}</fieldset>`}).join('');
-  root.innerHTML=`<fieldset><legend>${t('settings.general_rules')}</legend><div class="option-grid">${general}</div></fieldset><div class="piece-rule-list">${pieces}</div>`;applyPreferences();$('#settingsDialog').showModal();startMusic()
+  root.innerHTML=`<fieldset><legend>${t('settings.general_rules')}</legend><div class="option-grid">${general}</div></fieldset><div class="piece-rule-list">${pieces}</div>`;applyPreferences();
+  // 规则依赖：上游关掉时把"必然失效"的下游置灰（引擎里本来就被 and 住，置灰只是把真相显式化）。
+  const syncDependencies=()=>{const deps=profile?.optionDependencies||{};for(const [child,parents] of Object.entries(deps)){const box=root.querySelector(`[data-option="${child}"]`);if(!box)continue;const enabled=parents.every(parent=>{const source=root.querySelector(`[data-option="${parent}"]`);return !source||source.checked});box.disabled=!enabled;box.title=enabled?'':t('rule.depends_disabled')}};
+  syncDependencies();root.onchange=e=>{if(e.target.dataset?.option)syncDependencies()};
+  $('#settingsDialog').showModal();startMusic()
 };
 $('#applySettings').onclick=()=>{app.options={...app.options};document.querySelectorAll('[data-option]').forEach(input=>{if(!input.disabled||input.dataset.option==='king_appear')app.options[input.dataset.option]=input.checked});document.querySelectorAll('[data-option-int]').forEach(input=>{app.options[input.dataset.optionInt]=Number(input.value)});app.options.king_appear=true;setTimeout(createGame)};
 $('#resultRestart').onclick=()=>{$('#resultDialog').close();createGame()};

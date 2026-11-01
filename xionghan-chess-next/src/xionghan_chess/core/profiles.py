@@ -29,6 +29,8 @@ class RuleOptions:
     elephant_can_cross_river: bool = True
     elephant_gain_jump_two_enemy_territory: bool = True
     horse_straight_three: bool = True
+    horse_blocked_by_leg: bool = True          # 别马腿；关闭后日字走法同国际象棋
+    horse_straight_three_move_only: bool = False  # 直走三格仅可移动、不可吃子（依赖 horse_straight_three）
     archer_enhanced_mode: bool = False
     pawn_fast_move_before_enemy_territory: bool = True
     pawn_backward_at_base: bool = True
@@ -63,6 +65,10 @@ class RuleOptions:
             "xiang_can_cross_river": "elephant_can_cross_river",
             "xiang_gain_jump_two_outside_river": "elephant_gain_jump_two_enemy_territory",
             "ma_can_straight_three": "horse_straight_three",
+            "ma_blocked_by_leg": "horse_blocked_by_leg",
+            "horse_blocked_by_leg_enabled": "horse_blocked_by_leg",
+            "ma_straight_three_move_only": "horse_straight_three_move_only",
+            "horse_straight_three_move_only_enabled": "horse_straight_three_move_only",
             "pawn_fast_move": "pawn_fast_move_before_enemy_territory",
             "pawn_fast_move_enabled": "pawn_fast_move_before_enemy_territory",
             "pawn_fast_move_before_enemy_territory_enabled": "pawn_fast_move_before_enemy_territory",
@@ -94,6 +100,31 @@ class RuleOptions:
         if piece_type is PieceType.KING:
             return True
         return bool(getattr(self, f"{piece_type.value}_appear"))
+
+
+# 规则之间的**单向依赖**：值 = 该选项要成立，必须先开启的上游选项。
+#
+# 只登记"关掉上游后，下游必然无意义"的边 —— 判据是**在引擎里下游已被上游 `and` 住**
+# （`rules.py` 里能指出 `X and Y` 的地方），不是"感觉相关"。
+# 例：`advisor_gain_straight_outside_palace` 在 `_advisor` 里写成
+# `straight and advisor_can_leave_palace and advisor_gain_straight_outside_palace`，
+# 所以出宫关掉后它必然是死开关，UI 该置灰而不是让用户以为设了有用。
+OPTION_DEPENDS_ON: dict[str, tuple[str, ...]] = {
+    "king_lose_diagonal_outside_palace": ("king_can_leave_palace",),
+    "advisor_gain_straight_outside_palace": ("advisor_can_leave_palace",),
+    "elephant_gain_jump_two_enemy_territory": ("elephant_can_cross_river",),
+    "horse_straight_three_move_only": ("horse_straight_three",),
+}
+
+
+def option_enabled_by(options: "RuleOptions", key: str) -> bool:
+    """该选项的上游是否全部开启；没有依赖项时恒为 True。"""
+    return all(bool(getattr(options, parent, True)) for parent in OPTION_DEPENDS_ON.get(key, ()))
+
+
+def option_dependencies() -> dict[str, list[str]]:
+    """给三端 UI 用的依赖表（JSON 友好：list 而不是 tuple）。"""
+    return {child: list(parents) for child, parents in OPTION_DEPENDS_ON.items()}
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,12 +184,13 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
     flip = (lambda row: XIONGHAN_ROWS - 1 - row) if color is Color.RED else (lambda row: row)
     items: list[tuple[PieceType, int, int]] = []
     if complete:
-        # 软删甲/楯/刺：后排只保留射、仕、檑
-        # 尉与仕对调（(0,6)↔(1,5)）：尉改主教后原本两侧斜格被两只仕同时占死、首着 0，
-        # 玩家不愿动仕 → 整局可能不动尉。对调后尉首着 4，且仕/檑/王的首着数完全不变。
+        # 软删甲/楯/刺：后排只保留射、尉、檑。
+        # 尉固定压在将/帅**正后方**（红 (12,6) / 黑 (0,6)，主教的斜线正好被两只士占住
+        # → 首着 0）。这是刻意的平衡约束：尉是最强子，开局不许它自己先动，
+        # 必须先腾士位才能出动。别再"顺手优化"成首着 4，那会把这个限制抹掉。
         items += [
             (PieceType.ARCHER, 0, 0), (PieceType.THUNDER, 0, 4),
-            (PieceType.ADVISOR, 0, 6), (PieceType.THUNDER, 0, 8),
+            (PieceType.GUARD, 0, 6), (PieceType.THUNDER, 0, 8),
             (PieceType.ARCHER, 0, 12),
         ]
     elif web:
@@ -171,9 +203,10 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
             (PieceType.ARCHER, 0, 0), (PieceType.THUNDER, 0, 4),
             (PieceType.THUNDER, 0, 8), (PieceType.ARCHER, 0, 12),
         ]
+    # 士按传统象棋对称布在将/帅两侧（红 (11,5)/(11,7)、黑 (1,5)/(1,7)），共 2 枚。
     items += [
         (PieceType.ROOK, 1, 2), (PieceType.HORSE, 1, 3),
-        (PieceType.ELEPHANT, 1, 4), (PieceType.GUARD, 1, 5),
+        (PieceType.ELEPHANT, 1, 4), (PieceType.ADVISOR, 1, 5),
         (PieceType.KING, 1, 6), (PieceType.ADVISOR, 1, 7),
         (PieceType.ELEPHANT, 1, 8), (PieceType.HORSE, 1, 9),
         (PieceType.ROOK, 1, 10), (PieceType.CANNON, 3, 1),

@@ -321,6 +321,36 @@ def test_horse_straight_three_toggle_parity():
     assert (3, 4) not in _targets_from(_assert_parity(classic), (6, 4))
 
 
+def test_horse_leg_toggle_parity():
+    """关闭"别马腿"= 国际象棋的马：只多出被腿挡住的两格，两端判定必须一致。"""
+    placements = [(PieceType.HORSE, Color.RED, 6, 4),
+                  (PieceType.PAWN, Color.RED, 5, 4)]      # 正上方 = (4,3)/(4,5) 的马腿
+    on = _sparse("desktop_complete", placements,
+                 options={"horse_straight_three": False, "horse_blocked_by_leg": True})
+    off = _sparse("desktop_complete", placements,
+                  options={"horse_straight_three": False, "horse_blocked_by_leg": False})
+    blocked = _targets_from(_assert_parity(on), (6, 4))
+    freed = _targets_from(_assert_parity(off), (6, 4))
+    assert freed - blocked == {(4, 3), (4, 5)}, "关掉别马腿只该多出被挡住的两格"
+    assert blocked - freed == set()
+
+
+def test_horse_straight_three_move_only_parity():
+    """直走三格"仅可移动"：落点有敌子不可吃，落点为空照走；两端一致。"""
+    landing = (6, 7)          # 从 (6,4) 直走三格的落点
+    enemy = _sparse("desktop_complete",
+                    [(PieceType.HORSE, Color.RED, 6, 4),
+                     (PieceType.PAWN, Color.BLACK, 6, 7)],
+                    options={"horse_straight_three": True,
+                             "horse_straight_three_move_only": True})
+    assert landing not in _targets_from(_assert_parity(enemy), (6, 4))
+
+    quiet = _sparse("desktop_complete", [(PieceType.HORSE, Color.RED, 6, 4)],
+                    options={"horse_straight_three": True,
+                             "horse_straight_three_move_only": True})
+    assert landing in _targets_from(_assert_parity(quiet), (6, 4))
+
+
 def test_elephant_parity_eye_and_two_step_crossing():
     game = _sparse("desktop_complete", [
         (PieceType.ELEPHANT, Color.RED, 9, 4),

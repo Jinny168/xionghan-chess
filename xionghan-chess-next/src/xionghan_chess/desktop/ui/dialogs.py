@@ -29,7 +29,8 @@ from PySide6.QtWidgets import (
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, PieceType
-from xionghan_chess.core.profiles import PROFILES, profile_rule_values
+from xionghan_chess.core.profiles import (OPTION_DEPENDS_ON, PROFILES,
+                                          profile_rule_values)
 from xionghan_chess.core.setup import profile_slots
 from xionghan_chess.core.storage import game_from_document
 from xionghan_chess.i18n import normalize_language, t
@@ -170,7 +171,7 @@ class SettingsDialog(QDialog):
         piece_definitions={
             PieceType.KING:("piece.king_label","piece_rule.king_long",("king_can_leave_palace","king_diagonal_in_palace","king_lose_diagonal_outside_palace","invasion_victory")),
             PieceType.ROOK:("piece.rook_label","piece_rule.rook_long",()),
-            PieceType.HORSE:("piece.horse_label","piece_rule.horse_long",("horse_straight_three",)),
+            PieceType.HORSE:("piece.horse_label","piece_rule.horse_long",("horse_blocked_by_leg","horse_straight_three","horse_straight_three_move_only")),
             PieceType.ELEPHANT:("piece.elephant_label","piece_rule.elephant_long",("elephant_can_cross_river","elephant_gain_jump_two_enemy_territory")),
             PieceType.ADVISOR:("piece.advisor_label","piece_rule.advisor_long",("advisor_can_leave_palace","advisor_gain_straight_outside_palace")),
             PieceType.CANNON:("piece.cannon_label","piece_rule.cannon_long",()),
@@ -193,7 +194,7 @@ class SettingsDialog(QDialog):
         content_layout.addStretch()
         self.checks["king_appear"].setChecked(True);self.checks["king_appear"].setEnabled(False)
         scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(content);tabs.addTab(scroll,t("settings.piece_rules_tab", self.language))
-        self.profile.currentIndexChanged.connect(self._profile_changed);self._update_piece_availability()
+        self.profile.currentIndexChanged.connect(self._profile_changed);self._update_piece_availability();self._sync_option_dependencies()
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText(t("action.confirm", self.language));buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("action.cancel", self.language))
         buttons.accepted.connect(self.accept);buttons.rejected.connect(self.reject);layout.addWidget(buttons)
@@ -242,6 +243,35 @@ class SettingsDialog(QDialog):
         for key, check in self.checks.items():
             check.setChecked(bool(values.get(key, False)))
         self._update_piece_availability()
+        self._sync_option_dependencies()
+
+    def _sync_option_dependencies(self) -> None:
+        """上游关掉时，把"必然失效"的下游开关置灰并说明原因。
+
+        引擎侧本来就有 `and` 守卫（如 `straight and advisor_can_leave_palace and ...`），
+        所以置灰只是**把真相显式说出来**，不改任何判定结果；关掉上游时下游的勾选值保留，
+        重新开启上游即恢复原设置。
+        """
+        for child, parents in OPTION_DEPENDS_ON.items():
+            box = self.checks.get(child)
+            if box is None:
+                continue
+            sources = [self.checks[p] for p in parents if p in self.checks]
+            if not sources:
+                continue
+            if not hasattr(box, "_dependency_sources"):
+                # 只接一次信号，避免 profile 切换时重复连接
+                for source in sources:
+                    source.toggled.connect(
+                        lambda _checked=False, target=box, group=sources: self._apply_dependency(target, group))
+                box._dependency_sources = sources
+            self._apply_dependency(box, sources)
+
+    def _apply_dependency(self, box, sources) -> None:
+        enabled = all(source.isChecked() for source in sources)
+        if box.isEnabled() != enabled:
+            box.setEnabled(enabled)
+        box.setToolTip("" if enabled else t("rule.depends_disabled", self.language))
 
     def value(self) -> dict:
         self._capture_profile_values()

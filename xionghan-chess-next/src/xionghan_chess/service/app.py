@@ -20,7 +20,7 @@ from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.avatars import normalize_avatar
 from xionghan_chess.core.game import GameError
 from xionghan_chess.core.model import Color, PieceType, Position
-from xionghan_chess.core.profiles import PROFILES
+from xionghan_chess.core.profiles import PROFILES, option_dependencies
 from xionghan_chess.core.protocol import Envelope, MessageType
 from .rooms import Room, RoomManager
 from xionghan_chess.core.rules import archer_star_points
@@ -209,7 +209,10 @@ async def profiles() -> list[dict]:
              # `profile.pieces` instead of a hard coded rank.
              "pawnHomeSquares": [{"row": spec.row, "col": spec.col}
                                  for spec in p.pieces if spec.type is PieceType.PAWN],
-             "options": asdict(p.options)} for p in PROFILES.values()]
+             "options": asdict(p.options),
+             # 规则依赖：子键要成立必须先开启的上游键。三端 UI 用它把"上游关掉后
+             # 必然无意义"的开关置灰，避免用户以为设了有用（引擎侧本来就有 and 守卫）。
+             "optionDependencies": option_dependencies()} for p in PROFILES.values()]
 
 
 
