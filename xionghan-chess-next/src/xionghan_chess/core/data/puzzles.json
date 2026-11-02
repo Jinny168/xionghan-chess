@@ -4,7 +4,6 @@
     "title": "兵卒初动",
     "difficulty": "beginner",
     "description": "走法练习：熟悉匈汉棋盘上兵的前进方向。",
-    "profileId": "web",
     "solution": [
       {
         "from": {
@@ -25,14 +24,438 @@
       "基础",
       "兵卒",
       "drill"
-    ]
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 3,
+      "profileId": "web",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": true,
+        "pawn_full_movement_at_base": true,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "web",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "d10283a30c6a",
+            "type": "archer",
+            "color": "black",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "id": "c309a25a0f5f",
+            "type": "thunder",
+            "color": "black",
+            "row": 0,
+            "col": 4
+          },
+          {
+            "id": "a37534ae2b6e",
+            "type": "thunder",
+            "color": "black",
+            "row": 0,
+            "col": 8
+          },
+          {
+            "id": "6aae494e7c6a",
+            "type": "archer",
+            "color": "black",
+            "row": 0,
+            "col": 12
+          },
+          {
+            "id": "ca82225c1a87",
+            "type": "rook",
+            "color": "black",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "id": "481dd7c815be",
+            "type": "horse",
+            "color": "black",
+            "row": 1,
+            "col": 3
+          },
+          {
+            "id": "36d955eaf40f",
+            "type": "elephant",
+            "color": "black",
+            "row": 1,
+            "col": 4
+          },
+          {
+            "id": "38631b641102",
+            "type": "advisor",
+            "color": "black",
+            "row": 1,
+            "col": 5
+          },
+          {
+            "id": "19b7932d9475",
+            "type": "king",
+            "color": "black",
+            "row": 1,
+            "col": 6
+          },
+          {
+            "id": "a93e7757f171",
+            "type": "advisor",
+            "color": "black",
+            "row": 1,
+            "col": 7
+          },
+          {
+            "id": "a9ee30227903",
+            "type": "elephant",
+            "color": "black",
+            "row": 1,
+            "col": 8
+          },
+          {
+            "id": "200c736f06f8",
+            "type": "horse",
+            "color": "black",
+            "row": 1,
+            "col": 9
+          },
+          {
+            "id": "4e08275dc612",
+            "type": "rook",
+            "color": "black",
+            "row": 1,
+            "col": 10
+          },
+          {
+            "id": "b55215f53fb5",
+            "type": "cannon",
+            "color": "black",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "id": "553788504b6c",
+            "type": "cannon",
+            "color": "black",
+            "row": 3,
+            "col": 11
+          },
+          {
+            "id": "d6cfafe61ee6",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 0
+          },
+          {
+            "id": "5062d269e3eb",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 2
+          },
+          {
+            "id": "ab25c2b98d3a",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 4
+          },
+          {
+            "id": "544606797f66",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 6
+          },
+          {
+            "id": "69e8af3c05ff",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 8
+          },
+          {
+            "id": "91d1fdd2bc29",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 10
+          },
+          {
+            "id": "1b0de122bd86",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 12
+          },
+          {
+            "id": "5f3e7c2ac6fb",
+            "type": "archer",
+            "color": "red",
+            "row": 12,
+            "col": 0
+          },
+          {
+            "id": "bb4ae212e6b4",
+            "type": "thunder",
+            "color": "red",
+            "row": 12,
+            "col": 4
+          },
+          {
+            "id": "3bb69ce29f93",
+            "type": "thunder",
+            "color": "red",
+            "row": 12,
+            "col": 8
+          },
+          {
+            "id": "6816af867882",
+            "type": "archer",
+            "color": "red",
+            "row": 12,
+            "col": 12
+          },
+          {
+            "id": "62c41a2f0c37",
+            "type": "rook",
+            "color": "red",
+            "row": 11,
+            "col": 2
+          },
+          {
+            "id": "378f7fe9ca08",
+            "type": "horse",
+            "color": "red",
+            "row": 11,
+            "col": 3
+          },
+          {
+            "id": "5f29784bc982",
+            "type": "elephant",
+            "color": "red",
+            "row": 11,
+            "col": 4
+          },
+          {
+            "id": "9d671abf4344",
+            "type": "advisor",
+            "color": "red",
+            "row": 11,
+            "col": 5
+          },
+          {
+            "id": "8d402cef651e",
+            "type": "king",
+            "color": "red",
+            "row": 11,
+            "col": 6
+          },
+          {
+            "id": "cefae5b9856d",
+            "type": "advisor",
+            "color": "red",
+            "row": 11,
+            "col": 7
+          },
+          {
+            "id": "9e6658b43d89",
+            "type": "elephant",
+            "color": "red",
+            "row": 11,
+            "col": 8
+          },
+          {
+            "id": "c7d33a2f7667",
+            "type": "horse",
+            "color": "red",
+            "row": 11,
+            "col": 9
+          },
+          {
+            "id": "acf1b5fb1522",
+            "type": "rook",
+            "color": "red",
+            "row": 11,
+            "col": 10
+          },
+          {
+            "id": "62cc9c75d4b3",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 1
+          },
+          {
+            "id": "225108f6c9ed",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 11
+          },
+          {
+            "id": "32c67706a39c",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 0
+          },
+          {
+            "id": "529e2c1cf81d",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 2
+          },
+          {
+            "id": "83102bdcbc46",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 4
+          },
+          {
+            "id": "3e5911bec22c",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 6
+          },
+          {
+            "id": "4566c13e4b9c",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 8
+          },
+          {
+            "id": "8d36dab367b1",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 10
+          },
+          {
+            "id": "56bb04380d54",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 12
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 600000,
+          "black": 600000
+        }
+      },
+      "savedAt": "2026-11-02T21:41:45"
+    }
   },
   {
     "id": "beginner-cannon-01",
     "title": "架炮出营",
     "difficulty": "beginner",
     "description": "走法练习：找到炮在无阻挡直线上的安全展开点。",
-    "profileId": "traditional",
     "solution": [
       {
         "from": {
@@ -53,14 +476,342 @@
       "基础",
       "炮",
       "drill"
-    ]
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 3,
+      "profileId": "traditional",
+      "options": {
+        "king_can_leave_palace": false,
+        "king_diagonal_in_palace": false,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": false,
+        "advisor_can_leave_palace": false,
+        "advisor_gain_straight_outside_palace": false,
+        "elephant_can_cross_river": false,
+        "elephant_gain_jump_two_enemy_territory": false,
+        "horse_straight_three": false,
+        "horse_blocked_by_leg": true,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": false,
+        "pawn_fast_move_before_enemy_territory": false,
+        "pawn_backward_at_base": false,
+        "pawn_full_movement_at_base": false,
+        "pawn_resurrection": false,
+        "pawn_promotion": false,
+        "pawn_charge": false,
+        "pawn_three_line_capture": false,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:rook:9:0",
+          "red:horse:9:1",
+          "red:elephant:9:2",
+          "red:advisor:9:3",
+          "red:king:9:4",
+          "red:advisor:9:5",
+          "red:elephant:9:6",
+          "red:horse:9:7",
+          "red:rook:9:8",
+          "red:cannon:7:1",
+          "red:cannon:7:7",
+          "red:pawn:6:0",
+          "red:pawn:6:2",
+          "red:pawn:6:4",
+          "red:pawn:6:6",
+          "red:pawn:6:8"
+        ],
+        "blackSlots": [
+          "black:rook:0:0",
+          "black:horse:0:1",
+          "black:elephant:0:2",
+          "black:advisor:0:3",
+          "black:king:0:4",
+          "black:advisor:0:5",
+          "black:elephant:0:6",
+          "black:horse:0:7",
+          "black:rook:0:8",
+          "black:cannon:2:1",
+          "black:cannon:2:7",
+          "black:pawn:3:0",
+          "black:pawn:3:2",
+          "black:pawn:3:4",
+          "black:pawn:3:6",
+          "black:pawn:3:8"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "traditional",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "6c27574c67d7",
+            "type": "rook",
+            "color": "black",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "id": "89d659df0f0e",
+            "type": "horse",
+            "color": "black",
+            "row": 0,
+            "col": 1
+          },
+          {
+            "id": "7f9d723c8a90",
+            "type": "elephant",
+            "color": "black",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "id": "636c91e45b90",
+            "type": "advisor",
+            "color": "black",
+            "row": 0,
+            "col": 3
+          },
+          {
+            "id": "6f5f5da8cf6a",
+            "type": "king",
+            "color": "black",
+            "row": 0,
+            "col": 4
+          },
+          {
+            "id": "ee9118158442",
+            "type": "advisor",
+            "color": "black",
+            "row": 0,
+            "col": 5
+          },
+          {
+            "id": "b3bcb6d4b69e",
+            "type": "elephant",
+            "color": "black",
+            "row": 0,
+            "col": 6
+          },
+          {
+            "id": "837ef2e51228",
+            "type": "horse",
+            "color": "black",
+            "row": 0,
+            "col": 7
+          },
+          {
+            "id": "500d6286e1a2",
+            "type": "rook",
+            "color": "black",
+            "row": 0,
+            "col": 8
+          },
+          {
+            "id": "ccf9037544dd",
+            "type": "cannon",
+            "color": "black",
+            "row": 2,
+            "col": 1
+          },
+          {
+            "id": "c7e22c269ac9",
+            "type": "cannon",
+            "color": "black",
+            "row": 2,
+            "col": 7
+          },
+          {
+            "id": "7d32e199f5d1",
+            "type": "pawn",
+            "color": "black",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "id": "ed4dcacf8dde",
+            "type": "pawn",
+            "color": "black",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "id": "9d9a2175a38b",
+            "type": "pawn",
+            "color": "black",
+            "row": 3,
+            "col": 4
+          },
+          {
+            "id": "92e1a905a346",
+            "type": "pawn",
+            "color": "black",
+            "row": 3,
+            "col": 6
+          },
+          {
+            "id": "cbf948dd3e33",
+            "type": "pawn",
+            "color": "black",
+            "row": 3,
+            "col": 8
+          },
+          {
+            "id": "d9e669952403",
+            "type": "rook",
+            "color": "red",
+            "row": 9,
+            "col": 0
+          },
+          {
+            "id": "ac4efa887a6b",
+            "type": "horse",
+            "color": "red",
+            "row": 9,
+            "col": 1
+          },
+          {
+            "id": "94b6b97d661e",
+            "type": "elephant",
+            "color": "red",
+            "row": 9,
+            "col": 2
+          },
+          {
+            "id": "e13e0d2d4798",
+            "type": "advisor",
+            "color": "red",
+            "row": 9,
+            "col": 3
+          },
+          {
+            "id": "8b966e203f17",
+            "type": "king",
+            "color": "red",
+            "row": 9,
+            "col": 4
+          },
+          {
+            "id": "283b04189488",
+            "type": "advisor",
+            "color": "red",
+            "row": 9,
+            "col": 5
+          },
+          {
+            "id": "badb1946f72d",
+            "type": "elephant",
+            "color": "red",
+            "row": 9,
+            "col": 6
+          },
+          {
+            "id": "a1d98f7427d3",
+            "type": "horse",
+            "color": "red",
+            "row": 9,
+            "col": 7
+          },
+          {
+            "id": "d9a57ff64456",
+            "type": "rook",
+            "color": "red",
+            "row": 9,
+            "col": 8
+          },
+          {
+            "id": "2671f36e3cce",
+            "type": "cannon",
+            "color": "red",
+            "row": 7,
+            "col": 1
+          },
+          {
+            "id": "3851a9a5413c",
+            "type": "cannon",
+            "color": "red",
+            "row": 7,
+            "col": 7
+          },
+          {
+            "id": "129f34548539",
+            "type": "pawn",
+            "color": "red",
+            "row": 6,
+            "col": 0
+          },
+          {
+            "id": "c051b0941d6e",
+            "type": "pawn",
+            "color": "red",
+            "row": 6,
+            "col": 2
+          },
+          {
+            "id": "bc4f0a930923",
+            "type": "pawn",
+            "color": "red",
+            "row": 6,
+            "col": 4
+          },
+          {
+            "id": "5a37cedb68db",
+            "type": "pawn",
+            "color": "red",
+            "row": 6,
+            "col": 6
+          },
+          {
+            "id": "1ee7d0b22ca7",
+            "type": "pawn",
+            "color": "red",
+            "row": 6,
+            "col": 8
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 600000,
+          "black": 600000
+        }
+      },
+      "savedAt": "2026-11-02T21:41:45"
+    }
   },
   {
     "id": "beginner-horse-01",
     "title": "跃马争先",
     "difficulty": "beginner",
     "description": "走法练习：练习马的日字移动与蹩马腿判断。",
-    "profileId": "traditional",
     "solution": [
       {
         "from": {
@@ -81,14 +832,342 @@
       "基础",
       "马",
       "drill"
-    ]
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 3,
+      "profileId": "traditional",
+      "options": {
+        "king_can_leave_palace": false,
+        "king_diagonal_in_palace": false,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": false,
+        "advisor_can_leave_palace": false,
+        "advisor_gain_straight_outside_palace": false,
+        "elephant_can_cross_river": false,
+        "elephant_gain_jump_two_enemy_territory": false,
+        "horse_straight_three": false,
+        "horse_blocked_by_leg": true,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": false,
+        "pawn_fast_move_before_enemy_territory": false,
+        "pawn_backward_at_base": false,
+        "pawn_full_movement_at_base": false,
+        "pawn_resurrection": false,
+        "pawn_promotion": false,
+        "pawn_charge": false,
+        "pawn_three_line_capture": false,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:rook:9:0",
+          "red:horse:9:1",
+          "red:elephant:9:2",
+          "red:advisor:9:3",
+          "red:king:9:4",
+          "red:advisor:9:5",
+          "red:elephant:9:6",
+          "red:horse:9:7",
+          "red:rook:9:8",
+          "red:cannon:7:1",
+          "red:cannon:7:7",
+          "red:pawn:6:0",
+          "red:pawn:6:2",
+          "red:pawn:6:4",
+          "red:pawn:6:6",
+          "red:pawn:6:8"
+        ],
+        "blackSlots": [
+          "black:rook:0:0",
+          "black:horse:0:1",
+          "black:elephant:0:2",
+          "black:advisor:0:3",
+          "black:king:0:4",
+          "black:advisor:0:5",
+          "black:elephant:0:6",
+          "black:horse:0:7",
+          "black:rook:0:8",
+          "black:cannon:2:1",
+          "black:cannon:2:7",
+          "black:pawn:3:0",
+          "black:pawn:3:2",
+          "black:pawn:3:4",
+          "black:pawn:3:6",
+          "black:pawn:3:8"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "traditional",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "f36f31f3daad",
+            "type": "rook",
+            "color": "black",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "id": "89798576ead8",
+            "type": "horse",
+            "color": "black",
+            "row": 0,
+            "col": 1
+          },
+          {
+            "id": "cc6378aa888d",
+            "type": "elephant",
+            "color": "black",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "id": "6667306a000e",
+            "type": "advisor",
+            "color": "black",
+            "row": 0,
+            "col": 3
+          },
+          {
+            "id": "05669ce55382",
+            "type": "king",
+            "color": "black",
+            "row": 0,
+            "col": 4
+          },
+          {
+            "id": "73005a9167c4",
+            "type": "advisor",
+            "color": "black",
+            "row": 0,
+            "col": 5
+          },
+          {
+            "id": "75f5a940cabb",
+            "type": "elephant",
+            "color": "black",
+            "row": 0,
+            "col": 6
+          },
+          {
+            "id": "ed7df2f70da5",
+            "type": "horse",
+            "color": "black",
+            "row": 0,
+            "col": 7
+          },
+          {
+            "id": "d8cd048b3bf0",
+            "type": "rook",
+            "color": "black",
+            "row": 0,
+            "col": 8
+          },
+          {
+            "id": "c8b25dc74423",
+            "type": "cannon",
+            "color": "black",
+            "row": 2,
+            "col": 1
+          },
+          {
+            "id": "eb609e8007ce",
+            "type": "cannon",
+            "color": "black",
+            "row": 2,
+            "col": 7
+          },
+          {
+            "id": "fc0cda84a834",
+            "type": "pawn",
+            "color": "black",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "id": "123598cb8067",
+            "type": "pawn",
+            "color": "black",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "id": "2059e819ec3e",
+            "type": "pawn",
+            "color": "black",
+            "row": 3,
+            "col": 4
+          },
+          {
+            "id": "a8f85bdc2b35",
+            "type": "pawn",
+            "color": "black",
+            "row": 3,
+            "col": 6
+          },
+          {
+            "id": "d6ce18ddecb1",
+            "type": "pawn",
+            "color": "black",
+            "row": 3,
+            "col": 8
+          },
+          {
+            "id": "e0155c326f53",
+            "type": "rook",
+            "color": "red",
+            "row": 9,
+            "col": 0
+          },
+          {
+            "id": "ce2c0434728e",
+            "type": "horse",
+            "color": "red",
+            "row": 9,
+            "col": 1
+          },
+          {
+            "id": "c6dfa4f2e26f",
+            "type": "elephant",
+            "color": "red",
+            "row": 9,
+            "col": 2
+          },
+          {
+            "id": "df2a16503073",
+            "type": "advisor",
+            "color": "red",
+            "row": 9,
+            "col": 3
+          },
+          {
+            "id": "593d0f6aceb7",
+            "type": "king",
+            "color": "red",
+            "row": 9,
+            "col": 4
+          },
+          {
+            "id": "d006158ddb9a",
+            "type": "advisor",
+            "color": "red",
+            "row": 9,
+            "col": 5
+          },
+          {
+            "id": "dd88005cf923",
+            "type": "elephant",
+            "color": "red",
+            "row": 9,
+            "col": 6
+          },
+          {
+            "id": "6371cbb81eb7",
+            "type": "horse",
+            "color": "red",
+            "row": 9,
+            "col": 7
+          },
+          {
+            "id": "cf4beb22f4f6",
+            "type": "rook",
+            "color": "red",
+            "row": 9,
+            "col": 8
+          },
+          {
+            "id": "6badea012793",
+            "type": "cannon",
+            "color": "red",
+            "row": 7,
+            "col": 1
+          },
+          {
+            "id": "309c9ed913c4",
+            "type": "cannon",
+            "color": "red",
+            "row": 7,
+            "col": 7
+          },
+          {
+            "id": "7ac0e5b396ee",
+            "type": "pawn",
+            "color": "red",
+            "row": 6,
+            "col": 0
+          },
+          {
+            "id": "1e49966d23c3",
+            "type": "pawn",
+            "color": "red",
+            "row": 6,
+            "col": 2
+          },
+          {
+            "id": "70df4dfa0380",
+            "type": "pawn",
+            "color": "red",
+            "row": 6,
+            "col": 4
+          },
+          {
+            "id": "43ab7dcfb7c9",
+            "type": "pawn",
+            "color": "red",
+            "row": 6,
+            "col": 6
+          },
+          {
+            "id": "54cf73aad3f9",
+            "type": "pawn",
+            "color": "red",
+            "row": 6,
+            "col": 8
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 600000,
+          "black": 600000
+        }
+      },
+      "savedAt": "2026-11-02T21:41:45"
+    }
   },
   {
     "id": "advanced-archer-01",
     "title": "星轨射手",
     "difficulty": "advanced",
     "description": "走法练习：识别射在弱化模式下可进入的相邻星轨。",
-    "profileId": "web",
     "solution": [
       {
         "from": {
@@ -109,14 +1188,438 @@
       "特色棋子",
       "射",
       "drill"
-    ]
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 3,
+      "profileId": "web",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": true,
+        "pawn_full_movement_at_base": true,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "web",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "817021000c52",
+            "type": "archer",
+            "color": "black",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "id": "4d4ce2697f49",
+            "type": "thunder",
+            "color": "black",
+            "row": 0,
+            "col": 4
+          },
+          {
+            "id": "553a5f000b5a",
+            "type": "thunder",
+            "color": "black",
+            "row": 0,
+            "col": 8
+          },
+          {
+            "id": "95047f17f62f",
+            "type": "archer",
+            "color": "black",
+            "row": 0,
+            "col": 12
+          },
+          {
+            "id": "07fe402c3cf3",
+            "type": "rook",
+            "color": "black",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "id": "16a80101b437",
+            "type": "horse",
+            "color": "black",
+            "row": 1,
+            "col": 3
+          },
+          {
+            "id": "0043a345e726",
+            "type": "elephant",
+            "color": "black",
+            "row": 1,
+            "col": 4
+          },
+          {
+            "id": "cd6be4cc5e40",
+            "type": "advisor",
+            "color": "black",
+            "row": 1,
+            "col": 5
+          },
+          {
+            "id": "1f76dd96c3db",
+            "type": "king",
+            "color": "black",
+            "row": 1,
+            "col": 6
+          },
+          {
+            "id": "56b61a2bd6e2",
+            "type": "advisor",
+            "color": "black",
+            "row": 1,
+            "col": 7
+          },
+          {
+            "id": "41d228a01252",
+            "type": "elephant",
+            "color": "black",
+            "row": 1,
+            "col": 8
+          },
+          {
+            "id": "9bf62d934580",
+            "type": "horse",
+            "color": "black",
+            "row": 1,
+            "col": 9
+          },
+          {
+            "id": "d71190b42a51",
+            "type": "rook",
+            "color": "black",
+            "row": 1,
+            "col": 10
+          },
+          {
+            "id": "ff785b2e56ef",
+            "type": "cannon",
+            "color": "black",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "id": "d5796d528bbc",
+            "type": "cannon",
+            "color": "black",
+            "row": 3,
+            "col": 11
+          },
+          {
+            "id": "829f23e621ac",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 0
+          },
+          {
+            "id": "c4bc28a258b3",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 2
+          },
+          {
+            "id": "94f08a79cca7",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 4
+          },
+          {
+            "id": "d58563abe351",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 6
+          },
+          {
+            "id": "cfe0e362b8bc",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 8
+          },
+          {
+            "id": "76f5bd27b98e",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 10
+          },
+          {
+            "id": "553cd8ac1431",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 12
+          },
+          {
+            "id": "35dee265e458",
+            "type": "archer",
+            "color": "red",
+            "row": 12,
+            "col": 0
+          },
+          {
+            "id": "0aba1663ac99",
+            "type": "thunder",
+            "color": "red",
+            "row": 12,
+            "col": 4
+          },
+          {
+            "id": "6fb292170eb0",
+            "type": "thunder",
+            "color": "red",
+            "row": 12,
+            "col": 8
+          },
+          {
+            "id": "c17a67f3a981",
+            "type": "archer",
+            "color": "red",
+            "row": 12,
+            "col": 12
+          },
+          {
+            "id": "f81db32638bc",
+            "type": "rook",
+            "color": "red",
+            "row": 11,
+            "col": 2
+          },
+          {
+            "id": "872eccaa2143",
+            "type": "horse",
+            "color": "red",
+            "row": 11,
+            "col": 3
+          },
+          {
+            "id": "d59b0fadda46",
+            "type": "elephant",
+            "color": "red",
+            "row": 11,
+            "col": 4
+          },
+          {
+            "id": "59c608736f3e",
+            "type": "advisor",
+            "color": "red",
+            "row": 11,
+            "col": 5
+          },
+          {
+            "id": "20652f54ce7f",
+            "type": "king",
+            "color": "red",
+            "row": 11,
+            "col": 6
+          },
+          {
+            "id": "eefc77861201",
+            "type": "advisor",
+            "color": "red",
+            "row": 11,
+            "col": 7
+          },
+          {
+            "id": "f32df194b909",
+            "type": "elephant",
+            "color": "red",
+            "row": 11,
+            "col": 8
+          },
+          {
+            "id": "0b70797d8300",
+            "type": "horse",
+            "color": "red",
+            "row": 11,
+            "col": 9
+          },
+          {
+            "id": "6e263f6b0700",
+            "type": "rook",
+            "color": "red",
+            "row": 11,
+            "col": 10
+          },
+          {
+            "id": "0e6ed04fd8b0",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 1
+          },
+          {
+            "id": "db720c7b0415",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 11
+          },
+          {
+            "id": "e4dad3096cd0",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 0
+          },
+          {
+            "id": "2d3d28c92879",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 2
+          },
+          {
+            "id": "d89fee922414",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 4
+          },
+          {
+            "id": "185e2f97635c",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 6
+          },
+          {
+            "id": "f09a8c53ada2",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 8
+          },
+          {
+            "id": "4dcb3ae2f07f",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 10
+          },
+          {
+            "id": "f6781f5636c2",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 12
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 600000,
+          "black": 600000
+        }
+      },
+      "savedAt": "2026-11-02T21:41:45"
+    }
   },
   {
     "id": "advanced-patrol-01",
     "title": "巡守河界",
     "difficulty": "advanced",
     "description": "走法练习：掌握巡在指定边界上的横向调动。",
-    "profileId": "desktop_classic",
     "solution": [
       {
         "from": {
@@ -137,14 +1640,486 @@
       "特色棋子",
       "巡",
       "drill"
-    ]
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 3,
+      "profileId": "desktop_classic",
+      "options": {
+        "king_can_leave_palace": false,
+        "king_diagonal_in_palace": false,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": false,
+        "advisor_gain_straight_outside_palace": false,
+        "elephant_can_cross_river": false,
+        "elephant_gain_jump_two_enemy_territory": false,
+        "horse_straight_three": false,
+        "horse_blocked_by_leg": true,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": false,
+        "pawn_fast_move_before_enemy_territory": false,
+        "pawn_backward_at_base": false,
+        "pawn_full_movement_at_base": false,
+        "pawn_resurrection": false,
+        "pawn_promotion": false,
+        "pawn_charge": false,
+        "pawn_three_line_capture": false,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_classic",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "749015f6990b",
+            "type": "archer",
+            "color": "black",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "id": "38673c0529a4",
+            "type": "thunder",
+            "color": "black",
+            "row": 0,
+            "col": 4
+          },
+          {
+            "id": "688c793d637e",
+            "type": "guard",
+            "color": "black",
+            "row": 0,
+            "col": 6
+          },
+          {
+            "id": "895f0cdc3542",
+            "type": "thunder",
+            "color": "black",
+            "row": 0,
+            "col": 8
+          },
+          {
+            "id": "5009c239ff20",
+            "type": "archer",
+            "color": "black",
+            "row": 0,
+            "col": 12
+          },
+          {
+            "id": "20aeb9526a1b",
+            "type": "rook",
+            "color": "black",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "id": "a172cda377ce",
+            "type": "horse",
+            "color": "black",
+            "row": 1,
+            "col": 3
+          },
+          {
+            "id": "28ab430e1986",
+            "type": "elephant",
+            "color": "black",
+            "row": 1,
+            "col": 4
+          },
+          {
+            "id": "39084ae4ab0f",
+            "type": "advisor",
+            "color": "black",
+            "row": 1,
+            "col": 5
+          },
+          {
+            "id": "97dfe094c053",
+            "type": "king",
+            "color": "black",
+            "row": 1,
+            "col": 6
+          },
+          {
+            "id": "1df6604eac0c",
+            "type": "advisor",
+            "color": "black",
+            "row": 1,
+            "col": 7
+          },
+          {
+            "id": "0ec46782e1d0",
+            "type": "elephant",
+            "color": "black",
+            "row": 1,
+            "col": 8
+          },
+          {
+            "id": "1ad2d419c3b7",
+            "type": "horse",
+            "color": "black",
+            "row": 1,
+            "col": 9
+          },
+          {
+            "id": "38f75f094fe1",
+            "type": "rook",
+            "color": "black",
+            "row": 1,
+            "col": 10
+          },
+          {
+            "id": "e7c7edcd39c7",
+            "type": "cannon",
+            "color": "black",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "id": "1de4b426fd53",
+            "type": "cannon",
+            "color": "black",
+            "row": 3,
+            "col": 11
+          },
+          {
+            "id": "79ed8fa569ab",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 0
+          },
+          {
+            "id": "d4be579b3a68",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 2
+          },
+          {
+            "id": "858ec60419f3",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 4
+          },
+          {
+            "id": "0239ac098d63",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 6
+          },
+          {
+            "id": "6b3176c4810b",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 8
+          },
+          {
+            "id": "4d5b996beee8",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 10
+          },
+          {
+            "id": "ccd781650eef",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 12
+          },
+          {
+            "id": "565934ca602c",
+            "type": "patrol",
+            "color": "black",
+            "row": 5,
+            "col": 0
+          },
+          {
+            "id": "c48e0351fc9a",
+            "type": "patrol",
+            "color": "black",
+            "row": 5,
+            "col": 12
+          },
+          {
+            "id": "9fd92147ce90",
+            "type": "archer",
+            "color": "red",
+            "row": 12,
+            "col": 0
+          },
+          {
+            "id": "fdfa0ed024a2",
+            "type": "thunder",
+            "color": "red",
+            "row": 12,
+            "col": 4
+          },
+          {
+            "id": "7a6856fdfebe",
+            "type": "guard",
+            "color": "red",
+            "row": 12,
+            "col": 6
+          },
+          {
+            "id": "26f066dc2533",
+            "type": "thunder",
+            "color": "red",
+            "row": 12,
+            "col": 8
+          },
+          {
+            "id": "23c4b0ce71f1",
+            "type": "archer",
+            "color": "red",
+            "row": 12,
+            "col": 12
+          },
+          {
+            "id": "85c09f2505b0",
+            "type": "rook",
+            "color": "red",
+            "row": 11,
+            "col": 2
+          },
+          {
+            "id": "7c35a81107e8",
+            "type": "horse",
+            "color": "red",
+            "row": 11,
+            "col": 3
+          },
+          {
+            "id": "856a51539137",
+            "type": "elephant",
+            "color": "red",
+            "row": 11,
+            "col": 4
+          },
+          {
+            "id": "e90f3338d3ae",
+            "type": "advisor",
+            "color": "red",
+            "row": 11,
+            "col": 5
+          },
+          {
+            "id": "b3d523f24eb0",
+            "type": "king",
+            "color": "red",
+            "row": 11,
+            "col": 6
+          },
+          {
+            "id": "01e54c64f466",
+            "type": "advisor",
+            "color": "red",
+            "row": 11,
+            "col": 7
+          },
+          {
+            "id": "8d89c57d3047",
+            "type": "elephant",
+            "color": "red",
+            "row": 11,
+            "col": 8
+          },
+          {
+            "id": "a70dc5d9d4f9",
+            "type": "horse",
+            "color": "red",
+            "row": 11,
+            "col": 9
+          },
+          {
+            "id": "b9b814c1140e",
+            "type": "rook",
+            "color": "red",
+            "row": 11,
+            "col": 10
+          },
+          {
+            "id": "3ca684ca5e25",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 1
+          },
+          {
+            "id": "b50fcde67d6c",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 11
+          },
+          {
+            "id": "38517d025359",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 0
+          },
+          {
+            "id": "bd909bcf21b6",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 2
+          },
+          {
+            "id": "13a7392c853d",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 4
+          },
+          {
+            "id": "c7ff09441ce9",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 6
+          },
+          {
+            "id": "3d44a16a36a4",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 8
+          },
+          {
+            "id": "0038623a4f37",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 10
+          },
+          {
+            "id": "d08c02c550c3",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 12
+          },
+          {
+            "id": "38892003a4ce",
+            "type": "patrol",
+            "color": "red",
+            "row": 7,
+            "col": 0
+          },
+          {
+            "id": "ff3f3537e26c",
+            "type": "patrol",
+            "color": "red",
+            "row": 7,
+            "col": 12
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 600000,
+          "black": 600000
+        }
+      },
+      "savedAt": "2026-11-02T21:41:45"
+    }
   },
   {
     "id": "advanced-center-01",
     "title": "中兵抢渡",
     "difficulty": "advanced",
     "description": "走法练习：用中路兵争夺长城阴山区域。",
-    "profileId": "desktop_complete",
     "solution": [
       {
         "from": {
@@ -165,14 +2140,486 @@
       "布局",
       "兵卒",
       "drill"
-    ]
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": true,
+        "pawn_full_movement_at_base": true,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "030959f4978d",
+            "type": "archer",
+            "color": "black",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "id": "601a0b637094",
+            "type": "thunder",
+            "color": "black",
+            "row": 0,
+            "col": 4
+          },
+          {
+            "id": "b624b5e5e66b",
+            "type": "guard",
+            "color": "black",
+            "row": 0,
+            "col": 6
+          },
+          {
+            "id": "e68fcc3536d6",
+            "type": "thunder",
+            "color": "black",
+            "row": 0,
+            "col": 8
+          },
+          {
+            "id": "967167e143ce",
+            "type": "archer",
+            "color": "black",
+            "row": 0,
+            "col": 12
+          },
+          {
+            "id": "9fa8447eba09",
+            "type": "rook",
+            "color": "black",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "id": "49db62bf804e",
+            "type": "horse",
+            "color": "black",
+            "row": 1,
+            "col": 3
+          },
+          {
+            "id": "2d75d3de06c9",
+            "type": "elephant",
+            "color": "black",
+            "row": 1,
+            "col": 4
+          },
+          {
+            "id": "c974a2f07892",
+            "type": "advisor",
+            "color": "black",
+            "row": 1,
+            "col": 5
+          },
+          {
+            "id": "97a97fc9cd25",
+            "type": "king",
+            "color": "black",
+            "row": 1,
+            "col": 6
+          },
+          {
+            "id": "4cb2a85cfbb4",
+            "type": "advisor",
+            "color": "black",
+            "row": 1,
+            "col": 7
+          },
+          {
+            "id": "5245fa0dcbd8",
+            "type": "elephant",
+            "color": "black",
+            "row": 1,
+            "col": 8
+          },
+          {
+            "id": "6af3909115c3",
+            "type": "horse",
+            "color": "black",
+            "row": 1,
+            "col": 9
+          },
+          {
+            "id": "dba174a95d2b",
+            "type": "rook",
+            "color": "black",
+            "row": 1,
+            "col": 10
+          },
+          {
+            "id": "4b5a8c01cee7",
+            "type": "cannon",
+            "color": "black",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "id": "deedafdb33fc",
+            "type": "cannon",
+            "color": "black",
+            "row": 3,
+            "col": 11
+          },
+          {
+            "id": "59791734a976",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 0
+          },
+          {
+            "id": "5b80f444aa55",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 2
+          },
+          {
+            "id": "5d8cb250d1d8",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 4
+          },
+          {
+            "id": "61a2a1bade29",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 6
+          },
+          {
+            "id": "1019682b392e",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 8
+          },
+          {
+            "id": "abc485ec3bab",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 10
+          },
+          {
+            "id": "7aa1d85ed3cf",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 12
+          },
+          {
+            "id": "d5ee78674399",
+            "type": "patrol",
+            "color": "black",
+            "row": 5,
+            "col": 0
+          },
+          {
+            "id": "38f94d1fea07",
+            "type": "patrol",
+            "color": "black",
+            "row": 5,
+            "col": 12
+          },
+          {
+            "id": "fadfc57feb9b",
+            "type": "archer",
+            "color": "red",
+            "row": 12,
+            "col": 0
+          },
+          {
+            "id": "bf62c22bf5fb",
+            "type": "thunder",
+            "color": "red",
+            "row": 12,
+            "col": 4
+          },
+          {
+            "id": "319610a90920",
+            "type": "guard",
+            "color": "red",
+            "row": 12,
+            "col": 6
+          },
+          {
+            "id": "051fda2f0bf6",
+            "type": "thunder",
+            "color": "red",
+            "row": 12,
+            "col": 8
+          },
+          {
+            "id": "0e65e4822414",
+            "type": "archer",
+            "color": "red",
+            "row": 12,
+            "col": 12
+          },
+          {
+            "id": "32627f4dfd7b",
+            "type": "rook",
+            "color": "red",
+            "row": 11,
+            "col": 2
+          },
+          {
+            "id": "2a4def18bc47",
+            "type": "horse",
+            "color": "red",
+            "row": 11,
+            "col": 3
+          },
+          {
+            "id": "6c8b3e182acf",
+            "type": "elephant",
+            "color": "red",
+            "row": 11,
+            "col": 4
+          },
+          {
+            "id": "16cdcc721a16",
+            "type": "advisor",
+            "color": "red",
+            "row": 11,
+            "col": 5
+          },
+          {
+            "id": "fb89539cc6e0",
+            "type": "king",
+            "color": "red",
+            "row": 11,
+            "col": 6
+          },
+          {
+            "id": "b838326c19da",
+            "type": "advisor",
+            "color": "red",
+            "row": 11,
+            "col": 7
+          },
+          {
+            "id": "660044f377ec",
+            "type": "elephant",
+            "color": "red",
+            "row": 11,
+            "col": 8
+          },
+          {
+            "id": "1d15574c5ded",
+            "type": "horse",
+            "color": "red",
+            "row": 11,
+            "col": 9
+          },
+          {
+            "id": "5301c2e74612",
+            "type": "rook",
+            "color": "red",
+            "row": 11,
+            "col": 10
+          },
+          {
+            "id": "3a0229f99078",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 1
+          },
+          {
+            "id": "11dcd9c10de7",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 11
+          },
+          {
+            "id": "b5fc0fa23545",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 0
+          },
+          {
+            "id": "1d1775c1849d",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 2
+          },
+          {
+            "id": "652c25c3e241",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 4
+          },
+          {
+            "id": "6c0ce6bd35cd",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 6
+          },
+          {
+            "id": "2d6c7c6f9f2d",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 8
+          },
+          {
+            "id": "3dba6e886eb8",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 10
+          },
+          {
+            "id": "b1bf5ce47b4d",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 12
+          },
+          {
+            "id": "eebf781dfc68",
+            "type": "patrol",
+            "color": "red",
+            "row": 7,
+            "col": 0
+          },
+          {
+            "id": "5b1db97a6332",
+            "type": "patrol",
+            "color": "red",
+            "row": 7,
+            "col": 12
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 600000,
+          "black": 600000
+        }
+      },
+      "savedAt": "2026-11-02T21:41:45"
+    }
   },
   {
     "id": "master-thunder-01",
     "title": "檑动中军",
     "difficulty": "master",
     "description": "走法练习：规划檑从底线向中路展开的第一步。",
-    "profileId": "desktop_complete",
     "solution": [
       {
         "from": {
@@ -193,7 +2640,480 @@
       "特色棋子",
       "檑",
       "drill"
-    ]
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": true,
+        "pawn_full_movement_at_base": true,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "8e751fa7dbc4",
+            "type": "archer",
+            "color": "black",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "id": "55febc34bc34",
+            "type": "thunder",
+            "color": "black",
+            "row": 0,
+            "col": 4
+          },
+          {
+            "id": "f8ab3ed60cfd",
+            "type": "guard",
+            "color": "black",
+            "row": 0,
+            "col": 6
+          },
+          {
+            "id": "a510de60c09b",
+            "type": "thunder",
+            "color": "black",
+            "row": 0,
+            "col": 8
+          },
+          {
+            "id": "8aa2df5a8908",
+            "type": "archer",
+            "color": "black",
+            "row": 0,
+            "col": 12
+          },
+          {
+            "id": "4f77370ff37e",
+            "type": "rook",
+            "color": "black",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "id": "3300a61822f2",
+            "type": "horse",
+            "color": "black",
+            "row": 1,
+            "col": 3
+          },
+          {
+            "id": "b979f01055a7",
+            "type": "elephant",
+            "color": "black",
+            "row": 1,
+            "col": 4
+          },
+          {
+            "id": "2d42d5cbc514",
+            "type": "advisor",
+            "color": "black",
+            "row": 1,
+            "col": 5
+          },
+          {
+            "id": "89aef9bd9d4c",
+            "type": "king",
+            "color": "black",
+            "row": 1,
+            "col": 6
+          },
+          {
+            "id": "60ab3dc7b767",
+            "type": "advisor",
+            "color": "black",
+            "row": 1,
+            "col": 7
+          },
+          {
+            "id": "165781901f14",
+            "type": "elephant",
+            "color": "black",
+            "row": 1,
+            "col": 8
+          },
+          {
+            "id": "c161eb950009",
+            "type": "horse",
+            "color": "black",
+            "row": 1,
+            "col": 9
+          },
+          {
+            "id": "5bc4ecb99563",
+            "type": "rook",
+            "color": "black",
+            "row": 1,
+            "col": 10
+          },
+          {
+            "id": "20663c21f2ab",
+            "type": "cannon",
+            "color": "black",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "id": "58f52d2bf47d",
+            "type": "cannon",
+            "color": "black",
+            "row": 3,
+            "col": 11
+          },
+          {
+            "id": "869ca7eb14dc",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 0
+          },
+          {
+            "id": "61f65f9eeae1",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 2
+          },
+          {
+            "id": "969ab4fa4539",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 4
+          },
+          {
+            "id": "8a353a87fa44",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 6
+          },
+          {
+            "id": "afbd74c6669a",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 8
+          },
+          {
+            "id": "d2de9b3641ce",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 10
+          },
+          {
+            "id": "49e59f149786",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 12
+          },
+          {
+            "id": "ca4063533ca6",
+            "type": "patrol",
+            "color": "black",
+            "row": 5,
+            "col": 0
+          },
+          {
+            "id": "c5fd32feca95",
+            "type": "patrol",
+            "color": "black",
+            "row": 5,
+            "col": 12
+          },
+          {
+            "id": "0dc6ab11c5bc",
+            "type": "archer",
+            "color": "red",
+            "row": 12,
+            "col": 0
+          },
+          {
+            "id": "69e80379fd6c",
+            "type": "thunder",
+            "color": "red",
+            "row": 12,
+            "col": 4
+          },
+          {
+            "id": "6b6b35f15016",
+            "type": "guard",
+            "color": "red",
+            "row": 12,
+            "col": 6
+          },
+          {
+            "id": "91e3a8b9228c",
+            "type": "thunder",
+            "color": "red",
+            "row": 12,
+            "col": 8
+          },
+          {
+            "id": "e19a75b5d588",
+            "type": "archer",
+            "color": "red",
+            "row": 12,
+            "col": 12
+          },
+          {
+            "id": "53f807608df7",
+            "type": "rook",
+            "color": "red",
+            "row": 11,
+            "col": 2
+          },
+          {
+            "id": "98e6f38f6244",
+            "type": "horse",
+            "color": "red",
+            "row": 11,
+            "col": 3
+          },
+          {
+            "id": "e2702f2fda0a",
+            "type": "elephant",
+            "color": "red",
+            "row": 11,
+            "col": 4
+          },
+          {
+            "id": "547c00083942",
+            "type": "advisor",
+            "color": "red",
+            "row": 11,
+            "col": 5
+          },
+          {
+            "id": "80dd845926d5",
+            "type": "king",
+            "color": "red",
+            "row": 11,
+            "col": 6
+          },
+          {
+            "id": "10425cf9c6bd",
+            "type": "advisor",
+            "color": "red",
+            "row": 11,
+            "col": 7
+          },
+          {
+            "id": "0cec69ac6e63",
+            "type": "elephant",
+            "color": "red",
+            "row": 11,
+            "col": 8
+          },
+          {
+            "id": "0affc50f1e8e",
+            "type": "horse",
+            "color": "red",
+            "row": 11,
+            "col": 9
+          },
+          {
+            "id": "2993a41f40e4",
+            "type": "rook",
+            "color": "red",
+            "row": 11,
+            "col": 10
+          },
+          {
+            "id": "d4c0d1255e0b",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 1
+          },
+          {
+            "id": "b3204adfefe1",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 11
+          },
+          {
+            "id": "aa1e89b6ca42",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 0
+          },
+          {
+            "id": "0a8b695c6065",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 2
+          },
+          {
+            "id": "2d4cba6209d0",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 4
+          },
+          {
+            "id": "e03c34394bcb",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 6
+          },
+          {
+            "id": "992718c0e02b",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 8
+          },
+          {
+            "id": "785a3b003b0c",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 10
+          },
+          {
+            "id": "6fde0120ac8b",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 12
+          },
+          {
+            "id": "6733d6150c46",
+            "type": "patrol",
+            "color": "red",
+            "row": 7,
+            "col": 0
+          },
+          {
+            "id": "f6c8fb52e5b4",
+            "type": "patrol",
+            "color": "red",
+            "row": 7,
+            "col": 12
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 600000,
+          "black": 600000
+        }
+      },
+      "savedAt": "2026-11-02T21:41:45"
+    }
   },
   {
     "id": "master-guard-01",
@@ -378,7 +3298,6 @@
     "title": "俥占要道",
     "difficulty": "master",
     "description": "走法练习：在完整棋阵中寻找俥的可用直线。",
-    "profileId": "desktop_complete",
     "solution": [
       {
         "from": {
@@ -399,7 +3318,480 @@
       "布局",
       "俥",
       "drill"
-    ]
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": true,
+        "pawn_full_movement_at_base": true,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "3c9014dc663b",
+            "type": "archer",
+            "color": "black",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "id": "e0869207ec7c",
+            "type": "thunder",
+            "color": "black",
+            "row": 0,
+            "col": 4
+          },
+          {
+            "id": "c302b30d5706",
+            "type": "guard",
+            "color": "black",
+            "row": 0,
+            "col": 6
+          },
+          {
+            "id": "c1b4425bc639",
+            "type": "thunder",
+            "color": "black",
+            "row": 0,
+            "col": 8
+          },
+          {
+            "id": "3e4e8850935e",
+            "type": "archer",
+            "color": "black",
+            "row": 0,
+            "col": 12
+          },
+          {
+            "id": "607ada67d50a",
+            "type": "rook",
+            "color": "black",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "id": "760d1412276e",
+            "type": "horse",
+            "color": "black",
+            "row": 1,
+            "col": 3
+          },
+          {
+            "id": "9d1c2e8fa1ce",
+            "type": "elephant",
+            "color": "black",
+            "row": 1,
+            "col": 4
+          },
+          {
+            "id": "b172b081ad63",
+            "type": "advisor",
+            "color": "black",
+            "row": 1,
+            "col": 5
+          },
+          {
+            "id": "40672dcd507c",
+            "type": "king",
+            "color": "black",
+            "row": 1,
+            "col": 6
+          },
+          {
+            "id": "70a0887edde4",
+            "type": "advisor",
+            "color": "black",
+            "row": 1,
+            "col": 7
+          },
+          {
+            "id": "37010d6e510f",
+            "type": "elephant",
+            "color": "black",
+            "row": 1,
+            "col": 8
+          },
+          {
+            "id": "2734683b7e6e",
+            "type": "horse",
+            "color": "black",
+            "row": 1,
+            "col": 9
+          },
+          {
+            "id": "28b7c18f23dc",
+            "type": "rook",
+            "color": "black",
+            "row": 1,
+            "col": 10
+          },
+          {
+            "id": "d574f280fa0d",
+            "type": "cannon",
+            "color": "black",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "id": "c0a6405d980c",
+            "type": "cannon",
+            "color": "black",
+            "row": 3,
+            "col": 11
+          },
+          {
+            "id": "d85912f425de",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 0
+          },
+          {
+            "id": "2c10a9eb09b2",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 2
+          },
+          {
+            "id": "3e5a05fca828",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 4
+          },
+          {
+            "id": "ae0b8d08b5b5",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 6
+          },
+          {
+            "id": "f8a4ccaeb982",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 8
+          },
+          {
+            "id": "e7697bf22197",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 10
+          },
+          {
+            "id": "dc91eb2c86e6",
+            "type": "pawn",
+            "color": "black",
+            "row": 4,
+            "col": 12
+          },
+          {
+            "id": "f31e709bf520",
+            "type": "patrol",
+            "color": "black",
+            "row": 5,
+            "col": 0
+          },
+          {
+            "id": "5476ea757760",
+            "type": "patrol",
+            "color": "black",
+            "row": 5,
+            "col": 12
+          },
+          {
+            "id": "f65b2879523a",
+            "type": "archer",
+            "color": "red",
+            "row": 12,
+            "col": 0
+          },
+          {
+            "id": "5d4febdd158d",
+            "type": "thunder",
+            "color": "red",
+            "row": 12,
+            "col": 4
+          },
+          {
+            "id": "c218cba9807f",
+            "type": "guard",
+            "color": "red",
+            "row": 12,
+            "col": 6
+          },
+          {
+            "id": "97505a8b6da6",
+            "type": "thunder",
+            "color": "red",
+            "row": 12,
+            "col": 8
+          },
+          {
+            "id": "219a5085814a",
+            "type": "archer",
+            "color": "red",
+            "row": 12,
+            "col": 12
+          },
+          {
+            "id": "dd9f2315ccfc",
+            "type": "rook",
+            "color": "red",
+            "row": 11,
+            "col": 2
+          },
+          {
+            "id": "ddc31257d8ec",
+            "type": "horse",
+            "color": "red",
+            "row": 11,
+            "col": 3
+          },
+          {
+            "id": "31203b430374",
+            "type": "elephant",
+            "color": "red",
+            "row": 11,
+            "col": 4
+          },
+          {
+            "id": "9809160688dc",
+            "type": "advisor",
+            "color": "red",
+            "row": 11,
+            "col": 5
+          },
+          {
+            "id": "663dd1f23b6c",
+            "type": "king",
+            "color": "red",
+            "row": 11,
+            "col": 6
+          },
+          {
+            "id": "97857362e729",
+            "type": "advisor",
+            "color": "red",
+            "row": 11,
+            "col": 7
+          },
+          {
+            "id": "0009148cd0a2",
+            "type": "elephant",
+            "color": "red",
+            "row": 11,
+            "col": 8
+          },
+          {
+            "id": "0abd1dcce96f",
+            "type": "horse",
+            "color": "red",
+            "row": 11,
+            "col": 9
+          },
+          {
+            "id": "c50ccc4562df",
+            "type": "rook",
+            "color": "red",
+            "row": 11,
+            "col": 10
+          },
+          {
+            "id": "90116d4ba07a",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 1
+          },
+          {
+            "id": "b6fec64d1a51",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 11
+          },
+          {
+            "id": "3a8fcf7d345a",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 0
+          },
+          {
+            "id": "fbed218007d9",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 2
+          },
+          {
+            "id": "a1247226350d",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 4
+          },
+          {
+            "id": "eec6ce7c2b05",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 6
+          },
+          {
+            "id": "2055c05051bc",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 8
+          },
+          {
+            "id": "2396cebff383",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 10
+          },
+          {
+            "id": "b4cfe1f8080f",
+            "type": "pawn",
+            "color": "red",
+            "row": 8,
+            "col": 12
+          },
+          {
+            "id": "317dd12bb18f",
+            "type": "patrol",
+            "color": "red",
+            "row": 7,
+            "col": 0
+          },
+          {
+            "id": "772cb3e4c561",
+            "type": "patrol",
+            "color": "red",
+            "row": 7,
+            "col": 12
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 600000,
+          "black": 600000
+        }
+      },
+      "savedAt": "2026-11-02T21:41:45"
+    }
   },
   {
     "id": "endgame-cannon-screen-01",
