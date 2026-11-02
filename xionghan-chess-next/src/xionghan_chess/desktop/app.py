@@ -267,10 +267,16 @@ class MainWindow(QMainWindow):
             return False
         if verdict==puzzle_judge.VERDICT_SOLVED:
             title=session.puzzle.title
+            stars=session.stars
+            rating="★"*stars+"☆"*(3-stars)
             if self.puzzle_is_daily:self._record_daily_solve(session.puzzle)
             self.puzzle_session=None;self.puzzle_is_daily=False
             QMessageBox.information(self,"过关" if not english else "Solved",
-                                    (f"正解！《{title}》已解出。" if not english else f"Correct — “{title}” solved."))
+                                    (f"正解！《{title}》已解出。\n\n{rating}  "
+                                     f"（错 {session.attempts} 次 · 用提示 {session._hints_shown} 次）"
+                                     if not english else
+                                     f"Correct — “{title}” solved.\n\n{rating}  "
+                                     f"({session.attempts} misses · {session._hints_shown} hints)"))
             self.statusBar().showMessage("训练完成，可继续自由对弈" if not english else "Training complete; free play resumed",8000)
             return True
         # 交替序列：玩家走对之后，对手的被迫应着由程序**自动落**（不判分、不提示）。

@@ -125,6 +125,21 @@ class PuzzleSession:
         self._hints_shown = max(self._hints_shown, index + 1)
         return hints[index]
 
+    @property
+    def stars(self) -> int:
+        """1–3 星；未解出返回 0。
+
+        只罚"错着"和"提示"两件事：这道题的解法是**唯一强制线**，不存在"更短的走法"，
+        所以星级不该奖励速度或运气，只反映"你有多少是自己想出来的"。
+        错一次 + 看一次提示各算一次扣分：0 次满分、1–2 次两星、再多一星。
+        """
+        if not self.solved:
+            return 0
+        penalty = self.attempts + self._hints_shown
+        if penalty == 0:
+            return 3
+        return 2 if penalty <= 2 else 1
+
     def reset(self) -> None:
         self.cursor = 0
         self.attempts = 0
