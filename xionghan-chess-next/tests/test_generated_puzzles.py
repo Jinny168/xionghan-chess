@@ -10,7 +10,7 @@ from xionghan_chess.core.puzzles import load_puzzles
 from xionghan_chess.core.storage import game_from_document
 from xionghan_chess.desktop import training
 
-GENERATED = [item for item in load_puzzles() if item.id.startswith("gen-mate3")]
+GENERATED = [item for item in load_puzzles() if item.id.startswith("gen-")]
 
 
 def test_generated_puzzles_exist() -> None:
@@ -35,6 +35,18 @@ def test_every_generated_puzzle_can_be_played_to_the_end() -> None:
                 game.move(move)
         assert session.solved, f"{puzzle.id} 走完解法仍未判定通过"
         assert game.state.finished, f"{puzzle.id} 解完后局面没有结束 —— 末手不是杀棋"
+
+
+def test_generated_puzzle_mix_matches_the_plan() -> None:
+    """22 条的难度与 ply 配比是设计定稿值：beginner 9 / advanced 7 / master 6；
+    ply 必须是奇数，且覆盖 3/5/7 三档。"""
+    from collections import Counter
+    levels = Counter(item.difficulty for item in GENERATED)
+    plies = Counter(len(item.solution) for item in GENERATED)
+    assert levels == {"beginner": 9, "advanced": 7, "master": 6}, levels
+    assert sum(plies.values()) == 22
+    assert set(plies) == {3, 5, 7}, plies
+    assert all(len(item.solution) % 2 == 1 for item in GENERATED)
 
 
 def test_generated_puzzles_declare_hands_not_plies() -> None:
