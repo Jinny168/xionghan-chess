@@ -43,6 +43,30 @@ def test_defaults_declares_server_url() -> None:
     assert desktop_config.DEFAULTS["server_url"] == desktop_config.DEFAULT_SERVER_URL
 
 
+# --------------------------------------------------------------------------- #
+# B2：每方时限默认 20 → 10 分钟
+# --------------------------------------------------------------------------- #
+
+
+def test_initial_minutes_defaults_to_ten(isolated_appdata) -> None:
+    """首次运行（没有配置文件）→ 10 分钟。"""
+    assert desktop_config.DEFAULTS["initial_minutes"] == 10
+    assert desktop_config.load_config()["initial_minutes"] == 10
+
+
+def test_existing_initial_minutes_is_not_overwritten(isolated_appdata) -> None:
+    """B2 只改**默认值**：用户配置里已经写着的 20 分钟必须原样保留。
+
+    这条是"改默认值"最容易踩的坑 —— 顺手写成"总是写成新默认"就等于把
+    老用户的选择悄悄抹掉。
+    """
+    path = desktop_config.config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"schema_version": desktop_config.CONFIG_VERSION,
+                                "initial_minutes": 20}), encoding="utf-8")
+    assert desktop_config.load_config()["initial_minutes"] == 20
+
+
 def test_defaults_covers_every_key_read_by_desktop_code() -> None:
     """扫 desktop 包里所有 `config.get("x")` / `config["x"]`，必须都在 DEFAULTS 中。
 
@@ -195,7 +219,7 @@ def test_migration_only_runs_once(isolated_appdata) -> None:
 
     first = desktop_config.load_config()
     after_first = path.read_text(encoding="utf-8")
-    assert json.loads(after_first)["initial_minutes"] == 20, "迁移应把坏值收敛成默认值"
+    assert json.loads(after_first)["initial_minutes"] == 10, "迁移应把坏值收敛成默认值"
 
     second = desktop_config.load_config()
     assert first == second
@@ -207,7 +231,7 @@ def test_migration_only_runs_once(isolated_appdata) -> None:
     [
         ("initial_minutes", 999, 180),
         ("initial_minutes", 0, 1),
-        ("initial_minutes", "abc", 20),
+        ("initial_minutes", "abc", 10),
         ("sound_volume", -5, 0),
         ("sound_volume", 101, 100),
         ("music_volume", "40", 40),

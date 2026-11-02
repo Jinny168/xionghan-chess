@@ -73,3 +73,28 @@ def test_pawn_switches_default_to_off() -> None:
     options = RuleOptions()
     assert options.pawn_charge is False
     assert options.pawn_three_line_capture is False
+
+
+def test_initial_minutes_defaults_to_ten_on_both_ends() -> None:
+    """B2：每方时限默认 20 → 10 分钟，桌面与网页必须同一个数。
+
+    三处都要查 —— 它们各自独立、漏一处就会出现「桌面 10 分钟、网页 20 分钟」：
+    1. 桌面 `config.DEFAULTS`；
+    2. 网页 `index.html` 下拉框的 `selected` 项；
+    3. 网页 `app.js` 里读取偏好时的 `|| 20` 兜底与 `preferences` 初始值。
+    """
+    from xionghan_chess.desktop.config import DEFAULTS
+
+    assert DEFAULTS["initial_minutes"] == 10, "桌面默认时限应为 10 分钟"
+
+    selected = re.findall(r'<option value="(\d+)" selected>', HTML)
+    minutes_block = re.search(r'<select id="initialMinutesSelect"[^>]*>(.*?)</select>', HTML, re.S)
+    assert minutes_block, "index.html 里找不到 #initialMinutesSelect"
+    chosen = re.findall(r'<option value="(\d+)"( selected)?>', minutes_block.group(1))
+    assert [value for value, flag in chosen if flag] == ["10"], (
+        f"网页时限默认项应为 10 分钟，实际 {[v for v, f in chosen if f]}")
+    assert selected, "整份 index.html 里应当存在显式 selected 的选项"
+
+    assert "initialMinutes:10," in APP_JS, "app.js 的偏好初始值应为 10"
+    assert "p.initialMinutes||10" in APP_JS, "app.js 读取偏好时的兜底应为 10"
+    assert "p.initialMinutes||20" not in APP_JS, "app.js 里还残留 20 分钟的兜底"

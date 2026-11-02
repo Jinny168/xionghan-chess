@@ -106,7 +106,9 @@ DEFAULTS: dict[str, Any] = {
     "taunts": True,
     "countdown_seconds": 30,
     "autosave": True,
-    "initial_minutes": 20,
+    # B2：每方时限默认 20 → 10 分钟（一盘完整对局在 13×13 上 20 分钟常打到读秒）。
+    # **只改默认值**：老配置里的既有数字原样保留（见 `_migrate_v0` 只在坏值时才落回默认）。
+    "initial_minutes": 10,
     "rule_options": {},
     # S1-1 修复：`server_url` 此前被 app.py 读 3 次、被 SettingsDialog.value()
     # 回填，却**不在 DEFAULTS 里** —— 首次运行完全依赖调用点的
@@ -146,7 +148,8 @@ def _migrate_v0(data: dict[str, Any]) -> dict[str, Any]:
     备注，静默丢弃数据比留着更糟。
     """
     result = dict(data)
-    result["initial_minutes"] = _as_int(result.get("initial_minutes"), 20, 1, 180)
+    result["initial_minutes"] = _as_int(result.get("initial_minutes"),
+                                        DEFAULTS["initial_minutes"], 1, 180)
     result["sound_volume"] = _as_int(result.get("sound_volume"), 70, 0, 100)
     result["music_volume"] = _as_int(result.get("music_volume"), 40, 0, 100)
     result["countdown_seconds"] = _as_int(result.get("countdown_seconds"), 30, 0, 600)
