@@ -248,7 +248,7 @@ dialog form@dark|padding|18px
 .rule-options label@dark|align-items|center
 .rule-options label@dark|gap|8px
 .rule-options label@dark|font-size|14px
-.rule-options input@dark|accent-color|#c94b4b
+.rule-options input@dark|accent-color|#f2b8b5
 menu@dark|display|flex
 menu@dark|justify-content|flex-end
 menu@dark|gap|8px
@@ -348,7 +348,7 @@ body@dark|transition|background-image .25s,background-color .25s
 .preference-options input[type=range]@dark|width|100%
 .preference-options .check-label@dark|display|flex
 .preference-options .check-label@dark|justify-content|flex-start
-.check-label input@dark|accent-color|#c94b4b
+.check-label input@dark|accent-color|#f2b8b5
 .replay-sidebar@dark|position|fixed
 .replay-sidebar@dark|right|0
 .replay-sidebar@dark|top|72px
@@ -383,7 +383,7 @@ body@dark|transition|background-image .25s,background-color .25s
 .replay-progress@dark|color|#776653
 .replay-progress@dark|font-size|12px
 .replay-progress input@dark|width|100%
-.replay-progress input@dark|accent-color|#c94b4b
+.replay-progress input@dark|accent-color|#f2b8b5
 .replay-sidebar ol@dark|margin|0
 .replay-sidebar ol@dark|padding|8px 14px 24px 38px
 .replay-sidebar ol@dark|overflow|auto
@@ -391,7 +391,7 @@ body@dark|transition|background-image .25s,background-color .25s
 .replay-sidebar li@dark|border-bottom|1px dashed #cbb694
 .replay-sidebar li@dark|cursor|pointer
 .replay-sidebar li.active@dark|background|#f1dfb7
-.replay-sidebar li.active@dark|color|#c94b4b
+.replay-sidebar li.active@dark|color|#f2b8b5
 .replay-sidebar li.active@dark|font-weight|700
 .saved-replays@dark|border-top|1px solid #c8a975
 .saved-replays@dark|padding|12px
@@ -422,7 +422,7 @@ body@dark|transition|background-image .25s,background-color .25s
 .record-tabs button@dark|padding|4px 10px
 .record-tabs button@dark|border|0
 .record-tabs button@dark|background|transparent
-.record-tabs button.active@dark|color|#c94b4b
+.record-tabs button.active@dark|color|#f2b8b5
 .record-tabs button.active@dark|border-bottom|2px solid #c94b4b
 .record-tabs button.active@dark|font-weight|700
 .chat-view@dark|min-height|0
@@ -442,7 +442,7 @@ body@dark|transition|background-image .25s,background-color .25s
 .chat-message@dark|border-bottom|1px dashed #cbb694
 .chat-message@dark|font-size|12px
 .chat-message@dark|word-break|break-word
-.chat-message.red strong@dark|color|#c94b4b
+.chat-message.red strong@dark|color|#f2b8b5
 .chat-message.black strong@dark|color|#292522
 .chat-quick-row,.chat-input-row@dark|display|grid
 .chat-quick-row,.chat-input-row@dark|grid-template-columns|1fr auto
@@ -512,7 +512,7 @@ body[data-board-background="none"] .board-shell:before@dark|display|none
 .menu summary@dark|font-size|14px
 .menu summary::-webkit-details-marker@dark|display|none
 .menu[open] summary,.menu summary:hover@dark|background|#f1dfbf
-.menu[open] summary,.menu summary:hover@dark|color|#c94b4b
+.menu[open] summary,.menu summary:hover@dark|color|#f2b8b5
 .menu-popup@dark|position|absolute
 .menu-popup@dark|left|0
 .menu-popup@dark|top|calc(100% - 1px)
@@ -587,7 +587,7 @@ body[data-board-background="none"] .board-shell:before@dark|display|none
 .replay-controls li@dark|border-bottom|1px dashed #cbb694
 .replay-controls li@dark|cursor|pointer
 .replay-controls li.active@dark|background|#f1dfb7
-.replay-controls li.active@dark|color|#c94b4b
+.replay-controls li.active@dark|color|#f2b8b5
 .replay-controls li.active@dark|font-weight|700
 .saved-replays@dark|max-height|260px
 .saved-replay-actions@dark|flex-wrap|wrap
@@ -607,7 +607,7 @@ body[data-board-background="none"] .board-shell:before@dark|display|none
 .text-dialog-body code@dark|padding|2px 5px
 .text-dialog-body code@dark|background|rgba(119,83,48,.1)
 .text-dialog-body code@dark|border|1px solid rgba(119,83,48,.18)
-.text-dialog-body a@dark|color|#c94b4b
+.text-dialog-body a@dark|color|#f2b8b5
 .text-dialog-body a@dark|word-break|break-all
 @media(max-width:1180px)@dark|.menubar{display|none}.top-actions{margin-left:auto}.replay-layout{grid-template-columns:minmax(420px,1fr) 300px}
 @media(max-width:760px)@dark|.topbar{height|58px
@@ -640,7 +640,7 @@ body[data-board-background="none"] .board-shell:before@dark|display|none
 .statistics-summary@dark|gap|9px 18px
 .statistics-summary@dark|align-items|baseline
 .statistics-summary strong@dark|font|24px Consolas,monospace
-.statistics-summary strong@dark|color|#c94b4b
+.statistics-summary strong@dark|color|#f2b8b5
 .statistics-summary strong@dark|text-align|right
 .statistics-summary span@dark|color|#675748
 .statistics-actions@dark|display|flex
@@ -732,7 +732,7 @@ body[data-board-background="none"] .board-shell:before@dark|display|none
 .analysis-summary div@dark|padding|10px
 .analysis-summary div@dark|border|1px solid #d5bea0
 .analysis-summary strong@dark|font-size|24px
-.analysis-summary strong@dark|color|#c94b4b
+.analysis-summary strong@dark|color|#f2b8b5
 #winRateChart@dark|position|static
 #winRateChart@dark|width|100%
 #winRateChart@dark|height|220px
@@ -836,5 +836,4 @@ body[data-system-theme="dark"] .brand p,body[data-system-theme="dark"] span,body
 .atlas-demo-slot@dark|color|#756555
 .atlas-demo-slot@dark|font-size|13px
 body[data-system-theme="dark"] .chat-messages@dark|background|transparent
-body[data-system-theme="dark"] .chat-message.red strong@dark|color|#f2b8b5
 body[data-system-theme="dark"] .chat-message.black strong@dark|color|#f3ead7

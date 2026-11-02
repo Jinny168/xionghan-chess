@@ -836,5 +836,4 @@ body[data-system-theme="dark"] .brand p,body[data-system-theme="dark"] span,body
 .atlas-demo-slot@board-dark|color|#756555
 .atlas-demo-slot@board-dark|font-size|13px
 body[data-system-theme="dark"] .chat-messages@board-dark|background|transparent
-body[data-system-theme="dark"] .chat-message.red strong@board-dark|color|#f2b8b5
 body[data-system-theme="dark"] .chat-message.black strong@board-dark|color|#f3ead7
