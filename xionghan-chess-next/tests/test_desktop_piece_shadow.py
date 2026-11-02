@@ -244,10 +244,14 @@ def test_shadow_geometry_comes_from_named_constants() -> None:
         assert hasattr(board_widget, name), f"缺少投影参数常量 {name}"
 
 
-def test_shadow_brush_is_reused_instead_of_rebuilt_per_piece() -> None:
+def test_shadow_brush_is_reused_instead_of_rebuilt_per_piece(qt_app: QApplication) -> None:
     """刷子必须复用：61 枚子 × 60fps = 每秒最多 3660 次构造，不能每枚子重建。
 
     判据是"渲染一整盘之后，缓存里只多了一个条目" —— 与实现方式（渐变/纯色）无关。
+
+    `qt_app` 参数是**必需的**：本文件其它渲染用例都会先建 QApplication，
+    这条若省掉就会"单独跑崩、跟文件跑过"—— 那是执行顺序在偷偷兜底，
+    正是本项目最不想要的那种假绿（QA 在验收时点过这条风险）。
     """
     board_widget._SHADOW_BRUSH_CACHE.clear()
     game = Game("web")
