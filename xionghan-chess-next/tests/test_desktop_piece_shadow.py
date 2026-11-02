@@ -1,6 +1,6 @@
 """P1-1 桌面棋子投影：必须在 `_draw_piece` 这个**分发入口**上一视同仁，且必须真的看得见。
 
-## 这一层的三个硬约束，都是"看不见的代码"型契约
+## 这一层的四个硬约束，都是"看不见的代码"型契约
 
 1. **不许三个渲染分支各画一遍。** 字形 / 位图 / 回退（`draw_piece_glyph`、
    `_draw_piece_image`、`draw_fallback_piece`）的坐标系与半径算法各不相同，
@@ -9,21 +9,28 @@
    本条用"三种模式都有像素变化"来证伪：若哪天有人把投影搬进某一个分支，
    另外两个模式立刻少掉这些像素。
 
-2. **不许用 `QGraphicsDropShadowEffect`。** 棋盘是自带 QPainter 的手绘控件，
-   图形特效会接管 paint 流程并二次离屏合成，与 `paintEvent` 的绘制顺序和坐标系冲突，
-   也会拖慢 60fps 的走子动画。本条用源码断言把它钉死。
-
-3. **必须真的看得见。** 这条是踩过坑换来的：第一版用纯色椭圆
+2. **必须真的看得见。** 这条是踩过坑换来的：第一版用纯色椭圆
    （半径 0.98r / 偏移 0.07r），可见面积几何上为 0 —— 字形棋子可见外沿 1.05r，
    而 0.98r + 0.07r 正好也是 1.05r，**两者恰好重合**，
-   实测开/关投影只差 0.40% 像素（且全是抗锯齿溢出）。
-   "参数写进去了"不等于"用户看得见"，所以这里直接断言可见强度与方向。
+   实测开/关投影只差 0.40% 像素（且全是抗锯齿溢出，可感知差异为 **0**）。
+   "参数写进去了"不等于"用户看得见"，所以这里直接断言可感知强度与方向。
+
+3. **强度必须是单旋钮、且旋钮真的有效。** 渐变方案下**圆心 alpha 完全被棋子盖住**
+   （0.72 × 1.30r = 0.936r < 1.05r），所以"圆心一个常量、中段一个常量"是接口陷阱：
+   改圆心是空转。现在只有 `PIECE_SHADOW_STRENGTH` 一个旋钮，所有色标按比例派生；
+   本条用"4 档单调递增"把"改了没反应"变成红。
+
+4. **按盘底色标定。** 同一组 alpha 在浅盘和深盘上的观感差一个量级
+   （硬区像素 classic 13,327 vs dark 242）。所以主题提供 `shadow_gain`，
+   对用户仍是一个强度条。本条用硬区像素预算卡住"浅盘脏、深盘看不见"两头。
 
 ## 测量口径
 
 不看具体色值（投影强度属于设计参数，会调），只比"开投影 / 关投影"两张图。
 **关投影的方式与参数解耦**：把 `_piece_shadow_brush` 换成一个空刷子，
 不依赖任何一个数值常量 —— 否则改参数会把测试连同断言一起改瞎。
+"可感知"取每通道 Δ≥6（Δ=1~5 肉眼基本分辨不出，正是抗锯齿溢出的量级）；
+"硬区"取 Δ≥30（真正的深色带，用来判断会不会看起来"脏了一圈"）。
 """
 
 from __future__ import annotations
@@ -50,16 +57,19 @@ WIDGET_PY = ROOT / "src" / "xionghan_chess" / "desktop" / "ui" / "board_widget.p
 GLYPH_MODE = board_widget.GLYPH_MODE
 IMAGE_MODE = board_widget.IMAGE_MODE
 
-# 可见强度验收线：设计口径「开/关差异像素 ≥ 2.0% 棋盘面积」（light 与 dark 各一次）。
-# 判"可见"的像素阈值取 Δ≥6（每通道）—— Δ=1~5 肉眼基本分辨不出，
-# 把它们算进去等于用"抗锯齿溢出"冒充影子，正是第一版 0.40% 却"测得出差异"的原因。
 PERCEPTIBLE_DELTA = 6
-MIN_VISIBLE_RATIO = 0.02
-# 影子必须重心向下：底部厚度 ≥ 顶部厚度的 1.5 倍。等宽就是描边，不是影子。
-MIN_DOWNWARD_LEAN = 1.5
+HARD_DELTA = 30
+MIN_VISIBLE_RATIO = 0.02        # 设计口径：开/关差异 ≥ 2.0% 棋盘面积
+MIN_DOWNWARD_LEAN = 1.5         # 底部厚度 ≥ 顶部 1.5 倍（等宽就是描边，不是影子）
+# 硬区预算（按盘底色标定后）：浅盘不能被黑影糊成"脏了一圈"，深盘不能缩到看不见。
+HARD_ZONE_BUDGET = {
+    "classic": (0, 7000),
+    "dark": (int(242 * 0.8), int(242 * 1.2)),
+}
 
-SMALL = 480          # 三类分支的开关判定用小画布，跑得快
-MEASURE = 700        # 强度/方向验收按设计口径的 700×700
+SMALL = 480
+MEASURE = 700
+BOARD = MEASURE * MEASURE
 
 
 @pytest.fixture(scope="module")
@@ -69,22 +79,12 @@ def qt_app() -> QApplication:
     return app
 
 
-def render_without_shadow(**kwargs) -> QImage:
-    """关投影：把刷子换成 NoBrush，不碰任何数值常量。
-
-    只在**这一次**渲染内生效（`MonkeyPatch.context`），否则连"开投影"那张图
-    也会被一起关掉，比出来的差异恒为 0。
-    """
-    with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(board_widget, "_piece_shadow_brush",
-                      lambda: QBrush(Qt.BrushStyle.NoBrush))
-        return render(**kwargs)
-
-
-def render(*, mode: str, size: int = SMALL, theme_name: str = "classic") -> QImage:
-    """只放一枚棋子：投影改动有多少个像素，一眼可比。"""
+def render(*, mode: str = GLYPH_MODE, size: int = SMALL, theme_name: str = "classic",
+           pieces: int = 1) -> QImage:
+    """`pieces=1` 放一枚子在中心（比形状）；`pieces=0` 用整盘 61 枚（比强度）。"""
     game = Game("web")
-    game.state.pieces = [Piece.create(PieceType.ROOK, Color.RED, 5, 5)]
+    if pieces:
+        game.state.pieces = [Piece.create(PieceType.ROOK, Color.RED, 5, 5)]
     board = board_widget.BoardWidget()
     board.resize(size, size)
     board.set_game(game, Color.RED, True)
@@ -96,28 +96,48 @@ def render(*, mode: str, size: int = SMALL, theme_name: str = "classic") -> QIma
     return canvas.toImage()
 
 
+def render_without_shadow(**kwargs) -> QImage:
+    """关投影：把刷子换成 NoBrush，不碰任何数值常量。
+
+    只在**这一次**渲染内生效（`MonkeyPatch.context`），否则连"开投影"那张图
+    也会被一起关掉，比出来的差异恒为 0。
+    """
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(board_widget, "_piece_shadow_brush",
+                      lambda gain=1.0: QBrush(Qt.BrushStyle.NoBrush))
+        return render(**kwargs)
+
+
 def _raw(image: QImage) -> bytes:
     return bytes(image.constBits())
 
 
+def _deltas(a: QImage, b: QImage) -> bytes:
+    """逐像素返回 max(|ΔR|,|ΔG|,|ΔB|)。RGB32 每像素 4 字节（B,G,R,A）。"""
+    pa, pb = _raw(a), _raw(b)
+    out = bytearray(len(pa) // 4)
+    for index in range(len(out)):
+        i = index * 4
+        out[index] = max(abs(pa[i] - pb[i]), abs(pa[i + 1] - pb[i + 1]),
+                         abs(pa[i + 2] - pb[i + 2]))
+    return bytes(out)
+
+
 def differing_pixels(a: QImage, b: QImage) -> int:
-    assert (a.width(), a.height()) == (b.width(), b.height())
-    pa, pb = _raw(a), _raw(b)
-    changed = 0
-    for i in range(0, len(pa), 4):      # RGB32：每像素 4 字节
-        if pa[i:i + 3] != pb[i:i + 3]:
-            changed += 1
-    return changed
+    return sum(1 for d in _deltas(a, b) if d)
 
 
-def perceptible_pixels(a: QImage, b: QImage, delta: int = PERCEPTIBLE_DELTA) -> int:
-    pa, pb = _raw(a), _raw(b)
-    count = 0
-    for i in range(0, len(pa), 4):
-        if (abs(pa[i] - pb[i]) >= delta or abs(pa[i + 1] - pb[i + 1]) >= delta
-                or abs(pa[i + 2] - pb[i + 2]) >= delta):
-            count += 1
-    return count
+def count_at_least(a: QImage, b: QImage, delta: int) -> int:
+    return sum(1 for d in _deltas(a, b) if d >= delta)
+
+
+def energy(a: QImage, b: QImage) -> int:
+    """差异能量（Δ 之和）。
+
+    用它做单调性判据而非面积：阈值类指标天生有"平台区"（低档全在阈值以下时面积恒 0），
+    而能量是连续量，旋钮每一步都必须真的加上去。
+    """
+    return sum(_deltas(a, b))
 
 
 # --- 三个分支都要有 -------------------------------------------------------
@@ -145,64 +165,29 @@ def test_shadow_is_drawn_in_the_fallback_branch(qt_app: QApplication,
 def test_shadow_is_actually_visible(qt_app: QApplication, theme_name: str) -> None:
     """开/关投影的**可感知**差异必须 ≥ 2.0% 棋盘面积（浅色 / 深色各一次）。
 
-    第一版纯色椭圆实测只有 0.40%（且是抗锯齿溢出，几何可见面积为 0），
+    第一版纯色椭圆实测只有 0.40% 且**可感知面积 0.00%**，
     靠这条会被直接拦下 —— 而不是等到人肉截图才发现"加了等于没加"。
     """
-    game = Game("web")
-    board = board_widget.BoardWidget()
-    board.resize(MEASURE, MEASURE)
-    board.set_game(game, Color.RED, True)
-    board.set_appearance(theme_name, "none", "traditional", GLYPH_MODE)
-    board.interactive = False
-
-    def snapshot() -> QImage:
-        canvas = QPixmap(MEASURE, MEASURE)
-        canvas.fill(QColor("white"))
-        board.render(canvas)
-        return canvas.toImage()
-
-    on = snapshot()
-    with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(board_widget, "_piece_shadow_brush",
-                      lambda: QBrush(Qt.BrushStyle.NoBrush))
-        off = snapshot()
-    ratio = perceptible_pixels(on, off) / (MEASURE * MEASURE)
+    on = render(size=MEASURE, theme_name=theme_name, pieces=0)
+    off = render_without_shadow(size=MEASURE, theme_name=theme_name, pieces=0)
+    ratio = count_at_least(on, off, PERCEPTIBLE_DELTA) / BOARD
     assert ratio >= MIN_VISIBLE_RATIO, (
         f"[{theme_name}] 投影可感知面积只有 {ratio:.2%}，低于验收线 {MIN_VISIBLE_RATIO:.0%}"
-        "（参数写进去了但用户看不见 —— 先确认 PIECE_SHADOW_CORE_ALPHA / RATIO 是否又调回硬边椭圆）")
+        "（参数写进去了但用户看不见 —— 先确认 PIECE_SHADOW_STRENGTH 与 shadow_gain 是否被改回硬边椭圆）")
 
 
 def test_shadow_leans_downward_instead_of_being_a_uniform_ring(qt_app: QApplication) -> None:
     """底部可见厚度必须 ≥ 顶部的 1.5 倍：影子重心向下，等宽就不是影子而是描边。"""
-    game = Game("web")
-    game.state.pieces = [Piece.create(PieceType.ROOK, Color.RED, 5, 5)]
-    board = board_widget.BoardWidget()
-    board.resize(MEASURE, MEASURE)
-    board.set_game(game, Color.RED, True)
-    board.set_appearance("classic", "none", "traditional", GLYPH_MODE)
-    board.interactive = False
-
-    def snapshot() -> QImage:
-        canvas = QPixmap(MEASURE, MEASURE)
-        canvas.fill(QColor("white"))
-        board.render(canvas)
-        return canvas.toImage()
-
-    on = snapshot()
-    with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(board_widget, "_piece_shadow_brush",
-                      lambda: QBrush(Qt.BrushStyle.NoBrush))
-        off = snapshot()
-    pa, pb = _raw(on), _raw(off)
-    width = on.width()
-    stride = len(pa) // on.height()
+    on = render(size=MEASURE)
+    off = render_without_shadow(size=MEASURE)
+    deltas = _deltas(on, off)
+    width = MEASURE
 
     def changed_at(x: int, y: int) -> bool:
-        i = y * stride + x * 4
-        return (abs(pa[i] - pb[i]) >= PERCEPTIBLE_DELTA
-                or abs(pa[i + 1] - pb[i + 1]) >= PERCEPTIBLE_DELTA
-                or abs(pa[i + 2] - pb[i + 2]) >= PERCEPTIBLE_DELTA)
+        return deltas[y * width + x] >= PERCEPTIBLE_DELTA
 
+    board = board_widget.BoardWidget()
+    board.resize(MEASURE, MEASURE)
     _, left, top, cw, ch = board._geometry()
     cx, cy = int(left + 5 * cw), int(top + 5 * ch)
     band = range(cx - 2, cx + 3)
@@ -212,6 +197,74 @@ def test_shadow_leans_downward_instead_of_being_a_uniform_ring(qt_app: QApplicat
     assert up > 0 and down > 0, f"投影没有同时出现在上下两侧（上 {up}px / 下 {down}px）"
     assert down >= up * MIN_DOWNWARD_LEAN, (
         f"投影上下等宽（上 {up}px / 下 {down}px），看起来会是描边而不是落影")
+
+
+# --- 单旋钮必须真的有效 ---------------------------------------------------
+
+def test_strength_knob_changes_the_rendering_monotonically(
+        qt_app: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`PIECE_SHADOW_STRENGTH` 四档（0 / ⅓ / ⅔ / 1）必须让强度**严格递增**。
+
+    这里守的是"旋钮是不是接对了量"：如果旋钮去驱动**圆心 alpha**
+    （而圆心被棋子完全盖住），四档会画出一模一样的图，这条立刻红 ——
+    那正是把 `ALPHA` 常量改成旋钮时最容易埋的雷。
+    面积与能量**两个指标都要单调**：面积防"看不出来"，能量防"面积到顶后偷偷加浓"。
+    """
+    off = render_without_shadow(size=MEASURE, pieces=0)
+    areas: list[float] = []
+    energies: list[int] = []
+    for step in (0.0, 1 / 3, 2 / 3, 1.0):
+        monkeypatch.setattr(board_widget, "PIECE_SHADOW_STRENGTH", step)
+        board_widget._SHADOW_BRUSH_CACHE.clear()
+        on = render(size=MEASURE, pieces=0)
+        areas.append(count_at_least(on, off, PERCEPTIBLE_DELTA) / BOARD)
+        energies.append(energy(on, off))
+
+    assert all(b > a for a, b in zip(areas, areas[1:])), f"可感知面积不是严格递增：{areas}"
+    assert all(b > a for a, b in zip(energies, energies[1:])), f"差异能量不是严格递增：{energies}"
+
+
+def test_strength_zero_renders_exactly_like_no_shadow(
+        qt_app: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    """旋钮拧到 0 必须**逐像素相同**（不是"看起来差不多"）。
+
+    判据写成 `== 0` 而不是 `> 0`：这是"关掉"的明确失败路径 ——
+    只要漏了任何一个色标没跟着派生，这里就会红。
+    """
+    monkeypatch.setattr(board_widget, "PIECE_SHADOW_STRENGTH", 0.0)
+    board_widget._SHADOW_BRUSH_CACHE.clear()
+    on = render(size=MEASURE, pieces=0)
+    off = render_without_shadow(size=MEASURE, pieces=0)
+    assert differing_pixels(on, off) == 0, "强度为 0 仍有可见投影（有色标没跟着旋钮派生）"
+
+
+def test_hard_zone_stays_within_the_per_theme_budget(qt_app: QApplication) -> None:
+    """硬区（Δ≥30）像素必须落在每套主题的预算内 —— 浅盘不脏、深盘不消失。
+
+    这两头是相互矛盾的：把 alpha 全局往上拧，dark 从 242 掉到看不见；
+    往下拧，classic 从"脏一圈"变成正常。所以才需要 `theme.shadow_gain` 分档标定。
+    """
+    problems = []
+    for theme_name, (low, high) in HARD_ZONE_BUDGET.items():
+        on = render(size=MEASURE, theme_name=theme_name, pieces=0)
+        off = render_without_shadow(size=MEASURE, theme_name=theme_name, pieces=0)
+        hard = count_at_least(on, off, HARD_DELTA)
+        if not low <= hard <= high:
+            problems.append(f"{theme_name}: 硬区 {hard} px 不在 [{low}, {high}]")
+    assert not problems, "；".join(problems)
+
+
+def test_theme_calibration_covers_every_theme() -> None:
+    """每套主题都必须有 `shadow_gain`，且浅盘系数不得高于深盘（否则标定逻辑反了）。"""
+    missing = [name for name, palette in theme.THEMES.items() if "shadow_gain" not in palette]
+    assert not missing, f"这些主题缺少 shadow_gain（投影会掉回默认系数）：{missing}"
+    dark = theme.THEMES["dark"]["shadow_gain"]
+    for name, palette in theme.THEMES.items():
+        if name == "dark":
+            continue
+        assert palette["shadow_gain"] <= dark, (
+            f"{name} 的 shadow_gain {palette['shadow_gain']} 高于 dark {dark} —— "
+            "浅底上黑影更显眼，系数应当更低")
 
 
 # --- 硬约束 ---------------------------------------------------------------
@@ -237,32 +290,33 @@ def test_no_graphics_effect_is_used_for_the_shadow() -> None:
         f"与 paintEvent 的坐标系和绘制顺序冲突，并拖慢走子动画）：{offenders}")
 
 
-def test_shadow_geometry_comes_from_named_constants() -> None:
-    """几何参数必须走具名常量（便于设计调参、也便于本条指出该调哪个）。"""
-    for name in ("PIECE_SHADOW_ALPHA", "PIECE_SHADOW_OFFSET", "PIECE_SHADOW_RATIO",
-                 "PIECE_SHADOW_CORE_ALPHA", "PIECE_SHADOW_CORE_STOP"):
+def test_shadow_has_a_single_external_knob() -> None:
+    """投影只对外暴露**一个**强度旋钮，且那个"改了没反应"的圆心常量已经移除。
+
+    P2-2 要把"投影强度"暴露成用户可调项；如果同时留着
+    `PIECE_SHADOW_ALPHA`（圆心）和 `PIECE_SHADOW_CORE_ALPHA`（中段）两个常量，
+    用户拧到 0 会毫无反应 —— 那是接口陷阱，不是参数问题。
+    """
+    for name in ("PIECE_SHADOW_STRENGTH", "PIECE_SHADOW_CORE_ALPHA",
+                 "PIECE_SHADOW_CENTER_FACTOR", "PIECE_SHADOW_CORE_STOP",
+                 "PIECE_SHADOW_OFFSET", "PIECE_SHADOW_RATIO"):
         assert hasattr(board_widget, name), f"缺少投影参数常量 {name}"
+    assert not hasattr(board_widget, "PIECE_SHADOW_ALPHA"), (
+        "`PIECE_SHADOW_ALPHA`（圆心）已被 `PIECE_SHADOW_STRENGTH` 取代："
+        "它在渐变里被棋子完全盖住，单独改它没有任何可见效果")
 
 
 def test_shadow_brush_is_reused_instead_of_rebuilt_per_piece(qt_app: QApplication) -> None:
     """刷子必须复用：61 枚子 × 60fps = 每秒最多 3660 次构造，不能每枚子重建。
 
-    判据是"渲染一整盘之后，缓存里只多了一个条目" —— 与实现方式（渐变/纯色）无关。
+    判据是"渲染一整盘之后，缓存里只多了一个条目" —— 与实现方式无关。
 
     `qt_app` 参数是**必需的**：本文件其它渲染用例都会先建 QApplication，
     这条若省掉就会"单独跑崩、跟文件跑过"—— 那是执行顺序在偷偷兜底，
     正是本项目最不想要的那种假绿（QA 在验收时点过这条风险）。
     """
     board_widget._SHADOW_BRUSH_CACHE.clear()
-    game = Game("web")
-    board = board_widget.BoardWidget()
-    board.resize(MEASURE, MEASURE)
-    board.set_game(game, Color.RED, True)
-    board.set_appearance("classic", "none", "traditional", GLYPH_MODE)
-    board.interactive = False
-    canvas = QPixmap(MEASURE, MEASURE)
-    canvas.fill(QColor("white"))
-    board.render(canvas)
+    render(size=MEASURE, pieces=0)
     assert len(board_widget._SHADOW_BRUSH_CACHE) == 1, (
         f"整盘渲染后应只缓存 1 个投影刷子，实际 {len(board_widget._SHADOW_BRUSH_CACHE)} 个"
         "（说明每枚子都在重建渐变）")

@@ -60,7 +60,7 @@ def _no_piece_shadow(monkeypatch: pytest.MonkeyPatch) -> None:
     import xionghan_chess.desktop.ui.board_widget as board_widget
 
     monkeypatch.setattr(board_widget, "_piece_shadow_brush",
-                        lambda: QBrush(Qt.BrushStyle.NoBrush))
+                        lambda *args, **kwargs: QBrush(Qt.BrushStyle.NoBrush))
 
 
 def render(style: str, mode: str, pieces: list[Piece]) -> tuple[QImage, BoardWidget]:

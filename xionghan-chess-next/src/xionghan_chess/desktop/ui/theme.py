@@ -63,13 +63,30 @@ NAMES = {
 UI_FONT = "Noto Sans SC Subset"
 PIECE_FONT = "Noto Serif SC Subset"
 
+# `shadow_gain`：棋子投影的**按盘底色标定系数**（P1-1）。
+#
+# 为什么不能一个 alpha 打通五套盘：同一组透明度下，黑影在浅木纹上和在深木纹上的
+# 观感差一个量级。QA 的独立实测（同一套 alpha，Δ≥30「硬区」像素）：
+#     classic 13,327  vs  dark 242   ← 差 55 倍
+# 也就是说"把全局强度往下拧"会让 dark 先消失（它本来就只有 242 个硬区像素），
+# 而"照 dark 拧到满"会让 classic 糊成污渍。所以对用户只暴露**一个**强度旋钮
+# （`board_widget.PIECE_SHADOW_STRENGTH`），每套主题在这里提供系数，
+# 实现上是「强度 × 系数」——用户看到的仍是一个滑杆。
+#
+# 取值依据（硬区像素预算，见 test_desktop_piece_shadow.py）：
+#   classic 0.6 —— 浅底上黑影最显眼，砍到约一半才不脏（13,327 → ≤7,000）；
+#   浅色系其余三套取 0.7（底比 classic 略深/略灰，可稍强）；
+#   dark 1.0 —— 深底上黑影几乎不显，保持满系数（维持 242±20%）。
 THEMES = {
-    "classic": {"board": "#e7c88d", "line": "#684726", "frame": "#5a3b20", "panel": "#fff9ed", "window": "#d9c8a6", "accent": "#315c48"},
-    "green": {"board": "#dfeeda", "line": "#315c36", "frame": "#365a3e", "panel": "#f6fbf2", "window": "#c8d8c1", "accent": "#315c48"},
-    "blue": {"board": "#dcebf1", "line": "#285c73", "frame": "#31586a", "panel": "#f3f8fa", "window": "#c4d4da", "accent": "#315f76"},
-    "purple": {"board": "#eee1f2", "line": "#724585", "frame": "#5c386d", "panel": "#fbf6fc", "window": "#d8c7dc", "accent": "#6d3e79"},
-    "dark": {"board": "#34302b", "line": "#c9b58e", "frame": "#171513", "panel": "#29241f", "window": "#1d1a17", "accent": "#8e3b32"},
+    "classic": {"board": "#e7c88d", "line": "#684726", "frame": "#5a3b20", "panel": "#fff9ed", "window": "#d9c8a6", "accent": "#315c48", "shadow_gain": 0.6},
+    "green": {"board": "#dfeeda", "line": "#315c36", "frame": "#365a3e", "panel": "#f6fbf2", "window": "#c8d8c1", "accent": "#315c48", "shadow_gain": 0.7},
+    "blue": {"board": "#dcebf1", "line": "#285c73", "frame": "#31586a", "panel": "#f3f8fa", "window": "#c4d4da", "accent": "#315f76", "shadow_gain": 0.7},
+    "purple": {"board": "#eee1f2", "line": "#724585", "frame": "#5c386d", "panel": "#fbf6fc", "window": "#d8c7dc", "accent": "#6d3e79", "shadow_gain": 0.7},
+    "dark": {"board": "#34302b", "line": "#c9b58e", "frame": "#171513", "panel": "#29241f", "window": "#1d1a17", "accent": "#8e3b32", "shadow_gain": 1.0},
 }
+
+# 主题没声明 `shadow_gain` 时的兜底（新增主题不该因为它没写而丢掉投影）。
+SHADOW_GAIN_DEFAULT = 1.0
 
 # §5 审计（UI_AUDIT_2026-10-31）落地的调色键：**只加数据，不改任何结构**。
 # 浅色 4 主题与暗色各一套；比值（WCAG）见提交信息。

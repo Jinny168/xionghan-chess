@@ -53,6 +53,7 @@ SOURCE = Position(3, 4)      # 空位（完整布局里这格没有棋子）
 TARGET = Position(4, 4)      # 兵位 —— 落子后该格必有棋子，用来验"四角仍可见"
 OFFSET = 0.25
 PERCEPTIBLE_DELTA = 6
+THEMES = ("classic", "green", "blue", "purple", "dark")
 MIN_COVERAGE = 0.005         # 下界：不能白画
 MAX_COVERAGE = 0.0096        # 上界：两个 0.9 格方框的算术天花板（169 格棋盘）
 
@@ -134,14 +135,19 @@ def test_last_move_marks_the_source_square(qt_app: QApplication) -> None:
         f"浅色盘上标注应比底色**更暗**（取棋盘线色混出来）：{before} → {after}")
 
 
-def test_target_square_corners_stay_visible_under_a_piece(qt_app: QApplication) -> None:
-    """**D1 的核心验收**：终点格有棋子时，方框的四个角仍必须可感知。
+@pytest.mark.parametrize("theme_name", THEMES)
+def test_target_square_corners_stay_visible_under_a_piece(
+        qt_app: QApplication, theme_name: str) -> None:
+    """**D1 的核心验收**：终点格有棋子时，方框的四个角仍必须可感知（五套主题全测）。
 
     第一版圆盘在这里得 0（环太细），这条会直接拦下它。
     同时锁定"标记画在棋子之前"这个层级不变：棋子中心仍被盖住，只有四角露出来。
+
+    为什么要五套全测：标记色取的是**棋盘线色**，五套盘线色差很多
+    （classic #684726 / dark #c9b58e），只测两套等于赌另外三套碰巧也够。
     """
-    marked, board = render(with_history=True)
-    plain, _ = render(with_history=False)
+    marked, board = render(with_history=True, theme_name=theme_name)
+    plain, _ = render(with_history=False, theme_name=theme_name)
     _, left, top, cw, ch = board._geometry()
 
     misses = []
@@ -198,6 +204,26 @@ def test_mark_follows_board_line_colour_across_themes(qt_app: QApplication) -> N
     assert after != before, "深色主题下没有标注"
     assert brightness(after) > brightness(before), (
         f"深色盘上标注应比底色**更亮**（棋盘线色 #c9b58e 混出来）：{before} → {after}")
+
+
+def test_mark_alpha_ladder_is_locked() -> None:
+    """三档标注的强弱顺序必须被锁死：上一步(64) < 吃子提示(90) < 选择态(145)。
+
+    判据不是"数值好看"，而是**出现频率**：
+    选中 / 可吃 / 被将都是**事件性**提示，出现即"此刻有事"；
+    而上一步是**全场唯一恒常存在**的标注 —— 每走一手它就在，而且永远在。
+    一个"永远在"的元素必须是最弱的一档，否则会把注意力从棋盘本身拉走
+    （违背计划开头那条对标结论"棋盘即主角"）。
+    谁想"调明显一点"，会先撞到这条。
+    """
+    assert board_widget.LAST_MOVE_ALPHA < board_widget.CAPTURE_MARK_ALPHA \
+        < board_widget.SELECTION_MARK_ALPHA, (
+            "标注强弱顺序被打乱：上一步 {} / 吃子提示 {} / 选择态 {}".format(
+                board_widget.LAST_MOVE_ALPHA, board_widget.CAPTURE_MARK_ALPHA,
+                board_widget.SELECTION_MARK_ALPHA))
+    assert (board_widget.LAST_MOVE_ALPHA, board_widget.CAPTURE_MARK_ALPHA,
+            board_widget.SELECTION_MARK_ALPHA) == (64, 90, 145), (
+            "三档 alpha 的定稿值是 64 / 90 / 145；改动请同时更新本条与 UI 审计文档")
 
 
 # --- 网页端同步 -----------------------------------------------------------

@@ -91,6 +91,14 @@ CHECK_PULSE_FRAMES = 30
 LAST_MOVE_INSET = 0.05          # × 格，每边内缩 → 方框占 90% 格宽
 LAST_MOVE_CORNER = 0.16         # × 格，圆角半径
 LAST_MOVE_ALPHA = 64            # 64/255 ≈ .25，不到选择态不透明度（.55）的一半
+# `_draw_marks` 里三种标注的不透明度档位。提成常量不是为了好看，是为了让
+# 「上一步 < 吃子提示 < 选择态」这条**顺序**能被断言锁住（见测试）。
+# 理由（设计定稿）：选出/可吃/被将都是**事件性**提示，出现即"此刻有事"；
+# 而上一步是**全场唯一恒常存在**的标注，每走一手就在，必须是最弱的一档，
+# 否则会把注意力从棋盘本身拉走（违背"棋盘即主角"）。
+# 谁想"调得明显一点"就会先撞到这条断言。
+CAPTURE_MARK_ALPHA = 90         # 可吃子格（红）
+SELECTION_MARK_ALPHA = 145      # 当前选中格（金）
 
 # P1-1 棋子投影：**径向渐变**，不是纯色椭圆。
 #
@@ -107,8 +115,19 @@ LAST_MOVE_ALPHA = 64            # 64/255 ≈ .25，不到选择态不透明度�
 # 不做离屏合成），参数与网页那颗 `blur:5px` 是**重量感对齐**，不是去凑 blur 半径。
 #
 # 可见带（r 为单位）：底部 0.34r、左右 0.25r、顶部 0.16r —— 重心向下，且全是渐变无硬边。
-PIECE_SHADOW_ALPHA = 115        # 渐变圆心不透明度（≈.45）
-PIECE_SHADOW_CORE_ALPHA = 88    # 0.72 处的不透明度（≈圆心 76%），保证中段仍有重量
+#
+# --- 强度旋钮（P2-2 前置）-------------------------------------------------
+# `PIECE_SHADOW_STRENGTH` 是**唯一**对外的强度旋钮（0..1），所有色标的 alpha 都由它
+# 按比例派生：`实际 alpha = 基准 alpha × STRENGTH × 主题系数(theme["shadow_gain"])`。
+#
+# 为什么必须"派生"而不是给几个独立常量：可见像素全部落在 0.72 色标之外
+# （0.72 × 1.30r = 0.936r < 1.05r），**圆心 alpha 完全被棋子盖住**。
+# 所以"圆心 115、中段 88"这种双常量，改圆心是空转、改中段才有反应 ——
+# 那是接口陷阱（改了没反应的常量比没有更糟）。旋钮必须**真的驱动中段**，
+# 并且有一条"强度↑ ⇒ 可感知面积↑"的单调性断言兜着（见测试文件）。
+PIECE_SHADOW_STRENGTH = 1.0     # 用户唯一旋钮：0 = 关，1 = 该主题的满强度
+PIECE_SHADOW_CORE_ALPHA = 88    # STRENGTH=1 × 系数=1 时 0.72 处的不透明度（有效强度看这个）
+PIECE_SHADOW_CENTER_FACTOR = 115 / 88   # 圆心 = 中段 × 该系数（历史配比，保持观感连续）
 PIECE_SHADOW_CORE_STOP = 0.72   # 中段色标位置
 PIECE_SHADOW_OFFSET = 0.09      # × radius，圆心向下偏移
 PIECE_SHADOW_RATIO = 1.30       # × radius，渐变外半径（色标 1.0 处 alpha 归零）
@@ -117,20 +136,30 @@ PIECE_SHADOW_RATIO = 1.30       # × radius，渐变外半径（色标 1.0 处 a
 # 两个设计点：
 #  ① 用 ObjectBoundingMode：渐变坐标系变成**图形包围盒的比例**，于是同一个 QBrush
 #     可以给任意位置、任意大小的投影复用（绝对坐标的渐变做不到，每枚子都得重建）；
-#  ② 缓存键带上 alpha 参数：改常量（含测试里 monkeypatch 成 0）会自动失效重算，
+#  ② 缓存键带上**派生后的两个 alpha**：改旋钮 / 改系数 / 改基准常量都会自动失效，
 #     不会拿到上一组参数构造的陈旧刷子。
 _SHADOW_BRUSH_CACHE: dict[tuple[int, int, float], QBrush] = {}
 
 
-def _piece_shadow_brush() -> QBrush:
+def _shadow_alpha_pair(gain: float) -> tuple[int, int]:
+    """(圆心 alpha, 中段 alpha) = 基准 × 旋钮 × 主题系数。"""
+    strength = min(1.0, max(0.0, PIECE_SHADOW_STRENGTH))
+    scale = strength * max(0.0, gain)
+    core = int(round(PIECE_SHADOW_CORE_ALPHA * scale))
+    center = int(round(core * PIECE_SHADOW_CENTER_FACTOR))
+    return center, core
+
+
+def _piece_shadow_brush(gain: float = 1.0) -> QBrush:
     """投影刷子（惰性构造 + 复用；参数一变自动失效）。"""
-    key = (PIECE_SHADOW_ALPHA, PIECE_SHADOW_CORE_ALPHA, PIECE_SHADOW_CORE_STOP)
+    center, core = _shadow_alpha_pair(gain)
+    key = (center, core, PIECE_SHADOW_CORE_STOP)
     brush = _SHADOW_BRUSH_CACHE.get(key)
     if brush is None:
         gradient = QRadialGradient(QPointF(0.5, 0.5), 0.5)
         gradient.setCoordinateMode(QGradient.CoordinateMode.ObjectBoundingMode)
-        gradient.setColorAt(0.0, QColor(0, 0, 0, PIECE_SHADOW_ALPHA))
-        gradient.setColorAt(PIECE_SHADOW_CORE_STOP, QColor(0, 0, 0, PIECE_SHADOW_CORE_ALPHA))
+        gradient.setColorAt(0.0, QColor(0, 0, 0, center))
+        gradient.setColorAt(PIECE_SHADOW_CORE_STOP, QColor(0, 0, 0, core))
         gradient.setColorAt(1.0, QColor(0, 0, 0, 0))
         brush = QBrush(gradient)
         _SHADOW_BRUSH_CACHE[key] = brush
@@ -715,7 +744,7 @@ class BoardWidget(QWidget):
                 pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / CHECK_PULSE_FRAMES)))
                 self._mark(painter, king.position, left, top, cw, ch, QColor(190, 28, 28, pulse), .47)
         if self.selected and self.show_selection:
-            self._mark(painter, self.selected, left, top, cw, ch, QColor(221, 166, 40, 145), .48)
+            self._mark(painter, self.selected, left, top, cw, ch, QColor(221, 166, 40, SELECTION_MARK_ALPHA), .48)
         # 空位落点：统一半径 .13、按主题取色（深色主题必须提亮，见 legal_dot_color）。
         # **每个可走格都画**，不合并中间点——点同时承担"这格能点"的暗示，
         # 合并等于宣称"中间不能停"，与事实冲突。
@@ -724,7 +753,7 @@ class BoardWidget(QWidget):
         for move in self.legal if self.show_legal_targets else ():
             target = self.game.state.piece_at(move.target)
             if target:
-                self._mark(painter, move.target, left, top, cw, ch, QColor(148, 30, 30, 90), .4)
+                self._mark(painter, move.target, left, top, cw, ch, QColor(148, 30, 30, CAPTURE_MARK_ALPHA), .4)
             else:
                 self._mark(painter, move.target, left, top, cw, ch, dot_color, dot_ratio)
 
@@ -879,7 +908,7 @@ class BoardWidget(QWidget):
         # （也会把 60fps 的走子动画拖成离屏合成）。
         painter.save()
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(_piece_shadow_brush())
+        painter.setBrush(_piece_shadow_brush(float(self.theme.get("shadow_gain", theme.SHADOW_GAIN_DEFAULT))))
         painter.drawEllipse(QPointF(center.x(), center.y() + radius * PIECE_SHADOW_OFFSET),
                             radius * PIECE_SHADOW_RATIO, radius * PIECE_SHADOW_RATIO)
         painter.restore()
