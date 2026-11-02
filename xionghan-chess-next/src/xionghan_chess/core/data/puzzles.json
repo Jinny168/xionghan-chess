@@ -3,7 +3,7 @@
     "id": "beginner-forward-01",
     "title": "兵卒初动",
     "difficulty": "beginner",
-    "description": "熟悉匈汉棋盘上兵的前进方向。",
+    "description": "走法练习：熟悉匈汉棋盘上兵的前进方向。",
     "profileId": "web",
     "solution": [
       {
@@ -23,14 +23,15 @@
     ],
     "tags": [
       "基础",
-      "兵卒"
+      "兵卒",
+      "drill"
     ]
   },
   {
     "id": "beginner-cannon-01",
     "title": "架炮出营",
     "difficulty": "beginner",
-    "description": "找到炮在无阻挡直线上的安全展开点。",
+    "description": "走法练习：找到炮在无阻挡直线上的安全展开点。",
     "profileId": "traditional",
     "solution": [
       {
@@ -50,14 +51,15 @@
     ],
     "tags": [
       "基础",
-      "炮"
+      "炮",
+      "drill"
     ]
   },
   {
     "id": "beginner-horse-01",
     "title": "跃马争先",
     "difficulty": "beginner",
-    "description": "练习马的日字移动与蹩马腿判断。",
+    "description": "走法练习：练习马的日字移动与蹩马腿判断。",
     "profileId": "traditional",
     "solution": [
       {
@@ -77,14 +79,15 @@
     ],
     "tags": [
       "基础",
-      "马"
+      "马",
+      "drill"
     ]
   },
   {
     "id": "advanced-archer-01",
     "title": "星轨射手",
     "difficulty": "advanced",
-    "description": "识别射在弱化模式下可进入的相邻星轨。",
+    "description": "走法练习：识别射在弱化模式下可进入的相邻星轨。",
     "profileId": "web",
     "solution": [
       {
@@ -104,14 +107,15 @@
     ],
     "tags": [
       "特色棋子",
-      "射"
+      "射",
+      "drill"
     ]
   },
   {
     "id": "advanced-patrol-01",
     "title": "巡守河界",
     "difficulty": "advanced",
-    "description": "掌握巡在指定边界上的横向调动。",
+    "description": "走法练习：掌握巡在指定边界上的横向调动。",
     "profileId": "desktop_classic",
     "solution": [
       {
@@ -131,14 +135,15 @@
     ],
     "tags": [
       "特色棋子",
-      "巡"
+      "巡",
+      "drill"
     ]
   },
   {
     "id": "advanced-center-01",
     "title": "中兵抢渡",
     "difficulty": "advanced",
-    "description": "用中路兵争夺长城阴山区域。",
+    "description": "走法练习：用中路兵争夺长城阴山区域。",
     "profileId": "desktop_complete",
     "solution": [
       {
@@ -158,14 +163,15 @@
     ],
     "tags": [
       "布局",
-      "兵卒"
+      "兵卒",
+      "drill"
     ]
   },
   {
     "id": "master-thunder-01",
     "title": "檑动中军",
     "difficulty": "master",
-    "description": "规划檑从底线向中路展开的第一步。",
+    "description": "走法练习：规划檑从底线向中路展开的第一步。",
     "profileId": "desktop_complete",
     "solution": [
       {
@@ -185,14 +191,15 @@
     ],
     "tags": [
       "特色棋子",
-      "檑"
+      "檑",
+      "drill"
     ]
   },
   {
     "id": "master-guard-01",
     "title": "尉卫斜取",
     "difficulty": "master",
-    "description": "尉沿斜线任意距离吃子；路径必须无子。",
+    "description": "走法练习：尉沿斜线任意距离吃子；路径必须无子。",
     "profileId": "desktop_complete",
     "solution": [
       {
@@ -212,7 +219,8 @@
     ],
     "tags": [
       "特色棋子",
-      "尉"
+      "尉",
+      "drill"
     ],
     "document": {
       "formatVersion": 1,
@@ -369,7 +377,7 @@
     "id": "master-rook-01",
     "title": "俥占要道",
     "difficulty": "master",
-    "description": "在完整棋阵中寻找俥的可用直线。",
+    "description": "走法练习：在完整棋阵中寻找俥的可用直线。",
     "profileId": "desktop_complete",
     "solution": [
       {
@@ -389,14 +397,15 @@
     ],
     "tags": [
       "布局",
-      "俥"
+      "俥",
+      "drill"
     ]
   },
   {
     "id": "endgame-cannon-screen-01",
     "title": "炮借兵架",
     "difficulty": "advanced",
-    "description": "炮吃子必须隔一个棋子（炮架），且路径其余部分要清空。用红兵作架打掉黑廵。",
+    "description": "走法练习：炮吃子必须隔一个棋子（炮架），且路径其余部分要清空。用红兵作架打掉黑廵。",
     "profileId": "desktop_complete",
     "solution": [
       {
@@ -418,7 +427,8 @@
     "tags": [
       "基础",
       "炮",
-      "吃子"
+      "吃子",
+      "drill"
     ],
     "pieceTypes": [
       "cannon",
@@ -938,7 +948,7 @@
     "id": "endgame-elephant-eye-01",
     "title": "相飞象眼",
     "difficulty": "advanced",
-    "description": "相斜走两格（田字），象眼（中间格）必须为空。黑卒已渗透到 (9,2)，用相把它飞掉。",
+    "description": "走法练习：相斜走两格（田字），象眼（中间格）必须为空。黑卒已渗透到 (9,2)，用相把它飞掉。",
     "profileId": "desktop_complete",
     "solution": [
       {
@@ -961,7 +971,7 @@
       "基础",
       "相",
       "吃子",
-      "残局"
+      "drill"
     ],
     "pieceTypes": [
       "elephant"
@@ -1641,7 +1651,7 @@
     "id": "endgame-advisor-palace-01",
     "title": "仕守九宫",
     "difficulty": "beginner",
-    "description": "仕只能在本方九宫内斜走一格。黑卒已钻进九宫，仕必须斜吃掉它。",
+    "description": "走法练习：仕只能在本方九宫内斜走一格。黑卒已钻进九宫，仕必须斜吃掉它。",
     "profileId": "desktop_complete",
     "solution": [
       {
@@ -1664,7 +1674,7 @@
       "基础",
       "仕",
       "吃子",
-      "残局"
+      "drill"
     ],
     "pieceTypes": [
       "advisor"
@@ -2382,7 +2392,7 @@
     "id": "endgame-king-capture-01",
     "title": "汉亲征",
     "difficulty": "beginner",
-    "description": "汉每次横竖走一格，在本方九宫内还可斜走一格。黑砲已摸到九宫边上，用汉把它吃掉。",
+    "description": "走法练习：汉每次横竖走一格，在本方九宫内还可斜走一格。黑砲已摸到九宫边上，用汉把它吃掉。",
     "profileId": "desktop_complete",
     "solution": [
       {
@@ -2405,7 +2415,7 @@
       "基础",
       "汉",
       "吃子",
-      "残局"
+      "drill"
     ],
     "pieceTypes": [
       "king"

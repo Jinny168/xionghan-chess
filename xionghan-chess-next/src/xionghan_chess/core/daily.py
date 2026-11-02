@@ -92,8 +92,15 @@ def day_index(day: date, level: str) -> int:
 
 
 def bucket_of(puzzles: Iterable[Puzzle], level: str) -> list[Puzzle]:
-    """按 id 字典序排 —— 指针靠字典序，发布后**不许改名**。"""
-    return sorted((p for p in puzzles if p.difficulty == level), key=lambda p: p.id)
+    """按 id 字典序排 —— 指针靠字典序，发布后**不许改名**。
+
+    `drill` 标记的是「走法练习」而非杀题（原有那批一步走子题）。
+    它们留在题库里供随时练手，但**不参与每日一题** —— 每日一题承诺的是"一道题"，
+    给一道"随便走都行"的练习会砸掉这个承诺。
+    """
+    return sorted((p for p in puzzles
+                   if p.difficulty == level and "drill" not in p.tags),
+                  key=lambda p: p.id)
 
 
 def pick_daily(puzzles: Iterable[Puzzle], day: date) -> Puzzle | None:

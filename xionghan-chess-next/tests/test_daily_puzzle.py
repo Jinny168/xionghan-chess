@@ -74,6 +74,22 @@ def test_real_library_covers_every_weekday() -> None:
         assert daily.pick_daily(pool, day + timedelta(days=offset)) is not None
 
 
+def test_daily_never_picks_a_drill() -> None:
+    """`drill` 是走法练习，不是杀题 —— 每日一题不许出它。
+
+    原有那批"开局走一步"已如实标成 drill 保留在题库里（随时可练手），
+    但如果让它混进每日一题，就等于对玩家食言："一道题"变成了"随便走都行"。
+    """
+    pool = load_puzzles()
+    drills = {item.id for item in pool if "drill" in item.tags}
+    assert drills, "题库里应当还有 drill 练习（保留策略），否则这条测试失去意义"
+    day = date(2026, 11, 2)
+    for offset in range(28):                 # 连数四周，覆盖三档难度
+        picked = daily.pick_daily(pool, day + timedelta(days=offset))
+        assert picked is not None
+        assert "drill" not in picked.tags, f"{picked.id} 是练习，不该出现在每日一题里"
+
+
 def test_day_index_survives_dates_before_base() -> None:
     """系统时间被拨到基准日之前时，指针不许变成负数。"""
     assert daily.day_index(date(2025, 1, 1), "beginner") == 1
