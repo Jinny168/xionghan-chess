@@ -162,6 +162,22 @@ def energy(a: QImage, b: QImage) -> int:
     return sum(_deltas(a, b))
 
 
+# 五套主题各渲染一次整盘开销不小，预算与不变式两条断言共用同一份测量。
+_MEASURED: dict[str, tuple[float, int]] = {}
+
+
+def soft_and_hard(theme_name: str) -> tuple[float, int]:
+    """返回 (可感知面积占比, 硬区像素数)。同一主题只量一次。"""
+    if theme_name not in _MEASURED:
+        on = render(size=MEASURE, theme_name=theme_name, pieces=0)
+        off = render_without_shadow(size=MEASURE, theme_name=theme_name, pieces=0)
+        _MEASURED[theme_name] = (
+            count_at_least(on, off, PERCEPTIBLE_DELTA) / BOARD,
+            count_at_least(on, off, HARD_DELTA),
+        )
+    return _MEASURED[theme_name]
+
+
 # --- 三个分支都要有 -------------------------------------------------------
 
 @pytest.mark.parametrize("mode", [GLYPH_MODE, IMAGE_MODE])
@@ -271,17 +287,46 @@ def test_every_theme_stays_within_its_budget(qt_app: QApplication) -> None:
     for theme_name in theme.THEMES:
         assert theme_name in HARD_ZONE_BUDGET, f"{theme_name} 没有硬区预算"
         assert theme_name in SOFT_AREA_FLOOR, f"{theme_name} 没有可感知下界"
-        on = render(size=MEASURE, theme_name=theme_name, pieces=0)
-        off = render_without_shadow(size=MEASURE, theme_name=theme_name, pieces=0)
         low, high = HARD_ZONE_BUDGET[theme_name]
-        hard = count_at_least(on, off, HARD_DELTA)
-        soft = count_at_least(on, off, PERCEPTIBLE_DELTA) / BOARD
+        soft, hard = soft_and_hard(theme_name)
         if not low <= hard <= high:
             problems.append(f"{theme_name}: 硬区 {hard} px 不在 [{low}, {high}]")
         if soft < SOFT_AREA_FLOOR[theme_name]:
             problems.append(
                 f"{theme_name}: 可感知面积 {soft:.2%} 低于下界 {SOFT_AREA_FLOOR[theme_name]:.1%}")
     assert not problems, "；".join(problems)
+
+
+# 跨主题不变式：浅色四套必须**贴着 classic**，不许"各随盘底漂"。
+# 为什么还要这一条：五套系数是手工试出来的，没有锚。换盘底色、或新增第六套主题时，
+# 就会重新出现"某套硬区 7.2k、其余 4.2k"这种错位 —— 而**每一套单独看都还在预算内**。
+SOFT_AREA_TOLERANCE = 0.10      # 相对 classic 的 ±10%
+HARD_ZONE_CEILING_RATIO = 1.10  # 不超过 classic × 1.1
+
+
+def test_light_themes_are_calibrated_against_classic(qt_app: QApplication) -> None:
+    """**跨主题不变式**：浅色四套的强度必须与 classic 同档，达标即不许再调 gain。
+
+    dark 是**明示例外**（不是漏掉）：暗盘棋子面是浅色、盘底很暗，棋子与盘底本身的
+    对比已经足够，投影在这套主题上是收益最低的一项。为追平浅盘的 5.6% 而把 gain
+    从 1.00 提到 1.10，硬区会从 242 涨到 324，等于在一套不缺辨识度的主题上加重负担，
+    还破坏刚建立的"五套等重"。**保不变式，不保这条下界。**
+    """
+    base_soft, base_hard = soft_and_hard("classic")
+    problems = []
+    for theme_name in theme.THEMES:
+        if theme_name in ("classic", "dark"):
+            continue
+        soft, hard = soft_and_hard(theme_name)
+        if abs(soft - base_soft) > base_soft * SOFT_AREA_TOLERANCE:
+            problems.append(
+                f"{theme_name}: 可感知 {soft:.2%} 偏离 classic {base_soft:.2%} 超过 "
+                f"±{SOFT_AREA_TOLERANCE:.0%}")
+        if hard > base_hard * HARD_ZONE_CEILING_RATIO:
+            problems.append(
+                f"{theme_name}: 硬区 {hard} px 超过 classic({base_hard}) × "
+                f"{HARD_ZONE_CEILING_RATIO}")
+    assert not problems, "；".join(problems) + "（请调该主题的 shadow_gain，而不是改 budget）"
 
 
 def test_theme_calibration_covers_every_theme() -> None:

@@ -151,11 +151,17 @@ def test_target_square_corners_stay_visible_under_a_piece(
     _, left, top, cw, ch = board._geometry()
 
     misses = []
-    for tag, (dx, dy) in {"左上": (-.40, -.40), "右上": (.40, -.40),
-                          "左下": (-.40, .40), "右下": (.40, .40)}.items():
-        x = int(left + TARGET.col * cw + dx * cw)
-        y = int(top + TARGET.row * ch + dy * ch)
-        delta = _delta(marked, x, y, plain)
+    for tag, (dx, dy) in {"左上": (-1, -1), "右上": (1, -1),
+                          "左下": (-1, 1), "右下": (1, 1)}.items():
+        # 在角区里取多点最大值，而不是只打一个点：
+        # 圆角 16% 会把最外侧的角抹掉，单点落在 ±0.40 处只剩 Δ≈7（对阈值 6 余量仅 +1），
+        # 换 DPI / Qt 版本极易假红。内缩 0.06/0.12 格后同一角 Δ 达 30–33，
+        # 判据仍是"这一角读不读得出来"，只是不再赌单点恰好踩在抗锯齿边缘。
+        delta = 0
+        for inset in (0.0, 0.06, 0.12):
+            x = int(left + TARGET.col * cw + dx * (.40 - inset) * cw)
+            y = int(top + TARGET.row * ch + dy * (.40 - inset) * ch)
+            delta = max(delta, _delta(marked, x, y, plain))
         if delta < PERCEPTIBLE_DELTA:
             misses.append(f"{tag}(Δ={delta})")
     assert not misses, f"终点格这些角读不出来：{misses}"
