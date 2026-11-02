@@ -81,6 +81,13 @@ CHECK_PULSE_FRAMES = 30
 LAST_MOVE_RATIO = 0.46
 LAST_MOVE_ALPHA = 64        # 64/255 ≈ .25，不到选择态不透明度（.55）的一半
 
+# P1-1 棋子投影：一枚略小于盘径的椭圆，向下偏一点点，统一画在 `_draw_piece` 的
+# 分发口前面（三个渲染分支共用，见该函数内注释）。
+# 72/255 ≈ .28，与网页棋子已有的 `rgba(0,0,0,.28)` 同强度。
+PIECE_SHADOW_ALPHA = 72
+PIECE_SHADOW_OFFSET = 0.07      # × radius，向下
+PIECE_SHADOW_RATIO = 0.98       # × radius，投影半径
+
 # 射的对角路径预览：颜色比可走点更弱（可走点 .55），否则会和落点抢注意力。
 ARCHER_PATH_ALPHA = 0.35
 
@@ -795,6 +802,19 @@ class BoardWidget(QWidget):
         radius = min(cw, ch) * .39
         shown = self._view_position(piece.position)
         center = QPointF(left + shown.col*cw, top + shown.row*ch)
+        # P1-1 棋子投影：**在这里统一画一次**，三个渲染分支共用。
+        # 为什么不做成每分支各画一遍：字形/位图/回退三条路径的坐标算法不同，
+        # 各画一遍早晚会漏一条（回退分支历史上就被漏过）。分发入口只有一个位置，
+        # 放在这里等于「任何棋子都必然有投影」。
+        # 为什么不用 QGraphicsDropShadowEffect：棋盘是**自带 QPainter** 的手绘控件，
+        # 图形特效会接管 paint 流程并二次渲染，和 paintEvent 里的绘制顺序/坐标系冲突
+        # （也会把 60fps 的走子动画拖成离屏合成）。
+        painter.save()
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(0, 0, 0, PIECE_SHADOW_ALPHA))
+        painter.drawEllipse(QPointF(center.x(), center.y() + radius * PIECE_SHADOW_OFFSET),
+                            radius * PIECE_SHADOW_RATIO, radius * PIECE_SHADOW_RATIO)
+        painter.restore()
         if self.piece_render == IMAGE_MODE:
             if self._draw_piece_image(painter, piece, center, radius):
                 return
