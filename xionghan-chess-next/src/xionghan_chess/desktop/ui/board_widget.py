@@ -72,6 +72,15 @@ ANIMATION_FRAMES = 23
 # 将军脉冲保持原来的 600ms 观感（24 帧 × 25ms）：换成 20ms 定时器后 = 600/20 = 30 帧。
 CHECK_PULSE_FRAMES = 30
 
+# 上一步起讫格（D1）：**必须弱于将军标注**，所以三件事都不跟将军抢：
+#   ① 画在最前面（将军/选择/可走点依次压在上面，重叠时将军一定在上）；
+#   ② 半径 .46 < 将军 .47 < 选择 .48，且没有脉冲、没有描边、没有文字；
+#   ③ 颜色取棋盘线色 `theme["line"]` 加到 25% 透明度 —— **不引入新色值**，
+#      五套主题各自跟自己的盘线走，深色盘（line 提到 #c9b58e）自动变浅，
+#      不会像固定色那样在深底上直接消失。
+LAST_MOVE_RATIO = 0.46
+LAST_MOVE_ALPHA = 64        # 64/255 ≈ .25，不到选择态不透明度（.55）的一半
+
 # 射的对角路径预览：颜色比可走点更弱（可走点 .55），否则会和落点抢注意力。
 ARCHER_PATH_ALPHA = 0.35
 
@@ -615,6 +624,16 @@ class BoardWidget(QWidget):
     def _draw_marks(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         if not self.game:
             return
+        # D1 上一步起讫格：**最先画**，后面每一层标记都盖在它上面（将军优先级最高）。
+        # 数据直接取 `history[-1]`，因此开局（history 为空）自然不画；
+        # 复盘窗里每个快照自带自己的 history 前缀，所以画的是「走到这一手的那一步」，
+        # 与显示的局面严格对应 —— 不存在"拿着实时对局的末手去标复盘局面"的错位。
+        last = self.game.state.history[-1] if self.game.state.history else None
+        if last is not None:
+            ink = QColor(self.theme["line"])
+            ink.setAlpha(LAST_MOVE_ALPHA)
+            for square in (last.move.source, last.move.target):
+                self._mark(painter, square, left, top, cw, ch, ink, LAST_MOVE_RATIO)
         if self.game.rules.in_check(self.game.state, self.game.state.turn):
             king = next((p for p in self.game.state.pieces if p.type is PieceType.KING and p.color is self.game.state.turn), None)
             if king:
