@@ -65,24 +65,28 @@ PIECE_FONT = "Noto Serif SC Subset"
 
 # `shadow_gain`：棋子投影的**按盘底色标定系数**（P1-1）。
 #
-# 为什么不能一个 alpha 打通五套盘：同一组透明度下，黑影在浅木纹上和在深木纹上的
-# 观感差一个量级。QA 的独立实测（同一套 alpha，Δ≥30「硬区」像素）：
-#     classic 13,327  vs  dark 242   ← 差 55 倍
-# 也就是说"把全局强度往下拧"会让 dark 先消失（它本来就只有 242 个硬区像素），
-# 而"照 dark 拧到满"会让 classic 糊成污渍。所以对用户只暴露**一个**强度旋钮
-# （`board_widget.PIECE_SHADOW_STRENGTH`），每套主题在这里提供系数，
-# 实现上是「强度 × 系数」——用户看到的仍是一个滑杆。
+# 为什么不能一个 alpha 打通五套盘：黑影的可见度取决于**盘底本身的亮度**。
+# 五套盘底相对亮度（WCAG，越亮越接近 1）：
+#     classic #e7c88d 0.610 ｜ purple #eee1f2 0.790 ｜ blue #dcebf1 0.815
+#     green   #dfeeda 0.824 ｜ dark   #34302b 0.026
+# 也就是说**另三套浅色盘比 classic 更浅**（0.79–0.82 vs 0.61），黑影在它们上面的
+# 对比更强 —— 所以它们的系数必须**更低**，才和 classic 观感接近。
+# （早先这里写成"底比 classic 略深/略灰，可稍强"，方向是反的；实测印证：
+#   三套用 0.7 时硬区像素比 classic(0.6) 多约 70%，7174±40 vs 4211。）
 #
-# 取值依据（硬区像素预算，见 test_desktop_piece_shadow.py）：
-#   classic 0.6 —— 浅底上黑影最显眼，砍到约一半才不脏（13,327 → ≤7,000）；
-#   浅色系其余三套取 0.7（底比 classic 略深/略灰，可稍强）；
-#   dark 1.0 —— 深底上黑影几乎不显，保持满系数（维持 242±20%）。
+# 取值由实测定标，判据两条：Δ≥6 可感知面积够大（看得见）+ Δ≥30 硬区不过量（不脏）。
+#   单套实测（700×700、字形、61 枚子）：
+#     classic 0.60 → 可感知 5.63% / 硬区 4,211
+#     green   0.58 → 5.74% / 4,008      blue  0.58 → 5.76% / 4,031
+#     purple  0.58 → 5.78% / 4,058      dark  1.00 → 3.67% /   242
+# 目标不是"数值一样"，是**五套看起来一样重**——所以浅盘系数集中在 0.58–0.60，
+# 深盘给满 1.0（深底上黑影几乎不显，必须给足）。
 THEMES = {
-    "classic": {"board": "#e7c88d", "line": "#684726", "frame": "#5a3b20", "panel": "#fff9ed", "window": "#d9c8a6", "accent": "#315c48", "shadow_gain": 0.6},
-    "green": {"board": "#dfeeda", "line": "#315c36", "frame": "#365a3e", "panel": "#f6fbf2", "window": "#c8d8c1", "accent": "#315c48", "shadow_gain": 0.7},
-    "blue": {"board": "#dcebf1", "line": "#285c73", "frame": "#31586a", "panel": "#f3f8fa", "window": "#c4d4da", "accent": "#315f76", "shadow_gain": 0.7},
-    "purple": {"board": "#eee1f2", "line": "#724585", "frame": "#5c386d", "panel": "#fbf6fc", "window": "#d8c7dc", "accent": "#6d3e79", "shadow_gain": 0.7},
-    "dark": {"board": "#34302b", "line": "#c9b58e", "frame": "#171513", "panel": "#29241f", "window": "#1d1a17", "accent": "#8e3b32", "shadow_gain": 1.0},
+    "classic": {"board": "#e7c88d", "line": "#684726", "frame": "#5a3b20", "panel": "#fff9ed", "window": "#d9c8a6", "accent": "#315c48", "shadow_gain": 0.60},
+    "green": {"board": "#dfeeda", "line": "#315c36", "frame": "#365a3e", "panel": "#f6fbf2", "window": "#c8d8c1", "accent": "#315c48", "shadow_gain": 0.58},
+    "blue": {"board": "#dcebf1", "line": "#285c73", "frame": "#31586a", "panel": "#f3f8fa", "window": "#c4d4da", "accent": "#315f76", "shadow_gain": 0.58},
+    "purple": {"board": "#eee1f2", "line": "#724585", "frame": "#5c386d", "panel": "#fbf6fc", "window": "#d8c7dc", "accent": "#6d3e79", "shadow_gain": 0.58},
+    "dark": {"board": "#34302b", "line": "#c9b58e", "frame": "#171513", "panel": "#29241f", "window": "#1d1a17", "accent": "#8e3b32", "shadow_gain": 1.00},
 }
 
 # 主题没声明 `shadow_gain` 时的兜底（新增主题不该因为它没写而丢掉投影）。

@@ -61,10 +61,32 @@ PERCEPTIBLE_DELTA = 6
 HARD_DELTA = 30
 MIN_VISIBLE_RATIO = 0.02        # 设计口径：开/关差异 ≥ 2.0% 棋盘面积
 MIN_DOWNWARD_LEAN = 1.5         # 底部厚度 ≥ 顶部 1.5 倍（等宽就是描边，不是影子）
-# 硬区预算（按盘底色标定后）：浅盘不能被黑影糊成"脏了一圈"，深盘不能缩到看不见。
+# 每套主题的硬区（Δ≥30）上下界 —— **五套全覆盖**，缺一套就等于那套超重无人拦
+# （曾经只写 classic/dark 两套，把 green 的 gain 调到 1.0 也全套绿）。
+# 下界防空画、上界防"脏了一圈"。括号内是本次定标时的实测值。
 HARD_ZONE_BUDGET = {
-    "classic": (0, 7000),
-    "dark": (int(242 * 0.8), int(242 * 1.2)),
+    "classic": (2000, 7000),    # 实测 4,211
+    "green": (2000, 7000),      # 实测 4,008
+    "blue": (2000, 7000),       # 实测 4,031
+    "purple": (2000, 7000),     # 实测 4,058
+    "dark": (150, 300),         # 实测 242（深底几乎不显，必须给足满系数）
+}
+
+# 可感知（Δ≥6）面积下界：**浅色四套 4.0%**；dark 取 3.0%。
+#
+# 这里有一处**验收线本身互斥**，如实记下来而不是偷偷改数：
+# 设计要求"五套 ≥4.0% 且 dark 硬区 ≤300"，但在 dark 上这两条不可同时成立 ——
+#   gain 1.00 → 可感知 3.67% / 硬区 242   （面积不达 4.0%，硬区达标）
+#   gain 1.10 → 可感知 4.03% / 硬区 324   （面积刚过线，硬区超 300 约 8%）
+# 深底上要把黑影推到 4% 面积，必然加浓到 324 个硬区像素。
+# 取 gain 1.00：保住"深盘不加重"（设计说暗盘只需"看得见"，不需要追平浅盘），
+# 且 3.67% 远高于 2.0% 的可见线。若哪天真要 4.0%，必须同时放宽 hard 上界。
+SOFT_AREA_FLOOR = {
+    "classic": 0.040,
+    "green": 0.040,
+    "blue": 0.040,
+    "purple": 0.040,
+    "dark": 0.030,      # 见上：3.67% 实测，4.0% 与硬区 ≤300 互斥
 }
 
 SMALL = 480
@@ -238,19 +260,27 @@ def test_strength_zero_renders_exactly_like_no_shadow(
     assert differing_pixels(on, off) == 0, "强度为 0 仍有可见投影（有色标没跟着旋钮派生）"
 
 
-def test_hard_zone_stays_within_the_per_theme_budget(qt_app: QApplication) -> None:
-    """硬区（Δ≥30）像素必须落在每套主题的预算内 —— 浅盘不脏、深盘不消失。
+def test_every_theme_stays_within_its_budget(qt_app: QApplication) -> None:
+    """**五套主题全查**：可感知面积不低于下界、硬区落在区间内。
 
-    这两头是相互矛盾的：把 alpha 全局往上拧，dark 从 242 掉到看不见；
-    往下拧，classic 从"脏一圈"变成正常。所以才需要 `theme.shadow_gain` 分档标定。
+    缺一套就等于那套"调坏了也没人知道"——曾经只覆盖 classic/dark，
+    green/blue/purple 超重 70% 而全套仍是绿的。
+    两头都要查的原因：只查上界会放过"画了但太淡"，只查下界会放过"脏了一圈"。
     """
     problems = []
-    for theme_name, (low, high) in HARD_ZONE_BUDGET.items():
+    for theme_name in theme.THEMES:
+        assert theme_name in HARD_ZONE_BUDGET, f"{theme_name} 没有硬区预算"
+        assert theme_name in SOFT_AREA_FLOOR, f"{theme_name} 没有可感知下界"
         on = render(size=MEASURE, theme_name=theme_name, pieces=0)
         off = render_without_shadow(size=MEASURE, theme_name=theme_name, pieces=0)
+        low, high = HARD_ZONE_BUDGET[theme_name]
         hard = count_at_least(on, off, HARD_DELTA)
+        soft = count_at_least(on, off, PERCEPTIBLE_DELTA) / BOARD
         if not low <= hard <= high:
             problems.append(f"{theme_name}: 硬区 {hard} px 不在 [{low}, {high}]")
+        if soft < SOFT_AREA_FLOOR[theme_name]:
+            problems.append(
+                f"{theme_name}: 可感知面积 {soft:.2%} 低于下界 {SOFT_AREA_FLOOR[theme_name]:.1%}")
     assert not problems, "；".join(problems)
 
 

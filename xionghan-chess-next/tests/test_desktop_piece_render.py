@@ -19,8 +19,8 @@ import pytest
 
 pytest.importorskip("PySide6", reason="渲染测试依赖 PySide6")
 
-from PySide6.QtCore import QPointF, Qt  # noqa: E402
-from PySide6.QtGui import QBrush, QColor, QFont, QImage, QPainter, QPixmap  # noqa: E402
+from PySide6.QtCore import QPointF  # noqa: E402
+from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPixmap  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from xionghan_chess.core.game import Game  # noqa: E402
@@ -56,11 +56,17 @@ def _no_piece_shadow(monkeypatch: pytest.MonkeyPatch) -> None:
     这不是放宽阈值：被测命题本来就是「棋子本体是 0.78 cell」，
     把影算进去属于**测量对象错了**。投影本身的行为由
     `test_desktop_piece_shadow.py` 单独覆盖（可见强度 / 向下的重心 / 三分支）。
+
+    **关投影的方式是改「数据」而不是改「函数」**：这里把强度旋钮置 0，语义上就是
+    "关掉"（`test_strength_zero_renders_exactly_like_no_shadow` 已经把
+    "强度 0 ⇒ 逐像素无影"钉死）。改成 patch 函数曾经踩过坑：
+    `_piece_shadow_brush` 后来加了 `gain` 形参，而本文件的 `lambda:` 是 0 参写法，
+    TypeError 在 `paintEvent` 里被 Qt 吞掉 → 这个文件 7 条渲染断言集体假红，
+    且报错看不出根因。**签名是跨文件契约，能不 patch 函数就别 patch。**
     """
     import xionghan_chess.desktop.ui.board_widget as board_widget
 
-    monkeypatch.setattr(board_widget, "_piece_shadow_brush",
-                        lambda *args, **kwargs: QBrush(Qt.BrushStyle.NoBrush))
+    monkeypatch.setattr(board_widget, "PIECE_SHADOW_STRENGTH", 0.0)
 
 
 def render(style: str, mode: str, pieces: list[Piece]) -> tuple[QImage, BoardWidget]:
