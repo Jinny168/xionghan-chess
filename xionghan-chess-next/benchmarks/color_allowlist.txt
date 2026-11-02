@@ -92,7 +92,6 @@ web/css/app.css:#d8c7a4:1
 web/css/app.css:#d8cbb8:1
 web/css/app.css:#e4bd75:2
 web/css/app.css:#e5d6b8:1
-web/css/app.css:#e7c274:2
 web/css/app.css:#eee:1
 web/css/app.css:#efe6d8:2
 web/css/app.css:#f1dfbf:2
@@ -103,6 +102,5 @@ web/css/app.css:#f4e5c9:1
 web/css/app.css:#f7e5bd:1
 web/css/app.css:#f7efdd:1
 web/css/app.css:#fff:2
-web/css/app.css:#fff4dc:1
 web/css/app.css:#fffaf0:3
 web/css/app.css:#fffcf5:4

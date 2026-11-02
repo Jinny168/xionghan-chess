@@ -27,17 +27,6 @@ body:before@dark|z-index|-1
 .brand p@dark|font-size|12px
 .brand p@dark|color|#746353
 .brand p@dark|margin|2px 0 0
-.seal@dark|display|grid
-.seal@dark|place-items|center
-.seal@dark|width|44px
-.seal@dark|height|44px
-.seal@dark|background|#c94b4b
-.seal@dark|color|#fff4dc
-.seal@dark|border|2px solid #e7c274
-.seal@dark|font-family|KaiTi,serif
-.seal@dark|font-size|16px
-.seal@dark|line-height|1.05
-.seal@dark|box-shadow|inset 0 0 0 2px #c94b4b,inset 0 0 0 3px #e7c274
 .top-actions@dark|display|flex
 .top-actions@dark|gap|8px
 button,select,input@dark|font|inherit
@@ -142,16 +131,9 @@ body[data-system-theme="dark"] .turn-ribbon.is-check@dark|color|#410002
 .board-shell@dark|position|relative
 .board-shell@dark|width|min(100%,calc(100vh - 190px))
 .board-shell@dark|aspect-ratio|1
-.board-shell@dark|background|#f1dfb7
 .board-shell@dark|border|9px solid #73573a
 .board-shell@dark|box-shadow|inset 0 0 0 3px #c0904f,0 12px 34px rgba(35,24,14,.18)
 .board-shell@dark|overflow|hidden
-.board-shell:before@dark|content|""
-.board-shell:before@dark|position|absolute
-.board-shell:before@dark|inset|0
-.board-shell:before@dark|background|radial-gradient(circle at 25% 20%,rgba(255,255,255,.35),transparent 32%),url('/assets/backgrounds/1.jpg') center/cover
-.board-shell:before@dark|opacity|.13
-.board-shell:before@dark|pointer-events|none
 canvas@dark|position|absolute
 canvas@dark|inset|0
 canvas@dark|width|100%
@@ -310,8 +292,7 @@ menu@dark|margin|0
 .piece-rule-group label@dark|min-height|24px
 @media(max-width:1050px)@dark|.workspace{grid-template-columns|210px minmax(480px,1fr)}.record-column{display:none}.board-shell{width:min(100%,calc(100vh - 190px))}
 @media(max-width:760px)@dark|.topbar{height|58px
-@media(max-width:760px)@dark|padding|0 12px}.brand h1{font-size:20px}.brand p{display:none}.seal{width:38px
-@media(max-width:760px)@dark|height|38px}.workspace{height:auto
+@media(max-width:760px)@dark|padding|0 12px}.brand h1{font-size:20px}.brand p{display:none}.workspace{height:auto
 @media(max-width:760px)@dark|min-height|calc(100vh - 58px)
 @media(max-width:760px)@dark|display|flex
 @media(max-width:760px)@dark|flex-direction|column
@@ -463,6 +444,10 @@ body[data-system-theme="dark"] .replay-sidebar@dark|border-color|#605d57
 body@dark|background-image|none
 [hidden]@dark|display|none!important
 body[data-background="none"]:before@dark|background|#e5d6b8
+.board-shell:before@dark|content|""
+.board-shell:before@dark|position|absolute
+.board-shell:before@dark|inset|0
+.board-shell:before@dark|pointer-events|none
 .board-shell:before@dark|background-image|none
 .board-shell:before@dark|background-position|center
 .board-shell:before@dark|background-size|cover
