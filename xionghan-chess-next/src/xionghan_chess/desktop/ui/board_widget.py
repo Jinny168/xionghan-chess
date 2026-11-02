@@ -13,8 +13,8 @@ import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
-    QBrush, QColor, QFont, QFontMetricsF, QMouseEvent, QPainter, QPaintEvent, QPainterPath,
-    QPen, QPixmap, QRadialGradient,
+    QBrush, QColor, QFont, QFontMetricsF, QGradient, QMouseEvent, QPainter, QPaintEvent,
+    QPainterPath, QPen, QPixmap, QRadialGradient,
 )
 from PySide6.QtWidgets import QWidget
 
@@ -81,12 +81,49 @@ CHECK_PULSE_FRAMES = 30
 LAST_MOVE_RATIO = 0.46
 LAST_MOVE_ALPHA = 64        # 64/255 ≈ .25，不到选择态不透明度（.55）的一半
 
-# P1-1 棋子投影：一枚略小于盘径的椭圆，向下偏一点点，统一画在 `_draw_piece` 的
-# 分发口前面（三个渲染分支共用，见该函数内注释）。
-# 72/255 ≈ .28，与网页棋子已有的 `rgba(0,0,0,.28)` 同强度。
-PIECE_SHADOW_ALPHA = 72
-PIECE_SHADOW_OFFSET = 0.07      # × radius，向下
-PIECE_SHADOW_RATIO = 0.98       # × radius，投影半径
+# P1-1 棋子投影：**径向渐变**，不是纯色椭圆。
+#
+# 为什么不能在纯色椭圆上靠调参了事（几何算得清清楚楚）：
+# 字形棋子可见外沿 = 1.00r + 描边半宽 0.05r = **1.05r**。纯色圆盘要露出来，
+# 就必须满足 半径 + 偏移 > 1.05r。按「半径 0.98r / 偏移 0.07r」正好 = 1.05r，
+# **可见面积几何上为 0**（曾经实测到的 0.40% 差异全是抗锯齿溢出，不是影子）。
+# 把偏移加到 0.12r 也只得到约 0.5% 棋盘面积的月牙，且仍是一圈硬边；
+# 只有把偏移推到 0.35r 才够 2.4%，但那时影子脱在棋子下方，读作「悬空」而不是「落在盘上」，
+# 与设计目标正好相反。
+#
+# 接触阴影的可感知性来自**模糊把能量扩散出去**，不是来自面积。所以这里用
+# QRadialGradient 做柔边衰减（纯 QPainter，不碰 QGraphicsDropShadowEffect、
+# 不做离屏合成），参数与网页那颗 `blur:5px` 是**重量感对齐**，不是去凑 blur 半径。
+#
+# 可见带（r 为单位）：底部 0.34r、左右 0.25r、顶部 0.16r —— 重心向下，且全是渐变无硬边。
+PIECE_SHADOW_ALPHA = 115        # 渐变圆心不透明度（≈.45）
+PIECE_SHADOW_CORE_ALPHA = 88    # 0.72 处的不透明度（≈圆心 76%），保证中段仍有重量
+PIECE_SHADOW_CORE_STOP = 0.72   # 中段色标位置
+PIECE_SHADOW_OFFSET = 0.09      # × radius，圆心向下偏移
+PIECE_SHADOW_RATIO = 1.30       # × radius，渐变外半径（色标 1.0 处 alpha 归零）
+
+# 61 枚子 × 每帧一次 = 每秒最多 3660 次构造，必须复用。
+# 两个设计点：
+#  ① 用 ObjectBoundingMode：渐变坐标系变成**图形包围盒的比例**，于是同一个 QBrush
+#     可以给任意位置、任意大小的投影复用（绝对坐标的渐变做不到，每枚子都得重建）；
+#  ② 缓存键带上 alpha 参数：改常量（含测试里 monkeypatch 成 0）会自动失效重算，
+#     不会拿到上一组参数构造的陈旧刷子。
+_SHADOW_BRUSH_CACHE: dict[tuple[int, int, float], QBrush] = {}
+
+
+def _piece_shadow_brush() -> QBrush:
+    """投影刷子（惰性构造 + 复用；参数一变自动失效）。"""
+    key = (PIECE_SHADOW_ALPHA, PIECE_SHADOW_CORE_ALPHA, PIECE_SHADOW_CORE_STOP)
+    brush = _SHADOW_BRUSH_CACHE.get(key)
+    if brush is None:
+        gradient = QRadialGradient(QPointF(0.5, 0.5), 0.5)
+        gradient.setCoordinateMode(QGradient.CoordinateMode.ObjectBoundingMode)
+        gradient.setColorAt(0.0, QColor(0, 0, 0, PIECE_SHADOW_ALPHA))
+        gradient.setColorAt(PIECE_SHADOW_CORE_STOP, QColor(0, 0, 0, PIECE_SHADOW_CORE_ALPHA))
+        gradient.setColorAt(1.0, QColor(0, 0, 0, 0))
+        brush = QBrush(gradient)
+        _SHADOW_BRUSH_CACHE[key] = brush
+    return brush
 
 # 射的对角路径预览：颜色比可走点更弱（可走点 .55），否则会和落点抢注意力。
 ARCHER_PATH_ALPHA = 0.35
@@ -811,7 +848,7 @@ class BoardWidget(QWidget):
         # （也会把 60fps 的走子动画拖成离屏合成）。
         painter.save()
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor(0, 0, 0, PIECE_SHADOW_ALPHA))
+        painter.setBrush(_piece_shadow_brush())
         painter.drawEllipse(QPointF(center.x(), center.y() + radius * PIECE_SHADOW_OFFSET),
                             radius * PIECE_SHADOW_RATIO, radius * PIECE_SHADOW_RATIO)
         painter.restore()
