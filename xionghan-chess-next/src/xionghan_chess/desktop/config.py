@@ -115,6 +115,9 @@ DEFAULTS: dict[str, Any] = {
     # `config.get("server_url", "http://127.0.0.1:8000")` 硬编码兜底。
     # 现声明为默认值，兜底字符串只在 DEFAULT_SERVER_URL 一处。
     "server_url": DEFAULT_SERVER_URL,
+    # 每日一题的记录（单键覆盖）：`{day,id,done,streak,best}`。
+    # 纯新增键，**不 bump schema_version** —— `{**DEFAULTS, **data}` 会给旧配置补上。
+    "daily": {},
 }
 
 # S1-9：这些键改变「规则 / 对局结构」，改了就必然要重开一局。

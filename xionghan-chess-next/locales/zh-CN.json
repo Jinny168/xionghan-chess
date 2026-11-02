@@ -551,7 +551,10 @@
     "atlas_rule_changed": "规则已改，需重开对局生效。",
     "atlas_restart_now": "现在重开",
     "atlas_restart_later": "稍后",
-    "atlas_rule_saved": "规则已保存，重开对局后生效。"
+    "atlas_rule_saved": "规则已保存，重开对局后生效。",
+    "daily": "每日一题",
+    "daily_streak": "第 {count} 天",
+    "daily_done": "今日已解 · 明天见"
   },
   "android": {
     "app_name": "匈汉象棋",

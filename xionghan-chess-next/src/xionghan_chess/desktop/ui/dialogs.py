@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from datetime import date
 import json
 import os
 import threading
@@ -27,6 +28,7 @@ from PySide6.QtWidgets import (
     QTextBrowser, QVBoxLayout, QWidget,
 )
 
+from xionghan_chess.core import daily as daily_quiz
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, PieceType
 from xionghan_chess.core.profiles import (OPTION_DEPENDS_ON, PROFILES,
@@ -410,7 +412,15 @@ class TrainingDialog(QDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
         super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.training_title",lang));self.resize(760,560);self.setMinimumSize(560,420);_fit_to_content(self);self.selected_game=None;self.selected_puzzle=None
-        layout=QVBoxLayout(self);filters=QHBoxLayout();self.level=QComboBox();self.level.addItem(t("desktop.beginner",lang),"beginner");self.level.addItem(t("desktop.advanced",lang),"advanced");self.level.addItem(t("desktop.master",lang),"master");filters.addWidget(self.level);import_button=QPushButton(t("desktop.import_puzzles",lang));import_button.clicked.connect(self.import_puzzles);filters.addWidget(import_button);layout.addLayout(filters)
+        layout=QVBoxLayout(self)
+        # 每日一题：**固定在最上方**、不随难度筛选变化。它是"今天为什么打开这个窗口"的入口，
+        # 藏在难度下拉后面就失去了意义（`daily` 的连续天数也只在这条路径上更新）。
+        self.started_daily=False;self.daily_puzzles=[];self.daily_puzzle=None
+        self.daily_button=QPushButton(t("desktop.daily",lang));self.daily_button.clicked.connect(self.start_daily)
+        # 它是这个窗口的主入口，别做成和下拉框一样矮的一条（实测默认只有 20px 高）
+        self.daily_button.setMinimumHeight(34)
+        layout.addWidget(self.daily_button)
+        filters=QHBoxLayout();self.level=QComboBox();self.level.addItem(t("desktop.beginner",lang),"beginner");self.level.addItem(t("desktop.advanced",lang),"advanced");self.level.addItem(t("desktop.master",lang),"master");filters.addWidget(self.level);import_button=QPushButton(t("desktop.import_puzzles",lang));import_button.clicked.connect(self.import_puzzles);filters.addWidget(import_button);layout.addLayout(filters)
         self.list=QListWidget();self.list.itemDoubleClicked.connect(lambda _:self.start_selected());layout.addWidget(self.list,1)
         actions=QHBoxLayout();self.hint=QPushButton(t("desktop.hint",lang));self.hint.clicked.connect(self.show_hint);start=QPushButton(t("desktop.start_training",lang));start.clicked.connect(self.start_selected);close=QPushButton(t("common.close",lang));close.clicked.connect(self.reject);actions.addWidget(self.hint);actions.addStretch();actions.addWidget(start);actions.addWidget(close);layout.addLayout(actions)
         self.level.currentIndexChanged.connect(self.reload);self.puzzles=[];self.reload()
@@ -418,11 +428,44 @@ class TrainingDialog(QDialog):
     def reload(self) -> None:
         # P1-K：随包题库 + 用户导入的题库（见 desktop/puzzle_store.py）。
         all_puzzles,warning=available_puzzles()
+        self.daily_puzzles=all_puzzles
+        self.daily_puzzle=daily_quiz.pick_daily(all_puzzles,date.today())
         self.puzzles=[item for item in all_puzzles if item.difficulty==self.level.currentData()];self.list.clear()
         for puzzle in self.puzzles:self.list.addItem(f"{puzzle.title}  ·  {puzzle.description}")
         if warning:
             # 自定义题库坏了不该让窗口打不开 —— 但要让人知道它被忽略了
             note=QListWidgetItem("⚠ "+warning);note.setFlags(Qt.ItemFlag.NoItemFlags);self.list.addItem(note)
+        self._refresh_daily_button()
+
+    def _daily_record(self) -> daily_quiz.DailyRecord:
+        """从主窗口的配置里读今日记录；拿不到就当空记录（第一次运行）。"""
+        config=getattr(self.parent(),"config",None)
+        return daily_quiz.DailyRecord.from_dict((config or {}).get("daily"))
+
+    def _refresh_daily_button(self) -> None:
+        if self.daily_puzzle is None:
+            self.daily_button.setText(t("desktop.daily",self.language))
+            self.daily_button.setEnabled(False)
+            return
+        self.daily_button.setEnabled(True)
+        today=date.today();record=self._daily_record()
+        done=record.day==today.isoformat() and record.done
+        # 打开当天的记录会惰性归零（昨天没做完就断了），所以这里的 streak 已经是"有效值"
+        streak=daily_quiz.start_today(record,today,self.daily_puzzle).streak
+        label=t("desktop.daily",self.language)
+        if done:
+            label=f"{label} · {t('desktop.daily_done',self.language)}"
+        elif streak:
+            label=f"{label} · {t('desktop.daily_streak',self.language,count=streak+1)}"
+        self.daily_button.setText(label)
+
+    def start_daily(self) -> None:
+        """直接开当天的题 —— 不经过难度筛选，也不需要先选中列表项。"""
+        puzzle=self.daily_puzzle
+        if puzzle is None:return
+        self.selected_puzzle=puzzle;self.selected_game=game_from_document(puzzle.document)
+        self.started_daily=True
+        self.accept()
 
     def current(self) -> object:
         row=self.list.currentRow()

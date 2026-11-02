@@ -551,7 +551,10 @@
     "atlas_rule_changed": "Rule updated — restart the game to apply it.",
     "atlas_restart_now": "Restart now",
     "atlas_restart_later": "Later",
-    "atlas_rule_saved": "Saved; takes effect after you restart the game."
+    "atlas_rule_saved": "Saved; takes effect after you restart the game.",
+    "daily": "Daily puzzle",
+    "daily_streak": "Day {count}",
+    "daily_done": "Solved today · see you tomorrow"
   },
   "android": {
     "app_name": "Xionghan Chess",

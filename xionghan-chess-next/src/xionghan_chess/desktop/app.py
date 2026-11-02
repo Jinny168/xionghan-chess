@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict
 import os
 import sys
+import datetime
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -45,6 +46,7 @@ from .config import (
 from . import net
 from .texts import dl, dlf, set_language
 from . import training as puzzle_judge
+from ..core import daily as daily_quiz
 from . import update as version_check
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
 from .ui.dialogs import DocumentDialog, GameLibraryDialog, GLYPH_STYLE_DATA, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
@@ -121,6 +123,8 @@ class MainWindow(QMainWindow):
         self.thinking_timer.timeout.connect(self._tick_thinking)
         # S2-7 配套：非 None 时表示正处在「残局题」里，`human_move` 要判对错。
         self.puzzle_session=None
+        # 这道题是不是「每日一题」——只有它是，过关才更新连续天数（见 `_judge_puzzle`）。
+        self.puzzle_is_daily=False
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
         icon_path = theme.resource("icon.ico")
         if icon_path.exists():
@@ -193,7 +197,7 @@ class MainWindow(QMainWindow):
         self.apply_appearance()
 
     def new_game(self) -> None:
-        self.puzzle_session=None
+        self.puzzle_session=None;self.puzzle_is_daily=False
         self.chat_messages.clear()      # 换局清空（悔棋不清，聊天是历史）
         self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local";self._reset_ui_cache();self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh();
         if not local and self.game.state.turn is not human:self.start_ai()
@@ -224,6 +228,21 @@ class MainWindow(QMainWindow):
             if not self.game.state.finished and self.config.get("game_mode","ai")=="ai":self.start_ai()
         except GameError as exc:QMessageBox.warning(self,dl("非法走棋"),str(exc))
 
+    def _record_daily_start(self) -> None:
+        """打开每日题时惰性归零：昨天没做完就断在这里，不写定时任务。"""
+        if self.puzzle_session is None:return
+        record=daily_quiz.DailyRecord.from_dict(self.config.get("daily"))
+        updated=daily_quiz.start_today(record,datetime.date.today(),self.puzzle_session.puzzle)
+        self.config["daily"]=updated.to_dict();save_config(self.config)
+
+    def _record_daily_solve(self, puzzle) -> None:
+        """过关才涨连续天数；同一天重解不涨（`solve_today` 里已按 `done` 判过）。"""
+        record=daily_quiz.DailyRecord.from_dict(self.config.get("daily"))
+        updated=daily_quiz.solve_today(record,datetime.date.today(),puzzle)
+        self.config["daily"]=updated.to_dict();save_config(self.config)
+        self.statusBar().showMessage(
+            t("desktop.daily_streak",self.config.get("language","zh-CN"),count=updated.streak),8000)
+
     def _judge_puzzle(self, move: Move) -> bool:
         """判定训练题的一手棋。返回 False 表示答错且已回退（调用方不要再刷新）。
 
@@ -248,7 +267,8 @@ class MainWindow(QMainWindow):
             return False
         if verdict==puzzle_judge.VERDICT_SOLVED:
             title=session.puzzle.title
-            self.puzzle_session=None
+            if self.puzzle_is_daily:self._record_daily_solve(session.puzzle)
+            self.puzzle_session=None;self.puzzle_is_daily=False
             QMessageBox.information(self,"过关" if not english else "Solved",
                                     (f"正解！《{title}》已解出。" if not english else f"Correct — “{title}” solved."))
             self.statusBar().showMessage("训练完成，可继续自由对弈" if not english else "Training complete; free play resumed",8000)
@@ -522,6 +542,9 @@ class MainWindow(QMainWindow):
             self.close_network();self.game=dialog.selected_game;self.config["game_mode"]="local";self._reset_ui_cache();self.board.set_game(self.game,Color.RED,True);self.configure_board()
             # S2-7 配套：带上题目本身，之后每一手都要对答案。
             self.puzzle_session=puzzle_judge.session_for(dialog.selected_puzzle)
+            # 只有走「每日一题」入口才更新连续天数；从列表里挑同一道题不算。
+            self.puzzle_is_daily=getattr(dialog,"started_daily",False)
+            if self.puzzle_is_daily:self._record_daily_start()
             # 训练棋不是正式对局：既不进战绩，也不往棋谱库塞一条两步的「棋谱」。
             # 这两个标志是 refresh() 里「终局才记账/才自动存」的开关，置 True 即抑制。
             self._stats_recorded=True;self._autosaved=True
@@ -549,7 +572,7 @@ class MainWindow(QMainWindow):
 
     def load_game_path(self, path: Path) -> None:
         try:
-            game=load_game(path);self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=game;self.puzzle_session=None;self._reset_ui_cache();self.config["profile"]=game.profile.id;self.config["rule_options"]=asdict(game.options);save_config(self.config);self.board.set_game(game,Color(self.config["human_color"]),self.config.get("game_mode","ai")=="local");self.configure_board();self._stats_recorded=game.state.finished;self._autosaved=game.state.finished;self.refresh();self.statusBar().showMessage(dlf("已载入：{path}", path=path),5000)
+            game=load_game(path);self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=game;self.puzzle_session=None;self.puzzle_is_daily=False;self._reset_ui_cache();self.config["profile"]=game.profile.id;self.config["rule_options"]=asdict(game.options);save_config(self.config);self.board.set_game(game,Color(self.config["human_color"]),self.config.get("game_mode","ai")=="local");self.configure_board();self._stats_recorded=game.state.finished;self._autosaved=game.state.finished;self.refresh();self.statusBar().showMessage(dlf("已载入：{path}", path=path),5000)
         except Exception as exc:QMessageBox.warning(self,dl("导入失败"),str(exc))
 
     def show_game_library(self) -> None:
@@ -787,7 +810,7 @@ class MainWindow(QMainWindow):
 
     def apply_network_state(self, snapshot: dict[str, object] | None) -> None:
         if not snapshot:return
-        game_data=snapshot["game"];self.revision=snapshot["revision"];self.config["human_color"]=snapshot.get("youAre") or self.config["human_color"];self.network_players={item["color"]:item for item in snapshot.get("players",[])};self.puzzle_session=None;self.game=Game.from_state(GameState.from_dict(game_data),game_data["profile"]["options"],game_data.get("setup"));self._reset_ui_cache();replay=game_data.get("replay",[]);self.game._snapshots=[item for item in replay[:-1] if isinstance(item,dict)];self.board.set_game(self.game,Color(self.config["human_color"]),False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
+        game_data=snapshot["game"];self.revision=snapshot["revision"];self.config["human_color"]=snapshot.get("youAre") or self.config["human_color"];self.network_players={item["color"]:item for item in snapshot.get("players",[])};self.puzzle_session=None;self.puzzle_is_daily=False;self.game=Game.from_state(GameState.from_dict(game_data),game_data["profile"]["options"],game_data.get("setup"));self._reset_ui_cache();replay=game_data.get("replay",[]);self.game._snapshots=[item for item in replay[:-1] if isinstance(item,dict)];self.board.set_game(self.game,Color(self.config["human_color"]),False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
         if not self.game.state.history:self._stats_recorded=False;self._autosaved=False
         lang=self.config.get("language","zh-CN")
         self.statusBar().showMessage(f"{'房间' if lang!='en' else 'Room'} {snapshot['roomId']} · {'状态版本' if lang!='en' else 'revision'} {self.revision}");self.refresh()
