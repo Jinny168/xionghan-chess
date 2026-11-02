@@ -3155,6 +3155,7 @@
       "第 2 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate3"
     ]
@@ -3346,6 +3347,7 @@
       "第 2 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate3"
     ]
@@ -3537,6 +3539,7 @@
       "第 2 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate3"
     ]
@@ -3728,6 +3731,7 @@
       "第 2 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate3"
     ]
@@ -3919,6 +3923,7 @@
       "第 2 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate3"
     ]
@@ -3926,7 +3931,7 @@
   {
     "id": "gen-b-06",
     "title": "围杀·2 手 06",
-    "difficulty": "beginner",
+    "difficulty": "advanced",
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
@@ -4110,6 +4115,7 @@
       "第 2 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate3"
     ]
@@ -4117,7 +4123,7 @@
   {
     "id": "gen-b-07",
     "title": "围杀·2 手 07",
-    "difficulty": "beginner",
+    "difficulty": "advanced",
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
@@ -4301,6 +4307,7 @@
       "第 2 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate3"
     ]
@@ -4485,6 +4492,7 @@
       "第 2 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate3"
     ]
@@ -4669,6 +4677,7 @@
       "第 2 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate3"
     ]
@@ -4853,6 +4862,7 @@
       "第 2 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate3"
     ]
@@ -4860,7 +4870,7 @@
   {
     "id": "gen-a-11",
     "title": "连将·2 手 11",
-    "difficulty": "advanced",
+    "difficulty": "beginner",
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
@@ -5044,6 +5054,7 @@
       "第 2 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate3"
     ]
@@ -5051,7 +5062,7 @@
   {
     "id": "gen-a-12",
     "title": "连将·2 手 12",
-    "difficulty": "advanced",
+    "difficulty": "beginner",
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
@@ -5228,6 +5239,7 @@
       "第 2 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate3"
     ]
@@ -5440,6 +5452,7 @@
       "第 3 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate5"
     ]
@@ -5652,6 +5665,7 @@
       "第 3 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate5"
     ]
@@ -5864,6 +5878,7 @@
       "第 3 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate5"
     ]
@@ -5871,7 +5886,7 @@
   {
     "id": "gen-a-16",
     "title": "连环·3 手 16",
-    "difficulty": "advanced",
+    "difficulty": "master",
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
@@ -6076,6 +6091,7 @@
       "第 3 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate5"
     ]
@@ -6281,6 +6297,7 @@
       "第 3 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate5"
     ]
@@ -6288,7 +6305,7 @@
   {
     "id": "gen-m-18",
     "title": "深算·3 手 18",
-    "difficulty": "master",
+    "difficulty": "advanced",
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
@@ -6493,6 +6510,7 @@
       "第 3 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate5"
     ]
@@ -6705,6 +6723,7 @@
       "第 3 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate5"
     ]
@@ -6917,6 +6936,7 @@
       "第 3 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate5"
     ]
@@ -7129,6 +7149,7 @@
       "第 3 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate5"
     ]
@@ -7362,6 +7383,7 @@
       "第 4 手：先想将军"
     ],
     "tags": [
+      "calibrated",
       "generated",
       "mate7"
     ]
