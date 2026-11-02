@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -24,12 +25,17 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from xionghan_chess.core.ai import ChessAI, Difficulty  # noqa: E402
 from xionghan_chess.core.game import Game, GameError  # noqa: E402
-from xionghan_chess.core.model import Color, Move  # noqa: E402
+from xionghan_chess.core.model import Color, Move, Position  # noqa: E402
 from xionghan_chess.core.puzzles import Puzzle, load_puzzles  # noqa: E402
 from xionghan_chess.core.storage import game_from_document  # noqa: E402
 
+sys.path.insert(0, str(ROOT / "scripts"))
+from author_puzzles import _all_lines as _forced_first_lines  # noqa: E402
+
 # 判"被将死"时只看一步 —— 对手应着的强制性用"除它之外都会立刻被杀"来判
 MATE_DEPTH = 1
+# 坐标泄露只认这两种写法，别用「含行/列」这种粗判据
+COORDINATE = re.compile(r"\(\s*\d+\s*[,，]\s*\d+\s*\)|第\s*\d+\s*[行列]")
 
 
 def _apply(game: Game, move: Move) -> bool:
@@ -101,28 +107,32 @@ def check(puzzle: Puzzle, *, quick: bool) -> list[str]:
     hands = (total + 1) // 2
     if len(puzzle.hints) < hands:
         problems.append(f"提示 {len(puzzle.hints)} 条 < 解方 {hands} 手")
+    # 只抓真正的坐标写法：`(11,5)` / `第 3 行第 5 列`。
+    # 不能简单搜"行/列"——中文里"强制执行"本身就含"行"，第一版就是这么误报的。
     for key in ("title", "description"):
         text = getattr(puzzle, key)
-        if any(token in text for token in ("行", "列", "(1", "(2", "(3")):
+        if COORDINATE.search(text):
             problems.append(f"{key} 疑似泄露坐标：{text}")
 
     if quick:
         return problems
 
-    # 5) 首着唯一：**数"有几步能将死"**，而不是比分数差。
+    # 5) 首着唯一：**按题目自己的深度数强制线**，而不是只数"一步杀"。
     #
-    #    用分数差判是错的：静着局面里一堆着法分数完全相同（实测现有题库前三分
-    #    都是 101 / 101 / 101 或 -5 / -5 / -5），差 0 cp 并不代表题不好，只代表
-    #    "随便走都差不多" —— 那恰恰说明它**不是一道题**。杀题的正确判据是
-    #    "恰好一手能结束战斗"。
-    mates = _mate_in_one(_fresh(puzzle))
-    if not mates:
-        problems.append("这不是杀题：没有任何着法能一步将死（现状多为「开局走一步」）")
-    elif len(mates) > 1:
-        problems.append(f"一步杀的着法有 {len(mates)} 手（应恰好 1 手）")
-    elif mates[0].key() != puzzle.solution[0].key():
+    #    1 手题（1 ply）看"恰好一手能将死"；多步题（3/5/7 ply）首着本来就不将死，
+    #    要看"有几条首着能强制杀到底"。用分数差判更是错的：静着局面里一堆着法
+    #    分数完全相同（实测现有题库前三分 101/101/101、-5/-5/-5），差 0 只说明
+    #    "随便走都差不多"，那恰恰说明它不是题。
+    lines = _forced_first_lines(_fresh(puzzle), (total + 1) // 2, [4000])
+    if not lines:
+        problems.append("这不是杀题：没有任何着法能强制杀到底")
+    elif len(lines) > 1:
+        problems.append(f"能强制杀到底的首着有 {len(lines)} 手（应恰好 1 手）")
+    elif lines[0][0].key() != puzzle.solution[0].key():
         problems.append(
-            f"解法首着不是唯一杀着：题面写 {puzzle.solution[0].key()}，实际唯一杀着 {mates[0].key()}")
+            f"解法首着不是唯一解：题面写 {puzzle.solution[0].key()}，实际唯一首着 {lines[0][0].key()}")
+    elif len(lines[0]) != total:
+        problems.append(f"最强线长度 {len(lines[0])} ply，与解法 {total} ply 不一致")
 
     # 6) 每手最强 + 对手应着强制（逐 ply 走）
     walker = _fresh(puzzle)
@@ -148,9 +158,24 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--quick", action="store_true", help="只做静态检查，不跑引擎")
     parser.add_argument("--id", action="append", help="只查指定题目（可重复）")
+    parser.add_argument("--file", help="改查候选文件（出题器产出的 JSON 数组）")
     args = parser.parse_args()
 
-    puzzles = load_puzzles()
+    if args.file:
+        # 出题器的产物还没入库，按同一套 Puzzle 结构解析
+        from xionghan_chess.core.puzzles import Puzzle as _Puzzle
+        raw = json.loads(Path(args.file).read_text(encoding="utf-8"))
+        def _to_puzzle(item: dict) -> _Puzzle:
+            return _Puzzle(
+                str(item["id"]), str(item["title"]), str(item["difficulty"]),
+                str(item.get("description", "")), dict(item["document"]),
+                tuple(Move(Position(m["from"]["row"], m["from"]["col"]),
+                           Position(m["to"]["row"], m["to"]["col"])) for m in item["solution"]),
+                tuple(item.get("hints", [])), tuple(item.get("tags", [])),
+            )
+        puzzles = [_to_puzzle(item) for item in raw]
+    else:
+        puzzles = load_puzzles()
     if args.id:
         wanted = set(args.id)
         puzzles = [item for item in puzzles if item.id in wanted]
