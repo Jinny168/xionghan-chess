@@ -57,3 +57,6 @@ docker/nginx/ssl/*.key
 .workbuddy/
 .tmpbase/
 _scratch_*.py
+
+# 发布时会被打包上传，构建产物移到项目目录外（2026-11-03）
+_artifacts/

@@ -280,7 +280,13 @@ class ChessAI:
         return self._best_is_clean_capture(game)
 
     def _best_is_clean_capture(self, game: Game) -> bool:
-        """最佳着是"净赚一个兵以上"的吃子时不许换着。"""
+        """最佳着是"净赚一个兵以上"的吃子时不许换着。
+
+        门槛**沿用设计定稿的一个兵（120）**，不改成炮：曾实测过"提高到 500 能让
+        名义概率重新兑现"（中局约半数局面都有白吃一个兵，会挡掉约一半取样），
+        但"有子不吃"是设计明确要避免的观感，这条属于产品口径，不在标定时擅自改。
+        代价是实测弱化率会被稀释到名义值的一半左右，已记入已知限制。
+        """
         best_move = self.root_scores[0][1]
         if game.state.piece_at(best_move.target) is None:
             return False
@@ -296,15 +302,22 @@ class ChessAI:
         if self._sampling_blocked(game, cfg) or self.random.random() >= cfg.randomness:
             return None
         best_score = self.root_scores[0][0]
-        pool: list[Move] = []
+        pool: list[tuple[float, Move]] = []
         for score, move, truncated in self.root_scores[1:cfg.candidate_count]:
             if truncated or best_score - score > cfg.sample_margin:
                 continue
             if (game.state.piece_at(move.target) is not None
                     and static_exchange_score(game, move, VALUES) < -VALUES[PieceType.PAWN]):
                 continue
-            pool.append(move)
-        return self.random.choice(pool) if pool else None
+            pool.append((score, move))
+        if not pool:
+            return None
+        # **只在较差的那一半里挑**：候选窗口里同分等价着法经常占满（杀题局面尤甚），
+        # 均匀取样会几乎总挑回等价着法 —— 名义概率兑现了，实际一步也没变弱。
+        # 实测：均匀取样时平均分差只有 0–6cp，玩家体感等于没设这个档。
+        pool.sort(key=lambda item: item[0])
+        floor = max(1, len(pool) // 2)
+        return self.random.choice([move for _, move in pool[:floor]])
 
     def _root(self, game: Game, moves: list[Move], depth: int, deadline: float,
               cancel: threading.Event | None, alpha: float = -math.inf,
