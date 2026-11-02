@@ -452,17 +452,12 @@ body@dark|transition|background-image .25s,background-color .25s
 .chat-quick-row select,.chat-input-row input@dark|padding|0 8px
 .chat-quick-row button,.chat-input-row button@dark|min-height|34px
 .chat-quick-row button,.chat-input-row button@dark|padding|4px 10px
-body[data-board-theme="dark"]@dark|color|#f3ead7
 body[data-font="kaiti"]@dark|font-family|KaiTi,STKaiti,"Microsoft YaHei",sans-serif
 body[data-font="songti"]@dark|font-family|SimSun,"Songti SC","Microsoft YaHei",serif
 body[data-font="serif"]@dark|font-family|serif
-body[data-board-theme="dark"]:before@dark|background|rgba(18,18,18,.72)
-body[data-board-theme="dark"] .player-panel,body[data-board-theme="dark"] .mode-panel,body[data-board-theme="dark"] .record-panel,body[data-board-theme="dark"] .captured-panel,body[data-board-theme="dark"] .room-card,body[data-board-theme="dark"] dialog,body[data-board-theme="dark"] .replay-sidebar@dark|background|rgba(43,38,32,.96)
-body[data-board-theme="dark"] .player-panel,body[data-board-theme="dark"] .mode-panel,body[data-board-theme="dark"] .record-panel,body[data-board-theme="dark"] .captured-panel,body[data-board-theme="dark"] .room-card,body[data-board-theme="dark"] dialog,body[data-board-theme="dark"] .replay-sidebar@dark|color|#f3ead7
-body[data-board-theme="dark"] .player-panel,body[data-board-theme="dark"] .mode-panel,body[data-board-theme="dark"] .record-panel,body[data-board-theme="dark"] .captured-panel,body[data-board-theme="dark"] .room-card,body[data-board-theme="dark"] dialog,body[data-board-theme="dark"] .replay-sidebar@dark|border-color|#605d57
-body[data-board-theme="dark"] button,body[data-board-theme="dark"] select,body[data-board-theme="dark"] input@dark|background|#3a3229
-body[data-board-theme="dark"] button,body[data-board-theme="dark"] select,body[data-board-theme="dark"] input@dark|color|#f3ead7
-body[data-board-theme="dark"] button,body[data-board-theme="dark"] select,body[data-board-theme="dark"] input@dark|border-color|#86837d
+body[data-system-theme="dark"] .replay-sidebar@dark|background|#282b2d
+body[data-system-theme="dark"] .replay-sidebar@dark|color|#f2ede6
+body[data-system-theme="dark"] .replay-sidebar@dark|border-color|#605d57
 @media(max-width:1050px)@dark|.preference-options{grid-template-columns|1fr}
 @media(max-width:760px)@dark|.replay-sidebar{top|58px}
 body@dark|background-image|none
@@ -614,9 +609,6 @@ body[data-board-background="none"] .board-shell:before@dark|display|none
 .text-dialog-body code@dark|border|1px solid rgba(119,83,48,.18)
 .text-dialog-body a@dark|color|#c94b4b
 .text-dialog-body a@dark|word-break|break-all
-body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-dialog@dark|background|#2b2620
-body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-dialog@dark|color|#f3ead7
-body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-dialog@dark|border-color|#605d57
 @media(max-width:1180px)@dark|.menubar{display|none}.top-actions{margin-left:auto}.replay-layout{grid-template-columns:minmax(420px,1fr) 300px}
 @media(max-width:760px)@dark|.topbar{height|58px
 @media(max-width:760px)@dark|padding|0 10px
@@ -843,6 +835,6 @@ body[data-system-theme="dark"] .brand p,body[data-system-theme="dark"] span,body
 .atlas-demo-slot@dark|background|#f7efdd
 .atlas-demo-slot@dark|color|#756555
 .atlas-demo-slot@dark|font-size|13px
-body[data-board-theme="dark"] .chat-messages,body[data-system-theme="dark"] .chat-messages@dark|background|transparent
-body[data-board-theme="dark"] .chat-message.red strong,body[data-system-theme="dark"] .chat-message.red strong@dark|color|#f2b8b5
-body[data-board-theme="dark"] .chat-message.black strong,body[data-system-theme="dark"] .chat-message.black strong@dark|color|#f3ead7
+body[data-system-theme="dark"] .chat-messages@dark|background|transparent
+body[data-system-theme="dark"] .chat-message.red strong@dark|color|#f2b8b5
+body[data-system-theme="dark"] .chat-message.black strong@dark|color|#f3ead7

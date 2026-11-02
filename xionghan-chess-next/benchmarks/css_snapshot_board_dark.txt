@@ -114,7 +114,7 @@ button.primary:disabled@board-dark|border-color|#d8cbb8
 .mode-panel label@board-dark|gap|8px
 .mode-panel label@board-dark|color|#695b4c
 .mode-panel select,.mode-panel input@board-dark|height|36px
-.mode-panel select,.mode-panel input@board-dark|border|1px solid #8c7d6a
+.mode-panel select,.mode-panel input@board-dark|border|1px solid #a38b66
 .mode-panel select,.mode-panel input@board-dark|background|#fffcf5
 .mode-panel select,.mode-panel input@board-dark|padding|0 9px
 .mode-panel select,.mode-panel input@board-dark|color|#211b17
@@ -189,7 +189,7 @@ canvas@board-dark|touch-action|none
 .panel-title@board-dark|display|flex
 .panel-title@board-dark|align-items|center
 .panel-title@board-dark|justify-content|space-between
-.panel-title@board-dark|border-bottom|1px solid #75624b
+.panel-title@board-dark|border-bottom|1px solid #b5935e
 .panel-title h2,.captured-panel h2@board-dark|font-size|15px
 .panel-title h2,.captured-panel h2@board-dark|margin|0
 .panel-title span@board-dark|font-size|12px
@@ -341,7 +341,7 @@ body@board-dark|transition|background-image .25s,background-color .25s
 .preference-options label@board-dark|gap|8px
 .preference-options label@board-dark|font-size|13px
 .preference-options select@board-dark|height|32px
-.preference-options select@board-dark|border|1px solid #8c7d6a
+.preference-options select@board-dark|border|1px solid #a38b66
 .preference-options select@board-dark|background|#fffcf5
 .preference-options select@board-dark|padding|0 8px
 .preference-options select@board-dark|min-width|0
@@ -435,7 +435,7 @@ body@board-dark|transition|background-image .25s,background-color .25s
 .chat-messages@board-dark|flex|1
 .chat-messages@board-dark|min-height|150px
 .chat-messages@board-dark|overflow|auto
-.chat-messages@board-dark|border|1px solid #75624b
+.chat-messages@board-dark|border|1px solid #b5935e
 .chat-messages@board-dark|background|rgba(255,252,245,.62)
 .chat-messages@board-dark|padding|8px
 .chat-message@board-dark|padding|6px 4px
@@ -447,22 +447,17 @@ body@board-dark|transition|background-image .25s,background-color .25s
 .chat-quick-row,.chat-input-row@board-dark|display|grid
 .chat-quick-row,.chat-input-row@board-dark|grid-template-columns|1fr auto
 .chat-quick-row select,.chat-input-row input@board-dark|min-width|0
-.chat-quick-row select,.chat-input-row input@board-dark|border|1px solid #8c7d6a
+.chat-quick-row select,.chat-input-row input@board-dark|border|1px solid #a38b66
 .chat-quick-row select,.chat-input-row input@board-dark|background|#fffcf5
 .chat-quick-row select,.chat-input-row input@board-dark|padding|0 8px
 .chat-quick-row button,.chat-input-row button@board-dark|min-height|34px
 .chat-quick-row button,.chat-input-row button@board-dark|padding|4px 10px
-body[data-board-theme="dark"]@board-dark|color|#f3ead7
 body[data-font="kaiti"]@board-dark|font-family|KaiTi,STKaiti,"Microsoft YaHei",sans-serif
 body[data-font="songti"]@board-dark|font-family|SimSun,"Songti SC","Microsoft YaHei",serif
 body[data-font="serif"]@board-dark|font-family|serif
-body[data-board-theme="dark"]:before@board-dark|background|rgba(18,18,18,.72)
-body[data-board-theme="dark"] .player-panel,body[data-board-theme="dark"] .mode-panel,body[data-board-theme="dark"] .record-panel,body[data-board-theme="dark"] .captured-panel,body[data-board-theme="dark"] .room-card,body[data-board-theme="dark"] dialog,body[data-board-theme="dark"] .replay-sidebar@board-dark|background|rgba(43,38,32,.96)
-body[data-board-theme="dark"] .player-panel,body[data-board-theme="dark"] .mode-panel,body[data-board-theme="dark"] .record-panel,body[data-board-theme="dark"] .captured-panel,body[data-board-theme="dark"] .room-card,body[data-board-theme="dark"] dialog,body[data-board-theme="dark"] .replay-sidebar@board-dark|color|#f3ead7
-body[data-board-theme="dark"] .player-panel,body[data-board-theme="dark"] .mode-panel,body[data-board-theme="dark"] .record-panel,body[data-board-theme="dark"] .captured-panel,body[data-board-theme="dark"] .room-card,body[data-board-theme="dark"] dialog,body[data-board-theme="dark"] .replay-sidebar@board-dark|border-color|#75624b
-body[data-board-theme="dark"] button,body[data-board-theme="dark"] select,body[data-board-theme="dark"] input@board-dark|background|#3a3229
-body[data-board-theme="dark"] button,body[data-board-theme="dark"] select,body[data-board-theme="dark"] input@board-dark|color|#f3ead7
-body[data-board-theme="dark"] button,body[data-board-theme="dark"] select,body[data-board-theme="dark"] input@board-dark|border-color|#8c7d6a
+body[data-system-theme="dark"] .replay-sidebar@board-dark|background|#282b2d
+body[data-system-theme="dark"] .replay-sidebar@board-dark|color|#211b17
+body[data-system-theme="dark"] .replay-sidebar@board-dark|border-color|#b5935e
 @media(max-width:1050px)@board-dark|.preference-options{grid-template-columns|1fr}
 @media(max-width:760px)@board-dark|.replay-sidebar{top|58px}
 body@board-dark|background-image|none
@@ -485,7 +480,7 @@ body[data-board-background="none"] .board-shell:before@board-dark|display|none
 .custom-background-actions button@board-dark|min-height|32px
 .custom-background-actions button@board-dark|padding|4px 10px
 .custom-backgrounds select@board-dark|height|32px
-.custom-backgrounds select@board-dark|border|1px solid #8c7d6a
+.custom-backgrounds select@board-dark|border|1px solid #a38b66
 .custom-backgrounds select@board-dark|background|#fffcf5
 .custom-backgrounds select@board-dark|padding|0 8px
 .custom-backgrounds select@board-dark|min-width|0
@@ -614,9 +609,6 @@ body[data-board-background="none"] .board-shell:before@board-dark|display|none
 .text-dialog-body code@board-dark|border|1px solid rgba(119,83,48,.18)
 .text-dialog-body a@board-dark|color|#9d2525
 .text-dialog-body a@board-dark|word-break|break-all
-body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-dialog@board-dark|background|#2b2620
-body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-dialog@board-dark|color|#f3ead7
-body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-dialog@board-dark|border-color|#75624b
 @media(max-width:1180px)@board-dark|.menubar{display|none}.top-actions{margin-left:auto}.replay-layout{grid-template-columns:minmax(420px,1fr) 300px}
 @media(max-width:760px)@board-dark|.topbar{height|58px
 @media(max-width:760px)@board-dark|padding|0 10px
@@ -713,7 +705,7 @@ body[data-board-theme="dark"] .menu-popup,body[data-board-theme="dark"] .replay-
 #accountGuest label@board-dark|align-items|center
 #accountGuest label@board-dark|gap|10px
 #accountGuest input@board-dark|height|38px
-#accountGuest input@board-dark|border|1px solid #8c7d6a
+#accountGuest input@board-dark|border|1px solid #a38b66
 #accountGuest input@board-dark|padding|0 9px
 .cloud-game-list@board-dark|display|grid
 .cloud-game-list@board-dark|max-height|430px
@@ -780,10 +772,10 @@ body[data-system-theme="dark"]@board-dark|color|#211b17
 body[data-system-theme="dark"]:before@board-dark|background|rgba(17,19,20,.88)
 body[data-system-theme="dark"] .topbar,body[data-system-theme="dark"] .player-panel,body[data-system-theme="dark"] .mode-panel,body[data-system-theme="dark"] .record-panel,body[data-system-theme="dark"] .captured-panel,body[data-system-theme="dark"] .room-card,body[data-system-theme="dark"] dialog,body[data-system-theme="dark"] .menu-popup@board-dark|background|#282b2d
 body[data-system-theme="dark"] .topbar,body[data-system-theme="dark"] .player-panel,body[data-system-theme="dark"] .mode-panel,body[data-system-theme="dark"] .record-panel,body[data-system-theme="dark"] .captured-panel,body[data-system-theme="dark"] .room-card,body[data-system-theme="dark"] dialog,body[data-system-theme="dark"] .menu-popup@board-dark|color|#211b17
-body[data-system-theme="dark"] .topbar,body[data-system-theme="dark"] .player-panel,body[data-system-theme="dark"] .mode-panel,body[data-system-theme="dark"] .record-panel,body[data-system-theme="dark"] .captured-panel,body[data-system-theme="dark"] .room-card,body[data-system-theme="dark"] dialog,body[data-system-theme="dark"] .menu-popup@board-dark|border-color|#75624b
+body[data-system-theme="dark"] .topbar,body[data-system-theme="dark"] .player-panel,body[data-system-theme="dark"] .mode-panel,body[data-system-theme="dark"] .record-panel,body[data-system-theme="dark"] .captured-panel,body[data-system-theme="dark"] .room-card,body[data-system-theme="dark"] dialog,body[data-system-theme="dark"] .menu-popup@board-dark|border-color|#b5935e
 body[data-system-theme="dark"] button,body[data-system-theme="dark"] select,body[data-system-theme="dark"] input@board-dark|background|#34383a
 body[data-system-theme="dark"] button,body[data-system-theme="dark"] select,body[data-system-theme="dark"] input@board-dark|color|#211b17
-body[data-system-theme="dark"] button,body[data-system-theme="dark"] select,body[data-system-theme="dark"] input@board-dark|border-color|#8c7d6a
+body[data-system-theme="dark"] button,body[data-system-theme="dark"] select,body[data-system-theme="dark"] input@board-dark|border-color|#a38b66
 body[data-system-theme="dark"] .brand p,body[data-system-theme="dark"] span,body[data-system-theme="dark"] small,body[data-system-theme="dark"] .dialog-note@board-dark|color|#c6beb1
 @media(max-width:760px)@board-dark|.handicap-columns{grid-template-columns|1fr}.piece-slot-list{max-height:30vh}.analysis-summary{grid-template-columns:repeat(3,1fr)}.analysis-moves{grid-template-columns:1fr}.puzzle-list{grid-template-columns:1fr 1fr}.feature-dialog{width:100vw
 @media(max-width:760px)@board-dark|max-height|100vh}.room-card #spectatorCount{display:none}
@@ -843,6 +835,6 @@ body[data-system-theme="dark"] .brand p,body[data-system-theme="dark"] span,body
 .atlas-demo-slot@board-dark|background|#f7efdd
 .atlas-demo-slot@board-dark|color|#756555
 .atlas-demo-slot@board-dark|font-size|13px
-body[data-board-theme="dark"] .chat-messages,body[data-system-theme="dark"] .chat-messages@board-dark|background|transparent
-body[data-board-theme="dark"] .chat-message.red strong,body[data-system-theme="dark"] .chat-message.red strong@board-dark|color|#f2b8b5
-body[data-board-theme="dark"] .chat-message.black strong,body[data-system-theme="dark"] .chat-message.black strong@board-dark|color|#f3ead7
+body[data-system-theme="dark"] .chat-messages@board-dark|background|transparent
+body[data-system-theme="dark"] .chat-message.red strong@board-dark|color|#f2b8b5
+body[data-system-theme="dark"] .chat-message.black strong@board-dark|color|#f3ead7
