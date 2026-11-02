@@ -139,6 +139,8 @@ canvas@dark|inset|0
 canvas@dark|width|100%
 canvas@dark|height|100%
 canvas@dark|touch-action|none
+@keyframes board-shake@dark|0%,100%{transform|translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}
+.board-shake@dark|animation|board-shake .28s ease-in-out
 .thinking@dark|position|absolute
 .thinking@dark|inset|0
 .thinking@dark|background|rgba(33,27,23,.56)
@@ -733,6 +735,12 @@ body[data-board-background="none"] .board-shell:before@dark|display|none
 .analysis-moves button@dark|text-align|left
 .analysis-moves .quality-mistake,.analysis-moves .quality-blunder@dark|border-left|5px solid #a52c2c
 .analysis-moves .quality-best@dark|border-left|5px solid #315c48
+.onboard-body@dark|display|grid
+.onboard-body@dark|gap|10px
+.onboard-body@dark|padding|16px 20px
+.onboard-body@dark|font-size|14px
+.onboard-body@dark|line-height|1.6
+.onboard-body p@dark|margin|0
 .training-filters@dark|display|flex
 .training-filters@dark|gap|6px
 .training-filters@dark|margin|14px 0

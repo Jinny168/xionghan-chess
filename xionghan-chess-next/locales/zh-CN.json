@@ -299,7 +299,8 @@
     "image_uploaded": "自定义图片已上传",
     "image_renamed": "图片已重命名",
     "confirm_delete_image": "确定删除这张自定义图片？",
-    "image_deleted": "图片已删除"
+    "image_deleted": "图片已删除",
+    "big_capture": "吃掉{name}！"
   },
   "prompt": {
     "promotion": "选择升变棋子：{choices}",
@@ -571,6 +572,11 @@
     "daily_streak": "第 {count} 天",
     "daily_done": "今日已解，明天见",
     "daily_solved": "连对 {count} 天",
-    "drills": "走法练习"
+    "drills": "走法练习",
+    "onboard_title": "怎么开始",
+    "onboard_1": "1. 先选对手：顶栏可选人机、双人或联机。",
+    "onboard_2": "2. 走一步：点自己的棋子，再点落点。",
+    "onboard_3": "3. 卡住了：训练里有每日一题，做题时可用「步骤提示」。",
+    "onboard_cta": "开始吧"
   }
 }

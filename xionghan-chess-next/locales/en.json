@@ -299,7 +299,8 @@
     "image_uploaded": "Custom image uploaded",
     "image_renamed": "Image renamed",
     "confirm_delete_image": "Delete this custom image?",
-    "image_deleted": "Image deleted"
+    "image_deleted": "Image deleted",
+    "big_capture": "Captured {name}!"
   },
   "prompt": {
     "promotion": "Choose promotion piece: {choices}",
@@ -571,6 +572,11 @@
     "daily_streak": "Day {count}",
     "daily_done": "Solved today — see you tomorrow",
     "daily_solved": "{count}-day streak",
-    "drills": "Drills"
+    "drills": "Drills",
+    "onboard_title": "Getting started",
+    "onboard_1": "1. Pick an opponent: AI, two players, or online (top bar).",
+    "onboard_2": "2. Move: click your piece, then its destination.",
+    "onboard_3": "3. Stuck? Training has a daily puzzle and a step-by-step hint.",
+    "onboard_cta": "Start"
   }
 }

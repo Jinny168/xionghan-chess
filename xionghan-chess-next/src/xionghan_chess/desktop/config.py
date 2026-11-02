@@ -121,6 +121,8 @@ DEFAULTS: dict[str, Any] = {
     # 每日一题的记录（单键覆盖）：`{day,id,done,streak,best}`。
     # 纯新增键，**不 bump schema_version** —— `{**DEFAULTS, **data}` 会给旧配置补上。
     "daily": {},
+    # 首跑引导是否已看过（D4）。纯新增键，不 bump schema_version。
+    "onboarded": False,
 }
 
 # S1-9：这些键改变「规则 / 对局结构」，改了就必然要重开一局。

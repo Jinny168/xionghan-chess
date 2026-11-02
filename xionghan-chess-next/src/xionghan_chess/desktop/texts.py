@@ -28,6 +28,10 @@ _LANGUAGE = "zh-CN"
 EN: dict[str, str] = {
     # ---- 菜单 / 主界面 ----
     "残局与排局训练": "Endgame & set-play drills",
+    # D4 首跑引导（状态栏横幅）
+    "① 选对手：右侧面板有人机 / 双人 / 联机": "① Pick an opponent: AI / two players / online (right panel)",
+    "② 走一步：点自己的棋子，再点落点": "② Move: click your piece, then its destination",
+    "③ 卡住了：训练里有每日一题，做题时状态栏有提示": "③ Stuck? Training has a daily puzzle; the hint sits in the status bar",
     # C2 两段式提示（先指子、再指招）
     "提示": "Hint",
     "先指子，再指招": "Piece first, then the move",
@@ -177,6 +181,7 @@ EN: dict[str, str] = {
 
 # 带变量的句子。中文模板即 key；英文侧用同样的 {占位符}。
 TEMPLATES: dict[str, str] = {
+    "吃掉{names}！": "Captured: {names}!",
     "先看这一枚：{name}": "Look at this piece: {name}",
     "棋局已保存：{path}": "Game saved: {path}",
     "已载入：{path}": "Loaded: {path}",

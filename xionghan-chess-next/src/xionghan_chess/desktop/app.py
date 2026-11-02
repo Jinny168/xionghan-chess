@@ -27,7 +27,8 @@ AI_WATCHDOG_GRACE_MS = 5000
 # 聊天区上限：长局只追加不清空会让内存线性涨（审计 2-1）。
 CHAT_HISTORY_LIMIT = 200
 from xionghan_chess.core.game import Game, GameError
-from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position
+from xionghan_chess.core.model import (Color, GameState, Move, PieceType, Position,
+                                   is_big_capture)
 from xionghan_chess.core.profiles import PROFILES, profile_rule_values
 from xionghan_chess.core.storage import game_document
 from xionghan_chess.core.taunts import choose_taunt, taunts
@@ -133,6 +134,7 @@ class MainWindow(QMainWindow):
         self.hint_button.hide()
         self.statusBar().addPermanentWidget(self.hint_button)
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
+        QTimer.singleShot(0, self.maybe_show_onboarding)
         icon_path = theme.resource("icon.ico")
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
@@ -234,6 +236,23 @@ class MainWindow(QMainWindow):
             if self.game.state.finished:self.add_ai_taunt("defeat")
             if not self.game.state.finished and self.config.get("game_mode","ai")=="ai":self.start_ai()
         except GameError as exc:QMessageBox.warning(self,dl("非法走棋"),str(exc))
+
+    def maybe_show_onboarding(self) -> None:
+        """首跑引导：状态栏显示三步说明，只显示一次。
+
+        为什么不用弹窗：桌面端任何模态/子窗口都会抢键盘焦点，把「按回车再来一局」这类
+        交互顶掉（实测过，还会让 UI 用例变红）。状态栏横幅零干扰，信息一样能传达。
+        """
+        if self.config.get("onboarded"):
+            return
+        text="  ·  ".join([
+            dl("① 选对手：右侧面板有人机 / 双人 / 联机"),
+            dl("② 走一步：点自己的棋子，再点落点"),
+            dl("③ 卡住了：训练里有每日一题，做题时状态栏有提示"),
+        ])
+        self.statusBar().showMessage(text,15000)
+        self.config["onboarded"]=True
+        save_config(self.config)
 
     def show_puzzle_hint(self) -> None:
         """两段式提示：第一次说用哪枚子，第二次说怎么走。
@@ -411,7 +430,13 @@ class MainWindow(QMainWindow):
         record=self.game.state.history[-1]
         if self.game.state.finished:self.audio.play("win" if self.game.state.winner is Color(self.config["human_color"]) else "lose")
         elif self.game.rules.in_check(self.game.state,self.game.state.turn):self.audio.play("check")
-        else:self.audio.play("capture" if record.captured else "move")
+        else:
+            self.audio.play("capture" if record.captured else "move")
+            # D3：吃大子额外喊一声。普通吃子（兵/士/相）保持安静 ——
+            # 每次都喊等于没喊，只在大子被吃时才值得打断注意力。
+            if record.captured and is_big_capture([piece.type.value for piece in record.captured]):
+                names="、".join(t(f"piece_name.{piece.type.value}",self.config.get("language","zh-CN")) for piece in record.captured)
+                self.statusBar().showMessage(dlf("吃掉{names}！",names=names),3000)
     def undo_move(self) -> None:
         if self.network:self.send_network("undo_request");return
         # S2-7 配套：题目模式下悔棋＝重做这道题，进度一律归零。

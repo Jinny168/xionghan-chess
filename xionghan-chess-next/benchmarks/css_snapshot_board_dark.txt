@@ -139,6 +139,8 @@ canvas@board-dark|inset|0
 canvas@board-dark|width|100%
 canvas@board-dark|height|100%
 canvas@board-dark|touch-action|none
+@keyframes board-shake@board-dark|0%,100%{transform|translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}
+.board-shake@board-dark|animation|board-shake .28s ease-in-out
 .thinking@board-dark|position|absolute
 .thinking@board-dark|inset|0
 .thinking@board-dark|background|rgba(33,27,23,.56)
@@ -733,6 +735,12 @@ body[data-board-background="none"] .board-shell:before@board-dark|display|none
 .analysis-moves button@board-dark|text-align|left
 .analysis-moves .quality-mistake,.analysis-moves .quality-blunder@board-dark|border-left|5px solid #a52c2c
 .analysis-moves .quality-best@board-dark|border-left|5px solid #315c48
+.onboard-body@board-dark|display|grid
+.onboard-body@board-dark|gap|10px
+.onboard-body@board-dark|padding|16px 20px
+.onboard-body@board-dark|font-size|14px
+.onboard-body@board-dark|line-height|1.6
+.onboard-body p@board-dark|margin|0
 .training-filters@board-dark|display|flex
 .training-filters@board-dark|gap|6px
 .training-filters@board-dark|margin|14px 0

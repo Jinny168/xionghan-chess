@@ -122,7 +122,8 @@ function receiveSnapshot(snapshot){
   $('#roomCode').textContent=snapshot.roomId;$('#roomInput').value=snapshot.roomId;const turnRibbon=$('#turnRibbon');turnRibbon.className=ribbonClass(app.state);turnRibbon.textContent=app.state.finished?t('status.game_over'):(app.state.paused?t('status.paused'):(app.state.check?`${t('status.check')} · `:'')+t('status.turn',{color:t(`common.${app.state.turn}`)}));if(app.state.check&&turnRibbon.animate)turnRibbon.animate([{transform:'scale(1)',color:'inherit'},{transform:'scale(1.08)',color:CHECK_PULSE_MID},{transform:'scale(1)',color:'inherit'}],{duration:900,iterations:2});
   $('#spectatorCount').textContent=`${snapshot.spectatorCount||0} 人观战`;
   $('#thinking').hidden=!(snapshot.mode==='ai'&&app.state.turn!==app.color&&!app.state.finished&&!app.state.paused);$('#pauseOverlay').hidden=!app.state.paused;renderMeta(snapshot);resizeBoard();
-  if(previous&&app.state.history.length>previous.history.length){const last=app.state.history.at(-1);playSound(last.captured?.length?'capture':app.state.check?'check':'move');if(app.preferences.animation!==false){app.animation={source:last.move.from,target:last.move.to,capture:!!last.captured?.length,started:performance.now()};requestAnimationFrame(animate)}checkPuzzleProgress()}
+  if(previous&&app.state.history.length>previous.history.length){const last=app.state.history.at(-1);playSound(last.captured?.length?'capture':app.state.check?'check':'move');
+    if(isBigCapture(last.captured)){shakeBoard();toast(t('toast.big_capture',{name:t('piece_name.'+last.captured[0].type)}))}if(app.preferences.animation!==false){app.animation={source:last.move.from,target:last.move.to,capture:!!last.captured?.length,started:performance.now()};requestAnimationFrame(animate)}checkPuzzleProgress()}
   if(app.state.finished)showResult();
   if(app.state.pendingDrawOffer&&app.state.pendingDrawOffer!==app.color&&confirm(t('dialog.pending_draw')))send('draw_response',{accept:true});
   else if(app.state.pendingDrawOffer&&app.state.pendingDrawOffer!==app.color)send('draw_response',{accept:false});
@@ -231,6 +232,16 @@ function dailyRecord(){try{const raw=JSON.parse(localStorage.getItem(DAILY_KEY)|
 function saveDailyRecord(record){safeStorageSet(DAILY_KEY,JSON.stringify(record))}
 function dailyToday(){const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`}
 function dailyGap(from,to){return Math.round((Date.parse(to)-Date.parse(from))/86400000)}
+// D4 首跑引导：只在**首次访问**出现，记在 localStorage（不采集、不上报）
+function maybeShowOnboarding(){
+  try{if(localStorage.getItem('xh-onboarded'))return}catch(error){return}
+  ['1','2','3'].forEach((n,index)=>$('#onboardLine'+n).textContent=t('training.onboard_'+(index+1)));
+  $('#onboardTitle').textContent=t('training.onboard_title');
+  $('#onboardStartButton').textContent=t('training.onboard_cta');
+  const dialog=$('#onboardDialog');if(!dialog)return;
+  $('#onboardStartButton').onclick=()=>{try{localStorage.setItem('xh-onboarded','1')}catch(error){}dialog.close()};
+  if(!dialog.open)dialog.showModal();
+}
 function refreshDailyButton(){const button=$('#dailyPuzzleButton');if(!button)return;const record=dailyRecord(),today=dailyToday();let label=t('training.daily');const gap=record.day?dailyGap(record.day,today):0;
   if(record.day===today&&record.done)label+=` · ${t('training.daily_done')}`;
   else if(record.streak&&gap<=1)label+=` · ${t('training.daily_streak',{count:record.streak+1})}`;
@@ -247,6 +258,13 @@ function recordDailySolved(session){if(!app.dailyDay)return;const today=app.dail
   saveDailyRecord({day:today,id:session.id,done:true,streak,best:Math.max(streak,record.best||0)});
   app.dailyDay=null;toast(t('training.daily_solved',{count:streak}));refreshDailyButton()}
 // A3 星级：只罚错着与提示（解法是唯一强制线，不存在「更短」的走法）
+// D3：大子阈值与 Python `core.model.BIG_CAPTURE_VALUE`（450）同源，
+// 两端必须同一个集合，否则同一步棋一边喊一边不响。
+const BIG_CAPTURE_TYPES=['rook','cannon','horse','archer','thunder','guard','patrol'];
+function isBigCapture(captured){return (captured||[]).some(piece=>BIG_CAPTURE_TYPES.includes(piece.type))}
+function shakeBoard(){const shell=$('#boardShell');if(!shell)return;
+  shell.classList.remove('board-shake');void shell.offsetWidth;shell.classList.add('board-shake');
+  setTimeout(()=>shell.classList.remove('board-shake'),320)}
 function puzzleStars(session){const penalty=(session.misses||0)+(session.hints||0);return penalty===0?3:(penalty<=2?2:1)}
 function puzzleMoveKey(move){return `${move.from.row},${move.from.col}-${move.to.row},${move.to.col}`}
 function checkPuzzleProgress(){
@@ -285,7 +303,8 @@ $('#accountButton').onclick=async()=>{await refreshAccount();$('#accountDialog')
 document.addEventListener('click',event=>{const button=event.target.closest('#profileAvatarPicker [data-avatar]');if(!button)return;document.querySelectorAll('#profileAvatarPicker [data-avatar]').forEach(item=>item.classList.toggle('selected',item===button));if(button.dataset.avatar)$('#profileAvatarUrl').value=''});
 $('#cloudGameList').onclick=async e=>{const open=e.target.closest('[data-cloud-open]'),fav=e.target.closest('[data-cloud-favorite]'),del=e.target.closest('[data-cloud-delete]');try{if(open){const game=await api(`/api/me/games/${open.dataset.cloudOpen}`);$('#accountDialog').close();await importDocument(game.document)}if(fav){await api(`/api/me/games/${fav.dataset.cloudFavorite}/favorite`,{method:'PUT',body:JSON.stringify({favorite:fav.dataset.favorite==='true'})});await refreshCloudGames()}if(del&&confirm('确定删除这份云端棋谱？')){await api(`/api/me/games/${del.dataset.cloudDelete}`,{method:'DELETE'});await refreshCloudGames()}}catch(error){toast(error.message)}};
 $('#analyzeReplayButton').onclick=runAnalysis;$('#analysisMoveList').onclick=e=>{const item=e.target.closest('[data-analysis-ply]');if(item){$('#analysisDialog').close();if(!replayDialog.open)openReplay();setReplayIndex(Number(item.dataset.analysisPly))}};
-$('#trainingButton').onclick=()=>openTraining();document.querySelector('.training-filters').onclick=e=>{const level=e.target.closest('[data-puzzle-level]');if(level){document.querySelectorAll('[data-puzzle-level]').forEach(button=>button.classList.toggle('active',button===level));openTraining(level.dataset.puzzleLevel)}};$('#puzzleList').onclick=e=>{const item=e.target.closest('[data-puzzle-id]');if(item)selectPuzzle(item.dataset.puzzleId)};$('#puzzleStartButton').onclick=startPuzzle;$('#dailyPuzzleButton').onclick=openDaily;refreshDailyButton();// C2 两段式提示：先指子、再指招（与桌面 `PuzzleSession.staged_hint` 同构）
+$('#trainingButton').onclick=()=>openTraining();document.querySelector('.training-filters').onclick=e=>{const level=e.target.closest('[data-puzzle-level]');if(level){document.querySelectorAll('[data-puzzle-level]').forEach(button=>button.classList.toggle('active',button===level));openTraining(level.dataset.puzzleLevel)}};$('#puzzleList').onclick=e=>{const item=e.target.closest('[data-puzzle-id]');if(item)selectPuzzle(item.dataset.puzzleId)};$('#puzzleStartButton').onclick=startPuzzle;$('#dailyPuzzleButton').onclick=openDaily;refreshDailyButton();
+maybeShowOnboarding();// C2 两段式提示：先指子、再指招（与桌面 `PuzzleSession.staged_hint` 同构）
 $('#puzzleHintButton').onclick=()=>{
   if(!app.selectedPuzzle)return;
   const session=app.puzzleSession;

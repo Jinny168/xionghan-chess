@@ -16,6 +16,24 @@ class Color(StrEnum):
         return Color.BLACK if self is Color.RED else Color.RED
 
 
+# 「吃大子」的阈值：420 及以上算大子 —— 车/炮/马/射/檑 + 尉/巡（都是一次性、难补的子）。
+# 兵 120、士 240、相 260 不算：它们被吃太常见，每次都喊等于没喊。
+# 这个数同时被桌面与网页用来决定要不要给强反馈 —— 两边必须同一个数，
+# 否则同一步棋在两端一个"很响"一个"没反应"。
+BIG_CAPTURE_VALUE = 420
+
+PIECE_VALUES: dict[str, int] = {
+    "king": 50_000, "rook": 900, "cannon": 500, "horse": 450,
+    "archer": 480, "thunder": 490, "guard": 420, "patrol": 420,
+    "elephant": 260, "advisor": 240, "pawn": 120,
+}
+
+
+def is_big_capture(captured_types: list[str] | tuple[str, ...]) -> bool:
+    """这一步吃掉的子里有没有"大子"。"""
+    return any(PIECE_VALUES.get(kind, 0) >= BIG_CAPTURE_VALUE for kind in captured_types)
+
+
 class PieceType(StrEnum):
     KING = "king"
     ROOK = "rook"
