@@ -20,7 +20,7 @@ import pytest
 pytest.importorskip("PySide6", reason="渲染测试依赖 PySide6")
 
 from PySide6.QtCore import QPointF, Qt  # noqa: E402
-from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPixmap  # noqa: E402
+from PySide6.QtGui import QBrush, QColor, QFont, QImage, QPainter, QPixmap  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from xionghan_chess.core.game import Game  # noqa: E402
@@ -43,6 +43,24 @@ def qt_app() -> QApplication:
     app = QApplication.instance() or QApplication([])
     theme.load_bundled_fonts()
     return app
+
+
+@pytest.fixture(autouse=True)
+def _no_piece_shadow(monkeypatch: pytest.MonkeyPatch) -> None:
+    """本文件量的是**棋子本体**的墨迹，投影必须先关掉。
+
+    P1-1 加了棋子投影后，投影的可见带（外半径 1.30r + 圆心下移 0.09r）会落在
+    棋子之外，于是「墨迹包围盒」量到的就不再是盘径，而是「盘径 + 一圈影」——
+    `test_disk_diameter_stays_0_78_cell` 因此假红。
+
+    这不是放宽阈值：被测命题本来就是「棋子本体是 0.78 cell」，
+    把影算进去属于**测量对象错了**。投影本身的行为由
+    `test_desktop_piece_shadow.py` 单独覆盖（可见强度 / 向下的重心 / 三分支）。
+    """
+    import xionghan_chess.desktop.ui.board_widget as board_widget
+
+    monkeypatch.setattr(board_widget, "_piece_shadow_brush",
+                        lambda: QBrush(Qt.BrushStyle.NoBrush))
 
 
 def render(style: str, mode: str, pieces: list[Piece]) -> tuple[QImage, BoardWidget]:
