@@ -436,6 +436,8 @@
     "pawn_full_movement_at_base": "兵卒到底线四向移动",
     "pawn_resurrection": "兵卒复活",
     "pawn_promotion": "兵卒升变",
+    "pawn_charge": "兵卒过长城后可沿直线直冲（不吃子）",
+    "pawn_three_line_capture": "两己方兵夹一敌子成线即可吃",
     "enforce_self_check": "禁止送将",
     "threefold_draw": "三次重复和棋",
     "no_progress_draw_plies": "长时间无进展判和",

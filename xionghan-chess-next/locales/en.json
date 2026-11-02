@@ -436,6 +436,8 @@
     "pawn_full_movement_at_base": "Pawn may move four directions on the back rank",
     "pawn_resurrection": "Pawn resurrection",
     "pawn_promotion": "Pawn promotion",
+    "pawn_charge": "Pawns may charge straight forward after crossing the Great Wall (never captures)",
+    "pawn_three_line_capture": "Two allied pawns sandwiching an enemy in a line capture it",
     "enforce_self_check": "Forbid self-check",
     "threefold_draw": "Threefold repetition draw",
     "no_progress_draw_plies": "No-progress draw",
