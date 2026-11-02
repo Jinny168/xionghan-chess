@@ -11,6 +11,16 @@ from .rules import CaptureKind
 from .storage import game_document, game_from_document
 
 
+# 战役章节（A2）。顺序即推荐推进顺序：先一子杀，再两步、三步、四步。
+# 空串表示"不入章"（走法练习），列表里单独归档在后面。
+CHAPTERS: tuple[str, ...] = ("揭竿", "破釜", "逐鹿", "垓下", "定鼎")
+
+
+def chapter_order(name: str) -> int:
+    """排序用：已知章节按 CHAPTERS 顺序，未知/空串排在最后。"""
+    return CHAPTERS.index(name) if name in CHAPTERS else len(CHAPTERS)
+
+
 @dataclass(frozen=True, slots=True)
 class Puzzle:
     id: str
@@ -21,11 +31,13 @@ class Puzzle:
     solution: tuple[Move, ...]
     hints: tuple[str, ...]
     tags: tuple[str, ...] = ()
+    # 战役章节（A2）。空串 = 不入章（走法练习），列表里单独归档。
+    chapter: str = ""
 
     def summary(self) -> dict[str, Any]:
         return {"id": self.id, "title": self.title, "difficulty": self.difficulty,
                 "description": self.description, "tags": list(self.tags),
-                "steps": len(self.solution)}
+                "chapter": self.chapter, "steps": len(self.solution)}
 
     def payload(self, reveal: bool = False) -> dict[str, Any]:
         data = self.summary() | {"document": self.document, "hints": list(self.hints)}
@@ -116,6 +128,7 @@ def load_puzzles(path: str | Path | None = None) -> list[Puzzle]:
             tuple(_move(move) for move in item["solution"]),
             tuple(str(hint) for hint in item.get("hints", [])),
             tuple(str(tag) for tag in item.get("tags", [])),
+            str(item.get("chapter", "")),
         )
         _validate_solution(puzzle)
         puzzles.append(puzzle)

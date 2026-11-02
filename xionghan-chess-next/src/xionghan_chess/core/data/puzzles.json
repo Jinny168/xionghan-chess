@@ -449,7 +449,8 @@
         }
       },
       "savedAt": "2026-11-02T21:41:45"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "beginner-cannon-01",
@@ -805,7 +806,8 @@
         }
       },
       "savedAt": "2026-11-02T21:41:45"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "beginner-horse-01",
@@ -1161,7 +1163,8 @@
         }
       },
       "savedAt": "2026-11-02T21:41:45"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "advanced-archer-01",
@@ -1613,7 +1616,8 @@
         }
       },
       "savedAt": "2026-11-02T21:41:45"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "advanced-patrol-01",
@@ -2113,7 +2117,8 @@
         }
       },
       "savedAt": "2026-11-02T21:41:45"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "advanced-center-01",
@@ -2613,7 +2618,8 @@
         }
       },
       "savedAt": "2026-11-02T21:41:45"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "master-thunder-01",
@@ -3113,7 +3119,8 @@
         }
       },
       "savedAt": "2026-11-02T21:41:45"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "master-guard-01",
@@ -3291,7 +3298,8 @@
       },
       "snapshots": [],
       "savedAt": "2026-10-31T08:48:29"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "master-rook-01",
@@ -3791,7 +3799,8 @@
         }
       },
       "savedAt": "2026-11-02T21:41:45"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "endgame-cannon-screen-01",
@@ -4334,7 +4343,8 @@
         }
       },
       "savedAt": "2026-10-23T23:39:58"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "endgame-elephant-eye-01",
@@ -5037,7 +5047,8 @@
         }
       },
       "savedAt": "2026-10-23T23:40:00"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "endgame-advisor-palace-01",
@@ -5778,7 +5789,8 @@
         }
       },
       "savedAt": "2026-10-23T23:40:03"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "endgame-king-capture-01",
@@ -6358,7 +6370,8 @@
         }
       },
       "savedAt": "2026-10-23T23:40:03"
-    }
+    },
+    "chapter": ""
   },
   {
     "id": "gen-01",
@@ -6550,7 +6563,8 @@
       "calibrated",
       "generated",
       "mate3"
-    ]
+    ],
+    "chapter": "揭竿"
   },
   {
     "id": "gen-02",
@@ -6742,7 +6756,8 @@
       "calibrated",
       "generated",
       "mate3"
-    ]
+    ],
+    "chapter": "揭竿"
   },
   {
     "id": "gen-03",
@@ -6934,7 +6949,8 @@
       "calibrated",
       "generated",
       "mate3"
-    ]
+    ],
+    "chapter": "揭竿"
   },
   {
     "id": "gen-04",
@@ -7126,7 +7142,8 @@
       "calibrated",
       "generated",
       "mate3"
-    ]
+    ],
+    "chapter": "揭竿"
   },
   {
     "id": "gen-05",
@@ -7318,7 +7335,8 @@
       "calibrated",
       "generated",
       "mate3"
-    ]
+    ],
+    "chapter": "揭竿"
   },
   {
     "id": "gen-06",
@@ -7510,7 +7528,8 @@
       "calibrated",
       "generated",
       "mate3"
-    ]
+    ],
+    "chapter": "破釜"
   },
   {
     "id": "gen-07",
@@ -7702,7 +7721,8 @@
       "calibrated",
       "generated",
       "mate3"
-    ]
+    ],
+    "chapter": "破釜"
   },
   {
     "id": "gen-08",
@@ -7887,7 +7907,8 @@
       "calibrated",
       "generated",
       "mate3"
-    ]
+    ],
+    "chapter": "揭竿"
   },
   {
     "id": "gen-09",
@@ -8072,7 +8093,8 @@
       "calibrated",
       "generated",
       "mate3"
-    ]
+    ],
+    "chapter": "揭竿"
   },
   {
     "id": "gen-10",
@@ -8257,7 +8279,8 @@
       "calibrated",
       "generated",
       "mate3"
-    ]
+    ],
+    "chapter": "破釜"
   },
   {
     "id": "gen-11",
@@ -8449,7 +8472,8 @@
       "calibrated",
       "generated",
       "mate3"
-    ]
+    ],
+    "chapter": "揭竿"
   },
   {
     "id": "gen-12",
@@ -8634,7 +8658,8 @@
       "calibrated",
       "generated",
       "mate3"
-    ]
+    ],
+    "chapter": "揭竿"
   },
   {
     "id": "gen-13",
@@ -8847,7 +8872,8 @@
       "calibrated",
       "generated",
       "mate5"
-    ]
+    ],
+    "chapter": "逐鹿"
   },
   {
     "id": "gen-14",
@@ -9060,7 +9086,8 @@
       "calibrated",
       "generated",
       "mate5"
-    ]
+    ],
+    "chapter": "逐鹿"
   },
   {
     "id": "gen-15",
@@ -9273,7 +9300,8 @@
       "calibrated",
       "generated",
       "mate5"
-    ]
+    ],
+    "chapter": "逐鹿"
   },
   {
     "id": "gen-16",
@@ -9486,7 +9514,8 @@
       "calibrated",
       "generated",
       "mate5"
-    ]
+    ],
+    "chapter": "垓下"
   },
   {
     "id": "gen-17",
@@ -9692,7 +9721,8 @@
       "calibrated",
       "generated",
       "mate5"
-    ]
+    ],
+    "chapter": "垓下"
   },
   {
     "id": "gen-18",
@@ -9905,7 +9935,8 @@
       "calibrated",
       "generated",
       "mate5"
-    ]
+    ],
+    "chapter": "逐鹿"
   },
   {
     "id": "gen-19",
@@ -10118,7 +10149,8 @@
       "calibrated",
       "generated",
       "mate5"
-    ]
+    ],
+    "chapter": "垓下"
   },
   {
     "id": "gen-20",
@@ -10352,7 +10384,8 @@
       "calibrated",
       "generated",
       "mate7"
-    ]
+    ],
+    "chapter": "定鼎"
   },
   {
     "id": "gen-21",
@@ -10586,7 +10619,8 @@
       "calibrated",
       "generated",
       "mate7"
-    ]
+    ],
+    "chapter": "定鼎"
   },
   {
     "id": "gen-22",
@@ -10820,6 +10854,7 @@
       "calibrated",
       "generated",
       "mate7"
-    ]
+    ],
+    "chapter": "定鼎"
   }
 ]

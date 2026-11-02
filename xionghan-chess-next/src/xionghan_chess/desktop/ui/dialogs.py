@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 )
 
 from xionghan_chess.core import daily as daily_quiz
+from xionghan_chess.core import puzzles as puzzle_chapters
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, PieceType
 from xionghan_chess.core.profiles import (OPTION_DEPENDS_ON, PROFILES,
@@ -431,7 +432,19 @@ class TrainingDialog(QDialog):
         self.daily_puzzles=all_puzzles
         self.daily_puzzle=daily_quiz.pick_daily(all_puzzles,date.today())
         self.puzzles=[item for item in all_puzzles if item.difficulty==self.level.currentData()];self.list.clear()
-        for puzzle in self.puzzles:self.list.addItem(f"{puzzle.title}  ·  {puzzle.description}")
+        # A2：按战役章节分组。**用不可选的分组标题**而不是新加一个下拉框 ——
+        # 窗口已经有一个难度筛选，再加一个"章节"会让人先想"这两个筛选项怎么叠加"。
+        grouped={}
+        for puzzle in self.puzzles:grouped.setdefault(puzzle.chapter,[]).append(puzzle)
+        for chapter in sorted(grouped,key=puzzle_chapters.chapter_order):
+            label=chapter or t("desktop.drills",self.language)
+            header=QListWidgetItem(f"—— {label} ——");header.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.list.addItem(header)
+            for puzzle in grouped[chapter]:
+                item=QListWidgetItem(f"{puzzle.title}  ·  {puzzle.description}")
+                # 记住 id：分组标题插入后行号不再等于 self.puzzles 的下标
+                item.setData(Qt.ItemDataRole.UserRole,puzzle.id)
+                self.list.addItem(item)
         if warning:
             # 自定义题库坏了不该让窗口打不开 —— 但要让人知道它被忽略了
             note=QListWidgetItem("⚠ "+warning);note.setFlags(Qt.ItemFlag.NoItemFlags);self.list.addItem(note)
@@ -468,9 +481,11 @@ class TrainingDialog(QDialog):
         self.accept()
 
     def current(self) -> object:
-        row=self.list.currentRow()
-        # 警告项不可选，但 currentRow 仍可能指向它，越界检查已经在下面兜住
-        return self.puzzles[row] if 0<=row<len(self.puzzles) else None
+        """按 item 上记的 id 取题 —— 分组标题会让行号与 `self.puzzles` 失配。"""
+        item=self.list.currentItem()
+        if item is None:return None
+        puzzle_id=item.data(Qt.ItemDataRole.UserRole)
+        return next((puzzle for puzzle in self.puzzles if puzzle.id==puzzle_id),None)
 
     def show_hint(self) -> None:
         puzzle=self.current();QMessageBox.information(self,t("desktop.hint",self.language),puzzle.hints[0] if puzzle and puzzle.hints else t("desktop.select_puzzle",self.language))

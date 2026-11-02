@@ -742,6 +742,12 @@ body[data-board-background="none"] .board-shell:before|display|none
 .puzzle-list|display|grid
 .puzzle-list|grid-template-columns|repeat(3,minmax(0,1fr))
 .puzzle-list|gap|8px
+.puzzle-chapter|grid-column|1/-1
+.puzzle-chapter|margin|10px 0 2px
+.puzzle-chapter|font|12px/1.4 inherit
+.puzzle-chapter|letter-spacing|.08em
+.puzzle-chapter|opacity|.62
+.puzzle-chapter:first-child|margin-top|0
 .puzzle-list button|display|grid
 .puzzle-list button|gap|5px
 .puzzle-list button|text-align|left

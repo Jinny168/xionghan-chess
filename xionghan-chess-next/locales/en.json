@@ -554,7 +554,8 @@
     "atlas_rule_saved": "Saved; takes effect after you restart the game.",
     "daily": "Daily puzzle",
     "daily_streak": "Day {count}",
-    "daily_done": "Solved today · see you tomorrow"
+    "daily_done": "Solved today · see you tomorrow",
+    "drills": "Drills"
   },
   "android": {
     "app_name": "Xionghan Chess",
@@ -569,6 +570,7 @@
     "daily": "Daily puzzle",
     "daily_streak": "Day {count}",
     "daily_done": "Solved today — see you tomorrow",
-    "daily_solved": "{count}-day streak"
+    "daily_solved": "{count}-day streak",
+    "drills": "Drills"
   }
 }
