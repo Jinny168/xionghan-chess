@@ -11,7 +11,7 @@ from typing import Any
 from fastapi import WebSocket
 
 from xionghan_chess.core.ai import ChessAI, Difficulty
-from xionghan_chess.core.game import Game, GameError
+from xionghan_chess.core.game import DEFAULT_INITIAL_MINUTES, Game, GameError
 from xionghan_chess.core.model import Color, Move, PieceType, Position
 from xionghan_chess.core.protocol import Envelope, MessageType
 from xionghan_chess.core.profiles import get_profile
@@ -101,7 +101,7 @@ class RoomManager:
                      player_color: Color = Color.RED,
                      difficulty: Difficulty = Difficulty.MEDIUM,
                      options: dict[str, object] | None = None,
-                     initial_minutes: int = 20,
+                     initial_minutes: int = DEFAULT_INITIAL_MINUTES,
                      language: str = "zh-CN",
                      setup: dict[str, Any] | None = None,
                      avatar_url: str = "", taunts_enabled: bool = True) -> tuple[Room, PlayerSeat]:

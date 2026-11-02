@@ -19,12 +19,17 @@ class GameError(ValueError):
 # here and the AI's pool valuation (ai.py), so the rule cap has a single home.
 RESTORE_PAWN_LIMIT = 7
 
+# 一局的默认时长（分钟）。**唯一来源**：桌面配置、服务端请求模型、房间默认值
+# 全部引用这个常量。曾经 20 分别写在四处，UI 改成 10 之后三处仍留 20 ——
+# 任何漏传时长的调用点（第三方客户端、脚本、测试）都会拿到与界面不一致的 20。
+DEFAULT_INITIAL_MINUTES = 10
+
 
 class Game:
     MAX_SNAPSHOTS = 512
     def __init__(self, profile: RuleProfile | str = "desktop_complete",
                  option_overrides: dict[str, object] | None = None,
-                 initial_minutes: int = 20,
+                 initial_minutes: int = DEFAULT_INITIAL_MINUTES,
                  language: str = "zh-CN",
                  setup: GameSetup | dict | None = None):
         self.language = normalize_language(language)

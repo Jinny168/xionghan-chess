@@ -19,7 +19,7 @@ from xionghan_chess import __version__
 from xionghan_chess.core.ai import Difficulty
 from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.avatars import normalize_avatar
-from xionghan_chess.core.game import GameError
+from xionghan_chess.core.game import DEFAULT_INITIAL_MINUTES, GameError
 from xionghan_chess.core.model import Color, PieceType, Position
 from xionghan_chess.core.profiles import (NEGATED_OPTIONS, PROFILES,
                                           option_dependencies)
@@ -118,7 +118,7 @@ class CreateRoomRequest(BaseModel):
     player_color: Color = Field(Color.RED, alias="playerColor")
     difficulty: Difficulty = Difficulty(os.getenv("AI_DEFAULT_DIFFICULTY", "medium"))
     options: dict[str, object] = Field(default_factory=dict)
-    initial_minutes: int = Field(20, ge=1, le=180, alias="initialMinutes")
+    initial_minutes: int = Field(DEFAULT_INITIAL_MINUTES, ge=1, le=180, alias="initialMinutes")
     language: str = "zh-CN"
     first_move: FirstMove = Field(FirstMove.RED, alias="firstMove")
     red_slots: list[str] | None = Field(None, alias="redSlots")

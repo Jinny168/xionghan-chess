@@ -5,6 +5,8 @@ import os
 import sys
 from collections.abc import Callable, Mapping
 from pathlib import Path
+
+from ..core.game import DEFAULT_INITIAL_MINUTES
 from typing import Any
 
 
@@ -108,7 +110,8 @@ DEFAULTS: dict[str, Any] = {
     "autosave": True,
     # B2：每方时限默认 20 → 10 分钟（一盘完整对局在 13×13 上 20 分钟常打到读秒）。
     # **只改默认值**：老配置里的既有数字原样保留（见 `_migrate_v0` 只在坏值时才落回默认）。
-    "initial_minutes": 10,
+    # 数值本身不在这里写死 —— 与 Game / 服务端共用 `DEFAULT_INITIAL_MINUTES` 一处来源。
+    "initial_minutes": DEFAULT_INITIAL_MINUTES,
     "rule_options": {},
     # S1-1 修复：`server_url` 此前被 app.py 读 3 次、被 SettingsDialog.value()
     # 回填，却**不在 DEFAULTS 里** —— 首次运行完全依赖调用点的
