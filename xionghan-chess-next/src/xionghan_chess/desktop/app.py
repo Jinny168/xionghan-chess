@@ -253,9 +253,18 @@ class MainWindow(QMainWindow):
                                     (f"正解！《{title}》已解出。" if not english else f"Correct — “{title}” solved."))
             self.statusBar().showMessage("训练完成，可继续自由对弈" if not english else "Training complete; free play resumed",8000)
             return True
+        # 交替序列：玩家走对之后，对手的被迫应着由程序**自动落**（不判分、不提示）。
+        # 多步题的强度来自"对手最优抵抗"，所以 `solution` 是交替的：偶数下标归玩家，
+        # 奇数下标归对手。少了这一步，多步题会在第二步就把对手的应着当成玩家的答案。
+        reply=session.auto_reply
+        if reply is not None:
+            try:self.game.move(reply)
+            except GameError:pass
+            session.advance_auto()
+            self.board.set_game(self.game,self.game.state.turn,True);self.board.locked=False
         self.statusBar().showMessage(
-            (f"正解，继续第 {session.cursor+1}/{session.total} 手" if not english
-             else f"Correct — step {session.cursor+1}/{session.total}"),5000)
+            (f"正解，继续第 {session.player_index}/{session.player_total} 手" if not english
+             else f"Correct — move {session.player_index}/{session.player_total}"),5000)
         return True
 
     def _begin_thinking(self) -> None:

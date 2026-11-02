@@ -219,7 +219,22 @@ function validPuzzle(item){return!!(item&&typeof item.id==='string'&&typeof item
 async function openTraining(level='beginner'){try{const builtIn=await api(`/api/puzzles?difficulty=${level}`),puzzles=[...builtIn,...customPuzzles().filter(item=>item.difficulty===level)];$('#puzzleList').innerHTML=puzzles.map(item=>`<button data-puzzle-id="${item.id}" data-custom-puzzle="${item.document?'true':'false'}"><strong>${item.title}</strong><span>${item.description||''}</span><small>${(item.tags||[]).join(' · ')}</small></button>`).join('');$('#puzzleDetail').hidden=true;if(!$('#trainingDialog').open)$('#trainingDialog').showModal()}catch(error){toast(error.message)}}
 async function selectPuzzle(id){try{app.selectedPuzzle=customPuzzles().find(item=>item.id===id)||await api(`/api/puzzles/${id}?reveal=true`);$('#puzzleInfo').innerHTML=`<h3>${app.selectedPuzzle.title}</h3><p>${app.selectedPuzzle.description||''}</p><small>${(app.selectedPuzzle.tags||[]).join(' · ')}</small>`;$('#puzzleDetail').hidden=false}catch(error){toast(error.message)}}
 async function startPuzzle(){if(!app.selectedPuzzle)return;app.puzzleSession={...app.selectedPuzzle,step:0};$('#trainingDialog').close();await importDocument(app.selectedPuzzle.document,'local');toast(t('toast.puzzle_started'))}
-function checkPuzzleProgress(){const session=app.puzzleSession;if(!session||!app.state?.history.length)return;const expected=session.solution[session.step],actual=app.state.history.at(-1)?.move;if(!expected||!actual)return;const same=expected.from.row===actual.from.row&&expected.from.col===actual.from.col&&expected.to.row===actual.to.row&&expected.to.col===actual.to.col;if(!same){toast(t('toast.puzzle_wrong'));return}session.step++;if(session.step>=session.solution.length){toast(t('toast.puzzle_solved'));app.puzzleSession=null}else toast(t('toast.puzzle_continue'))}
+function puzzleMoveKey(move){return `${move.from.row},${move.from.col}-${move.to.row},${move.to.col}`}
+function checkPuzzleProgress(){
+  const session=app.puzzleSession;if(!session||!app.state?.history.length)return;
+  const actual=app.state.history.at(-1)?.move;if(!actual)return;
+  const key=puzzleMoveKey(actual);
+  // 程序刚替对手落的那一着会再触发一次本函数，跳过判定（游标已在下面推进过）
+  if(session.pendingAuto===key){session.pendingAuto=null;return}
+  const expected=session.solution[session.step];if(!expected)return;
+  if(puzzleMoveKey(expected)!==key){toast(t('toast.puzzle_wrong'));return}
+  session.step++;
+  if(session.step>=session.solution.length){toast(t('toast.puzzle_solved'));app.puzzleSession=null;return}
+  toast(t('toast.puzzle_continue'));
+  // 交替序列：偶数下标归玩家、奇数下标是**对手的被迫应着**，由程序自动落。
+  // 少了这一步，多步题第二步就会把对手的应着当成玩家的答案（必错）。
+  if(session.step%2===1){const reply=session.solution[session.step];session.step++;session.pendingAuto=puzzleMoveKey(reply);send('move',{from:reply.from,to:reply.to})}
+}
 
 board.addEventListener('pointerdown',async e=>{const pos=positionAt(e);if(pos){app.dragging={start:pos,x:e.clientX,y:e.clientY};const piece=app.state?.pieces.find(p=>p.row===pos.row&&p.col===pos.col);if(canControl(piece)&&(!app.selected||app.selected.row!==pos.row||app.selected.col!==pos.col)){app.selected=piece;playSound('select');await loadLegal(piece)}}});
 board.addEventListener('pointerup',async e=>{const pos=positionAt(e),drag=app.dragging;app.dragging=null;if(!pos)return;if(app.legalPromise)await app.legalPromise.catch(()=>{});if(drag&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8&&app.selected)selectOrMove(pos);else selectOrMove(pos)});board.addEventListener('pointercancel',()=>{app.dragging=null});

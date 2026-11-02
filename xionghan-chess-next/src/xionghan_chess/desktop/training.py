@@ -38,13 +38,54 @@ class PuzzleSession:
     attempts: int = 0
     _hints_shown: int = field(default=0, repr=False)
 
+    def __post_init__(self) -> None:
+        # 解法是**交替序列**：偶数下标归玩家、奇数下标是对手应着。
+        # 偶数长度会停在"对手刚走完"，玩家无从落子 —— 这是数据错误，构造时就该炸。
+        if len(self.puzzle.solution) % 2 == 0:
+            # 开发者向的断言，不是界面文案，所以不走 dl()：写死中文会被
+            # `tests/test_desktop_texts.py` 判成"未翻译的界面字面量"。
+            raise ValueError(
+                "solution length must be odd (even indices are the player's moves, "
+                "odd ones are forced replies): "
+                f"{len(self.puzzle.solution)} plies would end on the opponent's move")
+
     @property
     def total(self) -> int:
         return len(self.puzzle.solution)
 
     @property
+    def player_total(self) -> int:
+        """面向玩家的「手数」= 解方要走的步数。
+
+        `total` 是内部 ply（含对手应着），3 ply 的题是 2 手、4 ply 是 2 手。
+        UI 一律用这个数，别拿 `total` 直接显示 —— 否则 5 ply 会写成「5 步」，多算对手两着。
+        """
+        return (self.total + 1) // 2
+
+    @property
+    def player_index(self) -> int:
+        """下一手是解方的第几手（从 1 起）。已解出时等于 `player_total`。"""
+        return min(self.cursor // 2 + 1, self.player_total)
+
+    @property
     def solved(self) -> bool:
         return self.cursor >= self.total
+
+    @property
+    def auto_reply(self) -> Move | None:
+        """轮到对手时（奇数下标）应自动落的那一手；其余情况返回 None。
+
+        多步题的强度来自「对手最优抵抗」，所以 `solution` 是**交替序列**：
+        偶数下标是玩家要走的，奇数下标是对手的被迫应着。玩家不该看到、也不该走奇数下标。
+        """
+        if self.solved or self.cursor % 2 == 0:
+            return None
+        return self.puzzle.solution[self.cursor]
+
+    def advance_auto(self) -> None:
+        """替对手落完 `auto_reply` 之后推进游标。"""
+        if self.auto_reply is not None:
+            self.cursor += 1
 
     @property
     def expected(self) -> Move | None:
@@ -62,6 +103,10 @@ class PuzzleSession:
         """判定一手棋。返回 `correct` / `solved` / `wrong`（都是字符串常量）。"""
         if self.solved:
             return VERDICT_SOLVED
+        if self.cursor % 2 == 1:
+            # 奇数下标是对手应着，由 `auto_reply` 自动落；玩家在这一步提交一定是错的
+            self.attempts += 1
+            return VERDICT_WRONG
         if not self.matches(move):
             self.attempts += 1
             return VERDICT_WRONG
