@@ -141,7 +141,28 @@ def document_for(item: dict, *, with_snapshots: bool = False) -> dict:
     document = game_document(game)
     if not with_snapshots:
         document.pop("snapshots", None)
+    _drop_position_counts(document)
     return document
+
+
+def _drop_position_counts(document: dict) -> bool:
+    """清掉局面文档里的三次重复记账，返回是否真的删掉了内容。
+
+    两个原因，都不是「反正会重建」：
+    1. **题面不该继承摆题过程的重复史**。玩家面对的是一个固定起点，摆题时把子反复
+       挪来挪去产生的局面计数与题目本身无关。
+    2. **留着是实际风险**。`game.py` 的判和条件是「当前局面计数 >= 3」，而摆题前缀
+       很容易把初始局面堆到 3 次 —— 载入后直接判和，题面一打开就是终局。
+       `storage.py` 只在 `positionKeyVersion` 落后时才重建账本，当前版本是**原样采信**的，
+       所以这条不是死重量，是会真的生效的数据。
+
+    清空后从 0 起算：玩家在对局里真走出三次重复，判和仍然正常触发。
+    """
+    state = document.get("state")
+    if not isinstance(state, dict) or "positionCounts" not in state:
+        return False
+    state.pop("positionCounts")
+    return True
 
 
 def inline_documents() -> None:
@@ -187,6 +208,27 @@ def coverage_of(item: dict) -> tuple[set[str], set[str]]:
     return set(pieces), set(kinds)
 
 
+def strip_position_counts() -> None:
+    """把已内联的 `document` 里的三次重复记账就地清掉（幂等）。
+
+    与 `document_for` 里的 `_drop_position_counts` 同一口径，区别只是它作用在
+    **已经在库里的**文档上——早期版本的 `document_for` 没有这一步，那些题仍带着
+    「按摆题过程算出来的」计数，载入后有直接判和的风险。
+    """
+    before = DATA.stat().st_size
+    items = json.loads(DATA.read_text(encoding="utf-8"))
+    changed = 0
+    for item in items:
+        document = item.get("document")
+        if isinstance(document, dict) and _drop_position_counts(document):
+            changed += 1
+    DATA.write_text(json.dumps(items, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8", newline="\n")
+    after = DATA.stat().st_size
+    print(f"已清理 {changed} 条题目的重复记账 -> {DATA.relative_to(ROOT)}"
+          f"（{before} → {after} 字节，省 {before - after}）")
+
+
 def report() -> None:
     items = json.loads(DATA.read_text(encoding="utf-8"))
     by_level: dict[str, int] = {}
@@ -219,7 +261,12 @@ if __name__ == "__main__":
                         help="校验全部题目并打印覆盖度矩阵（默认行为）")
     parser.add_argument("--inline", action="store_true",
                         help="把 positionMoves 前缀就地换成内联 document（幂等）")
+    parser.add_argument("--strip-counts", action="store_true",
+                        dest="strip_counts",
+                        help="清掉已内联 document 里的三次重复记账（幂等）")
     args = parser.parse_args()
     if args.inline:
         inline_documents()
+    if args.strip_counts:
+        strip_position_counts()
     report()
