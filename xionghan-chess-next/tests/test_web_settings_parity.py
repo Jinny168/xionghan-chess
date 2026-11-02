@@ -96,5 +96,7 @@ def test_initial_minutes_defaults_to_ten_on_both_ends() -> None:
     assert selected, "整份 index.html 里应当存在显式 selected 的选项"
 
     assert "initialMinutes:10," in APP_JS, "app.js 的偏好初始值应为 10"
-    assert "p.initialMinutes||10" in APP_JS, "app.js 读取偏好时的兜底应为 10"
-    assert "p.initialMinutes||20" not in APP_JS, "app.js 里还残留 20 分钟的兜底"
+    # 用 `??` 而不是 `||`：0 是合法值（虽然下拉框里没有），`||` 会把它当空值兜底，
+    # 以后加"不限时=0"或从别处同步进 0 时就会被悄悄改成 10。
+    assert "p.initialMinutes??10" in APP_JS, "app.js 读取偏好时应使用 ?? 兜底"
+    assert "p.initialMinutes||" not in APP_JS, "app.js 里不该再用 || 兜底（0 会被误判为空值）"
