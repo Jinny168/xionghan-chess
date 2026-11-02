@@ -60,11 +60,20 @@ class SearchConfig:
     candidate_count: int
     branch_limit: int
     root_limit: int
+    # 取样窗口的分差上限（厘兵）。只对走"从名次 2..N 里抽样"的弱档有意义：
+    # 90cp 在 13×13 上不足一个兵（120），窗口实际只剩 2–3 手，等于没弱化。
+    sample_margin: int = 90
 
 
 CONFIGS = {
-    Difficulty.BEGINNER: SearchConfig(2, 0.5, 0.35, 1, 5, 3, 5),
-    Difficulty.EASY: SearchConfig(4, 1.5, 0.15, 3, 4, 6, 10),
+    # B1 陪练档：弱化靠"从第 2..N 名里按概率取样"，不靠降深度/降时间。
+    #   · `randomness` 是主旋钮（概率），`sample_margin` 是水平下限（分差上限），
+    #     `candidate_count` 只影响多样性 —— 三个旋钮别混着调；
+    #   · **取样集合不含第 1 名**：包含它会让名义 0.35 的真实弱化率只剩约 28%，
+    #     概率也就无法标定；
+    #   · beginner 的分差放到 150（≈1.25 个兵）才够出窗口，easy 沿用 90。
+    Difficulty.BEGINNER: SearchConfig(2, 0.5, 0.55, 1, 4, 3, 5, sample_margin=150),
+    Difficulty.EASY: SearchConfig(4, 1.5, 0.35, 3, 3, 6, 10),
     # 为什么维持 5s 而不调到 6s：
     #   · 预算在本引擎是"软上限"——`_guard` 逐子节点检查，一个根着法可以越过 deadline
     #     再跑完（实测可超 0.1–0.5s）。所以加预算是把"结算点"往后挪，治不了
@@ -250,13 +259,52 @@ class ChessAI:
             pass
         self._active_deadline = math.inf
         self._active_cancel = None
-        if cfg.randomness and self.root_scores and self.random.random() < cfg.randomness:
-            best_score = self.root_scores[0][0]
-            candidates = [item[1] for item in self.root_scores[:cfg.candidate_count]
-                          if best_score - item[0] <= 90]
-            if len(candidates) > 1:
-                return self.random.choice(candidates)
-        return best
+        weaker = self._sample_weaker(game, cfg)
+        return best if weaker is None else weaker
+
+    def _sampling_blocked(self, game: Game, cfg: SearchConfig) -> bool:
+        """五条「必须走最强着」的闸门 —— 任一成立就不许取样。
+
+        这几条都是为了消除"明明能赢却故意不赢"的观感。被将军不走应着、一步制胜不杀、
+        有子不吃，这三种是新手最先察觉的"AI 在放水"，比"走得弱"更容易被识破。
+        """
+        if not cfg.randomness or len(self.root_scores) < 2:
+            return True
+        if self.completed_depth == 0:
+            # 本轮没算完，`best` 只是排序首着，分数不可信 → 不许拿它做比较
+            return True
+        if game.rules.in_check(game.state, game.state.turn):
+            return True
+        if self.root_scores[0][0] >= VALUES[PieceType.KING]:
+            return True
+        return self._best_is_clean_capture(game)
+
+    def _best_is_clean_capture(self, game: Game) -> bool:
+        """最佳着是"净赚一个兵以上"的吃子时不许换着。"""
+        best_move = self.root_scores[0][1]
+        if game.state.piece_at(best_move.target) is None:
+            return False
+        return static_exchange_score(game, best_move, VALUES) >= VALUES[PieceType.PAWN]
+
+    def _sample_weaker(self, game: Game, cfg: SearchConfig) -> Move | None:
+        """按概率从"名次 2..N"里挑一手看似合理、但略差的着法。
+
+        为什么不起选第 1 名：命中第 1 名等于没弱化，名义概率和实际弱化率会脱节。
+        为什么吃子要过 SEE：弱档可以走次优，但不该白送子 —— 按着法粒度判，
+        比"整局只在非吃子局面生效"更稳（后者会让弱档在乱战里突然满血，前后不一致本身更像机器）。
+        """
+        if self._sampling_blocked(game, cfg) or self.random.random() >= cfg.randomness:
+            return None
+        best_score = self.root_scores[0][0]
+        pool: list[Move] = []
+        for score, move, truncated in self.root_scores[1:cfg.candidate_count]:
+            if truncated or best_score - score > cfg.sample_margin:
+                continue
+            if (game.state.piece_at(move.target) is not None
+                    and static_exchange_score(game, move, VALUES) < -VALUES[PieceType.PAWN]):
+                continue
+            pool.append(move)
+        return self.random.choice(pool) if pool else None
 
     def _root(self, game: Game, moves: list[Move], depth: int, deadline: float,
               cancel: threading.Event | None, alpha: float = -math.inf,
