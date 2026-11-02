@@ -179,11 +179,17 @@ function animate(){draw();if(app.animation)requestAnimationFrame(animate)}
 function drawPalaces(g){const palaces=g.rows===10?[[0,3],[7,3]]:[[1,5],[9,5]];ctx.lineWidth=1.2;for(const [r,c] of palaces){line(g,r,c,r+2,c+2);line(g,r,c+2,r+2,c)}}
 function line(g,r1,c1,r2,c2){ctx.beginPath();ctx.moveTo(g.pad+c1*g.cw,g.pad+r1*g.ch);ctx.lineTo(g.pad+c2*g.cw,g.pad+r2*g.ch);ctx.stroke()}
 function lastMoveInk(alpha){const raw=(getComputedStyle(document.documentElement).getPropertyValue('--board-line').trim()||'#604326');const hex=raw.length===4?`#${raw[1]}${raw[1]}${raw[2]}${raw[2]}${raw[3]}${raw[3]}`:raw;const n=parseInt(hex.slice(1,7),16);return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${alpha})`}
-// D1 上一步起讫格：与桌面 board_widget.LAST_MOVE_* 同参数（半径 .46 / 不透明度 .25，
-// 都弱于将军 .47 与选择 .48）。画在**最前**，将军/选择/可走点都压在它上面。
-// 回放时**不画**：网页的 app.state.history 始终是实时对局的，切到某一历史局面后
-// 末手会与所显示的局面错位（桌面端相反 —— 它的快照自带 history 前缀，所以照画）。
-function drawHighlights(g){const last=app.replayIndex===null?app.state.history?.at(-1):null;if(last){const ink=lastMoveInk(.25);ring(g,last.move.from,ink,.46);ring(g,last.move.to,ink,.46)}if(app.state.check){const king=app.state.pieces.find(p=>p.type==='king'&&p.color===app.state.turn);if(king)ring(g,king,'rgba(196,35,35,.35)',.47)}if(app.selected&&app.preferences.selection!==false)ring(g,app.selected,'rgba(215,167,55,.55)',.48);if(app.preferences.legalTargets!==false)for(const raw of app.legal){const p=displayPosition(g,raw),occupied=app.state.pieces.some(x=>x.row===raw.row&&x.col===raw.col);ctx.beginPath();ctx.arc(g.pad+p.col*g.cw,g.pad+p.row*g.ch,occupied?Math.min(g.cw,g.ch)*.43:Math.min(g.cw,g.ch)*.1,0,Math.PI*2);ctx.fillStyle=occupied?'rgba(157,37,37,.28)':'rgba(49,92,72,.72)';ctx.fill()}}
+// D1 上一步起讫格：与桌面 board_widget.LAST_MOVE_* 同参数——**格内圆角方框**
+// （内缩 5%、圆角 16% 格宽）、不透明度 .25、盘线色。方框而不是圆盘：圆和圆棋子
+// 同心，棋子会遮掉中间，方框的四个角仍可见，两端点都读得出来。
+// 画在**最前**，将军（.35 红环）、选择（.55 金环）、可走点依次压在上面。
+function cellFrame(g,raw,color){const p=displayPosition(g,raw),ix=g.cw*.05,iy=g.ch*.05,x=g.pad+p.col*g.cw-g.cw/2+ix,y=g.pad+p.row*g.ch-g.ch/2+iy,w=g.cw-2*ix,h=g.ch-2*iy,r=Math.min(g.cw,g.ch)*.16;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):ctx.rect(x,y,w,h);ctx.fillStyle=color;ctx.fill()}
+// 回放时**不画**上一步：网页的 `app.state.history` 始终是实时对局的，
+// 切到某个历史局面后末手会与所显示的局面错位。
+// 桌面端相反 —— 它的复盘快照自带 history 前缀，画的是「走到这一手的那一步」，
+// 与显示局面严格对应，所以那边照画。**两端语义一致（都显示当前局面的上一步），
+// 实现必然不同，别为了"统一"把其中一边改成另一种做法，那会引入错位 bug。**
+function drawHighlights(g){const last=app.replayIndex===null?app.state.history?.at(-1):null;if(last){const ink=lastMoveInk(.25);cellFrame(g,last.move.from,ink);cellFrame(g,last.move.to,ink)}if(app.state.check){const king=app.state.pieces.find(p=>p.type==='king'&&p.color===app.state.turn);if(king)ring(g,king,'rgba(196,35,35,.35)',.47)}if(app.selected&&app.preferences.selection!==false)ring(g,app.selected,'rgba(215,167,55,.55)',.48);if(app.preferences.legalTargets!==false)for(const raw of app.legal){const p=displayPosition(g,raw),occupied=app.state.pieces.some(x=>x.row===raw.row&&x.col===raw.col);ctx.beginPath();ctx.arc(g.pad+p.col*g.cw,g.pad+p.row*g.ch,occupied?Math.min(g.cw,g.ch)*.43:Math.min(g.cw,g.ch)*.1,0,Math.PI*2);ctx.fillStyle=occupied?'rgba(157,37,37,.28)':'rgba(49,92,72,.72)';ctx.fill()}}
 function drawCaptureHints(g){if(app.preferences.captureHints===false)return;const size=Math.min(g.cw,g.ch)*.3;ctx.save();ctx.strokeStyle='rgba(205,32,32,.9)';ctx.lineWidth=Math.max(2.5,Math.min(g.cw,g.ch)*.055);for(const raw of app.capturable){const p=displayPosition(g,raw),x=g.pad+p.col*g.cw,y=g.pad+p.row*g.ch;ctx.beginPath();ctx.moveTo(x-size,y-size);ctx.lineTo(x+size,y+size);ctx.moveTo(x+size,y-size);ctx.lineTo(x-size,y+size);ctx.stroke()}ctx.restore()}
 function ring(g,raw,color,size){const p=displayPosition(g,raw);ctx.beginPath();ctx.arc(g.pad+p.col*g.cw,g.pad+p.row*g.ch,Math.min(g.cw,g.ch)*size,0,Math.PI*2);ctx.fillStyle=color;ctx.fill()}
 const pieceAssetTypes={king:'han',rook:'che',horse:'ma',elephant:'xiang',advisor:'shi',cannon:'pao',pawn:'bing',guard:'wei',archer:'she',thunder:'lei',patrol:'xun'};

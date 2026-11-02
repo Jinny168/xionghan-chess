@@ -74,12 +74,23 @@ CHECK_PULSE_FRAMES = 30
 
 # 上一步起讫格（D1）：**必须弱于将军标注**，所以三件事都不跟将军抢：
 #   ① 画在最前面（将军/选择/可走点依次压在上面，重叠时将军一定在上）；
-#   ② 半径 .46 < 将军 .47 < 选择 .48，且没有脉冲、没有描边、没有文字；
+#   ② 没有脉冲、没有描边、没有文字；
 #   ③ 颜色取棋盘线色 `theme["line"]` 加到 25% 透明度 —— **不引入新色值**，
 #      五套主题各自跟自己的盘线走，深色盘（line 提到 #c9b58e）自动变浅，
 #      不会像固定色那样在深底上直接消失。
-LAST_MOVE_RATIO = 0.46
-LAST_MOVE_ALPHA = 64        # 64/255 ≈ .25，不到选择态不透明度（.55）的一半
+#
+# **形状用「格内圆角方框」而不是圆盘**，理由是可读面积 + 不撞脸：
+# 圆盘标记（半径 .46 格）和圆棋子是同心的两个圆，棋子遮到 0.41 格时只剩一圈
+# 约 2.5px 的环（可见 0.138 格²），25% 透明度下根本读不出来 —— 这就是"只看得到
+# 起点格（那格没子、看到的是整块圆盘）"的真正原因。
+# 换成内缩 0.05 格、圆角 0.16 格的方框后，棋子只遮住中间，**四个角照样可见**：
+# 可见面积 0.283 格²（约 2.05 倍），且与选择态的金色**圆**环在形状上彻底区分，
+# 不会让人把"这格是上一步"误读成"这格被选中"。
+# 层级保持不变（标记仍在棋子之前）—— 为一次高亮打破层级约定，后面每个新标记
+# 都要重新讨论层级，代价远大于换形状。
+LAST_MOVE_INSET = 0.05          # × 格，每边内缩 → 方框占 90% 格宽
+LAST_MOVE_CORNER = 0.16         # × 格，圆角半径
+LAST_MOVE_ALPHA = 64            # 64/255 ≈ .25，不到选择态不透明度（.55）的一半
 
 # P1-1 棋子投影：**径向渐变**，不是纯色椭圆。
 #
@@ -665,19 +676,39 @@ class BoardWidget(QWidget):
             painter.setPen(pen)
         painter.restore()
 
+    def _cell_frame(self, painter: QPainter, pos: Position, left: float, top: float,
+                    cw: float, ch: float, color: str) -> None:
+        """在**交叉点所在的那一格**里画一个内缩的圆角方框（D1 上一步标记用）。
+
+        与 `_mark`（实心圆）刻意分开：圆会和圆棋子撞脸，方不会；而且方框的四个角
+        在棋子盖住中心之后仍然可见 —— 这是"终点格也读得出来"的关键。
+        """
+        pos = self._view_position(pos)
+        inset_x, inset_y = cw * LAST_MOVE_INSET, ch * LAST_MOVE_INSET
+        rect = QRectF(left + pos.col*cw - cw/2 + inset_x,
+                      top + pos.row*ch - ch/2 + inset_y,
+                      cw - 2*inset_x, ch - 2*inset_y)
+        corner = min(cw, ch) * LAST_MOVE_CORNER
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        painter.drawRoundedRect(rect, corner, corner)
+
     def _draw_marks(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         if not self.game:
             return
         # D1 上一步起讫格：**最先画**，后面每一层标记都盖在它上面（将军优先级最高）。
-        # 数据直接取 `history[-1]`，因此开局（history 为空）自然不画；
-        # 复盘窗里每个快照自带自己的 history 前缀，所以画的是「走到这一手的那一步」，
-        # 与显示的局面严格对应 —— 不存在"拿着实时对局的末手去标复盘局面"的错位。
+        # 数据直接取 `history[-1]`，因此开局（history 为空）自然不画。
+        # 复盘窗里每个快照自带自己的 history 前缀，画的是「走到这一手的那一步」，
+        # 与显示的局面严格对应 —— 所以桌面端**回放时照画**，不做特殊判断。
+        # 网页端相反：它的 `app.state.history` 始终是实时对局的，切到历史局面后
+        # 末手会错位，那边必须显式跳过。两端语义一致（都显示"当前局面的上一步"），
+        # 实现必然不同 —— 别为了"统一"把其中一边改成另一种做法。
         last = self.game.state.history[-1] if self.game.state.history else None
         if last is not None:
             ink = QColor(self.theme["line"])
             ink.setAlpha(LAST_MOVE_ALPHA)
             for square in (last.move.source, last.move.target):
-                self._mark(painter, square, left, top, cw, ch, ink, LAST_MOVE_RATIO)
+                self._cell_frame(painter, square, left, top, cw, ch, ink)
         if self.game.rules.in_check(self.game.state, self.game.state.turn):
             king = next((p for p in self.game.state.pieces if p.type is PieceType.KING and p.color is self.game.state.turn), None)
             if king:
