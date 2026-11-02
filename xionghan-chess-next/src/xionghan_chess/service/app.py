@@ -29,6 +29,8 @@ from xionghan_chess.core.rules import archer_star_points
 from xionghan_chess.core.storage import game_from_content, game_from_document
 from xionghan_chess.core.storage import game_document
 from xionghan_chess.core.puzzles import load_puzzles, puzzle_by_id
+from xionghan_chess.core import daily as daily_quiz
+from datetime import date as _date
 from xionghan_chess.core.setup import FirstMove, profile_slots
 from xionghan_chess.i18n import normalize_language, t
 from .accounts import Account, AccountError, AccountStore
@@ -602,6 +604,23 @@ async def analysis(request: AnalyzeRequest) -> dict:
         return await asyncio.to_thread(analyze_game, game, request.difficulty)
     except (ValueError, KeyError, TypeError) as exc:
         raise HTTPException(400, str(exc)) from exc
+
+
+@app.get("/api/daily")
+async def daily_puzzle(day: str | None = None) -> dict:
+    """每日一题：**选题在服务端算**，前端只负责记"今天做没做"。
+
+    为什么不在前端算：星期配方、基准日、桶内指针三件事必须与桌面端逐字一致，
+    两处实现必然漂。`?day=` 只为测试与"补做昨天"留口子，正常调用不带。
+    """
+    try:
+        today = _date.fromisoformat(day) if day else _date.today()
+    except ValueError as exc:
+        raise HTTPException(400, "day 必须是 YYYY-MM-DD") from exc
+    puzzle = daily_quiz.pick_daily(load_puzzles(), today)
+    if puzzle is None:
+        raise HTTPException(404, "题库为空")
+    return {"day": today.isoformat(), "puzzle": puzzle.payload(reveal=True)}
 
 
 @app.get("/api/puzzles")

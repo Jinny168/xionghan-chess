@@ -564,5 +564,11 @@
     "save_success": "Replay saved",
     "save_failed": "Save failed",
     "retrying": "Retrying server connection"
+  },
+  "training": {
+    "daily": "Daily puzzle",
+    "daily_streak": "Day {count}",
+    "daily_done": "Solved today — see you tomorrow",
+    "daily_solved": "{count}-day streak"
   }
 }

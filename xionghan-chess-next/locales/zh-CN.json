@@ -564,5 +564,11 @@
     "save_success": "棋谱已保存",
     "save_failed": "保存失败",
     "retrying": "正在重连服务器"
+  },
+  "training": {
+    "daily": "每日一题",
+    "daily_streak": "第 {count} 天",
+    "daily_done": "今日已解，明天见",
+    "daily_solved": "连对 {count} 天"
   }
 }
