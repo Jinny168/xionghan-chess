@@ -948,7 +948,7 @@
     "id": "endgame-elephant-eye-01",
     "title": "相飞象眼",
     "difficulty": "advanced",
-    "description": "走法练习：相斜走两格（田字），象眼（中间格）必须为空。黑卒已渗透到 (9,2)，用相把它飞掉。",
+    "description": "走法练习：相斜走两格（田字），象眼（中间格）必须为空。黑卒已钻进九宫，用相把它飞掉。",
     "profileId": "desktop_complete",
     "solution": [
       {
