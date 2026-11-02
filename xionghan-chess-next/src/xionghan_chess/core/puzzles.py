@@ -103,6 +103,18 @@ def _validate_solution(puzzle: "Puzzle") -> None:
             raise ValueError(
                 f"题目 {puzzle.id}《{puzzle.title}》第 {index} 步无法走：{step.key()}（{exc}）") from exc
 
+def piece_type_at(puzzle: Puzzle, position: Position) -> str | None:
+    """题面上某一格是哪种子力（给"先指子"这一步提示用）。
+
+    直接读 `document`，不重建 Game —— 提示要秒回，而重放一遍题面只为拿个类型不值。
+    """
+    pieces = puzzle.document.get("state", {}).get("pieces", [])
+    for piece in pieces:
+        if piece.get("row") == position.row and piece.get("col") == position.col:
+            return piece.get("type")
+    return None
+
+
 def load_puzzles(path: str | Path | None = None) -> list[Puzzle]:
     source = Path(path) if path else Path(__file__).with_name("data") / "puzzles.json"
     raw = json.loads(source.read_text(encoding="utf-8"))

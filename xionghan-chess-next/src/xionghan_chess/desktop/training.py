@@ -22,7 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from xionghan_chess.core.model import Move
-from xionghan_chess.core.puzzles import Puzzle
+from xionghan_chess.core.puzzles import Puzzle, piece_type_at
 
 VERDICT_CORRECT = "correct"
 VERDICT_SOLVED = "solved"
@@ -37,6 +37,8 @@ class PuzzleSession:
     cursor: int = 0
     attempts: int = 0
     _hints_shown: int = field(default=0, repr=False)
+    # 两段式提示的进度：0 未提示 / 1 已指子 / 2 已指招。换到下一手要归零。
+    _hint_stage: int = field(default=0, repr=False)
 
     def __post_init__(self) -> None:
         # 解法是**交替序列**：偶数下标归玩家、奇数下标是对手应着。
@@ -111,7 +113,31 @@ class PuzzleSession:
             self.attempts += 1
             return VERDICT_WRONG
         self.cursor += 1
+        self._hint_stage = 0
         return VERDICT_SOLVED if self.solved else VERDICT_CORRECT
+
+    def staged_hint(self) -> tuple[str, str] | None:
+        """两段式提示：先"用哪枚子"，再"怎么走"。返回 `(kind, text)`。
+
+        `kind` 为 `"piece"` 时 `text` 是子力类型（UI 负责翻成中文名）；
+        为 `"move"` 时是题面里那句走法提示。
+
+        为什么要分两段：直接给整句等于替玩家想完；只说"用这枚子"能把他按到正确的
+        那几行上去，仍要自己找落点。两段都看才扣两次分（星级里算两次）。
+        """
+        if self.solved:
+            return None
+        move = self.expected
+        if move is None:
+            return None
+        self._hints_shown += 1
+        if self._hint_stage == 0:
+            self._hint_stage = 1
+            return "piece", (piece_type_at(self.puzzle, move.source) or "")
+        self._hint_stage = 2
+        hand = self.cursor // 2
+        text = self.puzzle.hints[hand] if hand < len(self.puzzle.hints) else ""
+        return "move", text
 
     def next_hint(self) -> str:
         """按尝试次数逐级放宽提示：第 1 次错给第 1 条，第 2 次给第 2 条……

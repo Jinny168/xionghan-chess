@@ -73,4 +73,4 @@ def test_web_mirrors_the_same_rule() -> None:
     assert "function puzzleStars(session)" in js
     assert "penalty===0?3:(penalty<=2?2:1)" in js, "网页星级公式与 Python 不一致"
     assert "session.misses=(session.misses||0)+1" in js, "网页没在判错时计数"
-    assert "app.puzzleSession.hints=" in js, "网页没在提示时计数"
+    assert "session.hints=(session.hints||0)+1" in js, "网页没在提示时计数"

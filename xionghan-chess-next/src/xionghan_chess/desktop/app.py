@@ -125,6 +125,13 @@ class MainWindow(QMainWindow):
         self.puzzle_session=None
         # 这道题是不是「每日一题」——只有它是，过关才更新连续天数（见 `_judge_puzzle`）。
         self.puzzle_is_daily=False
+        # C2：题目模式下状态栏右下角给一个「提示」按钮。桌面原先只有选题列表里那个
+        # 提示按钮（开局前），进了棋局就没有任何求助入口 —— 这是它和网页端最大的体验差。
+        self.hint_button=QPushButton(dl("提示"))
+        self.hint_button.setToolTip(dl("先指子，再指招"))
+        self.hint_button.clicked.connect(self.show_puzzle_hint)
+        self.hint_button.hide()
+        self.statusBar().addPermanentWidget(self.hint_button)
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
         icon_path = theme.resource("icon.ico")
         if icon_path.exists():
@@ -228,6 +235,27 @@ class MainWindow(QMainWindow):
             if not self.game.state.finished and self.config.get("game_mode","ai")=="ai":self.start_ai()
         except GameError as exc:QMessageBox.warning(self,dl("非法走棋"),str(exc))
 
+    def show_puzzle_hint(self) -> None:
+        """两段式提示：第一次说用哪枚子，第二次说怎么走。
+
+        走法提示直接落状态栏而不是弹框：解题过程中弹框会打断思路，
+        而且玩家往往只想瞄一眼。
+        """
+        session=self.puzzle_session
+        if session is None:return
+        hint=session.staged_hint()
+        if hint is None:return
+        kind,text=hint
+        english=self.config.get("language","zh-CN")=="en"
+        if kind=="piece":
+            name=t(f"piece_name.{text}",self.config.get("language","zh-CN")) if text else ""
+            message=(dlf("先看这一枚：{name}", name=name) if not english else f"Look at this piece: {name}")
+            self.hint_button.setText(dl("再看落点") if not english else "Where to")
+        else:
+            message=(text or (dl("没有更多提示") if not english else "No more hints"))
+            self.hint_button.setText(dl("提示") if not english else "Hint")
+        self.statusBar().showMessage(message,10000)
+
     def _record_daily_start(self) -> None:
         """打开每日题时惰性归零：昨天没做完就断在这里，不写定时任务。"""
         if self.puzzle_session is None:return
@@ -270,7 +298,7 @@ class MainWindow(QMainWindow):
             stars=session.stars
             rating="★"*stars+"☆"*(3-stars)
             if self.puzzle_is_daily:self._record_daily_solve(session.puzzle)
-            self.puzzle_session=None;self.puzzle_is_daily=False
+            self.puzzle_session=None;self.puzzle_is_daily=False;self.hint_button.hide()
             QMessageBox.information(self,"过关" if not english else "Solved",
                                     (f"正解！《{title}》已解出。\n\n{rating}  "
                                      f"（错 {session.attempts} 次 · 用提示 {session._hints_shown} 次）"
@@ -551,6 +579,7 @@ class MainWindow(QMainWindow):
             # 只有走「每日一题」入口才更新连续天数；从列表里挑同一道题不算。
             self.puzzle_is_daily=getattr(dialog,"started_daily",False)
             if self.puzzle_is_daily:self._record_daily_start()
+            self.hint_button.setText(dl("提示"));self.hint_button.show()
             # 训练棋不是正式对局：既不进战绩，也不往棋谱库塞一条两步的「棋谱」。
             # 这两个标志是 refresh() 里「终局才记账/才自动存」的开关，置 True 即抑制。
             self._stats_recorded=True;self._autosaved=True
