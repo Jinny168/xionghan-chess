@@ -177,7 +177,17 @@ class MainWindow(QMainWindow):
         panels=QAction(t("menu.toggle_panels", lang),self);panels.triggered.connect(self.toggle_panels);view_menu.addAction(panels)
         flip=QAction(dl("翻转棋盘"),self);flip.setShortcut(QKeySequence("Ctrl+F"));flip.triggered.connect(self.flip_board);view_menu.addAction(flip)
         settings_menu = self.menuBar().addMenu(t("menu.settings", lang))
-        settings_action = QAction(t("settings.desktop_title", lang), self); settings_action.triggered.connect(self.settings); settings_menu.addAction(settings_action);settings_menu.addSeparator()
+        # 设置按业务拆成三个独立窗口，菜单里各给一个入口（原来是一个窗口三个标签，
+        # 想改声音得先开总设置再翻标签）。
+        for index,label,shortcut in ((0,t("settings.game_tab", lang),"Ctrl+,"),
+                                     (1,t("settings.appearance_tab", lang),""),
+                                     (2,t("settings.piece_rules_tab", lang),"")):
+            action=QAction(label,self)
+            action.triggered.connect(lambda _checked=False, tab=index: self.settings(tab, standalone=True))
+            if shortcut:
+                action.setShortcut(QKeySequence(shortcut))
+            settings_menu.addAction(action)
+        settings_menu.addSeparator()
         stats=QAction("对局统计" if lang!="en" else "Statistics",self);stats.triggered.connect(self.show_statistics);settings_menu.addAction(stats)
         account=QAction(dl("账号与云同步"),self);account.triggered.connect(self.account_sync);settings_menu.addAction(account)
         help_menu=self.menuBar().addMenu(t("menu.help", lang))
@@ -542,8 +552,9 @@ class MainWindow(QMainWindow):
     # 这里保留同名类属性仅为向后兼容既有调用方。
     _GAME_BREAKING_KEYS = GAME_BREAKING_KEYS
 
-    def settings(self, tab: int = 0) -> None:
-        dialog=SettingsDialog(self.config,self,initial_tab=int(tab))
+    def settings(self, tab: int = 0, standalone: bool = False) -> None:
+        """打开设置。`standalone=True` 时只显示该页（菜单三个入口走这条）。"""
+        dialog=SettingsDialog(self.config,self,initial_tab=int(tab),standalone=standalone)
         if not dialog.exec():return
         self._apply_settings(dialog.value())
 

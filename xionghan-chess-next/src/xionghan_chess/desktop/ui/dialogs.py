@@ -73,7 +73,7 @@ def _fit_to_content(dialog: QDialog, ratio: float = 1.2) -> None:
 
 class SettingsDialog(QDialog):
     def __init__(self, config: dict, parent: QWidget | None = None,
-                 initial_tab: int = 0) -> None:
+                 initial_tab: int = 0, standalone: bool = False) -> None:
         super().__init__(parent); self.language=normalize_language(config.get("language")); self.setWindowTitle(t("settings.desktop_title", self.language)); self.resize(720, 760);_fit_to_content(self)
         self._config=config
         layout=QVBoxLayout(self); tabs=QTabWidget(); layout.addWidget(tabs,1)
@@ -203,6 +203,13 @@ class SettingsDialog(QDialog):
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText(t("action.confirm", self.language));buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("action.cancel", self.language))
         buttons.accepted.connect(self.accept);buttons.rejected.connect(self.reject);layout.addWidget(buttons)
         tabs.setCurrentIndex(max(0, min(tabs.count()-1, int(initial_tab))))
+        self.tabs=tabs
+        if standalone:
+            # 拆成独立窗口：只留当前页。标签栏一藏，它就是一个普通的设置窗口，
+            # 菜单里三个入口各开各的，不用先开总设置再找标签。
+            tabs.tabBar().setVisible(False)
+            self.setWindowTitle(tabs.tabText(tabs.currentIndex()))
+            self.resize(560, min(700, max(360, self.sizeHint().height())))
 
     def open_piece_atlas(self) -> None:
         """打开棋子图谱（与应用菜单「帮助 → 棋子图谱」同一个窗口）。
