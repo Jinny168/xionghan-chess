@@ -8,12 +8,12 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThreadPool, QTimer, Signal, QUrl
+from PySide6.QtCore import Qt, QSize, QThreadPool, QTimer, Signal, QUrl
 from PySide6.QtGui import QAction, QDesktopServices, QFont, QIcon, QKeySequence
 from PySide6.QtWebSockets import QWebSocket
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QFileDialog, QFrame, QGridLayout, QGroupBox, QHBoxLayout, QScrollArea,
-    QInputDialog, QLabel, QLineEdit, QListWidget, QMainWindow, QMessageBox, QPushButton,
+    QInputDialog, QLabel, QLineEdit, QListWidget, QMainWindow, QMessageBox, QPushButton, QStyle,
     QSpinBox, QSplitter, QTabWidget, QVBoxLayout, QWidget,
 )
 
@@ -158,8 +158,11 @@ class MainWindow(QMainWindow):
         for title, callback, shortcut in ((t("menu.new", lang),self.new_game,"Ctrl+N"),(t("menu.undo", lang),self.undo_move,"Ctrl+Z"),(t("menu.pause_resume", lang),self.toggle_pause,"Ctrl+P")):
             action=QAction(title,self);action.triggered.connect(callback);action.setShortcut(QKeySequence(shortcut));game_menu.addAction(action)
         game_menu.addSeparator()
-        for title, callback in ((t("action.resign", lang),self.resign_game),(t("action.draw", lang),self.draw_game),(t("action.resurrect", lang),self.resurrect_pawn)):
-            action=QAction(title,self);action.triggered.connect(callback);game_menu.addAction(action)
+        for title, callback, shortcut in ((t("action.resign", lang),self.resign_game,"Ctrl+Shift+R"),
+                                          (t("action.draw", lang),self.draw_game,"Ctrl+Shift+D"),
+                                          (t("action.resurrect", lang),self.resurrect_pawn,"Ctrl+Shift+P")):
+            action=QAction(title,self);action.triggered.connect(callback)
+            action.setShortcut(QKeySequence(shortcut));game_menu.addAction(action)
         game_menu.addSeparator()
         for title, callback in ((dl("登场棋子配置"),self.configure_handicap),(dl("创建局域网房间"), self.create_online), (dl("加入局域网房间"), self.join_online),(dl("观战局域网房间"),self.spectate_online)):
             action = QAction(title, self); action.triggered.connect(callback); game_menu.addAction(action)
@@ -170,7 +173,7 @@ class MainWindow(QMainWindow):
         view_menu=self.menuBar().addMenu(t("menu.view", lang))
         fullscreen=QAction(t("menu.fullscreen", lang),self);fullscreen.setShortcut(QKeySequence("F11"));fullscreen.triggered.connect(self.toggle_fullscreen);view_menu.addAction(fullscreen)
         panels=QAction(t("menu.toggle_panels", lang),self);panels.triggered.connect(self.toggle_panels);view_menu.addAction(panels)
-        flip=QAction(dl("翻转棋盘"),self);flip.setShortcut(QKeySequence("F"));flip.triggered.connect(self.flip_board);view_menu.addAction(flip)
+        flip=QAction(dl("翻转棋盘"),self);flip.setShortcut(QKeySequence("Ctrl+F"));flip.triggered.connect(self.flip_board);view_menu.addAction(flip)
         settings_menu = self.menuBar().addMenu(t("menu.settings", lang))
         settings_action = QAction(t("settings.desktop_title", lang), self); settings_action.triggered.connect(self.settings); settings_menu.addAction(settings_action);settings_menu.addSeparator()
         stats=QAction("对局统计" if lang!="en" else "Statistics",self);stats.triggered.connect(self.show_statistics);settings_menu.addAction(stats)
@@ -196,12 +199,28 @@ class MainWindow(QMainWindow):
         chat_row=QHBoxLayout();self.chat_input=QLineEdit();self.chat_input.setMaxLength(80);self.chat_input.setPlaceholderText(dl("输入聊天内容"))
         self.chat_input.returnPressed.connect(self.send_chat);chat_send=QPushButton(dl("发送"));chat_send.clicked.connect(self.send_chat);chat_row.addWidget(self.chat_input,1);chat_row.addWidget(chat_send);chat_layout.addLayout(chat_row)
         side_tabs.addTab(record_page,t("panel.moves", lang));side_tabs.addTab(chat_page,t("panel.chat", lang));right.addWidget(side_tabs,1);right.addWidget(QLabel("阵亡子力" if lang!="en" else "Captured pieces"));right.addWidget(self.captured)
-        actions=QGridLayout();self.undo=QPushButton(t("action.undo", lang));self.undo.clicked.connect(self.undo_move);self.pause=QPushButton(t("action.pause", lang));self.pause.clicked.connect(self.toggle_pause);self.resign=QPushButton(t("action.resign", lang));self.resign.clicked.connect(self.resign_game);self.draw=QPushButton(t("action.draw", lang));self.draw.clicked.connect(self.draw_game);self.resurrect=QPushButton(t("action.resurrect", lang));self.resurrect.clicked.connect(self.resurrect_pawn);self.again=QPushButton(t("action.play_again", lang));self.again.clicked.connect(self.trigger_play_again)
-        self.flip=QPushButton(dl("翻转"));self.flip.clicked.connect(self.flip_board)
-        for i,b in enumerate((self.undo,self.pause,self.resign,self.draw,self.resurrect,self.flip,self.again)):
-            # 单列：182 + 边距 18 = 200 ≤ 侧栏 330。原来两列要 364，横向溢出 99–193px，
-            # 第二列只露出 50%。182 不降 —— 那是为「未来语言不截断」留的余量（英文实测只用 95）。
-            b.setMinimumWidth(182);actions.addWidget(b,i,0)
+        # 七个操作改成**纯图标 + 悬浮提示**：原来单列文字按钮每行 182×40，
+        # 七行就顶到侧栏底部、非滚动不可。图标 32px 一行放四个，两行结束，
+        # 说明文字退到 tooltip / accessibleName（读屏与自检都还能拿到）。
+        actions=QGridLayout();actions.setSpacing(6);actions.setContentsMargins(0,0,0,0)
+        self.undo=self._side_button(t("action.undo", lang),QStyle.StandardPixmap.SP_ArrowBack)
+        self.undo.clicked.connect(self.undo_move)
+        self.pause=self._side_button(t("action.pause", lang),QStyle.StandardPixmap.SP_MediaPause)
+        self.pause.clicked.connect(self.toggle_pause)
+        self.resign=self._side_button(t("action.resign", lang),QStyle.StandardPixmap.SP_DialogCancelButton)
+        self.resign.clicked.connect(self.resign_game)
+        self.draw=self._side_button(t("action.draw", lang),QStyle.StandardPixmap.SP_DialogApplyButton)
+        self.draw.clicked.connect(self.draw_game)
+        self.resurrect=self._side_button(t("action.resurrect", lang),QStyle.StandardPixmap.SP_BrowserReload)
+        self.resurrect.clicked.connect(self.resurrect_pawn)
+        self.flip=self._side_button(dl("翻转"),QStyle.StandardPixmap.SP_ArrowUp)
+        self.flip.clicked.connect(self.flip_board)
+        self.again=self._side_button(t("action.play_again", lang),QStyle.StandardPixmap.SP_MediaSkipForward)
+        self.again.clicked.connect(self.trigger_play_again)
+        for index,button in enumerate((self.undo,self.pause,self.resign,self.draw,
+                                       self.resurrect,self.flip,self.again)):
+            actions.addWidget(button,index//4,index%4)
+        actions.setColumnStretch(4,1)
         right.addLayout(actions);split.addWidget(self.side);split.setSizes([850,300])
         self.apply_appearance()
 
@@ -425,6 +444,21 @@ class MainWindow(QMainWindow):
             return
         self._release_ai()
         QMessageBox.warning(self,dl("AI 异常"),message)
+    def _side_button(self, text: str, pixmap: QStyle.StandardPixmap) -> QPushButton:
+        """侧栏图标按钮：不显示文字，说明放 tooltip 与无障碍名。
+
+        用 `QStyle` 自带图标而不是新增图片资产：这些是系统级语义（返回/暂停/取消…），
+        各平台自带合适字形，也不会给包体再添几十 KB。
+        """
+        button=QPushButton()
+        button.setIcon(self.style().standardIcon(pixmap))
+        button.setIconSize(QSize(18,18))
+        button.setFixedSize(34,34)
+        button.setText("")
+        button.setToolTip(text)
+        button.setAccessibleName(text)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        return button
     def play_sound(self) -> None:
         if not self.game or not self.game.state.history:return
         record=self.game.state.history[-1]
@@ -1043,17 +1077,20 @@ class MainWindow(QMainWindow):
         self.board.update()
 
     def _update_controls(self, state: GameState, lang: str) -> None:
+        # 图标按钮不显示文字：状态变化只更新 tooltip 与无障碍名（否则 34px 按钮会被文字撑开）
         pause_text = t("action.resume" if state.paused else "action.pause", lang)
-        if self.pause.text() != pause_text:
-            self.pause.setText(pause_text)
+        if self.pause.toolTip() != pause_text:
+            self.pause.setToolTip(pause_text)
+            self.pause.setAccessibleName(pause_text)
         self.pause.setEnabled(not state.finished)
         self.undo.setEnabled(bool(state.history) and not state.paused)
         self.draw.setEnabled(not state.finished and not state.paused)
         self.resign.setEnabled(not state.finished)
         self.resurrect.setEnabled(not state.finished and not state.paused)
         again_text = t("action.play_again", lang)
-        if self.again.text() != again_text:
-            self.again.setText(again_text)
+        if self.again.toolTip() != again_text:
+            self.again.setToolTip(again_text)
+            self.again.setAccessibleName(again_text)
         self.again.setEnabled(self.can_play_again() and not self._play_again_pending)
 
     def can_play_again(self) -> bool:

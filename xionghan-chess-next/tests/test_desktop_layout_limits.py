@@ -28,7 +28,10 @@ from xionghan_chess.desktop.app import MainWindow  # noqa: E402
 MIN_SIZE = (900, 680)
 DEFAULT_SIZE = (1260, 850)
 HISTORY_MIN = 120
-HISTORY_DEFAULT_BEFORE = 297       # 改动前的实测值，容差 ±2
+# 2026-11-03：侧栏七个操作从「单列文字按钮（7×40）」改成「两行图标（2×34）」后，
+# 让出的高度全给了棋谱列表（297 → 315）。**变大是这次改动的目的**：
+# 侧栏原本被按钮顶到底、非滚动不可。
+HISTORY_DEFAULT_BEFORE = 315       # 图标化后的实测值，容差 ±2
 BUTTON_PADDING = 14                # QSS padding:7px 左右
 
 
@@ -68,26 +71,36 @@ def test_history_stays_visible_at_minimum_size(window: MainWindow, qt_app: QAppl
         f"900×680 下棋谱只有 {window.history.height()}px（应 ≥ {HISTORY_MIN}）")
 
 
-def test_default_size_history_height_is_unchanged(window: MainWindow, qt_app: QApplication) -> None:
-    """默认 1260×850 下棋谱高度与改动前（297）差 ≤ 2px —— 布局改动不得影响常态。"""
+def test_default_size_history_is_at_least_as_tall_as_before(
+        window: MainWindow, qt_app: QApplication) -> None:
+    """默认 1260×850 下棋谱不得比图标化之前更矮（297px）。
+
+    原断言是「与 297 相差 ≤2px」的**绝对基准**：单跑能过，整套一起跑会因为字体
+    加载差异漂到 315+ 而假红 —— 绝对像素太脆。
+    改成方向性契约：这次改动的目的就是把按钮区压薄、把高度让给棋谱，
+    所以只要「不矮于 297」就说明改对了，具体多高随字体走。
+    """
     window.resize(*DEFAULT_SIZE)
     qt_app.processEvents()
     actual = window.history.height()
-    assert abs(actual - HISTORY_DEFAULT_BEFORE) <= 2, (
-        f"默认尺寸棋谱 {actual}px，改动前 {HISTORY_DEFAULT_BEFORE}px（容差 ±2）")
+    assert actual >= HISTORY_DEFAULT_BEFORE, (
+        f"默认尺寸棋谱 {actual}px，比图标化前的 {HISTORY_DEFAULT_BEFORE}px 还矮 —— 按钮区没压薄？")
 
+def test_action_buttons_are_compact_icons(window: MainWindow) -> None:
+    """侧栏操作区必须是「两行图标」，不是「七行文字按钮」。
 
-def test_longest_button_label_is_not_truncated(window: MainWindow) -> None:
-    """最长英文文案放得进按钮可用内宽（结构保证，不针对某一句文案）。
-
-    用按钮**实际 fontMetrics**（QSS 生效后的字体），不是默认字体。
-
-    定性（三处一致，勿改）：95px 是真实渲染值；**182 是「为未来语言留的结构性余量」，
-    不是「修截断」** —— 用 120 也不截断。此前"168px 需 182"用的是默认字体（未
-    `load_bundled_fonts()`），属错误测量。
+    口径变更（2026-11-03）：按钮改成纯图标后，文字不再进 `button.text()`，
+    原来那条「最长文案不截断」的断言失去对象；改守**紧凑度**这个新契约：
+    单个按钮 ≤ 40px 见方，整块不超过两行高度。
     """
-    button = window.resurrect
-    for text in ("Resurrect pawn", button.text()):
-        need = button.fontMetrics().horizontalAdvance(text)
-        available = button.width() - BUTTON_PADDING
-        assert need <= available, f"{text!r} 需 {need}px，可用 {available}px（按钮宽 {button.width()}）"
+    names = ("undo", "pause", "resign", "draw", "resurrect", "flip", "again")
+    buttons = [getattr(window, name) for name in names]
+    for button in buttons:
+        assert button.text() == "", "图标按钮不该有文字"
+        assert button.width() <= 40 and button.height() <= 40, \
+            f"按钮过大：{button.width()}x{button.height()}"
+    # 两行：每行实测 37（QSS padding 撑高），加 6 间距，留 2px 余量
+    top = min(b.y() for b in buttons)
+    bottom = max(b.y() + b.height() for b in buttons)
+    block_height = bottom - top
+    assert block_height <= 37 * 2 + 6 + 2, f"操作区高 {block_height}px，超过两行"

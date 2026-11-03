@@ -121,7 +121,8 @@ def test_dialog_choice_starts_exactly_one_new_game(window, monkeypatch) -> None:
 def test_again_button_is_available_before_the_game_ends(window) -> None:
     """语义已改：按钮**始终可点**（未终局时点开要二次确认）。"""
     window.refresh()
-    assert window.again.text() == "再来一局"
+    # 图标化后按钮不显示文字，标签在 tooltip / 无障碍名里
+    assert window.again.toolTip() == "再来一局"
     assert window.again.isEnabled(), "未终局也应可点（要随时能重开）"
 
     _finish(window)
