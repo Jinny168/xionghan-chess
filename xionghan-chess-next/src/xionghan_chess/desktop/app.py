@@ -9,12 +9,13 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QSize, QThreadPool, QTimer, Signal, QUrl
-from PySide6.QtGui import QAction, QDesktopServices, QFont, QIcon, QKeySequence
+from PySide6.QtGui import (QAction, QDesktopServices, QFont, QIcon, QKeySequence,
+                         QPalette)
 from PySide6.QtWebSockets import QWebSocket
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QFileDialog, QFrame, QGridLayout, QGroupBox, QHBoxLayout, QScrollArea,
     QInputDialog, QLabel, QLineEdit, QListWidget, QMainWindow, QMessageBox, QPushButton, QStyle,
-    QSpinBox, QSplitter, QTabWidget, QVBoxLayout, QWidget,
+    QSizePolicy, QSpinBox, QSplitter, QTabWidget, QVBoxLayout, QWidget,
 )
 
 from xionghan_chess import __version__
@@ -52,6 +53,7 @@ from . import update as version_check
 from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
 from .ui.dialogs import DocumentDialog, GameLibraryDialog, GLYPH_STYLE_DATA, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
 from .ui.board_widget import THINKING_TICK_MS, BoardWidget
+from .ui.action_icons import action_icon
 from .ui.piece_atlas import PieceAtlasDialog
 from .ui.workers import AIWorker, AnalysisWorker, HttpWorker
 from .ui import theme
@@ -202,25 +204,29 @@ class MainWindow(QMainWindow):
         # 七个操作改成**纯图标 + 悬浮提示**：原来单列文字按钮每行 182×40，
         # 七行就顶到侧栏底部、非滚动不可。图标 32px 一行放四个，两行结束，
         # 说明文字退到 tooltip / accessibleName（读屏与自检都还能拿到）。
-        actions=QGridLayout();actions.setSpacing(6);actions.setContentsMargins(0,0,0,0)
-        self.undo=self._side_button(t("action.undo", lang),QStyle.StandardPixmap.SP_ArrowBack)
-        self.undo.clicked.connect(self.undo_move)
-        self.pause=self._side_button(t("action.pause", lang),QStyle.StandardPixmap.SP_MediaPause)
-        self.pause.clicked.connect(self.toggle_pause)
-        self.resign=self._side_button(t("action.resign", lang),QStyle.StandardPixmap.SP_DialogCancelButton)
-        self.resign.clicked.connect(self.resign_game)
-        self.draw=self._side_button(t("action.draw", lang),QStyle.StandardPixmap.SP_DialogApplyButton)
-        self.draw.clicked.connect(self.draw_game)
-        self.resurrect=self._side_button(t("action.resurrect", lang),QStyle.StandardPixmap.SP_BrowserReload)
-        self.resurrect.clicked.connect(self.resurrect_pawn)
-        self.flip=self._side_button(dl("翻转"),QStyle.StandardPixmap.SP_ArrowUp)
-        self.flip.clicked.connect(self.flip_board)
-        self.again=self._side_button(t("action.play_again", lang),QStyle.StandardPixmap.SP_MediaSkipForward)
-        self.again.clicked.connect(self.trigger_play_again)
-        for index,button in enumerate((self.undo,self.pause,self.resign,self.draw,
-                                       self.resurrect,self.flip,self.again)):
+        # 七个操作：**四列等宽 + 12px 间距**。两行各自等分虽然贴边，但两行按钮宽度
+        # 会变成 66 / 91 两种，看着像拼错了；四列固定等宽更整齐，第二行空一格是
+        # 自然的栅格收尾（且宽度一致、间距拉大后不再显得挤）。
+        actions=QGridLayout();actions.setSpacing(12);actions.setContentsMargins(2,2,2,2)
+        self._action_buttons=[]
+        specs=(
+            ("undo",t("action.undo",lang),self.undo_move),
+            ("pause",t("action.pause",lang),self.toggle_pause),
+            ("resign",t("action.resign",lang),self.resign_game),
+            ("draw",t("action.draw",lang),self.draw_game),
+            ("resurrect",t("action.resurrect",lang),self.resurrect_pawn),
+            ("flip",dl("翻转"),self.flip_board),
+            ("again",t("action.play_again",lang),self.trigger_play_again),
+        )
+        for index,(kind,label,callback) in enumerate(specs):
+            button=self._side_button(kind,label)
+            button.clicked.connect(callback)
+            setattr(self,kind,button)
+            self._action_buttons.append((button,kind))
             actions.addWidget(button,index//4,index%4)
-        actions.setColumnStretch(4,1)
+        for column in range(4):
+            actions.setColumnStretch(column,1)
+        self._refresh_action_icons()
         right.addLayout(actions);split.addWidget(self.side);split.setSizes([850,300])
         self.apply_appearance()
 
@@ -444,21 +450,34 @@ class MainWindow(QMainWindow):
             return
         self._release_ai()
         QMessageBox.warning(self,dl("AI 异常"),message)
-    def _side_button(self, text: str, pixmap: QStyle.StandardPixmap) -> QPushButton:
-        """侧栏图标按钮：不显示文字，说明放 tooltip 与无障碍名。
-
-        用 `QStyle` 自带图标而不是新增图片资产：这些是系统级语义（返回/暂停/取消…），
-        各平台自带合适字形，也不会给包体再添几十 KB。
-        """
+    def _side_button(self, kind: str, text: str) -> QPushButton:
+        """图标按钮：不显示文字，说明放 tooltip 与无障碍名，宽度跟随栅格拉伸。"""
         button=QPushButton()
-        button.setIcon(self.style().standardIcon(pixmap))
-        button.setIconSize(QSize(18,18))
-        button.setFixedSize(34,34)
         button.setText("")
+        button.setFixedHeight(40)
+        button.setMinimumWidth(0)
+        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        button.setIconSize(QSize(22,22))
         button.setToolTip(text)
         button.setAccessibleName(text)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         return button
+
+    def _refresh_action_icons(self) -> None:
+        """按当前调色板重画图标 —— 换主题后不能留深色底上的深色线条。"""
+        buttons=getattr(self,"_action_buttons",[])
+        if not buttons:
+            return
+        color=self.palette().color(QPalette.ColorRole.WindowText)
+        paused=getattr(getattr(self,"game",None),"state",None)
+        paused=bool(paused.paused) if paused is not None else False
+        for button,kind in buttons:
+            actual = ("resume" if paused else "pause") if kind == "pause" else kind
+            button.setIcon(action_icon(actual,color))
+            if kind == "pause":
+                label=t("action.resume" if paused else "action.pause",self.config.get("language","zh-CN"))
+                button.setToolTip(label)
+                button.setAccessibleName(label)
     def play_sound(self) -> None:
         if not self.game or not self.game.state.history:return
         record=self.game.state.history[-1]
@@ -1082,6 +1101,7 @@ class MainWindow(QMainWindow):
         if self.pause.toolTip() != pause_text:
             self.pause.setToolTip(pause_text)
             self.pause.setAccessibleName(pause_text)
+            self._refresh_action_icons()
         self.pause.setEnabled(not state.finished)
         self.undo.setEnabled(bool(state.history) and not state.paused)
         self.draw.setEnabled(not state.finished and not state.paused)

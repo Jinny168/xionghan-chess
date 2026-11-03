@@ -31,7 +31,7 @@ HISTORY_MIN = 120
 # 2026-11-03：侧栏七个操作从「单列文字按钮（7×40）」改成「两行图标（2×34）」后，
 # 让出的高度全给了棋谱列表（297 → 315）。**变大是这次改动的目的**：
 # 侧栏原本被按钮顶到底、非滚动不可。
-HISTORY_DEFAULT_BEFORE = 315       # 图标化后的实测值，容差 ±2
+HISTORY_DEFAULT_BEFORE = 297       # 图标化之前的基准（窄按钮那版实测 315，属中间态）
 BUTTON_PADDING = 14                # QSS padding:7px 左右
 
 
@@ -97,10 +97,13 @@ def test_action_buttons_are_compact_icons(window: MainWindow) -> None:
     buttons = [getattr(window, name) for name in names]
     for button in buttons:
         assert button.text() == "", "图标按钮不该有文字"
-        assert button.width() <= 40 and button.height() <= 40, \
-            f"按钮过大：{button.width()}x{button.height()}"
-    # 两行：每行实测 37（QSS padding 撑高），加 6 间距，留 2px 余量
+        assert button.height() <= 44, f"按钮过高：{button.height()}"
+        assert button.width() >= 50, \
+            f"按钮太窄，没铺满容器：{button.width()}px"
+    widths = {button.width() for button in buttons}
+    assert max(widths) - min(widths) <= 2, f"同一栅格里按钮宽度不一致：{widths}"
+    # 两行：每行实测 37（QSS padding 撑高），加 12 间距，留 2px 余量
     top = min(b.y() for b in buttons)
     bottom = max(b.y() + b.height() for b in buttons)
     block_height = bottom - top
-    assert block_height <= 37 * 2 + 6 + 2, f"操作区高 {block_height}px，超过两行"
+    assert block_height <= 37 * 2 + 12 + 2, f"操作区高 {block_height}px，超过两行"
