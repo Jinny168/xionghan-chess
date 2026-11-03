@@ -1,0 +1,33 @@
+# UTF-8
+# PyInstaller 的 Windows 版本资源。数字部分必须与 src/xionghan_chess/__init__.py 的
+# __version__ 一致 —— `tests/test_packaging_version.py` 会比对，改版本漏改这里会红。
+#
+# 为什么要这个文件：EXE 之前**没有任何版本资源**（FileVersion/FileDescription 全空），
+# 资源管理器里悬浮只显示文件名，用户无法判断自己跑的是哪一版。
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(1, 9, 0, 0),
+    prodvers=(1, 9, 0, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable(
+        '080404b0',
+        [StringStruct('CompanyName', '靳中原'),
+         StringStruct('FileDescription', '匈汉象棋 1.9.0 桌面版'),
+         StringStruct('FileVersion', '1.9.0.0'),
+         StringStruct('InternalName', 'XionghanChess'),
+         StringStruct('LegalCopyright', ''),
+         StringStruct('OriginalFilename', '匈漢象棋-1.9.0-桌面版.exe'),
+         StringStruct('ProductName', '匈汉象棋'),
+         StringStruct('ProductVersion', '1.9.0.0')])
+    ]),
+    VarFileInfo([VarStruct('Translation', [2052, 1200])])
+  ]
+)

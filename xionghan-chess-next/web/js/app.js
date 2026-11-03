@@ -1,4 +1,4 @@
-import { applyStaticI18n, currentLanguage, currentLocale, setLanguage, t } from './i18n.js?v=1.8.2';
+import { applyStaticI18n, currentLanguage, currentLocale, setLanguage, t } from './i18n.js?v=1.9.0';
 import { ribbonClass, CHECK_PULSE_MID } from './ribbon.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -242,6 +242,13 @@ function maybeShowOnboarding(){
   $('#onboardStartButton').onclick=()=>{try{localStorage.setItem('xh-onboarded','1')}catch(error){}dialog.close()};
   if(!dialog.open)dialog.showModal();
 }
+// 版本号从服务端取，页面里不再写死（桌面端的「关于」也做过同样的修正）
+async function loadAppVersion(){
+  try{const data=await api('/api/version');
+    const label=$('#aboutVersion');if(label&&data?.version)label.textContent=`${t('common.version')||'版本'} ${data.version}`}
+  catch(error){/* 拿不到就保持占位符，不影响游戏 */}
+}
+
 function refreshDailyButton(){const button=$('#dailyPuzzleButton');if(!button)return;const record=dailyRecord(),today=dailyToday();let label=t('training.daily');const gap=record.day?dailyGap(record.day,today):0;
   if(record.day===today&&record.done)label+=` · ${t('training.daily_done')}`;
   else if(record.streak&&gap<=1)label+=` · ${t('training.daily_streak',{count:record.streak+1})}`;
@@ -304,7 +311,7 @@ document.addEventListener('click',event=>{const button=event.target.closest('#pr
 $('#cloudGameList').onclick=async e=>{const open=e.target.closest('[data-cloud-open]'),fav=e.target.closest('[data-cloud-favorite]'),del=e.target.closest('[data-cloud-delete]');try{if(open){const game=await api(`/api/me/games/${open.dataset.cloudOpen}`);$('#accountDialog').close();await importDocument(game.document)}if(fav){await api(`/api/me/games/${fav.dataset.cloudFavorite}/favorite`,{method:'PUT',body:JSON.stringify({favorite:fav.dataset.favorite==='true'})});await refreshCloudGames()}if(del&&confirm('确定删除这份云端棋谱？')){await api(`/api/me/games/${del.dataset.cloudDelete}`,{method:'DELETE'});await refreshCloudGames()}}catch(error){toast(error.message)}};
 $('#analyzeReplayButton').onclick=runAnalysis;$('#analysisMoveList').onclick=e=>{const item=e.target.closest('[data-analysis-ply]');if(item){$('#analysisDialog').close();if(!replayDialog.open)openReplay();setReplayIndex(Number(item.dataset.analysisPly))}};
 $('#trainingButton').onclick=()=>openTraining();document.querySelector('.training-filters').onclick=e=>{const level=e.target.closest('[data-puzzle-level]');if(level){document.querySelectorAll('[data-puzzle-level]').forEach(button=>button.classList.toggle('active',button===level));openTraining(level.dataset.puzzleLevel)}};$('#puzzleList').onclick=e=>{const item=e.target.closest('[data-puzzle-id]');if(item)selectPuzzle(item.dataset.puzzleId)};$('#puzzleStartButton').onclick=startPuzzle;$('#dailyPuzzleButton').onclick=openDaily;refreshDailyButton();
-maybeShowOnboarding();// C2 两段式提示：先指子、再指招（与桌面 `PuzzleSession.staged_hint` 同构）
+maybeShowOnboarding();loadAppVersion();// C2 两段式提示：先指子、再指招（与桌面 `PuzzleSession.staged_hint` 同构）
 $('#puzzleHintButton').onclick=()=>{
   if(!app.selectedPuzzle)return;
   const session=app.puzzleSession;

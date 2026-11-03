@@ -133,4 +133,6 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=os.path.join(PROJECT, "src", "xionghan_chess", "desktop", "resources", "icon.ico"),
+    # Windows 版本资源：没有它资源管理器里悬浮只显示文件名，看不出是哪一版
+    version=os.path.join(SPECPATH, "version_info.txt"),
 )

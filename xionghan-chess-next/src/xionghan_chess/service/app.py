@@ -623,6 +623,12 @@ async def daily_puzzle(day: str | None = None) -> dict:
     return {"day": today.isoformat(), "puzzle": puzzle.payload(reveal=True)}
 
 
+@app.get("/api/version")
+async def version() -> dict:
+    """版本号给前端显示用 —— 页面里不再写死，免得升版本时只改了一半。"""
+    return {"version": __version__}
+
+
 @app.get("/api/puzzles")
 async def puzzles(difficulty: str | None = None) -> list[dict]:
     items = load_puzzles()
