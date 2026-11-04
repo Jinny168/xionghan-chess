@@ -47,4 +47,5 @@ testpaths = ["tests"]
 addopts = ["--strict-markers"]
 markers = [
   "slow: wall-clock performance regression guardrail (`-m 'not slow'` to skip)",
+  "deploy: 线上版本核对（默认跳过，设 XIONGHAN_VERIFY_DEPLOY=1 才跑）",
 ]
