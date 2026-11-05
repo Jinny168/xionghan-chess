@@ -1,3 +1,5 @@
+import pytest
+
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
 from xionghan_chess.core.profiles import get_profile
@@ -507,3 +509,108 @@ def test_has_any_legal_move_matches_legal_moves():
             if not legal:
                 break
             game.move(legal[0])
+
+
+# --------------------------------------------------------------------------
+# 2.0.0 回归护栏（产品口径锁定，别把它们当"可以顺手放宽"的普通断言）
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize("row", [0, 3, 6, 9, 12])
+def test_patrol_never_leaves_its_own_rank(row: int) -> None:
+    """巡的**所有**合法落点行号恒等于起始行 —— 竖移是硬规则禁行，任何行都一样。
+
+    产品定稿口径（2.0.0）：`_patrol` 首行判据 `target.row != source.row → False`，
+    红黑同一条，**不设 {5,7} 白名单**（残局/自定义摆子会在任意行）。
+    锁定者：产品（team-lead）；改口径须产品确认，并同步更新本 docstring 与期望值。
+    对应需求：巡只在本排横行。
+
+    用行号而不是"横竖同规则"来表述：这是**规则语言**，将来放宽时必须知道动的是哪一行判据。
+    """
+    rules = RulesEngine(get_profile("desktop_complete"))
+    # 王摆在 (12,0)/(1,5)：与巡的列错开，否则同格会被 `piece_at` 取成王、测出王的着法
+    board = state(piece(PieceType.KING, Color.RED, 12, 0),
+                  piece(PieceType.KING, Color.BLACK, 1, 5),
+                  piece(PieceType.PATROL, Color.RED, row, 6))
+    targets = {m.target for m in rules.legal_moves(board)
+               if (m.source.row, m.source.col) == (row, 6)}
+    assert targets, f"第 {row} 行的巡一个点都走不了，判据是不是写成了行白名单？"
+    assert all(target.row == row for target in targets), \
+        f"第 {row} 行的巡出现了竖移落点：{sorted((t.row, t.col) for t in targets if t.row != row)}"
+
+
+def test_pawn_sideways_threshold_locks_current_rule():
+    """锁现状：红兵 row<=5 才可横走（阴山 row6 不行），黑兵 row>=7 才可横走（row6 不行）。
+
+    产品定稿口径（1.9.x 起，2.0.0 未改）：过阴山**即**解锁横走 ——
+    红 `crossed = source.row < 6`、黑 `crossed = source.row > 6`，阴山本身不算过境。
+    锁定者：产品（team-lead）；改口径须产品确认，改完同步更新本 docstring 与期望值。
+    对应需求：#2（兵横走门槛，产品选"过阴山即算"，否决了 4/8 方案）。
+
+    为什么单独钉这条：真实开局与题库里**没有任何一题**依赖"兵在阴山行横走"，
+    把 `row < middle` 写成 `row <= middle` 不会有任何现有用例变红。
+    断言写成"门槛两侧，移动与吃子同进同出"——比分别断言更能卡住"吃子开特例"。
+    """
+    rules = RulesEngine(get_profile("desktop_complete"))
+    # 双王错开列：摆同一列会触发将帅照面，legal_moves 只剩应将着，横走全被过滤（误判成"已禁"）
+    red_king = piece(PieceType.KING, Color.RED, 12, 3)
+    black_king = piece(PieceType.KING, Color.BLACK, 0, 9)
+
+    def targets(board, source):
+        return {(m.target.row, m.target.col) for m in rules.legal_moves(board)
+                if (m.source.row, m.source.col) == source}
+
+    # 红：阴山(=6) 不行 / 过阴山(=5) 行；横走与横吃同步解锁
+    on_mountain = state(red_king, black_king,
+                        piece(PieceType.PAWN, Color.RED, 6, 0),
+                        piece(PieceType.PAWN, Color.BLACK, 6, 1))
+    assert (6, 1) not in targets(on_mountain, (6, 0)), "阴山行不能横吃"
+    crossed = state(red_king, black_king,
+                    piece(PieceType.PAWN, Color.RED, 5, 0),
+                    piece(PieceType.PAWN, Color.BLACK, 5, 1))
+    assert (5, 1) in targets(crossed, (5, 0)), "过阴山后可横吃"
+
+    # 空盘验"横走"（有敌子时那一格变成吃子，别把两件事混在一个局面里）
+    empty = state(red_king, black_king, piece(PieceType.PAWN, Color.RED, 6, 0))
+    assert (6, 1) not in targets(empty, (6, 0)), "阴山行不能横走"
+    empty_crossed = state(red_king, black_king, piece(PieceType.PAWN, Color.RED, 5, 0))
+    assert (5, 1) in targets(empty_crossed, (5, 0)), "过阴山后可横走"
+
+    # 黑方对称：row7 行、row6 不行（不是 8/9）
+    black_on_mountain = state(red_king, black_king, turn=Color.BLACK,
+                              *[piece(PieceType.PAWN, Color.BLACK, 6, 0),
+                                piece(PieceType.PAWN, Color.RED, 6, 1)])
+    assert (6, 1) not in targets(black_on_mountain, (6, 0)), "黑兵阴山行不能横吃"
+    black_crossed = state(red_king, black_king, turn=Color.BLACK,
+                          *[piece(PieceType.PAWN, Color.BLACK, 7, 0),
+                            piece(PieceType.PAWN, Color.RED, 7, 1)])
+    assert (7, 1) in targets(black_crossed, (7, 0)), "黑兵过阴山后可横吃"
+
+
+def test_pawn_reaching_enemy_base_always_promotes() -> None:
+    """兵到达对方底线**必进升变判定**，不存在"落底线后还能左右走"的路径。
+
+    条件式（照架构实测写，别写死）：
+    - `pawn_promotion` 开 **且** 池里有可升变类型 → 底线**没有**非升变着法；
+    - 池空 / `pawn_promotion` 关 → 不强制升变（既有行为，不是本次引入的 bug）。
+    """
+    red_king = piece(PieceType.KING, Color.RED, 12, 3)
+    black_king = piece(PieceType.KING, Color.BLACK, 2, 9)
+    pawn = piece(PieceType.PAWN, Color.RED, 1, 6)
+
+    # 池里有车 → 底线每一着都必须带 promotion
+    board = state(red_king, black_king, pawn)
+    board.captured[Color.RED].append(piece(PieceType.ROOK, Color.RED, 11, 0))
+    promotable = RulesEngine(get_profile("desktop_complete")).promotable_types(board, Color.RED)
+    assert promotable, "池里的车应当是可升变类型"
+    moves = [m for m in RulesEngine(get_profile("desktop_complete")).legal_moves(board)
+             if (m.source.row, m.source.col) == (1, 6)]
+    assert moves, "兵应当能走到一格的任何落点"
+    for move in moves:
+        if move.target.row == 0:
+            assert move.promotion is not None, f"底线着法必须带升变：{move}"
+
+    # 池空 → 不强制（既有行为）
+    empty_pool = state(red_king, black_king, piece(PieceType.PAWN, Color.RED, 1, 6))
+    assert any(m.target.row == 0 and m.promotion is None
+               for m in RulesEngine(get_profile("desktop_complete")).legal_moves(empty_pool)), \
+        "池空时不应强制升变（这是既有行为，改它要单独过产品）"
