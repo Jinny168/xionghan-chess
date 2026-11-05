@@ -30,7 +30,8 @@ CHAT_HISTORY_LIMIT = 200
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import (Color, GameState, Move, PieceType, Position,
                                    is_big_capture)
-from xionghan_chess.core.profiles import PROFILES, profile_rule_values
+from xionghan_chess.core.profiles import (PROFILES, action_visible,
+                                          profile_rule_values)
 from xionghan_chess.core.storage import game_document
 from xionghan_chess.core.taunts import choose_taunt, taunts
 from xionghan_chess.i18n import t
@@ -160,11 +161,16 @@ class MainWindow(QMainWindow):
         for title, callback, shortcut in ((t("menu.new", lang),self.new_game,"Ctrl+N"),(t("menu.undo", lang),self.undo_move,"Ctrl+Z"),(t("menu.pause_resume", lang),self.toggle_pause,"Ctrl+P")):
             action=QAction(title,self);action.triggered.connect(callback);action.setShortcut(QKeySequence(shortcut));game_menu.addAction(action)
         game_menu.addSeparator()
-        for title, callback, shortcut in ((t("action.resign", lang),self.resign_game,"Ctrl+Shift+R"),
-                                          (t("action.draw", lang),self.draw_game,"Ctrl+Shift+D"),
-                                          (t("action.resurrect", lang),self.resurrect_pawn,"Ctrl+Shift+P")):
+        # 第四列 `attr` 给需要留引用的项：菜单项与侧栏按钮共用同一条显隐判据
+        # （`UI_ACTION_REQUIRES`）—— 只藏按钮却留下菜单项，等于把"点了会报错"的
+        # 入口明晃晃摆在菜单里（`Ctrl+Shift+P` 也会照样把光标留在那儿）。
+        for title, callback, shortcut, attr in (
+                (t("action.resign", lang), self.resign_game, "Ctrl+Shift+R", None),
+                (t("action.draw", lang), self.draw_game, "Ctrl+Shift+D", None),
+                (t("action.resurrect", lang), self.resurrect_pawn, "Ctrl+Shift+P", "resurrect_action")):
             action=QAction(title,self);action.triggered.connect(callback)
             action.setShortcut(QKeySequence(shortcut));game_menu.addAction(action)
+            if attr: setattr(self, attr, action)
         game_menu.addSeparator()
         for title, callback in ((dl("登场棋子配置"),self.configure_handicap),(dl("创建局域网房间"), self.create_online), (dl("加入局域网房间"), self.join_online),(dl("观战局域网房间"),self.spectate_online)):
             action = QAction(title, self); action.triggered.connect(callback); game_menu.addAction(action)
@@ -1119,7 +1125,16 @@ class MainWindow(QMainWindow):
         self.undo.setEnabled(bool(state.history) and not state.paused)
         self.draw.setEnabled(not state.finished and not state.paused)
         self.resign.setEnabled(not state.finished)
-        self.resurrect.setEnabled(not state.finished and not state.paused)
+        # 「复活兵卒」分两层判据：
+        #   **可见性** = 规则允许吗（`UI_ACTION_REQUIRES`，来自 core，网页同源）；
+        #   **可用性** = 现在能点吗（轮到我 / 未终局 / 未暂停）。
+        # 规则关掉时按钮直接消失而不是置灰 —— 置灰还要玩家自己猜"为什么不能点"。
+        visible = action_visible(self.game.options, "resurrect")
+        self.resurrect.setVisible(visible)
+        action = getattr(self, "resurrect_action", None)
+        if action is not None:
+            action.setVisible(visible)
+        self.resurrect.setEnabled(visible and not state.finished and not state.paused)
         again_text = t("action.play_again", lang)
         if self.again.toolTip() != again_text:
             self.again.setToolTip(again_text)

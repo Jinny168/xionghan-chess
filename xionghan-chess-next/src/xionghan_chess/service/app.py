@@ -22,6 +22,7 @@ from xionghan_chess.core.avatars import normalize_avatar
 from xionghan_chess.core.game import DEFAULT_INITIAL_MINUTES, GameError
 from xionghan_chess.core.model import Color, PieceType, Position
 from xionghan_chess.core.profiles import (NEGATED_OPTIONS, PROFILES,
+                                          action_requirements,
                                           option_dependencies)
 from xionghan_chess.core.protocol import Envelope, MessageType
 from .rooms import Room, RoomManager
@@ -219,7 +220,10 @@ async def profiles() -> list[dict]:
              "optionDependencies": option_dependencies(),
              # 反向呈现的开关（存储 True = 削弱）：前端勾选状态要取反，
              # 保证"勾选 = 增强"这条约定在三端一致。
-             "negatedOptions": sorted(NEGATED_OPTIONS)} for p in PROFILES.values()]
+             "negatedOptions": sorted(NEGATED_OPTIONS),
+             # 按钮**可达性**表（动作 → 必须开启的选项键）。与 optionDependencies
+             # 同构但用途不同：那张管开关置灰，这张管按钮显隐（规则里没有就不出现）。
+             "actionRequirements": action_requirements()} for p in PROFILES.values()]
 
 
 

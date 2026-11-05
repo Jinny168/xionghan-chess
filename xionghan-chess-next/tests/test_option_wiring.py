@@ -306,3 +306,39 @@ def test_both_locales_cover_every_grouped_key_in_long_and_short_form() -> None:
                 if key + suffix not in section:
                     problems.append(f"{language}: rule.{key}{suffix}")
     assert not problems, "以下文案缺失（界面会显示原始 key）：\n  " + "\n  ".join(problems)
+
+
+# --- 按钮显隐的规则判据（UI_ACTION_REQUIRES） -------------------------------
+#
+# 与上面的「开关 → 三端分组」是同一类问题：动作的**可达性**也是规则的一部分。
+# `pawn_resurrection` 关掉时，「复活兵卒」这个动作在三端都不存在，
+# 但三端过去都只把它 `disabled`、从不隐藏 —— 玩家面对一个永远点不动的按钮。
+# 这里守两件事：core 这张表本身对，且三端真的读了它（而不是各写一份硬编码）。
+
+def test_action_requirements_mirror_the_engine_guard() -> None:
+    from xionghan_chess.core.profiles import UI_ACTION_REQUIRES, action_visible
+
+    assert UI_ACTION_REQUIRES["resurrect"] == ("pawn_resurrection",)
+    assert action_visible(RuleOptions(pawn_resurrection=True), "resurrect") is True
+    assert action_visible(RuleOptions(pawn_resurrection=False), "resurrect") is False
+    # 没登记的动作恒可见（常驻按钮不能被这张表误伤）
+    assert action_visible(RuleOptions(pawn_resurrection=False), "resign") is True
+
+
+def test_three_fronts_read_the_shared_action_table() -> None:
+    """桌面直接 import core；网页读 `/api/profiles` 的 `actionRequirements`。
+
+    断言的是"消费方式"而不是"某一行代码"：谁再把 `pawn_resurrection` 硬编码进
+    前端判断，这条就会因为不再出现共享表的名字而变红。
+    """
+    desktop = (ROOT / "src" / "xionghan_chess" / "desktop" / "app.py").read_text(encoding="utf-8")
+    assert "action_visible(" in desktop and "UI_ACTION_REQUIRES" in (
+        ROOT / "src" / "xionghan_chess" / "core" / "profiles.py").read_text(encoding="utf-8")
+    assert "setVisible(visible)" in desktop, "桌面侧没有把复活按钮/菜单项真的隐藏"
+
+    web = APP_JS.read_text(encoding="utf-8")
+    assert "actionRequirements" in web, "网页没有消费 /api/profiles 下发的动作依赖表"
+    assert "$('#resurrectButton').hidden=" in web, "网页仍然只 disabled、不隐藏"
+
+    service = (ROOT / "src" / "xionghan_chess" / "service" / "app.py").read_text(encoding="utf-8")
+    assert '"actionRequirements": action_requirements()' in service, "接口没有下发动作依赖表"

@@ -131,6 +131,33 @@ def option_dependencies() -> dict[str, list[str]]:
     return {child: list(parents) for child, parents in OPTION_DEPENDS_ON.items()}
 
 
+# 操作按钮的**可达性**：值 = 这个动作要存在，必须先全部开启的选项键。
+#
+# 与 `OPTION_DEPENDS_ON` 同构、同源，区别只在用途：
+#   依赖表管**开关之间**（上游关掉 → 下游置灰），这张表管**按钮**（规则不允许 →
+#   按钮根本不出现）。置灰和隐藏是两件事：置灰的按钮仍占位、仍可读、仍会被点，
+#   玩家得自己推断"为什么点不动"；而 `pawn_resurrection` 关掉时，"复活兵卒"
+#   这个动作在这个规则集里**不存在**，留一个灰按钮只是让人反复去点。
+#
+# 判据（别照抄成"感觉相关"）：动作的 service 层入口里，`options.X` 是**第一道 and 守卫**，
+# 关掉后动作必然抛错 —— 桌面 `Game.resurrect_pawn`、网页 `send('resurrect')`、
+# 对拍用的 `OfflineGame.resurrectPawn` 三处都是 `if not options.pawn_resurrection: raise`。
+UI_ACTION_REQUIRES: dict[str, tuple[str, ...]] = {
+    "resurrect": ("pawn_resurrection",),
+}
+
+
+def action_visible(options: "RuleOptions", action: str) -> bool:
+    """该动作在当前规则下是否存在；没有登记的动作恒为 True（常驻按钮）。"""
+    return all(bool(getattr(options, parent, False))
+               for parent in UI_ACTION_REQUIRES.get(action, ()))
+
+
+def action_requirements() -> dict[str, list[str]]:
+    """给三端 UI 用的动作依赖表（JSON 友好）；`/api/profiles` 下发这一份。"""
+    return {action: list(parents) for action, parents in UI_ACTION_REQUIRES.items()}
+
+
 # 反向呈现的开关：**存储值 True 表示"削弱"**，界面勾选必须表示"增强"。
 #
 # 判据：这个键的 True 是否在描述"少了一种能力"。三条都符合 ——

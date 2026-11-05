@@ -71,6 +71,11 @@ const pieceLabels = {
 let negatedOptions=new Set();
 const optionIsOn=key=>{const stored=app.options[key]!==false;return negatedOptions.has(key)?!stored:stored};
 const optionStored=(key,shown)=>negatedOptions.has(key)?!shown:shown;
+// 按钮**显隐**的规则判据：动作 → 必须全部开启的选项键，与 `optionIsOn` 不同源不重复：
+// 名单来自 /api/profiles 的 `actionRequirements`（同源 core/profiles.py::UI_ACTION_REQUIRES）。
+// 拿不到档案时（纯本地、接口失败、旧服务端没这个字段）退回"常驻"——
+// 宁可多一个能点会报错的按钮，也不要让按钮在这种环境下凭空消失。
+const actionVisible=action=>{const parents=app.profiles?.get(app.state?.profile?.id)?.actionRequirements?.[action];return !parents?.length||parents.every(parent=>optionIsOn(parent))};
 const pieceRuleKeys={
   king:['king_can_leave_palace','king_diagonal_in_palace','king_lose_diagonal_outside_palace','invasion_victory'],
   horse:['horse_blocked_by_leg','horse_straight_three','horse_straight_three_move_only'],elephant:['elephant_can_cross_river','elephant_gain_jump_two_enemy_territory'],
@@ -137,7 +142,15 @@ function renderMeta(snapshot){
   updateClockVisuals();
   for(const color of ['red','black']){const player=snapshot.players.find(p=>p.color===color);const panel=$(`#${color}Status`).closest('.player-panel');const avatar=panel?.querySelector('.avatar');if(avatar){const fallback=[...(player?.name||t(`common.${color}`))][0]||color[0].toUpperCase(),image=avatarUrl(player?.avatarUrl);avatar.textContent=fallback;avatar.style.backgroundImage=image?`url(${JSON.stringify(image)})`:'';avatar.classList.toggle('custom-avatar',!!image);avatar.setAttribute('aria-label',player?.name||t(`common.${color}`))}const name=panel?.querySelector('strong');if(name)name.textContent=player?.name||t(`common.${color}`);$(`#${color}Status`).textContent=snapshot.mode==='local'?(color==='red'?t('common.local_player_one'):t('common.local_player_two')):(player?(player.connected?t('common.online'):t('common.temporarily_offline')):t('common.waiting'));$(`#${color}Captured`).innerHTML=(app.state.captured[color]||[]).map(p=>`<span>${names[color][p.type]}</span>`).join('')}
   $('#moveList').innerHTML=app.state.history.map((h,i)=>`<li data-index="${i}">${h.notation}</li>`).join('');$('#moveCount').textContent=t('common.rounds',{count:Math.ceil(app.state.history.length/2)});const list=$('#moveList');list.scrollTop=list.scrollHeight;
-  const myTurn=(app.mode==='local'||app.state.turn===app.color)&&!app.state.finished&&!app.state.paused;$('#resignButton').disabled=app.state.finished;$('#drawButton').disabled=!myTurn;$('#undoButton').disabled=!app.state.history.length||app.state.paused;$('#resurrectButton').disabled=!myTurn;$('#pauseButton').disabled=app.state.finished;$('#pauseButton').textContent=app.state.paused?`▶ ${t('action.resume')}`:`Ⅱ ${t('action.pause')}`;
+  const myTurn=(app.mode==='local'||app.state.turn===app.color)&&!app.state.finished&&!app.state.paused;$('#resignButton').disabled=app.state.finished;$('#drawButton').disabled=!myTurn;$('#undoButton').disabled=!app.state.history.length||app.state.paused;
+  // 「复活兵卒」：可见性由**规则**决定（`actionRequirements` 由 /api/profiles 下发，
+  // 与 core/profiles.py::UI_ACTION_REQUIRES 同源），可用性由**对局状态**决定。
+  // 原来这里只 disabled、从不隐藏，且不读 pawn_resurrection —— 关掉复活的规则集里
+  // 玩家面对的是一个永远点不动的按钮。
+  const resurrectVisible=actionVisible('resurrect');
+  $('#resurrectButton').hidden=!resurrectVisible;
+  $('#resurrectButton').disabled=!resurrectVisible||!myTurn;
+  $('#pauseButton').disabled=app.state.finished;$('#pauseButton').textContent=app.state.paused?`▶ ${t('action.resume')}`:`Ⅱ ${t('action.pause')}`;
 }
 function showResult(){const winner=app.state.winner,key=`${app.roomId}:${winner||'draw'}:${app.state.resultReason}:${app.state.history.length}`,reason=t(`result.${app.state.resultReason}`);$('#resultMark').textContent=winner?(winner==='red'?'漢':'汗'):t('common.draw');$('#resultTitle').textContent=winner?t('result.victory',{color:t(`common.${winner}`)}):t('result.draw');$('#resultText').textContent=reason.startsWith('result.')?t('result.ended'):reason;if(app.resultKey!==key){playSound(app.mode==='local'||winner===app.color?'win':'lose');recordFinishedGame(key);app.resultKey=key}if(!$('#resultDialog').open)$('#resultDialog').showModal()}
 function syncModeControls(){const mode=$('#modeSelect').value;$('#difficultyRow').hidden=mode!=='ai';$('#colorRow').hidden=mode==='local';$('#joinRow').hidden=mode!=='online';$('#connectionText').textContent=mode==='local'?t('status.local_sync'):(mode==='ai'?t('status.ai'):t('status.online'))}
