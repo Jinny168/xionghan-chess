@@ -18,7 +18,7 @@ XIONGHAN_COLS = 13
 #   `FORMAT_VERSION`（core/storage.py）  —— 棋谱文件的结构；
 #   `POSITION_KEY_VERSION`（core/rules.py）—— 重复局面键的格式；
 #   `RULE_VERSION`（这里）               —— 同一份棋谱/同一间房里，棋子到底怎么走。
-# 2.0.0 = 巡禁竖移 + `pawn_full_movement_at_base` 默认关。这两条会让**旧客户端算出
+# 2.0.0 = 巡禁竖移 + 兵底线不再后退（`pawn_backward_at_base` 默认关）。这两条会让**旧客户端算出
 # 不同的合法着法**，所以：棋谱文件带 `ruleVersion`（旧档缺省 1），联机建房/加入必须
 # 双方一致（见 `service/rooms.py::RoomManager._check_rule_version`）。
 # 只改走法语义时才 +1；改存档结构请改 `FORMAT_VERSION`，别动这里。
@@ -44,12 +44,14 @@ class RuleOptions:
     horse_straight_three_move_only: bool = False  # 直走三格仅可移动、不可吃子（依赖 horse_straight_three）
     archer_enhanced_mode: bool = False
     pawn_fast_move_before_enemy_territory: bool = True
-    pawn_backward_at_base: bool = True
-    # 兵在自己底线（对方底线的镜像）能否四向走。**默认关**：兵在任何位置都只能直进
-    # （+ 过阴山后横走 + 底线后退，这些各自有独立开关），底线不额外送"横竖随便走"。
-    # 默认值从 True 改成 False 是**破坏性规则变更**（2.0.0 的来源之一）：完整/精简模式
-    # 下，走到对方底线的兵过去可以左右平移吃子，现在只能直进或按 `pawn_backward_at_base` 后退。
-    pawn_full_movement_at_base: bool = False
+    # 兵到达**对方底线**后能否后退一格。**默认关**（2.0.0 起）：底线不再是"特权格"，
+    # 兵落到对方底线只剩横走（`crossed` 给的，与 1.9.x 一致），后退要显式打开。
+    #
+    # 为什么不删掉这个开关：它仍有独立价值（有人想给兵留一条退路），
+    # 但"全向移动"是另一回事 —— 那个曾经的同名选项 `pawn_full_movement_at_base`
+    # 在默认配置下**什么都没多给**（横走由 `crossed` 放行、后退由本开关放行），
+    # 已在 2.0.0 整体删除，见 `config.py::_migrate_v1` 对旧键的清理。
+    pawn_backward_at_base: bool = False
     pawn_resurrection: bool = True
     pawn_promotion: bool = True
     pawn_charge: bool = False                 # 敌阵冲锋（过阴山后直线多格，不吃子）
@@ -90,7 +92,6 @@ class RuleOptions:
             "pawn_resurrection_enabled": "pawn_resurrection",
             "pawn_promotion_enabled": "pawn_promotion",
             "pawn_backward_at_base_enabled": "pawn_backward_at_base",
-            "pawn_full_movement_at_base_enabled": "pawn_full_movement_at_base",
             "pawn_charge_enabled": "pawn_charge",
             "pawn_three_line_capture_enabled": "pawn_three_line_capture",
             "ju_appear": "rook_appear", "ma_appear": "horse_appear",
@@ -323,7 +324,8 @@ COMPLETE_OPTIONS = RuleOptions(
     pawn_charge=True,                  # 敌阵冲锋：过阴山后沿直线多格（不吃子）
     pawn_three_line_capture=True,      # 兵参与三连吃子
     # 其余项默认已是加强值：出宫/宫内斜走、仕出宫直走、相过河+敌境跳两格、
-    # 马直走三格、兵快速行军/底线后退/四向/复活/升变。
+    # 马直走三格、兵快速行军/复活/升变。
+    # **兵底线不再后退**（2.0.0）：`pawn_backward_at_base` 默认关，故不在此列。
 )
 
 # 经典模式：**同样全子**，但士/象/马/兵/将回退到最经典的中国象棋走法。
@@ -340,8 +342,6 @@ CLASSIC_OPTIONS = RuleOptions(
     horse_straight_three_move_only=False,
     archer_enhanced_mode=False,
     pawn_fast_move_before_enemy_territory=False,
-    pawn_backward_at_base=False,
-    pawn_full_movement_at_base=False,
     pawn_resurrection=False,
     pawn_promotion=False,
     pawn_charge=False,
@@ -380,7 +380,6 @@ PROFILES: dict[str, RuleProfile] = {
                     elephant_can_cross_river=False, elephant_gain_jump_two_enemy_territory=False,
                     horse_straight_three=False,
                     pawn_fast_move_before_enemy_territory=False,
-                    pawn_backward_at_base=False, pawn_full_movement_at_base=False,
                     pawn_resurrection=False, pawn_promotion=False), RED_NAMES, BLACK_NAMES,
     ),
 }

@@ -73,7 +73,7 @@ PIECE_OPTION_KEYS: dict[PieceType, tuple[str, ...]] = {
     PieceType.CANNON: (),
     PieceType.PAWN: ("pawn_fast_move_before_enemy_territory", "pawn_charge",
                      "pawn_three_line_capture", "pawn_backward_at_base",
-                     "pawn_full_movement_at_base", "pawn_resurrection", "pawn_promotion"),
+                     "pawn_resurrection", "pawn_promotion"),
     PieceType.GUARD: (),
     PieceType.ARCHER: ("archer_enhanced_mode",),
     PieceType.THUNDER: (),

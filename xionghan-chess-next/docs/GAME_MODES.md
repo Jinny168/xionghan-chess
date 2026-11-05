@@ -42,8 +42,7 @@
 | 炮 | — | 无开关 | 同左 | 隔一子吃，两模式一致 |
 | 兵/卒 | 敌境前快速行军 | ✔ | ✘ | `pawn_fast_move_before_enemy_territory` |
 | 兵/卒 | 过阴山横走 | ✔ | ✔ | 无开关（经典象棋本来就有） |
-| 兵/卒 | 底线后退一格 | ✔ | ✘ | `pawn_backward_at_base` |
-| 兵/卒 | 底线四向一格 | ✘（2.0.0 起默认关） | ✘ | `pawn_full_movement_at_base` |
+| 兵/卒 | 底线后退一格 | ✘（2.0.0 起默认关） | ✘ | `pawn_backward_at_base` |
 | 兵/卒 | 复活 / 升变 | ✔ | ✘ | `pawn_resurrection` / `pawn_promotion` |
 | 兵/卒 | 敌阵冲锋（多格不吃子） | ✔ | ✘ | `pawn_charge` |
 | 兵/卒 | 三连吃子 | ✔ | ✘ | `pawn_three_line_capture` |

@@ -450,15 +450,17 @@ def test_pawn_parity_forward_sideways_and_two_step():
     _assert_parity(game)
 
 
-def test_pawn_base_full_movement_toggle_parity():
-    base_red = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)])
-    _assert_parity(base_red)
-    no_full = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)],
-                      options={"pawn_full_movement_at_base": False})
-    _assert_parity(no_full)
+def test_pawn_base_backward_toggle_parity():
+    """底线兵：横走两引擎都给（`crossed` 放的），后退只看 `pawn_backward_at_base`（默认关）。
+
+    2.0.0 删掉了 `pawn_full_movement_at_base`（它多给的只有"后退"，与这个开关重叠），
+    所以这里覆盖的是"默认关 / 显式开"两态；两态都必须两引擎一致。
+    """
+    default_off = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)])
+    _assert_targets(default_off, (0, 4), [(0, 3), (0, 5)])          # 只有横走，不能后退
     backward = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)],
                        options={"pawn_backward_at_base": True})
-    _assert_parity(backward)
+    _assert_targets(backward, (0, 4), [(0, 3), (0, 5), (1, 4)])     # 显式开才有后退
 
 
 def test_pawn_fast_move_toggle_parity():

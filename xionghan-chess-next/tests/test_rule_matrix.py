@@ -264,11 +264,25 @@ def test_pawn_three_line_capture_is_on_in_complete_off_in_classic() -> None:
         assert (not any(p.type is H for p in after.pieces)) is should_capture, mode
 
 
-@pytest.mark.parametrize("mode,can_back", [
-    ("desktop_complete", True), ("desktop_classic", False), ("web", True)])
-def test_pawn_at_enemy_base_by_mode(mode: str, can_back: bool) -> None:
+@pytest.mark.parametrize("mode", MODES)
+def test_pawn_at_enemy_base_cannot_step_back_by_default(mode: str) -> None:
+    """锁现状：2.0.0 起，兵到对方底线**不再后退**（所有模式一致）。
+
+    产品定稿口径（2.0.0）：`pawn_backward_at_base` 默认关 → 底线兵只剩横走；
+    横走由 `crossed` 放行，与本开关无关。旧的 `pawn_full_movement_at_base`
+    已整项删除（它在默认配置下不改变任何走法，真正多给的只有"后退"）。
+    锁定者：产品（team-lead）；改口径须产品确认，并同步更新本 docstring 与期望值。
+    对应需求：兵底线不再"全向"。
+
+    注意：本用例关掉升变才看得到走法 —— 开升变时底线落子必须带 promotion，
+    `legal_moves` 会按升变展开，看不出"能不能后退"。
+    """
     game = _game(mode, [(P, RED, 0, 4)], pawn_promotion=False)
-    assert ((1, 4) in _targets(game, (0, 4))) is can_back
+    assert (1, 4) not in _targets(game, (0, 4)), "默认关：底线兵不能后退"
+    assert (0, 3) in _targets(game, (0, 4)), "横走仍在（crossed 放的）"
+    # 显式打开开关 → 后退回来（开关本身仍有效，只是默认关）
+    back_on = _game(mode, [(P, RED, 0, 4)], pawn_promotion=False, pawn_backward_at_base=True)
+    assert (1, 4) in _targets(back_on, (0, 4))
 
 
 # --- 尉 / 卫（GUARD）------------------------------------------------------

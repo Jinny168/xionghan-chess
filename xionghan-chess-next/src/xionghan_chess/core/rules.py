@@ -578,8 +578,10 @@ class RulesEngine:
         # 与 `distance_to_enemy_territory`（最远落行 5）和象的 `target.row < middle` 同一口径。
         crossed = move.source.row < middle if piece.color is Color.RED else move.source.row > middle
         enemy_base = move.source.row == (0 if piece.color is Color.RED else self.profile.rows - 1)
-        if enemy_base and self.options.pawn_full_movement_at_base:
-            return abs(dr) + abs(dc) == 1
+        # 曾经这里有一条 `if enemy_base and pawn_full_movement_at_base: return 四向一格` 的早返回。
+        # 2.0.0 把它删了：它真正多给的只有"后退一格"（横走本就被下面的 `crossed` 放行），
+        # 而"后退"现在由 `pawn_backward_at_base`（默认关）单独管 —— 两个开关管一件事，
+        # 谁关谁开都说不清，底线兵到底能不能退在旧配置下根本推不出来。
         distance = abs(dr)
         distance_to_enemy_territory = (
             move.source.row - middle + 1 if piece.color is Color.RED

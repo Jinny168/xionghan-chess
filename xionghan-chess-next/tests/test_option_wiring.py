@@ -2,7 +2,7 @@
 
 ## 为什么需要这个守卫
 
-`RuleOptions` 是规则引擎的唯一开关面板（`core/profiles.py`，当前 33 个字段）。
+`RuleOptions` 是规则引擎的唯一开关面板（`core/profiles.py`，当前 32 个字段）。
 加一个字段只改 `core/` 是**能跑通全部测试**的——规则引擎会认这个新开关，
 AI / 对拍 / 存档全都照常工作——但用户在三个设置界面里根本看不到它，
 于是这个功能对玩家来说等于不存在。这是本项目最容易「静默漏接」的一类缺陷：
@@ -23,8 +23,8 @@ AI / 对拍 / 存档全都照常工作——但用户在三个设置界面里根
 
 ## 「内容完全一致」的含义
 
-三端的分组必须**键集合相同、挂载的棋子分组也相同**（6 组 / 19 键：
-king 4 · horse 3 · elephant 2 · advisor 2 · pawn 7 · archer 1）。
+三端的分组必须**键集合相同、挂载的棋子分组也相同**（6 组 / 18 键：
+king 4 · horse 3 · elephant 2 · advisor 2 · pawn 6 · archer 1）。
 只比键集合不够——把「马的别腿」挂到「兵」下面，键集合照样是全的，但界面是错的。
 
 ## 加规则开关的代价（故意的）
@@ -84,7 +84,9 @@ EXEMPT: dict[str, str] = {
     "patrol_appear": "登场开关：同 rook_appear",
 }
 
-# 三端「棋子分组」的期望形状：6 个非空分组 / 19 个规则键。
+# 三端「棋子分组」的期望形状：6 个非空分组 / 18 个规则键。
+# 18（不是 19）是 2.0.0 的产品变更：`pawn_full_movement_at_base` 整项删除
+# （它在默认配置下不改变任何走法，见 profiles.py 该处的注释）。
 # 这是**当前定稿**的指纹，用来抓"三端一起漏掉某组"这种连一致性检查都过不了的情形
 # （例如三端同时把兵的 7 个开关删了，键集合仍三端一致，但用户丢了功能）。
 EXPECTED_GROUP_KEYS: dict[str, frozenset[str]] = {
@@ -98,8 +100,7 @@ EXPECTED_GROUP_KEYS: dict[str, frozenset[str]] = {
                           "advisor_gain_straight_outside_palace"}),
     "pawn": frozenset({"pawn_fast_move_before_enemy_territory", "pawn_charge",
                        "pawn_three_line_capture", "pawn_backward_at_base",
-                       "pawn_full_movement_at_base", "pawn_resurrection",
-                       "pawn_promotion"}),
+                       "pawn_resurrection", "pawn_promotion"}),
     "archer": frozenset({"archer_enhanced_mode"}),
 }
 
@@ -268,7 +269,7 @@ def test_grouping_matches_the_frozen_fingerprint() -> None:
         "并说明用户侧的变化）"
     )
     total = sum(len(keys) for keys in atlas.values())
-    assert len(atlas) == 6 and total == 19, f"定稿形状应为 6 组 / 19 键，实际 {len(atlas)} 组 / {total} 键"
+    assert len(atlas) == 6 and total == 18, f"定稿形状应为 6 组 / 18 键，实际 {len(atlas)} 组 / {total} 键"
 
 
 def test_grouped_keys_are_real_rule_fields() -> None:
