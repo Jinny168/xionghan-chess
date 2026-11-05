@@ -185,7 +185,7 @@ class MainWindow(QMainWindow):
         settings_menu = self.menuBar().addMenu(t("menu.settings", lang))
         # 设置按业务拆成四个独立窗口，菜单里各给一个入口（原来是一个窗口三个标签，
         # 想改声音得先开总设置再翻标签）。顺序与 `SettingsDialog` 的 tab 顺序一致：
-        # 对局设置 → 修改规则 → 界面 → 声音。
+        # 对局设置 → 棋子规则 → 界面 → 声音。
         for index,label,shortcut in ((0,t("settings.game_tab", lang),"Ctrl+,"),
                                      (1,t("settings.piece_rules_tab", lang),""),
                                      (2,t("settings.appearance_tab", lang),""),

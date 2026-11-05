@@ -3,9 +3,9 @@
 原来是一个窗口三个标签，改声音要"先开设置、再找标签"。现在拆成四个独立窗口，
 菜单里各给一个入口。这里守两件事：菜单条目在，且独立打开时确实只剩一页。
 
-tab / 菜单顺序是产品口径：对局设置 → 修改规则 → 界面 → 声音。
+tab / 菜单顺序是产品口径：对局设置 → 棋子规则 → 界面 → 声音。
 「界面」与「声音」原本挤在同一页（界面与声音），关个 BGM 得翻过字体/主题/棋子风格；
-「通用裁定」（自我将军、三次重复）原本在对局设置里，属于规则，已挪进修改规则页。
+「通用裁定」（自我将军、三次重复）原本在对局设置里，属于规则，已挪进棋子规则页。
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 from xionghan_chess.desktop.config import DEFAULTS  # noqa: E402
 from xionghan_chess.desktop.ui.dialogs import SettingsDialog  # noqa: E402
 
-SECTIONS = [(0, "对局设置"), (1, "修改规则"), (2, "界面"), (3, "声音")]
+SECTIONS = [(0, "对局设置"), (1, "棋子规则"), (2, "界面"), (3, "声音")]
 
 
 @pytest.fixture(scope="module")

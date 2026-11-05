@@ -1,6 +1,6 @@
 """桌面端的 6 个对话框（阶段1 S1-2 从 app.py 抽出，约 300 行）。
 
-- `SettingsDialog`      —— 设置（对局设置 / 修改规则 / 界面 / 声音 四个 tab）
+- `SettingsDialog`      —— 设置（对局设置 / 棋子规则 / 界面 / 声音 四个 tab）
 - `HandicapDialog`      —— 等量让子（摆子）
 - `ReplayDialog`        —— 复盘 + AI 分析（分析已异步化，见 workers.AnalysisWorker）
 - `TrainingDialog`      —— 残局与排局训练
@@ -205,7 +205,7 @@ class SettingsDialog(QDialog):
         content_layout.addStretch()
         self.checks["king_appear"].setChecked(True);self.checks["king_appear"].setEnabled(False)
         scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(content);rule_layout.addWidget(scroll,1)
-        # tab 顺序是产品口径，别随手调：对局设置 → 修改规则 → 界面 → 声音。
+        # tab 顺序是产品口径，别随手调：对局设置 → 棋子规则 → 界面 → 声音。
         # 每页都能通过菜单独立打开（`standalone=True`），所以顺序只影响
         # 默认构造（多标签形态）与 `Ctrl+,` 落在哪一页。
         tabs.addTab(game_tab,t("settings.game_tab", self.language))
