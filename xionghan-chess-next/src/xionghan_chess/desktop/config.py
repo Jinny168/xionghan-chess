@@ -4,9 +4,11 @@ import json
 import os
 import sys
 from collections.abc import Callable, Mapping
+from dataclasses import asdict
 from pathlib import Path
 
 from ..core.game import DEFAULT_INITIAL_MINUTES
+from ..core.profiles import RuleOptions
 from typing import Any
 
 
@@ -73,7 +75,9 @@ DEFAULT_SERVER_URL = "http://127.0.0.1:8000"
 # **没有它就无法安全地迁移**：`{**DEFAULTS, **data}` 是浅合并，删键或改类型
 # 之后旧文件里的值会原样留在内存里，只能靠每个调用点自己兜底。
 # 有了版本号，迁移就集中在一处、只跑一次，并且可以被单测覆盖。
-CONFIG_VERSION = 1
+#
+# 2（2.0.0）：清掉已删除的规则开关 + `pawn_backward_at_base` 存量键。见 `_migrate_v1`。
+CONFIG_VERSION = 2
 
 DEFAULTS: dict[str, Any] = {
     "schema_version": CONFIG_VERSION,
@@ -132,8 +136,58 @@ GAME_BREAKING_KEYS: tuple[str, ...] = ("profile", "rule_options", "initial_minut
 
 
 def settings_differ_in_game_breaking_keys(old: dict[str, Any], new: dict[str, Any]) -> bool:
-    """两次配置之间是否发生了「必须重开对局」的变更（S1-9 的判定，可单测）。"""
-    return any(old.get(key) != new.get(key) for key in GAME_BREAKING_KEYS)
+    """两次配置之间是否发生了「必须重开对局」的变更（S1-9 的判定，可单测）。
+
+    `rule_options` 单独走**生效值**比较（`effective_rule_options`），不按键比：
+    设置窗口保存的是**全量键**（`SettingsDialog.value()`），而迁移后的老配置可能**缺几个键**
+    （`_migrate_v1` 就删过键）。按键比会把"缺键"和"显式默认值"判成不同 ——
+    老用户升级后第一次点「确定」就被判"改了规则"，正在下的一局当场被吞掉。
+    """
+    for key in GAME_BREAKING_KEYS:
+        if key == "rule_options":
+            if not _same_effective_rule_options(old.get(key), new.get(key)):
+                return True
+            continue
+        if old.get(key) != new.get(key):
+            return True
+    return False
+
+
+def effective_rule_options(values: object) -> dict[str, Any]:
+    """`rule_options` 的**生效值**：全键 + 默认值兜底 + 丢弃引擎不认的键。
+
+    判据统一走 `RuleOptions.merged()`（引擎自己那一份白名单/别名表），
+    这样"哪个键还算数"只有一处定义，不会在 config 里长出第二份。
+    """
+    if not isinstance(values, dict):
+        return asdict(RuleOptions())
+    return asdict(RuleOptions().merged(values))
+
+
+def _same_effective_rule_options(old_value: object, new_value: object) -> bool:
+    if isinstance(old_value, dict) and isinstance(new_value, dict):
+        return effective_rule_options(old_value) == effective_rule_options(new_value)
+    return old_value == new_value
+
+
+def sanitize_rule_options(values: object) -> dict[str, Any]:
+    """丢掉**对生效值没有任何影响**的键（已删除的选项、拼错的键）。
+
+    定义就是定义：把某个键去掉之后，`RuleOptions.merged()` 的结果不再变化 → 它是垃圾键。
+    这样不必在 config 里再抄一份"哪些键还算数"的名单（名单会漂），
+    也不用为此把 `merged()` 的别名表提升成公共常量。
+
+    32 个键的 O(n²) 只在迁移里跑一次，代价可以忽略。
+    """
+    if not isinstance(values, dict):
+        return {}
+    baseline = effective_rule_options(values)
+    clean: dict[str, Any] = {}
+    for key, value in values.items():
+        without = {k: v for k, v in values.items() if k != key}
+        if effective_rule_options(without) != baseline:
+            clean[key] = value
+    return clean
 
 
 def _as_int(value: Any, default: int, low: int, high: int) -> int:
@@ -154,6 +208,9 @@ def _migrate_v0(data: dict[str, Any]) -> dict[str, Any]:
 
     刻意**不删除未知键**：它们可能是更新版本写入的字段，也可能是用户自己加的
     备注，静默丢弃数据比留着更糟。
+
+    （v1 -> v2 是这条原则的**有意例外**，理由见 `_migrate_v1` —— 那里删的是
+    「对应选项已被产品删除」和「当年默认值被写进配置」两类键，不是用户的数据。）
     """
     result = dict(data)
     result["initial_minutes"] = _as_int(result.get("initial_minutes"),
@@ -169,8 +226,40 @@ def _migrate_v0(data: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _migrate_v1(data: dict[str, Any]) -> dict[str, Any]:
+    """1 -> 2：让 2.0.0 的兵规则默认值对**老用户**真正生效。
+
+    只动 `rule_options` 里的两类键，其余键、其余配置项原样保留：
+
+    1. **已删除选项的残键**（`pawn_full_movement_at_base` 等）：丢弃。判据是
+       `sanitize_rule_options`（去掉后生效值不变 = 垃圾键）。
+    2. **`pawn_backward_at_base`**：删除。它当年是**默认值被写进配置**，不是用户的选择 ——
+       `SettingsDialog.value()` 返回的是全量键，所以每个老用户配置里都显式存着 `true`。
+       不删的话 `RuleOptions.merged()` 会用这个存量 `true` 覆盖 2.0.0 的新默认值 `False`，
+       也就是**"改默认值"对老用户完全无效**。这是本轮最容易白干的地方。
+
+    sanitize **只在这里做，不在 `load_config()` 每次读盘时做**：
+    `migrate()` 对"版本比当前更新"的配置按原样返回，那是有意的降级保护 ——
+    每次 load 都 sanitize 会把新版本写入的键吃掉。
+
+    幂等由 `migrate()` 保证（`raw_version == CONFIG_VERSION` 时不进循环、`changed=False`），
+    所以这里**不写**"键已不存在就跳过"的分支 —— 那种分支反而可能让 `changed` 变真、
+    产生无谓写盘，甚至把用户手改的值覆盖回去。
+    """
+    result = dict(data)
+    options = result.get("rule_options")
+    if isinstance(options, dict):
+        cleaned = sanitize_rule_options(options)
+        cleaned.pop("pawn_backward_at_base", None)
+        result["rule_options"] = cleaned
+    return result
+
+
 # 键是「来源版本号」。每加一版就在这里登记一步，`migrate()` 会顺序执行。
-_MIGRATIONS: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {0: _migrate_v0}
+_MIGRATIONS: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {
+    0: _migrate_v0,
+    1: _migrate_v1,
+}
 
 
 def migrate(data: dict[str, Any]) -> tuple[dict[str, Any], bool]:
