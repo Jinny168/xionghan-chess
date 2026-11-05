@@ -93,7 +93,11 @@ class Rules{
  // The board sorts by the (color, type, row, col) TUPLE with NUMERIC row/col to
  // match Python's `sorted(...)`; a plain string sort would put "10" before "2"
  // and split the two ledgers on any same-type pair straddling 1<->2 digits.
- positionKey(state){const rows=state.pieces.map(x=>[x.color,x.type,x.row,x.col]);rows.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:a[1]<b[1]?-1:a[1]>b[1]?1:a[2]-b[2]||a[3]-b[3]);const board=rows.map(r=>`${r[0]}:${r[1]}:${r[2]}:${r[3]}`).join(';');const pool=[];for(const color of['red','black'])for(const piece of((state.captured&&state.captured[color])||[]))pool.push(`${color}:${piece.type}`);pool.sort();return state.turn+'|'+board+'||pool:'+pool.join(',')+'||opt:'+'p3l'+(this.options.pawn_three_line_capture?1:0)+'-promo'+(this.options.pawn_promotion?1:0)+'-self'+(this.options.enforce_self_check?1:0)}
+ // `||opt:rs2-...` 里的 `rs2` 是**规则集版本**，必须等于 core/profiles.py 的
+ // `RULE_VERSION`（JS 与 Python 无法共享常量，改一处必须改另一处 —— 同
+ // `RESTORE_PAWN_LIMIT` 那条）。它是硬规则进账本的唯一通道：巡禁竖移/兵底线
+ // 不后退没有对应开关，只能靠这个前缀把旧规则的 `positionCounts` 挡在外面。
+ positionKey(state){const rows=state.pieces.map(x=>[x.color,x.type,x.row,x.col]);rows.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:a[1]<b[1]?-1:a[1]>b[1]?1:a[2]-b[2]||a[3]-b[3]);const board=rows.map(r=>`${r[0]}:${r[1]}:${r[2]}:${r[3]}`).join(';');const pool=[];for(const color of['red','black'])for(const piece of((state.captured&&state.captured[color])||[]))pool.push(`${color}:${piece.type}`);pool.sort();return state.turn+'|'+board+'||pool:'+pool.join(',')+'||opt:'+'rs2-'+'p3l'+(this.options.pawn_three_line_capture?1:0)+'-promo'+(this.options.pawn_promotion?1:0)+'-self'+(this.options.enforce_self_check?1:0)}
 }
 class OfflineGame{
  constructor(profileId='web',initialMinutes=20){this.sessionId=Date.now();this.start(profileId,initialMinutes)}

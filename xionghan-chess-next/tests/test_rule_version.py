@@ -113,3 +113,36 @@ def test_protocol_version_has_a_single_definition() -> None:
                       if not line.lstrip().startswith("#")]
     assert not any(re.match(r"\s*PROTOCOL_VERSION\s*=", line) for line in code_lines), \
         "net.py 又写死了一份协议版本（注释里提到可以，赋值不行）"
+
+
+def test_position_key_version_is_4_and_the_digest_names_the_rule_set() -> None:
+    """硬规则没有开关，只能靠 key 里的 `rs{规则集版本}-` 前缀进账本。
+
+    不加前缀的话，同一盘面在 1.9 与 2.0 下会算出**完全相同的 key** ——
+    升级用户的中途局会带着旧规则的计数继续跑，三次重复判和就会误判。
+    """
+    from xionghan_chess.core.profiles import RULE_VERSION
+    from xionghan_chess.core.rules import POSITION_KEY_VERSION
+
+    assert POSITION_KEY_VERSION == 4
+    key = Game("web").rules.position_key(Game("web").state)
+    assert f"||opt:rs{RULE_VERSION}-" in key, key
+
+
+def test_upgrade_rebuilds_the_old_ledger_instead_of_reusing_it() -> None:
+    """升级验收：打开旧存档时，`positionCounts` 必须**重算**而不是原样带过来。
+
+    `GAME_BREAKING_KEYS` 只管配置，管不到硬规则 —— 升级后 config 一字未变，
+    不会触发"改规则须重开对局"，于是中途局会带着旧规则的账本继续跑。
+    `game_from_document` 里"键版本落后就按当前键重算"的机制就是为这一刻准备的，
+    这条测试钉住它：旧键（v3，没有 `rs` 前缀）必须被丢掉，账本按新键重建。
+    """
+    game = Game("web")
+    document = game_document(game)
+    document["positionKeyVersion"] = 3                    # 旧键格式（无 rs 前缀）
+    document["state"]["positionCounts"] = {"stale|old-format||opt:p3l0-promo1-self1": 2}
+
+    loaded = game_from_document(document)
+    keys = set(loaded.state.position_counts)
+    assert not any("stale" in key for key in keys), "旧账本被原样带过来了 —— 会误判三次重复"
+    assert keys == {loaded.rules.position_key(loaded.state)}, "账本应按当前键重建"

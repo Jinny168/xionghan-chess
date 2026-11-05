@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import Callable, Iterable, Iterator
 
 from .model import Color, GameState, Move, Piece, PieceType, Position
-from .profiles import RuleOptions, RuleProfile
+from .profiles import RULE_VERSION, RuleOptions, RuleProfile
 
 
 class CaptureKind(StrEnum):
@@ -67,10 +67,18 @@ def archer_star_segments(profile: RuleProfile) -> tuple[tuple[Position, Position
 # stamps it into every saved document, so a load can tell whether a repetition
 # ledger was written in the *current* format and re-derive it if not (see
 # `game_from_document`). Version 2 is "the key that includes the capture pool".
-POSITION_KEY_VERSION = 3
+POSITION_KEY_VERSION = 4
 # v3：key 里加入**影响合法着法的选项摘要**（`||opt:`）。
 # 旧存档的 `positionCounts` 作废：key 不匹配即从 0 计，最坏结果是"已重复 2 次的局面重新计"，
 # 不会误判和 —— 反向（沿用旧 key 的计数）才是会误判和的方向。
+# v4：摘要里加 `rs2-` 前缀（规则集版本）。**这是硬规则第一次进 key**：
+# `pawn_three_line_capture` / `pawn_promotion` / `enforce_self_check` 三位都是**开关**，
+# 而 2.0.0 改的是"巡只沿横线走"和"兵底线不再后退"——**没有对应开关**。
+# 不加前缀的话，同一盘面在 1.9 与 2.0 下算出**完全相同的 key**：升级用户的中途局
+# 会带着旧规则的计数继续跑（`GAME_BREAKING_KEYS` 只管配置，管不到硬规则），
+# 三次重复判和就会在新规则下沿用旧规则的账，误判和。
+# 与 `RULE_VERSION`（profiles.py，语义版本）的区别：这里只是 key 的**格式标签**，
+# 换 key 格式才 +1；语义变了但 key 格式没变时才需要动这个前缀。
 
 
 def pool_signature(state: GameState) -> str:
@@ -455,8 +463,13 @@ class RulesEngine:
         为什么 key 里要有它：`positionCounts` 会随存档/导入/网络带进选项不同的新对局，
         那些计数是按**旧选项**算的。不含摘要时，两种不同规则下的同一盘面会共用一份计数。
         只挑"改变合法着法"的字段，避免无谓抖动。
+
+        `rs{规则集版本}-` 里的版本号取 `profiles.RULE_VERSION`（2.0.0 = 2），
+        不是另起一个常量：**走法语义一变就必须换账本**，让它跟语义版本同源，
+        下次改规则的人就不可能只改一处、忘了这里。
         """
-        return (f"p3l{int(self.options.pawn_three_line_capture)}"
+        return (f"rs{RULE_VERSION}-"
+                f"p3l{int(self.options.pawn_three_line_capture)}"
                 f"-promo{int(self.options.pawn_promotion)}"
                 f"-self{int(self.options.enforce_self_check)}")
 
