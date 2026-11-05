@@ -42,14 +42,15 @@
 | 炮 | — | 无开关 | 同左 | 隔一子吃，两模式一致 |
 | 兵/卒 | 敌境前快速行军 | ✔ | ✘ | `pawn_fast_move_before_enemy_territory` |
 | 兵/卒 | 过阴山横走 | ✔ | ✔ | 无开关（经典象棋本来就有） |
-| 兵/卒 | 底线后退 / 四向 | ✔ | ✘ | `pawn_backward_at_base` / `pawn_full_movement_at_base` |
+| 兵/卒 | 底线后退一格 | ✔ | ✘ | `pawn_backward_at_base` |
+| 兵/卒 | 底线四向一格 | ✘（2.0.0 起默认关） | ✘ | `pawn_full_movement_at_base` |
 | 兵/卒 | 复活 / 升变 | ✔ | ✘ | `pawn_resurrection` / `pawn_promotion` |
 | 兵/卒 | 敌阵冲锋（多格不吃子） | ✔ | ✘ | `pawn_charge` |
 | 兵/卒 | 三连吃子 | ✔ | ✘ | `pawn_three_line_capture` |
 | 尉/卫 | 斜向任意距离 | ✔ | ✔ | 无开关（特色棋子，无经典原型） |
 | 射/䠶 | 强化（自由斜走三格） | ✔ | ✘ | `archer_enhanced_mode` |
 | 檑/礌 | 相邻吃子 + 孤立判定 | ✔ | ✔ | 无开关 |
-| 巡/廵 | 偶数格 / 隔两格吃 | ✔ | ✔ | 无开关 |
+| 巡/廵 | 横向偶数格 / 隔两格吃 | ✔ | ✔ | 无开关（竖移禁行是硬规则） |
 
 > **"全加强"的准确含义**：不是把每个开关都拨到 True，而是把**每个棋子的能力上限**打开。
 > 因此 `horse_blocked_by_leg=False`（去掉限制）与 `horse_straight_three_move_only=False`（保留吃子）

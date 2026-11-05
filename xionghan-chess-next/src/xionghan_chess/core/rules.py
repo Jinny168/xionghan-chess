@@ -727,10 +727,16 @@ class RulesEngine:
             (not self._diagonal(move) or not self._diagonal_path_pinched(state, move))
 
     def _patrol(self, state: GameState, piece: Piece, move: Move) -> bool:
-        """巡：横竖**同规则**（不再绑死在 5/7 行），走偶数格；吃子仅限距离 2。"""
-        if move.target.row != move.source.row and move.target.col != move.source.col:
+        """巡：**只沿横线**走偶数格；吃子仅限距离 2。
+
+        竖线禁行是**硬规则**（不进 `GameOptions`，红黑同一条判据）：巡的职责是沿巡道
+        横向巡逻，一旦允许竖走，它就能从阴山一侧直贯对方底线，"巡"这个身份就没了。
+        判据只认"起点终点同行"，**不查 {5,7} 行白名单** —— 残局摆子会把它放在任意行，
+        白名单会让残局里的巡凭空失效。
+        """
+        if move.target.row != move.source.row:
             return False
-        distance = abs(move.target.row - move.source.row) + abs(move.target.col - move.source.col)
+        distance = abs(move.target.col - move.source.col)
         if distance == 0 or distance % 2 or not self._clear(state, move.source, move.target):
             return False
         return self.get(state, move.target) is None or distance == 2

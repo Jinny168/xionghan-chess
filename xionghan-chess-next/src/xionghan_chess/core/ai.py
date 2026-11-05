@@ -106,7 +106,12 @@ VALUES = {
     PieceType.KING: 50_000, PieceType.ROOK: 900, PieceType.CANNON: 500,
     PieceType.HORSE: 450, PieceType.ELEPHANT: 260, PieceType.ADVISOR: 240,
     PieceType.PAWN: 120, PieceType.GUARD: 420, PieceType.ARCHER: 480,
-    PieceType.THUNDER: 490, PieceType.PATROL: 420,
+    PieceType.THUNDER: 490,
+    # 巡从 420 降到 300：`_patrol` 禁掉竖移后，它的可达格数腰斩（只剩横向 6 个空点），
+    # 420 会让 AI 拿它当"半个车"去换，评估与走法彻底脱节。
+    # **不要顺手降到 260 以下**：`_bias` 里 `VALUES[type] >= VALUES[PATROL]` 兼作
+    # "是否值得跑一次 SEE" 的阈值，降到 260 会把象（260）新纳入 SEE，白拖慢搜索。
+    PieceType.PATROL: 300,
 }
 
 MOBILE_PIECES = {

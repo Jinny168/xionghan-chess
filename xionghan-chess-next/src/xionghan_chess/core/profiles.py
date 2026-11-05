@@ -34,7 +34,11 @@ class RuleOptions:
     archer_enhanced_mode: bool = False
     pawn_fast_move_before_enemy_territory: bool = True
     pawn_backward_at_base: bool = True
-    pawn_full_movement_at_base: bool = True
+    # 兵在自己底线（对方底线的镜像）能否四向走。**默认关**：兵在任何位置都只能直进
+    # （+ 过阴山后横走 + 底线后退，这些各自有独立开关），底线不额外送"横竖随便走"。
+    # 默认值从 True 改成 False 是**破坏性规则变更**（2.0.0 的来源之一）：完整/精简模式
+    # 下，走到对方底线的兵过去可以左右平移吃子，现在只能直进或按 `pawn_backward_at_base` 后退。
+    pawn_full_movement_at_base: bool = False
     pawn_resurrection: bool = True
     pawn_promotion: bool = True
     pawn_charge: bool = False                 # 敌阵冲锋（过阴山后直线多格，不吃子）
