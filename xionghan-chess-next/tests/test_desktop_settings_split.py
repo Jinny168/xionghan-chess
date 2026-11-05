@@ -50,11 +50,12 @@ def test_default_construction_keeps_the_tabbed_window(qt_app) -> None:
     assert dialog.tabs.tabBar().isVisibleTo(dialog)
 
 
-def test_menu_lists_the_four_sections(qt_app, monkeypatch) -> None:
-    from xionghan_chess.desktop import config as settings_module
+def test_menu_lists_the_four_sections(qt_app) -> None:
+    # 写盘隔离已由 `tests/conftest.py` 的 autouse fixture（`isolated_user_data`）
+    # 统一兜住：这里原先只 patch `config.save_config`，而 app.py 持有的是
+    # `from .config import save_config` 的副本 —— 拦不住，跑完会写真实配置。
     from xionghan_chess.desktop.app import MainWindow
 
-    monkeypatch.setattr(settings_module, "save_config", lambda *_a, **_k: None)
     window = MainWindow()
     try:
         labels = []

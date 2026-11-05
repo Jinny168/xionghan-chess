@@ -19,7 +19,6 @@ from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from xionghan_chess.core.model import Move, Position  # noqa: E402
-from xionghan_chess.desktop import config as settings  # noqa: E402
 from xionghan_chess.desktop.app import MainWindow  # noqa: E402
 
 
@@ -29,8 +28,11 @@ def qt_app() -> QApplication:
 
 
 @pytest.fixture()
-def window(qt_app, monkeypatch):
-    monkeypatch.setattr(settings, "save_config", lambda *_a, **_k: None)
+def window(qt_app):
+    # 隔离与 `save_config` 的拦截已由 `tests/conftest.py` 的 autouse fixture
+    # （`isolated_user_data`）统一兜住，不再逐文件 patch —— 原先这里的
+    # `monkeypatch.setattr(settings, "save_config", ...)` 拦不住 app.py 里
+    # `from .config import save_config` 拿到的那个副本，等于没拦。
     win = MainWindow()
     win.show()
     qt_app.processEvents()
