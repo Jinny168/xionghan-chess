@@ -42,7 +42,19 @@ def qt_app() -> QApplication:
 
 
 @pytest.fixture()
-def window(qt_app, monkeypatch):
+def window(qt_app, monkeypatch, tmp_path):
+    """**必须隔离 APPDATA**，否则这条测试会污染开发者的真实配置。
+
+    `MainWindow.new_game()` 会调 `save_config`，而它是在 `app.py` 里 `from .config
+    import save_config` 拿到的 —— 直接 patch `config.save_config` **拦不住**它。
+    本文件第一版就踩了这个坑：跑完之后 `%APPDATA%/XionghanChess/settings.json` 里的
+    `profile` 被写成 `desktop_classic`，紧接着 `test_desktop_layout_limits` 里
+    新建的窗口就少了一个按钮、宽度断言直接红。
+    """
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    from xionghan_chess.desktop import app as app_module
+
+    monkeypatch.setattr(app_module, "save_config", lambda *_a, **_k: None)
     monkeypatch.setattr(settings, "save_config", lambda *_a, **_k: None)
     win = MainWindow()
     win.show()
