@@ -1,7 +1,7 @@
 {
   "fingerprint": {
     "pieces": 50,
-    "legal": 118
+    "legal": 116
   },
   "note": "负对照（预算不是杠杆）：软删刺 + 尉改主教后的 50 子布局，bench_roots 确定性策略生成 profile=desktop_complete, seed=700, plies=10。生成策略为每步取合法着法中位（按 move.key() 排序），不依赖时间受限搜索，可确定性重建。",
   "state": {

@@ -635,33 +635,35 @@ def test_pawn_charge_toggle_parity():
 
 
 
-def test_patrol_moves_on_rows_and_columns_parity():
-    """巡：横竖同规则，走偶数格，吃子仅限距离 2（不再限制在 5/7 行）。"""
+def test_patrol_moves_along_ranks_only_parity():
+    """巡：**只沿横线**走偶数格，吃子仅限距离 2；竖移是硬规则禁行（2.0.0 起）。
+
+    红黑同一条判据、且不查 5/7 行白名单 —— 残局把巡摆在任意行都得照走。
+    """
     game = _sparse("desktop_complete", [
         (PieceType.PATROL, Color.RED, 7, 6),
         (PieceType.PATROL, Color.BLACK, 5, 6),
         (PieceType.PAWN, Color.BLACK, 7, 8),
     ])
-    # 横向：距离 2 可吃 (7,8)，距离 4/6 必须是空点；纵向同理（距离 2 可吃 (5,6)）
-    _assert_targets(game, (7, 6), [(7, 0), (7, 2), (7, 4), (7, 8),
-                                   (9, 6), (11, 6), (5, 6)])
+    # 横向：距离 2 可吃 (7,8)，距离 4/6 被它挡住；竖线一格都不给（(5,6) 是正上方两格的敌子）
+    _assert_targets(game, (7, 6), [(7, 0), (7, 2), (7, 4), (7, 8)])
 
-    # 黑方另起一局（`_assert_parity` 只列当前行棋方的着法）：
-    # 竖走 (1,6)/(3,6)/(7,6)/(9,6)/(11,6)，横走 (5,0)/(5,2)/(5,4) 与吃子 (5,8)
+    # 黑方另起一局（`_assert_parity` 只列当前行棋方的着法）：横向 (5,0)/(5,2)/(5,4)
+    # 与吃子 (5,8)（吃子后不能再走）；竖线（(1,6)/(3,6)/(7,6)…）一律没有
     black = _sparse("desktop_complete", [
         (PieceType.PATROL, Color.BLACK, 5, 6),
         (PieceType.PAWN, Color.RED, 5, 8),
     ], turn=Color.BLACK)
-    _assert_targets(black, (5, 6), [(1, 6), (3, 6), (5, 0), (5, 2), (5, 4),
-                                    (5, 8), (7, 6), (9, 6), (11, 6)])
+    _assert_targets(black, (5, 6), [(5, 0), (5, 2), (5, 4), (5, 8)])
 
 
 def test_patrol_is_not_pinned_to_home_rank_parity():
-    """旧口径把巡锁在 5/7 行；新口径下任意行列都能走（偶数格）。"""
+    """任意**行**都能横向走（偶数格）；但竖线永远不走 —— 行不是白名单，横向才是规则。"""
     game = _sparse("desktop_complete", [(PieceType.PATROL, Color.RED, 6, 6)])
     targets = _targets_from(_assert_parity(game), (6, 6))
-    assert (6, 0) in targets and (6, 12) in targets
-    assert (0, 6) in targets and (12, 6) in targets
+    assert (6, 0) in targets and (6, 12) in targets, "任意行都能横向走偶数格"
+    assert (0, 6) not in targets and (12, 6) not in targets, "竖移是硬规则禁行"
+    assert (8, 6) not in targets, "竖着两格也不行（不是「只能走偶数格所以竖着两格可以」）"
 
 
 # --- rule interactions ------------------------------------------------------

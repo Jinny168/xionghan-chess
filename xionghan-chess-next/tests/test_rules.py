@@ -112,23 +112,32 @@ def test_pawn_three_line_capture_is_opt_in():
     assert any(p.type is PieceType.HORSE for p in after_off.pieces), "默认关不应触发"
 
 
-def test_patrol_moves_four_ways_and_captures_at_distance_two():
+def test_patrol_moves_along_ranks_only_and_captures_at_distance_two():
     red, black = kings()
     patrol = piece(PieceType.PATROL, Color.RED, 6, 6)
     victim = piece(PieceType.PAWN, Color.BLACK, 6, 9)
     board = state(red, black, patrol, victim)
     rules = RulesEngine(get_profile("desktop_complete"))
 
-    # 横竖都行（不再限制在 5/7 行），偶数格
+    # 只沿横线、偶数格；行号不限（6 行也能走，残局摆子照走）
     assert rules.is_legal(board, Move(patrol.position, Position(6, 4)))
-    assert rules.is_legal(board, Move(patrol.position, Position(2, 6)))
+    assert rules.is_legal(board, Move(patrol.position, Position(6, 2)))
     assert not rules.is_legal(board, Move(patrol.position, Position(6, 5)))   # 奇数格不行
-    # 吃子仅限距离 2
+    # 竖移是硬规则禁行：同一条竖线上的偶数格也不行（这条推翻了「横竖同规则」）
+    assert not rules.is_legal(board, Move(patrol.position, Position(4, 6)))
+    assert not rules.is_legal(board, Move(patrol.position, Position(2, 6)))
+    # 斜走当然也不行
+    assert not rules.is_legal(board, Move(patrol.position, Position(4, 4)))
+    # 吃子仅限横向距离 2
     assert rules.is_legal(board, Move(patrol.position, Position(6, 8)))       # 走空点
     assert not rules.is_legal(board, Move(patrol.position, Position(6, 9)))   # 距离 3 吃不到
     near = state(red, black, piece(PieceType.PATROL, Color.RED, 6, 6),
                  piece(PieceType.PAWN, Color.BLACK, 6, 8))
     assert rules.is_legal(near, Move(Position(6, 6), Position(6, 8)))         # 距离 2 可吃
+    # 竖着两格即便有敌子也吃不到
+    vertical = state(red, black, piece(PieceType.PATROL, Color.RED, 6, 6),
+                     piece(PieceType.PAWN, Color.BLACK, 4, 6))
+    assert not rules.is_legal(vertical, Move(Position(6, 6), Position(4, 6)))
 
 
 def test_promotion_requires_captured_allowed_piece():
@@ -315,13 +324,19 @@ def test_patrol_rejects_odd_distances_and_staying_put():
     assert not _patrol_move(rules, board, 5, 0)
 
 
-def test_patrol_rejects_leaving_its_home_row():
+def test_patrol_rejects_diagonal_moves():
+    """斜走一律不行（改名自 `test_patrol_rejects_leaving_its_home_row`）。
+
+    原来这条叫"不能离开本行"，但断言的是 `(4,2)`/`(6,2)` —— 相对 (5,0) 都是**斜走**，
+    在旧口径（横竖同规则）下它靠"斜走"通过，名字却是"离开本行"。2.0.0 禁竖移后
+    这条会**因为错误的原因继续绿**，所以按实际判据改名，并补一条"同一行照样能走"。
+    """
     rules = RulesEngine(get_profile("desktop_complete"))
     board = _patrol_board()
-    assert not _patrol_move(rules, board, 4, 2)
-    assert not _patrol_move(rules, board, 6, 2)
-    # Even staying on a legal column is not enough if the row changes.
-    assert not _patrol_move(rules, board, 4, 0)
+    assert not _patrol_move(rules, board, 4, 2)    # 左上斜
+    assert not _patrol_move(rules, board, 6, 2)    # 左下斜
+    assert not _patrol_move(rules, board, 4, 0)    # 垂直一格（竖移硬禁行）
+    assert _patrol_move(rules, board, 5, 2)        # 同一行横向才是合法方向
 
 
 def test_patrol_rejects_a_blocked_path():
