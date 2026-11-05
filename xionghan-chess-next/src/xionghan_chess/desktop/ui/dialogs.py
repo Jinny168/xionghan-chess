@@ -1,6 +1,6 @@
 """桌面端的 6 个对话框（阶段1 S1-2 从 app.py 抽出，约 300 行）。
 
-- `SettingsDialog`      —— 设置（游戏 / 外观 / 棋子与规则 三个 tab）
+- `SettingsDialog`      —— 设置（对局设置 / 修改规则 / 界面 / 声音 四个 tab）
 - `HandicapDialog`      —— 等量让子（摆子）
 - `ReplayDialog`        —— 复盘 + AI 分析（分析已异步化，见 workers.AnalysisWorker）
 - `TrainingDialog`      —— 残局与排局训练
@@ -142,8 +142,9 @@ class SettingsDialog(QDialog):
         game_form.addRow(t("settings.human_color", self.language),self.color);game_form.addRow(t("settings.initial_minutes", self.language),self.minutes);game_form.addRow(t("settings.countdown", self.language),self.countdown)
         game_form.addRow(t("desktop.first_move",self.language),self.first_move)
         game_layout.addLayout(game_form);game_layout.addWidget(self.autosave)
-        tabs.addTab(game_tab,t("settings.game_tab", self.language))
 
+        # 「界面」与「声音」拆成两页：它们没有共同项，挤在一页里想关掉 BGM 得跟
+        # 字体/主题/棋子风格一起翻（4 个 tab 的顺序由下面统一的 addTab 决定）。
         appearance_tab=QWidget();appearance_form=QFormLayout(appearance_tab)
         appearance_form.addRow(t("language.label", self.language),self.language_select)
         appearance_form.addRow(t("settings.board_theme", self.language),self.theme);appearance_form.addRow(t("settings.font", self.language),self.font)
@@ -154,12 +155,14 @@ class SettingsDialog(QDialog):
         preview=QPushButton(dl("预览三风格"));preview.clicked.connect(self.open_piece_atlas)
         piece_row_layout.addWidget(preview)
         appearance_form.addRow(t("settings.piece_style", self.language),piece_row)
-        appearance_form.addRow(t("settings.sound_effects", self.language),self.sound)
-        appearance_form.addRow(t("settings.sound_volume", self.language),self.sound_volume);appearance_form.addRow(dl("音效风格"),self.sound_pack);appearance_form.addRow(t("settings.music", self.language),self.music)
-        appearance_form.addRow(t("settings.music_style", self.language),self.music_style);appearance_form.addRow(t("settings.music_volume", self.language),self.music_volume)
         appearance_form.addRow(t("settings.animation", self.language),self.animations);appearance_form.addRow(t("settings.selection", self.language),self.selection_highlight)
         appearance_form.addRow(t("settings.legal_targets", self.language),self.legal_targets);appearance_form.addRow(t("settings.capture_hints", self.language),self.capture_hints);appearance_form.addRow("棋灵挑衅" if self.language!="en" else "AI taunts",self.taunts)
-        tabs.addTab(appearance_tab,t("settings.appearance_tab", self.language))
+
+        sound_tab=QWidget();sound_form=QFormLayout(sound_tab)
+        sound_form.addRow(t("settings.sound_effects", self.language),self.sound)
+        sound_form.addRow(t("settings.sound_volume", self.language),self.sound_volume);sound_form.addRow(dl("音效风格"),self.sound_pack)
+        sound_form.addRow(t("settings.music", self.language),self.music)
+        sound_form.addRow(t("settings.music_style", self.language),self.music_style);sound_form.addRow(t("settings.music_volume", self.language),self.music_volume)
 
         self._active_profile_id = config["profile"]
         self._profile_values = {profile_id: profile_rule_values(profile_id) for profile_id in PROFILES}
@@ -167,10 +170,14 @@ class SettingsDialog(QDialog):
             self._active_profile_id, config.get("rule_options", {}))
         self.checks={}; options=PROFILES[self._active_profile_id].options.merged(
             self._profile_values[self._active_profile_id])
+        game_layout.addStretch()
+        # 通用裁定（自我将军 / 三次重复）属于**规则**，不属于「开一局怎么开」——
+        # 它们留在对局设置页会让「这局判定变了」和「我设了时间」混在一处。
+        rule_page=QWidget();rule_layout=QVBoxLayout(rule_page)
         general=QGroupBox(t("settings.general_rules", self.language));general_layout=QVBoxLayout(general)
         for key in ("enforce_self_check","threefold_draw"):
             check=QCheckBox(t(f"rule.{key}", self.language));check.setChecked(display_value(key,getattr(options,key)));self.checks[key]=check;general_layout.addWidget(check)
-        game_layout.addWidget(general);game_layout.addStretch()
+        rule_layout.addWidget(general)
 
         piece_definitions={
             PieceType.KING:("piece.king_label","piece_rule.king_long",("king_can_leave_palace","king_diagonal_in_palace","king_lose_diagonal_outside_palace","invasion_victory")),
@@ -197,7 +204,14 @@ class SettingsDialog(QDialog):
             content_layout.addWidget(group)
         content_layout.addStretch()
         self.checks["king_appear"].setChecked(True);self.checks["king_appear"].setEnabled(False)
-        scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(content);tabs.addTab(scroll,t("settings.piece_rules_tab", self.language))
+        scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(content);rule_layout.addWidget(scroll,1)
+        # tab 顺序是产品口径，别随手调：对局设置 → 修改规则 → 界面 → 声音。
+        # 每页都能通过菜单独立打开（`standalone=True`），所以顺序只影响
+        # 默认构造（多标签形态）与 `Ctrl+,` 落在哪一页。
+        tabs.addTab(game_tab,t("settings.game_tab", self.language))
+        tabs.addTab(rule_page,t("settings.piece_rules_tab", self.language))
+        tabs.addTab(appearance_tab,t("settings.appearance_tab", self.language))
+        tabs.addTab(sound_tab,t("settings.sound_tab", self.language))
         self.profile.currentIndexChanged.connect(self._profile_changed);self._update_piece_availability();self._sync_option_dependencies()
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText(t("action.confirm", self.language));buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("action.cancel", self.language))
@@ -206,7 +220,7 @@ class SettingsDialog(QDialog):
         self.tabs=tabs
         if standalone:
             # 拆成独立窗口：只留当前页。标签栏一藏，它就是一个普通的设置窗口，
-            # 菜单里三个入口各开各的，不用先开总设置再找标签。
+            # 菜单里四个入口各开各的，不用先开总设置再找标签。
             tabs.tabBar().setVisible(False)
             self.setWindowTitle(tabs.tabText(tabs.currentIndex()))
             self.resize(560, min(700, max(360, self.sizeHint().height())))

@@ -177,11 +177,13 @@ class MainWindow(QMainWindow):
         panels=QAction(t("menu.toggle_panels", lang),self);panels.triggered.connect(self.toggle_panels);view_menu.addAction(panels)
         flip=QAction(dl("翻转棋盘"),self);flip.setShortcut(QKeySequence("Ctrl+F"));flip.triggered.connect(self.flip_board);view_menu.addAction(flip)
         settings_menu = self.menuBar().addMenu(t("menu.settings", lang))
-        # 设置按业务拆成三个独立窗口，菜单里各给一个入口（原来是一个窗口三个标签，
-        # 想改声音得先开总设置再翻标签）。
+        # 设置按业务拆成四个独立窗口，菜单里各给一个入口（原来是一个窗口三个标签，
+        # 想改声音得先开总设置再翻标签）。顺序与 `SettingsDialog` 的 tab 顺序一致：
+        # 对局设置 → 修改规则 → 界面 → 声音。
         for index,label,shortcut in ((0,t("settings.game_tab", lang),"Ctrl+,"),
-                                     (1,t("settings.appearance_tab", lang),""),
-                                     (2,t("settings.piece_rules_tab", lang),"")):
+                                     (1,t("settings.piece_rules_tab", lang),""),
+                                     (2,t("settings.appearance_tab", lang),""),
+                                     (3,t("settings.sound_tab", lang),"")):
             action=QAction(label,self)
             action.triggered.connect(lambda _checked=False, tab=index: self.settings(tab, standalone=True))
             if shortcut:

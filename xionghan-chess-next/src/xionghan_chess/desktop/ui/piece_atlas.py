@@ -85,8 +85,10 @@ PIECE_OPTION_KEYS: dict[PieceType, tuple[str, ...]] = {
 # 越过我们给棋盘定的「>1.15 记已知缺陷」那条线；72×2 ÷ 137 = 1.05×，
 # 任何 DPI 下都≈1:1。72 在格宽 97 下仍有 25 px 净间隙，不挤。
 THUMB = 72
-# 「去规则设置调整」要跳到设置里的「棋子与规则」tab（第 3 个）。
-PIECE_RULES_TAB = 2
+# 「去规则设置调整」要跳到设置里的「修改规则」tab（第 2 个）。
+# 顺序是 对局设置 / 修改规则 / 界面 / 声音（见 `dialogs.SettingsDialog`）——
+# 这里写死的是**下标**，调换 tab 顺序时必须同步改这一处，否则按钮会跳到「界面」。
+PIECE_RULES_TAB = 1
 
 
 def _draw_glyph_badge(painter: QPainter, edge: int, text: str) -> None:
