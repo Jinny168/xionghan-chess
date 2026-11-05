@@ -28,6 +28,15 @@ _LANGUAGE = "zh-CN"
 EN: dict[str, str] = {
     # ---- 菜单 / 主界面 ----
     "残局与排局训练": "Endgame & set-play drills",
+    # D4 首跑引导（状态栏横幅）
+    "① 选对手：右侧面板有人机 / 双人 / 联机": "① Pick an opponent: AI / two players / online (right panel)",
+    "② 走一步：点自己的棋子，再点落点": "② Move: click your piece, then its destination",
+    "③ 卡住了：训练里有每日一题，做题时状态栏有提示": "③ Stuck? Training has a daily puzzle; the hint sits in the status bar",
+    # C2 两段式提示（先指子、再指招）
+    "提示": "Hint",
+    "先指子，再指招": "Piece first, then the move",
+    "再看落点": "Where to",
+    "没有更多提示": "No more hints",
     "翻转棋盘": "Flip board",
     "账号与云同步": "Account & cloud sync",
     "对局统计": "Statistics",
@@ -52,7 +61,7 @@ EN: dict[str, str] = {
     "棋谱读取失败": "Could not read game file",
     "AI 异常": "AI error",
     # 箭号 ↕ 不在随包字体子集里（GB2312 之外），英文侧不要带它
-    "↕ 翻转": "Flip",
+    "翻转": "Flip",
     "红方": "Red",
     "黑方": "Black",
     # ---- 对局操作 ----
@@ -74,6 +83,12 @@ EN: dict[str, str] = {
     "聊天": "Chat",
     "聊天仅在联机房间中可用": "Chat is only available in online rooms",
     "发送快捷短语": "Quick phrases",
+    "音效风格": "Sound pack",
+    "经典": "Classic",
+    "网页合成": "Web synth",
+    "音效风格": "Sound pack",
+    "经典": "Classic",
+    "网页合成": "Web synth",
     "输入聊天内容": "Type a message",
     "发送": "Send",
     "房间号": "Room code",
@@ -166,6 +181,8 @@ EN: dict[str, str] = {
 
 # 带变量的句子。中文模板即 key；英文侧用同样的 {占位符}。
 TEMPLATES: dict[str, str] = {
+    "吃掉{names}！": "Captured: {names}!",
+    "先看这一枚：{name}": "Look at this piece: {name}",
     "棋局已保存：{path}": "Game saved: {path}",
     "已载入：{path}": "Loaded: {path}",
     "当前版本 {version}，最新版本 {latest}": "Current {version}, latest {latest}",

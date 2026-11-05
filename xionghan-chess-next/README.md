@@ -39,8 +39,23 @@ py -3.11 -m venv .venv
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[test]"
-.\.venv\Scripts\python.exe -m pytest
+# 日常门禁（约 83 秒，跳过 slow）
+.\.venv\Scripts\python.exe -m pytest tests/ -m "not slow"
+# 全量（约 132 秒，含专家档 14 条深度用例 + 性能护栏）
+.\.venv\Scripts\python.exe -m pytest tests/ -m slow
 ```
+
+> 日常门禁用 `-m "not slow"`（约 83s）；**改评估 / 走法排序 / 搜索参数 / 难度参数后必须跑全量**
+> （`-m slow`，约 132s）。裸 `pytest` 会跑全量、更慢 —— 门禁命令请显式写出来，不要靠全局默认。
+
+## 功能摘要
+
+13×13 匈汉象棋；11 类棋子（完整档 50 子 / 每方 25）；六档 AI（入门→初级→中级→高级→专家→大师）；
+桌面 / 网页 / 安卓三端共用同一套 Python 规则核心，安卓内置离线规则镜像并有跨引擎对拍门禁；
+内置题库、棋谱回放、本地棋谱库与棋子图谱。
+
+- 详细架构与功能：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- 全部文档索引：[docs/README.md](docs/README.md)
 
 ## 二、三端构建
 
@@ -82,14 +97,12 @@ xionghan-chess-next/
 ## 四、规则要点
 
 - **棋盘**：主模式为 13×13，同时保留传统 10×9 的「传统」模式。
-- **棋子**：除传统七种（帥/將、俥/車、馬、相/象、仕/士、炮、兵/卒）外，扩展了七种特色棋子：尉、射、檑、甲、刺、楯、巡。
-  - **尉**：横、竖或斜线隔一子跳，目标必须为空。
+- **棋子**：除传统七种（帥/將、俥/車、馬、相/象、仕/士、炮、兵/卒）外，扩展了**四种**特色棋子：尉、射、檑、巡（每方 25 枚、全场 50 枚、共 11 种棋子）。
+  > 甲/胄、楯/碷、刺/伺 **已于 2026-10-31 移除**（软删：枚举与规则分支保留，默认不出场；图鉴里以灰态「未登场」列出）。
+  - **尉**：**斜向任意距离**移动与吃子，路径必须无子；不能走直线（标准主教）。
   - **射**：沿斜线移动；默认（弱化）模式下只能沿交错的星点轨道走，强化模式可自由斜走最多三格。
   - **檑**：可横、竖、斜移动；吃子时只能吃相邻八方向内、且四正交方向无同色保护的孤立敌子。
-  - **甲**：本身只能横竖移动；走完后若与己方子构成三子一条直线（含斜线），可额外移除其中一名敌子。
-  - **刺**：横竖移动；若目标反向延长线上有敌子，会与之反向兑子（双方同时移除），楯不受影响。
-  - **楯**：横竖隔一子跳，自身不可被吃，并保护相邻友子。
-  - **巡**：仅在行 5 或行 7 的巡河线上横向移动，必须走偶数格，只有隔两格时才能吃子。
+  - **巡**：横竖同规则（不限行），走偶数格，只有隔两格时才能吃子。
 - **可配置规则**：复活、升变、底线兵、快速行军、将军提示等行为开关集中在 `RuleOptions`，不同模式给出不同默认值。
 - 完整逐子规则与判定边界见 [docs/PIECE_RULES.md](docs/PIECE_RULES.md)，胜负与终局判定见 [docs/RULES.md](docs/RULES.md)。
 
@@ -100,7 +113,8 @@ xionghan-chess-next/
   - “网络房间、聊天、暂停计时、观战同步”等在线功能依赖一个已启动的 FastAPI 服务；服务不可达时这些入口保持禁用。
 - **Web 端不独立承载规则**：浏览器端是服务端规则的投影，合法走法、AI 与终局判定都发生在 Python 服务内，因此 Web 端必须连着服务端才能下棋。
 - **Android 端内置离线规则镜像**：APK 内置一份 `offline.js` 规则，用于“双人同机”离线对局；该镜像需要与 Python 核心规则保持一致（由跨引擎对拍测试守护）。
-- **master（大师）难度**：第五档 AI 已接入，但其“正式棋力”尚未完成 50 局非截断完整对弈验收，暂不作为强度承诺。
+- **AI 难度共六档**：`beginner`（0.5 s）· `easy`（1.5 s）· `medium`（5 s）· `hard`（12 s）· **`expert` 专家（固定 3 层，约 10–30 秒/步，35 s 上限）** · `master`（MCTS，12 s）。专家档的根宽沿用 `hard` 的 18，只加深一层，便于把“深度”单独归因。
+- **master（大师）难度**：最高档 AI 已接入，但其“正式棋力”尚未完成 50 局非截断完整对弈验收，暂不作为强度承诺。
 - **内置题解规模有限**：题解集尚小，仍在补充中。
 
 ## 六、相关文档
@@ -108,7 +122,7 @@ xionghan-chess-next/
 - 架构与技术选型：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - WebSocket 协议：[docs/WEBSOCKET_PROTOCOL.md](docs/WEBSOCKET_PROTOCOL.md)
 - Android 构建与连服：[docs/ANDROID.md](docs/ANDROID.md)
-- Linux 服务器部署：[docs/LINUX_DEPLOY.md](docs/LINUX_DEPLOY.md)、Docker 部署：[docs/DOCKER_DEPLOY.md](docs/DOCKER_DEPLOY.md)
+- Linux 服务器部署：[docs/LINUX_DEPLOY.md](docs/LINUX_DEPLOY.md)、运行与部署（桌面/网页/Docker）：[docs/release/RUN.md](docs/release/RUN.md)
 - 玩家帮助与 FAQ：[HELP.md](src/xionghan_chess/desktop/resources/docs/HELP.md)（**仓库内唯一一份**：桌面端运行期加载并随包分发，`docs/HELP.md` 旧副本已删除）
 - 项目愿景：[ABOUT.md](src/xionghan_chess/desktop/resources/docs/ABOUT.md)（**仓库内唯一一份**：桌面端运行期加载并随包分发的权威副本，`docs/ABOUT.md` 旧副本已删除）
 - 变更记录：[docs/CHANGELOG_1.6.0.md](docs/CHANGELOG_1.6.0.md)；当前版本计划：[docs/VERSION_PLAN_1.6.0.md](docs/VERSION_PLAN_1.6.0.md)

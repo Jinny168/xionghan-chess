@@ -69,7 +69,7 @@ C:\Users\27415\.workbuddy\binaries\python\versions\3.13.12\python.exe -m venv .v
 > **另一个坑**：本机**代理 127.0.0.1:16066 已停止监听**，而 shell 环境里可能仍残留
 > `http_proxy/https_proxy` 指向它 —— 若 pip 报连接被拒，先 `env -u http_proxy -u https_proxy` 再跑。
 
-> **Python 版本**：`pyproject.toml` 要求 `>=3.11`。`docs/RUN_DESKTOP.md` 写的是 `py -3.11`，但本机实测 **3.13 跑得通**（全套 202 用例在 3.13 下全绿）。若你的 `py -3.11` 不存在，用上面这条即可。
+> **Python 版本**：`pyproject.toml` 要求 `>=3.11`。`docs/release/RUN.md` 写的是 `py -3.11`，但本机实测 **3.13 跑得通**（全套 202 用例在 3.13 下全绿）。若你的 `py -3.11` 不存在，用上面这条即可。
 >
 > **备选路径（不推荐）**：本机 anaconda（`D:\ProgramData\anaconda3`）自带 **PySide6 6.9.2**，但那是
 > **Essentials 版、缺 `QtMultimedia`**，而桌面端 `desktop/audio.py` 依赖它 ⇒ **直接跑会报

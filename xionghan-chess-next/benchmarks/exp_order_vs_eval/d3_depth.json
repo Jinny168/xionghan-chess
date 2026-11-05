@@ -1,0 +1,258 @@
+{
+ "e4895d826ca22e2f": {
+  "profile": "desktop_complete",
+  "seed": 700,
+  "plies": 4,
+  "fp": "50/102",
+  "d2": {
+   "move": "9,1-9,11",
+   "completed_depth": 2,
+   "wall": 2.2
+  },
+  "d3": {
+   "move": "9,1-9,11",
+   "completed_depth": 3,
+   "wall": 8.61
+  }
+ },
+ "f2fc8f96a6f1b415": {
+  "profile": "desktop_complete",
+  "seed": 701,
+  "plies": 4,
+  "fp": "50/101",
+  "d2": {
+   "move": "9,1-9,4",
+   "completed_depth": 2,
+   "wall": 2.49
+  },
+  "d3": {
+   "move": "7,12-5,12",
+   "completed_depth": 3,
+   "wall": 14.36
+  }
+ },
+ "cc217fd258296f75": {
+  "profile": "desktop_complete",
+  "seed": 702,
+  "plies": 4,
+  "fp": "50/116",
+  "d2": {
+   "move": "7,0-5,0",
+   "completed_depth": 2,
+   "wall": 2.23
+  },
+  "d3": {
+   "move": "7,0-5,0",
+   "completed_depth": 3,
+   "wall": 9.91
+  }
+ },
+ "c2c43f4f145beaa7": {
+  "profile": "desktop_complete",
+  "seed": 703,
+  "plies": 4,
+  "fp": "50/106",
+  "d2": {
+   "move": "9,11-9,6",
+   "completed_depth": 2,
+   "wall": 4.51
+  },
+  "d3": {
+   "move": "9,11-9,6",
+   "completed_depth": 3,
+   "wall": 14.61
+  }
+ },
+ "9afd03239df7ac1b": {
+  "profile": "desktop_complete",
+  "seed": 700,
+  "plies": 8,
+  "fp": "50/101",
+  "d2": {
+   "move": "9,1-9,11",
+   "completed_depth": 2,
+   "wall": 2.4
+  },
+  "d3": {
+   "move": "9,1-9,11",
+   "completed_depth": 3,
+   "wall": 9.61
+  }
+ },
+ "502da69fa7818de0": {
+  "profile": "desktop_complete",
+  "seed": 701,
+  "plies": 8,
+  "fp": "50/99",
+  "d2": {
+   "move": "7,12-5,12",
+   "completed_depth": 2,
+   "wall": 2.16
+  },
+  "d3": {
+   "move": "11,3-8,3",
+   "completed_depth": 3,
+   "wall": 14.12
+  }
+ },
+ "3b582a1d6e579edf": {
+  "profile": "desktop_complete",
+  "seed": 702,
+  "plies": 8,
+  "fp": "49/114",
+  "d2": {
+   "move": "9,11-9,6",
+   "completed_depth": 2,
+   "wall": 5.23
+  },
+  "d3": {
+   "move": "9,11-9,6",
+   "completed_depth": 3,
+   "wall": 13.56
+  }
+ },
+ "328e511a8eaf4c09": {
+  "profile": "desktop_complete",
+  "seed": 703,
+  "plies": 8,
+  "fp": "50/101",
+  "d2": {
+   "move": "9,11-1,11",
+   "completed_depth": 2,
+   "wall": 1.97
+  },
+  "d3": {
+   "move": "9,11-1,11",
+   "completed_depth": 3,
+   "wall": 13.84
+  }
+ },
+ "f9199b9fee36d033": {
+  "profile": "desktop_complete",
+  "seed": 700,
+  "plies": 12,
+  "fp": "50/112",
+  "d2": {
+   "move": "9,8-9,12",
+   "completed_depth": 2,
+   "wall": 2.69
+  },
+  "d3": {
+   "move": "9,8-9,12",
+   "completed_depth": 3,
+   "wall": 10.0
+  }
+ },
+ "997053174133d61b": {
+  "profile": "desktop_complete",
+  "seed": 701,
+  "plies": 12,
+  "fp": "50/96",
+  "d2": {
+   "move": "10,1-10,6",
+   "completed_depth": 2,
+   "wall": 3.72
+  },
+  "d3": {
+   "move": "11,3-9,4",
+   "completed_depth": 3,
+   "wall": 14.77
+  }
+ },
+ "9a6b3275d404f853": {
+  "profile": "desktop_complete",
+  "seed": 702,
+  "plies": 12,
+  "fp": "49/100",
+  "d2": {
+   "move": "7,0-5,0",
+   "completed_depth": 2,
+   "wall": 2.37
+  },
+  "d3": {
+   "move": "7,0-5,0",
+   "completed_depth": 3,
+   "wall": 11.8
+  }
+ },
+ "b462e195f8f0b142": {
+  "profile": "desktop_complete",
+  "seed": 703,
+  "plies": 12,
+  "fp": "50/99",
+  "d2": {
+   "move": "9,11-2,11",
+   "completed_depth": 2,
+   "wall": 2.36
+  },
+  "d3": {
+   "move": "9,11-2,11",
+   "completed_depth": 3,
+   "wall": 10.4
+  }
+ },
+ "2719dd6f26e881f3": {
+  "profile": "web",
+  "seed": 700,
+  "plies": 8,
+  "fp": "44/101",
+  "d2": {
+   "move": "9,1-9,6",
+   "completed_depth": 2,
+   "wall": 3.32
+  },
+  "d3": {
+   "move": "5,4-4,4",
+   "completed_depth": 3,
+   "wall": 28.78
+  }
+ },
+ "6efe360746a3ea79": {
+  "profile": "web",
+  "seed": 701,
+  "plies": 8,
+  "fp": "44/93",
+  "d2": {
+   "move": "10,1-1,1",
+   "completed_depth": 2,
+   "wall": 2.69
+  },
+  "d3": {
+   "move": "10,1-1,1",
+   "completed_depth": 3,
+   "wall": 6.69
+  }
+ },
+ "a2550f49e3960786": {
+  "profile": "traditional",
+  "seed": 700,
+  "plies": 8,
+  "fp": "32/42",
+  "d2": {
+   "move": "3,7-0,7",
+   "completed_depth": 2,
+   "wall": 1.15
+  },
+  "d3": {
+   "move": "3,7-0,7",
+   "completed_depth": 3,
+   "wall": 3.28
+  }
+ },
+ "9c5ee0503469af6f": {
+  "profile": "traditional",
+  "seed": 701,
+  "plies": 8,
+  "fp": "32/43",
+  "d2": {
+   "move": "6,0-5,0",
+   "completed_depth": 2,
+   "wall": 0.65
+  },
+  "d3": {
+   "move": "6,0-5,0",
+   "completed_depth": 3,
+   "wall": 3.29
+  }
+ }
+}

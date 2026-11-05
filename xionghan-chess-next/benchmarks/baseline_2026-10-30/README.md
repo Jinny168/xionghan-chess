@@ -138,7 +138,7 @@ for profile in (desktop_complete, desktop_classic, web, traditional):
 | `base2_td2_16.json` | 16 局面 `t_d2` ×3 | 中位-of-中位 **4.458s**；分档 4.815 / 2.521 / 0.675s |
 | `base2_ref8.json` | 9 条深参照（48s） | 8 条 d3、`c54bc97a` 为 d2 |
 | `base2_sel8.json` | 9 条 12s 选点 ×3 | 9 局面 ×3 次全部一致；前 8 中 7 个与参照同手 |
-| `base2_mobility.json` | 14 型机动性 + 初始首着 | 檑 46 / 俥 23 / 炮 23 / 尉 0 / 楯 0 |
+| `base2_mobility.json` | 14 型机动性 + 初始首着 | 檑 46 / 俥 23 / 炮 23 / 尉 0 / 楯 0（⚠️ 该表**含已移除的甲/楯**，仅作历史对照；2026-10-31 起为 12 型） |
 | `base2_unfreeze_side.json` | 甲/刺 可动性原始逐局 | 见 §3 ① |
 | `base2_unfreeze_nocapture_side.json` | 按 piece id 追踪的主动走出 | 见 §3 ②③ |
 | `base2_first_move_side.json` | 按走棋记录统计的首次出动 | 见 §3 ② |

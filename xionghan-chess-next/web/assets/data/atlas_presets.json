@@ -1,0 +1,296 @@
+{
+  "profile": "web",
+  "presets": [
+    {
+      "id": "clamp",
+      "label": "夹逼",
+      "note": "斜走段两侧同时有子 → 这一段不通过（更远的敌子也吃不到）",
+      "options": {},
+      "pieces": [
+        {
+          "type": "king",
+          "color": "red",
+          "row": 12,
+          "col": 12
+        },
+        {
+          "type": "king",
+          "color": "black",
+          "row": 0,
+          "col": 10
+        },
+        {
+          "type": "archer",
+          "color": "red",
+          "row": 6,
+          "col": 6
+        },
+        {
+          "type": "pawn",
+          "color": "red",
+          "row": 7,
+          "col": 6
+        },
+        {
+          "type": "pawn",
+          "color": "red",
+          "row": 6,
+          "col": 7
+        },
+        {
+          "type": "horse",
+          "color": "black",
+          "row": 9,
+          "col": 9
+        }
+      ],
+      "spotlight": {
+        "row": 6,
+        "col": 6,
+        "type": "archer"
+      },
+      "moves": [
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 9
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 8
+        },
+        {
+          "row": 5,
+          "col": 5
+        },
+        {
+          "row": 5,
+          "col": 7
+        },
+        {
+          "row": 7,
+          "col": 5
+        },
+        {
+          "row": 8,
+          "col": 4
+        },
+        {
+          "row": 9,
+          "col": 3
+        }
+      ],
+      "check": false,
+      "captures": [],
+      "rows": 13,
+      "cols": 13
+    },
+    {
+      "id": "three",
+      "label": "三连",
+      "note": "己方两子（含兵）夹住敌子成一线 → 该敌子被吃",
+      "options": {
+        "pawn_three_line_capture": true
+      },
+      "pieces": [
+        {
+          "type": "king",
+          "color": "red",
+          "row": 12,
+          "col": 12
+        },
+        {
+          "type": "king",
+          "color": "black",
+          "row": 0,
+          "col": 10
+        },
+        {
+          "type": "pawn",
+          "color": "red",
+          "row": 7,
+          "col": 2
+        },
+        {
+          "type": "pawn",
+          "color": "red",
+          "row": 6,
+          "col": 3
+        },
+        {
+          "type": "horse",
+          "color": "black",
+          "row": 6,
+          "col": 4
+        }
+      ],
+      "spotlight": {
+        "row": 7,
+        "col": 2,
+        "type": "pawn"
+      },
+      "moves": [
+        {
+          "row": 5,
+          "col": 2
+        },
+        {
+          "row": 6,
+          "col": 2
+        }
+      ],
+      "check": false,
+      "captures": [
+        {
+          "row": 6,
+          "col": 4
+        }
+      ],
+      "rows": 13,
+      "cols": 13
+    },
+    {
+      "id": "facing",
+      "label": "照面",
+      "note": "两王正面相对、中间无子 → 被将",
+      "options": {},
+      "pieces": [
+        {
+          "type": "king",
+          "color": "red",
+          "row": 6,
+          "col": 3
+        },
+        {
+          "type": "king",
+          "color": "black",
+          "row": 6,
+          "col": 9
+        }
+      ],
+      "spotlight": {
+        "row": 6,
+        "col": 3,
+        "type": "king"
+      },
+      "moves": [
+        {
+          "row": 5,
+          "col": 3
+        },
+        {
+          "row": 7,
+          "col": 3
+        }
+      ],
+      "check": true,
+      "captures": [],
+      "rows": 13,
+      "cols": 13
+    },
+    {
+      "id": "free",
+      "label": "自由",
+      "note": "常规局面：点任意子看它的可走格",
+      "options": {},
+      "pieces": [
+        {
+          "type": "king",
+          "color": "red",
+          "row": 12,
+          "col": 12
+        },
+        {
+          "type": "king",
+          "color": "black",
+          "row": 0,
+          "col": 10
+        },
+        {
+          "type": "archer",
+          "color": "red",
+          "row": 6,
+          "col": 6
+        },
+        {
+          "type": "pawn",
+          "color": "black",
+          "row": 4,
+          "col": 6
+        },
+        {
+          "type": "pawn",
+          "color": "black",
+          "row": 6,
+          "col": 9
+        }
+      ],
+      "spotlight": {
+        "row": 6,
+        "col": 6,
+        "type": "archer"
+      },
+      "moves": [
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 9
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 8
+        },
+        {
+          "row": 5,
+          "col": 5
+        },
+        {
+          "row": 5,
+          "col": 7
+        },
+        {
+          "row": 7,
+          "col": 5
+        },
+        {
+          "row": 7,
+          "col": 7
+        },
+        {
+          "row": 8,
+          "col": 4
+        },
+        {
+          "row": 8,
+          "col": 8
+        },
+        {
+          "row": 9,
+          "col": 3
+        },
+        {
+          "row": 9,
+          "col": 9
+        }
+      ],
+      "check": false,
+      "captures": [],
+      "rows": 13,
+      "cols": 13
+    }
+  ]
+}

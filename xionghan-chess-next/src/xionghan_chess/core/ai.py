@@ -21,6 +21,7 @@ class Difficulty(StrEnum):
     EASY = "easy"
     MEDIUM = "medium"
     HARD = "hard"
+    EXPERT = "expert"
     MASTER = "master"
 
 
@@ -59,11 +60,20 @@ class SearchConfig:
     candidate_count: int
     branch_limit: int
     root_limit: int
+    # 取样窗口的分差上限（厘兵）。只对走"从名次 2..N 里抽样"的弱档有意义：
+    # 90cp 在 13×13 上不足一个兵（120），窗口实际只剩 2–3 手，等于没弱化。
+    sample_margin: int = 90
 
 
 CONFIGS = {
-    Difficulty.BEGINNER: SearchConfig(2, 0.5, 0.35, 1, 5, 3, 5),
-    Difficulty.EASY: SearchConfig(4, 1.5, 0.15, 3, 4, 6, 10),
+    # B1 陪练档：弱化靠"从第 2..N 名里按概率取样"，不靠降深度/降时间。
+    #   · `randomness` 是主旋钮（概率），`sample_margin` 是水平下限（分差上限），
+    #     `candidate_count` 只影响多样性 —— 三个旋钮别混着调；
+    #   · **取样集合不含第 1 名**：包含它会让名义 0.35 的真实弱化率只剩约 28%，
+    #     概率也就无法标定；
+    #   · beginner 的分差放到 150（≈1.25 个兵）才够出窗口，easy 沿用 90。
+    Difficulty.BEGINNER: SearchConfig(2, 0.5, 0.55, 1, 4, 3, 5, sample_margin=150),
+    Difficulty.EASY: SearchConfig(4, 1.5, 0.35, 3, 3, 6, 10),
     # 为什么维持 5s 而不调到 6s：
     #   · 预算在本引擎是"软上限"——`_guard` 逐子节点检查，一个根着法可以越过 deadline
     #     再跑完（实测可超 0.1–0.5s）。所以加预算是把"结算点"往后挪，治不了
@@ -82,6 +92,13 @@ CONFIGS = {
     #   · 也不能拿这里的 32 去反驳 H18 —— 两者含义不同（一个是迭代加深的根宽，
     #     一个是 MCTS 的 SEE 候选上限 `SEE_CANDIDATE_LIMIT=16`）。
     # 保留 config 条目是为了让 analysis / 配置类代码在分发搜索前能安全读 `CONFIGS`。
+    # EXPERT（专家）：**固定 d3**，不靠时间收敛。
+    #   · `depth=3` 是硬上限：迭代加深到 3 就停，35s 只是"别跑飞"的安全网；
+    #   · 实测 d3 最慢 28.78s，35s 留约 20% 余量；超时仍按迭代加深回落到 d2（语义不变）；
+    #   · `root_limit` 沿用 HARD 的 18 —— 不改根宽，才能把"深度"这个变量单独归因；
+    #   · `quiescence_depth` / `branch_limit` / `candidate_count` 与 HARD 一致。
+    #   HARD 档的 12s / depth 8 / root 18 **一格未动**。
+    Difficulty.EXPERT: SearchConfig(3, 35.0, 0.0, 6, 1, 18, 18),
     Difficulty.MASTER: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 32),
 }
 
@@ -89,22 +106,24 @@ VALUES = {
     PieceType.KING: 50_000, PieceType.ROOK: 900, PieceType.CANNON: 500,
     PieceType.HORSE: 450, PieceType.ELEPHANT: 260, PieceType.ADVISOR: 240,
     PieceType.PAWN: 120, PieceType.GUARD: 420, PieceType.ARCHER: 480,
-    PieceType.THUNDER: 490, PieceType.ARMOR: 400, PieceType.ASSASSIN: 380,
-    PieceType.SHIELD: 410, PieceType.PATROL: 420,
+    PieceType.THUNDER: 490,
+    # 巡从 420 降到 300：`_patrol` 禁掉竖移后，它的可达格数腰斩（只剩横向 6 个空点），
+    # 420 会让 AI 拿它当"半个车"去换，评估与走法彻底脱节。
+    # **不要顺手降到 260 以下**：`_bias` 里 `VALUES[type] >= VALUES[PATROL]` 兼作
+    # "是否值得跑一次 SEE" 的阈值，降到 260 会把象（260）新纳入 SEE，白拖慢搜索。
+    PieceType.PATROL: 300,
 }
 
 MOBILE_PIECES = {
     PieceType.ROOK, PieceType.HORSE, PieceType.CANNON, PieceType.GUARD,
-    PieceType.ARCHER, PieceType.THUNDER, PieceType.ARMOR, PieceType.ASSASSIN,
-    PieceType.SHIELD, PieceType.PATROL,
+    PieceType.ARCHER, PieceType.THUNDER, PieceType.PATROL,
 }
 
 CENTRAL_WEIGHTS = {
     PieceType.KING: -1.0, PieceType.ROOK: 1.4, PieceType.CANNON: 1.8,
     PieceType.HORSE: 2.8, PieceType.ELEPHANT: .8, PieceType.ADVISOR: .5,
     PieceType.PAWN: 1.4, PieceType.GUARD: 1.7, PieceType.ARCHER: 1.8,
-    PieceType.THUNDER: 2.4, PieceType.ARMOR: 1.8, PieceType.ASSASSIN: 2.2,
-    PieceType.SHIELD: 1.0, PieceType.PATROL: 1.2,
+    PieceType.THUNDER: 2.4, PieceType.PATROL: 1.2,
 }
 
 # A pool ("captured") piece is not lost material: it parks in its owner's pool,
@@ -245,13 +264,65 @@ class ChessAI:
             pass
         self._active_deadline = math.inf
         self._active_cancel = None
-        if cfg.randomness and self.root_scores and self.random.random() < cfg.randomness:
-            best_score = self.root_scores[0][0]
-            candidates = [item[1] for item in self.root_scores[:cfg.candidate_count]
-                          if best_score - item[0] <= 90]
-            if len(candidates) > 1:
-                return self.random.choice(candidates)
-        return best
+        weaker = self._sample_weaker(game, cfg)
+        return best if weaker is None else weaker
+
+    def _sampling_blocked(self, game: Game, cfg: SearchConfig) -> bool:
+        """五条「必须走最强着」的闸门 —— 任一成立就不许取样。
+
+        这几条都是为了消除"明明能赢却故意不赢"的观感。被将军不走应着、一步制胜不杀、
+        有子不吃，这三种是新手最先察觉的"AI 在放水"，比"走得弱"更容易被识破。
+        """
+        if not cfg.randomness or len(self.root_scores) < 2:
+            return True
+        if self.completed_depth == 0:
+            # 本轮没算完，`best` 只是排序首着，分数不可信 → 不许拿它做比较
+            return True
+        if game.rules.in_check(game.state, game.state.turn):
+            return True
+        if self.root_scores[0][0] >= VALUES[PieceType.KING]:
+            return True
+        return self._best_is_clean_capture(game)
+
+    def _best_is_clean_capture(self, game: Game) -> bool:
+        """最佳着是"净赚一个兵以上"的吃子时不许换着。
+
+        门槛**沿用设计定稿的一个兵（120）**，不改成炮：曾实测过"提高到 500 能让
+        名义概率重新兑现"（中局约半数局面都有白吃一个兵，会挡掉约一半取样），
+        但"有子不吃"是设计明确要避免的观感，这条属于产品口径，不在标定时擅自改。
+        代价是实测弱化率会被稀释到名义值的一半左右，已记入已知限制。
+        """
+        best_move = self.root_scores[0][1]
+        if game.state.piece_at(best_move.target) is None:
+            return False
+        return static_exchange_score(game, best_move, VALUES) >= VALUES[PieceType.PAWN]
+
+    def _sample_weaker(self, game: Game, cfg: SearchConfig) -> Move | None:
+        """按概率从"名次 2..N"里挑一手看似合理、但略差的着法。
+
+        为什么不起选第 1 名：命中第 1 名等于没弱化，名义概率和实际弱化率会脱节。
+        为什么吃子要过 SEE：弱档可以走次优，但不该白送子 —— 按着法粒度判，
+        比"整局只在非吃子局面生效"更稳（后者会让弱档在乱战里突然满血，前后不一致本身更像机器）。
+        """
+        if self._sampling_blocked(game, cfg) or self.random.random() >= cfg.randomness:
+            return None
+        best_score = self.root_scores[0][0]
+        pool: list[tuple[float, Move]] = []
+        for score, move, truncated in self.root_scores[1:cfg.candidate_count]:
+            if truncated or best_score - score > cfg.sample_margin:
+                continue
+            if (game.state.piece_at(move.target) is not None
+                    and static_exchange_score(game, move, VALUES) < -VALUES[PieceType.PAWN]):
+                continue
+            pool.append((score, move))
+        if not pool:
+            return None
+        # **只在较差的那一半里挑**：候选窗口里同分等价着法经常占满（杀题局面尤甚），
+        # 均匀取样会几乎总挑回等价着法 —— 名义概率兑现了，实际一步也没变弱。
+        # 实测：均匀取样时平均分差只有 0–6cp，玩家体感等于没设这个档。
+        pool.sort(key=lambda item: item[0])
+        floor = max(1, len(pool) // 2)
+        return self.random.choice([move for _, move in pool[:floor]])
 
     def _root(self, game: Game, moves: list[Move], depth: int, deadline: float,
               cancel: threading.Event | None, alpha: float = -math.inf,
@@ -456,22 +527,6 @@ class ChessAI:
                         if move not in seen and game.rules.is_legal(state, move):
                             tactical.append(move)
                             seen.add(move)
-            if moving.type in {PieceType.ARMOR, PieceType.ASSASSIN}:
-                targets = {enemy.position for enemy in enemies}
-                for enemy in enemies:
-                    for dr in (-1, 0, 1):
-                        for dc in (-1, 0, 1):
-                            targets.add(Position(enemy.position.row + dr, enemy.position.col + dc))
-                for target in targets:
-                    self._guard(deadline, cancel)
-                    if not (0 <= target.row < game.profile.rows and 0 <= target.col < game.profile.cols):
-                        continue
-                    move = Move(moving.position, target)
-                    if move in seen or not game.rules.is_legal(state, move):
-                        continue
-                    if self._capture_value(game, move):
-                        tactical.append(move)
-                        seen.add(move)
         return tactical
 
     def _evaluate(self, game: Game, color: Color) -> float:
@@ -594,8 +649,7 @@ class ChessAI:
     def _mobility_targets(game: Game, piece) -> list[Position]:
         row, col = piece.position.row, piece.position.col
         candidates: set[Position] = set()
-        if piece.type in {PieceType.ROOK, PieceType.CANNON, PieceType.ARMOR,
-                          PieceType.ASSASSIN, PieceType.THUNDER}:
+        if piece.type in {PieceType.ROOK, PieceType.CANNON, PieceType.THUNDER}:
             for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 for delta in range(1, max(game.profile.rows, game.profile.cols)):
                     target = Position(row + dr * delta, col + dc * delta)
@@ -631,7 +685,6 @@ class ChessAI:
                              (1, 0), (-1, 0), (0, 1), (0, -1)),
             PieceType.PAWN: ((1, 0), (-1, 0), (0, 1), (0, -1),
                              (2, 0), (-2, 0), (3, 0), (-3, 0)),
-            PieceType.SHIELD: ((2, 0), (-2, 0), (0, 2), (0, -2)),
             PieceType.GUARD: ((2, 0), (-2, 0), (0, 2), (0, -2),
                               (2, 2), (2, -2), (-2, 2), (-2, -2),
                               (3, 0), (-3, 0), (0, 3), (0, -3),
@@ -708,8 +761,6 @@ class ChessAI:
             return dr == 0 and dc == 2
         if moving.type is PieceType.GUARD:
             return dr == 0 or dc == 0 or dr == dc
-        if moving.type is PieceType.SHIELD:
-            return (dr == 0) != (dc == 0)
         return False
 
     def _is_developed(self, game: Game, piece) -> bool:
@@ -855,8 +906,6 @@ class ChessAI:
             return True
         mover = game.state.piece_at(move.source)
         if mover is None or move.promotion is not None:
-            return True
-        if mover.type in (PieceType.ARMOR, PieceType.ASSASSIN):
             return True
         if self._aligned(move.source, king.position):
             return True

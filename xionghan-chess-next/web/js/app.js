@@ -1,4 +1,5 @@
-import { applyStaticI18n, currentLanguage, currentLocale, setLanguage, t } from './i18n.js?v=1.7.0';
+import { applyStaticI18n, currentLanguage, currentLocale, setLanguage, t } from './i18n.js?v=2.0.0';
+import { ribbonClass, CHECK_PULSE_MID } from './ribbon.js';
 
 const $ = (selector) => document.querySelector(selector);
 const board = $('#board');
@@ -10,8 +11,11 @@ const app = {
   roomId: null, token: null, color: null, revision: 0, state: null, socket: null,
   mode: 'ai', selected: null, legal: [], capturable: [], dragging: null,
   replayIndex: null, replaySource: null, replayTimer: null, sound: true, music: true,
-  preferences: {systemTheme:'light',font:'system',boardTheme:'classic',pageBackground:'none',boardBackground:'1',pieceStyle:'traditional',musicStyle:'fc',volume:70,animation:true,selection:true,legalTargets:true,captureHints:true,taunts:true,autosave:true,initialMinutes:20,countdownSeconds:30,language:'zh-CN',flipped:false},
+  preferences: {systemTheme:'light',font:'system',boardTheme:'classic',pageBackground:'none',boardBackground:'1',pieceStyle:'traditional',musicStyle:'fc',volume:70,animation:true,selection:true,legalTargets:true,captureHints:true,taunts:true,autosave:true,initialMinutes:10,countdownSeconds:30,language:'zh-CN',flipped:false},
   options: {}, profiles: new Map(), pieceImages: new Map(), animation: null, legalPromise: null, resultKey: null, reconnectTimer: null, reconnectAttempts: 0,
+  // 走法语义版本：**从 /api/profiles 读**，别在这里写死第二份（2.0.0 的规则变更就是
+  // 靠它拦下旧缓存网页：旧 app.js 不带这个字段 → 服务端按 1 处理 → 409 提示刷新）。
+  ruleVersion: 1,
   setupSlots: {}, spectator: false, account: null, authToken: localStorage.getItem('xh-auth-token'), cloudTimer: null, puzzleSession: null, selectedPuzzle: null, customBackgrounds: new Map(),
 };
 const sounds={select:new Audio('/assets/sounds/choose.wav'),move:new Audio('/assets/sounds/drop.wav'),capture:new Audio('/assets/sounds/eat.wav'),check:new Audio('/assets/sounds/warn.wav'),win:new Audio('/assets/sounds/fc_victory_sound.wav'),lose:new Audio('/assets/sounds/fc_defeat_sound.wav'),button:new Audio('/assets/sounds/button.wav')};
@@ -29,8 +33,10 @@ function refreshBackgroundOptions(){const selected=$('#customBackgroundSelect'),
 async function loadCustomBackgrounds(){try{for(const old of app.customBackgrounds.values())URL.revokeObjectURL(old.url);app.customBackgrounds.clear();for(const record of await backgroundRecords())app.customBackgrounds.set(record.id,{...record,url:URL.createObjectURL(record.blob)});refreshBackgroundOptions()}catch(error){console.warn('Custom backgrounds unavailable',error)}}
 function safeStorageSet(key,value){try{localStorage.setItem(key,value);return true}catch(error){queueMicrotask(()=>toast(t('toast.storage_full')==='toast.storage_full'?'本地存储空间不足，数据未保存':t('toast.storage_full')));console.warn('Storage write failed',error);return false}}
 function persistPreferences(){safeStorageSet('xh-preferences',JSON.stringify(app.preferences));safeStorageSet('xh-sound',JSON.stringify({sound:app.sound,music:app.music}));if(app.authToken){clearTimeout(app.cloudTimer);app.cloudTimer=setTimeout(()=>api('/api/me/preferences',{method:'PUT',body:JSON.stringify({preferences:app.preferences})}).catch(()=>{}),600)}}
-function applyPreferences(){const p=app.preferences;const dark=p.systemTheme==='dark'||(p.systemTheme==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.body.dataset.systemTheme=dark?'dark':'light';document.body.dataset.font=p.font;document.body.dataset.boardTheme=p.boardTheme;document.body.dataset.background=p.pageBackground;document.body.dataset.boardBackground=p.boardBackground;document.documentElement.style.setProperty('--page-image',backgroundUrl(p.pageBackground));document.documentElement.style.setProperty('--board-image',backgroundUrl(p.boardBackground));document.documentElement.style.setProperty('--board-line',({classic:'#6d3c11',green:'#3a6b1e',blue:'#2471a3',purple:'#7d3c98',dark:'#aaa'})[p.boardTheme]||'#6d3c11');document.documentElement.style.setProperty('--board-text',({classic:'#8b4513',green:'#2d5016',blue:'#1a5276',purple:'#6c3483',dark:'#ddd'})[p.boardTheme]||'#8b4513');$('#systemThemeSelect').value=p.systemTheme||'light';$('#fontSelect').value=p.font;$('#boardThemeSelect').value=p.boardTheme;$('#languageSelect').value=p.language||currentLanguage();$('#pageBackgroundSelect').value=p.pageBackground;$('#boardBackgroundSelect').value=p.boardBackground;$('#pieceStyleSelect').value=p.pieceStyle;$('#musicStyleSelect').value=p.musicStyle;$('#volumeSlider').value=p.volume;$('#volumeValue').textContent=`${p.volume}%`;$('#soundEnabled').checked=app.sound;$('#musicEnabled').checked=app.music;$('#animationEnabled').checked=p.animation!==false;$('#selectionEnabled').checked=p.selection!==false;$('#legalTargetsEnabled').checked=p.legalTargets!==false;$('#captureHintsEnabled').checked=p.captureHints!==false;$('#tauntsEnabled').checked=p.taunts!==false;$('#autosaveEnabled').checked=p.autosave!==false;$('#initialMinutesSelect').value=String(p.initialMinutes||20);$('#countdownSecondsSelect').value=String(p.countdownSeconds??30);Object.values(sounds).forEach(a=>{a.volume=p.volume/100});if(backgroundMusic)backgroundMusic.volume=p.volume/200;applyStaticI18n();refreshBackgroundOptions();draw()}
-async function loadPreferences(){try{const stored=JSON.parse(localStorage.getItem('xh-preferences')||'{}');app.preferences={...app.preferences,...stored};if(!stored.pageBackground)app.preferences.pageBackground=stored.background||'none';if(!stored.boardBackground)app.preferences.boardBackground='1';const s=JSON.parse(localStorage.getItem('xh-sound')||'{}');if(typeof s.sound==='boolean')app.sound=s.sound;if(typeof s.music==='boolean')app.music=s.music}catch{}await loadCustomBackgrounds();applyPreferences()}
+function applyPreferences(){const p=app.preferences;const dark=p.systemTheme==='dark'||(p.systemTheme==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.body.dataset.systemTheme=dark?'dark':'light';document.body.dataset.font=p.font;document.body.dataset.boardTheme=p.boardTheme;document.body.dataset.background=p.pageBackground;document.body.dataset.boardBackground=p.boardBackground;document.documentElement.style.setProperty('--page-image',backgroundUrl(p.pageBackground));document.documentElement.style.setProperty('--board-image',backgroundUrl(p.boardBackground));document.documentElement.style.setProperty('--board-line',({classic:'#6d3c11',green:'#3a6b1e',blue:'#2471a3',purple:'#7d3c98',dark:'#aaa'})[p.boardTheme]||'#6d3c11');document.documentElement.style.setProperty('--board-text',({classic:'#8b4513',green:'#2d5016',blue:'#1a5276',purple:'#6c3483',dark:'#ddd'})[p.boardTheme]||'#8b4513');$('#systemThemeSelect').value=p.systemTheme||'light';$('#fontSelect').value=p.font;$('#boardThemeSelect').value=p.boardTheme;$('#languageSelect').value=p.language||currentLanguage();$('#pageBackgroundSelect').value=p.pageBackground;$('#boardBackgroundSelect').value=p.boardBackground;$('#pieceStyleSelect').value=p.pieceStyle;$('#musicStyleSelect').value=p.musicStyle;$('#volumeSlider').value=p.volume;$('#volumeValue').textContent=`${p.volume}%`;$('#soundEnabled').checked=app.sound;$('#musicEnabled').checked=app.music;$('#animationEnabled').checked=p.animation!==false;$('#selectionEnabled').checked=p.selection!==false;$('#legalTargetsEnabled').checked=p.legalTargets!==false;$('#captureHintsEnabled').checked=p.captureHints!==false;$('#tauntsEnabled').checked=p.taunts!==false;$('#autosaveEnabled').checked=p.autosave!==false;$('#initialMinutesSelect').value=String(p.initialMinutes??10);$('#countdownSecondsSelect').value=String(p.countdownSeconds??30);Object.values(sounds).forEach(a=>{a.volume=p.volume/100});if(backgroundMusic)backgroundMusic.volume=p.volume/200;applyStaticI18n();refreshBackgroundOptions();refreshDailyButton();draw()}
+async function loadPreferences(){try{const stored=JSON.parse(localStorage.getItem('xh-preferences')||'{}');app.preferences={...app.preferences,...stored};if(!stored.pageBackground)app.preferences.pageBackground=stored.background||'1';// 历史遗留：删除自定义底图会把页背景置成 'none'（选择器里没有这个选项）。
+// 这里把它归一到 '1' 是**迁移**，不是死代码 —— 保留是有意的，别当成冗余删掉。
+if(app.preferences.pageBackground==='none')app.preferences.pageBackground='1';if(!stored.boardBackground)app.preferences.boardBackground='1';const s=JSON.parse(localStorage.getItem('xh-sound')||'{}');if(typeof s.sound==='boolean')app.sound=s.sound;if(typeof s.music==='boolean')app.music=s.music}catch{}await loadCustomBackgrounds();applyPreferences()}
 function playSound(key){if(!app.sound)return;const audio=sounds[key];if(audio){audio.currentTime=0;audio.volume=app.preferences.volume/100;audio.play().catch(()=>{})}}
 function startMusic(){if(!app.music)return;if(!backgroundMusic||backgroundMusic.dataset.style!==app.preferences.musicStyle){if(backgroundMusic)backgroundMusic.pause();backgroundMusic=new Audio(`/assets/sounds/${app.preferences.musicStyle==='qq'?'qq_background_sound.wav':'fc_background_sound.wav'}`);backgroundMusic.loop=true;backgroundMusic.dataset.style=app.preferences.musicStyle;backgroundMusic.volume=app.preferences.volume/200}backgroundMusic.play().catch(()=>{})}
 function stopMusic(){if(backgroundMusic){backgroundMusic.pause();backgroundMusic.currentTime=0}}
@@ -61,23 +67,36 @@ async function importDocument(document,mode){const targetMode=mode||(app.mode===
 const pieceLabels = {
   king:'汉/汗登场',rook:'车登场',horse:'马登场',elephant:'相/象登场',advisor:'仕/士登场',
   cannon:'炮登场',pawn:'兵/卒登场',guard:'尉/卫登场',archer:'射登场',thunder:'檑登场',
-  assassin:'刺/伺登场',patrol:'巡/廵登场'
+  patrol:'巡/廵登场'
 };
+// 反向呈现的开关：存储值 true 表示"削弱"，界面勾选必须表示"增强"。
+// 名单由 /api/profiles 下发（与 core/profiles.py 的 NEGATED_OPTIONS 同源）。
+let negatedOptions=new Set();
+const optionIsOn=key=>{const stored=app.options[key]!==false;return negatedOptions.has(key)?!stored:stored};
+const optionStored=(key,shown)=>negatedOptions.has(key)?!shown:shown;
+// 按钮**显隐**的规则判据：动作 → 必须全部开启的选项键，与 `optionIsOn` 不同源不重复：
+// 名单来自 /api/profiles 的 `actionRequirements`（同源 core/profiles.py::UI_ACTION_REQUIRES）。
+// 拿不到档案时（纯本地、接口失败、旧服务端没这个字段）退回"常驻"——
+// 宁可多一个能点会报错的按钮，也不要让按钮在这种环境下凭空消失。
+const actionVisible=action=>{const parents=app.profiles?.get(app.state?.profile?.id)?.actionRequirements?.[action];return !parents?.length||parents.every(parent=>optionIsOn(parent))};
 const pieceRuleKeys={
   king:['king_can_leave_palace','king_diagonal_in_palace','king_lose_diagonal_outside_palace','invasion_victory'],
-  horse:['horse_straight_three'],elephant:['elephant_can_cross_river','elephant_gain_jump_two_enemy_territory'],
+  horse:['horse_blocked_by_leg','horse_straight_three','horse_straight_three_move_only'],elephant:['elephant_can_cross_river','elephant_gain_jump_two_enemy_territory'],
   advisor:['advisor_can_leave_palace','advisor_gain_straight_outside_palace'],
-  pawn:['pawn_fast_move_before_enemy_territory','pawn_backward_at_base','pawn_full_movement_at_base','pawn_resurrection','pawn_promotion'],
+  pawn:['pawn_fast_move_before_enemy_territory','pawn_charge','pawn_three_line_capture','pawn_backward_at_base','pawn_resurrection','pawn_promotion'],
   archer:['archer_enhanced_mode']
 };
-const names = {red:{king:'漢',rook:'俥',horse:'傌',elephant:'相',advisor:'仕',cannon:'炮',pawn:'兵',guard:'尉',archer:'射',thunder:'檑',assassin:'刺',patrol:'巡'},black:{king:'汗',rook:'車',horse:'馬',elephant:'象',advisor:'士',cannon:'砲',pawn:'卒',guard:'衛',archer:'䠶',thunder:'礌',assassin:'伺',patrol:'廵'}};
+const names = {red:{king:'漢',rook:'俥',horse:'傌',elephant:'相',advisor:'仕',cannon:'炮',pawn:'兵',guard:'尉',archer:'射',thunder:'檑',patrol:'巡'},black:{king:'汗',rook:'車',horse:'馬',elephant:'象',advisor:'士',cannon:'砲',pawn:'卒',guard:'衛',archer:'䠶',thunder:'礌',patrol:'廵'}};
 
-async function api(path, options={}) {const headers={'Content-Type':'application/json',...(app.authToken?{Authorization:`Bearer ${app.authToken}`}:{}) ,...(options.headers||{})};const response=await fetch(path,{...options,headers});const data=await response.json();if(!response.ok)throw new Error(data.detail||t('error.request_failed'));return data;}
+async function api(path, options={}) {const headers={'Content-Type':'application/json',...(app.authToken?{Authorization:`Bearer ${app.authToken}`}:{}),...(app.token?{'X-Room-Token':app.token}:{}),...(options.headers||{})};const response=await fetch(path,{...options,headers});const data=await response.json();if(!response.ok){// detail 现在有两种形状：普通错误是字符串，专用错误码（如 rule_version_mismatch）是
+// `{code, message, ...}` —— 直接 `new Error(obj)` 会变成 "[object Object]"。
+const detail=data.detail;throw new Error(typeof detail==='string'?detail:(detail?.message||t('error.request_failed')))}return data;}
 function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),2200)}
 function formatClock(ms=0){const total=Math.max(0,Math.ceil(ms/1000));return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`}
 
 function profileSetup(){const profile=app.profiles.get($('#profileSelect').value),all=(profile?.pieceSlots||[]).filter(slot=>slot.type==='king'||app.options[`${slot.type}_appear`]!==false);if(!app.setupSlots[profile?.id])app.setupSlots[profile?.id]={red:all.filter(x=>x.color==='red').map(x=>x.id),black:all.filter(x=>x.color==='black').map(x=>x.id)};return{profile,all,selected:app.setupSlots[profile?.id]}}
 function selectedSetup(){const {all,selected}=profileSetup(),available=new Set(all.map(slot=>slot.id));return selected?{red:selected.red.filter(id=>available.has(id)),black:selected.black.filter(id=>available.has(id))}:{red:null,black:null}}
+function ruleText(kind){const long=t(`piece_rule.${kind}_long`);return long.startsWith('piece_rule.')?'':long}
 function renderHandicap(){const {all,selected}=profileSetup();for(const color of ['red','black']){const root=$(`#${color}PieceSlots`),chosen=new Set(selected[color]);root.innerHTML=all.filter(slot=>slot.color===color).map(slot=>{const mandatory=slot.type==='king';return `<label><input type="checkbox" data-piece-slot="${slot.id}" data-color="${color}" ${chosen.has(slot.id)?'checked':''} ${mandatory?'disabled':''}><span>${names[color][slot.type]||slot.type}</span><small>${t(`piece.${slot.type}`)} · ${slot.row+1},${slot.col+1}</small></label>`}).join('');$(`#${color}PieceCount`).value=`${chosen.size} 枚`}$(`#applyHandicapButton`).disabled=selected.red.length!==selected.black.length}
 function updateHandicapSelection(input){const setup=selectedSetup(),items=new Set(setup[input.dataset.color]);input.checked?items.add(input.dataset.pieceSlot):items.delete(input.dataset.pieceSlot);setup[input.dataset.color]=[...items];renderHandicap()}
 
@@ -86,19 +105,19 @@ async function createGame(){
   try{
     app.preferences.initialMinutes=Number($('#initialMinutesSelect').value);app.preferences.countdownSeconds=Number($('#countdownSecondsSelect').value);persistPreferences();
     const setup=selectedSetup();
-    const data=await api('/api/rooms',{method:'POST',body:JSON.stringify({profileId:$('#profileSelect').value,mode:$('#modeSelect').value,playerName:app.account?.displayName||t('common.player'),avatarUrl:app.account?.avatarUrl||'',playerColor:$('#colorSelect').value,difficulty:$('#difficultySelect').value,options:app.options,initialMinutes:app.preferences.initialMinutes,language:currentLanguage(),firstMove:$('#firstMoveSelect').value,redSlots:setup.red,blackSlots:setup.black,tauntsEnabled:app.preferences.taunts!==false})});
+    const data=await api('/api/rooms',{method:'POST',body:JSON.stringify({profileId:$('#profileSelect').value,mode:$('#modeSelect').value,playerName:app.account?.displayName||t('common.player'),avatarUrl:app.account?.avatarUrl||'',playerColor:$('#colorSelect').value,difficulty:$('#difficultySelect').value,options:app.options,initialMinutes:app.preferences.initialMinutes,language:currentLanguage(),firstMove:$('#firstMoveSelect').value,redSlots:setup.red,blackSlots:setup.black,tauntsEnabled:app.preferences.taunts!==false,ruleVersion:app.ruleVersion})});
     acceptSession(data);toast(data.snapshot.mode==='online'?t('toast.room_created',{room:data.roomId}):(data.snapshot.mode==='local'?t('toast.local_started'):t('toast.ai_started')));
   }catch(error){toast(error.message)}
 }
 async function joinGame(){
   const code=$('#roomInput').value.trim().toUpperCase(); if(!code)return toast(t('toast.enter_room'));
-  try{const data=await api(`/api/rooms/${code}/join`,{method:'POST',body:JSON.stringify({playerName:app.account?.displayName||t('common.player_two'),avatarUrl:app.account?.avatarUrl||'',language:currentLanguage()})});acceptSession(data);toast(t('toast.joined_room'))}catch(error){toast(error.message)}
+  try{const data=await api(`/api/rooms/${code}/join`,{method:'POST',body:JSON.stringify({playerName:app.account?.displayName||t('common.player_two'),avatarUrl:app.account?.avatarUrl||'',language:currentLanguage(),ruleVersion:app.ruleVersion})});acceptSession(data);toast(t('toast.joined_room'))}catch(error){toast(error.message)}
 }
 async function spectateGame(){const code=$('#roomInput').value.trim().toUpperCase();if(!code)return toast(t('toast.room_prompt'));try{const data=await api(`/api/rooms/${code}/spectate`,{method:'POST',body:JSON.stringify({displayName:app.account?.displayName||t('common.player')})});data.spectator=true;acceptSession(data);toast(t('toast.spectate_joined'))}catch(error){toast(error.message)}}
 function acceptSession(data){app.roomId=data.roomId;app.token=data.token;app.color=data.color||null;app.spectator=!!data.spectator;app.resultKey=null;app.reconnectAttempts=0;receiveSnapshot(data.snapshot);safeStorageSet('xh-session',JSON.stringify({roomId:app.roomId,token:app.token,color:app.color,mode:app.mode,spectator:app.spectator}));connect()}
 function connect(){
-  if(!app.roomId||!app.token||app.socket?.readyState===WebSocket.CONNECTING||app.socket?.readyState===WebSocket.OPEN)return;clearTimeout(app.reconnectTimer);const protocol=location.protocol==='https:'?'wss':'ws',suffix=app.spectator?'/spectate':'',socket=new WebSocket(`${protocol}://${location.host}/ws/${app.roomId}${suffix}?token=${encodeURIComponent(app.token)}`);app.socket=socket;
-  socket.onopen=()=>{if(app.socket!==socket)return;app.reconnectAttempts=0;clearTimeout(app.reconnectTimer);$('#connectionText').textContent=app.mode==='local'?t('status.local_sync'):t('status.connected')};
+  if(!app.roomId||!app.token||app.socket?.readyState===WebSocket.CONNECTING||app.socket?.readyState===WebSocket.OPEN)return;clearTimeout(app.reconnectTimer);const protocol=location.protocol==='https:'?'wss':'ws',suffix=app.spectator?'/spectate':'',socket=new WebSocket(`${protocol}://${location.host}/ws/${app.roomId}${suffix}`);app.socket=socket;
+  socket.onopen=()=>{if(app.socket!==socket)return;app.reconnectAttempts=0;clearTimeout(app.reconnectTimer);socket.send(JSON.stringify({type:'auth',token:app.token}));$('#connectionText').textContent=app.mode==='local'?t('status.local_sync'):t('status.connected')};
   socket.onmessage=e=>{if(app.socket!==socket)return;try{const message=JSON.parse(e.data);if(message.type==='state')receiveSnapshot(message.payload);else if(message.type==='chat')appendChat(message.payload);else if(message.type==='error'){toast(message.payload.message);if(message.payload.state)receiveSnapshot(message.payload.state)}}catch{toast(t('error.request_failed'))}};
   socket.onclose=event=>{if(app.socket!==socket)return;app.socket=null;clearTimeout(app.reconnectTimer);$('#connectionText').textContent=t('status.interrupted');if([4001,4403,1008].includes(event.code)||app.reconnectAttempts>=3)return;const delay=Math.min(8000,1200*2**app.reconnectAttempts++);app.reconnectTimer=setTimeout(()=>{if(app.roomId&&!app.socket)connect()},delay)};
 }
@@ -110,10 +129,11 @@ function showRecordView(view){const chat=view==='chat';$('#chatView').hidden=!ch
 function receiveSnapshot(snapshot){
   const previous=app.state,revisionChanged=snapshot.revision!==app.revision;app.revision=snapshot.revision;app.state=snapshot.game;app.mode=snapshot.mode;app.options=snapshot.game.profile.options;$('#modeSelect').value=app.mode;syncModeControls();if(revisionChanged){app.selected=null;app.legal=[];app.capturable=[]}
   if(!previous&&snapshot.chatHistory?.length){$('#chatMessages').innerHTML='';snapshot.chatHistory.forEach(appendChat)}
-  $('#roomCode').textContent=snapshot.roomId;$('#roomInput').value=snapshot.roomId;const turnRibbon=$('#turnRibbon');turnRibbon.textContent=app.state.finished?t('status.game_over'):(app.state.paused?t('status.paused'):(app.state.check?`${t('status.check')} · `:'')+t('status.turn',{color:t(`common.${app.state.turn}`)}));if(app.state.check&&turnRibbon.animate)turnRibbon.animate([{transform:'scale(1)',color:'inherit'},{transform:'scale(1.08)',color:'#b21f1f'},{transform:'scale(1)',color:'inherit'}],{duration:900,iterations:2});
+  $('#roomCode').textContent=snapshot.roomId;$('#roomInput').value=snapshot.roomId;const turnRibbon=$('#turnRibbon');turnRibbon.className=ribbonClass(app.state);turnRibbon.textContent=app.state.finished?t('status.game_over'):(app.state.paused?t('status.paused'):(app.state.check?`${t('status.check')} · `:'')+t('status.turn',{color:t(`common.${app.state.turn}`)}));if(app.state.check&&turnRibbon.animate)turnRibbon.animate([{transform:'scale(1)',color:'inherit'},{transform:'scale(1.08)',color:CHECK_PULSE_MID},{transform:'scale(1)',color:'inherit'}],{duration:900,iterations:2});
   $('#spectatorCount').textContent=`${snapshot.spectatorCount||0} 人观战`;
   $('#thinking').hidden=!(snapshot.mode==='ai'&&app.state.turn!==app.color&&!app.state.finished&&!app.state.paused);$('#pauseOverlay').hidden=!app.state.paused;renderMeta(snapshot);resizeBoard();
-  if(previous&&app.state.history.length>previous.history.length){const last=app.state.history.at(-1);playSound(last.captured?.length?'capture':app.state.check?'check':'move');if(app.preferences.animation!==false){app.animation={source:last.move.from,target:last.move.to,capture:!!last.captured?.length,started:performance.now()};requestAnimationFrame(animate)}checkPuzzleProgress()}
+  if(previous&&app.state.history.length>previous.history.length){const last=app.state.history.at(-1);playSound(last.captured?.length?'capture':app.state.check?'check':'move');
+    if(isBigCapture(last.captured)){shakeBoard();toast(t('toast.big_capture',{name:t('piece_name.'+last.captured[0].type)}))}if(app.preferences.animation!==false){app.animation={source:last.move.from,target:last.move.to,capture:!!last.captured?.length,started:performance.now()};requestAnimationFrame(animate)}checkPuzzleProgress()}
   if(app.state.finished)showResult();
   if(app.state.pendingDrawOffer&&app.state.pendingDrawOffer!==app.color&&confirm(t('dialog.pending_draw')))send('draw_response',{accept:true});
   else if(app.state.pendingDrawOffer&&app.state.pendingDrawOffer!==app.color)send('draw_response',{accept:false});
@@ -127,7 +147,15 @@ function renderMeta(snapshot){
   updateClockVisuals();
   for(const color of ['red','black']){const player=snapshot.players.find(p=>p.color===color);const panel=$(`#${color}Status`).closest('.player-panel');const avatar=panel?.querySelector('.avatar');if(avatar){const fallback=[...(player?.name||t(`common.${color}`))][0]||color[0].toUpperCase(),image=avatarUrl(player?.avatarUrl);avatar.textContent=fallback;avatar.style.backgroundImage=image?`url(${JSON.stringify(image)})`:'';avatar.classList.toggle('custom-avatar',!!image);avatar.setAttribute('aria-label',player?.name||t(`common.${color}`))}const name=panel?.querySelector('strong');if(name)name.textContent=player?.name||t(`common.${color}`);$(`#${color}Status`).textContent=snapshot.mode==='local'?(color==='red'?t('common.local_player_one'):t('common.local_player_two')):(player?(player.connected?t('common.online'):t('common.temporarily_offline')):t('common.waiting'));$(`#${color}Captured`).innerHTML=(app.state.captured[color]||[]).map(p=>`<span>${names[color][p.type]}</span>`).join('')}
   $('#moveList').innerHTML=app.state.history.map((h,i)=>`<li data-index="${i}">${h.notation}</li>`).join('');$('#moveCount').textContent=t('common.rounds',{count:Math.ceil(app.state.history.length/2)});const list=$('#moveList');list.scrollTop=list.scrollHeight;
-  const myTurn=(app.mode==='local'||app.state.turn===app.color)&&!app.state.finished&&!app.state.paused;$('#resignButton').disabled=app.state.finished;$('#drawButton').disabled=!myTurn;$('#undoButton').disabled=!app.state.history.length||app.state.paused;$('#resurrectButton').disabled=!myTurn;$('#pauseButton').disabled=app.state.finished;$('#pauseButton').textContent=app.state.paused?`▶ ${t('action.resume')}`:`Ⅱ ${t('action.pause')}`;
+  const myTurn=(app.mode==='local'||app.state.turn===app.color)&&!app.state.finished&&!app.state.paused;$('#resignButton').disabled=app.state.finished;$('#drawButton').disabled=!myTurn;$('#undoButton').disabled=!app.state.history.length||app.state.paused;
+  // 「复活兵卒」：可见性由**规则**决定（`actionRequirements` 由 /api/profiles 下发，
+  // 与 core/profiles.py::UI_ACTION_REQUIRES 同源），可用性由**对局状态**决定。
+  // 原来这里只 disabled、从不隐藏，且不读 pawn_resurrection —— 关掉复活的规则集里
+  // 玩家面对的是一个永远点不动的按钮。
+  const resurrectVisible=actionVisible('resurrect');
+  $('#resurrectButton').hidden=!resurrectVisible;
+  $('#resurrectButton').disabled=!resurrectVisible||!myTurn;
+  $('#pauseButton').disabled=app.state.finished;$('#pauseButton').textContent=app.state.paused?`▶ ${t('action.resume')}`:`Ⅱ ${t('action.pause')}`;
 }
 function showResult(){const winner=app.state.winner,key=`${app.roomId}:${winner||'draw'}:${app.state.resultReason}:${app.state.history.length}`,reason=t(`result.${app.state.resultReason}`);$('#resultMark').textContent=winner?(winner==='red'?'漢':'汗'):t('common.draw');$('#resultTitle').textContent=winner?t('result.victory',{color:t(`common.${winner}`)}):t('result.draw');$('#resultText').textContent=reason.startsWith('result.')?t('result.ended'):reason;if(app.resultKey!==key){playSound(app.mode==='local'||winner===app.color?'win':'lose');recordFinishedGame(key);app.resultKey=key}if(!$('#resultDialog').open)$('#resultDialog').showModal()}
 function syncModeControls(){const mode=$('#modeSelect').value;$('#difficultyRow').hidden=mode!=='ai';$('#colorRow').hidden=mode==='local';$('#joinRow').hidden=mode!=='online';$('#connectionText').textContent=mode==='local'?t('status.local_sync'):(mode==='ai'?t('status.ai'):t('status.online'))}
@@ -171,7 +199,18 @@ function drawAnimation(g){if(!app.animation)return;const age=performance.now()-a
 function animate(){draw();if(app.animation)requestAnimationFrame(animate)}
 function drawPalaces(g){const palaces=g.rows===10?[[0,3],[7,3]]:[[1,5],[9,5]];ctx.lineWidth=1.2;for(const [r,c] of palaces){line(g,r,c,r+2,c+2);line(g,r,c+2,r+2,c)}}
 function line(g,r1,c1,r2,c2){ctx.beginPath();ctx.moveTo(g.pad+c1*g.cw,g.pad+r1*g.ch);ctx.lineTo(g.pad+c2*g.cw,g.pad+r2*g.ch);ctx.stroke()}
-function drawHighlights(g){if(app.state.check){const king=app.state.pieces.find(p=>p.type==='king'&&p.color===app.state.turn);if(king)ring(g,king,'rgba(196,35,35,.35)',.47)}if(app.selected&&app.preferences.selection!==false)ring(g,app.selected,'rgba(215,167,55,.55)',.48);if(app.preferences.legalTargets!==false)for(const raw of app.legal){const p=displayPosition(g,raw),occupied=app.state.pieces.some(x=>x.row===raw.row&&x.col===raw.col);ctx.beginPath();ctx.arc(g.pad+p.col*g.cw,g.pad+p.row*g.ch,occupied?Math.min(g.cw,g.ch)*.43:Math.min(g.cw,g.ch)*.1,0,Math.PI*2);ctx.fillStyle=occupied?'rgba(157,37,37,.28)':'rgba(49,92,72,.72)';ctx.fill()}}
+function lastMoveInk(alpha){const raw=(getComputedStyle(document.documentElement).getPropertyValue('--board-line').trim()||'#604326');const hex=raw.length===4?`#${raw[1]}${raw[1]}${raw[2]}${raw[2]}${raw[3]}${raw[3]}`:raw;const n=parseInt(hex.slice(1,7),16);return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${alpha})`}
+// D1 上一步起讫格：与桌面 board_widget.LAST_MOVE_* 同参数——**格内圆角方框**
+// （内缩 5%、圆角 16% 格宽）、不透明度 .25、盘线色。方框而不是圆盘：圆和圆棋子
+// 同心，棋子会遮掉中间，方框的四个角仍可见，两端点都读得出来。
+// 画在**最前**，将军（.35 红环）、选择（.55 金环）、可走点依次压在上面。
+function cellFrame(g,raw,color){const p=displayPosition(g,raw),ix=g.cw*.05,iy=g.ch*.05,x=g.pad+p.col*g.cw-g.cw/2+ix,y=g.pad+p.row*g.ch-g.ch/2+iy,w=g.cw-2*ix,h=g.ch-2*iy,r=Math.min(g.cw,g.ch)*.16;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):ctx.rect(x,y,w,h);ctx.fillStyle=color;ctx.fill()}
+// 回放时**不画**上一步：网页的 `app.state.history` 始终是实时对局的，
+// 切到某个历史局面后末手会与所显示的局面错位。
+// 桌面端相反 —— 它的复盘快照自带 history 前缀，画的是「走到这一手的那一步」，
+// 与显示局面严格对应，所以那边照画。**两端语义一致（都显示当前局面的上一步），
+// 实现必然不同，别为了"统一"把其中一边改成另一种做法，那会引入错位 bug。**
+function drawHighlights(g){const last=app.replayIndex===null?app.state.history?.at(-1):null;if(last){const ink=lastMoveInk(.25);cellFrame(g,last.move.from,ink);cellFrame(g,last.move.to,ink)}if(app.state.check){const king=app.state.pieces.find(p=>p.type==='king'&&p.color===app.state.turn);if(king)ring(g,king,'rgba(196,35,35,.35)',.47)}if(app.selected&&app.preferences.selection!==false)ring(g,app.selected,'rgba(215,167,55,.55)',.48);if(app.preferences.legalTargets!==false)for(const raw of app.legal){const p=displayPosition(g,raw),occupied=app.state.pieces.some(x=>x.row===raw.row&&x.col===raw.col);ctx.beginPath();ctx.arc(g.pad+p.col*g.cw,g.pad+p.row*g.ch,occupied?Math.min(g.cw,g.ch)*.43:Math.min(g.cw,g.ch)*.1,0,Math.PI*2);ctx.fillStyle=occupied?'rgba(157,37,37,.28)':'rgba(49,92,72,.72)';ctx.fill()}}
 function drawCaptureHints(g){if(app.preferences.captureHints===false)return;const size=Math.min(g.cw,g.ch)*.3;ctx.save();ctx.strokeStyle='rgba(205,32,32,.9)';ctx.lineWidth=Math.max(2.5,Math.min(g.cw,g.ch)*.055);for(const raw of app.capturable){const p=displayPosition(g,raw),x=g.pad+p.col*g.cw,y=g.pad+p.row*g.ch;ctx.beginPath();ctx.moveTo(x-size,y-size);ctx.lineTo(x+size,y+size);ctx.moveTo(x+size,y-size);ctx.lineTo(x-size,y+size);ctx.stroke()}ctx.restore()}
 function ring(g,raw,color,size){const p=displayPosition(g,raw);ctx.beginPath();ctx.arc(g.pad+p.col*g.cw,g.pad+p.row*g.ch,Math.min(g.cw,g.ch)*size,0,Math.PI*2);ctx.fillStyle=color;ctx.fill()}
 const pieceAssetTypes={king:'han',rook:'che',horse:'ma',elephant:'xiang',advisor:'shi',cannon:'pao',pawn:'bing',guard:'wei',archer:'she',thunder:'lei',patrol:'xun'};
@@ -185,7 +224,7 @@ async function selectOrMove(pos){
   if(canControl(piece)){app.selected=piece;playSound('select');await loadLegal(piece)}else{app.selected=null;app.legal=[];app.capturable=[];draw()}
 }
 async function loadLegal(piece){
-  app.legalPromise=api(`/api/rooms/${app.roomId}/legal?token=${encodeURIComponent(app.token)}&row=${piece.row}&col=${piece.col}`);
+  app.legalPromise=api(`/api/rooms/${app.roomId}/legal?row=${piece.row}&col=${piece.col}`);
   try{const data=await app.legalPromise;if(data.revision===app.revision){app.legal=data.moves;app.capturable=data.captures||[]}}catch(error){toast(error.message);app.legal=[];app.capturable=[]}finally{app.legalPromise=null}draw()
 }
 
@@ -198,14 +237,80 @@ async function runAnalysis(){const document=currentGameDocument();if(!document||
 function renderAnalysis(result){$('#analysisLoading').hidden=true;$('#analysisContent').hidden=false;const labels={best:'最佳',good:'良好',inaccuracy:'欠准',mistake:'失误',blunder:'严重失误'};$('#analysisSummary').innerHTML=Object.entries(result.summary).map(([key,value])=>`<div><strong>${value}</strong><span>${labels[key]}</span></div>`).join('');$('#analysisMoveList').innerHTML=result.moves.map(item=>`<button data-analysis-ply="${item.ply}" class="quality-${item.quality}"><span>${item.ply}. ${item.notation}</span><strong>${labels[item.quality]} · -${item.scoreLoss}</strong></button>`).join('');const canvas=$('#winRateChart'),g=canvas.getContext('2d'),values=result.winRateCurve;g.clearRect(0,0,canvas.width,canvas.height);g.fillStyle='#f7efe0';g.fillRect(0,0,canvas.width,canvas.height);g.strokeStyle='#c8ad84';g.beginPath();g.moveTo(0,canvas.height/2);g.lineTo(canvas.width,canvas.height/2);g.stroke();if(values.length){g.strokeStyle='#9d2525';g.lineWidth=4;g.beginPath();values.forEach((value,index)=>{const x=values.length===1?canvas.width/2:index*canvas.width/(values.length-1),y=canvas.height-(value/100)*canvas.height;index?g.lineTo(x,y):g.moveTo(x,y)});g.stroke()}}
 function customPuzzles(){try{const items=JSON.parse(localStorage.getItem('xh-custom-puzzles')||'[]');return Array.isArray(items)?items:[]}catch{return[]}}
 function validPuzzle(item){return!!(item&&typeof item.id==='string'&&typeof item.title==='string'&&['beginner','advanced','master'].includes(item.difficulty)&&item.document&&item.document.formatVersion===1&&Array.isArray(item.solution)&&item.solution.length&&item.solution.every(move=>move?.from&&move?.to)&&Array.isArray(item.hints))}
-async function openTraining(level='beginner'){try{const builtIn=await api(`/api/puzzles?difficulty=${level}`),puzzles=[...builtIn,...customPuzzles().filter(item=>item.difficulty===level)];$('#puzzleList').innerHTML=puzzles.map(item=>`<button data-puzzle-id="${item.id}" data-custom-puzzle="${item.document?'true':'false'}"><strong>${item.title}</strong><span>${item.description||''}</span><small>${(item.tags||[]).join(' · ')}</small></button>`).join('');$('#puzzleDetail').hidden=true;if(!$('#trainingDialog').open)$('#trainingDialog').showModal()}catch(error){toast(error.message)}}
-async function selectPuzzle(id){try{app.selectedPuzzle=customPuzzles().find(item=>item.id===id)||await api(`/api/puzzles/${id}?reveal=true`);$('#puzzleInfo').innerHTML=`<h3>${app.selectedPuzzle.title}</h3><p>${app.selectedPuzzle.description||''}</p><small>${(app.selectedPuzzle.tags||[]).join(' · ')}</small>`;$('#puzzleDetail').hidden=false}catch(error){toast(error.message)}}
-async function startPuzzle(){if(!app.selectedPuzzle)return;app.puzzleSession={...app.selectedPuzzle,step:0};$('#trainingDialog').close();await importDocument(app.selectedPuzzle.document,'local');toast(t('toast.puzzle_started'))}
-function checkPuzzleProgress(){const session=app.puzzleSession;if(!session||!app.state?.history.length)return;const expected=session.solution[session.step],actual=app.state.history.at(-1)?.move;if(!expected||!actual)return;const same=expected.from.row===actual.from.row&&expected.from.col===actual.from.col&&expected.to.row===actual.to.row&&expected.to.col===actual.to.col;if(!same){toast(t('toast.puzzle_wrong'));return}session.step++;if(session.step>=session.solution.length){toast(t('toast.puzzle_solved'));app.puzzleSession=null}else toast(t('toast.puzzle_continue'))}
+async function openTraining(level='beginner'){try{const builtIn=await api(`/api/puzzles?difficulty=${level}`),puzzles=[...builtIn,...customPuzzles().filter(item=>item.difficulty===level)];// A2：按战役章节分组。分组标题是不可点的 div，用 CSS 让它看起来像小标题。
+const order=['揭竿','破釜','逐鹿','垓下','定鼎'];const groups=new Map();puzzles.forEach(item=>{const key=item.chapter||'';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item)});const keys=[...groups.keys()].sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?order.length:ia)-(ib<0?order.length:ib)});$('#puzzleList').innerHTML=keys.map(key=>{const title=key||t('training.drills');const rows=groups.get(key).map(item=>`<button data-puzzle-id="${item.id}" data-custom-puzzle="${item.document?'true':'false'}"><strong>${item.title}</strong><span>${item.description||''}</span><small>${(item.tags||[]).join(' · ')}</small></button>`).join('');return `<div class="puzzle-chapter">${title}</div>${rows}`}).join('');$('#puzzleDetail').hidden=true;if(!$('#trainingDialog').open)$('#trainingDialog').showModal()}catch(error){toast(error.message)}}
+async function selectPuzzle(id){try{app.dailyDay=null;app.selectedPuzzle=customPuzzles().find(item=>item.id===id)||await api(`/api/puzzles/${id}?reveal=true`);$('#puzzleInfo').innerHTML=`<h3>${app.selectedPuzzle.title}</h3><p>${app.selectedPuzzle.description||''}</p><small>${(app.selectedPuzzle.tags||[]).join(' · ')}</small>`;$('#puzzleDetail').hidden=false}catch(error){toast(error.message)}}
+async function startPuzzle(){if(!app.selectedPuzzle)return;app.puzzleSession={...app.selectedPuzzle,step:0,misses:0,hints:0,hintStage:0};$('#trainingDialog').close();await importDocument(app.selectedPuzzle.document,'local');toast(t('toast.puzzle_started'))}
+// --- 每日一题 ---------------------------------------------------------------
+// 选题在服务端算（`/api/daily` → `core/daily.py`），前端只负责记「今天做没做」。
+// 连续性规则与 `core/daily.py` **同构**：隔天做完 +1、同一天重解不涨、断档归零、
+// 时间回拨不惩罚。改这里必须同步改那边，反之亦然。
+const DAILY_KEY='xh-daily';
+function dailyRecord(){try{const raw=JSON.parse(localStorage.getItem(DAILY_KEY)||'{}');return raw&&typeof raw==='object'?raw:{}}catch(error){return{}}}
+function saveDailyRecord(record){safeStorageSet(DAILY_KEY,JSON.stringify(record))}
+function dailyToday(){const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`}
+function dailyGap(from,to){return Math.round((Date.parse(to)-Date.parse(from))/86400000)}
+// D4 首跑引导：只在**首次访问**出现，记在 localStorage（不采集、不上报）
+function maybeShowOnboarding(){
+  try{if(localStorage.getItem('xh-onboarded'))return}catch(error){return}
+  ['1','2','3'].forEach((n,index)=>$('#onboardLine'+n).textContent=t('training.onboard_'+(index+1)));
+  $('#onboardTitle').textContent=t('training.onboard_title');
+  $('#onboardStartButton').textContent=t('training.onboard_cta');
+  const dialog=$('#onboardDialog');if(!dialog)return;
+  $('#onboardStartButton').onclick=()=>{try{localStorage.setItem('xh-onboarded','1')}catch(error){}dialog.close()};
+  if(!dialog.open)dialog.showModal();
+}
+// 版本号从服务端取，页面里不再写死（桌面端的「关于」也做过同样的修正）
+async function loadAppVersion(){
+  try{const data=await api('/api/version');
+    const label=$('#aboutVersion');if(label&&data?.version)label.textContent=`${t('common.version')||'版本'} ${data.version}`}
+  catch(error){/* 拿不到就保持占位符，不影响游戏 */}
+}
+
+function refreshDailyButton(){const button=$('#dailyPuzzleButton');if(!button)return;const record=dailyRecord(),today=dailyToday();let label=t('training.daily');const gap=record.day?dailyGap(record.day,today):0;
+  if(record.day===today&&record.done)label+=` · ${t('training.daily_done')}`;
+  else if(record.streak&&gap<=1)label+=` · ${t('training.daily_streak',{count:record.streak+1})}`;
+  button.textContent=label}
+async function openDaily(){try{
+  const data=await api('/api/daily');const today=data.day,record=dailyRecord(),gap=record.day?dailyGap(record.day,today):0;
+  if(record.day===today&&record.done)return toast(t('training.daily_done'));
+  // 惰性归零：昨天开了没做完、或断了两天以上 —— 与桌面端 `start_today` 同一口径
+  if(record.day&&(gap>1||(gap===1&&!record.done))){record.streak=0;saveDailyRecord(record)}
+  app.dailyDay=today;app.selectedPuzzle=data.puzzle;await startPuzzle();refreshDailyButton();
+}catch(error){toast(error.message)}}
+function recordDailySolved(session){if(!app.dailyDay)return;const today=app.dailyDay,record=dailyRecord(),gap=record.day?dailyGap(record.day,today):0;
+  const streak=(record.day&&gap===1&&record.done)?(record.streak||0)+1:1;
+  saveDailyRecord({day:today,id:session.id,done:true,streak,best:Math.max(streak,record.best||0)});
+  app.dailyDay=null;toast(t('training.daily_solved',{count:streak}));refreshDailyButton()}
+// A3 星级：只罚错着与提示（解法是唯一强制线，不存在「更短」的走法）
+// D3：大子阈值与 Python `core.model.BIG_CAPTURE_VALUE`（450）同源，
+// 两端必须同一个集合，否则同一步棋一边喊一边不响。
+const BIG_CAPTURE_TYPES=['rook','cannon','horse','archer','thunder','guard','patrol'];
+function isBigCapture(captured){return (captured||[]).some(piece=>BIG_CAPTURE_TYPES.includes(piece.type))}
+function shakeBoard(){const shell=$('#boardShell');if(!shell)return;
+  shell.classList.remove('board-shake');void shell.offsetWidth;shell.classList.add('board-shake');
+  setTimeout(()=>shell.classList.remove('board-shake'),320)}
+function puzzleStars(session){const penalty=(session.misses||0)+(session.hints||0);return penalty===0?3:(penalty<=2?2:1)}
+function puzzleMoveKey(move){return `${move.from.row},${move.from.col}-${move.to.row},${move.to.col}`}
+function checkPuzzleProgress(){
+  const session=app.puzzleSession;if(!session||!app.state?.history.length)return;
+  const actual=app.state.history.at(-1)?.move;if(!actual)return;
+  const key=puzzleMoveKey(actual);
+  // 程序刚替对手落的那一着会再触发一次本函数，跳过判定（游标已在下面推进过）
+  if(session.pendingAuto===key){session.pendingAuto=null;return}
+  const expected=session.solution[session.step];if(!expected)return;
+  if(puzzleMoveKey(expected)!==key){session.misses=(session.misses||0)+1;toast(t('toast.puzzle_wrong'));return}
+  session.step++;session.hintStage=0;
+  if(session.step>=session.solution.length){const stars=puzzleStars(session);toast(`${t('toast.puzzle_solved')} ${'★'.repeat(stars)}${'☆'.repeat(3-stars)}`);recordDailySolved(session);app.puzzleSession=null;return}
+  toast(t('toast.puzzle_continue'));
+  // 交替序列：偶数下标归玩家、奇数下标是**对手的被迫应着**，由程序自动落。
+  // 少了这一步，多步题第二步就会把对手的应着当成玩家的答案（必错）。
+  if(session.step%2===1){const reply=session.solution[session.step];session.step++;session.hintStage=0;session.pendingAuto=puzzleMoveKey(reply);send('move',{from:reply.from,to:reply.to})}
+}
 
 board.addEventListener('pointerdown',async e=>{const pos=positionAt(e);if(pos){app.dragging={start:pos,x:e.clientX,y:e.clientY};const piece=app.state?.pieces.find(p=>p.row===pos.row&&p.col===pos.col);if(canControl(piece)&&(!app.selected||app.selected.row!==pos.row||app.selected.col!==pos.col)){app.selected=piece;playSound('select');await loadLegal(piece)}}});
 board.addEventListener('pointerup',async e=>{const pos=positionAt(e),drag=app.dragging;app.dragging=null;if(!pos)return;if(app.legalPromise)await app.legalPromise.catch(()=>{});if(drag&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8&&app.selected)selectOrMove(pos);else selectOrMove(pos)});board.addEventListener('pointercancel',()=>{app.dragging=null});
-window.addEventListener('resize',resizeBoard);if(window.ResizeObserver)new ResizeObserver(resizeBoard).observe($('#boardShell'));$('#newGameButton').onclick=createGame;$('#joinButton').onclick=joinGame;$('#resignButton').onclick=()=>{const color=app.color||app.state?.turn;if(!confirm(t('dialog.confirm_resign',{color:t(`common.${color}`)})))return;send('resign')};$('#drawButton').onclick=()=>send('draw_offer');$('#undoButton').onclick=()=>send('undo_request');$('#pauseButton').onclick=()=>send('pause',{paused:!app.state?.paused});$('#restartButton').onclick=()=>send(app.mode==='online'?'restart_request':'restart',{options:app.options});$('#replayButton').onclick=()=>openReplay();
+window.addEventListener('resize',resizeBoard);if(window.ResizeObserver)new ResizeObserver(resizeBoard).observe($('#boardShell'));$('#newGameButton').onclick=createGame;$('#joinButton').onclick=joinGame;$('#resignButton').onclick=()=>{const color=app.color||app.state?.turn;if(!confirm(t('dialog.confirm_resign',{color:t(`common.${color}`)})))return;send('resign')};$('#drawButton').onclick=()=>send('draw_offer');$('#undoButton').onclick=()=>send('undo_request');$('#pauseButton').onclick=()=>send('pause',{paused:!app.state?.paused});$('#restartButton').onclick=()=>{const playing=app.state&&!app.state.finished&&app.state.history.length>0;if(playing&&!confirm('对局尚未结束，确认重新开始？'))return;send(app.mode==='online'?'restart_request':'restart',{options:app.options});};$('#replayButton').onclick=()=>openReplay();
 $('#resurrectButton').onclick=()=>{const cols=app.state?.profile?.cols||13;const value=prompt(t('prompt.resurrect_col',{cols}),'1'),col=Number(value)-1;if(!Number.isInteger(col)||col<0||col>=cols)return toast(t('toast.resurrect_col'));// The rank comes from the profile's own pawn slots instead of a hard coded
 // 8/4 split, so `traditional` (10x9) aims at row 6 rather than row 8.
 const home=(app.state?.profile?.pawnHomeSquares||[]).find(square=>square.col===col);if(!home)return toast(t('toast.resurrect_col'));send('resurrect',{row:home.row,col})};
@@ -223,7 +328,24 @@ $('#accountButton').onclick=async()=>{await refreshAccount();$('#accountDialog')
 document.addEventListener('click',event=>{const button=event.target.closest('#profileAvatarPicker [data-avatar]');if(!button)return;document.querySelectorAll('#profileAvatarPicker [data-avatar]').forEach(item=>item.classList.toggle('selected',item===button));if(button.dataset.avatar)$('#profileAvatarUrl').value=''});
 $('#cloudGameList').onclick=async e=>{const open=e.target.closest('[data-cloud-open]'),fav=e.target.closest('[data-cloud-favorite]'),del=e.target.closest('[data-cloud-delete]');try{if(open){const game=await api(`/api/me/games/${open.dataset.cloudOpen}`);$('#accountDialog').close();await importDocument(game.document)}if(fav){await api(`/api/me/games/${fav.dataset.cloudFavorite}/favorite`,{method:'PUT',body:JSON.stringify({favorite:fav.dataset.favorite==='true'})});await refreshCloudGames()}if(del&&confirm('确定删除这份云端棋谱？')){await api(`/api/me/games/${del.dataset.cloudDelete}`,{method:'DELETE'});await refreshCloudGames()}}catch(error){toast(error.message)}};
 $('#analyzeReplayButton').onclick=runAnalysis;$('#analysisMoveList').onclick=e=>{const item=e.target.closest('[data-analysis-ply]');if(item){$('#analysisDialog').close();if(!replayDialog.open)openReplay();setReplayIndex(Number(item.dataset.analysisPly))}};
-$('#trainingButton').onclick=()=>openTraining();document.querySelector('.training-filters').onclick=e=>{const level=e.target.closest('[data-puzzle-level]');if(level){document.querySelectorAll('[data-puzzle-level]').forEach(button=>button.classList.toggle('active',button===level));openTraining(level.dataset.puzzleLevel)}};$('#puzzleList').onclick=e=>{const item=e.target.closest('[data-puzzle-id]');if(item)selectPuzzle(item.dataset.puzzleId)};$('#puzzleStartButton').onclick=startPuzzle;$('#puzzleHintButton').onclick=()=>{if(app.selectedPuzzle){const index=Math.min(app.puzzleSession?.step||0,app.selectedPuzzle.hints.length-1);toast(app.selectedPuzzle.hints[index]||'暂无更多提示')}};$('#puzzleReviewButton').onclick=()=>{if(app.selectedPuzzle){$('#trainingDialog').close();openReplay(stateFromDocument(app.selectedPuzzle.document),app.selectedPuzzle.title)}};$('#importPuzzleButton').onclick=()=>$('#puzzleFileInput').click();$('#puzzleFileInput').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;if(file.size>10*1024*1024)return toast(t('toast.file_too_large'));try{const imported=JSON.parse(await file.text()),items=Array.isArray(imported)?imported:[imported];if(!items.length||!items.every(validPuzzle))throw new Error(t('toast.invalid_puzzle'));const merged=new Map(customPuzzles().map(item=>[item.id,item]));items.forEach(item=>merged.set(item.id,item));if(safeStorageSet('xh-custom-puzzles',JSON.stringify([...merged.values()])))toast(`已导入 ${items.length} 道习题`)}catch(error){toast(error.message)}};
+$('#trainingButton').onclick=()=>openTraining();document.querySelector('.training-filters').onclick=e=>{const level=e.target.closest('[data-puzzle-level]');if(level){document.querySelectorAll('[data-puzzle-level]').forEach(button=>button.classList.toggle('active',button===level));openTraining(level.dataset.puzzleLevel)}};$('#puzzleList').onclick=e=>{const item=e.target.closest('[data-puzzle-id]');if(item)selectPuzzle(item.dataset.puzzleId)};$('#puzzleStartButton').onclick=startPuzzle;$('#dailyPuzzleButton').onclick=openDaily;refreshDailyButton();
+maybeShowOnboarding();loadAppVersion();// C2 两段式提示：先指子、再指招（与桌面 `PuzzleSession.staged_hint` 同构）
+$('#puzzleHintButton').onclick=()=>{
+  if(!app.selectedPuzzle)return;
+  const session=app.puzzleSession;
+  if(!session){toast(app.selectedPuzzle.hints[0]||'暂无更多提示');return}
+  const move=session.solution[session.step];
+  if(!move)return;
+  session.hints=(session.hints||0)+1;
+  if(!session.hintStage){
+    session.hintStage=1;
+    const pieces=app.selectedPuzzle.document?.state?.pieces||[];
+    const piece=pieces.find(item=>item.row===move.from.row&&item.col===move.from.col);
+    toast(`先看这一枚：${piece?t('piece_name.'+piece.type):''}`);return
+  }
+  const hand=Math.floor(session.step/2);
+  toast(app.selectedPuzzle.hints[hand]||'暂无更多提示');
+};$('#puzzleReviewButton').onclick=()=>{if(app.selectedPuzzle){$('#trainingDialog').close();openReplay(stateFromDocument(app.selectedPuzzle.document),app.selectedPuzzle.title)}};$('#importPuzzleButton').onclick=()=>$('#puzzleFileInput').click();$('#puzzleFileInput').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;if(file.size>10*1024*1024)return toast(t('toast.file_too_large'));try{const imported=JSON.parse(await file.text()),items=Array.isArray(imported)?imported:[imported];if(!items.length||!items.every(validPuzzle))throw new Error(t('toast.invalid_puzzle'));const merged=new Map(customPuzzles().map(item=>[item.id,item]));items.forEach(item=>merged.set(item.id,item));if(safeStorageSet('xh-custom-puzzles',JSON.stringify([...merged.values()])))toast(`已导入 ${items.length} 道习题`)}catch(error){toast(error.message)}};
 $('#showMovesButton').onclick=()=>showRecordView('moves');$('#showChatButton').onclick=()=>showRecordView('chat');$('#sendQuickChatButton').onclick=()=>sendChat(true);$('#sendChatButton').onclick=()=>sendChat(false);$('#chatInput').onkeydown=e=>{if(e.key==='Enter')sendChat(false)};
 $('#soundButton').onclick=()=>{app.sound=!app.sound;$('#soundEnabled').checked=app.sound;$('#soundButton').textContent=app.sound?'♪':'♩';persistPreferences();if(app.music)startMusic();toast(app.sound?t('toast.sound_on'):t('toast.sound_off'))};
 $('#closeReplayButton').onclick=closeReplay;replayDialog.addEventListener('close',()=>{stopReplay();app.replayIndex=null;app.replaySource=null;draw()});
@@ -231,14 +353,18 @@ $('#replayBegin').onclick=()=>setReplayIndex(0);$('#replayPrev').onclick=()=>set
 $('#saveReplayButton').onclick=saveCurrentReplay;$('#savedReplayList').onclick=async e=>{const replay=e.target.closest('[data-replay-record]'),resume=e.target.closest('[data-continue-record]'),exportButton=e.target.closest('[data-export-record]'),del=e.target.closest('[data-delete-replay]'),records=replayRecords();if(replay)loadSavedReplay(Number(replay.dataset.replayRecord));if(resume){const record=records.find(r=>r.id===Number(resume.dataset.continueRecord));if(record)try{await importDocument(record.document)}catch(error){toast(error.message)}}if(exportButton){const record=records.find(r=>r.id===Number(exportButton.dataset.exportRecord));if(record)downloadDocument(record.document)}if(del&&confirm(t('dialog.confirm_delete_replay'))){localStorage.setItem('xh-replays',JSON.stringify(records.filter(r=>r.id!==Number(del.dataset.deleteReplay))));renderSavedReplays()}};
 $('#settingsButton').onclick=()=>{
   const root=$('#ruleOptions'),profile=app.profiles.get($('#profileSelect').value),available=new Set(profile?.pieceTypes||[]);
-  const general=['enforce_self_check','threefold_draw'].map(key=>`<label><input type="checkbox" data-option="${key}" ${app.options[key]!==false?'checked':''}>${t(`rule.${key}`)}</label>`).join('')
+  const general=['enforce_self_check','threefold_draw'].map(key=>`<label><input type="checkbox" data-option="${key}" ${optionIsOn(key)?'checked':''}>${t(`rule.${key}`)}</label>`).join('')
     // no_progress_draw_plies is the only numeric RuleOption (default 120), so it gets a
     // select instead of a checkbox; the "" value means "off" (0 disables the check).
     +`<label>${t('rule.no_progress_draw_plies')} <select data-option-int="no_progress_draw_plies">${[0,60,120,180,240].map(plies=>`<option value="${plies}" ${Number(app.options.no_progress_draw_plies)===plies?'selected':''}>${plies||t('settings.no_progress_off')}</option>`).join('')}</select></label>`;
-  const pieces=Object.entries(pieceLabels).map(([kind])=>{const key=`${kind}_appear`,enabled=available.has(kind),mandatory=kind==='king',rules=(pieceRuleKeys[kind]||[]).map(rule=>`<label><input type="checkbox" data-option="${rule}" ${app.options[rule]!==false?'checked':''}>${t(`rule.${rule}`)}</label>`).join('');return `<fieldset class="piece-rule-group ${enabled?'':'unavailable'}"><legend>${t(`piece.${kind}`)}</legend><p>${t(`piece_rule.${kind}`)}</p><label><input type="checkbox" data-option="${key}" ${mandatory||app.options[key]!==false?'checked':''} ${!enabled||mandatory?'disabled':''}>${t('settings.piece_appear')}</label>${rules}</fieldset>`}).join('');
-  root.innerHTML=`<fieldset><legend>${t('settings.general_rules')}</legend><div class="option-grid">${general}</div></fieldset><div class="piece-rule-list">${pieces}</div>`;applyPreferences();$('#settingsDialog').showModal();startMusic()
+  const pieces=Object.entries(pieceLabels).map(([kind])=>{const key=`${kind}_appear`,enabled=available.has(kind),mandatory=kind==='king',rules=(pieceRuleKeys[kind]||[]).map(rule=>`<label><input type="checkbox" data-option="${rule}" ${optionIsOn(rule)?'checked':''}>${t(`rule.${rule}`)}</label>`).join('');return `<fieldset class="piece-rule-group ${enabled?'':'unavailable'}"><legend>${t(`piece.${kind}`)}</legend><p>${ruleText(kind)}</p><label><input type="checkbox" data-option="${key}" ${mandatory||app.options[key]!==false?'checked':''} ${!enabled||mandatory?'disabled':''}>${t('settings.piece_appear')}</label>${rules}</fieldset>`}).join('');
+  root.innerHTML=`<fieldset><legend>${t('settings.general_rules')}</legend><div class="option-grid">${general}</div></fieldset><div class="piece-rule-list">${pieces}</div>`;applyPreferences();
+  // 规则依赖：上游关掉时把"必然失效"的下游置灰（引擎里本来就被 and 住，置灰只是把真相显式化）。
+  const syncDependencies=()=>{const deps=profile?.optionDependencies||{};for(const [child,parents] of Object.entries(deps)){const box=root.querySelector(`[data-option="${child}"]`);if(!box)continue;const enabled=parents.every(parent=>{const source=root.querySelector(`[data-option="${parent}"]`);return !source||source.checked});box.disabled=!enabled;box.title=enabled?'':t('rule.depends_disabled')}};
+  syncDependencies();root.onchange=e=>{if(e.target.dataset?.option)syncDependencies()};
+  $('#settingsDialog').showModal();startMusic()
 };
-$('#applySettings').onclick=()=>{app.options={...app.options};document.querySelectorAll('[data-option]').forEach(input=>{if(!input.disabled||input.dataset.option==='king_appear')app.options[input.dataset.option]=input.checked});document.querySelectorAll('[data-option-int]').forEach(input=>{app.options[input.dataset.optionInt]=Number(input.value)});app.options.king_appear=true;setTimeout(createGame)};
+$('#applySettings').onclick=()=>{app.options={...app.options};document.querySelectorAll('[data-option]').forEach(input=>{if(!input.disabled||input.dataset.option==='king_appear')app.options[input.dataset.option]=optionStored(input.dataset.option,input.checked)});document.querySelectorAll('[data-option-int]').forEach(input=>{app.options[input.dataset.optionInt]=Number(input.value)});app.options.king_appear=true;setTimeout(createGame)};
 $('#resultRestart').onclick=()=>{$('#resultDialog').close();createGame()};
 
 for(const [id,key] of [['systemThemeSelect','systemTheme'],['fontSelect','font'],['boardThemeSelect','boardTheme'],['pageBackgroundSelect','pageBackground'],['boardBackgroundSelect','boardBackground'],['musicStyleSelect','musicStyle']]){$(`#${id}`).onchange=e=>{app.preferences[key]=e.target.value;applyPreferences();persistPreferences();if(key==='musicStyle'){stopMusic();startMusic()}}}
@@ -286,5 +412,5 @@ $('#openReplayLibraryButton').onclick=()=>{$('#statisticsDialog').close();openRe
 $('#gameFileInput').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;if(file.size>10*1024*1024)return toast(t('toast.file_too_large'));try{const text=await file.text();let gameDocument;try{gameDocument=JSON.parse(text)}catch{gameDocument={position:text}}await importDocument(gameDocument)}catch(error){toast(t('toast.read_failed',{message:error.message}))}};
 document.addEventListener('keydown',e=>{const key=e.key.toLowerCase(),command=e.key==='F1'?'guide':e.key==='F11'?'fullscreen':(e.ctrlKey&&key==='n'?'new':e.ctrlKey&&key==='s'?'export':e.ctrlKey&&key==='o'?'import':e.ctrlKey&&key==='z'?'undo':e.ctrlKey&&key==='r'?'replay':null);if(command){e.preventDefault();runCommand(command)}});
 
-async function restore(){try{app.preferences={...app.preferences,...JSON.parse(localStorage.getItem('xh-preferences')||'{}')}}catch{}await setLanguage(app.preferences.language||localStorage.getItem('xh-language')||'zh-CN');await loadPreferences();renderSavedReplays();syncModeControls();$('#soundButton').textContent=app.sound?'♪':'♩';if(window.XionghanAndroid){document.body.classList.add('android-client');$('#serverSettingsButton').hidden=false}try{const profiles=await api('/api/profiles');app.profiles=new Map(profiles.map(profile=>[profile.id,profile]));await refreshAccount();const saved=JSON.parse(localStorage.getItem('xh-session'));if(saved?.roomId){const snapshot=await api(`/api/rooms/${saved.roomId}?token=${encodeURIComponent(saved.token)}`);app.roomId=saved.roomId;app.token=saved.token;app.color=saved.color;app.spectator=!!saved.spectator;receiveSnapshot(snapshot);connect();return}}catch{}await createGame()}
+async function restore(){try{app.preferences={...app.preferences,...JSON.parse(localStorage.getItem('xh-preferences')||'{}')}}catch{}await setLanguage(app.preferences.language||localStorage.getItem('xh-language')||'zh-CN');await loadPreferences();renderSavedReplays();syncModeControls();$('#soundButton').textContent=app.sound?'♪':'♩';if(window.XionghanAndroid){document.body.classList.add('android-client');$('#serverSettingsButton').hidden=false}try{const profiles=await api('/api/profiles');app.profiles=new Map(profiles.map(profile=>[profile.id,profile]));negatedOptions=new Set(profiles[0]?.negatedOptions||[]);app.ruleVersion=profiles[0]?.ruleVersion??app.ruleVersion;await refreshAccount();const saved=JSON.parse(localStorage.getItem('xh-session'));if(saved?.roomId){const snapshot=await api(`/api/rooms/${saved.roomId}`,{headers:{'X-Room-Token':saved.token}});app.roomId=saved.roomId;app.token=saved.token;app.color=saved.color;app.spectator=!!saved.spectator;receiveSnapshot(snapshot);connect();return}}catch{}await createGame()}
 restore();

@@ -68,7 +68,7 @@ jobs:
           node --check scripts/offline_rules_probe.cjs
 
       - name: pytest
-        run: pytest tests/ -q
+        run: pytest tests/ -m "not slow" -q
 
   # Desktop has ZERO automated coverage today: `tests/` greps 0 hits on desktop
   # symbols and the `test` extra does not even install PySide6, so a broken

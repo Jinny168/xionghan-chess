@@ -13,8 +13,7 @@ import pytest
 
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
-from xionghan_chess.core.profiles import PROFILES, get_profile
-from xionghan_chess.core.rules import RulesEngine
+from xionghan_chess.core.profiles import get_profile
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -159,32 +158,6 @@ def _offline_capture_specs(game: Game, color: Color, targets=None) -> list[dict]
     return sorted(observed, key=lambda item: (item["row"], item["col"]))
 
 
-def test_assassin_walks_one_step_and_captures_diagonally_parity():
-    """刺：**走**只有前进一格（与兵同）；**吃**是斜向任意距离（受夹逼）；没有拖拽交换。
-
-    （"车走"版本太强，用户已否；这里锁的是最终口径。）
-    """
-    # 前进一格 + 斜向两格吃 (9,7)：只有这两个落点
-    clear = _sparse("desktop_complete", [
-        (PieceType.ASSASSIN, Color.RED, 6, 4),
-        (PieceType.HORSE, Color.BLACK, 9, 7),
-    ])
-    _assert_targets(clear, (6, 4), [(5, 4), (9, 7)])
-
-    # 斜路被己方子挡住 → 吃不到，只剩前进一格
-    blocked = _sparse("desktop_complete", [
-        (PieceType.ASSASSIN, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.RED, 7, 5),
-        (PieceType.HORSE, Color.BLACK, 9, 7),
-    ])
-    _assert_targets(blocked, (6, 4), [(5, 4)])
-
-    # 正前方的敌子：不能吃（走只能落空点），也不能横向/后退
-    straight = _sparse("desktop_complete", [
-        (PieceType.ASSASSIN, Color.RED, 6, 4),
-        (PieceType.HORSE, Color.BLACK, 6, 7),
-    ])
-    _assert_targets(straight, (6, 4), [(5, 4)])
 
 @pytest.mark.parametrize("profile_id", [
     "traditional", "web", "desktop_classic", "desktop_complete",
@@ -326,7 +299,7 @@ def test_horse_parity_leg_block_and_straight_three():
         (PieceType.HORSE, Color.RED, 6, 4),
         (PieceType.PAWN, Color.RED, 5, 4),
         (PieceType.HORSE, Color.BLACK, 3, 4),
-    ])
+    ], options={"horse_blocked_by_leg": True})
     _assert_targets(game, (6, 4), [(5, 2), (5, 6), (7, 2), (7, 6),
                                    (6, 1), (6, 7), (8, 3), (8, 5), (9, 4)])
 
@@ -346,6 +319,36 @@ def test_horse_straight_three_toggle_parity():
     classic = _sparse("desktop_complete", placements,
                       options={"horse_straight_three": False})
     assert (3, 4) not in _targets_from(_assert_parity(classic), (6, 4))
+
+
+def test_horse_leg_toggle_parity():
+    """关闭"别马腿"= 国际象棋的马：只多出被腿挡住的两格，两端判定必须一致。"""
+    placements = [(PieceType.HORSE, Color.RED, 6, 4),
+                  (PieceType.PAWN, Color.RED, 5, 4)]      # 正上方 = (4,3)/(4,5) 的马腿
+    on = _sparse("desktop_complete", placements,
+                 options={"horse_straight_three": False, "horse_blocked_by_leg": True})
+    off = _sparse("desktop_complete", placements,
+                  options={"horse_straight_three": False, "horse_blocked_by_leg": False})
+    blocked = _targets_from(_assert_parity(on), (6, 4))
+    freed = _targets_from(_assert_parity(off), (6, 4))
+    assert freed - blocked == {(4, 3), (4, 5)}, "关掉别马腿只该多出被挡住的两格"
+    assert blocked - freed == set()
+
+
+def test_horse_straight_three_move_only_parity():
+    """直走三格"仅可移动"：落点有敌子不可吃，落点为空照走；两端一致。"""
+    landing = (6, 7)          # 从 (6,4) 直走三格的落点
+    enemy = _sparse("desktop_complete",
+                    [(PieceType.HORSE, Color.RED, 6, 4),
+                     (PieceType.PAWN, Color.BLACK, 6, 7)],
+                    options={"horse_straight_three": True,
+                             "horse_straight_three_move_only": True})
+    assert landing not in _targets_from(_assert_parity(enemy), (6, 4))
+
+    quiet = _sparse("desktop_complete", [(PieceType.HORSE, Color.RED, 6, 4)],
+                    options={"horse_straight_three": True,
+                             "horse_straight_three_move_only": True})
+    assert landing in _targets_from(_assert_parity(quiet), (6, 4))
 
 
 def test_elephant_parity_eye_and_two_step_crossing():
@@ -447,22 +450,25 @@ def test_pawn_parity_forward_sideways_and_two_step():
     _assert_parity(game)
 
 
-def test_pawn_base_full_movement_toggle_parity():
-    base_red = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)])
-    _assert_parity(base_red)
-    no_full = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)],
-                      options={"pawn_full_movement_at_base": False})
-    _assert_parity(no_full)
+def test_pawn_base_backward_toggle_parity():
+    """底线兵：横走两引擎都给（`crossed` 放的），后退只看 `pawn_backward_at_base`（默认关）。
+
+    2.0.0 删掉了 `pawn_full_movement_at_base`（它多给的只有"后退"，与这个开关重叠），
+    所以这里覆盖的是"默认关 / 显式开"两态；两态都必须两引擎一致。
+    """
+    default_off = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)])
+    _assert_targets(default_off, (0, 4), [(0, 3), (0, 5)])          # 只有横走，不能后退
     backward = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)],
                        options={"pawn_backward_at_base": True})
-    _assert_parity(backward)
+    _assert_targets(backward, (0, 4), [(0, 3), (0, 5), (1, 4)])     # 显式开才有后退
 
 
 def test_pawn_fast_move_toggle_parity():
     # The leap window is measured from the river outwards: a red pawn only
     # qualifies from row 7 down (distance_to_enemy_territory >= 2), so row 5
     # keeps the plain single step plus the sideways move it earned by crossing.
-    own_side = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 4)])
+    own_side = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 4)],
+                       options={"pawn_charge": False})
     _assert_targets(own_side, (5, 4), [(4, 4), (5, 3), (5, 5)])
 
     # Row 7 qualifies: the two-step leap appears only with the option enabled.
@@ -481,19 +487,57 @@ def test_pawn_fast_move_toggle_parity():
     _assert_targets(blocked, (7, 4), [])
 
 
-def test_guard_parity_jumps_one_piece():
-    # A guard may hop over exactly one piece to any empty square on a line or a
-    # diagonal; squares with zero or two pieces between stay closed.
+
+
+def test_thunder_parity_line_diagonal_and_isolated_capture():
+    """檑：直线/斜线 + 只吃孤立敌子。本条与任何已删除兵种无关，纯 parity。"""
+    game = _sparse("desktop_complete", [
+        (PieceType.THUNDER, Color.RED, 6, 4),
+        (PieceType.PAWN, Color.BLACK, 4, 4),      # 孤立：两格内可吃
+        (PieceType.PAWN, Color.BLACK, 7, 4),
+        (PieceType.PAWN, Color.RED, 7, 4),        # 挡住下方那只黑兵 → 它不算孤立
+        (PieceType.THUNDER, Color.BLACK, 6, 8),
+    ])
+    _assert_parity(game)
+
+
+def test_promotion_candidates_are_subset_of_enabled_types():
+    """升变候选必须 ⊆ 当前档案**启用**的类型（`*_appear` 关掉的不许出现）。
+
+    这是原 `test_promotion_never_offers_a_soft_deleted_type` 的替代版：那个 bug
+    （JS 只按 `profile.enabled` 过滤、漏了 `*_appear`）在硬删除后无法再用"甲"触发，
+    所以改成人为关掉一个**在用**类型（檑）来造同一条件。
+    """
+    off = _sparse("desktop_complete", [
+        (PieceType.KING, Color.RED, 12, 12),
+        (PieceType.KING, Color.BLACK, 0, 10),
+        (PieceType.PAWN, Color.RED, 1, 3),
+    ], kings=False, options={"thunder_appear": False})
+    off.state.captured[Color.RED].append(Piece.create(PieceType.THUNDER, Color.RED, 0, 0))
+    off.state.captured[Color.RED].append(Piece.create(PieceType.GUARD, Color.RED, 0, 0))
+
+    _assert_parity(off)
+    promotions = {m.promotion for m in off.rules.legal_moves(off.state)
+                  if m.source == Position(1, 3)}
+    assert PieceType.THUNDER not in promotions, "被 `*_appear=False` 关掉的类型不得出现在升变候选"
+    assert PieceType.GUARD in promotions, "启用的池内类型必须可选"
+
+
+def test_guard_parity_slides_diagonally():
+    """尉＝标准主教：两引擎都必须只给斜线目标、且遇子即停（照面钉住已删）。"""
     game = _sparse("desktop_complete", [
         (PieceType.GUARD, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 4, 4),
-        (PieceType.PAWN, Color.BLACK, 8, 4),
-        (PieceType.PAWN, Color.BLACK, 6, 7),
+        (PieceType.PAWN, Color.RED, 8, 6),        # 斜线上挡一枚己方子
+        (PieceType.HORSE, Color.BLACK, 2, 0),     # 另一条斜线上的敌子（可吃）
     ])
-    _assert_targets(game, (6, 4), [
-        (0, 4), (1, 4), (2, 4), (3, 4), (9, 4), (10, 4), (11, 4), (12, 4),
-        (6, 8), (6, 9), (6, 10), (6, 11), (6, 12),
-    ])
+    targets = _targets_from(_assert_parity(game), (6, 4))
+    expected = {(5, 3), (4, 2), (3, 1), (2, 0),                     # 左上：一路通到 (2,0) 的敌子
+                (7, 5),                                              # 右下：一步就撞己方兵 (8,6)
+                (5, 5), (4, 6), (3, 7), (2, 8), (1, 9), (0, 10),      # 右上整条
+                (7, 3), (8, 2), (9, 1), (10, 0)}                      # 左下整条
+    assert targets == expected, sorted(targets ^ expected)
+    # 正交一律不给
+    assert (6, 5) not in targets and (6, 3) not in targets
 
 
 def test_archer_weak_mode_lattice_parity():
@@ -502,13 +546,15 @@ def test_archer_weak_mode_lattice_parity():
     # The up-left ray is capped at two steps rather than three: (0,0) is a star
     # point, but it also holds the red king, and an archer cannot step onto its
     # own king. The other three rays reach their star point in full.
-    on_star = _sparse("desktop_complete", [(PieceType.ARCHER, Color.RED, 3, 3)])
+    on_star = _sparse("desktop_complete", [(PieceType.ARCHER, Color.RED, 3, 3)],
+                      options={"archer_enhanced_mode": False})
     _assert_targets(on_star, (3, 3), [
         (0, 6), (1, 1), (1, 5), (2, 2), (2, 4),
         (4, 2), (4, 4), (5, 1), (5, 5), (6, 0), (6, 6),
     ])
     # Off the lattice the weak archer has no reachable star point at all.
-    off_star = _sparse("desktop_complete", [(PieceType.ARCHER, Color.RED, 4, 4)])
+    off_star = _sparse("desktop_complete", [(PieceType.ARCHER, Color.RED, 4, 4)],
+                       options={"archer_enhanced_mode": False})
     _assert_targets(off_star, (4, 4), [(3, 3), (5, 5), (6, 6)])
 
 
@@ -567,7 +613,8 @@ def test_pawn_charge_toggle_parity():
     targets = _targets_from(_assert_parity(on), (5, 3))
     assert (2, 3) in targets and (0, 3) in targets
 
-    off = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 3)])
+    off = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 3)],
+                  options={"pawn_charge": False})
     assert (2, 3) not in _targets_from(_assert_parity(off), (5, 3))
 
     blocked = _sparse("desktop_complete", [
@@ -578,116 +625,47 @@ def test_pawn_charge_toggle_parity():
     assert (2, 3) not in blocked_targets and (4, 3) not in blocked_targets
 
 
-def test_thunder_parity_line_diagonal_and_isolated_capture():
-    game = _sparse("desktop_complete", [
-        (PieceType.THUNDER, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 4, 4),      # isolated: capture allowed at range 2
-        (PieceType.PAWN, Color.BLACK, 7, 4),
-        (PieceType.PAWN, Color.RED, 7, 4),        # shields the black pawn -> not isolated
-        (PieceType.THUNDER, Color.BLACK, 6, 8),
-    ])
-    _assert_parity(game)
 
 
-def test_armor_parity_sliding_then_line_capture():
-    game = _sparse("desktop_complete", [
-        (PieceType.ARMOR, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 6, 7),
-        (PieceType.ARMOR, Color.BLACK, 3, 3),
-        (PieceType.PAWN, Color.RED, 3, 6),
-    ])
-    # Armor may never capture by moving: the occupied square is not a target.
-    assert (6, 7) not in _targets_from(_assert_parity(game), (6, 4))
 
 
-def test_armor_line_squeeze_capture_parity():
-    # Armor sweeps any enemy that completes an allied/enemy/allied line. The
-    # squeeze is an indirect capture, so it must appear in captured_by_move even
-    # though armor never captures by sliding onto the occupied square itself.
-    # The armor starts one step short of the squeeze line on purpose. `_armor_removals`
-    # reads lines through the armor's destination square, so a squeeze only exists
-    # once the armor has landed at (6,4); starting on (6,4) would leave the line
-    # (6,4),(6,5),(6,6) broken by the armor's own departure and capture nothing.
-    # 软删甲/楯后，用选项把甲打开（测的是保留的规则分支）
-    game = _sparse("desktop_complete", [
-        (PieceType.ARMOR, Color.RED, 6, 3),
-        (PieceType.PAWN, Color.RED, 6, 5),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
-    ], options={"armor_appear": True})
-    moves = _assert_parity(game)
-    assert (6, 6) not in _targets_from(moves, (6, 3)), "armor cannot capture by sliding"
-    slide = next(m for m in moves if m[:2] == (6, 3) and m[2:4] == (6, 4))
-    captured = game.rules.captured_by_move(
-        game.state, Move(Position(slide[0], slide[1]), Position(slide[2], slide[3])))
-    assert any(p.position.row == 6 and p.position.col == 6 for p in captured), (
-        "any armor slide must squeeze away the black pawn at (6,6)"
-    )
 
 
-def test_assassin_parity_slide_and_drag():
-    # Assassin slides like a rook but cannot capture by moving; it instead drags
-    # the enemy sitting directly behind its origin.
-    game = _sparse("desktop_complete", [
-        (PieceType.ASSASSIN, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
-        (PieceType.PAWN, Color.BLACK, 5, 4),
-        (PieceType.ASSASSIN, Color.BLACK, 2, 2),
-    ])
-    assert (6, 6) not in _targets_from(_assert_parity(game), (6, 4))
 
 
-def test_shield_parity_jump_one_piece_orthogonal_only():
-    game = _sparse("desktop_complete", [
-        (PieceType.SHIELD, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 5, 4),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
-        (PieceType.SHIELD, Color.BLACK, 2, 2),
-    ], options={"shield_appear": True})
-    # A shield hops over exactly one piece, on straight lines only. The pawn at
-    # (5,4) opens the whole upward ray; the pawn at (6,6) opens the rightward ray.
-    _assert_targets(game, (6, 4), [(0, 4), (1, 4), (2, 4), (3, 4), (4, 4),
-                                   (6, 7), (6, 8), (6, 9), (6, 10), (6, 11), (6, 12)])
-    # With no screen nearby the black shield is completely immobile.
-    assert not _targets_from(_assert_parity(game), (2, 2))
 
 
-def test_shield_blocks_capture_of_protected_piece_parity():
-    game = _sparse("desktop_complete", [
-        (PieceType.ROOK, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
-        (PieceType.SHIELD, Color.BLACK, 5, 6),    # protects the pawn
-        (PieceType.SHIELD, Color.RED, 2, 2),
-    ])
-    assert (6, 6) not in _targets_from(_assert_parity(game), (6, 4))
 
 
-def test_patrol_moves_on_rows_and_columns_parity():
-    """巡：横竖同规则，走偶数格，吃子仅限距离 2（不再限制在 5/7 行）。"""
+def test_patrol_moves_along_ranks_only_parity():
+    """巡：**只沿横线**走偶数格，吃子仅限距离 2；竖移是硬规则禁行（2.0.0 起）。
+
+    红黑同一条判据、且不查 5/7 行白名单 —— 残局把巡摆在任意行都得照走。
+    """
     game = _sparse("desktop_complete", [
         (PieceType.PATROL, Color.RED, 7, 6),
         (PieceType.PATROL, Color.BLACK, 5, 6),
         (PieceType.PAWN, Color.BLACK, 7, 8),
     ])
-    # 横向：距离 2 可吃 (7,8)，距离 4/6 必须是空点；纵向同理（距离 2 可吃 (5,6)）
-    _assert_targets(game, (7, 6), [(7, 0), (7, 2), (7, 4), (7, 8),
-                                   (9, 6), (11, 6), (5, 6)])
+    # 横向：距离 2 可吃 (7,8)，距离 4/6 被它挡住；竖线一格都不给（(5,6) 是正上方两格的敌子）
+    _assert_targets(game, (7, 6), [(7, 0), (7, 2), (7, 4), (7, 8)])
 
-    # 黑方另起一局（`_assert_parity` 只列当前行棋方的着法）：
-    # 竖走 (1,6)/(3,6)/(7,6)/(9,6)/(11,6)，横走 (5,0)/(5,2)/(5,4) 与吃子 (5,8)
+    # 黑方另起一局（`_assert_parity` 只列当前行棋方的着法）：横向 (5,0)/(5,2)/(5,4)
+    # 与吃子 (5,8)（吃子后不能再走）；竖线（(1,6)/(3,6)/(7,6)…）一律没有
     black = _sparse("desktop_complete", [
         (PieceType.PATROL, Color.BLACK, 5, 6),
         (PieceType.PAWN, Color.RED, 5, 8),
     ], turn=Color.BLACK)
-    _assert_targets(black, (5, 6), [(1, 6), (3, 6), (5, 0), (5, 2), (5, 4),
-                                    (5, 8), (7, 6), (9, 6), (11, 6)])
+    _assert_targets(black, (5, 6), [(5, 0), (5, 2), (5, 4), (5, 8)])
 
 
 def test_patrol_is_not_pinned_to_home_rank_parity():
-    """旧口径把巡锁在 5/7 行；新口径下任意行列都能走（偶数格）。"""
+    """任意**行**都能横向走（偶数格）；但竖线永远不走 —— 行不是白名单，横向才是规则。"""
     game = _sparse("desktop_complete", [(PieceType.PATROL, Color.RED, 6, 6)])
     targets = _targets_from(_assert_parity(game), (6, 6))
-    assert (6, 0) in targets and (6, 12) in targets
-    assert (0, 6) in targets and (12, 6) in targets
+    assert (6, 0) in targets and (6, 12) in targets, "任意行都能横向走偶数格"
+    assert (0, 6) not in targets and (12, 6) not in targets, "竖移是硬规则禁行"
+    assert (8, 6) not in targets, "竖着两格也不行（不是「只能走偶数格所以竖着两格可以」）"
 
 
 # --- rule interactions ------------------------------------------------------
@@ -772,18 +750,6 @@ def test_traditional_palace_edge_parity():
     _assert_targets(outside, (9, 6), [(9, 5)])
 
 
-def test_all_piece_types_present_in_complete_profile_parity():
-    # Smoke check on the dispatch table. 软删甲/楯后仅 12 类默认在场：
-    # 这两类仍留在 `profile.enabled_piece_types`（可回滚），但被 `*_appear=False` 挡在引擎之外。
-    profile = PROFILES["desktop_complete"]
-    engine = RulesEngine(profile)
-    removed = {PieceType.ARMOR, PieceType.SHIELD}
-    for kind in PieceType:
-        assert kind in profile.enabled_piece_types, f"{kind} missing from complete profile"
-        if kind in removed:
-            assert kind not in engine.enabled_piece_types, f"{kind} 已软删，不应进引擎"
-        else:
-            assert kind in engine.enabled_piece_types
 
 
 @pytest.mark.parametrize("profile_id", ["desktop_complete", "desktop_classic", "web"])
@@ -1151,28 +1117,6 @@ def test_capturable_squares_point_query_parity():
                 _offline_capture_specs(game, color, targets=(position,))
 
 
-def test_capture_kinds_match_across_engines():
-    # A crafted board that produces a direct capture, an armor squeeze and an
-    # assassin drag at once, so a "captured but with the wrong kind" decision
-    # cannot pass the gate.
-    # 兵对放在 row 5：row 6 是阴山行，**不再**算敌境，红兵在那里不能横走吃子
-    # （旧口径下这枚 direct 吃子靠的正是 row 6 横走，改口径后必须下移一行）。
-    # 刺的拖拽吃法已删除，`assassin_drag` 不再产生；这里只要 direct + armor_line：
-    # row 6 的一对兵给 `armor_line`（甲走到 (6,4) 凑成三连），row 5 的一对给 `direct`。
-    game = _sparse("desktop_complete", [
-        (PieceType.ARMOR, Color.RED, 6, 3),
-        (PieceType.PAWN, Color.RED, 6, 5),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
-        (PieceType.PAWN, Color.RED, 5, 5),
-        (PieceType.PAWN, Color.BLACK, 5, 6),
-    ], options={"armor_appear": True})   # 软删甲：用选项把甲打开
-    python = _python_capture_specs(game, Color.RED)
-    offline = _offline_capture_specs(game, Color.RED)
-    assert python == offline
-    kinds = {removal["kind"] for spec in python for removal in spec["removals"]}
-    # 刺的「拖拽/同归于尽」已删除，`assassin_drag` 不再产生
-    assert {"direct", "armor_line"} <= kinds, kinds
-    assert "assassin_drag" not in kinds
 
 
 # ---------------------------------------------------------------------------
@@ -1455,3 +1399,57 @@ def test_random_sample_set_covers_every_piece_type():
     assert not missing, (
         f"{PARITY_SAMPLES} samples never exercised: {sorted(kind.value for kind in missing)}"
     )
+
+# --------------------------------------------------------------------------
+# 定向 removals 对拍：只改变"移走哪些子"、不改变合法着集合的规则（如三连吃子），
+# 批量门禁比的是 legalAll/inCheck，抓不到它 —— 这两条用已有的 `capturedByMove`
+# 定向支路（一次请求只算**指定的一步**，不影响 79 条批量用例的耗时与契约）。
+# --------------------------------------------------------------------------
+
+THREE_LINE_OPTIONS = {"pawn_three_line_capture": True}
+
+
+def _three_line_game(placements, options=None):
+    return _sparse("desktop_complete",
+                   [(PieceType.KING, Color.RED, 11, 6), (PieceType.KING, Color.BLACK, 0, 4)]
+                   + placements,
+                   kings=False, options=options or THREE_LINE_OPTIONS)
+
+
+def test_three_line_capture_parity_when_the_moved_pawn_joins_the_line():
+    """参与则吃：`(6,4)→(5,4)` 与 `(5,5)` 兵、`(5,6)` 黑士成线 → 两侧都吃掉那枚士。"""
+    game = _three_line_game([
+        (PieceType.PAWN, Color.RED, 6, 4),
+        (PieceType.PAWN, Color.RED, 5, 5),
+        (PieceType.ADVISOR, Color.BLACK, 5, 6),
+    ])
+    move = Move(Position(6, 4), Position(5, 4))
+
+    python_captured = sorted((piece.type.value, piece.color.value)
+                             for piece in game.rules.captured_by_move(game.state, move))
+    js_captured = sorted((item["type"], item["color"])
+                         for item in _offline_captured(game, move.source, move.target))
+
+    # 先断言**非空**：只比相等的话，两边都返回 [] 也会绿（假绿）。
+    assert python_captured, "三连吃子没吃到任何子 —— 收窄可能过头了"
+    assert js_captured == python_captured, f"python={python_captured} js={js_captured}"
+    assert ("advisor", "black") in python_captured
+
+
+def test_three_line_capture_parity_ignores_a_far_line():
+    """不参与不吃：走无关的兵 `(8,4)→(7,4)`，远处 `(2,8)(2,9)(2,10)` 成线 → 两侧都为空。"""
+    game = _three_line_game([
+        (PieceType.PAWN, Color.RED, 8, 4),
+        (PieceType.PAWN, Color.RED, 2, 8),
+        (PieceType.PAWN, Color.RED, 2, 9),
+        (PieceType.ADVISOR, Color.BLACK, 2, 10),
+    ])
+    move = Move(Position(8, 4), Position(7, 4))
+
+    python_captured = sorted((piece.type.value, piece.color.value)
+                             for piece in game.rules.captured_by_move(game.state, move))
+    js_captured = sorted((item["type"], item["color"])
+                         for item in _offline_captured(game, move.source, move.target))
+
+    assert python_captured == [], f"不该收割远线，实际 {python_captured}"
+    assert js_captured == python_captured, f"python={python_captured} js={js_captured}"

@@ -45,12 +45,35 @@ def test_wrong_move_counts_attempt_but_does_not_advance() -> None:
 
 
 def test_multi_step_needs_every_step_in_order() -> None:
-    steps = (_mv(8, 4, 7, 4), _mv(4, 4, 5, 4))
-    session = training.PuzzleSession(_puzzle(steps))
-    assert session.submit(steps[1]) == training.VERDICT_WRONG   # 顺序错也算错
-    assert session.submit(steps[0]) == training.VERDICT_CORRECT
+    """多步题是**交替序列**：0/2 归玩家，1 是对手的被迫应着（程序自动落）。
+
+    旧版把 2 ply 当合法解（玩家走完、对手再走一手就结束）—— 那会停在"对手刚走完"，
+    玩家无从落子。解法长度必须奇数，这条测试也顺带锁住"对手那一手不许玩家提交"。
+    """
+    first, reply, last = _mv(8, 4, 7, 4), _mv(4, 4, 5, 4), _mv(7, 4, 6, 4)
+    session = training.PuzzleSession(_puzzle((first, reply, last)))
+    assert session.submit(reply) == training.VERDICT_WRONG      # 对手应着，玩家提交即错
+    assert session.submit(first) == training.VERDICT_CORRECT
     assert session.cursor == 1 and not session.solved
-    assert session.submit(steps[1]) == training.VERDICT_SOLVED
+    assert session.auto_reply is not None and session.auto_reply.key() == reply.key()
+    session.advance_auto()
+    assert session.auto_reply is None
+    assert session.submit(last) == training.VERDICT_SOLVED
+
+
+def test_player_step_count_uses_hands_not_plies() -> None:
+    """面向玩家的计数用「手」= ceil(ply/2)：5 ply 是 3 手，不是 5 步。"""
+    steps = (_mv(8, 4, 7, 4), _mv(4, 4, 5, 4), _mv(7, 4, 6, 4),
+             _mv(5, 4, 4, 4), _mv(6, 4, 5, 4))
+    session = training.PuzzleSession(_puzzle(steps))
+    assert session.total == 5              # 内部 ply
+    assert session.player_total == 3       # 面向玩家
+
+
+def test_even_length_solution_is_rejected() -> None:
+    """偶数 ply 的解法是非法数据（会停在对手刚走完），构造时就要报错。"""
+    with pytest.raises(ValueError):
+        training.PuzzleSession(_puzzle((_mv(8, 4, 7, 4), _mv(4, 4, 5, 4))))
 
 
 def test_submit_after_solved_is_idempotent() -> None:

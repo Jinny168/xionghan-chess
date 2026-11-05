@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#781f1f">
   <title>匈汉象棋</title>
   <link rel="icon" href="/assets/icon.png">
-  <link rel="stylesheet" href="/css/app.css?v=1.7.0">
+  <link rel="stylesheet" href="/css/app.css?v=2.0.0">
 </head>
 <body>
   <header class="topbar">
@@ -39,6 +39,7 @@
       </div></details>
     </nav>
     <div class="top-actions" aria-label="快捷工具">
+      <button id="atlasButton">棋子图谱</button>
       <button class="icon-button" id="newLocalButton" title="双人同机对弈" aria-label="双人同机对弈">⇄</button>
       <button class="icon-button" id="saveGameButton" title="保存棋局" aria-label="保存棋局">▣</button>
       <button class="icon-button" id="loadGameButton" title="读取棋局" aria-label="读取棋局">↥</button>
@@ -64,10 +65,10 @@
       <section class="mode-panel">
         <label>模式<select id="modeSelect"><option value="ai">人机对战</option><option value="local">双人同机</option><option value="online">网络对战</option></select></label>
         <label>规则档案<select id="profileSelect"><option value="web">精简模式</option><option value="desktop_classic">经典模式</option><option value="desktop_complete">完整模式</option><option value="traditional">传统象棋</option></select></label>
-        <label id="difficultyRow">AI 难度<select id="difficultySelect"><option value="beginner">入门</option><option value="easy">初级</option><option value="medium" selected>中级</option><option value="hard">高级</option><option value="master">大师（MCTS）</option></select></label>
+        <label id="difficultyRow">AI 难度<select id="difficultySelect"><option value="beginner">入门</option><option value="easy">初级</option><option value="medium" selected>中级</option><option value="hard">高级</option><option value="expert">专家</option><option value="master">大师（MCTS）</option></select></label>
         <label id="colorRow">执子<select id="colorSelect"><option value="red">红方先手</option><option value="black">黑方后手</option></select></label>
         <label>先手<select id="firstMoveSelect"><option value="red">默认（红先）</option><option value="black">黑先</option><option value="random">随机</option></select></label>
-        <label>每方时限<select id="initialMinutesSelect"><option value="5">5 分钟</option><option value="10">10 分钟</option><option value="20" selected>20 分钟</option><option value="30">30 分钟</option><option value="60">60 分钟</option></select></label>
+        <label>每方时限<select id="initialMinutesSelect"><option value="5">5 分钟</option><option value="10" selected>10 分钟</option><option value="20">20 分钟</option><option value="30">30 分钟</option><option value="60">60 分钟</option></select></label>
         <label>读秒提醒<select id="countdownSecondsSelect"><option value="10">最后 10 秒</option><option value="30" selected>最后 30 秒</option><option value="60">最后 60 秒</option><option value="0">关闭</option></select></label>
         <div class="setup-actions"><button id="handicapButton">登场棋子</button><button class="primary" id="newGameButton">开始对局</button></div>
         <div class="join-row" id="joinRow"><input id="roomInput" maxlength="6" placeholder="房间号"><button id="joinButton">加入</button><button id="spectateButton">观战</button></div>
@@ -84,7 +85,7 @@
       <div class="game-actions">
         <button id="undoButton">↶ 悔棋</button>
         <button id="pauseButton">Ⅱ 暂停</button>
-        <button id="restartButton">↻ 重开</button>
+        <button id="restartButton">↻ 再来一局</button>
         <button id="resignButton">认输</button>
         <button id="drawButton">提和</button>
         <button id="replayButton">复盘</button>
@@ -136,9 +137,9 @@
           <label>字体<select id="fontSelect"><option value="system">系统无衬线</option><option value="kaiti">楷体</option><option value="songti">宋体</option><option value="serif">衬线古典</option></select></label>
           <label>棋盘主题<select id="boardThemeSelect"><option value="classic">经典木纹</option><option value="green">翠绿草原</option><option value="blue">海洋蓝调</option><option value="purple">紫晶梦幻</option><option value="dark">暗黑模式</option></select></label>
           <label>语言<select id="languageSelect"><option value="zh-CN">中文</option><option value="en">English</option></select></label>
-          <label>网页背景<select id="pageBackgroundSelect"><option value="none">原色（无图片）</option><option value="1">山水淡纹</option><option value="2">素雅纸纹</option><option value="3">长城远景</option><option value="4">青绿山水</option><option value="5">夜色山河</option></select></label>
+          <label>网页背景<select id="pageBackgroundSelect"><option value="1" selected>山水淡纹</option><option value="2">素雅纸纹</option><option value="3">长城远景</option><option value="4">青绿山水</option><option value="5">夜色山河</option></select></label>
           <label>棋盘底纹<select id="boardBackgroundSelect"><option value="none">纯色（无底纹）</option><option value="1">山水淡纹</option><option value="2">素雅纸纹</option><option value="3">长城远景</option><option value="4">青绿山水</option><option value="5">夜色山河</option></select></label>
-          <label>棋子样式<select id="pieceStyleSelect"><option value="traditional">传统书法</option><option value="modern">现代简约</option><option value="cartoon">卡通风格</option></select></label>
+          <label>棋子样式<select id="pieceStyleSelect"><option value="traditional">传统书法</option><option value="modern">现代简约</option><option value="cartoon">卡通风格</option><option value="glyph">书法字形</option></select></label>
           <div class="custom-backgrounds"><span>自定义图片</span><select id="customBackgroundSelect" aria-label="自定义图片"></select><div class="custom-background-actions"><button type="button" id="uploadBackgroundButton">上传</button><button type="button" id="renameBackgroundButton">重命名</button><button type="button" id="deleteBackgroundButton">删除</button></div><input id="backgroundFileInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></div>
         </fieldset>
         <fieldset id="soundSettings"><legend>声音</legend>
@@ -163,11 +164,39 @@
   <dialog id="handicapDialog" class="feature-dialog"><div class="dialog-title"><h2>登场棋子配置</h2><button class="icon-button" data-close-dialog="handicapDialog">×</button></div><p class="dialog-note">双方登场数量必须相同，主帅固定登场。</p><div class="handicap-columns"><fieldset><legend>红方 <output id="redPieceCount"></output></legend><div id="redPieceSlots" class="piece-slot-list"></div></fieldset><fieldset><legend>黑方 <output id="blackPieceCount"></output></legend><div id="blackPieceSlots" class="piece-slot-list"></div></fieldset></div><menu><button id="resetHandicapButton">全部登场</button><button id="applyHandicapButton" class="primary">应用</button></menu></dialog>
   <dialog id="accountDialog" class="feature-dialog"><div class="dialog-title"><h2>账号与云同步</h2><button class="icon-button" data-close-dialog="accountDialog">×</button></div><div id="accountGuest"><label>用户名<input id="accountUsername" maxlength="32" autocomplete="username"></label><label>密码<input id="accountPassword" type="password" minlength="8" autocomplete="current-password"></label><label>显示名称<input id="accountDisplayName" maxlength="32"></label><div class="dialog-actions"><button id="loginButton" class="primary">登录</button><button id="registerButton">注册</button></div></div><div id="accountProfile" hidden><div class="account-summary"><strong id="accountName"></strong><span>三端数据已连接</span></div><label>显示名称<input id="profileDisplayName" maxlength="32"></label><label>头像 URL<input id="profileAvatarUrl" maxlength="500" type="url" placeholder="https://..."></label><div class="dialog-actions"><button id="saveProfileButton" class="primary">保存资料</button><button id="cloudSaveButton">上传当前棋局</button><button id="syncPreferencesButton">同步偏好</button><button id="logoutButton">退出登录</button></div><h3>云端棋谱</h3><div id="cloudGameList" class="cloud-game-list"></div></div></dialog>
   <dialog id="analysisDialog" class="feature-dialog analysis-dialog"><div class="dialog-title"><h2>AI 棋局分析</h2><button class="icon-button" data-close-dialog="analysisDialog">×</button></div><div id="analysisLoading" class="analysis-loading">正在逐步分析棋局...</div><div id="analysisContent" hidden><div id="analysisSummary" class="analysis-summary"></div><canvas id="winRateChart" width="720" height="220" aria-label="胜率曲线"></canvas><div id="analysisMoveList" class="analysis-moves"></div></div></dialog>
-  <dialog id="trainingDialog" class="feature-dialog training-dialog"><div class="dialog-title"><h2>残局与排局训练</h2><button class="icon-button" data-close-dialog="trainingDialog">×</button></div><div class="training-filters"><button data-puzzle-level="beginner" class="active">入门</button><button data-puzzle-level="advanced">进阶</button><button data-puzzle-level="master">大师</button><button id="importPuzzleButton">导入题库</button><input id="puzzleFileInput" type="file" accept=".json" hidden></div><div id="puzzleList" class="puzzle-list"></div><div id="puzzleDetail" hidden><div id="puzzleInfo"></div><div class="dialog-actions"><button id="puzzleStartButton" class="primary">开始训练</button><button id="puzzleHintButton">步骤提示</button><button id="puzzleReviewButton">习题复盘</button></div></div></dialog>
+  <dialog id="trainingDialog" class="feature-dialog training-dialog"><div class="dialog-title"><h2>残局与排局训练</h2><button class="icon-button" data-close-dialog="trainingDialog">×</button></div><div class="training-filters"><button id="dailyPuzzleButton" class="primary">每日一题</button><button data-puzzle-level="beginner" class="active">入门</button><button data-puzzle-level="advanced">进阶</button><button data-puzzle-level="master">大师</button><button id="importPuzzleButton">导入题库</button><input id="puzzleFileInput" type="file" accept=".json" hidden></div><div id="puzzleList" class="puzzle-list"></div><div id="puzzleDetail" hidden><div id="puzzleInfo"></div><div class="dialog-actions"><button id="puzzleStartButton" class="primary">开始训练</button><button id="puzzleHintButton">步骤提示</button><button id="puzzleReviewButton">习题复盘</button></div></div></dialog>
+  <dialog id="onboardDialog" class="feature-dialog onboard-dialog">
+    <div class="dialog-title"><h2 id="onboardTitle">怎么开始</h2>
+      <button class="icon-button" data-close-dialog="onboardDialog">×</button></div>
+    <div class="onboard-body">
+      <p id="onboardLine1"></p>
+      <p id="onboardLine2"></p>
+      <p id="onboardLine3"></p>
+    </div>
+    <div class="dialog-actions"><button id="onboardStartButton" class="primary">开始吧</button></div>
+  </dialog>
   <dialog id="statisticsDialog" class="text-dialog"><div class="dialog-title"><h2>历史对局与统计</h2><button class="icon-button" data-close-dialog="statisticsDialog">×</button></div><div class="text-dialog-body">
     <div id="statisticsSummary" class="statistics-summary"></div>
     <div class="statistics-actions"><button id="openReplayLibraryButton" class="primary">打开本地棋谱库</button><button id="resetStatisticsButton">重置统计</button></div>
   </div></dialog>
+  <dialog id="atlasDialog" class="atlas-dialog">
+    <form method="dialog" class="atlas-shell">
+      <div class="atlas-col">
+        <h3>棋子</h3>
+        <div id="atlasList" class="atlas-list"></div>
+      </div>
+      <div class="atlas-col">
+        <div id="atlasPresets" class="atlas-presets"></div>
+        <div id="atlasDemoSlot" class="atlas-demo-slot">走法演示（下一笔）</div>
+        <p id="atlasNote" class="atlas-note"></p>
+      </div>
+      <div class="atlas-col">
+        <h3>规则</h3>
+        <p id="atlasText" class="atlas-text"></p>
+        <menu><button id="atlasClose" class="primary">关闭</button></menu>
+      </div>
+    </form>
+  </dialog>
   <dialog id="resultDialog"><div class="result-mark" id="resultMark">胜</div><h2 id="resultTitle"></h2><p id="resultText"></p><button id="resultRestart" class="primary">再来一局</button></dialog>
   <dialog id="helpDialog" class="text-dialog"><div class="dialog-title"><h2>匈汉象棋使用帮助</h2><button class="icon-button" data-close-dialog="helpDialog">×</button></div><div class="text-dialog-body">
     <h3>开始对局</h3><p>可选择人机对战、双人同机或网络对战。双人同机模式会按当前轮次自动允许红黑双方在同一设备操作。</p>
@@ -178,8 +207,12 @@
     <h3>反馈支持</h3><p><a href="https://github.com/Jinny168/xionghan-chess/issues" target="_blank" rel="noreferrer">GitHub Issues</a> · 2741526119@qq.com</p>
   </div></dialog>
   <dialog id="rulesDialog" class="text-dialog"><div class="dialog-title"><h2>棋子规则</h2><button class="icon-button" data-close-dialog="rulesDialog">×</button></div><div class="text-dialog-body"><p>各棋子的详细规则、增强选项和夹逼判定可在“设置 → 规则与外观”中逐项查看和调整。</p><p>斜向移动经过的每一段入口都必须通过夹逼检查；兵卒快速行军最多抵达敌境边缘。</p></div></dialog>
-  <dialog id="aboutDialog" class="text-dialog"><div class="dialog-title"><h2>关于匈汉象棋</h2><button class="icon-button" data-close-dialog="aboutDialog">×</button></div><div class="text-dialog-body"><p><strong>版本 1.7.0</strong></p><p>匈汉象棋是一款采用 13 × 13 扩展棋盘、融合匈奴与东汉文化元素的中国象棋创新变体，在传统象棋核心博弈结构上加入特色棋子与可配置规则。</p><h3>当前版本</h3><ul><li>Windows、Web 与 Android 三端支持。</li><li>共享 Python 规则、AI、联机协议和 <code>.xhgame</code> 棋谱格式。</li><li>支持账号云同步、等量让子、观战、棋盘翻转、AI 分析和分级训练。</li></ul><h3>开发信息</h3><p>开发者：靳中原<br>项目主页：<a href="https://github.com/Jinny168/xionghan-chess" target="_blank" rel="noreferrer">github.com/Jinny168/xionghan-chess</a><br>反馈邮箱：2741526119@qq.com</p><p>感谢原项目积累的规则、素材、菜单设计和玩家反馈，也感谢开源社区提供的开发工具与音频资源。</p></div></dialog>
+  <dialog id="aboutDialog" class="text-dialog"><div class="dialog-title"><h2>关于匈汉象棋</h2><button class="icon-button" data-close-dialog="aboutDialog">×</button></div><div class="text-dialog-body"><p><strong id="aboutVersion">版本 —</strong></p><p>匈汉象棋是一款采用 13 × 13 扩展棋盘、融合匈奴与东汉文化元素的中国象棋创新变体，在传统象棋核心博弈结构上加入特色棋子与可配置规则。</p><h3>当前版本</h3><ul><li>Windows、Web 与 Android 三端支持。</li><li>共享 Python 规则、AI、联机协议和 <code>.xhgame</code> 棋谱格式。</li><li>支持账号云同步、等量让子、观战、棋盘翻转、AI 分析和分级训练。</li></ul><h3>开发信息</h3><p>开发者：靳中原<br>项目主页：<a href="https://github.com/Jinny168/xionghan-chess" target="_blank" rel="noreferrer">github.com/Jinny168/xionghan-chess</a><br>反馈邮箱：2741526119@qq.com</p><p>感谢原项目积累的规则、素材、菜单设计和玩家反馈，也感谢开源社区提供的开发工具与音频资源。</p></div></dialog>
   <div id="toast" class="toast" role="status"></div>
-  <script type="module" src="/js/app.js?v=1.7.0"></script>
+  <script type="module" src="/js/app.js?v=2.0.0"></script>
+  <script type="module">
+    import { openAtlas } from './js/atlas.js';
+    document.getElementById('atlasButton').addEventListener('click', () => openAtlas());
+  </script>
 </body>
 </html>

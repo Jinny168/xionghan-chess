@@ -1,0 +1,328 @@
+{
+ "profile": "desktop_complete",
+ "total_pieces": 54,
+ "types": [
+  "advisor",
+  "archer",
+  "assassin",
+  "cannon",
+  "elephant",
+  "guard",
+  "horse",
+  "king",
+  "patrol",
+  "pawn",
+  "rook",
+  "thunder"
+ ],
+ "per_side": {
+  "red": {
+   "count": 27,
+   "counts_by_type": {
+    "advisor": 2,
+    "archer": 2,
+    "assassin": 2,
+    "cannon": 2,
+    "elephant": 2,
+    "guard": 1,
+    "horse": 2,
+    "king": 1,
+    "patrol": 2,
+    "pawn": 7,
+    "rook": 2,
+    "thunder": 2
+   },
+   "positions": [
+    {
+     "type": "advisor",
+     "row": 11,
+     "col": 5
+    },
+    {
+     "type": "advisor",
+     "row": 11,
+     "col": 7
+    },
+    {
+     "type": "archer",
+     "row": 12,
+     "col": 0
+    },
+    {
+     "type": "archer",
+     "row": 12,
+     "col": 12
+    },
+    {
+     "type": "assassin",
+     "row": 12,
+     "col": 3
+    },
+    {
+     "type": "assassin",
+     "row": 12,
+     "col": 9
+    },
+    {
+     "type": "cannon",
+     "row": 9,
+     "col": 1
+    },
+    {
+     "type": "cannon",
+     "row": 9,
+     "col": 11
+    },
+    {
+     "type": "elephant",
+     "row": 11,
+     "col": 4
+    },
+    {
+     "type": "elephant",
+     "row": 11,
+     "col": 8
+    },
+    {
+     "type": "guard",
+     "row": 12,
+     "col": 6
+    },
+    {
+     "type": "horse",
+     "row": 11,
+     "col": 3
+    },
+    {
+     "type": "horse",
+     "row": 11,
+     "col": 9
+    },
+    {
+     "type": "king",
+     "row": 11,
+     "col": 6
+    },
+    {
+     "type": "patrol",
+     "row": 7,
+     "col": 0
+    },
+    {
+     "type": "patrol",
+     "row": 7,
+     "col": 12
+    },
+    {
+     "type": "pawn",
+     "row": 8,
+     "col": 0
+    },
+    {
+     "type": "pawn",
+     "row": 8,
+     "col": 2
+    },
+    {
+     "type": "pawn",
+     "row": 8,
+     "col": 4
+    },
+    {
+     "type": "pawn",
+     "row": 8,
+     "col": 6
+    },
+    {
+     "type": "pawn",
+     "row": 8,
+     "col": 8
+    },
+    {
+     "type": "pawn",
+     "row": 8,
+     "col": 10
+    },
+    {
+     "type": "pawn",
+     "row": 8,
+     "col": 12
+    },
+    {
+     "type": "rook",
+     "row": 11,
+     "col": 2
+    },
+    {
+     "type": "rook",
+     "row": 11,
+     "col": 10
+    },
+    {
+     "type": "thunder",
+     "row": 12,
+     "col": 4
+    },
+    {
+     "type": "thunder",
+     "row": 12,
+     "col": 8
+    }
+   ]
+  },
+  "black": {
+   "count": 27,
+   "counts_by_type": {
+    "advisor": 2,
+    "archer": 2,
+    "assassin": 2,
+    "cannon": 2,
+    "elephant": 2,
+    "guard": 1,
+    "horse": 2,
+    "king": 1,
+    "patrol": 2,
+    "pawn": 7,
+    "rook": 2,
+    "thunder": 2
+   },
+   "positions": [
+    {
+     "type": "advisor",
+     "row": 1,
+     "col": 5
+    },
+    {
+     "type": "advisor",
+     "row": 1,
+     "col": 7
+    },
+    {
+     "type": "archer",
+     "row": 0,
+     "col": 0
+    },
+    {
+     "type": "archer",
+     "row": 0,
+     "col": 12
+    },
+    {
+     "type": "assassin",
+     "row": 0,
+     "col": 3
+    },
+    {
+     "type": "assassin",
+     "row": 0,
+     "col": 9
+    },
+    {
+     "type": "cannon",
+     "row": 3,
+     "col": 1
+    },
+    {
+     "type": "cannon",
+     "row": 3,
+     "col": 11
+    },
+    {
+     "type": "elephant",
+     "row": 1,
+     "col": 4
+    },
+    {
+     "type": "elephant",
+     "row": 1,
+     "col": 8
+    },
+    {
+     "type": "guard",
+     "row": 0,
+     "col": 6
+    },
+    {
+     "type": "horse",
+     "row": 1,
+     "col": 3
+    },
+    {
+     "type": "horse",
+     "row": 1,
+     "col": 9
+    },
+    {
+     "type": "king",
+     "row": 1,
+     "col": 6
+    },
+    {
+     "type": "patrol",
+     "row": 5,
+     "col": 0
+    },
+    {
+     "type": "patrol",
+     "row": 5,
+     "col": 12
+    },
+    {
+     "type": "pawn",
+     "row": 4,
+     "col": 0
+    },
+    {
+     "type": "pawn",
+     "row": 4,
+     "col": 2
+    },
+    {
+     "type": "pawn",
+     "row": 4,
+     "col": 4
+    },
+    {
+     "type": "pawn",
+     "row": 4,
+     "col": 6
+    },
+    {
+     "type": "pawn",
+     "row": 4,
+     "col": 8
+    },
+    {
+     "type": "pawn",
+     "row": 4,
+     "col": 10
+    },
+    {
+     "type": "pawn",
+     "row": 4,
+     "col": 12
+    },
+    {
+     "type": "rook",
+     "row": 1,
+     "col": 2
+    },
+    {
+     "type": "rook",
+     "row": 1,
+     "col": 10
+    },
+    {
+     "type": "thunder",
+     "row": 0,
+     "col": 4
+    },
+    {
+     "type": "thunder",
+     "row": 0,
+     "col": 8
+    }
+   ]
+  }
+ }
+}

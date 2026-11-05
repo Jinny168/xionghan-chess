@@ -11,9 +11,11 @@ from __future__ import annotations
 
 import ctypes
 import sys
+from pathlib import Path
 from ctypes import POINTER, Structure, byref, c_ulong, c_ushort, c_void_p, c_wchar_p
 
-ole32 = ctypes.oledll.ole32                 # oledll：HRESULT 失败自动抛 OSError
+ole32 = ctypes.oledll.ole32
+shell32 = ctypes.oledll.shell32                 # oledll：HRESULT 失败自动抛 OSError
 ole32.CoInitializeEx.argtypes = [c_void_p, c_ulong]
 ole32.CoInitializeEx.restype = ctypes.HRESULT
 ole32.CoCreateInstance.argtypes = [c_void_p, c_void_p, c_ulong, c_void_p, c_void_p]
@@ -38,7 +40,7 @@ IID_IPERSIST_FILE = "{0000010B-0000-0000-C000-000000000046}"
 
 # IShellLinkW vtable 下标（IUnknown 占 0..2）
 QI, RELEASE = 0, 2
-SET_DESCRIPTION, SET_WORKING_DIR, SET_ICON_LOCATION, SET_PATH = 7, 9, 17, 20
+SET_ID_LIST, SET_DESCRIPTION, SET_WORKING_DIR, SET_ICON_LOCATION, SET_PATH = 5, 7, 9, 17, 20
 PERSIST_SAVE = 6
 
 
@@ -71,6 +73,33 @@ def make_shortcut(lnk: str, target: str, workdir: str, icon: str, description: s
     if not link.value:
         raise OSError("CoCreateInstance 返回空指针")
 
+    # 先给 IDList（`SHParseDisplayName` 解析出的 PIDL）：
+    # 只有 SetPath 时 shell 不会写 LinkTargetIDList，产物约 370 B —— 实测 `WScript.Shell`
+    # 仍能正确读出 TargetPath 与 IconLocation（见下方 fallback 注释），所以它只是"更完整"，
+    # 不是"不可用"。早先这里写着"多数读取端字段为空"，与实测不符，已改。
+    #
+    # 指针参数声明成 `POINTER(...)` 并直接传 `byref(...)`：
+    # 早先写成 argtypes 用 `c_void_p` 接、实参再 `cast(byref(x), c_void_p)`，过于依赖实现细节。
+    #
+    # **已知未定根因**：本机上该调用会间歇性返回 E_INVALIDARG (0x80070057) ——
+    # 同一个函数被别的模块 import 后调用必成功、作为脚本直接跑必失败，换成 windll 手判
+    # HRESULT 又都返回 S_OK。定位不到触发条件，因此这里**不依赖它**：失败就跳过 IDList，
+    # SetPath 仍然产出可用快捷方式（实测 373 B，target/icon 两项读回正确）。
+    pidl = c_void_p()
+    attributes = c_ulong(0)
+    shell32.SHParseDisplayName.argtypes = [c_wchar_p, c_void_p, POINTER(c_void_p), c_ulong,
+                                           POINTER(c_ulong)]
+    shell32.SHParseDisplayName.restype = ctypes.HRESULT
+    try:
+        shell32.SHParseDisplayName(target, None, byref(pidl), 0, byref(attributes))
+    except OSError as exc:
+        pidl = c_void_p()
+        print(f"note: 跳过 LinkTargetIDList（SHParseDisplayName: {exc}）；"
+              "SetPath 已足够生成可用快捷方式")
+    if pidl.value:
+        _call(link.value, SET_ID_LIST, pidl)
+        ole32.CoTaskMemFree(pidl)
+
     _call(link.value, SET_PATH, target)
     _call(link.value, SET_WORKING_DIR, workdir)
     _call(link.value, SET_ICON_LOCATION, icon, 0)
@@ -88,5 +117,7 @@ if __name__ == "__main__":
     lnk_path, exe_path = sys.argv[1], sys.argv[2]
     icon = sys.argv[3] if len(sys.argv) > 3 else exe_path + ",0"
     desc = sys.argv[4] if len(sys.argv) > 4 else "匈汉象棋"
-    make_shortcut(lnk_path, exe_path, exe_path.rsplit("\\", 1)[0], icon, desc)
+    # 用 pathlib 取父目录：命令行传入的路径可能是 `/` 分隔（Git Bash 会给过来），
+    # 用 rsplit("\\") 会切不开，WorkingDirectory 就会变成 EXE 自己。
+    make_shortcut(lnk_path, exe_path, str(Path(exe_path).parent), icon, desc)
     print("created:", lnk_path)

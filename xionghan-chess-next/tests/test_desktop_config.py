@@ -43,6 +43,30 @@ def test_defaults_declares_server_url() -> None:
     assert desktop_config.DEFAULTS["server_url"] == desktop_config.DEFAULT_SERVER_URL
 
 
+# --------------------------------------------------------------------------- #
+# B2：每方时限默认 20 → 10 分钟
+# --------------------------------------------------------------------------- #
+
+
+def test_initial_minutes_defaults_to_ten(isolated_appdata) -> None:
+    """首次运行（没有配置文件）→ 10 分钟。"""
+    assert desktop_config.DEFAULTS["initial_minutes"] == 10
+    assert desktop_config.load_config()["initial_minutes"] == 10
+
+
+def test_existing_initial_minutes_is_not_overwritten(isolated_appdata) -> None:
+    """B2 只改**默认值**：用户配置里已经写着的 20 分钟必须原样保留。
+
+    这条是"改默认值"最容易踩的坑 —— 顺手写成"总是写成新默认"就等于把
+    老用户的选择悄悄抹掉。
+    """
+    path = desktop_config.config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"schema_version": desktop_config.CONFIG_VERSION,
+                                "initial_minutes": 20}), encoding="utf-8")
+    assert desktop_config.load_config()["initial_minutes"] == 20
+
+
 def test_defaults_covers_every_key_read_by_desktop_code() -> None:
     """扫 desktop 包里所有 `config.get("x")` / `config["x"]`，必须都在 DEFAULTS 中。
 
@@ -195,7 +219,7 @@ def test_migration_only_runs_once(isolated_appdata) -> None:
 
     first = desktop_config.load_config()
     after_first = path.read_text(encoding="utf-8")
-    assert json.loads(after_first)["initial_minutes"] == 20, "迁移应把坏值收敛成默认值"
+    assert json.loads(after_first)["initial_minutes"] == 10, "迁移应把坏值收敛成默认值"
 
     second = desktop_config.load_config()
     assert first == second
@@ -207,7 +231,7 @@ def test_migration_only_runs_once(isolated_appdata) -> None:
     [
         ("initial_minutes", 999, 180),
         ("initial_minutes", 0, 1),
-        ("initial_minutes", "abc", 20),
+        ("initial_minutes", "abc", 10),
         ("sound_volume", -5, 0),
         ("sound_volume", 101, 100),
         ("music_volume", "40", 40),
@@ -302,3 +326,79 @@ def test_config_root_platforms_do_not_collide() -> None:
         desktop_config.config_root("linux", {"HOME": "/x"}),
     }
     assert len(roots) == 3
+
+
+# --------------------------------------------------------------------------- #
+# v1 -> v2 迁移：让 2.0.0 的兵规则默认值对**老用户**真正生效
+# --------------------------------------------------------------------------- #
+
+
+def _write_config(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+
+def test_migration_drops_deleted_option_and_stale_backward_key(isolated_appdata) -> None:
+    """老配置里显式存着 `pawn_backward_at_base: true` 与已删除的 `pawn_full_movement_at_base`。
+
+    不删这两个键的话 `RuleOptions.merged()` 会用存量的 `true` 盖掉新默认值 ——
+    也就是说"改默认值"**只对全新安装生效**，老用户升级后底线兵照样能后退。
+    这是本轮最容易白干的地方，所以断言要看**实际行为**，不是只看默认值。
+    """
+    path = desktop_config.config_path()
+    _write_config(path, {
+        "schema_version": 1,
+        "rule_options": {
+            "pawn_backward_at_base": True,
+            "pawn_full_movement_at_base": True,       # 2.0.0 已删除的选项
+            "pawn_charge": True,                      # 用户真的改过的项，必须保留
+        },
+    })
+    loaded = desktop_config.load_config()
+    options = loaded["rule_options"]
+    assert "pawn_backward_at_base" not in options, "存量键必须被清掉，否则新默认值被覆盖"
+    assert "pawn_full_movement_at_base" not in options, "已删除选项的残键必须被清掉"
+    assert options.get("pawn_charge") is True, "用户真的改过的项不许动"
+
+    # 行为断言：用迁移后的配置开一局，底线兵**不能后退**（横走仍在）
+    from xionghan_chess.core.model import Color, GameState, Piece, PieceType
+    from xionghan_chess.core.profiles import get_profile
+    from xionghan_chess.core.rules import RulesEngine
+
+    profile = get_profile("desktop_complete")
+    # 关掉升变才看得到"能不能后退"：开升变时底线落子必须带 promotion，着法会被展开
+    rules = RulesEngine(profile, profile.options.merged({**options, "pawn_promotion": False}))
+    board = GameState("desktop_complete", [
+        Piece.create(PieceType.KING, Color.RED, 12, 0),
+        Piece.create(PieceType.KING, Color.BLACK, 2, 9),
+        Piece.create(PieceType.PAWN, Color.RED, 0, 4),
+    ])
+    targets = {(m.target.row, m.target.col) for m in rules.legal_moves(board)
+               if (m.source.row, m.source.col) == (0, 4)}
+    assert (1, 4) not in targets, "迁移后底线兵仍能后退 —— 存量键没清干净"
+    assert (0, 3) in targets, "横走应当还在（由 crossed 放行，与这个开关无关）"
+
+
+def test_migration_does_not_trigger_a_restart_on_first_settings_save() -> None:
+    """迁移删了键，设置窗口保存的是**全量键** —— 不能因此判成"规则变了"重开对局。
+
+    老用户升级后第一次点「确定」就丢掉正在下的一局，是本轮最贵的潜在事故。
+    """
+    old = dict(desktop_config.DEFAULTS)
+    old["rule_options"] = {"pawn_charge": True}                       # 迁移后的存量（缺键）
+    new = dict(old)
+    new["rule_options"] = dict(old["rule_options"],
+                               pawn_backward_at_base=False)           # 设置窗口写回全量
+    assert desktop_config.settings_differ_in_game_breaking_keys(old, new) is False
+
+
+def test_migration_is_idempotent() -> None:
+    """连跑两次：第二次 `changed=False`，不产生无谓写盘。"""
+    raw = {"schema_version": 1,
+           "rule_options": {"pawn_backward_at_base": True,
+                            "pawn_full_movement_at_base": True}}
+    once, changed_once = desktop_config.migrate(raw)
+    assert changed_once is True
+    twice, changed_twice = desktop_config.migrate(once)
+    assert changed_twice is False, "第二次迁移不该再报改动"
+    assert twice == once, "幂等：两次结果必须一致"

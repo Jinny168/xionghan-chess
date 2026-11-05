@@ -49,8 +49,8 @@ def read_docs(name: str, fallback_label: str = "文档") -> str:
 
 # 棋盘上的棋子字形。**必须保持中文**（切英文界面也不翻译）：这是象棋子的视觉本体。
 NAMES = {
-    Color.RED: {PieceType.KING:"漢",PieceType.ROOK:"俥",PieceType.HORSE:"傌",PieceType.ELEPHANT:"相",PieceType.ADVISOR:"仕",PieceType.CANNON:"炮",PieceType.PAWN:"兵",PieceType.GUARD:"尉",PieceType.ARCHER:"射",PieceType.THUNDER:"檑",PieceType.ARMOR:"甲",PieceType.ASSASSIN:"刺",PieceType.SHIELD:"楯",PieceType.PATROL:"巡"},
-    Color.BLACK: {PieceType.KING:"汗",PieceType.ROOK:"車",PieceType.HORSE:"馬",PieceType.ELEPHANT:"象",PieceType.ADVISOR:"士",PieceType.CANNON:"砲",PieceType.PAWN:"卒",PieceType.GUARD:"衛",PieceType.ARCHER:"䠶",PieceType.THUNDER:"礌",PieceType.ARMOR:"胄",PieceType.ASSASSIN:"伺",PieceType.SHIELD:"碷",PieceType.PATROL:"廵"},
+    Color.RED: {PieceType.KING:"漢",PieceType.ROOK:"俥",PieceType.HORSE:"傌",PieceType.ELEPHANT:"相",PieceType.ADVISOR:"仕",PieceType.CANNON:"炮",PieceType.PAWN:"兵",PieceType.GUARD:"尉",PieceType.ARCHER:"射",PieceType.THUNDER:"檑",PieceType.PATROL:"巡"},
+    Color.BLACK: {PieceType.KING:"汗",PieceType.ROOK:"車",PieceType.HORSE:"馬",PieceType.ELEPHANT:"象",PieceType.ADVISOR:"士",PieceType.CANNON:"砲",PieceType.PAWN:"卒",PieceType.GUARD:"衛",PieceType.ARCHER:"䠶",PieceType.THUNDER:"礌",PieceType.PATROL:"廵"},
 }
 
 # 默认字体名（`load_bundled_fonts()` 会用随包字体覆盖成真实 family 名）。
@@ -63,13 +63,59 @@ NAMES = {
 UI_FONT = "Noto Sans SC Subset"
 PIECE_FONT = "Noto Serif SC Subset"
 
+# `shadow_gain`：棋子投影的**按盘底色标定系数**（P1-1）。
+#
+# 为什么不能一个 alpha 打通五套盘：黑影的可见度取决于**盘底本身的亮度**。
+# 五套盘底相对亮度（WCAG，越亮越接近 1）：
+#     classic #e7c88d 0.610 ｜ purple #eee1f2 0.790 ｜ blue #dcebf1 0.815
+#     green   #dfeeda 0.824 ｜ dark   #34302b 0.026
+# 也就是说**另三套浅色盘比 classic 更浅**（0.79–0.82 vs 0.61），黑影在它们上面的
+# 对比更强 —— 所以它们的系数必须**更低**，才和 classic 观感接近。
+# （早先这里写成"底比 classic 略深/略灰，可稍强"，方向是反的；实测印证：
+#   三套用 0.7 时硬区像素比 classic(0.6) 多约 70%，7174±40 vs 4211。）
+#
+# 取值由实测定标，判据两条：Δ≥6 可感知面积够大（看得见）+ Δ≥30 硬区不过量（不脏）。
+#   单套实测（700×700、字形、61 枚子）：
+#     classic 0.60 → 可感知 5.63% / 硬区 4,211
+#     green   0.58 → 5.74% / 4,008      blue  0.58 → 5.76% / 4,031
+#     purple  0.58 → 5.78% / 4,058      dark  1.00 → 3.67% /   242
+# 目标不是"数值一样"，是**五套看起来一样重**——所以浅盘系数集中在 0.58–0.60，
+# 深盘给满 1.0（深底上黑影几乎不显，必须给足）。
 THEMES = {
-    "classic": {"board": "#e7c88d", "line": "#684726", "frame": "#5a3b20", "panel": "#fff9ed", "window": "#d9c8a6", "accent": "#315c48"},
-    "green": {"board": "#dfeeda", "line": "#315c36", "frame": "#365a3e", "panel": "#f6fbf2", "window": "#c8d8c1", "accent": "#315c48"},
-    "blue": {"board": "#dcebf1", "line": "#285c73", "frame": "#31586a", "panel": "#f3f8fa", "window": "#c4d4da", "accent": "#315f76"},
-    "purple": {"board": "#eee1f2", "line": "#724585", "frame": "#5c386d", "panel": "#fbf6fc", "window": "#d8c7dc", "accent": "#6d3e79"},
-    "dark": {"board": "#34302b", "line": "#c9b58e", "frame": "#171513", "panel": "#29241f", "window": "#1d1a17", "accent": "#8e3b32"},
+    "classic": {"board": "#e7c88d", "line": "#684726", "frame": "#5a3b20", "panel": "#fff9ed", "window": "#d9c8a6", "accent": "#315c48", "shadow_gain": 0.60},
+    "green": {"board": "#dfeeda", "line": "#315c36", "frame": "#365a3e", "panel": "#f6fbf2", "window": "#c8d8c1", "accent": "#315c48", "shadow_gain": 0.58},
+    "blue": {"board": "#dcebf1", "line": "#285c73", "frame": "#31586a", "panel": "#f3f8fa", "window": "#c4d4da", "accent": "#315f76", "shadow_gain": 0.58},
+    "purple": {"board": "#eee1f2", "line": "#724585", "frame": "#5c386d", "panel": "#fbf6fc", "window": "#d8c7dc", "accent": "#6d3e79", "shadow_gain": 0.58},
+    "dark": {"board": "#34302b", "line": "#c9b58e", "frame": "#171513", "panel": "#29241f", "window": "#1d1a17", "accent": "#8e3b32", "shadow_gain": 1.00},
 }
+
+# 主题没声明 `shadow_gain` 时的兜底（新增主题不该因为它没写而丢掉投影）。
+SHADOW_GAIN_DEFAULT = 1.0
+
+# §5 审计（UI_AUDIT_2026-10-31）落地的调色键：**只加数据，不改任何结构**。
+# 浅色 4 主题与暗色各一套；比值（WCAG）见提交信息。
+_BANNER = {"light": ("#7f1d1d", "#ffffff"), "dark": ("#f2b8b5", "#410002")}
+# 危险文字色：**浅底用深红、深底用浅红**。只用于"压在面板/卡片底上的警示文字"，
+# 不要拿去压在品牌色横幅上（横幅有自己的 `banner_fg`）。
+_DANGER = {"light": "#7f1d1d", "dark": "#f2b8b5"}
+_SECONDARY = {"light": "#5c5048", "dark": "#c6beb1"}
+_DISABLED = {"light": ("#7d7368", "#f0e9dc"), "dark": ("#948a7d", "#2f2a24")}
+for _name, _palette in THEMES.items():
+    _mode = "dark" if _name == "dark" else "light"
+    _palette["banner_bg"], _palette["banner_fg"] = _BANNER[_mode]
+    _palette["danger"] = _DANGER[_mode]
+    _palette["secondary"] = _SECONDARY[_mode]
+    _palette["disabled_fg"], _palette["disabled_bg"] = _DISABLED[_mode]
+
+
+# 缩略图/角标画在**固定浅色美术底**上，不随主题走
+SECONDARY_ON_ARTWORK = "#5c5048"
+
+
+def secondary(theme_name: str) -> str:
+    """次要文字色：随主题取，不再散落硬编码 `#6f6254`（暗面板下只有 2.60:1）。"""
+    return THEMES.get(theme_name, THEMES["classic"])["secondary"]
+
 
 FONT_CHOICES = {"system": UI_FONT, "kaiti": PIECE_FONT, "songti": "SimSun", "fangsong": "FangSong"}
 

@@ -19,12 +19,17 @@ class GameError(ValueError):
 # here and the AI's pool valuation (ai.py), so the rule cap has a single home.
 RESTORE_PAWN_LIMIT = 7
 
+# 一局的默认时长（分钟）。**唯一来源**：桌面配置、服务端请求模型、房间默认值
+# 全部引用这个常量。曾经 20 分别写在四处，UI 改成 10 之后三处仍留 20 ——
+# 任何漏传时长的调用点（第三方客户端、脚本、测试）都会拿到与界面不一致的 20。
+DEFAULT_INITIAL_MINUTES = 10
+
 
 class Game:
     MAX_SNAPSHOTS = 512
     def __init__(self, profile: RuleProfile | str = "desktop_complete",
                  option_overrides: dict[str, object] | None = None,
-                 initial_minutes: int = 20,
+                 initial_minutes: int = DEFAULT_INITIAL_MINUTES,
                  language: str = "zh-CN",
                  setup: GameSetup | dict | None = None):
         self.language = normalize_language(language)
@@ -56,6 +61,9 @@ class Game:
             raise GameError(self._t("error.game_finished"))
         if self.state.paused:
             raise GameError(self._t("error.game_paused"))
+        # L-03：`tick()` 在未超时时会把 `turn_started_at` 重置为 now，
+        # 之后再拿它算 elapsed 就恒为 0。所以**先取快照**。
+        started_at = self.state.turn_started_at
         self.tick()
         if self.state.finished:
             raise GameError(self._t("error.turn_timeout"))
@@ -66,7 +74,7 @@ class Game:
             del self._snapshots[:-self.MAX_SNAPSHOTS]
         moving = self.state.piece_at(move.source)
         assert moving is not None
-        elapsed = int((time.monotonic() - self.state.turn_started_at) * 1000)
+        elapsed = int((time.monotonic() - started_at) * 1000)
         captured = self.rules.board_removals(self.state, move)
         next_state = self.rules.apply_unchecked(self.state, move)
         for item in captured:
@@ -82,7 +90,15 @@ class Game:
         self._settle_after_move(moving.color, move)
         return record
 
-    def undo(self, plies: int = 1) -> None:
+    def undo(self, plies: int = 1, *, allow_finished: bool = False) -> None:
+        """撤销 `plies` 步。
+
+        L-02：终局后默认拒绝 —— 否则认输/被将死后撤销会"复活棋盘"（finished=False / winner=None）。
+        题目/训练里"重来一题"是**有意允许**的，它们显式传 `allow_finished=True`，
+        而不是靠一个隐式开关（隐式开关最容易在别的路径上被误开）。
+        """
+        if self.state.finished and not allow_finished:
+            raise GameError(self._t("error.game_finished"))
         if plies < 1 or len(self._snapshots) < plies:
             raise GameError(self._t("error.no_undo"))
         snapshot = self._snapshots[-plies]
@@ -107,6 +123,9 @@ class Game:
             self.state.turn_started_at = time.monotonic()
 
     def resign(self, color: Color) -> None:
+        # L-01：终局后认输会把 winner 从 draw 翻转成对手胜，且 draw 仍为 True。
+        if self.state.finished:
+            raise GameError(self._t("error.game_finished"))
         self.state.winner = color.opponent
         self.state.result_reason = "resignation"
 
@@ -214,7 +233,12 @@ class Game:
             action = self._t("notation.capture") if captured else self._t("notation.move")
         return f"{name} {move.source.row + 1},{move.source.col + 1} {action} {move.target.row + 1},{move.target.col + 1}"
 
-    def public_state(self) -> dict:
+    def public_state(self, include_replay: bool = True) -> dict:
+        """局面快照。`include_replay=False` 用于**常规广播**。
+
+        `replay` 是每一步的完整局面历史，随步数线性膨胀（60 手约 2.29 MB），
+        而广播每 5 秒一次、每个 socket 单独序列化 —— 放进广播等于每 5 秒传一次全量历史。
+        """
         data = self.state.to_dict()
         data["profile"] = {"id": self.profile.id, "title": self.profile.title,
                            "rows": self.profile.rows, "cols": self.profile.cols,
@@ -236,7 +260,8 @@ class Game:
                            ]}
         data["check"] = self.rules.in_check(self.state, self.state.turn) if not self.state.finished else False
         data["setup"] = self.setup.to_dict()
-        data["replay"] = [snapshot for snapshot in self._snapshots] + [self.state.to_dict()]
+        if include_replay:
+            data["replay"] = [snapshot for snapshot in self._snapshots] + [self.state.to_dict()]
         return data
 
     def _record_position(self) -> None:
@@ -264,7 +289,10 @@ class Game:
             self.state.winner, self.state.result_reason = mover, "checkmate"
         elif self.rules.stalemate(self.state, enemy):
             self.state.winner, self.state.result_reason = mover, "stalemate"
-        elif self.options.threefold_draw and max(self.state.position_counts.values(), default=0) >= 3:
+        elif (self.options.threefold_draw
+              # L-06：**只看当前局面**的计数。用 `max(...)` 会让"历史上任何局面重复三次"
+              # 触发判和（注入 stale key 就能误判），而重复判定只对当前局面有意义。
+              and self.state.position_counts.get(self.rules.position_key(self.state), 0) >= 3):
             self.state.draw, self.state.result_reason = True, "threefold_repetition"
         elif self.options.no_progress_draw_plies and self._no_progress_plies() >= self.options.no_progress_draw_plies:
             self.state.draw, self.state.result_reason = True, "no_progress"

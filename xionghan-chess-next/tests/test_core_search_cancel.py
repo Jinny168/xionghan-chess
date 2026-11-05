@@ -67,13 +67,26 @@ def test_see_preprocessing_is_bounded_by_the_time_box() -> None:
 
 
 def test_cancel_during_see_returns_immediately() -> None:
-    """SEE 进行中置 cancel：应当在 1 个 SEE 周期内返回，不抛异常。"""
+    """SEE 进行中置 cancel：cancel 之后**不得再推进任何一次评估**，不抛异常。
+
+    判据是**行为**不是墙钟。原来断言 `elapsed <= 0.5`，而实测总耗时 0.55–0.58s
+    里绝大部分是**取消之前**的准备工作（局面合法着法生成等），与"取消是否及时"
+    无关 —— 那是个随机器负载漂的阈值，同一份代码在空闲/繁忙时结论相反
+    （实测：基线提交 b963683 上单跑 3 次全红，全套跑里却绿）。
+
+    改成直接数"cancel 置位后 root_score 又被调用了几次"：这条不随负载变，
+    而且正是被测命题本身（取消必须落到确定状态）。实测取消后追加调用 = 0。
+    墙钟只留一个数量级兜底（5s 预算跑满才是真出事，0.5s 预算的 3.5 倍余量）。
+    """
     game = _capture_rich_position()
     cancel = threading.Event()
     calls = {"n": 0}
+    after_cancel = {"n": 0}
 
     def cancelling_root_score(_game, _move) -> int:
         calls["n"] += 1
+        if cancel.is_set():
+            after_cancel["n"] += 1
         if calls["n"] >= 2:
             cancel.set()
         time.sleep(0.02)
@@ -84,7 +97,9 @@ def test_cancel_during_see_returns_immediately() -> None:
     result = engine.choose_move(game, cancel)
     elapsed = time.perf_counter() - started
 
-    assert elapsed <= 0.5, f"取消后仍然跑了 {elapsed:.2f}s"
+    assert after_cancel["n"] == 0, (
+        f"取消置位后仍调用了 root_score {after_cancel['n']} 次 —— 取消没有被识别")
+    assert elapsed <= 2.0, f"取消后仍然跑了 {elapsed:.2f}s（数量级异常，像是忽略了 cancel）"
     assert result is None or result in game.rules.legal_moves(game.state)
 
 

@@ -39,6 +39,9 @@ RELEASE_DIR = ROOT / "release"
 APP_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "Programs" / "XionghanChess"
 EXE_NAME = "XionghanChess.exe"
 PRODUCT_NAME = "匈漢象棋"          # 桌面入口显示名（文件名由文件系统存 UTF-16，安全）
+# 历史上桌面还出现过简体名的 `.lnk`（"匈汉象棋.lnk"）。清理要**两个名字都查**，
+# 否则坏图标会一直留在桌面上（本次用户遇到的就是这个）。
+LEGACY_LNK_NAMES = ("匈漢象棋.lnk", "匈汉象棋.lnk")
 
 
 def newest_release() -> Path:
@@ -51,13 +54,15 @@ def newest_release() -> Path:
 def _place_desktop_entry(target: Path, desktop: Path, dry_run: bool) -> str:
     """桌面入口：优先符号链接；无权限时退回复制（并说明原因）。"""
     link = desktop / f"{PRODUCT_NAME}.exe"
-    legacy_lnk = desktop / f"{PRODUCT_NAME}.lnk"
     if dry_run:
         return f"将创建桌面入口：{link} -> {target}"
 
-    # 清掉历史遗留：早期版本的 .lnk 是坏的（见模块说明），留着会是个点不开的图标
-    if legacy_lnk.exists():
-        legacy_lnk.unlink()
+    # 清掉历史遗留：早期版本的 .lnk 是坏的（见模块说明），留着会是个点不开的图标。
+    # 简体/繁体两个名字都清（曾因只清繁体而永远清不掉简体那份）。
+    for name in LEGACY_LNK_NAMES:
+        candidate = desktop / name
+        if candidate.exists():
+            candidate.unlink()
     if link.exists() or link.is_symlink():
         link.unlink()
     try:

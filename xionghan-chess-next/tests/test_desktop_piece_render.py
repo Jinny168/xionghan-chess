@@ -19,7 +19,7 @@ import pytest
 
 pytest.importorskip("PySide6", reason="渲染测试依赖 PySide6")
 
-from PySide6.QtCore import QPointF, Qt  # noqa: E402
+from PySide6.QtCore import QPointF  # noqa: E402
 from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPixmap  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
@@ -34,7 +34,8 @@ from xionghan_chess.desktop.ui.board_widget import (  # noqa: E402
 
 SIZE = 620
 STYLES = ("traditional", "modern", "cartoon")
-MISSING = (PieceType.ARMOR, PieceType.ASSASSIN, PieceType.SHIELD)
+# 美术已覆盖全部 11 型（2026-10-31 起无缺图型）：没有"回退绘制"的样本
+MISSING: tuple[PieceType, ...] = ()
 
 
 @pytest.fixture(scope="module")
@@ -42,6 +43,30 @@ def qt_app() -> QApplication:
     app = QApplication.instance() or QApplication([])
     theme.load_bundled_fonts()
     return app
+
+
+@pytest.fixture(autouse=True)
+def _no_piece_shadow(monkeypatch: pytest.MonkeyPatch) -> None:
+    """本文件量的是**棋子本体**的墨迹，投影必须先关掉。
+
+    P1-1 加了棋子投影后，投影的可见带（外半径 1.30r + 圆心下移 0.09r）会落在
+    棋子之外，于是「墨迹包围盒」量到的就不再是盘径，而是「盘径 + 一圈影」——
+    `test_disk_diameter_stays_0_78_cell` 因此假红。
+
+    这不是放宽阈值：被测命题本来就是「棋子本体是 0.78 cell」，
+    把影算进去属于**测量对象错了**。投影本身的行为由
+    `test_desktop_piece_shadow.py` 单独覆盖（可见强度 / 向下的重心 / 三分支）。
+
+    **关投影的方式是改「数据」而不是改「函数」**：这里把强度旋钮置 0，语义上就是
+    "关掉"（`test_strength_zero_renders_exactly_like_no_shadow` 已经把
+    "强度 0 ⇒ 逐像素无影"钉死）。改成 patch 函数曾经踩过坑：
+    `_piece_shadow_brush` 后来加了 `gain` 形参，而本文件的 `lambda:` 是 0 参写法，
+    TypeError 在 `paintEvent` 里被 Qt 吞掉 → 这个文件 7 条渲染断言集体假红，
+    且报错看不出根因。**签名是跨文件契约，能不 patch 函数就别 patch。**
+    """
+    import xionghan_chess.desktop.ui.board_widget as board_widget
+
+    monkeypatch.setattr(board_widget, "PIECE_SHADOW_STRENGTH", 0.0)
 
 
 def render(style: str, mode: str, pieces: list[Piece]) -> tuple[QImage, BoardWidget]:
@@ -121,7 +146,7 @@ def test_disk_diameter_stays_0_78_cell(qt_app: QApplication, style: str) -> None
 
 @pytest.mark.parametrize("kind", MISSING)
 def test_missing_art_still_draws_ink_in_image_mode(qt_app: QApplication, kind: PieceType) -> None:
-    """甲/刺/楯 没有美术，但 image 模式下必须画出同风格底盘 + 字形（不能空白）。"""
+    """刺没有美术，但 image 模式下必须画出同风格底盘 + 字形（不能空白）。"""
     style = "traditional"
     empty, board = render(style, IMAGE_MODE, [])
     marked, _ = render(style, IMAGE_MODE, one_piece(kind))
@@ -166,7 +191,9 @@ def test_config_without_piece_render_stays_glyph(qt_app: QApplication) -> None:
 #   · 画布底填**该风格盘面色**；
 #   · 字用**该风格该色的字色**（不是纯黑，否则色距掩膜会把字形权重算偏）；
 #   · 只统计 `r < 0.62R` 的圆盘内部，排除外环与描边。
-FALLBACK_KINDS = (PieceType.ARMOR, PieceType.ASSASSIN, PieceType.SHIELD)
+# 回退渲染**与具体兵种无关**（画的是字形，不看美术在不在），
+# 所以用在用 11 型做样本即可 —— 既保住这条管线，又不依赖"缺图型"。
+FALLBACK_KINDS: tuple[PieceType, ...] = tuple(piece_assets.SUFFIX)
 ART_KINDS = tuple(piece_assets.SUFFIX)
 SAMPLE_RADIUS = 55.0          # 盘径 110px：密度只在 dev ≥ 110px 档有意义
 FILL_COLOR = {

@@ -12,6 +12,17 @@ from .model import Color, Piece, PieceType
 # back rank 0 corresponds to Black's back rank 12.
 XIONGHAN_ROWS = 13
 XIONGHAN_COLS = 13
+# 规则口径版本：**走法语义**的版本号，不是容器格式版本。
+#
+# 与另外两个版本号**互相独立**，别合并：
+#   `FORMAT_VERSION`（core/storage.py）  —— 棋谱文件的结构；
+#   `POSITION_KEY_VERSION`（core/rules.py）—— 重复局面键的格式；
+#   `RULE_VERSION`（这里）               —— 同一份棋谱/同一间房里，棋子到底怎么走。
+# 2.0.0 = 巡禁竖移 + 兵底线不再后退（`pawn_backward_at_base` 默认关）。这两条会让**旧客户端算出
+# 不同的合法着法**，所以：棋谱文件带 `ruleVersion`（旧档缺省 1），联机建房/加入必须
+# 双方一致（见 `service/rooms.py::RoomManager._check_rule_version`）。
+# 只改走法语义时才 +1；改存档结构请改 `FORMAT_VERSION`，别动这里。
+RULE_VERSION = 2
 # Home rank of the patrol ("巡") before mirroring. Black starts on this rank and
 # Red starts on its mirror image, so the patrol may only ever move along one of
 # those two ranks. Only profiles that enable PieceType.PATROL place it.
@@ -29,10 +40,18 @@ class RuleOptions:
     elephant_can_cross_river: bool = True
     elephant_gain_jump_two_enemy_territory: bool = True
     horse_straight_three: bool = True
+    horse_blocked_by_leg: bool = True          # 别马腿；关闭后日字走法同国际象棋
+    horse_straight_three_move_only: bool = False  # 直走三格仅可移动、不可吃子（依赖 horse_straight_three）
     archer_enhanced_mode: bool = False
     pawn_fast_move_before_enemy_territory: bool = True
-    pawn_backward_at_base: bool = True
-    pawn_full_movement_at_base: bool = True
+    # 兵到达**对方底线**后能否后退一格。**默认关**（2.0.0 起）：底线不再是"特权格"，
+    # 兵落到对方底线只剩横走（`crossed` 给的，与 1.9.x 一致），后退要显式打开。
+    #
+    # 为什么不删掉这个开关：它仍有独立价值（有人想给兵留一条退路），
+    # 但"全向移动"是另一回事 —— 那个曾经的同名选项 `pawn_full_movement_at_base`
+    # 在默认配置下**什么都没多给**（横走由 `crossed` 放行、后退由本开关放行），
+    # 已在 2.0.0 整体删除，见 `config.py::_migrate_v1` 对旧键的清理。
+    pawn_backward_at_base: bool = False
     pawn_resurrection: bool = True
     pawn_promotion: bool = True
     pawn_charge: bool = False                 # 敌阵冲锋（过阴山后直线多格，不吃子）
@@ -51,9 +70,6 @@ class RuleOptions:
     guard_appear: bool = True
     archer_appear: bool = True
     thunder_appear: bool = True
-    armor_appear: bool = False          # 软删：不出场（分支与枚举保留）
-    assassin_appear: bool = True
-    shield_appear: bool = False         # 软删：不出场（分支与枚举保留）
     patrol_appear: bool = True
 
     def merged(self, values: dict[str, object] | None) -> "RuleOptions":
@@ -66,21 +82,23 @@ class RuleOptions:
             "xiang_can_cross_river": "elephant_can_cross_river",
             "xiang_gain_jump_two_outside_river": "elephant_gain_jump_two_enemy_territory",
             "ma_can_straight_three": "horse_straight_three",
+            "ma_blocked_by_leg": "horse_blocked_by_leg",
+            "horse_blocked_by_leg_enabled": "horse_blocked_by_leg",
+            "ma_straight_three_move_only": "horse_straight_three_move_only",
+            "horse_straight_three_move_only_enabled": "horse_straight_three_move_only",
             "pawn_fast_move": "pawn_fast_move_before_enemy_territory",
             "pawn_fast_move_enabled": "pawn_fast_move_before_enemy_territory",
             "pawn_fast_move_before_enemy_territory_enabled": "pawn_fast_move_before_enemy_territory",
             "pawn_resurrection_enabled": "pawn_resurrection",
             "pawn_promotion_enabled": "pawn_promotion",
             "pawn_backward_at_base_enabled": "pawn_backward_at_base",
-            "pawn_full_movement_at_base_enabled": "pawn_full_movement_at_base",
             "pawn_charge_enabled": "pawn_charge",
             "pawn_three_line_capture_enabled": "pawn_three_line_capture",
             "ju_appear": "rook_appear", "ma_appear": "horse_appear",
             "xiang_appear": "elephant_appear", "shi_appear": "advisor_appear",
             "pao_appear": "cannon_appear", "wei_appear": "guard_appear",
             "she_appear": "archer_appear", "lei_appear": "thunder_appear",
-            "jia_appear": "armor_appear", "ci_appear": "assassin_appear",
-            "dun_appear": "shield_appear", "xun_appear": "patrol_appear",
+            "xun_appear": "patrol_appear",
         }
         normalized = {aliases.get(key, key): value for key, value in values.items()
                       if key not in {"archer_weak_mode", "sheWeakMode", "she_weak_mode"}}
@@ -98,6 +116,83 @@ class RuleOptions:
         if piece_type is PieceType.KING:
             return True
         return bool(getattr(self, f"{piece_type.value}_appear"))
+
+
+# 规则之间的**单向依赖**：值 = 该选项要成立，必须先开启的上游选项。
+#
+# 只登记"关掉上游后，下游必然无意义"的边 —— 判据是**在引擎里下游已被上游 `and` 住**
+# （`rules.py` 里能指出 `X and Y` 的地方），不是"感觉相关"。
+# 例：`advisor_gain_straight_outside_palace` 在 `_advisor` 里写成
+# `straight and advisor_can_leave_palace and advisor_gain_straight_outside_palace`，
+# 所以出宫关掉后它必然是死开关，UI 该置灰而不是让用户以为设了有用。
+OPTION_DEPENDS_ON: dict[str, tuple[str, ...]] = {
+    "king_lose_diagonal_outside_palace": ("king_can_leave_palace",),
+    "advisor_gain_straight_outside_palace": ("advisor_can_leave_palace",),
+    "elephant_gain_jump_two_enemy_territory": ("elephant_can_cross_river",),
+    "horse_straight_three_move_only": ("horse_straight_three",),
+}
+
+
+def option_enabled_by(options: "RuleOptions", key: str) -> bool:
+    """该选项的上游是否全部开启；没有依赖项时恒为 True。"""
+    return all(bool(getattr(options, parent, True)) for parent in OPTION_DEPENDS_ON.get(key, ()))
+
+
+def option_dependencies() -> dict[str, list[str]]:
+    """给三端 UI 用的依赖表（JSON 友好：list 而不是 tuple）。"""
+    return {child: list(parents) for child, parents in OPTION_DEPENDS_ON.items()}
+
+
+# 操作按钮的**可达性**：值 = 这个动作要存在，必须先全部开启的选项键。
+#
+# 与 `OPTION_DEPENDS_ON` 同构、同源，区别只在用途：
+#   依赖表管**开关之间**（上游关掉 → 下游置灰），这张表管**按钮**（规则不允许 →
+#   按钮根本不出现）。置灰和隐藏是两件事：置灰的按钮仍占位、仍可读、仍会被点，
+#   玩家得自己推断"为什么点不动"；而 `pawn_resurrection` 关掉时，"复活兵卒"
+#   这个动作在这个规则集里**不存在**，留一个灰按钮只是让人反复去点。
+#
+# 判据（别照抄成"感觉相关"）：动作的 service 层入口里，`options.X` 是**第一道 and 守卫**，
+# 关掉后动作必然抛错 —— 桌面 `Game.resurrect_pawn`、网页 `send('resurrect')`、
+# 对拍用的 `OfflineGame.resurrectPawn` 三处都是 `if not options.pawn_resurrection: raise`。
+UI_ACTION_REQUIRES: dict[str, tuple[str, ...]] = {
+    "resurrect": ("pawn_resurrection",),
+}
+
+
+def action_visible(options: "RuleOptions", action: str) -> bool:
+    """该动作在当前规则下是否存在；没有登记的动作恒为 True（常驻按钮）。"""
+    return all(bool(getattr(options, parent, False))
+               for parent in UI_ACTION_REQUIRES.get(action, ()))
+
+
+def action_requirements() -> dict[str, list[str]]:
+    """给三端 UI 用的动作依赖表（JSON 友好）；`/api/profiles` 下发这一份。"""
+    return {action: list(parents) for action, parents in UI_ACTION_REQUIRES.items()}
+
+
+# 反向呈现的开关：**存储值 True 表示"削弱"**，界面勾选必须表示"增强"。
+#
+# 判据：这个键的 True 是否在描述"少了一种能力"。三条都符合 ——
+#   出宫后**失去**斜走 / 马**受**别腿限制 / 直走三格**不可**吃子。
+# 其余键（能出宫、能过河、能复活……）True 本身就是增强，不需要转。
+# 只改呈现，不改存储：老配置、存档、AI 参数、对拍全部按原键原值走。
+NEGATED_OPTIONS: frozenset[str] = frozenset({
+    "king_lose_diagonal_outside_palace",
+    "horse_blocked_by_leg",
+    "horse_straight_three_move_only",
+})
+
+
+def display_value(key: str, stored: object) -> bool:
+    """存储值 → 界面值（勾选=增强）。"""
+    flag = bool(stored)
+    return (not flag) if key in NEGATED_OPTIONS else flag
+
+
+def stored_value(key: str, shown: object) -> bool:
+    """界面值（勾选=增强）→ 存储值。"""
+    flag = bool(shown)
+    return (not flag) if key in NEGATED_OPTIONS else flag
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,15 +234,13 @@ RED_NAMES = {
     PieceType.KING: "漢", PieceType.ROOK: "俥", PieceType.HORSE: "傌",
     PieceType.ELEPHANT: "相", PieceType.ADVISOR: "仕", PieceType.CANNON: "炮",
     PieceType.PAWN: "兵", PieceType.GUARD: "尉", PieceType.ARCHER: "射",
-    PieceType.THUNDER: "檑", PieceType.ARMOR: "甲", PieceType.ASSASSIN: "刺",
-    PieceType.SHIELD: "楯", PieceType.PATROL: "巡",
+    PieceType.THUNDER: "檑", PieceType.PATROL: "巡",
 }
 BLACK_NAMES = {
     PieceType.KING: "汗", PieceType.ROOK: "車", PieceType.HORSE: "馬",
     PieceType.ELEPHANT: "象", PieceType.ADVISOR: "士", PieceType.CANNON: "砲",
     PieceType.PAWN: "卒", PieceType.GUARD: "衛", PieceType.ARCHER: "䠶",
-    PieceType.THUNDER: "礌", PieceType.ARMOR: "胄", PieceType.ASSASSIN: "伺",
-    PieceType.SHIELD: "碷", PieceType.PATROL: "廵",
+    PieceType.THUNDER: "礌", PieceType.PATROL: "廵",
 }
 
 
@@ -159,11 +252,13 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
     flip = (lambda row: XIONGHAN_ROWS - 1 - row) if color is Color.RED else (lambda row: row)
     items: list[tuple[PieceType, int, int]] = []
     if complete:
-        # 软删甲/楯：后排只保留 (0,1)(0,2)(0,10)(0,11) 之外的子
+        # 软删甲/楯/刺：后排只保留射、尉、檑。
+        # 尉固定压在将/帅**正后方**（红 (12,6) / 黑 (0,6)，主教的斜线正好被两只士占住
+        # → 首着 0）。这是刻意的平衡约束：尉是最强子，开局不许它自己先动，
+        # 必须先腾士位才能出动。别再"顺手优化"成首着 4，那会把这个限制抹掉。
         items += [
-            (PieceType.ARCHER, 0, 0), (PieceType.ASSASSIN, 0, 3),
-            (PieceType.THUNDER, 0, 4), (PieceType.GUARD, 0, 6),
-            (PieceType.THUNDER, 0, 8), (PieceType.ASSASSIN, 0, 9),
+            (PieceType.ARCHER, 0, 0), (PieceType.THUNDER, 0, 4),
+            (PieceType.GUARD, 0, 6), (PieceType.THUNDER, 0, 8),
             (PieceType.ARCHER, 0, 12),
         ]
     elif web:
@@ -176,6 +271,7 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
             (PieceType.ARCHER, 0, 0), (PieceType.THUNDER, 0, 4),
             (PieceType.THUNDER, 0, 8), (PieceType.ARCHER, 0, 12),
         ]
+    # 士按传统象棋对称布在将/帅两侧（红 (11,5)/(11,7)、黑 (1,5)/(1,7)），共 2 枚。
     items += [
         (PieceType.ROOK, 1, 2), (PieceType.HORSE, 1, 3),
         (PieceType.ELEPHANT, 1, 4), (PieceType.ADVISOR, 1, 5),
@@ -210,21 +306,70 @@ ALL = frozenset(PieceType)
 WEB = STANDARD | {PieceType.ARCHER, PieceType.THUNDER}
 CLASSIC = WEB | {PieceType.PATROL}
 
+# ---------------------------------------------------------------------------
+# 三种对弈模式的规则基线（定义见 `docs/GAME_MODES.md`）
+#
+# 设计原则：**两个正交维度** —— 棋子构成（全子 / 减子）与规则强度（全加强 / 传统）。
+#   完整 = 全子 + 全加强
+#   经典 = 全子 + 传统棋子回退经典规则（特色棋子保留自身规则）
+#   精简 = 减子 + 全加强（差异只来自棋子构成，规则与完整完全一致）
+# 这样"少了几枚子"和"规则变不变"互不纠缠，用户换模式时只需理解一个变量。
+# ---------------------------------------------------------------------------
+
+# 完整模式：所有自定义规则开启、所有棋子加强。
+# 显式写出与默认值不同的四项 —— 只看这一处就知道"加强"加了什么。
+COMPLETE_OPTIONS = RuleOptions(
+    horse_blocked_by_leg=False,        # 加强：不别马腿（日字走法同国际象棋）
+    archer_enhanced_mode=True,         # 加强：射/䠶 自由斜走三格
+    pawn_charge=True,                  # 敌阵冲锋：过阴山后沿直线多格（不吃子）
+    pawn_three_line_capture=True,      # 兵参与三连吃子
+    # 其余项默认已是加强值：出宫/宫内斜走、仕出宫直走、相过河+敌境跳两格、
+    # 马直走三格、兵快速行军/复活/升变。
+    # **兵底线不再后退**（2.0.0）：`pawn_backward_at_base` 默认关，故不在此列。
+)
+
+# 经典模式：**同样全子**，但士/象/马/兵/将回退到最经典的中国象棋走法。
+# 特色棋子（尉/射/檑/巡）没有"经典原型"，保留自身规则，故只关传统棋子的加强项。
+CLASSIC_OPTIONS = RuleOptions(
+    king_can_leave_palace=False,
+    king_diagonal_in_palace=False,
+    advisor_can_leave_palace=False,
+    advisor_gain_straight_outside_palace=False,
+    elephant_can_cross_river=False,
+    elephant_gain_jump_two_enemy_territory=False,
+    horse_blocked_by_leg=True,          # 经典：必别马腿
+    horse_straight_three=False,
+    horse_straight_three_move_only=False,
+    archer_enhanced_mode=False,
+    pawn_fast_move_before_enemy_territory=False,
+    pawn_resurrection=False,
+    pawn_promotion=False,
+    pawn_charge=False,
+    pawn_three_line_capture=False,
+    # 出宫关闭后 `king_lose_diagonal_outside_palace` / `advisor_gain_straight...` /
+    # `elephant_gain_jump_two...` 都成了无效项（引擎里本就被 `and` 住），
+    # 设置界面会按依赖表把它们置灰。
+)
+
+# 精简模式：棋子减到 9 型，规则**与完整模式完全一致**。
+WEB_OPTIONS = COMPLETE_OPTIONS
+
 PROFILES: dict[str, RuleProfile] = {
     "desktop_complete": RuleProfile(
         "desktop_complete", "完整模式", 13, 13,
         tuple(xionghan_side(Color.BLACK, True) + xionghan_side(Color.RED, True)), ALL,
-        RuleOptions(), RED_NAMES, BLACK_NAMES,
+        COMPLETE_OPTIONS, RED_NAMES, BLACK_NAMES,
     ),
     "desktop_classic": RuleProfile(
         "desktop_classic", "经典模式", 13, 13,
-        tuple(xionghan_side(Color.BLACK, False) + xionghan_side(Color.RED, False)), CLASSIC,
-        RuleOptions(), RED_NAMES, BLACK_NAMES,
+        # 与完整模式同一套布局、同一批兵种，只有规则不同
+        tuple(xionghan_side(Color.BLACK, True) + xionghan_side(Color.RED, True)), ALL,
+        CLASSIC_OPTIONS, RED_NAMES, BLACK_NAMES,
     ),
     "web": RuleProfile(
         "web", "精简模式", 13, 13,
         tuple(xionghan_side(Color.BLACK, False, True) + xionghan_side(Color.RED, False, True)), WEB,
-        RuleOptions(pawn_resurrection=False, pawn_promotion=False), RED_NAMES, BLACK_NAMES,
+        WEB_OPTIONS, RED_NAMES, BLACK_NAMES,
     ),
     "traditional": RuleProfile(
         "traditional", "传统象棋", 10, 9,
@@ -235,7 +380,6 @@ PROFILES: dict[str, RuleProfile] = {
                     elephant_can_cross_river=False, elephant_gain_jump_two_enemy_territory=False,
                     horse_straight_three=False,
                     pawn_fast_move_before_enemy_territory=False,
-                    pawn_backward_at_base=False, pawn_full_movement_at_base=False,
                     pawn_resurrection=False, pawn_promotion=False), RED_NAMES, BLACK_NAMES,
     ),
 }

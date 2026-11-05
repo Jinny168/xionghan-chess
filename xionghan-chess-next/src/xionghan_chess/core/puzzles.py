@@ -11,6 +11,16 @@ from .rules import CaptureKind
 from .storage import game_document, game_from_document
 
 
+# 战役章节（A2）。顺序即推荐推进顺序：先一子杀，再两步、三步、四步。
+# 空串表示"不入章"（走法练习），列表里单独归档在后面。
+CHAPTERS: tuple[str, ...] = ("揭竿", "破釜", "逐鹿", "垓下", "定鼎")
+
+
+def chapter_order(name: str) -> int:
+    """排序用：已知章节按 CHAPTERS 顺序，未知/空串排在最后。"""
+    return CHAPTERS.index(name) if name in CHAPTERS else len(CHAPTERS)
+
+
 @dataclass(frozen=True, slots=True)
 class Puzzle:
     id: str
@@ -21,11 +31,13 @@ class Puzzle:
     solution: tuple[Move, ...]
     hints: tuple[str, ...]
     tags: tuple[str, ...] = ()
+    # 战役章节（A2）。空串 = 不入章（走法练习），列表里单独归档。
+    chapter: str = ""
 
     def summary(self) -> dict[str, Any]:
         return {"id": self.id, "title": self.title, "difficulty": self.difficulty,
                 "description": self.description, "tags": list(self.tags),
-                "steps": len(self.solution)}
+                "chapter": self.chapter, "steps": len(self.solution)}
 
     def payload(self, reveal: bool = False) -> dict[str, Any]:
         data = self.summary() | {"document": self.document, "hints": list(self.hints)}
@@ -76,6 +88,33 @@ def _move(data: dict[str, Any]) -> Move:
     return Move(Position(**data["from"]), Position(**data["to"]))
 
 
+def _validate_solution(puzzle: "Puzzle") -> None:
+    """加载期校验：解法必须**一步步都能走**。
+
+    原来的写法是在 `exercise()` 里 `except ValueError: break` —— 题目照常进列表，
+    但永远解不掉，而且没有任何信号。内置题库是**随代码发布的产物**，
+    坏题属于构建期缺陷，所以这里**直接抛**（启动即失败），而不是跳过。
+    """
+    game = game_from_document(puzzle.document)
+    for index, step in enumerate(puzzle.solution, 1):
+        try:
+            game.move(step)
+        except Exception as exc:      # noqa: BLE001 - 任何解不出的原因都要点名
+            raise ValueError(
+                f"题目 {puzzle.id}《{puzzle.title}》第 {index} 步无法走：{step.key()}（{exc}）") from exc
+
+def piece_type_at(puzzle: Puzzle, position: Position) -> str | None:
+    """题面上某一格是哪种子力（给"先指子"这一步提示用）。
+
+    直接读 `document`，不重建 Game —— 提示要秒回，而重放一遍题面只为拿个类型不值。
+    """
+    pieces = puzzle.document.get("state", {}).get("pieces", [])
+    for piece in pieces:
+        if piece.get("row") == position.row and piece.get("col") == position.col:
+            return piece.get("type")
+    return None
+
+
 def load_puzzles(path: str | Path | None = None) -> list[Puzzle]:
     source = Path(path) if path else Path(__file__).with_name("data") / "puzzles.json"
     raw = json.loads(source.read_text(encoding="utf-8"))
@@ -95,13 +134,16 @@ def load_puzzles(path: str | Path | None = None) -> list[Puzzle]:
             for raw_move in item.get("positionMoves", []):
                 game.move(_move(raw_move))
             document = game_document(game)
-        puzzles.append(Puzzle(
+        puzzle = Puzzle(
             puzzle_id, str(item["title"]), str(item["difficulty"]),
             str(item.get("description", "")), document,
             tuple(_move(move) for move in item["solution"]),
             tuple(str(hint) for hint in item.get("hints", [])),
             tuple(str(tag) for tag in item.get("tags", [])),
-        ))
+            str(item.get("chapter", "")),
+        )
+        _validate_solution(puzzle)
+        puzzles.append(puzzle)
     return puzzles
 
 

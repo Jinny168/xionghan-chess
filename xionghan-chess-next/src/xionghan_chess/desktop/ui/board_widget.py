@@ -13,8 +13,8 @@ import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
-    QBrush, QColor, QFont, QFontMetricsF, QMouseEvent, QPainter, QPaintEvent, QPainterPath,
-    QPen, QPixmap, QRadialGradient,
+    QBrush, QColor, QFont, QFontMetricsF, QGradient, QMouseEvent, QPainter, QPaintEvent,
+    QPainterPath, QPen, QPixmap, QRadialGradient,
 )
 from PySide6.QtWidgets import QWidget
 
@@ -71,6 +71,99 @@ ANIMATION_TIMER_MS = 20
 ANIMATION_FRAMES = 23
 # 将军脉冲保持原来的 600ms 观感（24 帧 × 25ms）：换成 20ms 定时器后 = 600/20 = 30 帧。
 CHECK_PULSE_FRAMES = 30
+
+# 上一步起讫格（D1）：**必须弱于将军标注**，所以三件事都不跟将军抢：
+#   ① 画在最前面（将军/选择/可走点依次压在上面，重叠时将军一定在上）；
+#   ② 没有脉冲、没有描边、没有文字；
+#   ③ 颜色取棋盘线色 `theme["line"]` 加到 25% 透明度 —— **不引入新色值**，
+#      五套主题各自跟自己的盘线走，深色盘（line 提到 #c9b58e）自动变浅，
+#      不会像固定色那样在深底上直接消失。
+#
+# **形状用「格内圆角方框」而不是圆盘**，理由是可读面积 + 不撞脸：
+# 圆盘标记（半径 .46 格）和圆棋子是同心的两个圆，棋子遮到 0.41 格时只剩一圈
+# 约 2.5px 的环（可见 0.138 格²），25% 透明度下根本读不出来 —— 这就是"只看得到
+# 起点格（那格没子、看到的是整块圆盘）"的真正原因。
+# 换成内缩 0.05 格、圆角 0.16 格的方框后，棋子只遮住中间，**四个角照样可见**：
+# 可见面积 0.283 格²（约 2.05 倍），且与选择态的金色**圆**环在形状上彻底区分，
+# 不会让人把"这格是上一步"误读成"这格被选中"。
+# 层级保持不变（标记仍在棋子之前）—— 为一次高亮打破层级约定，后面每个新标记
+# 都要重新讨论层级，代价远大于换形状。
+LAST_MOVE_INSET = 0.05          # × 格，每边内缩 → 方框占 90% 格宽
+LAST_MOVE_CORNER = 0.16         # × 格，圆角半径
+LAST_MOVE_ALPHA = 64            # 64/255 ≈ .25，不到选择态不透明度（.55）的一半
+# `_draw_marks` 里三种标注的不透明度档位。提成常量不是为了好看，是为了让
+# 「上一步 < 吃子提示 < 选择态」这条**顺序**能被断言锁住（见测试）。
+# 理由（设计定稿）：选出/可吃/被将都是**事件性**提示，出现即"此刻有事"；
+# 而上一步是**全场唯一恒常存在**的标注，每走一手就在，必须是最弱的一档，
+# 否则会把注意力从棋盘本身拉走（违背"棋盘即主角"）。
+# 谁想"调得明显一点"就会先撞到这条断言。
+CAPTURE_MARK_ALPHA = 90         # 可吃子格（红）
+SELECTION_MARK_ALPHA = 145      # 当前选中格（金）
+
+# P1-1 棋子投影：**径向渐变**，不是纯色椭圆。
+#
+# 为什么不能在纯色椭圆上靠调参了事（几何算得清清楚楚）：
+# 字形棋子可见外沿 = 1.00r + 描边半宽 0.05r = **1.05r**。纯色圆盘要露出来，
+# 就必须满足 半径 + 偏移 > 1.05r。按「半径 0.98r / 偏移 0.07r」正好 = 1.05r，
+# **可见面积几何上为 0**（曾经实测到的 0.40% 差异全是抗锯齿溢出，不是影子）。
+# 把偏移加到 0.12r 也只得到约 0.5% 棋盘面积的月牙，且仍是一圈硬边；
+# 只有把偏移推到 0.35r 才够 2.4%，但那时影子脱在棋子下方，读作「悬空」而不是「落在盘上」，
+# 与设计目标正好相反。
+#
+# 接触阴影的可感知性来自**模糊把能量扩散出去**，不是来自面积。所以这里用
+# QRadialGradient 做柔边衰减（纯 QPainter，不碰 QGraphicsDropShadowEffect、
+# 不做离屏合成），参数与网页那颗 `blur:5px` 是**重量感对齐**，不是去凑 blur 半径。
+#
+# 可见带（r 为单位）：底部 0.34r、左右 0.25r、顶部 0.16r —— 重心向下，且全是渐变无硬边。
+#
+# --- 强度旋钮（P2-2 前置）-------------------------------------------------
+# `PIECE_SHADOW_STRENGTH` 是**唯一**对外的强度旋钮（0..1），所有色标的 alpha 都由它
+# 按比例派生：`实际 alpha = 基准 alpha × STRENGTH × 主题系数(theme["shadow_gain"])`。
+#
+# 为什么必须"派生"而不是给几个独立常量：可见像素全部落在 0.72 色标之外
+# （0.72 × 1.30r = 0.936r < 1.05r），**圆心 alpha 完全被棋子盖住**。
+# 所以"圆心 115、中段 88"这种双常量，改圆心是空转、改中段才有反应 ——
+# 那是接口陷阱（改了没反应的常量比没有更糟）。旋钮必须**真的驱动中段**，
+# 并且有一条"强度↑ ⇒ 可感知面积↑"的单调性断言兜着（见测试文件）。
+PIECE_SHADOW_STRENGTH = 1.0     # 用户唯一旋钮：0 = 关，1 = 该主题的满强度
+PIECE_SHADOW_CORE_ALPHA = 88    # STRENGTH=1 × 系数=1 时 0.72 处的不透明度（有效强度看这个）
+PIECE_SHADOW_CENTER_FACTOR = 115 / 88   # 圆心 = 中段 × 该系数（历史配比，保持观感连续）
+PIECE_SHADOW_CORE_STOP = 0.72   # 中段色标位置
+PIECE_SHADOW_OFFSET = 0.09      # × radius，圆心向下偏移
+PIECE_SHADOW_RATIO = 1.30       # × radius，渐变外半径（色标 1.0 处 alpha 归零）
+
+# 61 枚子 × 每帧一次 = 每秒最多 3660 次构造，必须复用。
+# 两个设计点：
+#  ① 用 ObjectBoundingMode：渐变坐标系变成**图形包围盒的比例**，于是同一个 QBrush
+#     可以给任意位置、任意大小的投影复用（绝对坐标的渐变做不到，每枚子都得重建）；
+#  ② 缓存键带上**派生后的两个 alpha**：改旋钮 / 改系数 / 改基准常量都会自动失效，
+#     不会拿到上一组参数构造的陈旧刷子。
+_SHADOW_BRUSH_CACHE: dict[tuple[int, int, float], QBrush] = {}
+
+
+def _shadow_alpha_pair(gain: float) -> tuple[int, int]:
+    """(圆心 alpha, 中段 alpha) = 基准 × 旋钮 × 主题系数。"""
+    strength = min(1.0, max(0.0, PIECE_SHADOW_STRENGTH))
+    scale = strength * max(0.0, gain)
+    core = int(round(PIECE_SHADOW_CORE_ALPHA * scale))
+    center = int(round(core * PIECE_SHADOW_CENTER_FACTOR))
+    return center, core
+
+
+def _piece_shadow_brush(gain: float = 1.0) -> QBrush:
+    """投影刷子（惰性构造 + 复用；参数一变自动失效）。"""
+    center, core = _shadow_alpha_pair(gain)
+    key = (center, core, PIECE_SHADOW_CORE_STOP)
+    brush = _SHADOW_BRUSH_CACHE.get(key)
+    if brush is None:
+        gradient = QRadialGradient(QPointF(0.5, 0.5), 0.5)
+        gradient.setCoordinateMode(QGradient.CoordinateMode.ObjectBoundingMode)
+        gradient.setColorAt(0.0, QColor(0, 0, 0, center))
+        gradient.setColorAt(PIECE_SHADOW_CORE_STOP, QColor(0, 0, 0, core))
+        gradient.setColorAt(1.0, QColor(0, 0, 0, 0))
+        brush = QBrush(gradient)
+        _SHADOW_BRUSH_CACHE[key] = brush
+    return brush
 
 # 射的对角路径预览：颜色比可走点更弱（可走点 .55），否则会和落点抢注意力。
 ARCHER_PATH_ALPHA = 0.35
@@ -157,12 +250,12 @@ def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float,
         painter.drawEllipse(center, radius * .82, radius * .82)
     painter.setFont(_piece_font(radius, GLYPH_MODE, style))
     painter.setPen(QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e"))
-    painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2), Qt.AlignmentFlag.AlignCenter, theme.NAMES[piece.color][piece.type])
+    painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2), Qt.AlignmentFlag.AlignCenter, theme.NAMES[piece.color].get(piece.type, ""))
 
 
 def draw_fallback_piece(painter: QPainter, center: QPointF, radius: float,
                         color: Color, piece_type: PieceType, style: str) -> None:
-    """`image` 模式下**没有美术**的棋型（甲/刺/楯）怎么画。
+    """`image` 模式下**没有美术**的棋型（刺/巡）怎么画。
 
     与位图同材质：盘径仍是 `0.78 cell`，填充/环色/描边宽按风格取自 `FALLBACK_STYLE`，
     字用 `pixelSize` + `Normal` 把「字高/盘径」压到 0.52（位图实测 0.496–0.555）。
@@ -186,7 +279,7 @@ def draw_fallback_piece(painter: QPainter, center: QPointF, radius: float,
     painter.setFont(_piece_font(radius, "image_fallback", style))
     painter.setPen(_color(spec["text"], color))  # type: ignore[arg-type]
     painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2),
-                     Qt.AlignmentFlag.AlignCenter, theme.NAMES[color][piece_type])
+                     Qt.AlignmentFlag.AlignCenter, theme.NAMES[color].get(piece_type, ""))
 
 
 class BoardWidget(QWidget):
@@ -332,6 +425,7 @@ class BoardWidget(QWidget):
         self._draw_marks(painter, left, top, cw, ch)
         for piece in self.game.state.pieces:
             self._draw_piece(painter, piece, left, top, cw, ch)
+        self._draw_check_pulse_overlay(painter, rect, left, top, cw, ch)
         self._draw_check_label(painter, left, top, cw, ch)
         # 「思索中」遮罩必须画在**棋子之后、走子动画之前**：
         # `human_move` 落子后立刻 `start_ai()`，于是玩家自己这一手的 350ms 动画
@@ -611,16 +705,46 @@ class BoardWidget(QWidget):
             painter.setPen(pen)
         painter.restore()
 
+    def _cell_frame(self, painter: QPainter, pos: Position, left: float, top: float,
+                    cw: float, ch: float, color: str) -> None:
+        """在**交叉点所在的那一格**里画一个内缩的圆角方框（D1 上一步标记用）。
+
+        与 `_mark`（实心圆）刻意分开：圆会和圆棋子撞脸，方不会；而且方框的四个角
+        在棋子盖住中心之后仍然可见 —— 这是"终点格也读得出来"的关键。
+        """
+        pos = self._view_position(pos)
+        inset_x, inset_y = cw * LAST_MOVE_INSET, ch * LAST_MOVE_INSET
+        rect = QRectF(left + pos.col*cw - cw/2 + inset_x,
+                      top + pos.row*ch - ch/2 + inset_y,
+                      cw - 2*inset_x, ch - 2*inset_y)
+        corner = min(cw, ch) * LAST_MOVE_CORNER
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        painter.drawRoundedRect(rect, corner, corner)
+
     def _draw_marks(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         if not self.game:
             return
+        # D1 上一步起讫格：**最先画**，后面每一层标记都盖在它上面（将军优先级最高）。
+        # 数据直接取 `history[-1]`，因此开局（history 为空）自然不画。
+        # 复盘窗里每个快照自带自己的 history 前缀，画的是「走到这一手的那一步」，
+        # 与显示的局面严格对应 —— 所以桌面端**回放时照画**，不做特殊判断。
+        # 网页端相反：它的 `app.state.history` 始终是实时对局的，切到历史局面后
+        # 末手会错位，那边必须显式跳过。两端语义一致（都显示"当前局面的上一步"），
+        # 实现必然不同 —— 别为了"统一"把其中一边改成另一种做法。
+        last = self.game.state.history[-1] if self.game.state.history else None
+        if last is not None:
+            ink = QColor(self.theme["line"])
+            ink.setAlpha(LAST_MOVE_ALPHA)
+            for square in (last.move.source, last.move.target):
+                self._cell_frame(painter, square, left, top, cw, ch, ink)
         if self.game.rules.in_check(self.game.state, self.game.state.turn):
             king = next((p for p in self.game.state.pieces if p.type is PieceType.KING and p.color is self.game.state.turn), None)
             if king:
                 pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / CHECK_PULSE_FRAMES)))
                 self._mark(painter, king.position, left, top, cw, ch, QColor(190, 28, 28, pulse), .47)
         if self.selected and self.show_selection:
-            self._mark(painter, self.selected, left, top, cw, ch, QColor(221, 166, 40, 145), .48)
+            self._mark(painter, self.selected, left, top, cw, ch, QColor(221, 166, 40, SELECTION_MARK_ALPHA), .48)
         # 空位落点：统一半径 .13、按主题取色（深色主题必须提亮，见 legal_dot_color）。
         # **每个可走格都画**，不合并中间点——点同时承担"这格能点"的暗示，
         # 合并等于宣称"中间不能停"，与事实冲突。
@@ -629,7 +753,7 @@ class BoardWidget(QWidget):
         for move in self.legal if self.show_legal_targets else ():
             target = self.game.state.piece_at(move.target)
             if target:
-                self._mark(painter, move.target, left, top, cw, ch, QColor(148, 30, 30, 90), .4)
+                self._mark(painter, move.target, left, top, cw, ch, QColor(148, 30, 30, CAPTURE_MARK_ALPHA), .4)
             else:
                 self._mark(painter, move.target, left, top, cw, ch, dot_color, dot_ratio)
 
@@ -651,6 +775,39 @@ class BoardWidget(QWidget):
         color = QColor(self.theme["accent"])
         color.setAlphaF(LEGAL_DOT_ALPHA_LIGHT)
         return color
+
+    def _draw_check_pulse_overlay(self, painter: QPainter, rect,
+                                  left: float, top: float, cw: float, ch: float) -> None:
+        """将军时的**可视**反馈：棋盘外框红脉冲 + 被将方王格红圈。
+
+        为什么要画在棋子**之后**：`_draw_marks` 里的将军标记画在棋子之前，棋子一盖就看不见；
+        这里用描边（无填充）压在棋子上面，任何遮挡下都能看到"谁被将了"。
+        周期：`CHECK_PULSE_FRAMES` 帧（30 帧 × 40ms ≈ 1.2s），随 `check_pulse_frame` 递减亮度。
+        """
+        if not self.game or self.check_pulse_frame >= CHECK_PULSE_FRAMES:
+            return
+        state = self.game.state
+        if not self.game.rules.in_check(state, state.turn):
+            return
+        king = next((p for p in state.pieces
+                     if p.type is PieceType.KING and p.color is state.turn), None)
+        progress = min(1.0, self.check_pulse_frame / CHECK_PULSE_FRAMES)
+        alpha = int(200 * (1.0 - progress))
+        color = QColor(200, 32, 32, alpha)
+
+        # 外框：贴着棋盘边两像素，线宽 4
+        painter.save()
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(color, 4))
+        painter.drawRect(rect.adjusted(2, 2, -2, -2))
+
+        # 王格：空心圆环（半径 0.42 格），盖在棋子上也看得见
+        if king is not None:
+            shown = self._view_position(king.position)
+            center = QPointF(left + (shown.col + .5) * cw, top + (shown.row + .5) * ch)
+            painter.setPen(QPen(color, max(2.5, min(cw, ch) * .06)))
+            painter.drawEllipse(center, cw * .42, ch * .42)
+        painter.restore()
 
     def _draw_check_label(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         """「将军」二字单独一层，画在**棋子之后**。
@@ -742,6 +899,19 @@ class BoardWidget(QWidget):
         radius = min(cw, ch) * .39
         shown = self._view_position(piece.position)
         center = QPointF(left + shown.col*cw, top + shown.row*ch)
+        # P1-1 棋子投影：**在这里统一画一次**，三个渲染分支共用。
+        # 为什么不做成每分支各画一遍：字形/位图/回退三条路径的坐标算法不同，
+        # 各画一遍早晚会漏一条（回退分支历史上就被漏过）。分发入口只有一个位置，
+        # 放在这里等于「任何棋子都必然有投影」。
+        # 为什么不用 QGraphicsDropShadowEffect：棋盘是**自带 QPainter** 的手绘控件，
+        # 图形特效会接管 paint 流程并二次渲染，和 paintEvent 里的绘制顺序/坐标系冲突
+        # （也会把 60fps 的走子动画拖成离屏合成）。
+        painter.save()
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(_piece_shadow_brush(float(self.theme.get("shadow_gain", theme.SHADOW_GAIN_DEFAULT))))
+        painter.drawEllipse(QPointF(center.x(), center.y() + radius * PIECE_SHADOW_OFFSET),
+                            radius * PIECE_SHADOW_RATIO, radius * PIECE_SHADOW_RATIO)
+        painter.restore()
         if self.piece_render == IMAGE_MODE:
             if self._draw_piece_image(painter, piece, center, radius):
                 return

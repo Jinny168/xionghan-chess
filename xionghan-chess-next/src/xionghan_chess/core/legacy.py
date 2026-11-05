@@ -14,8 +14,7 @@ FEN_PIECES = {
     "k": PieceType.KING, "r": PieceType.ROOK, "n": PieceType.HORSE,
     "b": PieceType.ELEPHANT, "a": PieceType.ADVISOR, "c": PieceType.CANNON,
     "p": PieceType.PAWN, "w": PieceType.GUARD, "s": PieceType.ARCHER,
-    "l": PieceType.THUNDER, "j": PieceType.ARMOR, "i": PieceType.ASSASSIN,
-    "u": PieceType.SHIELD, "x": PieceType.PATROL,
+    "l": PieceType.THUNDER, "x": PieceType.PATROL,
 }
 
 

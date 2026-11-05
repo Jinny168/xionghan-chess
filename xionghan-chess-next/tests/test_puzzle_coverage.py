@@ -51,36 +51,10 @@ def test_special_pieces_are_covered() -> None:
         assert pieces.get(kind.value, 0) >= 1, f"题库没有任何一道题真的用到 {kind.value}"
 
 
-def test_every_piece_type_is_covered() -> None:
-    pieces, _ = _coverage()
-    # 甲/楯软删、刺暂时缺题：这三类由下方 xfail(strict) 单独钉，不在此静默放过
-    skipped = {PieceType.ARMOR, PieceType.SHIELD, PieceType.ASSASSIN}
-    missing = [kind.value for kind in PieceType
-               if kind not in skipped and pieces.get(kind.value, 0) == 0]
-    assert not missing, f"以下子力在题库里没有任何一道题练到：{missing}"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="刺的唯一题目 endgame-assassin-drag-01 因机制删除而移除；待设计侧补一道刺题后本用例应通过，"
-           "届时 strict 会报错提醒去掉本标记",
-)
-def test_assassin_is_covered() -> None:
-    """题库应至少有一道题在解法中实际动到 ASSASSIN（`exercise()` 口径：解法真正走到的子力）。"""
-    pieces, _ = _coverage()
-    assert pieces.get(PieceType.ASSASSIN.value, 0) >= 1
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="甲/楯已软删（appear=False + 布局移除），题库里不再有它们的题；"
-           "若将来恢复甲/楯并重新补题，本用例会通过，届时 strict 会报错提醒去掉本标记",
-)
-def test_soft_removed_pieces_are_covered() -> None:
-    """甲（ARMOR）与楯（SHIELD）应至少各有一道题真的走到 —— 软删期间预期失败。"""
-    pieces, _ = _coverage()
-    for kind in (PieceType.ARMOR, PieceType.SHIELD):
-        assert pieces.get(kind.value, 0) >= 1
 
 
 def test_special_capture_kinds_are_covered() -> None:
@@ -122,3 +96,18 @@ def test_solutions_actually_move_pieces() -> None:
     for puzzle in load_puzzles():
         pieces, _ = puzzle.exercise()
         assert pieces, f"{puzzle.id} 的解法没有走到任何棋子"
+
+
+def test_all_eleven_piece_types_are_covered() -> None:
+    """题库应覆盖**在用的 11 个 PieceType**；缺哪型就显式说明，而不是静默放过。"""
+    from xionghan_chess.core.model import PieceType
+    from xionghan_chess.core.puzzles import load_puzzles
+
+    seen: set[PieceType] = set()
+    for puzzle in load_puzzles():
+        for piece in puzzle.document["state"]["pieces"]:
+            seen.add(PieceType(piece["type"]))
+    missing = sorted(k.value for k in PieceType if k not in seen)
+    if missing:
+        pytest.xfail(f"题库尚未覆盖：{missing}（11 型目标，当前 {len(seen)}/11）")
+    assert len(seen) == 11

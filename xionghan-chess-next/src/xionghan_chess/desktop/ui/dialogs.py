@@ -1,6 +1,6 @@
 """桌面端的 6 个对话框（阶段1 S1-2 从 app.py 抽出，约 300 行）。
 
-- `SettingsDialog`      —— 设置（游戏 / 外观 / 棋子与规则 三个 tab）
+- `SettingsDialog`      —— 设置（对局设置 / 棋子规则 / 界面 / 声音 四个 tab）
 - `HandicapDialog`      —— 等量让子（摆子）
 - `ReplayDialog`        —— 复盘 + AI 分析（分析已异步化，见 workers.AnalysisWorker）
 - `TrainingDialog`      —— 残局与排局训练
@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from datetime import date
 import json
 import os
 import threading
@@ -27,9 +28,13 @@ from PySide6.QtWidgets import (
     QTextBrowser, QVBoxLayout, QWidget,
 )
 
+from xionghan_chess.core import daily as daily_quiz
+from xionghan_chess.core import puzzles as puzzle_chapters
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, PieceType
-from xionghan_chess.core.profiles import PROFILES, profile_rule_values
+from xionghan_chess.core.profiles import (OPTION_DEPENDS_ON, PROFILES,
+                                          display_value, profile_rule_values,
+                                          stored_value)
 from xionghan_chess.core.setup import profile_slots
 from xionghan_chess.core.storage import game_from_document
 from xionghan_chess.i18n import normalize_language, t
@@ -42,13 +47,34 @@ from .board_widget import BoardWidget
 from .workers import AnalysisWorker
 
 # 「棋子美术风格」下拉里的回退项：选中它 = 回到 1.7.0 的字形棋子（`piece_render="glyph"`）。
-GLYPH_STYLE_DATA = "__glyph__"
+GLYPH_STYLE_DATA = "glyph"   # 四值之一，见 config.PIECE_STYLES
+
+
+
+def _fit_to_content(dialog: QDialog, ratio: float = 1.2) -> None:
+    """把初始窗口收到"内容 × ratio"，减少大片空白（几何审计 §4：最大 87% 是空的）。
+
+    为什么不在构造里直接算 `sizeHint()`：`__init__` 阶段的 sizeHint 还没把
+    子控件的样式/字体算进去（`load_bundled_fonts` 之后还会变），量出来偏小。
+    所以排到事件循环第一拍再收 —— 那时布局已完成，`sizeHint()` 是真实需求。
+
+    **不动 `setMinimumSize`**：最小尺寸是另一套判据（审计 §3，且有守卫测试）。
+    """
+    from PySide6.QtCore import QTimer
+
+    def apply() -> None:
+        hint = dialog.sizeHint()
+        width = max(dialog.minimumWidth(), min(dialog.width(), int(hint.width() * ratio)))
+        height = max(dialog.minimumHeight(), min(dialog.height(), int(hint.height() * ratio)))
+        dialog.resize(width, height)
+
+    QTimer.singleShot(0, apply)
 
 
 class SettingsDialog(QDialog):
     def __init__(self, config: dict, parent: QWidget | None = None,
-                 initial_tab: int = 0) -> None:
-        super().__init__(parent); self.language=normalize_language(config.get("language")); self.setWindowTitle(t("settings.desktop_title", self.language)); self.resize(720, 760)
+                 initial_tab: int = 0, standalone: bool = False) -> None:
+        super().__init__(parent); self.language=normalize_language(config.get("language")); self.setWindowTitle(t("settings.desktop_title", self.language)); self.resize(720, 760);_fit_to_content(self)
         self._config=config
         layout=QVBoxLayout(self); tabs=QTabWidget(); layout.addWidget(tabs,1)
         self.profile=QComboBox(); [self.profile.addItem(t(f"profile.{p.id}", self.language),p.id) for p in PROFILES.values()]
@@ -59,7 +85,7 @@ class SettingsDialog(QDialog):
         # 而不是 `CONFIGS[d].time_limit`。hard=12 就是教训：12 是配置上限，而玩家实际等待
         # 将来会变成"提前返回时刻"，两者不再相等。当前文案仍是 12 秒（本版本确实跑满 12s），
         # 等"提前收手"落地后要连同大师档一起改（大师不吃提前收手，"与高级同预算"会说谎）。
-        self.difficulty=QComboBox();[(self.difficulty.addItem(t(f"difficulty.{value}", self.language),value)) for value in ("beginner","easy","medium","hard","master")]
+        self.difficulty=QComboBox();[(self.difficulty.addItem(t(f"difficulty.{value}", self.language),value)) for value in ("beginner","easy","medium","hard","expert","master")]
         # 未知档位（旧档 / 手改 / 将来并档）**显式回落**到默认，并把原值作为不可选条目
         # 显示出来。原来的 `max(0, findData(...))` 会静默落到「入门」——并档那天就成了
         # 「所有高级玩家无声降级」，而且用户在界面上看不出任何异样。
@@ -80,15 +106,21 @@ class SettingsDialog(QDialog):
         self.music=QCheckBox(t("settings.music", self.language));self.music.setChecked(config.get("music",False))
         self.music_style=QComboBox();self.music_style.addItem(t("option.music_fc", self.language),"fc");self.music_style.addItem(t("option.music_qq", self.language),"qq");self.music_style.setCurrentIndex(max(0,self.music_style.findData(config.get("music_style","fc"))))
         self.sound_volume=QSlider(Qt.Orientation.Horizontal);self.sound_volume.setRange(0,100);self.sound_volume.setValue(config.get("sound_volume",70))
+        self.sound_pack=QComboBox();self.sound_pack.addItem(dl("经典"),"classic");self.sound_pack.addItem(dl("网页合成"),"web");self.sound_pack.setCurrentIndex(max(0,self.sound_pack.findData(str(config.get("sound_pack","classic")))))
         self.music_volume=QSlider(Qt.Orientation.Horizontal);self.music_volume.setRange(0,100);self.music_volume.setValue(config.get("music_volume",40))
         self.theme=QComboBox();[(self.theme.addItem(t(f"option.theme_{value}", self.language),value)) for value in ("classic","green","blue","purple","dark")];self.theme.setCurrentIndex(max(0,self.theme.findData(config.get("theme","classic"))))
         self.font=QComboBox();[(self.font.addItem(text,value)) for value,text in (("system",dl("微软雅黑")),("kaiti",dl("楷体")),("songti",dl("宋体")),("fangsong",dl("仿宋")))];self.font.setCurrentIndex(max(0,self.font.findData(config.get("font","system"))))
-        self.background=QComboBox();self.background.addItem(dl("原色（无背景图片）"),"none");[(self.background.addItem(dlf("背景 {index}", index=index),str(index))) for index in range(1,6)];self.background.setCurrentIndex(max(0,self.background.findData(str(config.get("background","none")))))
+        # 背景只保留 5 张图（「原色（无背景图片）」已下线；老配置的 "none" 由 config 迁移到 "1"）
+        self.background=QComboBox();[(self.background.addItem(dlf("背景 {index}", index=index),str(index))) for index in range(1,6)];self.background.setCurrentIndex(max(0,self.background.findData(str(config.get("background","1")))))
         # 「棋子美术风格」下拉的第一项是**回退项**：选中它 = `piece_render="glyph"`。
         # 没有它就成了单向门 —— 用户切到图片风格后再也回不到 1.7.0 的字形棋子。
-        self.piece_style=QComboBox();self.piece_style.addItem(t("desktop.atlas_glyph_mode_default", self.language),GLYPH_STYLE_DATA)
+        # 只有四个值：字形 + 三套美术（`piece_render` 由它派生，不再单独让用户选）
+        self.piece_style=QComboBox()
+        self.piece_style.addItem(t("desktop.atlas_glyph_mode_default", self.language),GLYPH_STYLE_DATA)
         [(self.piece_style.addItem(t(f"option.piece_{value}", self.language),value)) for value in ("traditional","modern","cartoon")]
-        current=GLYPH_STYLE_DATA if config.get("piece_render","glyph")=="glyph" else config.get("piece_style","traditional")
+        current=config.get("piece_style","glyph")
+        if current not in ("glyph","traditional","modern","cartoon"):
+            current="glyph"
         self.piece_style.setCurrentIndex(max(0,self.piece_style.findData(current)))
         # 整套风格资源缺失（目录被改名的极端情况）时，该风格在下拉里**不可选** ——
         # 与图谱的「该风格资源缺失」保持一致；棋盘另有字形回退，所以程序不崩。
@@ -110,8 +142,9 @@ class SettingsDialog(QDialog):
         game_form.addRow(t("settings.human_color", self.language),self.color);game_form.addRow(t("settings.initial_minutes", self.language),self.minutes);game_form.addRow(t("settings.countdown", self.language),self.countdown)
         game_form.addRow(t("desktop.first_move",self.language),self.first_move)
         game_layout.addLayout(game_form);game_layout.addWidget(self.autosave)
-        tabs.addTab(game_tab,t("settings.game_tab", self.language))
 
+        # 「界面」与「声音」拆成两页：它们没有共同项，挤在一页里想关掉 BGM 得跟
+        # 字体/主题/棋子风格一起翻（4 个 tab 的顺序由下面统一的 addTab 决定）。
         appearance_tab=QWidget();appearance_form=QFormLayout(appearance_tab)
         appearance_form.addRow(t("language.label", self.language),self.language_select)
         appearance_form.addRow(t("settings.board_theme", self.language),self.theme);appearance_form.addRow(t("settings.font", self.language),self.font)
@@ -122,12 +155,14 @@ class SettingsDialog(QDialog):
         preview=QPushButton(dl("预览三风格"));preview.clicked.connect(self.open_piece_atlas)
         piece_row_layout.addWidget(preview)
         appearance_form.addRow(t("settings.piece_style", self.language),piece_row)
-        appearance_form.addRow(t("settings.sound_effects", self.language),self.sound)
-        appearance_form.addRow(t("settings.sound_volume", self.language),self.sound_volume);appearance_form.addRow(t("settings.music", self.language),self.music)
-        appearance_form.addRow(t("settings.music_style", self.language),self.music_style);appearance_form.addRow(t("settings.music_volume", self.language),self.music_volume)
         appearance_form.addRow(t("settings.animation", self.language),self.animations);appearance_form.addRow(t("settings.selection", self.language),self.selection_highlight)
         appearance_form.addRow(t("settings.legal_targets", self.language),self.legal_targets);appearance_form.addRow(t("settings.capture_hints", self.language),self.capture_hints);appearance_form.addRow("棋灵挑衅" if self.language!="en" else "AI taunts",self.taunts)
-        tabs.addTab(appearance_tab,t("settings.appearance_tab", self.language))
+
+        sound_tab=QWidget();sound_form=QFormLayout(sound_tab)
+        sound_form.addRow(t("settings.sound_effects", self.language),self.sound)
+        sound_form.addRow(t("settings.sound_volume", self.language),self.sound_volume);sound_form.addRow(dl("音效风格"),self.sound_pack)
+        sound_form.addRow(t("settings.music", self.language),self.music)
+        sound_form.addRow(t("settings.music_style", self.language),self.music_style);sound_form.addRow(t("settings.music_volume", self.language),self.music_volume)
 
         self._active_profile_id = config["profile"]
         self._profile_values = {profile_id: profile_rule_values(profile_id) for profile_id in PROFILES}
@@ -135,42 +170,60 @@ class SettingsDialog(QDialog):
             self._active_profile_id, config.get("rule_options", {}))
         self.checks={}; options=PROFILES[self._active_profile_id].options.merged(
             self._profile_values[self._active_profile_id])
+        game_layout.addStretch()
+        # 通用裁定（自我将军 / 三次重复）属于**规则**，不属于「开一局怎么开」——
+        # 它们留在对局设置页会让「这局判定变了」和「我设了时间」混在一处。
+        rule_page=QWidget();rule_layout=QVBoxLayout(rule_page)
         general=QGroupBox(t("settings.general_rules", self.language));general_layout=QVBoxLayout(general)
         for key in ("enforce_self_check","threefold_draw"):
-            check=QCheckBox(t(f"rule.{key}", self.language));check.setChecked(bool(getattr(options,key)));self.checks[key]=check;general_layout.addWidget(check)
-        game_layout.addWidget(general);game_layout.addStretch()
+            check=QCheckBox(t(f"rule.{key}", self.language));check.setChecked(display_value(key,getattr(options,key)));self.checks[key]=check;general_layout.addWidget(check)
+        rule_layout.addWidget(general)
 
         piece_definitions={
             PieceType.KING:("piece.king_label","piece_rule.king_long",("king_can_leave_palace","king_diagonal_in_palace","king_lose_diagonal_outside_palace","invasion_victory")),
             PieceType.ROOK:("piece.rook_label","piece_rule.rook_long",()),
-            PieceType.HORSE:("piece.horse_label","piece_rule.horse_long",("horse_straight_three",)),
+            PieceType.HORSE:("piece.horse_label","piece_rule.horse_long",("horse_blocked_by_leg","horse_straight_three","horse_straight_three_move_only")),
             PieceType.ELEPHANT:("piece.elephant_label","piece_rule.elephant_long",("elephant_can_cross_river","elephant_gain_jump_two_enemy_territory")),
             PieceType.ADVISOR:("piece.advisor_label","piece_rule.advisor_long",("advisor_can_leave_palace","advisor_gain_straight_outside_palace")),
             PieceType.CANNON:("piece.cannon_label","piece_rule.cannon_long",()),
-            PieceType.PAWN:("piece.pawn_label","piece_rule.pawn_long",("pawn_fast_move_before_enemy_territory","pawn_backward_at_base","pawn_full_movement_at_base","pawn_resurrection","pawn_promotion")),
+            PieceType.PAWN:("piece.pawn_label","piece_rule.pawn_long",("pawn_fast_move_before_enemy_territory","pawn_charge","pawn_three_line_capture","pawn_backward_at_base","pawn_resurrection","pawn_promotion")),
             PieceType.GUARD:("piece.guard_label","piece_rule.guard_long",()),
             PieceType.ARCHER:("piece.archer_label","piece_rule.archer_long",("archer_enhanced_mode",)),
             PieceType.THUNDER:("piece.thunder_label","piece_rule.thunder_long",()),
-            PieceType.ASSASSIN:("piece.assassin_label","piece_rule.assassin_long",()),
             PieceType.PATROL:("piece.patrol_label","piece_rule.patrol_long",()),
         }
         content=QWidget();content_layout=QVBoxLayout(content);self.piece_groups={}
         for kind,(title_key,description_key,rules) in piece_definitions.items():
             group=QGroupBox(t(title_key, self.language));group_layout=QVBoxLayout(group);self.piece_groups[kind]=group
-            detail=QLabel(t(description_key, self.language));detail.setWordWrap(True);detail.setStyleSheet("color:#6f6254");group_layout.addWidget(detail)
+            detail=QLabel(t(description_key, self.language));detail.setWordWrap(True);detail.setStyleSheet(
+                f"color:{theme.secondary(str(self._config.get('theme', 'classic')))}");group_layout.addWidget(detail)
             appear_key=f"{kind.value}_appear";appear=QCheckBox(t("settings.piece_appear", self.language))
             appear.setChecked(bool(getattr(options,appear_key)));self.checks[appear_key]=appear;group_layout.addWidget(appear)
             for key in rules:
-                check=QCheckBox(t(f"rule.{key}_short", self.language));check.setChecked(bool(getattr(options,key)));self.checks[key]=check;group_layout.addWidget(check)
+                check=QCheckBox(t(f"rule.{key}_short", self.language));check.setChecked(display_value(key,getattr(options,key)));check._option_key=key;self.checks[key]=check;group_layout.addWidget(check)
             content_layout.addWidget(group)
         content_layout.addStretch()
         self.checks["king_appear"].setChecked(True);self.checks["king_appear"].setEnabled(False)
-        scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(content);tabs.addTab(scroll,t("settings.piece_rules_tab", self.language))
-        self.profile.currentIndexChanged.connect(self._profile_changed);self._update_piece_availability()
+        scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(content);rule_layout.addWidget(scroll,1)
+        # tab 顺序是产品口径，别随手调：对局设置 → 棋子规则 → 界面 → 声音。
+        # 每页都能通过菜单独立打开（`standalone=True`），所以顺序只影响
+        # 默认构造（多标签形态）与 `Ctrl+,` 落在哪一页。
+        tabs.addTab(game_tab,t("settings.game_tab", self.language))
+        tabs.addTab(rule_page,t("settings.piece_rules_tab", self.language))
+        tabs.addTab(appearance_tab,t("settings.appearance_tab", self.language))
+        tabs.addTab(sound_tab,t("settings.sound_tab", self.language))
+        self.profile.currentIndexChanged.connect(self._profile_changed);self._update_piece_availability();self._sync_option_dependencies()
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText(t("action.confirm", self.language));buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(t("action.cancel", self.language))
         buttons.accepted.connect(self.accept);buttons.rejected.connect(self.reject);layout.addWidget(buttons)
         tabs.setCurrentIndex(max(0, min(tabs.count()-1, int(initial_tab))))
+        self.tabs=tabs
+        if standalone:
+            # 拆成独立窗口：只留当前页。标签栏一藏，它就是一个普通的设置窗口，
+            # 菜单里四个入口各开各的，不用先开总设置再找标签。
+            tabs.tabBar().setVisible(False)
+            self.setWindowTitle(tabs.tabText(tabs.currentIndex()))
+            self.resize(560, min(700, max(360, self.sizeHint().height())))
 
     def open_piece_atlas(self) -> None:
         """打开棋子图谱（与应用菜单「帮助 → 棋子图谱」同一个窗口）。
@@ -204,7 +257,8 @@ class SettingsDialog(QDialog):
             elif kind is PieceType.KING:check.setChecked(True)
 
     def _capture_profile_values(self) -> None:
-        values = {key: check.isChecked() for key, check in self.checks.items()}
+        # 界面勾选 = 正向增强；写回配置前必须换回存储语义（见 NEGATED_OPTIONS）
+        values = {key: stored_value(key, check.isChecked()) for key, check in self.checks.items()}
         values["king_appear"] = True
         self._profile_values[self._active_profile_id] = values
 
@@ -213,25 +267,58 @@ class SettingsDialog(QDialog):
         self._active_profile_id = self.profile.currentData()
         values = self._profile_values[self._active_profile_id]
         for key, check in self.checks.items():
-            check.setChecked(bool(values.get(key, False)))
+            check.setChecked(display_value(key, values.get(key, False)))
         self._update_piece_availability()
+        self._sync_option_dependencies()
+
+    def _sync_option_dependencies(self) -> None:
+        """上游关掉时，把"必然失效"的下游开关置灰并说明原因。
+
+        引擎侧本来就有 `and` 守卫（如 `straight and advisor_can_leave_palace and ...`），
+        所以置灰只是**把真相显式说出来**，不改任何判定结果；关掉上游时下游的勾选值保留，
+        重新开启上游即恢复原设置。
+        """
+        for child, parents in OPTION_DEPENDS_ON.items():
+            box = self.checks.get(child)
+            if box is None:
+                continue
+            sources = [self.checks[p] for p in parents if p in self.checks]
+            if not sources:
+                continue
+            if not hasattr(box, "_dependency_sources"):
+                # 只接一次信号，避免 profile 切换时重复连接
+                for source in sources:
+                    source.toggled.connect(
+                        lambda _checked=False, target=box, group=sources: self._apply_dependency(target, group))
+                box._dependency_sources = sources
+            self._apply_dependency(box, sources)
+
+    def _apply_dependency(self, box, sources) -> None:
+        enabled = True
+        for source in sources:
+            key = getattr(source, "_option_key", None)
+            checked = source.isChecked()
+            enabled = enabled and (checked if key is None else stored_value(key, checked))
+        if box.isEnabled() != enabled:
+            box.setEnabled(enabled)
+        box.setToolTip("" if enabled else t("rule.depends_disabled", self.language))
 
     def value(self) -> dict:
         self._capture_profile_values()
         values=self._profile_values[self._active_profile_id]
         previous=self.parent().config if self.parent() else {}
-        # 回退项（书法字形）不覆盖 `piece_style`：只把画法切回 glyph，风格偏好留着，
-        # 下次再选图片风格时仍是用户上一次挑的那一套。
+        # 画法就是一个字段：选中「书法字形」= `piece_style="glyph"`（不再保留旧美术偏好，
+        # 四个值互斥才不会有"风格是现代但画法是字形"这种自相矛盾的配置）。
         choice=self.piece_style.currentData()
-        piece_style=previous.get("piece_style","traditional") if choice==GLYPH_STYLE_DATA else choice
-        piece_render="glyph" if choice==GLYPH_STYLE_DATA else "image"
-        return {"profile":self.profile.currentData(),"language":self.language_select.currentData(),"game_mode":self.game_mode.currentData(),"difficulty":self.difficulty.currentData(),"human_color":self.color.currentData(),"first_move":self.first_move.currentData(),"initial_minutes":self.minutes.value(),"countdown_seconds":self.countdown.currentData(),"sound":self.sound.isChecked(),"music":self.music.isChecked(),"music_style":self.music_style.currentData(),"sound_volume":self.sound_volume.value(),"music_volume":self.music_volume.value(),"theme":self.theme.currentData(),"font":self.font.currentData(),"background":self.background.currentData(),"piece_style":piece_style,"piece_render":piece_render,"flipped":previous.get("flipped",False),"setup_slots":previous.get("setup_slots",{}),"account_token":previous.get("account_token",""),"animations":self.animations.isChecked(),"selection_highlight":self.selection_highlight.isChecked(),"legal_targets":self.legal_targets.isChecked(),"capture_hints":self.capture_hints.isChecked(),"taunts":self.taunts.isChecked(),"autosave":self.autosave.isChecked(),"server_url":previous.get("server_url","http://127.0.0.1:8000"),"rule_options":values}
+        piece_style=choice if choice in ("glyph","traditional","modern","cartoon") else "glyph"
+        piece_render="glyph" if piece_style==GLYPH_STYLE_DATA else "image"
+        return {"profile":self.profile.currentData(),"language":self.language_select.currentData(),"game_mode":self.game_mode.currentData(),"difficulty":self.difficulty.currentData(),"human_color":self.color.currentData(),"first_move":self.first_move.currentData(),"initial_minutes":self.minutes.value(),"countdown_seconds":self.countdown.currentData(),"sound":self.sound.isChecked(),"music":self.music.isChecked(),"music_style":self.music_style.currentData(),"sound_volume":self.sound_volume.value(),"sound_pack":self.sound_pack.currentData(),"music_volume":self.music_volume.value(),"theme":self.theme.currentData(),"font":self.font.currentData(),"background":self.background.currentData(),"piece_style":piece_style,"piece_render":piece_render,"flipped":previous.get("flipped",False),"setup_slots":previous.get("setup_slots",{}),"account_token":previous.get("account_token",""),"animations":self.animations.isChecked(),"selection_highlight":self.selection_highlight.isChecked(),"legal_targets":self.legal_targets.isChecked(),"capture_hints":self.capture_hints.isChecked(),"taunts":self.taunts.isChecked(),"autosave":self.autosave.isChecked(),"server_url":previous.get("server_url","http://127.0.0.1:8000"),"rule_options":values}
 
 
 class HandicapDialog(QDialog):
     def __init__(self, profile_id: str, options: dict, selected: dict | None = None, parent: QWidget | None = None) -> None:
         lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
-        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.handicap_title",lang));self.resize(720,620)
+        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.handicap_title",lang));self.resize(720,620);self.setMinimumSize(520,480);_fit_to_content(self)
         profile=PROFILES[profile_id];active=profile.options.merged(options);slots=profile_slots(profile,active)
         defaults={color:[slot["id"] for slot in slots if slot["color"]==color] for color in ("red","black")}
         self.selected={color:list((selected or {}).get(color,defaults[color])) for color in defaults};self.checks={}
@@ -270,7 +357,7 @@ class ReplayDialog(QDialog):
     def __init__(self, game: Game, config: dict, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.language=normalize_language(config.get("language"));self.setWindowTitle(t("dialog.replay_title",self.language))
-        self.resize(960, 820)
+        self.resize(960, 820);self.setMinimumSize(820,560);_fit_to_content(self)
         # 复盘分析的取消信号：关窗即置位，让后台分析在下一手前退出
         # （否则关窗后还要等 `40 手 × 每手预算` 才停得下来）。
         self._analysis_cancel = threading.Event()
@@ -346,8 +433,16 @@ class ReplayDialog(QDialog):
 class TrainingDialog(QDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         lang=(parent.config.get("language","zh-CN") if parent and hasattr(parent,"config") else "zh-CN")
-        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.training_title",lang));self.resize(760,560);self.selected_game=None;self.selected_puzzle=None
-        layout=QVBoxLayout(self);filters=QHBoxLayout();self.level=QComboBox();self.level.addItem(t("desktop.beginner",lang),"beginner");self.level.addItem(t("desktop.advanced",lang),"advanced");self.level.addItem(t("desktop.master",lang),"master");filters.addWidget(self.level);import_button=QPushButton(t("desktop.import_puzzles",lang));import_button.clicked.connect(self.import_puzzles);filters.addWidget(import_button);layout.addLayout(filters)
+        super().__init__(parent);self.language=lang;self.setWindowTitle(t("desktop.training_title",lang));self.resize(760,560);self.setMinimumSize(560,420);_fit_to_content(self);self.selected_game=None;self.selected_puzzle=None
+        layout=QVBoxLayout(self)
+        # 每日一题：**固定在最上方**、不随难度筛选变化。它是"今天为什么打开这个窗口"的入口，
+        # 藏在难度下拉后面就失去了意义（`daily` 的连续天数也只在这条路径上更新）。
+        self.started_daily=False;self.daily_puzzles=[];self.daily_puzzle=None
+        self.daily_button=QPushButton(t("desktop.daily",lang));self.daily_button.clicked.connect(self.start_daily)
+        # 它是这个窗口的主入口，别做成和下拉框一样矮的一条（实测默认只有 20px 高）
+        self.daily_button.setMinimumHeight(34)
+        layout.addWidget(self.daily_button)
+        filters=QHBoxLayout();self.level=QComboBox();self.level.addItem(t("desktop.beginner",lang),"beginner");self.level.addItem(t("desktop.advanced",lang),"advanced");self.level.addItem(t("desktop.master",lang),"master");filters.addWidget(self.level);import_button=QPushButton(t("desktop.import_puzzles",lang));import_button.clicked.connect(self.import_puzzles);filters.addWidget(import_button);layout.addLayout(filters)
         self.list=QListWidget();self.list.itemDoubleClicked.connect(lambda _:self.start_selected());layout.addWidget(self.list,1)
         actions=QHBoxLayout();self.hint=QPushButton(t("desktop.hint",lang));self.hint.clicked.connect(self.show_hint);start=QPushButton(t("desktop.start_training",lang));start.clicked.connect(self.start_selected);close=QPushButton(t("common.close",lang));close.clicked.connect(self.reject);actions.addWidget(self.hint);actions.addStretch();actions.addWidget(start);actions.addWidget(close);layout.addLayout(actions)
         self.level.currentIndexChanged.connect(self.reload);self.puzzles=[];self.reload()
@@ -355,16 +450,63 @@ class TrainingDialog(QDialog):
     def reload(self) -> None:
         # P1-K：随包题库 + 用户导入的题库（见 desktop/puzzle_store.py）。
         all_puzzles,warning=available_puzzles()
+        self.daily_puzzles=all_puzzles
+        self.daily_puzzle=daily_quiz.pick_daily(all_puzzles,date.today())
         self.puzzles=[item for item in all_puzzles if item.difficulty==self.level.currentData()];self.list.clear()
-        for puzzle in self.puzzles:self.list.addItem(f"{puzzle.title}  ·  {puzzle.description}")
+        # A2：按战役章节分组。**用不可选的分组标题**而不是新加一个下拉框 ——
+        # 窗口已经有一个难度筛选，再加一个"章节"会让人先想"这两个筛选项怎么叠加"。
+        grouped={}
+        for puzzle in self.puzzles:grouped.setdefault(puzzle.chapter,[]).append(puzzle)
+        for chapter in sorted(grouped,key=puzzle_chapters.chapter_order):
+            label=chapter or t("desktop.drills",self.language)
+            header=QListWidgetItem(f"—— {label} ——");header.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.list.addItem(header)
+            for puzzle in grouped[chapter]:
+                item=QListWidgetItem(f"{puzzle.title}  ·  {puzzle.description}")
+                # 记住 id：分组标题插入后行号不再等于 self.puzzles 的下标
+                item.setData(Qt.ItemDataRole.UserRole,puzzle.id)
+                self.list.addItem(item)
         if warning:
             # 自定义题库坏了不该让窗口打不开 —— 但要让人知道它被忽略了
             note=QListWidgetItem("⚠ "+warning);note.setFlags(Qt.ItemFlag.NoItemFlags);self.list.addItem(note)
+        self._refresh_daily_button()
+
+    def _daily_record(self) -> daily_quiz.DailyRecord:
+        """从主窗口的配置里读今日记录；拿不到就当空记录（第一次运行）。"""
+        config=getattr(self.parent(),"config",None)
+        return daily_quiz.DailyRecord.from_dict((config or {}).get("daily"))
+
+    def _refresh_daily_button(self) -> None:
+        if self.daily_puzzle is None:
+            self.daily_button.setText(t("desktop.daily",self.language))
+            self.daily_button.setEnabled(False)
+            return
+        self.daily_button.setEnabled(True)
+        today=date.today();record=self._daily_record()
+        done=record.day==today.isoformat() and record.done
+        # 打开当天的记录会惰性归零（昨天没做完就断了），所以这里的 streak 已经是"有效值"
+        streak=daily_quiz.start_today(record,today,self.daily_puzzle).streak
+        label=t("desktop.daily",self.language)
+        if done:
+            label=f"{label} · {t('desktop.daily_done',self.language)}"
+        elif streak:
+            label=f"{label} · {t('desktop.daily_streak',self.language,count=streak+1)}"
+        self.daily_button.setText(label)
+
+    def start_daily(self) -> None:
+        """直接开当天的题 —— 不经过难度筛选，也不需要先选中列表项。"""
+        puzzle=self.daily_puzzle
+        if puzzle is None:return
+        self.selected_puzzle=puzzle;self.selected_game=game_from_document(puzzle.document)
+        self.started_daily=True
+        self.accept()
 
     def current(self) -> object:
-        row=self.list.currentRow()
-        # 警告项不可选，但 currentRow 仍可能指向它，越界检查已经在下面兜住
-        return self.puzzles[row] if 0<=row<len(self.puzzles) else None
+        """按 item 上记的 id 取题 —— 分组标题会让行号与 `self.puzzles` 失配。"""
+        item=self.list.currentItem()
+        if item is None:return None
+        puzzle_id=item.data(Qt.ItemDataRole.UserRole)
+        return next((puzzle for puzzle in self.puzzles if puzzle.id==puzzle_id),None)
 
     def show_hint(self) -> None:
         puzzle=self.current();QMessageBox.information(self,t("desktop.hint",self.language),puzzle.hints[0] if puzzle and puzzle.hints else t("desktop.select_puzzle",self.language))
@@ -390,7 +532,7 @@ class TrainingDialog(QDialog):
 
 class GameLibraryDialog(QDialog):
     def __init__(self, folder: Path, config: dict, parent: QWidget | None = None) -> None:
-        super().__init__(parent);self.setWindowTitle(dl("本地棋谱库"));self.resize(700,520)
+        super().__init__(parent);self.setWindowTitle(dl("本地棋谱库"));self.resize(700,520);self.setMinimumSize(560,380);_fit_to_content(self)
         self.folder=folder;self.config=config;self.selected_path:Path|None=None
         self.folder.mkdir(parents=True,exist_ok=True)
         layout=QVBoxLayout(self);layout.addWidget(QLabel(dlf("棋谱目录：{path}", path=self.folder)))
@@ -426,7 +568,7 @@ class GameLibraryDialog(QDialog):
 
 class DocumentDialog(QDialog):
     def __init__(self, title: str, content: str, parent: QWidget | None = None) -> None:
-        super().__init__(parent);self.setWindowTitle(title);self.resize(760,680)
+        super().__init__(parent);self.setWindowTitle(title);self.resize(760,680);self.setMinimumSize(420,360);_fit_to_content(self)
         layout=QVBoxLayout(self);browser=QTextBrowser();browser.setHtml(content) if content.lstrip().startswith("<") else browser.setMarkdown(content);layout.addWidget(browser)
         lang=getattr(parent,"config",{}).get("language","zh-CN") if parent else "zh-CN"
         close=QPushButton(t("common.close", lang));close.clicked.connect(self.accept);layout.addWidget(close)
