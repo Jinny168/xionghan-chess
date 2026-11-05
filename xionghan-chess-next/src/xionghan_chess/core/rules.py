@@ -5,15 +5,7 @@ from enum import StrEnum
 from typing import Callable, Iterable, Iterator
 
 from .model import Color, GameState, Move, Piece, PieceType, Position
-from .profiles import PATROL_HOME_ROW, RuleOptions, RuleProfile, XIONGHAN_ROWS
-
-
-# The patrol is confined to its own starting rank: Black's home rank and Red's
-# mirror image of it. Mirroring matches xionghan_side(), so PATROL_HOME_ROW and
-# XIONGHAN_ROWS - 1 - PATROL_HOME_ROW are the only two ranks it may occupy.
-# Profiles without PieceType.PATROL never place one, so this set is unreachable
-# on the 10x9 traditional board.
-PATROL_HOME_ROWS = frozenset({PATROL_HOME_ROW, XIONGHAN_ROWS - 1 - PATROL_HOME_ROW})
+from .profiles import RuleOptions, RuleProfile
 
 
 class CaptureKind(StrEnum):
