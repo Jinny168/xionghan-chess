@@ -9,7 +9,7 @@ from typing import Any
 from .game import Game
 from .legacy import migrate_legacy_game
 from .model import GameState, UnsupportedSaveError
-from .profiles import get_profile
+from .profiles import RULE_VERSION, get_profile
 from .rules import POSITION_KEY_VERSION
 
 
@@ -23,6 +23,11 @@ def game_document(game: Game) -> dict[str, Any]:
         # a load can re-derive it instead of trusting keys it can no longer
         # reproduce (see `_rebuild_position_counts`).
         "positionKeyVersion": POSITION_KEY_VERSION,
+        # 走法语义的版本（与上面两个维度正交，见 `core/profiles.RULE_VERSION`）。
+        # 旧档没有这个字段 → 读作 1。它不阻止**本机**载入旧棋谱：局面是局面，
+        # 引擎用今天的规则重算合法着法；它只用于三件事——提示"这份棋谱来自哪套口径"、
+        # 拒绝来自**更新**版本的棋谱（读不懂就别硬读）、以及联机对齐（rooms.py）。
+        "ruleVersion": RULE_VERSION,
         "profileId": game.profile.id,
         "options": asdict(game.options),
         "setup": game.setup.to_dict(),
@@ -74,6 +79,14 @@ def game_from_document(data: dict[str, Any]) -> Game:
         raise ValueError("棋谱文件内容无效")
     if int(data.get("formatVersion", 0)) != FORMAT_VERSION:
         raise ValueError("不支持的棋谱文件版本")
+    # 旧档（≤1）照常载入：局面本身没变，变的是"哪些着法合法"，而合法着法是**算**出来的。
+    # 但来自**更新**版本的棋谱不能硬读 —— 那套走法这个引擎不认识，读进来的局面
+    # 会在下一步被自己判成非法着法，比直接拒绝更糟。
+    rule_version = int(data.get("ruleVersion", 1))
+    if rule_version > RULE_VERSION:
+        raise ValueError(
+            f"棋谱来自更新的规则版本（ruleVersion={rule_version}），"
+            f"当前程序支持到 {RULE_VERSION}，请升级后再打开")
     raw_state = data.get("state")
     if not isinstance(raw_state, dict):
         raise ValueError("棋谱缺少有效的当前局面")

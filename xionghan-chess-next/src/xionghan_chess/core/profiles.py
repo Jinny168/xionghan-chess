@@ -12,6 +12,17 @@ from .model import Color, Piece, PieceType
 # back rank 0 corresponds to Black's back rank 12.
 XIONGHAN_ROWS = 13
 XIONGHAN_COLS = 13
+# 规则口径版本：**走法语义**的版本号，不是容器格式版本。
+#
+# 与另外两个版本号**互相独立**，别合并：
+#   `FORMAT_VERSION`（core/storage.py）  —— 棋谱文件的结构；
+#   `POSITION_KEY_VERSION`（core/rules.py）—— 重复局面键的格式；
+#   `RULE_VERSION`（这里）               —— 同一份棋谱/同一间房里，棋子到底怎么走。
+# 2.0.0 = 巡禁竖移 + `pawn_full_movement_at_base` 默认关。这两条会让**旧客户端算出
+# 不同的合法着法**，所以：棋谱文件带 `ruleVersion`（旧档缺省 1），联机建房/加入必须
+# 双方一致（见 `service/rooms.py::RoomManager._check_rule_version`）。
+# 只改走法语义时才 +1；改存档结构请改 `FORMAT_VERSION`，别动这里。
+RULE_VERSION = 2
 # Home rank of the patrol ("巡") before mirroring. Black starts on this rank and
 # Red starts on its mirror image, so the patrol may only ever move along one of
 # those two ranks. Only profiles that enable PieceType.PATROL place it.

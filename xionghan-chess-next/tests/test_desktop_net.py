@@ -190,3 +190,34 @@ def test_net_module_does_not_import_pyside() -> None:
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.append(node.module)
     assert not [name for name in imported if name.startswith("PySide6")], imported
+
+
+def test_http_error_detail_is_surfaced_instead_of_the_status_line(monkeypatch) -> None:
+    """4xx 的可读信息在 `detail` 里，不该只给用户看 `HTTP Error 409: Conflict`。
+
+    专用错误码（`rule_version_mismatch`）的 detail 是 `{code, message, ...}`，
+    普通错误的 detail 是字符串 —— 两种都要能抬成异常文本。
+    """
+    import io
+    import urllib.error
+
+    from xionghan_chess.desktop import net as net_module
+
+    def raise_http_error(payload: dict):
+        def fake_urlopen(_request, timeout=0):
+            body = json.dumps(payload).encode("utf-8")
+            raise urllib.error.HTTPError(
+                "http://h/api/rooms", 409, "Conflict", {}, io.BytesIO(body))
+        monkeypatch.setattr(net_module.urllib.request, "urlopen", fake_urlopen)
+
+    raise_http_error({"detail": {"code": "rule_version_mismatch", "message": "版本不一致"}})
+    with pytest.raises(ValueError, match="版本不一致"):
+        net_module.request_json("http://h/api/rooms", {}, "POST")
+
+    raise_http_error({"detail": "房间已满"})
+    with pytest.raises(ValueError, match="房间已满"):
+        net_module.request_json("http://h/api/rooms", {}, "POST")
+
+    raise_http_error({"detail": [{"msg": "validation error"}]})
+    with pytest.raises(ValueError, match="HTTP Error 409"):
+        net_module.request_json("http://h/api/rooms", {}, "POST")

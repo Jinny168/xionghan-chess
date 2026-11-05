@@ -484,6 +484,7 @@
     "invalid_token": "无效的重连凭证",
     "account_connected": "账号已在另一连接上线",
     "client_stale": "客户端状态已过期，请使用最新棋盘状态",
+    "rule_version_mismatch": "双方走法规则版本不一致（你 {client} / 服务器 {server}），请刷新网页或升级程序后再联机",
     "chat_empty": "聊天内容不能为空",
     "chat_too_long": "聊天内容不能超过 80 个字符",
     "not_your_turn": "现在不是你的回合",

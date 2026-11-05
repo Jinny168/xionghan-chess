@@ -30,7 +30,7 @@ CHAT_HISTORY_LIMIT = 200
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import (Color, GameState, Move, PieceType, Position,
                                    is_big_capture)
-from xionghan_chess.core.profiles import (PROFILES, action_visible,
+from xionghan_chess.core.profiles import (PROFILES, RULE_VERSION, action_visible,
                                           profile_rule_values)
 from xionghan_chess.core.storage import game_document
 from xionghan_chess.core.taunts import choose_taunt, taunts
@@ -870,7 +870,7 @@ class MainWindow(QMainWindow):
         if not base:return
         setup=self.current_setup();lang=self.config.get("language","zh-CN")
         name=self.config.get("account_display_name") or ("桌面玩家" if lang!="en" else "Desktop Player")
-        payload={"profileId":self.config["profile"],"mode":"online","playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"playerColor":self.config["human_color"],"options":self.config.get("rule_options",{}),"initialMinutes":self.config["initial_minutes"],"language":lang,"firstMove":setup["firstMove"],"redSlots":setup["redSlots"],"blackSlots":setup["blackSlots"],"tauntsEnabled":self.config.get("taunts",True)}
+        payload={"profileId":self.config["profile"],"mode":"online","playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"playerColor":self.config["human_color"],"options":self.config.get("rule_options",{}),"initialMinutes":self.config["initial_minutes"],"language":lang,"firstMove":setup["firstMove"],"redSlots":setup["redSlots"],"blackSlots":setup["blackSlots"],"tauntsEnabled":self.config.get("taunts",True),"ruleVersion":RULE_VERSION}
         def _created(data: dict[str, object]) -> None:
             self.open_network(base,data)
             QMessageBox.information(self,"房间已创建" if lang!="en" else "Room created",f"{'房间号' if lang!='en' else 'Room code'}：{data['roomId']}")
@@ -887,7 +887,7 @@ class MainWindow(QMainWindow):
         name=self.config.get("account_display_name") or ("桌面玩家" if lang!="en" else "Desktop Player")
         def _joined(data: dict[str, object]) -> None:self.open_network(base,data)
         # 阶段0 S0-C：建连请求移到线程池 —— 服务不可达时窗口不再冻结最长 8s
-        self._request_json_async(f"{base}/api/rooms/{room.strip().upper()}/join",{"playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"language":lang},"POST",on_done=_joined,
+        self._request_json_async(f"{base}/api/rooms/{room.strip().upper()}/join",{"playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"language":lang,"ruleVersion":RULE_VERSION},"POST",on_done=_joined,
             on_error=lambda message:QMessageBox.warning(self,"加入失败" if lang!="en" else "Join failed",str(message)))
 
     def spectate_online(self) -> None:

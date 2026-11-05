@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from xionghan_chess.core.profiles import RULE_VERSION
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.storage import game_document
 from xionghan_chess.service.app import app
@@ -10,6 +11,7 @@ from xionghan_chess.service.app import app
 def test_websocket_rejects_unsupported_protocol_version():
     with TestClient(app) as client:
         created = client.post("/api/rooms", json={
+            "ruleVersion": RULE_VERSION,
             "profileId": "traditional", "mode": "local", "playerName": "本机玩家"
         }).json()
         room_id, token = created["roomId"], created["token"]
@@ -28,6 +30,7 @@ def test_websocket_rejects_unsupported_protocol_version():
 def test_legal_move_endpoint_uses_authoritative_engine():
     with TestClient(app) as client:
         created = client.post("/api/rooms", json={
+            "ruleVersion": RULE_VERSION,
             "profileId": "web", "mode": "online", "playerName": "red", "playerColor": "red"
         }).json()
         room_id, token = created["roomId"], created["token"]
@@ -41,6 +44,7 @@ def test_legal_move_endpoint_uses_authoritative_engine():
 def test_ai_moves_first_when_human_selects_black():
     with TestClient(app) as client:
         created = client.post("/api/rooms", json={
+            "ruleVersion": RULE_VERSION,
             "profileId": "web", "mode": "ai", "playerName": "black",
             "playerColor": "black", "difficulty": "beginner"
         }).json()
@@ -51,6 +55,7 @@ def test_ai_moves_first_when_human_selects_black():
 def test_chat_broadcast_does_not_advance_revision():
     with TestClient(app) as client:
         created = client.post("/api/rooms", json={
+            "ruleVersion": RULE_VERSION,
             "profileId": "web", "mode": "online", "playerName": "red", "playerColor": "red"
         }).json()
         room_id, token = created["roomId"], created["token"]
@@ -72,6 +77,7 @@ def test_chat_broadcast_does_not_advance_revision():
 def test_local_mode_controls_both_colors_and_undoes_one_ply():
     with TestClient(app) as client:
         created = client.post("/api/rooms", json={
+            "ruleVersion": RULE_VERSION,
             "profileId": "traditional", "mode": "local", "playerName": "本机玩家"
         }).json()
         room_id, token = created["roomId"], created["token"]
@@ -130,6 +136,7 @@ def test_imported_ai_game_continues_when_it_is_ai_turn():
 def test_pause_is_synchronized_and_blocks_legal_moves():
     with TestClient(app) as client:
         created = client.post("/api/rooms", json={
+            "ruleVersion": RULE_VERSION,
             "profileId": "traditional", "mode": "local", "playerName": "本机玩家"
         }).json()
         room_id, token = created["roomId"], created["token"]
@@ -155,9 +162,11 @@ def test_pause_is_synchronized_and_blocks_legal_moves():
 def test_online_restart_requires_opponent_acceptance():
     with TestClient(app) as client:
         red = client.post("/api/rooms", json={
+            "ruleVersion": RULE_VERSION,
             "profileId": "traditional", "mode": "online", "playerName": "red", "playerColor": "red"
         }).json()
-        black = client.post(f"/api/rooms/{red['roomId']}/join", json={"playerName": "black"}).json()
+        black = client.post(f"/api/rooms/{red['roomId']}/join",
+                            json={"playerName": "black", "ruleVersion": RULE_VERSION}).json()
         with client.websocket_connect(f"/ws/{red['roomId']}") as red_socket:
             red_socket.send_json({"type": "auth", "token": red['token']})
             red_socket.receive_json()

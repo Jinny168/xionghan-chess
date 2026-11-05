@@ -3,6 +3,7 @@ import uuid
 import pytest
 from fastapi.testclient import TestClient
 
+from xionghan_chess.core.profiles import RULE_VERSION
 from xionghan_chess.core.analysis import analyze_game, quality_for_loss
 from xionghan_chess.core.avatars import avatar_asset_name, normalize_avatar
 from xionghan_chess.core.game import Game
@@ -78,6 +79,7 @@ def test_auth_api_and_preferences_use_bearer_token(tmp_path, monkeypatch):
 def test_room_snapshot_carries_avatar_and_taunt_setting():
     with TestClient(service_app.app) as client:
         created = client.post("/api/rooms", json={
+            "ruleVersion": RULE_VERSION,
             "profileId": "web", "mode": "ai", "playerName": "头像棋手",
             "avatarUrl": "https://example.com/player.png", "tauntsEnabled": False,
         })
@@ -90,6 +92,7 @@ def test_room_snapshot_carries_avatar_and_taunt_setting():
 def test_spectator_channel_is_read_only():
     with TestClient(service_app.app) as client:
         room = client.post("/api/rooms", json={
+            "ruleVersion": RULE_VERSION,
             "profileId": "web", "mode": "online", "playerName": "red",
         }).json()
         spectator = client.post(f"/api/rooms/{room['roomId']}/spectate",

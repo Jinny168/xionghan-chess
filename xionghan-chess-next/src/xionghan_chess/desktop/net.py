@@ -17,15 +17,19 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 import urllib.request
 from typing import Any, Callable, Mapping
+
+# 协议版本**单一来源**：这里曾经是第二份 `PROTOCOL_VERSION = 1`。
+# 两份同名常量分居两个模块，改一处另一处就悄悄留在旧版本 —— 症状是"桌面连上服务端后
+# 首帧就被判协议不符"，而两边看代码都"写着 1"。现在只认 `core/protocol.py` 那一份，
+# 这里保留名字只是因为 `desktop/net.py` 是它对外的唯一出口（`net.PROTOCOL_VERSION`）。
+from xionghan_chess.core.protocol import PROTOCOL_VERSION  # noqa: F401  (re-export)
 
 # 传输函数签名：(url, body, headers, method) -> 解析后的 JSON。
 # 抽成类型别名，方便测试注入。
 Transport = Callable[[str, "bytes | None", Mapping[str, str], str], Any]
-
-# 协议版本：与 service 端 rooms 的 protocolVersion 对齐。
-PROTOCOL_VERSION = 1
 
 # 服务端主动关闭且**不值得重连**的 close code：
 # 4001 = 无效 token，4403 = 无权限，1008 = 策略拒绝（被踢）。
@@ -36,11 +40,31 @@ RECONNECT_BASE_MS = 1200
 RECONNECT_CAP_MS = 8000
 
 
+def _error_detail(exc: "urllib.error.HTTPError") -> str:
+    """从 4xx 响应的 body 里取 `detail`（字符串，或 `{code,message}` 形式的专用错误）。"""
+    try:
+        payload = json.loads(exc.read().decode("utf-8"))
+    except Exception:  # noqa: BLE001  —— body 不是 JSON / 读不出来都退回 str(exc)
+        return ""
+    detail = payload.get("detail") if isinstance(payload, dict) else None
+    if isinstance(detail, str):
+        return detail
+    if isinstance(detail, dict):
+        return str(detail.get("message") or detail.get("code") or "")
+    return ""
+
+
 def _urllib_transport(url: str, body: bytes | None, headers: Mapping[str, str], method: str) -> Any:
     """默认传输实现：urllib，15s 超时（与原 `request_json` 一致）。"""
     request = urllib.request.Request(url, body, dict(headers), method=method)
-    with urllib.request.urlopen(request, timeout=15) as response:
-        return json.loads(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        # 服务端 4xx 的可读信息在 JSON 的 `detail` 里。不读 body 的话，用户只看到
+        # 「HTTP Error 409: Conflict」—— 而 409 的全部意义就是告诉他「版本不一致，
+        # 请刷新」，所以这里把 detail 抬成异常文本（`str(exc)` 只是最后的兜底）。
+        raise ValueError(_error_detail(exc) or str(exc)) from exc
 
 
 def request_json(

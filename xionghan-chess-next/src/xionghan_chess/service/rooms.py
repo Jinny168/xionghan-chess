@@ -14,13 +14,25 @@ from xionghan_chess.core.ai import ChessAI, Difficulty
 from xionghan_chess.core.game import DEFAULT_INITIAL_MINUTES, Game, GameError
 from xionghan_chess.core.model import Color, Move, PieceType, Position
 from xionghan_chess.core.protocol import Envelope, MessageType
-from xionghan_chess.core.profiles import get_profile
+from xionghan_chess.core.profiles import RULE_VERSION, get_profile
 from xionghan_chess.core.taunts import choose_taunt
 from xionghan_chess.i18n import normalize_language, t
 
 
 ZOMBIE_ROOM_SECONDS = 600   # 10 分钟没人连的 online 房视为僵尸
 RECONNECT_GRACE_SECONDS = int(os.getenv("RECONNECT_GRACE_SECONDS", "90"))
+# 旧客户端（2.0.0 之前的所有构建）没有 `ruleVersion` 字段 —— 它们的走法语义就是 1。
+# 所以"没声明"等价于声明 1，而不是"跳过校验"：跳过的话，一台还在跑 1.9.x 的客户端
+# 正好可以进 2.0.0 的房间，然后在第 3 手收到「非法走棋」——那才是最难查的一类报告。
+CLIENT_RULE_VERSION_ABSENT = 1
+
+
+class RuleVersionMismatch(GameError):
+    """双方走法语义不一致。**专用错误**，别并回通用 GameError。
+
+    联机两端如果各跑一套走法，症状是"同一张盘上前端说能走、后端说非法"，
+    而不是"版本不对" —— 所以必须在这里就拦下来，并且让错误信息自己说清楚。
+    """
 
 
 @dataclass(slots=True)
@@ -97,6 +109,27 @@ class RoomManager:
         self.rooms: dict[str, Room] = {}
         self._lock = asyncio.Lock()
 
+    @staticmethod
+    def _check_rule_version(rule_version: int | None, language: str) -> None:
+        """走法语义不一致就拒绝建房/加入。
+
+        为什么拦在建房这一层而不是"落子报非法时再说"：两端各跑一套走法时，
+        症状是"我看到能走、服务器说非法"，普通玩家只会以为程序坏了；
+        而这时候棋局已经开始了，代价是一整局。
+
+        `rule_version is None` 表示**同进程调用方**（单测、内部脚本、AI 房自建），
+        它跟服务器是同一份代码、同一个 `RULE_VERSION`，不可能不一致，故跳过检查。
+        **远端客户端的"没声明"不等于 None**：HTTP 层把缺省值定成 1（2.0.0 之前
+        所有构建的走法语义），所以旧缓存客户端照样会被拦下 —— 这才是这道门的意义。
+        """
+        if rule_version is None:
+            return
+        declared = int(rule_version)
+        if declared == RULE_VERSION:
+            return
+        raise RuleVersionMismatch(t("error.rule_version_mismatch", language,
+                                    client=declared, server=RULE_VERSION))
+
     async def create(self, profile_id: str, mode: str, player_name: str,
                      player_color: Color = Color.RED,
                      difficulty: Difficulty = Difficulty.MEDIUM,
@@ -104,9 +137,11 @@ class RoomManager:
                      initial_minutes: int = DEFAULT_INITIAL_MINUTES,
                      language: str = "zh-CN",
                      setup: dict[str, Any] | None = None,
-                     avatar_url: str = "", taunts_enabled: bool = True) -> tuple[Room, PlayerSeat]:
+                     avatar_url: str = "", taunts_enabled: bool = True,
+                     rule_version: int | None = None) -> tuple[Room, PlayerSeat]:
         get_profile(profile_id)
         language = normalize_language(language)
+        self._check_rule_version(rule_version, language)
         async with self._lock:
             if len(self.rooms) >= self.max_rooms:
                 raise GameError(t("error.room_limit", language))
@@ -150,8 +185,9 @@ class RoomManager:
             return room, seat
 
     async def join(self, room_id: str, player_name: str,
-                   avatar_url: str = "") -> tuple[Room, PlayerSeat]:
+                   avatar_url: str = "", rule_version: int | None = None) -> tuple[Room, PlayerSeat]:
         room = self.require(room_id)
+        self._check_rule_version(rule_version, room.language)
         async with room.lock:
             if room.mode != "online":
                 raise GameError(room.tr("error.room_reject_online"))

@@ -15,6 +15,7 @@ pytest.importorskip("fastapi", reason="端点冒烟需要 fastapi")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from xionghan_chess.core.profiles import RULE_VERSION
 from xionghan_chess.service.app import app  # noqa: E402
 
 
@@ -52,14 +53,14 @@ def test_cloud_save_endpoint_is_not_500(client: TestClient) -> None:
 
 def test_room_rejects_non_bool_option(client: TestClient) -> None:
     """S3：字符串冒充布尔必须 400。"""
-    response = client.post("/api/rooms", json={"options": {"pawn_promotion": "yes"}})
+    response = client.post("/api/rooms", json={"ruleVersion": RULE_VERSION, "options": {"pawn_promotion": "yes"}})
     assert response.status_code == 400, response.text
     assert "pawn_promotion" in response.text
 
 
 def test_room_rejects_unknown_option_key(client: TestClient) -> None:
     """S3：未知键必须 400 并点出键名。"""
-    response = client.post("/api/rooms", json={"options": {"unknown_key": 1}})
+    response = client.post("/api/rooms", json={"ruleVersion": RULE_VERSION, "options": {"unknown_key": 1}})
     assert response.status_code == 400, response.text
     assert "unknown_key" in response.text
 
@@ -92,6 +93,7 @@ def test_invalid_json_goes_through_the_normal_disconnect_path() -> None:
 
     client = TestClient(app)
     created = client.post("/api/rooms", json={
+        "ruleVersion": RULE_VERSION,
         "profileId": "desktop_complete", "mode": "local", "playerName": "P1"}).json()
     room_id, token = created["roomId"], created["token"]
 
@@ -120,11 +122,13 @@ def test_player_name_length_is_capped(client: TestClient) -> None:
     """
     for name in ("A" * 1024, "A" * 1_000_000):
         response = client.post("/api/rooms", json={
+            "ruleVersion": RULE_VERSION,
             "profileId": "traditional", "mode": "local", "playerName": name})
         assert response.status_code == 400, response.status_code
         assert "playerName" in response.json()["detail"]
 
     ok = client.post("/api/rooms", json={
+        "ruleVersion": RULE_VERSION,
         "profileId": "traditional", "mode": "local", "playerName": "名" * 24})
     assert ok.status_code == 200, ok.text
 
@@ -136,11 +140,13 @@ def test_player_name_length_is_capped(client: TestClient) -> None:
     """
     for name in ("A" * 1024, "A" * 1_000_000):
         response = client.post("/api/rooms", json={
+            "ruleVersion": RULE_VERSION,
             "profileId": "traditional", "mode": "local", "playerName": name})
         assert response.status_code == 400, response.status_code
         assert "playerName" in response.json()["detail"]
 
     ok = client.post("/api/rooms", json={
+        "ruleVersion": RULE_VERSION,
         "profileId": "traditional", "mode": "local", "playerName": "名" * 24})
     assert ok.status_code == 200, ok.text
 

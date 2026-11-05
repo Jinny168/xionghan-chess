@@ -12,6 +12,7 @@ pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from xionghan_chess.core.profiles import RULE_VERSION
 from xionghan_chess.service.app import app  # noqa: E402
 
 
@@ -22,6 +23,7 @@ def client() -> TestClient:
 
 def _open_local(client: TestClient):
     created = client.post("/api/rooms", json={
+        "ruleVersion": RULE_VERSION,
         "profileId": "traditional", "mode": "local", "playerName": "P1"}).json()
     return created["roomId"], created["token"]
 

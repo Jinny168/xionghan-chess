@@ -21,11 +21,12 @@ from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.avatars import normalize_avatar
 from xionghan_chess.core.game import DEFAULT_INITIAL_MINUTES, GameError
 from xionghan_chess.core.model import Color, PieceType, Position
-from xionghan_chess.core.profiles import (NEGATED_OPTIONS, PROFILES,
+from xionghan_chess.core.profiles import (NEGATED_OPTIONS, PROFILES, RULE_VERSION,
                                           action_requirements,
                                           option_dependencies)
 from xionghan_chess.core.protocol import Envelope, MessageType
-from .rooms import Room, RoomManager
+from .rooms import (CLIENT_RULE_VERSION_ABSENT, Room, RoomManager,
+                    RuleVersionMismatch)
 from xionghan_chess.core.rules import archer_star_points
 from xionghan_chess.core.storage import game_from_content, game_from_document
 from xionghan_chess.core.storage import game_document
@@ -125,6 +126,10 @@ class CreateRoomRequest(BaseModel):
     red_slots: list[str] | None = Field(None, alias="redSlots")
     black_slots: list[str] | None = Field(None, alias="blackSlots")
     taunts_enabled: bool = Field(True, alias="tauntsEnabled")
+    # 走法语义版本（见 core/profiles.RULE_VERSION）。**必须声明**：缺省按 1 处理
+    # （2.0.0 之前的所有构建都是 1），与服务器不一致就拒绝建房 —— 旧缓存网页
+    # 正好走"没有这个字段"这条路，它必须被拦下，而不是开着房再在第三手报非法走棋。
+    rule_version: int = Field(CLIENT_RULE_VERSION_ABSENT, alias="ruleVersion")
     model_config = {"populate_by_name": True}
 
 
@@ -132,6 +137,7 @@ class JoinRoomRequest(BaseModel):
     player_name: str = Field("玩家", alias="playerName", max_length=MAX_PLAYER_NAME)
     avatar_url: str = Field("", alias="avatarUrl", max_length=500)
     language: str = "zh-CN"
+    rule_version: int = Field(CLIENT_RULE_VERSION_ABSENT, alias="ruleVersion")
     model_config = {"populate_by_name": True}
 
 
@@ -223,7 +229,10 @@ async def profiles() -> list[dict]:
              "negatedOptions": sorted(NEGATED_OPTIONS),
              # 按钮**可达性**表（动作 → 必须开启的选项键）。与 optionDependencies
              # 同构但用途不同：那张管开关置灰，这张管按钮显隐（规则里没有就不出现）。
-             "actionRequirements": action_requirements()} for p in PROFILES.values()]
+             "actionRequirements": action_requirements(),
+             # 走法语义版本：前端建房/加入时**回传**同一个数，服务端不一致即拒
+             # （见 rooms.py::_check_rule_version）。前端没有第二份常量可写错。
+             "ruleVersion": RULE_VERSION} for p in PROFILES.values()]
 
 
 
@@ -269,11 +278,18 @@ async def create_room(request: CreateRoomRequest) -> dict:
                                               "firstMove": request.first_move.value,
                                               "redSlots": request.red_slots,
                                               "blackSlots": request.black_slots,
-                                          }, avatar_url, request.taunts_enabled)
+                                          }, avatar_url, request.taunts_enabled,
+                                          rule_version=request.rule_version)
         if request.mode == "ai" and room.game.state.turn is not seat.color:
             await manager._play_ai(room)
         return {"roomId": room.id, "token": seat.token, "color": seat.color.value,
+                "ruleVersion": RULE_VERSION,
                 "snapshot": room.snapshot(seat.token)}
+    except RuleVersionMismatch as exc:
+        # 专用错误码：409（冲突）+ 明确的 `code`，让前端能把"版本不一致"
+        # 和"参数写错了"分开处理（后者是 400）。
+        raise HTTPException(409, {"code": "rule_version_mismatch", "message": str(exc),
+                                  "serverRuleVersion": RULE_VERSION}) from exc
     except (GameError, ValueError) as exc:
         raise HTTPException(400, str(exc)) from exc
 
@@ -301,13 +317,17 @@ async def import_room(request: ImportGameRequest) -> dict:
 async def join_room(room_id: str, request: JoinRoomRequest) -> dict:
     try:
         room, seat = await manager.join(room_id.upper(), request.player_name,
-                                        normalize_avatar(request.avatar_url))
+                                        normalize_avatar(request.avatar_url),
+                                        rule_version=request.rule_version)
         async with room.lock:
             room.language = normalize_language(request.language)
             room.game.language = room.language
         await manager.broadcast(room)
         return {"roomId": room.id, "token": seat.token, "color": seat.color.value,
                 "snapshot": room.snapshot(seat.token)}
+    except RuleVersionMismatch as exc:
+        raise HTTPException(409, {"code": "rule_version_mismatch", "message": str(exc),
+                                  "serverRuleVersion": RULE_VERSION}) from exc
     except GameError as exc:
         raise HTTPException(400, str(exc)) from exc
 

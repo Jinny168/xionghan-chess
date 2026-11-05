@@ -484,6 +484,7 @@
     "invalid_token": "Invalid reconnect token",
     "account_connected": "This seat is online in another connection",
     "client_stale": "Client state is stale. Please use the latest board state",
+    "rule_version_mismatch": "Rule versions do not match (yours {client} / server {server}). Please reload the page or upgrade, then rejoin",
     "chat_empty": "Chat message cannot be empty",
     "chat_too_long": "Chat message cannot exceed 80 characters",
     "not_your_turn": "It is not your turn",
