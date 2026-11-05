@@ -1,4 +1,4 @@
-"""网页客户端的 `protocolVersion` 必须等于 `core/protocol.py::PROTOCOL_VERSION`。
+r"""网页客户端的 `protocolVersion` 必须等于 `core/protocol.py::PROTOCOL_VERSION`。
 
 ## 为什么只能靠一个测试守着，而不是"收成一处常量"
 
