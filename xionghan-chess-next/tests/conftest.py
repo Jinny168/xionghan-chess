@@ -357,25 +357,3 @@ def _user_data_summary(terminalreporter) -> None:
         f"用户配置隔离：桌面用例 {_DESKTOP_TOTAL} 条 | 隔离生效 {len(_ISOLATED_ROOTS)} 次 | "
         f"{real_settings} 现为 {shown} | {state}",
     )
-
-
-def _user_data_summary(terminalreporter) -> None:
-    """结尾对账一行：跑了一遍，真实用户配置到底动没动。"""
-    real_settings = _GUARD_STATE.get("real_settings")
-    before = _GUARD_STATE.get("before")
-    after = _GUARD_STATE.get("after")
-    if real_settings is None or before is None or after is None:
-        return
-    if not _DESKTOP_TOTAL:
-        state = "本轮无桌面用例"
-    elif after == before:
-        state = "真实配置未改动"
-    else:
-        state = "**真实配置被改了**（见上方失败信息）"
-    exists, size, digest = after
-    shown = f"{size} 字节 / sha256 {digest[:12]}…" if exists else "不存在"
-    terminalreporter.write_sep(
-        "=",
-        f"用户配置隔离：桌面用例 {_DESKTOP_TOTAL} 条 | 隔离生效 {len(_ISOLATED_ROOTS)} 次 | "
-        f"{real_settings} 现为 {shown} | {state}",
-    )
