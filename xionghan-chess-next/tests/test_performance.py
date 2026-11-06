@@ -7,12 +7,16 @@ absolute performance promise. Accordingly:
 * **Relative/complexity assertions are preferred** (a point query vs a full
   enumeration, a pool-cost delta) because they survive a fast or slow machine.
 * **Absolute bounds are deliberately loose** (several times the value measured
-  on the authoring box, recorded per test) so CI jitter cannot turn them red.
+  on the authoring box, recorded per test) so machine jitter cannot turn them red.
 
-Whole module is marked ``slow``: run it with ``pytest tests/test_performance.py``
-(CI does), skip it with ``pytest -m "not slow"``. The marker is registered in
-``pyproject.toml`` so ``--strict-markers`` turns a typo into an error rather
-than a silent no-op.
+Whole module is marked ``slow``: 本地手动跑 ``pytest tests/ -m slow``
+（``pytest -m "not slow"`` 跳过它）。仓库不设 CI，这两条命令都是手动执行的门禁。
+The marker is registered in ``pyproject.toml`` so ``--strict-markers`` turns a
+typo into an error rather than a silent no-op.
+
+绝对时间断言的成功路径也 `print` 实测值与余量（对齐 ``test_expert_level.py``）：
+绿着也要能看出离预算还有多远，否则只有红的那一刻才知道跑到了多少。
+要看这些数字得用 ``pytest tests/ -m slow -s`` —— 默认捕获会在通过时把 stdout 吃掉。
 
 Baselines below were measured on the authoring box (Windows, CPython 3.13,
 13x13 ``desktop_complete`` board) and are only a reference point for future
@@ -91,7 +95,11 @@ def test_evaluate_single_call_within_loose_budget():
         ai._evaluate(game, Color.RED)
 
     elapsed = _best_time(evaluate_once, repeat=3, number=30)
-    assert elapsed < 5e-2, f"_evaluate took {elapsed * 1e3:.1f} ms (budget 50 ms)"
+    budget = 5e-2
+    # 先报再断言：绿的时候也要能看到"离预算还差多少"（`-s` 才显示，默认捕获会吃掉）
+    print(f"_evaluate 实测 {elapsed * 1e3:.2f} ms / 预算 {budget * 1e3:.0f} ms"
+          f"（余量 {budget / elapsed:.1f}x）")
+    assert elapsed < budget, f"_evaluate took {elapsed * 1e3:.1f} ms (budget 50 ms)"
 
 
 # --------------------------------------------------------------------------- #
@@ -126,7 +134,10 @@ def test_legal_moves_full_generation_within_loose_budget():
     # Measured: ~270 ms for the full 13x13 board. 2 s is a ~7x guardrail.
     game = Game("desktop_complete")
     elapsed = _best_time(lambda: game.rules.legal_moves(game.state), repeat=3, number=3)
-    assert elapsed < 2.0, f"legal_moves took {elapsed * 1e3:.1f} ms (budget 2000 ms)"
+    budget = 2.0
+    print(f"legal_moves 实测 {elapsed * 1e3:.0f} ms / 预算 {budget * 1e3:.0f} ms"
+          f"（余量 {budget / elapsed:.1f}x）")
+    assert elapsed < budget, f"legal_moves took {elapsed * 1e3:.1f} ms (budget 2000 ms)"
 
 
 # --------------------------------------------------------------------------- #
@@ -170,7 +181,10 @@ def test_position_key_pool_segment_stays_cheap():
     empty_key = _best_time(lambda: empty.rules.position_key(empty.state), number=200)
     stocked_key = _best_time(lambda: stocked.rules.position_key(stocked.state), number=200)
 
-    assert empty_key < 1e-3, f"position_key (empty pool) took {empty_key * 1e6:.1f} us"
-    assert stocked_key < 1e-3, f"position_key (stocked pool) took {stocked_key * 1e6:.1f} us"
+    budget = 1e-3
+    print(f"position_key 实测 空池 {empty_key * 1e6:.2f} us / 满池 {stocked_key * 1e6:.2f} us"
+          f"（预算各 {budget * 1e6:.0f} us；余量 {budget / max(empty_key, stocked_key):.0f}x）")
+    assert empty_key < budget, f"position_key (empty pool) took {empty_key * 1e6:.1f} us"
+    assert stocked_key < budget, f"position_key (stocked pool) took {stocked_key * 1e6:.1f} us"
 
 
