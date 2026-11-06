@@ -39,6 +39,10 @@ OFFLINE_JS = (Path(__file__).resolve().parents[1]
 _DECLARATION = re.compile(r"\b(?:const|let|var)\s+RULE_VERSION\s*=\s*(\d+)")
 # 写死的前缀：`'rs2-` / `"rs3-` 之类
 _HARDCODED_PREFIX = re.compile(r"""['"]rs\d""")
+# 前缀由常量参与拼接：`'rs'+RULE_VERSION`（内联）或 `const PREFIX='rs'+RULE_VERSION`
+_JOINS_RULE_VERSION = re.compile(r"""['"]rs['"]\s*\+\s*RULE_VERSION""")
+# `const PREFIX = 'rs' + RULE_VERSION …` —— 允许先抽常量再在 positionKey 里引用
+_PREFIX_CONST = re.compile(r"""const\s+(\w+)\s*=\s*['"]rs['"]\s*\+\s*RULE_VERSION""")
 
 
 def _source() -> str:
@@ -123,15 +127,27 @@ def test_no_hardcoded_rule_version_prefix() -> None:
 
 
 def test_position_key_joins_the_constant() -> None:
-    """`positionKey` 里必须**直接**用常量拼前缀（与 Python 的 f-string 逐字节一致）。"""
+    """`positionKey` 的前缀必须由 `RULE_VERSION` 参与拼出（不锁字面写法）。
+
+    允许两种等价形态：
+      1. 内联：`'rs'+RULE_VERSION+'-'`
+      2. 抽常量：`const PREFIX='rs'+RULE_VERSION+'-'`，`positionKey` 里用 `PREFIX`
+    锁死第 1 种会把"等价重构"判成错误（质检实测），那是假红；这里只要求
+    "前缀确实由常量派生、且 positionKey 用的是它"。
+    """
     text = _source()
     number, line = _line_containing(text, "positionKey(state)")
     assert line, f"{OFFLINE_JS.name} 里找不到 `positionKey(state)` 定义"
-    assert "'rs'+RULE_VERSION+'-'" in line, (
-        f"positionKey 没有用 RULE_VERSION 拼前缀（第 {number} 行）。\n"
-        "  → 改什么：前缀写成 `'rs'+RULE_VERSION+'-'`，"
-        "与 core/rules.py 的 `f\"rs{RULE_VERSION}-\"` 逐字节一致。\n"
-        "  → 为什么：这一串进的是重复局面的 key，差一个字符两侧账本就对不上。"
+
+    derived = [match.group(1) for match in _PREFIX_CONST.finditer(text)]
+    inline = bool(_JOINS_RULE_VERSION.search(line))
+    via_const = any(name in line for name in derived)
+    assert inline or via_const, (
+        f"positionKey 的前缀没有由 RULE_VERSION 拼出（第 {number} 行）。\n"
+        "  → 改什么：内联写 `'rs'+RULE_VERSION+'-'`，或先抽 "
+        "`const PREFIX='rs'+RULE_VERSION+'-'` 再在 positionKey 里引用它。\n"
+        "  → 为什么：这一串进的是重复局面的 key，写死就与 core/rules.py 的 "
+        "`f\"rs{RULE_VERSION}-\"` 各走各的，改版本号必然漏一处。"
     )
 
 

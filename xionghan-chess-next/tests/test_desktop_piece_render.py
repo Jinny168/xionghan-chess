@@ -144,6 +144,23 @@ def test_disk_diameter_stays_0_78_cell(qt_app: QApplication, style: str) -> None
         f"字形与图片盘径相差 {abs(image_width - glyph_width)} px（{glyph_width} vs {image_width}）"
 
 
+def test_missing_art_coverage_is_declared() -> None:
+    """`MISSING` 为空时，下面那条回退绘制用例会因**空参数集**静默跳过。
+
+    pytest 对空参数集既不报错、也不在结果里留下醒目的"跳过"痕迹 —— 看起来像通过，
+    实际是零覆盖（质检把它记为 QA-5）。这条元测试把两种状态都摆到明面上：
+      - 非空：缺图型清单被显式声明，回退渲染逐型跑；
+      - 空：美术已覆盖全部 11 型，没有回退样本可测 —— 显式 skip 并给理由，
+        而不是让一条 `parametrize([])` 悄悄消失。
+    """
+    if not MISSING:
+        pytest.skip(
+            "MISSING 为空：美术已覆盖全部 11 型，回退绘制无样本可测（显式声明，非漏测）"
+        )
+    unknown = set(MISSING) - set(PieceType)
+    assert not unknown, f"MISSING 里混进了不存在的兵种：{unknown}"
+
+
 @pytest.mark.parametrize("kind", MISSING)
 def test_missing_art_still_draws_ink_in_image_mode(qt_app: QApplication, kind: PieceType) -> None:
     """刺没有美术，但 image 模式下必须画出同风格底盘 + 字形（不能空白）。"""

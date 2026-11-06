@@ -4,10 +4,12 @@
 
 「置灰」和「隐藏」是两件不同的事，而两者的差别**没有任何现有测试能看出来**：
 - 置灰：按钮还在、还能被读屏念出来、还能点（点下去弹错）；
-- 隐藏：按钮不在布局里，也不在无障碍树里。
+- 隐藏：按钮不在布局里，且被标记为不可见（`invisible=True`）——注意 Qt **不会**
+  把它移出无障碍树，只是让辅助技术跳过它。
 
 2.0.0 的验收口径是：`pawn_resurrection` 关掉后，侧栏**只剩 6 个按钮**，
-而且**无障碍树里也没有第七个** —— 只 `setEnabled(False)` 是不合格的。
+而且第七个按钮**被标记为不可见**（`invisible=True`，读屏不播报）——只
+`setEnabled(False)` 是不合格的。
 这条测试就是那个口径，防止以后有人图省事把"隐藏"悄悄改回"置灰"。
 
 顺带守一条反向自检：`UI_ACTION_REQUIRES` 里登记的每个动作，在对应开关关掉时
@@ -86,9 +88,11 @@ def test_resurrection_off_leaves_six_buttons_and_no_seventh_in_the_a11y_tree(win
 
     assert _visible_buttons(window) == [k for k in SIDEBAR_BUTTONS if k != "resurrect"], \
         "关掉复活后侧栏应只剩 6 个按钮"
-    # 无障碍树：Qt 不会把 isVisibleTo() 为假的控件交给辅助技术。
+    # 可访问性：Qt 不会把 isVisibleTo() 为假的控件"交给"辅助技术，但**不会**把它
+    # 移出无障碍树 —— 实测 QAccessible 里它仍在，只是 state.invisible=True。
     # 只 `setEnabled(False)` 的话这里会是 True —— 那正是本条要拦的写法。
-    assert not window.resurrect.isVisibleTo(window), "复活按钮仍在无障碍树里（只是被置灰/藏起来？）"
+    assert not window.resurrect.isVisibleTo(window), \
+        "复活按钮仍被标记为可见（只是被置灰/藏起来？）"
     assert not window.resurrect_action.isVisible(), "菜单项「复活兵卒」也得消失"
 
 

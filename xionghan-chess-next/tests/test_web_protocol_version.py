@@ -20,8 +20,9 @@ r"""网页客户端的 `protocolVersion` 必须等于 `core/protocol.py::PROTOCO
 ## 扫的是什么
 
 `protocolVersion\s*:\s*(\d+)` —— 只认**调用点**写法（`protocolVersion:1` /
-`protocolVersion : 1`）。注释行（`//` 开头）跳过：文件里可能有示例或说明提到这个字段，
-它们不参与封包，不该把断言带偏。
+`protocolVersion : 1`）。整行注释（`//` 开头）跳过；**引号内的字符串与行尾
+`//` 注释也要先剥掉**：实测 `console.warn('… protocolVersion:9 …')` 与
+`x = 1; // protocolVersion:9` 都会被光正则误判成调用点（假红），而它们不参与封包。
 """
 
 from __future__ import annotations
@@ -38,16 +39,31 @@ APP_JS = ROOT / "web" / "js" / "app.js"
 
 # 只看"值"的写法：`protocolVersion:1`（冒号前后可有空格）
 _CALL_SITE = re.compile(r"protocolVersion\s*:\s*(\d+)")
+# 引号内的字符串（单/双引号，含转义）：先整段抹掉，避免把提示文案当调用点
+_STRING = re.compile(r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"")
+# 行尾 `//` 注释：字符串已被抹掉，所以剩下的 `//` 都是注释（不会误伤 http://）
+_TRAILING_COMMENT = re.compile(r"//.*$")
+
+
+def _strip_noise(line: str) -> str:
+    """抹掉引号内文本与行尾注释，只留代码骨架。
+
+    为什么不是"跳过 `//` 开头的行"就够：质检实测过 `console.warn('… protocolVersion:9 …')`
+    与 `x = 1; // protocolVersion:9` 两种写法都会被判成调用点（报第 420 行）——
+    它们不参与封包，却是合法 JS。假红比不测更糟：会逼着后来人删断言。
+    """
+    return _TRAILING_COMMENT.sub("", _STRING.sub("''", line))
 
 
 def _occurrences() -> list[tuple[int, int]]:
-    """`(行号, 值)` 列表；`//` 整行注释跳过。"""
+    """`(行号, 值)` 列表；整行注释跳过，字符串与行尾注释先剥掉。"""
     text = APP_JS.read_text(encoding="utf-8")
     found: list[tuple[int, int]] = []
     for number, line in enumerate(text.splitlines(), start=1):
         if line.lstrip().startswith("//"):
             continue
-        found.extend((number, int(match.group(1))) for match in _CALL_SITE.finditer(line))
+        found.extend((number, int(match.group(1)))
+                     for match in _CALL_SITE.finditer(_strip_noise(line)))
     return found
 
 
