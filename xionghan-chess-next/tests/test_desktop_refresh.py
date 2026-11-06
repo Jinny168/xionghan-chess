@@ -50,9 +50,12 @@ def silent_dialogs(monkeypatch: pytest.MonkeyPatch) -> dict[str, list]:
 
 
 @pytest.fixture()
-def window(monkeypatch: pytest.MonkeyPatch, tmp_path, qt_app: QApplication):
-    """每个用例一个干净的用户目录 + 一个真实 MainWindow。"""
-    monkeypatch.setenv("APPDATA", str(tmp_path))
+def window(qt_app: QApplication):
+    """每个用例一个干净的窗口。
+
+    用户目录隔离由 conftest 的 autouse fixture 提供（`test_desktop_*` 一律改道
+    tmp），这里不再自带 `setenv("APPDATA")`。
+    """
     theme.load_bundled_fonts()
     win = appmod.MainWindow()
     win.config["language"] = "zh-CN"

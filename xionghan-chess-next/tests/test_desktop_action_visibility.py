@@ -44,16 +44,18 @@ def qt_app() -> QApplication:
 
 
 @pytest.fixture()
-def window(qt_app, monkeypatch, tmp_path):
-    """**必须隔离 APPDATA**，否则这条测试会污染开发者的真实配置。
+def window(qt_app, monkeypatch):
+    """用户目录隔离由 `conftest.py` 的 `_isolate_desktop_user_data` autouse 提供。
 
-    `MainWindow.new_game()` 会调 `save_config`，而它是在 `app.py` 里 `from .config
-    import save_config` 拿到的 —— 直接 patch `config.save_config` **拦不住**它。
-    本文件第一版就踩了这个坑：跑完之后 `%APPDATA%/XionghanChess/settings.json` 里的
-    `profile` 被写成 `desktop_classic`，紧接着 `test_desktop_layout_limits` 里
-    新建的窗口就少了一个按钮、宽度断言直接红。
+    （历史：`MainWindow.new_game()` 会调 `save_config`，而它是在 `app.py` 里
+    `from .config import save_config` 拿到的 —— 直接 patch `config.save_config`
+    **拦不住**它。本文件第一版就踩了这个坑：跑完之后
+    `%APPDATA%/XionghanChess/settings.json` 里的 `profile` 被写成
+    `desktop_classic`，紧接着 `test_desktop_layout_limits` 里新建的窗口就少了
+    一个按钮、宽度断言直接红。现在那一层由 conftest 统一兜住，这里不再自带
+    `setenv("APPDATA")`；本 fixture 仍负责把 `save_config` 换成 no-op，
+    因为本文件的断言只关心按钮可见性，不关心落盘。）
     """
-    monkeypatch.setenv("APPDATA", str(tmp_path))
     from xionghan_chess.desktop import app as app_module
 
     monkeypatch.setattr(app_module, "save_config", lambda *_a, **_k: None)

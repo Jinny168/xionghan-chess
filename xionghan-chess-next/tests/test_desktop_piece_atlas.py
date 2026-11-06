@@ -154,8 +154,8 @@ def test_moves_section_reads_chinese_doc_and_english_locale(atlas: PieceAtlasDia
 # 入口与「即时生效」
 # ---------------------------------------------------------------------------
 @pytest.fixture()
-def window(monkeypatch: pytest.MonkeyPatch, tmp_path, qt_app: QApplication):
-    monkeypatch.setenv("APPDATA", str(tmp_path))
+def window(monkeypatch: pytest.MonkeyPatch, qt_app: QApplication):
+    # 用户目录隔离由 conftest 的 autouse fixture 提供，这里不再自带 setenv("APPDATA")
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
     # 结果弹窗改为自定义按钮框后，静默点转移到 `show_result_dialog`（否则会真模态挂住）
     monkeypatch.setattr(appmod, "show_result_dialog", staticmethod(lambda *a, **k: False))

@@ -134,8 +134,8 @@ def test_progress_uses_config_time_limit(qt_app: QApplication) -> None:
 # 3) 定时器不常驻：连续三次 start/finish 后必须停
 # ---------------------------------------------------------------------------
 @pytest.fixture()
-def window(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch, tmp_path):
-    monkeypatch.setenv("APPDATA", str(tmp_path))
+def window(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch):
+    # 用户目录隔离由 conftest 的 autouse fixture 提供，这里不再自带 setenv("APPDATA")
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
     # 结果弹窗改为自定义按钮框后，静默点转移到 `show_result_dialog`（否则会真模态挂住）
     monkeypatch.setattr(appmod, "show_result_dialog", staticmethod(lambda *a, **k: False))

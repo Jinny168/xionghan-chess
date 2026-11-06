@@ -121,13 +121,16 @@ def test_available_puzzles_puts_builtin_first(store: Path) -> None:
     assert merged[-1].id == "imported-1"
 
 
-def test_puzzles_file_lives_in_data_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """用户题库必须落在 data_dir 下，跟 settings/games 在一起。"""
-    monkeypatch.setenv("APPDATA", str(tmp_path))
+def test_puzzles_file_lives_in_data_dir() -> None:
+    """用户题库必须落在 data_dir 下，跟 settings/games 在一起。
+
+    `config_root()` 指向 tmp 里（conftest 的 autouse 隔离），所以这里可以安全地
+    真问一次 `data_dir()` —— 本来的 `setenv("APPDATA")` 已冗余，删掉。
+    """
     assert config.puzzles_file() == config.data_dir() / "puzzles.json"
 
 
-def test_training_dialog_lists_imported_puzzle(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_training_dialog_lists_imported_puzzle(tmp_path: Path) -> None:
     """端到端：导入后，训练对话框的列表里真的能看到这道题。
 
     只测 `install_puzzles` 写文件是不够的 —— 如果对话框还读旧数据源，
@@ -139,7 +142,7 @@ def test_training_dialog_lists_imported_puzzle(monkeypatch: pytest.MonkeyPatch, 
 
     from xionghan_chess.desktop.ui.dialogs import TrainingDialog
 
-    monkeypatch.setenv("APPDATA", str(tmp_path))        # 用户数据目录挪到临时目录
+    # 用户数据目录已由 conftest 的 autouse 隔离改道 tmp，这里不必再 setenv("APPDATA")
     target = config.puzzles_file()
     puzzle_store.install_puzzles(_write(tmp_path / "incoming.json", [_entry()]), path=target)
 

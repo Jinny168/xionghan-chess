@@ -194,8 +194,9 @@ def _parity_summary(terminalreporter) -> None:
 
 #
 # 不收编 `test_release_script.py`：它只在 tmp 里造 stub exe，完全不碰配置路径。
-# 其余 `test_desktop_*` 里已有 `monkeypatch.setenv("APPDATA", tmp_path)` 的模块
-# 保留原样（多设一遍无害，autouse 先跑、它们后跑，仍然都指向 tmp）。
+# 早先有 7 个 `test_desktop_*` 模块自带 `monkeypatch.setenv("APPDATA", tmp_path)`；
+# 那是这条 autouse 隔离出现之前的**逐模块自救**，现在已被统一接管，7 处全部删除
+# （不会再有"某模块忘了隔离"或"某模块隔离得不一样"的两种真相）。
 # =========================================================================== #
 
 DESKTOP_MODULE_PREFIX = "test_desktop_"

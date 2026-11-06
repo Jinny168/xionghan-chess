@@ -40,8 +40,8 @@ def _finish(window) -> None:
 
 
 @pytest.fixture()
-def window(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch, tmp_path):
-    monkeypatch.setenv("APPDATA", str(tmp_path))
+def window(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch):
+    # 用户目录隔离由 conftest 的 autouse fixture 提供，这里不再自带 setenv("APPDATA")
     theme.load_bundled_fonts()
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
     monkeypatch.setattr(QMessageBox, "warning", staticmethod(lambda *a, **k: None))
