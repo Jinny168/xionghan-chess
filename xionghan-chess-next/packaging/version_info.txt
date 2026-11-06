@@ -6,8 +6,8 @@
 # 资源管理器里悬浮只显示文件名，用户无法判断自己跑的是哪一版。
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(2, 0, 0, 0),
-    prodvers=(2, 0, 0, 0),
+    filevers=(2, 0, 1, 0),
+    prodvers=(2, 0, 1, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -20,13 +20,13 @@ VSVersionInfo(
       StringTable(
         '080404b0',
         [StringStruct('CompanyName', '靳中原'),
-         StringStruct('FileDescription', '匈汉象棋 2.0.0 桌面版'),
-         StringStruct('FileVersion', '2.0.0.0'),
+         StringStruct('FileDescription', '匈汉象棋 2.0.1 桌面版'),
+         StringStruct('FileVersion', '2.0.1.0'),
          StringStruct('InternalName', 'XionghanChess'),
          StringStruct('LegalCopyright', ''),
-         StringStruct('OriginalFilename', '匈漢象棋-2.0.0-桌面版.exe'),
+         StringStruct('OriginalFilename', '匈漢象棋-2.0.1-桌面版.exe'),
          StringStruct('ProductName', '匈汉象棋'),
-         StringStruct('ProductVersion', '2.0.0.0')])
+         StringStruct('ProductVersion', '2.0.1.0')])
     ]),
     VarFileInfo([VarStruct('Translation', [2052, 1200])])
   ]

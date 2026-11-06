@@ -1,6 +1,6 @@
 // 网页「棋子图谱」：左列表 / 中演示盘 / 右规则正文。
 // 首屏只读 `data/piece_atlas.json`（静态快照，零请求）；真的走第二步是后面那笔的事。
-import { t } from './i18n.js?v=2.0.0';
+import { t } from './i18n.js?v=2.0.1';
 
 const PRESET_LABELS = { clamp: '夹逼', three: '三连', facing: '照面', free: '自由' };
 
