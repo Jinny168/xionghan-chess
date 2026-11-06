@@ -90,9 +90,12 @@ def pytest_collection(session: pytest.Session) -> None:
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    global _PARITY_TOTAL, _DESKTOP_TOTAL
+    global _PARITY_TOTAL, _DESKTOP_TOTAL, _DESKTOP_EXECUTED
     _PARITY_TOTAL = sum(1 for item in items if _is_parity(item))
     _DESKTOP_TOTAL = sum(1 for item in items if _is_desktop_test(item))
+    # 执行计数每轮归零：`_DESKTOP_TOTAL` 是**收集**数，会被 `-m`/`-k` 反选掉一大截，
+    # 拿它当"这一轮跑过桌面用例"的判据就是 QA-S1 那个假红（见下面三处断言）。
+    _DESKTOP_EXECUTED = 0
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -203,6 +206,10 @@ DESKTOP_MODULE_PREFIX = "test_desktop_"
 
 # 收集期统计，仅用于"隔离到底有没有真的挂上"的自检与汇总行。
 _DESKTOP_TOTAL = 0
+# **本轮实际执行过**的桌面用例条数。三处"隔离没生效"的断言只认这个数，不认收集数：
+# `-m slow` 会把 460 条桌面用例全部反选，收集数照样是 460，一条也不跑 —— 用收集数
+# 当触发条件就必然冤枉红（QA-S1：20 条慢测全绿却 exit 1）。
+_DESKTOP_EXECUTED = 0
 _ISOLATED_ROOTS: list[Path] = []
 # 会话级护栏状态（拍快照的时点、上一条桌面用例、最近一次实测四元组…）。
 # 刻意用 dict 而不是全局变量：hook 与 fixture 分布在本文件的四个地方，
@@ -426,10 +433,14 @@ def _isolate_desktop_user_data(request: pytest.FixtureRequest):
     最后一条用例之后的整段收尾 —— 那些写入只能等到"轮末"才发现归责不清。
     现在每条桌面用例跑完的当口就查一次，红在哪条，哪条就是嫌疑人。
     """
+    global _DESKTOP_EXECUTED
     if not _is_desktop_test(request.node):
         yield
         return
 
+    # 计数点放在 `getfixturevalue` **之前**：即便隔离 fixture 自己炸了，
+    # "这一轮确实有桌面用例要跑"也是事实，不该被降级成"没跑过"（那样会静默变绿）。
+    _DESKTOP_EXECUTED += 1
     nodeid = request.node.nodeid
     request.getfixturevalue("isolated_user_data")   # 内部含 setup 侧的滚动复检
     _GUARD_STATE["last_desktop_nodeid"] = nodeid    # 供下一条 setup / 会话收尾引用
@@ -468,16 +479,21 @@ def _real_user_data_guard(tmp_path_factory: pytest.TempPathFactory):
             pytrace=False,
         )
 
-    if _DESKTOP_TOTAL and not _ISOLATED_ROOTS and not _GUARD_STATE.get("guard_failed"):
+    # 三处断言一律以**本轮执行过**的桌面用例数为前提，不用收集数（QA-S1）：
+    # `-m slow` / `-k xxx` 会把桌面用例整片反选，收集数仍是 460，一条也不执行。
+    # 用收集数当触发条件 → 必然冤枉红；改用执行数 → 只选子集时自然放行，
+    # 而"真的跑了桌面用例却没隔离"照旧红。
+    if _DESKTOP_EXECUTED and not _ISOLATED_ROOTS and not _GUARD_STATE.get("guard_failed"):
         pytest.fail(
-            f"收集到 {_DESKTOP_TOTAL} 条桌面用例，但隔离 fixture 一次都没生效 —— "
+            f"本轮执行了 {_DESKTOP_EXECUTED} 条桌面用例，但隔离 fixture 一次都没生效 —— "
             "模块判定（DESKTOP_MODULE_PREFIX）多半和实际文件名脱钩了。",
             pytrace=False,
         )
 
-    if _DESKTOP_TOTAL and _GUARD_STATE.get("before") is None:
+    if _DESKTOP_EXECUTED and _GUARD_STATE.get("before") is None:
         pytest.fail(
             "真实配置的起始快照**一次都没拍成**，这条护栏等于没开：\n"
+            f"  本轮执行了 {_DESKTOP_EXECUTED} 条桌面用例。\n"
             f"  原因：{_GUARD_STATE.get('error', '未知')}\n"
             "  → `pytest_configure` / `pytest_collection` 里 `_capture_real_config_before`"
             " 必须能导入 `xionghan_chess.desktop.config`（它纯 Python，不依赖 PySide6）。\n"
@@ -486,7 +502,7 @@ def _real_user_data_guard(tmp_path_factory: pytest.TempPathFactory):
         )
 
     late = str(_GUARD_STATE.get("before_from", ""))
-    if _DESKTOP_TOTAL and late.startswith("session fixture"):
+    if _DESKTOP_EXECUTED and late.startswith("session fixture"):
         pytest.fail(
             "起始快照是在**收集之后**才拍到的（退化到 session fixture 兜底）—— "
             "收集期（测试模块 import）的写盘会成为盲区，护栏不可信：\n"
@@ -531,7 +547,9 @@ def _user_data_summary(terminalreporter) -> None:
     real_settings = _GUARD_STATE.get("real_settings")
     before = _GUARD_STATE.get("before")
     after = _GUARD_STATE.get("after")
-    base = (f"用户配置隔离：桌面用例 {_DESKTOP_TOTAL} 条 | "
+    # 收集 / 执行分开写：只跑 `-m slow` 时收集数是 460、执行数是 0，只印前者会让人
+    # 以为"460 条桌面用例跑过了、配置没动"，那是假证据。
+    base = (f"用户配置隔离：桌面用例 收集 {_DESKTOP_TOTAL} 条 / 执行 {_DESKTOP_EXECUTED} 条 | "
             f"隔离生效 {len(_ISOLATED_ROOTS)} 次 | ")
     if not isinstance(before, RealConfigState):
         terminalreporter.write_sep(
@@ -542,8 +560,8 @@ def _user_data_summary(terminalreporter) -> None:
     if not isinstance(after, RealConfigState):
         terminalreporter.write_sep("=", base + "**收尾没读到真实配置**")
         return
-    if not _DESKTOP_TOTAL:
-        state = "本轮无桌面用例"
+    if not _DESKTOP_EXECUTED:
+        state = "本轮没有桌面用例被执行（被 -m/-k 反选）→ 桌面隔离本轮未受检"
     elif after == before:
         state = "真实配置未改动（exists/size/mtime_ns/sha256 四元组逐字段相等）"
     else:
