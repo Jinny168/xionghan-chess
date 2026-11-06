@@ -108,7 +108,7 @@ def test_expert_completes_depth_3_on_corpus(entry: dict, monkeypatch: pytest.Mon
     assert ai.completed_depth == 3, (
         f"{entry['id'][:8]} 未跑完 d3（completed_depth={ai.completed_depth}, {elapsed:.1f}s）"
     )
-    # 时长只报告，不断言（CI 机器更慢是常态）
+    # 时长只报告，不断言（慢机器上更慢是常态）
     print(f"{entry['id'][:8]} d3 用时 {elapsed:.1f}s（180s 预算下）")
 
 

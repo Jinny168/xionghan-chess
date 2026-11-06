@@ -1,10 +1,10 @@
 # tests/ 说明
 
-两个门禁口径（CI 主 job 与独立 slow job 都用这两条）：
+两个门禁口径（都是**本地手动跑**，仓库不设 CI，所以别指望有 job 替你跑）：
 
 ```bash
-python -m pytest tests/ -m "not slow"   # 默认门禁，约 85–95s
-python -m pytest tests/ -m "slow"       # 专家档 14 条深度用例 + 性能护栏
+python -m pytest tests/ -m "not slow"   # 默认门禁，约 115–140s
+python -m pytest tests/ -m "slow"       # 20 条：专家档 14 条深度用例 + 性能护栏 5 条 + root 基准 1 条
 ```
 
 改**评估 / 走法排序 / 搜索参数 / 难度参数**之后必须跑全量（`-m slow`）。
