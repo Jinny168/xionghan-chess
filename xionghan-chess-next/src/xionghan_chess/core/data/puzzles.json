@@ -27,7 +27,7 @@
     ],
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -478,7 +478,7 @@
     ],
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "traditional",
       "options": {
         "king_can_leave_palace": false,
@@ -833,7 +833,7 @@
     ],
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "traditional",
       "options": {
         "king_can_leave_palace": false,
@@ -1188,7 +1188,7 @@
     ],
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -1639,7 +1639,7 @@
     ],
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "desktop_classic",
       "options": {
         "king_can_leave_palace": false,
@@ -2138,7 +2138,7 @@
     ],
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "desktop_complete",
       "options": {
         "king_can_leave_palace": true,
@@ -2637,7 +2637,7 @@
     ],
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "desktop_complete",
       "options": {
         "king_can_leave_palace": true,
@@ -3137,7 +3137,7 @@
     ],
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 2,
+      "positionKeyVersion": 4,
       "profileId": "desktop_complete",
       "options": {
         "king_can_leave_palace": true,
@@ -3313,7 +3313,7 @@
     ],
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "desktop_complete",
       "options": {
         "king_can_leave_palace": true,
@@ -3820,7 +3820,7 @@
     "requiresCapture": true,
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 2,
+      "positionKeyVersion": 4,
       "profileId": "desktop_complete",
       "options": {
         "king_can_leave_palace": true,
@@ -4361,7 +4361,7 @@
     "requiresCapture": true,
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 2,
+      "positionKeyVersion": 4,
       "profileId": "desktop_complete",
       "options": {
         "king_can_leave_palace": true,
@@ -5063,7 +5063,7 @@
     "requiresCapture": true,
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 2,
+      "positionKeyVersion": 4,
       "profileId": "desktop_complete",
       "options": {
         "king_can_leave_palace": true,
@@ -5803,7 +5803,7 @@
     "requiresCapture": true,
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 2,
+      "positionKeyVersion": 4,
       "profileId": "desktop_complete",
       "options": {
         "king_can_leave_palace": true,
@@ -6354,7 +6354,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -6545,7 +6545,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -6736,7 +6736,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -6927,7 +6927,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -7118,7 +7118,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -7309,7 +7309,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -7500,7 +7500,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -7691,7 +7691,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -7875,7 +7875,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -8059,7 +8059,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -8243,7 +8243,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -8434,7 +8434,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -8618,7 +8618,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -8830,7 +8830,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -9042,7 +9042,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -9254,7 +9254,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -9466,7 +9466,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -9671,7 +9671,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -9883,7 +9883,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -10095,7 +10095,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -10328,7 +10328,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -10561,7 +10561,7 @@
     "description": "对手每步都只有唯一应法，走出唯一的连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
