@@ -49,6 +49,38 @@ def test_generated_data_is_up_to_date() -> None:
     assert completed.returncode == 0, (completed.stdout + completed.stderr).strip()
 
 
+def test_puzzle_documents_do_not_lag_behind_the_key_format() -> None:
+    """题库 document 的 `positionKeyVersion` 必须等于当前格式版本。
+
+    为什么这条要单独存在：`--check` 只比"离线 JS 是否等于 `puzzles.json`"，
+    **源自己也落后于格式**时它照样绿（2.0.1 就是这样：35 条内联文档挂着 v2/v3，
+    而 `POSITION_KEY_VERSION` 早就是 4，跑了两个版本没人发现）。这类债没有别的
+    门禁能抓 —— `game_from_document` 只是"落后就重建账本"，按设计不会报警。
+
+    失败信息要能直接告诉人改哪一行、之后跑哪个脚本，否则看到红也不知道从哪下手。
+    """
+    from xionghan_chess.core.rules import POSITION_KEY_VERSION
+
+    source = Path(__file__).resolve().parents[1] / "src" / "xionghan_chess" / "core" / "data" / "puzzles.json"
+    stale_lines = []
+    for number, line in enumerate(source.read_text(encoding="utf-8").splitlines(), 1):
+        stripped = line.strip()
+        if not stripped.startswith('"positionKeyVersion"'):
+            continue
+        written = stripped.split(":", 1)[1].strip().rstrip(",")
+        if written != str(POSITION_KEY_VERSION):
+            stale_lines.append(f"  {source.name}:{number} → positionKeyVersion: {written}")
+
+    assert not stale_lines, (
+        f"题库数据落后于当前格式（POSITION_KEY_VERSION={POSITION_KEY_VERSION}）：\n"
+        + "\n".join(stale_lines) + "\n"
+        f"  → 改 {source}（只动这一个字段，题面与解法不要动），然后重生成离线包：\n"
+        "    python scripts/build_offline_puzzles.py\n"
+        "  → 题库文档的既定口径是**不带** positionCounts（见 "
+        "scripts/build_puzzles.py::_drop_position_counts），别顺手补账本。"
+    )
+
+
 def test_index_html_loads_puzzle_data_before_the_engine() -> None:
     html = (OFFLINE_DIR / "index.html").read_text(encoding="utf-8")
     assert "offline-puzzles.js" in html, "离线页没有加载题库数据"

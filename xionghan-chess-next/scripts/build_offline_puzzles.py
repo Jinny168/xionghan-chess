@@ -24,6 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from xionghan_chess.core.puzzles import load_puzzles, move_to_dict  # noqa: E402
+from xionghan_chess.core.rules import POSITION_KEY_VERSION  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "src" / "xionghan_chess" / "core" / "data" / "puzzles.json"
@@ -86,6 +87,19 @@ def render(payload: list[dict]) -> str:
     return f"{HEADER}window.XH_OFFLINE_PUZZLES = {body};\n"
 
 
+def stale_key_versions(payload: list[dict]) -> list[tuple[str, object]]:
+    """题库 document 里 `positionKeyVersion` 仍是旧格式的条目。
+
+    为什么 `--check` 也要看这个：它原本只比"JS 是否等于 `puzzles.json`"，
+    于是**源自己落后于格式**时它照样报 OK —— 2.0.1 就是 35 条内联文档挂着
+    v2/v3、而 `POSITION_KEY_VERSION` 已是 4，`--check` 一路绿到现在。
+    换句话说，"重生成一遍"只能证明"两端一致"，证明不了"数据是新的"。
+    """
+    return [(item["id"], item["document"].get("positionKeyVersion"))
+            for item in payload
+            if item["document"].get("positionKeyVersion") != POSITION_KEY_VERSION]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="只校验生成物是否最新")
@@ -94,6 +108,16 @@ def main() -> int:
     payload = build_payload()
     content = render(payload)
     if args.check:
+        stale = stale_key_versions(payload)
+        if stale:
+            detail = "，".join(f"{puzzle_id}(v{version})" for puzzle_id, version in stale[:5])
+            more = f" 等 {len(stale)} 条" if len(stale) > 5 else ""
+            print(f"题库数据落后于当前格式（POSITION_KEY_VERSION={POSITION_KEY_VERSION}）："
+                  f"{detail}{more}")
+            print("请先改 src/xionghan_chess/core/data/puzzles.json 里各 document 的 "
+                  "positionKeyVersion，再重新生成。")
+            print("注意：重生成只保证「离线 JS 与数据源一致」，证明不了数据源本身是新的。")
+            return 1
         current = OUTPUT.read_text(encoding="utf-8") if OUTPUT.is_file() else ""
         if current != content:
             print("离线题库与数据源不一致，请重新生成：python scripts/build_offline_puzzles.py")
