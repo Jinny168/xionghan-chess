@@ -1,0 +1,472 @@
+{
+  "games": 50,
+  "masterWins": 0,
+  "hardWins": 50,
+  "draws": 0,
+  "masterWinRate": 0.0,
+  "masterDecisiveWinRate": 0.0,
+  "masterMoveMeanSeconds": 1.3352249224371353,
+  "masterMoveMaxSeconds": 1.5553797000002305,
+  "hardMoveMeanSeconds": 1.20638703040605,
+  "hardMoveMaxSeconds": 1.2696654999999737,
+  "completedGames": 50,
+  "adjudicatedGames": 0,
+  "acceptance": {
+    "enoughGames": true,
+    "enoughCompletedGames": true,
+    "winRateAtLeast55Percent": false,
+    "masterMoveAtMost12Seconds": true
+  },
+  "results": [
+    {
+      "game": 1,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 52,
+      "master_seconds": 34.05461860000014,
+      "hard_seconds": 31.316034799999215
+    },
+    {
+      "game": 2,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 41,
+      "master_seconds": 27.653847699999005,
+      "hard_seconds": 25.308668700000453
+    },
+    {
+      "game": 3,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 48,
+      "master_seconds": 32.281865499999185,
+      "hard_seconds": 28.936446900000647
+    },
+    {
+      "game": 4,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 73,
+      "master_seconds": 47.561667599999055,
+      "hard_seconds": 44.521892699998716
+    },
+    {
+      "game": 5,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 34,
+      "master_seconds": 23.242109399999663,
+      "hard_seconds": 20.455942999999934
+    },
+    {
+      "game": 6,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 41,
+      "master_seconds": 27.07083329999932,
+      "hard_seconds": 25.287486700000045
+    },
+    {
+      "game": 7,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 32,
+      "master_seconds": 21.55190179999954,
+      "hard_seconds": 19.25637110000025
+    },
+    {
+      "game": 8,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 53,
+      "master_seconds": 33.9737927999995,
+      "hard_seconds": 32.53764000000001
+    },
+    {
+      "game": 9,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 24,
+      "master_seconds": 16.228275200001008,
+      "hard_seconds": 14.418485900000633
+    },
+    {
+      "game": 10,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 47,
+      "master_seconds": 31.318617600000834,
+      "hard_seconds": 28.942249700000048
+    },
+    {
+      "game": 11,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 40,
+      "master_seconds": 27.17538439999953,
+      "hard_seconds": 24.136175299998285
+    },
+    {
+      "game": 12,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 55,
+      "master_seconds": 36.62213979999888,
+      "hard_seconds": 33.76657860000114
+    },
+    {
+      "game": 13,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 22,
+      "master_seconds": 14.947218700000576,
+      "hard_seconds": 13.348345199999585
+    },
+    {
+      "game": 14,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 31,
+      "master_seconds": 20.214468600001055,
+      "hard_seconds": 19.429200000000037
+    },
+    {
+      "game": 15,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 44,
+      "master_seconds": 29.699598399999104,
+      "hard_seconds": 26.531066399999418
+    },
+    {
+      "game": 16,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 71,
+      "master_seconds": 46.91479589999881,
+      "hard_seconds": 43.512407399999574
+    },
+    {
+      "game": 17,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 36,
+      "master_seconds": 24.15490329999966,
+      "hard_seconds": 21.754031499999655
+    },
+    {
+      "game": 18,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 27,
+      "master_seconds": 18.200786400000652,
+      "hard_seconds": 16.87856409999904
+    },
+    {
+      "game": 19,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 32,
+      "master_seconds": 21.240908699999636,
+      "hard_seconds": 19.284488899999815
+    },
+    {
+      "game": 20,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 31,
+      "master_seconds": 20.615346300000965,
+      "hard_seconds": 19.343603800000437
+    },
+    {
+      "game": 21,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 34,
+      "master_seconds": 22.59158060000118,
+      "hard_seconds": 20.623638300000493
+    },
+    {
+      "game": 22,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 49,
+      "master_seconds": 31.770399700001235,
+      "hard_seconds": 30.268966099999943
+    },
+    {
+      "game": 23,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 42,
+      "master_seconds": 27.986660699999902,
+      "hard_seconds": 25.23123330000135
+    },
+    {
+      "game": 24,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 47,
+      "master_seconds": 30.440251799999714,
+      "hard_seconds": 29.02357050000137
+    },
+    {
+      "game": 25,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 50,
+      "master_seconds": 32.43784200000027,
+      "hard_seconds": 30.259589499999493
+    },
+    {
+      "game": 26,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 55,
+      "master_seconds": 36.508487899999636,
+      "hard_seconds": 33.777374200000395
+    },
+    {
+      "game": 27,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 30,
+      "master_seconds": 19.992428099999415,
+      "hard_seconds": 18.136627499999122
+    },
+    {
+      "game": 28,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 49,
+      "master_seconds": 31.97032240000044,
+      "hard_seconds": 30.109714200001235
+    },
+    {
+      "game": 29,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 74,
+      "master_seconds": 47.99181710000039,
+      "hard_seconds": 44.70490249999921
+    },
+    {
+      "game": 30,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 31,
+      "master_seconds": 20.59891110000035,
+      "hard_seconds": 19.290060999999696
+    },
+    {
+      "game": 31,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 32,
+      "master_seconds": 21.36198480000121,
+      "hard_seconds": 19.315851100000145
+    },
+    {
+      "game": 32,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 21,
+      "master_seconds": 14.183784099999684,
+      "hard_seconds": 13.303500199999235
+    },
+    {
+      "game": 33,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 46,
+      "master_seconds": 31.040415499998744,
+      "hard_seconds": 27.70469669999875
+    },
+    {
+      "game": 34,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 23,
+      "master_seconds": 15.126759799999945,
+      "hard_seconds": 14.421026999999413
+    },
+    {
+      "game": 35,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 34,
+      "master_seconds": 22.222286199999417,
+      "hard_seconds": 20.5014972999993
+    },
+    {
+      "game": 36,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 53,
+      "master_seconds": 34.644481499996346,
+      "hard_seconds": 32.600892100003875
+    },
+    {
+      "game": 37,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 28,
+      "master_seconds": 18.522174600002472,
+      "hard_seconds": 16.807467499998893
+    },
+    {
+      "game": 38,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 29,
+      "master_seconds": 18.928343399998994,
+      "hard_seconds": 18.137197000001834
+    },
+    {
+      "game": 39,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 40,
+      "master_seconds": 26.787078100001963,
+      "hard_seconds": 24.266135200000463
+    },
+    {
+      "game": 40,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 25,
+      "master_seconds": 16.091031300000395,
+      "hard_seconds": 15.683800900001188
+    },
+    {
+      "game": 41,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 28,
+      "master_seconds": 18.572686400001658,
+      "hard_seconds": 16.91069769999922
+    },
+    {
+      "game": 42,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 35,
+      "master_seconds": 22.698153899998943,
+      "hard_seconds": 21.708556899999166
+    },
+    {
+      "game": 43,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 52,
+      "master_seconds": 34.053129799998715,
+      "hard_seconds": 31.370939600000384
+    },
+    {
+      "game": 44,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 29,
+      "master_seconds": 18.959967300000244,
+      "hard_seconds": 18.034741000001304
+    },
+    {
+      "game": 45,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 54,
+      "master_seconds": 35.34954239999752,
+      "hard_seconds": 32.452873300002466
+    },
+    {
+      "game": 46,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 31,
+      "master_seconds": 19.532257099998787,
+      "hard_seconds": 19.30012429999897
+    },
+    {
+      "game": 47,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 82,
+      "master_seconds": 54.108594899998934,
+      "hard_seconds": 49.51480720000018
+    },
+    {
+      "game": 48,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 67,
+      "master_seconds": 43.216122200004975,
+      "hard_seconds": 40.97989450000023
+    },
+    {
+      "game": 49,
+      "master_color": "red",
+      "winner": "black",
+      "adjudicated": false,
+      "plies": 40,
+      "master_seconds": 26.3265210999989,
+      "hard_seconds": 24.031164900001386
+    },
+    {
+      "game": 50,
+      "master_color": "black",
+      "winner": "red",
+      "adjudicated": false,
+      "plies": 49,
+      "master_seconds": 31.885474000001523,
+      "hard_seconds": 30.126643000001422
+    }
+  ]
+}

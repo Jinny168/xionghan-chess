@@ -179,9 +179,25 @@ v1.6.0 当前处于"筹备"态，工程质量达发布基线，但**建议先行
 - 50 局 ≈ **43 h**，非原审计估计的「数小时」。
 
 **本轮执行口径**：`--games 50 --max-plies 240 --hard-scale 0.1`，两侧预算相同（公平），
-输出 `benchmarks/master_vs_hard_50g_scale0.1_2026-11-07.json`。
-该数据**只能回答「1/10 预算下谁更强」**，不能替代发布配置的 ≥55% 验收——
-MCTS 对时间预算的敏感度显著高于 alpha-beta，外推不成立。
+输出 `benchmarks/master_vs_hard_50g_scale0.1_2026-11-07.json`（另有逐局 `.jsonl` 与 `.log`）。
+
+**实测结果（2026-11-07 13:35–14:02，50/50 完成）**：
+
+| 指标 | 值 |
+|---|---|
+| 胜负 | **master 0 胜 / hard 50 胜 / 0 和** |
+| 完整对局 | 50（`adjudicatedGames = 0`，无一手是裁定） |
+| 执色 | 红 25 局 / 黑 25 局，两侧对称 |
+| 手数 | 均值 41.9、中位 40、范围 21–82 |
+| 单步耗时 | master 均 1.34 s / 峰 1.56 s；hard 均 1.21 s / 峰 1.27 s |
+| `acceptance` | `enoughGames=true`、`enoughCompletedGames=true`、`winRateAtLeast55Percent=**false**`、`masterMoveAtMost12Seconds=true` |
+
+0/50 的二项 95% 置信上限约 **5.8%**，即「1/10 预算下 master 的胜率不超过 6%」这一结论
+是统计上站得住的；配合此前 2 局满预算探针（皆负），**没有任何数据支持「master 强于 hard」**。
+
+该数据仍**不能替代发布配置的 ≥55% 验收**——MCTS 对时间预算的敏感度显著高于 alpha-beta，
+1/10 预算的结果不能线性外推到 1.0 预算。但它替换掉了仓库里原先唯一那条
+「2 ply 截断 + 非生产配置」的 0/50 无效筛查，成为当前最可信的一致预算样本。
 
 **断点**：原脚本只在整轮结束后一次性写 `--output`，长跑中断即全丢。已补 `--checkpoint`
 （逐局追加 JSONL）与 `--quiet`，`benchmark_master_vs_hard` 增加可选 `on_game` 回调（默认 None，
