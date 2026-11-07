@@ -3,7 +3,9 @@
 用法:
   python stage1_baseline.py <code_root> <out_dir> [--smoke]
 
-<code_root> 必须是 `git archive <commit>` 解出的干净副本（例如 /tmp/base2/xionghan-chess-next）。
+<code_root> 必须是 `git -c core.autocrlf=false archive <commit>` 解出的干净副本
+（例如 /tmp/base2/xionghan-chess-next）。**必须带 -c core.autocrlf=false**：
+Windows 上裸 `git archive` 会做换行转换，.txt 字节基线会变，测出来的是假数。
 产出（out_dir 下）:
   corpus16.json   16 个局面 id16 + pieces/legal
   eval200.json    200 条平静局面 red/black(6 位小数) + id16 + fp + sha256

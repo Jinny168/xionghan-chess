@@ -3,9 +3,25 @@
 两个门禁口径（都是**本地手动跑**，仓库不设 CI，所以别指望有 job 替你跑）：
 
 ```bash
-python -m pytest tests/ -m "not slow"   # 默认门禁，约 115–140s
+python -m pytest tests/ -m "not slow"   # 默认门禁，约 160–185s（2026-11 本机实测，随机器浮动）
 python -m pytest tests/ -m "slow"       # 20 条：专家档 14 条深度用例 + 性能护栏 5 条 + root 基准 1 条
 ```
+
+> 耗时别写死单一数字：同一台机器三次实测分别是 160 / 174 / 183s。写成区间是为了让后来人
+> 判断"变慢了"时有个参照，而不是拿一个过期数字当基准。
+
+### 需要"干净副本"时，archive 必须关掉 CRLF 转换
+
+基线测量、跨版本对拍都要求在工作树之外的干净副本上跑。**在 Windows 上直接
+`git archive` 会按 `core.autocrlf` 做换行转换**，即使 `.gitattributes` 里写了
+`-text` 也照转（实测：`benchmarks/*.txt` 34048 → 34886 字节、多出 838 个 CR），
+`test_css_snapshot.py` 会因此假红 3 条。
+
+```bash
+git -c core.autocrlf=false archive <commit> | tar -x -C <干净目录>
+```
+
+判据：解出来的 `.txt` 字节数应与 `git cat-file -s <commit>:<path>` 一致；不一致就是被转换过。
 
 改**评估 / 走法排序 / 搜索参数 / 难度参数**之后必须跑全量（`-m slow`）。
 
