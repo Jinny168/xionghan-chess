@@ -1,4 +1,4 @@
-import { applyStaticI18n, currentLanguage, currentLocale, setLanguage, t } from './i18n.js?v=2.0.1';
+import { applyStaticI18n, currentLanguage, currentLocale, setLanguage, t } from './i18n.js?v=2.0.2';
 import { ribbonClass, CHECK_PULSE_MID } from './ribbon.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -13,7 +13,7 @@ const app = {
   replayIndex: null, replaySource: null, replayTimer: null, sound: true, music: true,
   preferences: {systemTheme:'light',font:'system',boardTheme:'classic',pageBackground:'none',boardBackground:'1',pieceStyle:'traditional',musicStyle:'fc',volume:70,animation:true,selection:true,legalTargets:true,captureHints:true,taunts:true,autosave:true,initialMinutes:10,countdownSeconds:30,language:'zh-CN',flipped:false},
   options: {}, profiles: new Map(), pieceImages: new Map(), animation: null, legalPromise: null, resultKey: null, reconnectTimer: null, reconnectAttempts: 0,
-  // 走法语义版本：**从 /api/profiles 读**，别在这里写死第二份（2.0.1 的规则变更就是
+  // 走法语义版本：**从 /api/profiles 读**，别在这里写死第二份（2.0.2 的规则变更就是
   // 靠它拦下旧缓存网页：旧 app.js 不带这个字段 → 服务端按 1 处理 → 409 提示刷新）。
   ruleVersion: 1,
   setupSlots: {}, spectator: false, account: null, authToken: localStorage.getItem('xh-auth-token'), cloudTimer: null, puzzleSession: null, selectedPuzzle: null, customBackgrounds: new Map(),
