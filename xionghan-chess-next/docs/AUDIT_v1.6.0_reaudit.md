@@ -149,13 +149,13 @@ v1.6.0 当前处于"筹备"态，工程质量达发布基线，但**建议先行
 
 | # | §4 台账项 | 状态 | 证据 / 说明 |
 |---|---|---|---|
-| 1 | F-1 权威验收（50 局非截断 ≥55%） | ⛔ **仍未通过** | 尚无满足发布配置的胜率证据。本轮补跑 50 局（1/10 预算，§6.2），另发现满预算 50 局需 ≈43 h 机器时间，见 §6.2 |
+| 1 | F-1 权威验收（50 局非截断 ≥55%） | ⛔ **仍未通过** | 1/10 一致预算 50 局已跑（§6.2）；满预算 50 局实测约 **4.3 h**（旧记「≈43 h」是把「每局跑满 240 手」的理论上限当成了实际，已作废），2026-11-07 14:20 起后台长跑中，进度见 §6.2 |
 | 1b | 修正 `master_simulations` 工具误导 | ✅ 已修 | `core/benchmark.py:45-53`：该分支已改走 `ChessAI(MASTER)._master_move_score/_master_leaf_score`（加载 npz 先验），不再共用 hard 的 SEE 启发式 |
 | 2 | i18n 残留（`app.js:40-41,129`） | ✅ 已修 | `:40-41` 用 `t('replay.play'/'replay.pause')`；`:129` 用 `t('spectator.count',{count})`；`locales/zh-CN.json:565-571` 与 `en.json:565-571` 两侧键齐备 |
 | 3 | 仓库卫生（1429 个 LFS 二进制仍被跟踪） | ✅ **已结清** | `6653684 merge remote master` 一次删除 **1429** 条 `release/ archive/ build-onefile/` 路径（`git show --name-status` 计数）；`git ls-files release archive build-onefile` = **0**；`git ls-tree HEAD` 三者 = **0**；`git status` 无 `D` 待提交 |
 | 4 | 无速率限制（`/api/rooms`、`/api/auth/*`） | ✅ 已修 | `service/app.py:59-77` 按 IP 滑动窗口中间件；`XH_RATE_LIMIT_PER_MINUTE` **默认 0（关）**，不影响既有测试 |
 | 5 | Android `allowBackup="true"` | ✅ 已修 | `android/AndroidManifest.xml:3` `allowBackup="false"`，同处 `usesCleartextTraffic="false"` |
-| 5b | `obj/Debug` 残留 `2.0.0` | ✅ **已清理** | 删除 `android/obj/Debug`（192 MB，其中的 Debug 清单写的是 `versionName="2.0.0"`）；`android/obj/Release/.../AndroidManifest.xml` 为 `versionCode=8 / versionName=1.6.0`，`android/*.csproj:9-10` 亦为 8 / 1.6.0。Release 中间产物里仍有 11 个文件二进制含 `2.0.0` 字节序列，但 `strings` 在 `linked/XionghanChessAndroid.dll` 中取不到该可打印串（非应用版本号），打包前做一次 clean 重建即可 |
+| 5b | `obj/Debug` / `bin/Debug` 残留 `2.0.0` | ✅ **已结清**（2026-11-07 16:54 复核） | 删除 `android/obj/Debug`（192 MB）与 `android/bin/Debug`（11 MB，唯一带 `AssemblyVersion 2.0.0.0` 的旧包）；16:53 执行 `dotnet clean -c Release` + `dotnet publish -c Release -f net9.0-android` **全量重建成功**（1m36s，仅 EOL / 过时 API 警告）。新 `XionghanChessAndroid.dll`（20,480 B）含 `1.6.0`、无 `1.2.0.0`/`2.0.0.0`；新 `com.xionghan.chess-Signed.apk`（39,564,507 B）的 AXML 字符串池中 UTF-16 `1.6.0` 命中 **1** 次、`1.2.0`/`2.0.0` 均 **0**；生成清单 `versionCode=8 / versionName=1.6.0`。**旧记「11 处 2.0.0 残留」定性为误报**：`machine.config` 是 .NET 自带的 `System.Configuration, Version=2.0.0.0`，`linked/*.dll` 命中的是 `1.2.0.0` 的子串（`1.`+`2.0.0`）；重建后仅剩 7 处字面 `2.0.0.0`，全在 `System.Private.CoreLib.dll` / `machine.config` 等运行时文件，非应用版本号。构建前已备份 `android/bin/Release.bak-20261107`（152 MB，被 `android/bin/` ignore） |
 | 6 | 令牌 TTL / 全部登出（可选） | ⏸ 未做 | 本就不阻断发布，继续挂账 |
 | 7 | F-10 规则拍板（C-01/03/04/11/12） | ⏸ 待产品 | 仅补等价性测试，未改语义 |
 
@@ -200,29 +200,54 @@ v1.6.0 当前处于"筹备"态，工程质量达发布基线，但**建议先行
 1/10 预算的结果不能线性外推到 1.0 预算。但它替换掉了仓库里原先唯一那条
 「2 ply 截断 + 非生产配置」的 0/50 无效筛查，成为当前最可信的一致预算样本。
 
-**满预算进展（2026-11-07 14:20 起，进行中）**：
+**满预算进展（2026-11-07 14:20 起，进行中；16:55 复核 25/50）**：
 
-| 局 | 手数 | master 用时 | hard 用时 |
-|---|---|---|---|
-| 1 | 24 | 145.6 s | 144.0 s |
-| 2 | 19 | 109.4 s | 120.0 s |
-| 3 | 34 | 205.8 s | 204.1 s |
+| 指标 | 值 |
+|---|---|
+| 已完成 | **25/50**（JSONL 局号 1–25 连号无重复，单写入者） |
+| 胜负 | master 0 / hard 25 / 0 和 / **0 裁定** |
+| 手数 | 均值 31.9 |
+| 单步耗时 | master 均 12.121 s / 峰 12.376 s；hard 均 12.005 s |
+| 引擎机时 | 2.67 h |
+| 成本 | 约 **5.2 min/局** → 50 局约 **4.3 h**，无需 43 h |
 
-- 手数中位 24，斜率约 **5.2 min/局** → 50 局约 **4.3 h**，可在一晚跑完，无需 43 h。
+- 后台由 `.venv/Scripts/python.exe` 拉起（venv 启动器会派生一个子解释器，
+  `Get-Process python` 会看到**两个 PID**，CPU 只在子进程累加，不是并发重复跑）。
+  进程 `PriorityClass=AboveNormal`，否则会被系统压到约 25% 单核。
+- 值守自动化 `55c647ad-f8ff-45d4-9df2-6cfae1a41370`（每 2 h，2026-11-09 00:00 失效）：
+  仅在无实例时 `--resume` 续跑，绝不并发第二个实例；已实测其 `--summarize` 命令可跑通。
 - 单步实测 **均 12.13 s / 峰 12.38 s**，`masterMoveAtMost12Seconds` 判 **false**：
   预算写的是 12.0 s，但搜索收尾会超约 0.3 s（≈3%）。要守住「≤12 s」这条判据，
   需把 `CONFIGS[MASTER].time_limit` 收到 **11.5 s** 左右，或把判据改成带容差——
-  **这是本轮新发现的独立缺陷，与棋力无关**。
-- 前 3 局 master 0 胜。
+  **这是本轮新发现的独立缺陷，与棋力无关**。长跑结束前不得改该配置，
+  否则代码与正在跑的基准口径不一致。
+- 前 25 局 master 0 胜；与 1/10 预算的 0/50 方向一致，但**仍不能外推**，须等 50 局跑完。
 
 **断点**：原脚本只在整轮结束后一次性写 `--output`，长跑中断即全丢。已补 `--checkpoint`
-（逐局追加 JSONL）与 `--quiet`，`benchmark_master_vs_hard` 增加可选 `on_game` 回调（默认 None，
-行为不变）；2 局冒烟验证断点 2 行、报告 `results` 一致，回归 `pytest 125 passed`。
-本轮 50 局即以 `--checkpoint benchmarks/master_vs_hard_50g_scale0.1_2026-11-07.jsonl` 运行。
+（逐局追加 JSONL）、`--quiet`、`--start-game` / `--resume` / `--summarize`；
+`benchmark_master_vs_hard` 增加可选 `on_game` 回调与 `start_game`（默认 None / 0，行为不变），
+`MatchResult` 增加 `master_max_move_seconds`。`--resume` 以 `run_games = games - start_game`
+计算剩余局数；续跑只保证**局号、执色、种子序列一致**，时间受限搜索本身非确定，
+手数 / 是否裁定可能差几手，属同分布而非逐字节相同。回归 `pytest 125 passed`。
+注意 `--summarize` 需用 `.venv/Scripts/python.exe`（裸 `python` 无 `xionghan_chess` 包，
+或显式 `PYTHONPATH=src`）。
 
-### 6.3 仍挂账
+### 6.3 仍挂账（2026-11-07 16:55 复核）
 
-1. **F-1 满预算验收**：需 ≥40 h 连续机器时间，必须单排夜间/周末，不建议在开发机前台跑。
-2. （跨线：2.0.x 分支）`benchmarks/selfplay_ab_2026-10-31.json` 与 `_conclusion.md` 尚未入库——
-   2026-10-31 已跑完 32 局 / 4593 s，reflog 中无 `bench(ai):` 提交，只差 `git add` + commit。
-3. 出 APK 前做一次 Android clean 重建（Debug 缓存已删，Release 中间产物仍可能带旧字节序列）。
+1. **F-1 满预算验收**：`benchmarks/master_vs_hard_50g_scale1.0_2026-11-07.jsonl` 后台长跑中
+   （25/50，总量约 4.3 h，旧记「≥40 h」已作废）。跑完读 `--summarize` 的 `acceptance` 四项，
+   并把最终 JSON / JSONL / log 入库。
+2. **`masterMoveAtMost12Seconds=false`**：峰 12.376 s > 12 s，独立缺陷。收口后二选一：
+   `CONFIGS[MASTER].time_limit` 收到 11.5 s，或给判据加容差；需用户拍板。
+3. 令牌 TTL / 全部登出（可选，本就不阻断发布）。
+4. F-10 规则语义 C-01/03/04/11/12 待产品拍板。
+5. **推送策略未定**：本地 master 相对 `origin/master` 为 `342 behind / 14 ahead`，远端已是 1.7.5；
+   直接 push 会 non-fast-forward，需拍板「推独立分支」或「合并远端」。
+
+**本轮已销账**：
+
+- 跨线 2.0.x 的 `selfplay_ab_2026-10-31.{json,_conclusion.md}` 经核实**已由 `b952a53`**
+  （`bench(ai): 夜间自对弈 A/B 结果（depth1，32 局）`）提交，先前「未入库」判断作废。
+- Android clean 重建已完成，见 5b。
+- 1024 投稿网页版 / online Node 服务 / 脚本 / 文档共 38 文件、12075 行已由 `a2d6a62` 入库；
+  真实云配置与 LFS 素材不入库，入库自检全绿（见 `git show a2d6a62`）。

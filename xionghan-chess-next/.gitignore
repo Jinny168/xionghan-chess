@@ -34,6 +34,7 @@ snapA.yaml
 snapB.yaml
 .wbapp_*.genie
 .workbuddy/applications.yaml
+.workbuddy/memory/automations/
 
 # 云服务实例凭据不入仓库；用 cloud-config.example.json 复制后自行填写。
 # server.mjs 在文件缺失时自动降级为离线模式，功能不受影响。

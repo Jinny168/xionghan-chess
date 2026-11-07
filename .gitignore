@@ -1,3 +1,6 @@
+# 根仓库的会话记忆不入库（子项目 .workbuddy/memory/ 台账已跟踪，不受此规则影响）
+/.workbuddy/memory/
+
 # 构建产物
 dist/
 build/
