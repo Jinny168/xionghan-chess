@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 import os
 import statistics
 import time
+from typing import Callable, Optional
 
 from .ai import ChessAI, Difficulty
 from .game import Game
@@ -25,8 +26,14 @@ class MatchResult:
 def benchmark_master_vs_hard(games: int = 50, profile: str = "traditional",
                              max_plies: int = 240, seed: int = 0,
                              hard_time_scale: float = 1.0,
-                             master_simulations: int | None = None) -> dict:
-    """Run a color-balanced match and return machine-readable acceptance data."""
+                             master_simulations: int | None = None,
+                             on_game: Optional[Callable[[MatchResult], None]] = None) -> dict:
+    """Run a color-balanced match and return machine-readable acceptance data.
+
+    ``on_game`` is called once per finished game, in order. It lets long matches
+    survive a crash: the caller can append each :class:`MatchResult` to disk
+    instead of waiting for the whole run to finish.
+    """
     results: list[MatchResult] = []
     master_move_times: list[float] = []
     hard_move_times: list[float] = []
@@ -66,10 +73,13 @@ def benchmark_master_vs_hard(games: int = 50, profile: str = "traditional",
             if adjudicated:
                 score = ChessAI(Difficulty.HARD)._evaluate(game, Color.RED)
                 winner = Color.RED if score > 100 else Color.BLACK if score < -100 else None
-            results.append(MatchResult(
+            result = MatchResult(
                 game_index + 1, master_color.value, winner.value if winner else None,
                 adjudicated, len(game.state.history), totals["master"], totals["hard"],
-            ))
+            )
+            results.append(result)
+            if on_game is not None:
+                on_game(result)
     finally:
         if previous_scale is None:
             os.environ.pop("AI_TIME_SCALE", None)
