@@ -20,7 +20,7 @@ guard = (11,5)      advisor = (12,6), (11,7)      全场 = 50
 | 项 | 值 |
 |---|---|
 | 提交 | **`95c2784`**（`feat(rules): 尉与仕对调开局位（尉首着 0→4，其余不动）`） |
-| 运行环境 | `git archive 95c2784` 解出的干净副本，未在脏工作树上采样 |
+| 运行环境 | `git -c core.autocrlf=false archive 95c2784` 解出的干净副本，未在脏工作树上采样（flag 不能省：Windows 上裸 `git archive` 会把 `.txt` 基线转成 CRLF，详见 `tests/README.md`） |
 | 配置 | **默认 `RuleOptions`**：`pawn_charge` / `pawn_three_line_capture` 均关；甲 / 楯 / 刺 `*_appear=False` |
 | 布局 | 全场 **50** / 每方 **25** / **11 型**；**尉 (11,5)**、**仕 (12,6)**（黑方镜像） |
 

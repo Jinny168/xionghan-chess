@@ -11,7 +11,7 @@
 | 项 | 值 |
 |---|---|
 | 提交 | **`fd541b1`**（`docs: 清理残留旧规则（QA 图鉴数字、RULES 摘要、设计标记）`） |
-| 运行环境 | `git archive fd541b1` 解出的干净副本，**未在脏工作树上采样** |
+| 运行环境 | `git -c core.autocrlf=false archive fd541b1` 解出的干净副本，**未在脏工作树上采样**（flag 不能省：Windows 上裸 `git archive` 会把 `.txt` 基线转成 CRLF，详见 `tests/README.md`） |
 | 本轮规则差异 | ① 每方 27 / 全场 54 / **12 型**（甲、楯已软删）；② **射**吃子可越子（位移仍要求路径空）；③ 兵新增 `pawn_charge`、`pawn_three_line_capture`，**默认关，基线用默认配置** |
 
 ---

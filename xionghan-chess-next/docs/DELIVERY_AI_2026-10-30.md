@@ -199,7 +199,7 @@ QT_QPA_PLATFORM=offscreen ./.venv/Scripts/python.exe -m pytest tests/test_bench_
 
 ## 五、测量纪律（本轮新增 4 条，接前 6 条）
 
-7. **基线必须来自 `git archive <commit>` 的干净副本**，不能在工作树算——旧基线实测**偏高 20.9%**，足以让“慢 19%”的改动被判成通过（假通过）；
+7. **基线必须来自 `git -c core.autocrlf=false archive <commit>` 的干净副本**，不能在工作树算（裸 `git archive` 在 Windows 上会按 `core.autocrlf` 把 `.txt` 基线转成 CRLF，快照与工作树不一致，`test_css_snapshot.py` 假红 3 条），否则旧基线实测**偏高 20.9%**，足以让“慢 19%”的改动被判成通过（假通过）；
 8. **A/B 的分子分母必须同时段、同负载**——同一份代码跨时段差 19%；跨时段对比在 `t_d2` 量级不可用；
 9. **回退验收用代码 diff，不用“revert 成功”**；且基准要选对（`7d715fe` 而非 `9cf7e49`）；
 10. **指标要测优化对象，不测它的副产品**：

@@ -27,7 +27,8 @@ $ git diff --name-only f513494..9c8d0bf
 xionghan-chess-next/tests/test_puzzle_coverage.py
 ```
 
-两者只差一个测试文件（刺题覆盖改用 `xfail(strict)`），**不影响任何测量数值**。所有产物均在 `git archive f513494` 解出的干净副本中运行，**未在工作树上采样**。
+两者只差一个测试文件（刺题覆盖改用 `xfail(strict)`），**不影响任何测量数值**。所有产物均在 `git -c core.autocrlf=false archive f513494` 解出的干净副本中运行，**未在工作树上采样**
+（裸 `git archive` 在 Windows 上会按 `core.autocrlf` 把 `benchmarks/*.txt` 转成 CRLF，解出的快照与仓库工作树不一致，`test_css_snapshot.py` 会假红 3 条 —— 理由见 `tests/README.md`）。
 
 ---
 
@@ -111,7 +112,7 @@ for profile in (desktop_complete, desktop_classic, web, traditional):
    | `9d4dda3433f85239`（62/89） | d1 `7,12-5,12` | d3 `11,10-6,10` | 2 |
 
    两者在 12s 下 3 次都选同一手，**不是抖动，是"只搜到 d1"这一事实本身决定选点**。引用一致性类指标时必须单独标注，不要让它们混进分母解释。`c54bc97a` 在 48s 也只到 d2（该局面本身极慢）。
-4. **生成脚本已随目录入仓**（`scripts/`），但它们依赖 `git archive` 解出的代码根；直接在工作树上跑会拿到不同规则。
+4. **生成脚本已随目录入仓**（`scripts/`），但它们依赖 `git -c core.autocrlf=false archive` 解出的代码根；直接在工作树上跑会拿到不同规则。
 5. 样本量小：语料 16、评估 200、将军 20、`t_d2` 16、参照 8(+1)。**这些数字用于回归比对，不用于统计推断。**
 
 ---

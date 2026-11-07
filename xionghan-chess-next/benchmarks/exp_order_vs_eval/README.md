@@ -1,6 +1,6 @@
 # 实验：12s 选点与 48s 参照不一致，是「评估打低分」还是「排序排掉」
 
-- 代码：`git archive 95c2784` 干净副本（与 `benchmarks/baseline_2026-10-31-50p/` 同版本）
+- 代码：`git -c core.autocrlf=false archive 95c2784` 干净副本（与 `benchmarks/baseline_2026-10-31-50p/` 同版本；flag 不能省，见 `tests/README.md`）
 - 口径：`desktop_complete`、默认 `RuleOptions`、`randomness=0`、`root_limit=18`
 - 脚本：`ab.py`（A 固定深度隔离 + B 静态评估隔离）。**未改任何源码**，仅在脚本内用 `dataclasses.replace` 改 `CONFIGS`，用 `_evaluate` 直接取静态分。
 
