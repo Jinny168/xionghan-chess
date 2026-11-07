@@ -142,6 +142,10 @@ v1.6.0 当前处于"筹备"态，工程质量达发布基线，但**建议先行
 > 复核方式：**实测**。`./.venv/Scripts/python.exe -m pytest -q` → **125 passed / 1 warning / 32.64 s**
 > （Python 3.12.3）；git 侧用 `ls-files` / `ls-tree` / `show --name-status` 取证；
 > F-1 用 `scripts/benchmark_ai.py` 实跑（结果见 §6.2）。
+>
+> 其余门禁同批复跑：`compileall -q src tests scripts` 通过；`node --check` 四文件
+> （`web/js/app.js`、`web/js/i18n.js`、Android `offline.js` / `offline-locales.js`）通过；
+> `locales/*.json` 解析通过（各 31 个顶层键，`replay` / `spectator` 两侧齐备）；`git diff --check` 无告警。
 
 | # | §4 台账项 | 状态 | 证据 / 说明 |
 |---|---|---|---|
