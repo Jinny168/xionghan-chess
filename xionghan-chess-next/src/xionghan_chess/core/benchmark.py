@@ -21,18 +21,25 @@ class MatchResult:
     plies: int
     master_seconds: float
     hard_seconds: float
+    master_max_move_seconds: float = 0.0
 
 
 def benchmark_master_vs_hard(games: int = 50, profile: str = "traditional",
                              max_plies: int = 240, seed: int = 0,
                              hard_time_scale: float = 1.0,
                              master_simulations: int | None = None,
-                             on_game: Optional[Callable[[MatchResult], None]] = None) -> dict:
+                             on_game: Optional[Callable[[MatchResult], None]] = None,
+                             start_game: int = 0) -> dict:
     """Run a color-balanced match and return machine-readable acceptance data.
 
     ``on_game`` is called once per finished game, in order. It lets long matches
     survive a crash: the caller can append each :class:`MatchResult` to disk
     instead of waiting for the whole run to finish.
+
+    ``start_game`` skips the first N games of the sequence. Because colour,
+    tie-break seeds and game numbering all derive from the absolute index, a
+    match split into chunks with ``start_game=0,5,10,...`` is bit-identical to
+    the same match run in one go.
     """
     results: list[MatchResult] = []
     master_move_times: list[float] = []
@@ -40,10 +47,11 @@ def benchmark_master_vs_hard(games: int = 50, profile: str = "traditional",
     previous_scale = os.environ.get("AI_TIME_SCALE")
     os.environ["AI_TIME_SCALE"] = str(hard_time_scale)
     try:
-        for game_index in range(games):
+        for game_index in range(start_game, start_game + games):
             game = Game(profile)
             master_color = Color.RED if game_index % 2 == 0 else Color.BLACK
             totals = {"master": 0.0, "hard": 0.0}
+            master_moves_before = len(master_move_times)
             for ply in range(max_plies):
                 if game.state.finished:
                     break
@@ -76,6 +84,7 @@ def benchmark_master_vs_hard(games: int = 50, profile: str = "traditional",
             result = MatchResult(
                 game_index + 1, master_color.value, winner.value if winner else None,
                 adjudicated, len(game.state.history), totals["master"], totals["hard"],
+                round(max(master_move_times[master_moves_before:], default=0.0), 3),
             )
             results.append(result)
             if on_game is not None:
