@@ -20,3 +20,25 @@ training-data/
 # 投稿自动化本地状态（含手机号等个人信息，勿提交）
 .contest/
 .pw-profile/
+
+# 网页版（1024 投稿）：本地部署/QA 产物与会话态，均不入库
+webapp/.edgeone/
+webapp/screenshots/
+webapp/tests/fixtures/
+online/core/
+online/public/
+xhs-compose.png
+wall-hit.png
+mine-tab.png
+snapA.yaml
+snapB.yaml
+.wbapp_*.genie
+.workbuddy/applications.yaml
+
+# 云服务实例凭据不入仓库；用 cloud-config.example.json 复制后自行填写。
+# server.mjs 在文件缺失时自动降级为离线模式，功能不受影响。
+online/cloud-config.json
+
+# 投稿素材二进制走 .gitattributes 的 LFS filter，入库只会留下悬空指针
+# （与「1429 个 LFS 二进制移出索引」同一口径）；素材留在本地另行分发。
+xhs/*.png

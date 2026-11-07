@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="zh-CN" data-lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4ead8">
+  <meta name="description" content="匈汉象棋 · 十三路棋盘上的中国象棋变体。完整规则内核在浏览器里运行，打开即玩。">
+  <title>匈汉象棋 · 十三路</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./css/app.css">
+  <link rel="manifest" href="./manifest.webmanifest">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">漢</span>
+        <span class="brand-text">
+          <strong>匈汉象棋</strong>
+          <small data-i18n="app.subtitle">十三路 · 长城阴山</small>
+        </span>
+      </div>
+      <nav class="topnav" aria-label="主导航">
+        <button type="button" data-act="new" data-i18n="nav.new">新局</button>
+        <button type="button" data-act="replay" data-i18n="nav.replay">复盘</button>
+        <button type="button" data-act="puzzles" data-i18n="nav.puzzles">残局</button>
+        <button type="button" data-act="online" data-i18n="nav.online">联机</button>
+        <button type="button" data-act="atlas" data-i18n="nav.atlas">棋子图谱</button>
+        <button type="button" data-act="rules" data-i18n="nav.rules">规则</button>
+        <button type="button" data-act="settings" data-i18n="nav.settings">设置</button>
+      </nav>
+      <button type="button" class="nav-toggle" data-act="menu" aria-label="菜单">
+        <span></span><span></span><span></span>
+      </button>
+    </header>
+
+    <main class="stage">
+      <div class="seat" id="seatBlack">
+        <span class="seat-disc black">汗</span>
+        <span class="seat-meta">
+          <strong data-i18n="side.black">黑方</strong>
+          <small id="blackNote"></small>
+        </span>
+        <span class="seat-clock" id="clockBlack">20:00</span>
+      </div>
+
+      <button type="button" class="side-restore" id="sideRestore" data-act="toggleSide" hidden data-i18n="action.showSide">显示侧栏</button>
+      <div class="board-holder" id="boardHolder">
+        <canvas id="board" aria-label="匈汉象棋棋盘"></canvas>
+        <div class="badge" id="turnBadge">红方行棋</div>
+        <div class="thinking" id="thinking" hidden>
+          <i></i><i></i><i></i>
+        </div>
+        <div class="board-tip" id="boardTip">点选棋子，再点落点</div>
+        <div class="pause-mask" id="pauseMask" hidden>
+          <strong data-i18n="status.paused">对局暂停</strong>
+          <button type="button" data-act="pause" data-i18n="action.resume">继续</button>
+        </div>
+        <div class="resurrect-pill" id="resurrectPill" hidden>
+          <span data-i18n="resurrect.hint">点一枚阵亡的兵卒，再点己方底线空位</span>
+        </div>
+      </div>
+
+      <div class="seat" id="seatRed">
+        <span class="seat-disc red">漢</span>
+        <span class="seat-meta">
+          <strong data-i18n="side.red">红方</strong>
+          <small id="redNote"></small>
+        </span>
+        <span class="seat-clock" id="clockRed">20:00</span>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" data-act="undo" data-i18n="action.undo">悔棋</button>
+        <button type="button" data-act="hint" data-i18n="action.hint">提示</button>
+        <button type="button" data-act="pause" data-i18n="action.pause">暂停</button>
+        <button type="button" data-act="draw" data-i18n="action.draw">提和</button>
+        <button type="button" id="resurrectBtn" data-act="resurrect" data-i18n="action.resurrect" hidden>复活</button>
+        <button type="button" data-act="flip" data-i18n="action.flip">翻转</button>
+        <button type="button" data-act="resign" data-i18n="action.resign">认输</button>
+        <button type="button" id="puzzleExit" data-act="exitPuzzle" data-i18n="puzzle.exit" hidden>退出</button>
+        <button type="button" class="only-mobile" data-act="replay" data-i18n="nav.replay">复盘</button>
+      </div>
+    </main>
+
+    <aside class="side" id="sidePanel">
+      <section class="side-block">
+        <h2 data-i18n="panel.moves">棋谱</h2>
+        <ol class="movelist" id="moveList"></ol>
+        <p class="empty" id="moveEmpty" data-i18n="panel.empty">还没有落子</p>
+      </section>
+      <section class="side-block captured-block">
+        <h2 data-i18n="panel.captured">阵亡</h2>
+        <div class="captured-row"><span class="captured-label red">红</span><div class="captured" id="capturedRed"></div></div>
+        <div class="captured-row"><span class="captured-label">黑</span><div class="captured" id="capturedBlack"></div></div>
+      </section>
+      <section class="side-block meta-block">
+        <h2 data-i18n="panel.info">对局信息</h2>
+        <dl>
+          <dt>规则</dt><dd id="metaProfile">完整模式</dd>
+          <dt>模式</dt><dd id="metaMode">人机对战</dd>
+          <dt>棋力</dt><dd id="metaLevel">中级</dd>
+        </dl>
+        <div class="meta-actions">
+          <button type="button" data-act="export" data-i18n="action.export">导出棋谱</button>
+          <button type="button" data-act="import" data-i18n="action.import">读取棋谱</button>
+        </div>
+        <div class="meta-actions">
+          <button type="button" data-act="snapshot" data-i18n="action.snapshot">保存局面图</button>
+          <button type="button" data-act="stats" data-i18n="action.stats">对局统计</button>
+          <button type="button" data-act="library" data-i18n="action.library">棋谱库</button>
+          <button type="button" data-act="restart" data-i18n="action.restart">重新开始</button>
+          <button type="button" data-act="cloud" data-i18n="action.cloud">云同步</button>
+          <button type="button" data-act="toggleSide" data-i18n="action.hideSide">隐藏侧栏</button>
+          <button type="button" data-act="fullscreen" data-i18n="action.fullscreen">全屏</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- 新对局 -->
+  <dialog class="sheet" id="dlgNew">
+    <form method="dialog" class="sheet-inner">
+      <header class="sheet-head">
+        <h2 data-i18n="setup.title">新对局</h2>
+        <button type="button" class="icon-btn" data-close="dlgNew" aria-label="关闭">×</button>
+      </header>
+
+      <div class="field">
+        <label data-i18n="setup.mode">模式</label>
+        <div class="segmented" data-group="mode">
+          <button type="button" data-value="ai" class="on" data-i18n="setup.mode.ai">人机对战</button>
+          <button type="button" data-value="local" data-i18n="setup.mode.local">双人同机</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="setup.profile">规则档案</label>
+        <div class="profile-grid" id="profileGrid"></div>
+      </div>
+
+      <div class="field" data-when="ai">
+        <label data-i18n="setup.difficulty">棋力</label>
+        <div class="segmented" data-group="difficulty">
+          <button type="button" data-value="novice" data-i18n="diff.novice">入门</button>
+          <button type="button" data-value="easy" data-i18n="diff.easy">初级</button>
+          <button type="button" data-value="normal" class="on" data-i18n="diff.normal">中级</button>
+          <button type="button" data-value="hard" data-i18n="diff.hard">高级</button>
+            <button type="button" data-value="master" data-i18n="diff.master">大师</button>
+        </div>
+      </div>
+
+      <div class="field" data-when="ai">
+        <label data-i18n="setup.side">执子</label>
+        <div class="segmented" data-group="side">
+          <button type="button" data-value="red" class="on" data-i18n="setup.side.red">执红先行</button>
+          <button type="button" data-value="black" data-i18n="setup.side.black">执黑后行</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="setup.appear">登场棋子</label>
+        <div class="appear-grid" id="appearGrid"></div>
+        <p class="hint" data-i18n="setup.appearHint">双方同步增减，主帅固定登场。</p>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label data-i18n="setup.first">先手</label>
+          <select id="firstMove">
+            <option value="red" data-i18n="setup.first.red">红先</option>
+            <option value="black" data-i18n="setup.first.black">黑先</option>
+            <option value="random" data-i18n="setup.first.random">随机</option>
+          </select>
+        </div>
+        <div class="field">
+          <label data-i18n="setup.minutes">每方时限</label>
+          <select id="minutes">
+            <option value="0" data-i18n="setup.minutes.none">不限时</option>
+            <option value="5">5 分钟</option>
+            <option value="10">10 分钟</option>
+            <option value="20" selected>20 分钟</option>
+            <option value="30">30 分钟</option>
+          </select>
+        </div>
+      </div>
+
+      <footer class="sheet-foot">
+        <button type="button" class="ghost" data-close="dlgNew" data-i18n="action.cancel">取消</button>
+        <button type="button" class="primary" data-act="start" data-i18n="action.start">开始对局</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- 设置 -->
+  <dialog class="sheet" id="dlgSettings">
+    <form method="dialog" class="sheet-inner">
+      <header class="sheet-head">
+        <h2 data-i18n="settings.title">设置</h2>
+        <button type="button" class="icon-btn" data-close="dlgSettings" aria-label="关闭">×</button>
+      </header>
+
+      <h3 class="section-title" data-i18n="settings.appearance">外观</h3>
+      <div class="field">
+        <label data-i18n="settings.boardTheme">棋盘</label>
+        <div class="swatches" id="themeSwatches"></div>
+      </div>
+      <div class="field">
+        <label data-i18n="settings.pieceStyle">棋子</label>
+        <div class="segmented" data-group="pieceStyle">
+          <button type="button" data-value="traditional" class="on" data-i18n="style.traditional">传统书法</button>
+          <button type="button" data-value="modern" data-i18n="style.modern">现代简约</button>
+          <button type="button" data-value="ink" data-i18n="style.ink">水墨</button>
+        </div>
+      </div>
+      <div class="field">
+        <label data-i18n="settings.language">语言</label>
+        <div class="segmented" data-group="language">
+          <button type="button" data-value="zh-CN" class="on">中文</button>
+          <button type="button" data-value="en">English</button>
+        </div>
+      </div>
+
+      <h3 class="section-title" data-i18n="settings.gameplay">对局</h3>
+      <div class="toggles">
+        <label class="toggle"><input type="checkbox" id="optAnimation" checked><span data-i18n="settings.animation">走子动画</span></label>
+        <label class="toggle"><input type="checkbox" id="optLegal" checked><span data-i18n="settings.legal">显示可行落点</span></label>
+        <label class="toggle"><input type="checkbox" id="optCapture" checked><span data-i18n="settings.capture">标记可吃棋子</span></label>
+        <label class="toggle"><input type="checkbox" id="optSound" checked><span data-i18n="settings.sound">音效</span></label>
+        <div class="field volume-field">
+          <label data-i18n="settings.soundVolume">音效音量</label>
+          <input type="range" id="optVolume" min="0" max="100" step="5" value="55">
+        </div>
+        <label class="toggle"><input type="checkbox" id="optMusic"><span data-i18n="settings.music">背景音乐</span></label>
+        <div class="field volume-field">
+          <label data-i18n="settings.musicVolume">音乐音量</label>
+          <input type="range" id="optMusicVolume" min="0" max="100" step="5" value="35">
+        </div>
+        <div class="field">
+          <label data-i18n="settings.background">自定义背景</label>
+          <div class="bg-row">
+            <input type="file" id="bgFile" accept="image/*" hidden>
+            <button type="button" class="ghost" data-act="pickBackground" data-i18n="settings.pickBackground">选择图片</button>
+            <button type="button" class="ghost" data-act="clearBackground" data-i18n="settings.clearBackground">清除</button>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="section-title" data-i18n="settings.rules">规则开关</h3>
+      <p class="hint" data-i18n="settings.rulesHint">改动会在下一局生效。</p>
+      <div class="rule-list" id="ruleList"></div>
+
+      <footer class="sheet-foot">
+        <button type="button" class="ghost" data-act="about" data-i18n="nav.about">关于</button>
+        <button type="button" class="ghost" data-act="resetSettings" data-i18n="settings.reset">恢复默认</button>
+        <button type="button" class="primary" data-close="dlgSettings" data-i18n="action.confirm">确定</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- 规则 -->
+  <dialog class="sheet" id="dlgRules">
+    <div class="sheet-inner prose">
+      <header class="sheet-head">
+        <h2 data-i18n="rules.title">规则速览</h2>
+        <button type="button" class="icon-btn" data-close="dlgRules" aria-label="关闭">×</button>
+      </header>
+      <p data-i18n="rules.intro"></p>
+      <h3 data-i18n="rules.how">怎么下</h3>
+      <ol class="howto">
+        <li data-i18n="rules.how1"></li>
+        <li data-i18n="rules.how2"></li>
+        <li data-i18n="rules.how3"></li>
+      </ol>
+      <h3 data-i18n="rules.core">核心目标</h3>
+      <p data-i18n="rules.coreBody"></p>
+      <h3 data-i18n="rules.boundary">长城与阴山</h3>
+      <p data-i18n="rules.boundaryBody"></p>
+      <h3 data-i18n="rules.pinch">夹逼</h3>
+      <p data-i18n="rules.pinchBody"></p>
+      <p data-i18n="rules.toggles"></p>
+      <footer class="sheet-foot">
+        <button type="button" class="ghost" data-act="atlas" data-i18n="nav.atlas">棋子图谱</button>
+        <button type="button" class="primary" data-close="dlgRules" data-i18n="rules.gotit">知道了</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- 棋子图谱 -->
+  <dialog class="sheet wide" id="dlgAtlas">
+    <div class="sheet-inner">
+      <header class="sheet-head">
+        <h2 data-i18n="atlas.title">棋子图谱</h2>
+        <button type="button" class="icon-btn" data-close="dlgAtlas" aria-label="关闭">×</button>
+      </header>
+      <p class="hint" data-i18n="atlas.subtitle">点亮棋子，看它在这张棋盘上究竟能走到哪里</p>
+      <div class="atlas-layout">
+        <div class="atlas-pieces" id="atlasPieces"></div>
+        <div class="atlas-board">
+          <canvas id="atlasCanvas" width="420" height="420"></canvas>
+          <div class="atlas-caption">
+            <strong id="atlasName">车</strong>
+            <span id="atlasDesc"></span>
+            <em id="atlasCount"></em>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 复盘 -->
+  <dialog class="sheet wide" id="dlgReplay">
+    <div class="sheet-inner replay-inner">
+      <header class="sheet-head">
+        <h2 data-i18n="nav.replay">复盘</h2>
+        <button type="button" class="icon-btn" data-close="dlgReplay" aria-label="关闭">×</button>
+      </header>
+      <div class="replay-layout">
+        <canvas id="replayCanvas" width="520" height="520"></canvas>
+        <div class="replay-side">
+          <div class="analysis-box">
+            <button type="button" class="analyze-btn" data-act="analyze" data-i18n="analysis.run">AI 复盘</button>
+            <div class="analysis-progress" id="analysisProgress" hidden>
+              <div class="bar"><i></i></div>
+              <span id="analysisProgressText"></span>
+            </div>
+            <canvas id="curveCanvas" width="460" height="170" hidden></canvas>
+            <p class="analysis-summary" id="analysisSummary" hidden></p>
+          </div>
+          <div class="replay-controls">
+            <button type="button" data-replay="first" aria-label="开局">|‹</button>
+            <button type="button" data-replay="prev" aria-label="上一步">‹</button>
+            <button type="button" data-replay="play" aria-label="播放">▶</button>
+            <button type="button" data-replay="next" aria-label="下一步">›</button>
+            <button type="button" data-replay="last" aria-label="终局">›|</button>
+          </div>
+          <div class="replay-progress">
+            <input type="range" id="replayRange" min="0" max="0" value="0">
+            <span id="replayStep">0 / 0</span>
+          </div>
+          <ol class="movelist" id="replayMoves"></ol>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 结果 -->
+  <dialog class="sheet narrow" id="dlgResult">
+    <div class="sheet-inner result-inner">
+      <div class="result-mark" id="resultMark">漢</div>
+      <h2 id="resultTitle">红方胜</h2>
+      <p id="resultReason"></p>
+      <footer class="sheet-foot center">
+        <button type="button" class="ghost" data-act="review" data-i18n="result.review">复盘这局</button>
+        <button type="button" class="primary" data-act="again" data-i18n="result.again">再来一局</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- 升变 -->
+  <dialog class="sheet narrow" id="dlgPromotion">
+    <div class="sheet-inner">
+      <header class="sheet-head">
+        <h2 data-i18n="promotion.title">兵卒升变</h2>
+        <button type="button" class="icon-btn" data-close="dlgPromotion" aria-label="关闭">×</button>
+      </header>
+      <p class="hint" data-i18n="promotion.hint">选择一枚已阵亡的棋子作为升变目标</p>
+      <div class="promo-options" id="promoOptions"></div>
+    </div>
+  </dialog>
+
+  <!-- 云同步 -->
+  <dialog class="sheet narrow" id="dlgCloud">
+    <div class="sheet-inner">
+      <header class="sheet-head">
+        <h2 data-i18n="cloud.title">云同步</h2>
+        <button type="button" class="icon-btn" data-close="dlgCloud" aria-label="关闭">×</button>
+      </header>
+      <div id="cloudSignedOut">
+        <p class="hint" data-i18n="cloud.hint">用邮箱验证码登录，把棋谱、战绩与设置备份到云端。</p>
+        <div class="field">
+          <label data-i18n="cloud.email">邮箱</label>
+          <input id="cloudEmail" type="email" autocomplete="email" placeholder="you@example.com">
+        </div>
+        <button type="button" class="primary wide" data-act="cloudSendCode" data-i18n="cloud.sendCode">获取验证码</button>
+        <div class="field">
+          <label data-i18n="cloud.code">验证码</label>
+          <input id="cloudCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6 位数字">
+        </div>
+        <button type="button" class="ghost wide" data-act="cloudVerify" data-i18n="cloud.login">登录 / 注册</button>
+      </div>
+      <div id="cloudSignedIn" hidden>
+        <p class="hint" id="cloudWho"></p>
+        <p class="hint" id="cloudLast"></p>
+        <button type="button" class="primary wide" data-act="cloudBackup" data-i18n="cloud.backup">备份到云端</button>
+        <button type="button" class="ghost wide" data-act="cloudRestore" data-i18n="cloud.restore">从云端恢复</button>
+        <button type="button" class="ghost wide" data-act="cloudSignOut" data-i18n="cloud.signOut">退出登录</button>
+      </div>
+      <p class="hint" id="cloudStatus"></p>
+    </div>
+  </dialog>
+
+  <!-- 联机对战 -->
+  <dialog class="sheet narrow" id="dlgOnline">
+    <div class="sheet-inner">
+      <header class="sheet-head">
+        <h2 data-i18n="online.title">联机对战</h2>
+        <button type="button" class="icon-btn" data-close="dlgOnline" aria-label="关闭">×</button>
+      </header>
+      <div id="onlineLobby">
+        <button type="button" class="primary wide" data-act="createRoom" data-i18n="online.create">创建房间</button>
+        <div class="join-row">
+          <input id="roomInput" maxlength="4" placeholder="房间号" autocomplete="off">
+          <button type="button" class="ghost" data-act="joinRoom" data-i18n="online.join">加入</button>
+        </div>
+        <p class="hint" data-i18n="online.hint">创建者执红；把房间号发给对手即可开局。</p>
+      </div>
+      <div id="onlineRoom" hidden>
+        <div class="room-code">
+          <span data-i18n="online.code">房间号</span>
+          <b id="roomCode">----</b>
+          <button type="button" class="ghost" data-act="copyCode" data-i18n="online.copy">复制</button>
+        </div>
+        <p id="onlineMsg" class="hint"></p>
+        <button type="button" class="ghost wide" data-act="leaveRoom" data-i18n="online.leave">离开房间</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 棋谱库 -->
+  <dialog class="sheet" id="dlgLibrary">
+    <div class="sheet-inner">
+      <header class="sheet-head">
+        <h2 data-i18n="library.title">棋谱库</h2>
+        <button type="button" class="icon-btn" data-close="dlgLibrary" aria-label="关闭">×</button>
+      </header>
+      <p class="hint" data-i18n="library.hint">对局结束后自动保存，最多保留 12 局。</p>
+      <div class="library-list" id="libraryList"></div>
+    </div>
+  </dialog>
+
+  <!-- 残局训练 -->
+  <dialog class="sheet wide" id="dlgPuzzles">
+    <div class="sheet-inner">
+      <header class="sheet-head">
+        <h2 data-i18n="puzzle.title">残局训练</h2>
+        <div class="head-actions">
+          <input type="file" id="puzzleFile" accept="application/json,.json" hidden>
+          <button type="button" class="ghost" data-act="importPuzzles" data-i18n="puzzle.import">导入题库</button>
+          <button type="button" class="icon-btn" data-close="dlgPuzzles" aria-label="关闭">×</button>
+        </div>
+      </header>
+      <p class="hint" data-i18n="puzzle.subtitle">9 道走法教学 + 12 道一步杀，均由规则引擎验证</p>
+      <div class="puzzle-list" id="puzzleList"></div>
+    </div>
+  </dialog>
+
+  <!-- 对局统计 -->
+  <dialog class="sheet narrow" id="dlgStats">
+    <div class="sheet-inner">
+      <header class="sheet-head">
+        <h2 data-i18n="action.stats">对局统计</h2>
+        <button type="button" class="icon-btn" data-close="dlgStats" aria-label="关闭">×</button>
+      </header>
+      <div class="stats-grid" id="statsGrid"></div>
+      <footer class="sheet-foot">
+        <button type="button" class="ghost" data-act="resetStats" data-i18n="settings.reset">恢复默认</button>
+        <button type="button" class="primary" data-close="dlgStats" data-i18n="action.confirm">确定</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- 关于 -->
+  <dialog class="sheet" id="dlgAbout">
+    <div class="sheet-inner prose">
+      <header class="sheet-head">
+        <h2 data-i18n="about.title">关于匈汉象棋</h2>
+        <button type="button" class="icon-btn" data-close="dlgAbout" aria-label="关闭">×</button>
+      </header>
+      <p data-i18n="about.body"></p>
+      <p data-i18n="about.tech"></p>
+      <p class="muted" data-i18n="about.author"></p>
+      <p class="muted" data-i18n="about.version"></p>
+      <footer class="sheet-foot">
+        <button type="button" class="primary" data-close="dlgAbout" data-i18n="action.close">关闭</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+  <input type="file" id="fileInput" accept=".xhgame,.json,application/json" hidden>
+  <script type="module" src="./js/ui/app.js"></script>
+</body>
+</html>

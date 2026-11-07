@@ -1,0 +1,11 @@
+{
+  "name": "xionghan-online",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "匈汉象棋联机对战后端（HTTP 长轮询）",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": { "node": ">=18" }
+}

@@ -1,0 +1,6 @@
+{
+  "resourceId": "wbcs_REPLACE_WITH_YOUR_RESOURCE_ID",
+  "endpoint": "https://REPLACE_WITH_YOUR_APP_HOST",
+  "oauthRelayBaseUrl": "https://www.workbuddy.cn/v2/as/genie-baas/oauth",
+  "publishableKey": "wbpk_REPLACE_WITH_YOUR_PUBLISHABLE_KEY"
+}
