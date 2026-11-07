@@ -183,8 +183,10 @@ v1.6.0 当前处于"筹备"态，工程质量达发布基线，但**建议先行
 该数据**只能回答「1/10 预算下谁更强」**，不能替代发布配置的 ≥55% 验收——
 MCTS 对时间预算的敏感度显著高于 alpha-beta，外推不成立。
 
-**追加注意**：`scripts/benchmark_ai.py:20-29` 只在整轮结束后一次性写 `--output`，
-中途崩溃即全丢；正式长跑建议先 `--games 2` 冒烟，再分段跑并把 stdout 落日志。
+**断点**：原脚本只在整轮结束后一次性写 `--output`，长跑中断即全丢。已补 `--checkpoint`
+（逐局追加 JSONL）与 `--quiet`，`benchmark_master_vs_hard` 增加可选 `on_game` 回调（默认 None，
+行为不变）；2 局冒烟验证断点 2 行、报告 `results` 一致，回归 `pytest 125 passed`。
+本轮 50 局即以 `--checkpoint benchmarks/master_vs_hard_50g_scale0.1_2026-11-07.jsonl` 运行。
 
 ### 6.3 仍挂账
 
