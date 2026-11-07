@@ -155,7 +155,7 @@ v1.6.0 当前处于"筹备"态，工程质量达发布基线，但**建议先行
 | 3 | 仓库卫生（1429 个 LFS 二进制仍被跟踪） | ✅ **已结清** | `6653684 merge remote master` 一次删除 **1429** 条 `release/ archive/ build-onefile/` 路径（`git show --name-status` 计数）；`git ls-files release archive build-onefile` = **0**；`git ls-tree HEAD` 三者 = **0**；`git status` 无 `D` 待提交 |
 | 4 | 无速率限制（`/api/rooms`、`/api/auth/*`） | ✅ 已修 | `service/app.py:59-77` 按 IP 滑动窗口中间件；`XH_RATE_LIMIT_PER_MINUTE` **默认 0（关）**，不影响既有测试 |
 | 5 | Android `allowBackup="true"` | ✅ 已修 | `android/AndroidManifest.xml:3` `allowBackup="false"`，同处 `usesCleartextTraffic="false"` |
-| 5b | `obj/Debug` 残留 `2.0.0` | ⛔ 未结清 | 该目录被 `.gitignore` 的 `android/obj/` 覆盖、未入库；发布前 `clean` 重建即可，无需改代码 |
+| 5b | `obj/Debug` 残留 `2.0.0` | ✅ **已清理** | 删除 `android/obj/Debug`（192 MB，其中的 Debug 清单写的是 `versionName="2.0.0"`）；`android/obj/Release/.../AndroidManifest.xml` 为 `versionCode=8 / versionName=1.6.0`，`android/*.csproj:9-10` 亦为 8 / 1.6.0。Release 中间产物里仍有 11 个文件二进制含 `2.0.0` 字节序列，但 `strings` 在 `linked/XionghanChessAndroid.dll` 中取不到该可打印串（非应用版本号），打包前做一次 clean 重建即可 |
 | 6 | 令牌 TTL / 全部登出（可选） | ⏸ 未做 | 本就不阻断发布，继续挂账 |
 | 7 | F-10 规则拍板（C-01/03/04/11/12） | ⏸ 待产品 | 仅补等价性测试，未改语义 |
 
@@ -191,4 +191,4 @@ MCTS 对时间预算的敏感度显著高于 alpha-beta，外推不成立。
 1. **F-1 满预算验收**：需 ≥40 h 连续机器时间，必须单排夜间/周末，不建议在开发机前台跑。
 2. （跨线：2.0.x 分支）`benchmarks/selfplay_ab_2026-10-31.json` 与 `_conclusion.md` 尚未入库——
    2026-10-31 已跑完 32 局 / 4593 s，reflog 中无 `bench(ai):` 提交，只差 `git add` + commit。
-3. `obj/Debug` 的 `2.0.0` 残留：发布前 clean rebuild。
+3. 出 APK 前做一次 Android clean 重建（Debug 缓存已删，Release 中间产物仍可能带旧字节序列）。
