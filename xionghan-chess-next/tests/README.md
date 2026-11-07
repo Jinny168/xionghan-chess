@@ -14,14 +14,16 @@ python -m pytest tests/ -m "slow"       # 20 条：专家档 14 条深度用例 
 
 基线测量、跨版本对拍都要求在工作树之外的干净副本上跑。**在 Windows 上直接
 `git archive` 会按 `core.autocrlf` 做换行转换**，即使 `.gitattributes` 里写了
-`-text` 也照转（实测：`benchmarks/*.txt` 34048 → 34886 字节、多出 838 个 CR），
+`-text` 也照转（实测 `benchmarks/baseline_2026-10-30/css_snapshot_light.txt`：
+blob 34048 → 解出 34886 字节，多出 838 个 CR —— 那正好是该文件的行数），
 `test_css_snapshot.py` 会因此假红 3 条。
 
 ```bash
 git -c core.autocrlf=false archive <commit> | tar -x -C <干净目录>
 ```
 
-判据：解出来的 `.txt` 字节数应与 `git cat-file -s <commit>:<path>` 一致；不一致就是被转换过。
+判据：解出的 `.txt` 字节数应等于 `git cat-file -s <commit>:<path>`；不等就是被转换过，
+且**差值等于该文件行数**（本仓三个字节基线实测差 25 / 106 / 838，各等于自己的行数）。
 
 改**评估 / 走法排序 / 搜索参数 / 难度参数**之后必须跑全量（`-m slow`）。
 
