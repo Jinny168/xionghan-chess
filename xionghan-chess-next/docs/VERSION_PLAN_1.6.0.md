@@ -165,10 +165,12 @@ release/匈漢象棋-2.0.0-网页版/src/.../__init__.py  → __version__ = "2.0
 - **未提交**：上述 147 处暂存删除 + `.gitignore` 改动**已留作未提交改动**，待用户审阅后提交（未自动 commit）。
 - **结论**：版本倒挂已消除，1.6.0 命名成立，可进入 M1。
 
-### 待执行
-- M1 一致性地基（F-3 跨引擎等价性测试 + F-9/F-10 测试）
-- M3 加固（F-4/F-5/F-6/F-7/F-8）
-- M4 交付（全量测试 + 四端构建 + 五份文档 + `release/v1.6.0-delivery/`）
+### 【已结清】M1 / M3 / M4 — 2026-11-07 复核
+- M1 一致性地基：`tests/test_cross_engine.py` **19 passed**（四配置初始局面 + 确定性走棋局面 + 14 类棋子局面，直跑 Android 生产 `offline.js`）。
+- M3 加固：broadcast 改 compact replay tail（`service/rooms.py`）、Android `usesCleartextTraffic="false"`、Web 动态文案收口 i18n、undo 清理 pending 状态（`core/game.py`）。
+- M4 交付：`docs/` 下 CHANGELOG / QA_REPORT / DELIVERY / AUDIT 四份齐备，版本号在 core / pyproject / web / Android 四处统一为 1.6.0。
+- **产物不入库**：`release/`、`archive/`、`build-onefile/` 已列入 `.gitignore` 并从索引移除，二进制按 `DELIVERY_1.6.0.md` 的打包命令重建。
+- 逐项整改台账（含仍未结清项）见 `docs/AUDIT_v1.6.0_reaudit.md` 第 6 节。
 
 ### 【已执行·待强度验收】M2 — AI 进化（2026-08-16）
 - `Difficulty` 新增第五档 `master`，`ChessAI` 按 `AI_TIME_SCALE` 调度纯 UCB1 MCTS。

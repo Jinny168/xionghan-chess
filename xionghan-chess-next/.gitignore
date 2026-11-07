@@ -16,3 +16,7 @@ archive/
 # 归档：实验性/废弃构建（保留追溯，不跟踪、不发布）
 release/archive-experimental/
 training-data/
+
+# 投稿自动化本地状态（含手机号等个人信息，勿提交）
+.contest/
+.pw-profile/

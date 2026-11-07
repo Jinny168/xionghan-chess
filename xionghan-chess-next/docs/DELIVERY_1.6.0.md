@@ -2,11 +2,19 @@
 
 ## 产物目录
 
-- 完整交付目录：`release/v1.6.0-delivery`
+产物**不入库**：`release/`、`archive/`、`build-onefile/` 已列入 `.gitignore`，并从 git 索引移除
+（1429 个 LFS 指针不再跟踪，磁盘内容不受影响）。克隆下来只有源码，二进制必须按「打包命令」现场重建。
+
+重建后预期落在：
+
+- 完整交付目录：`release/v1.6.0-delivery/`
 - Windows：`release/匈漢象棋-1.6.0-桌面版.exe`
 - Web：`release/匈漢象棋-1.6.0-网页版.zip`
 - Android：`release/匈漢象棋-1.6.0-安卓版.apk`
-- 校验：`release/v1.6.0-delivery/SHA256SUMS-1.6.0.txt`
+- 校验：`release/v1.6.0-delivery/SHA256SUMS-1.6.0.txt`（由打包脚本生成）
+
+> 2026-11-07 复核：当前工作树中 `release/`、`archive/`、`build-onefile/` 三个目录**均不存在**。
+> 上面的路径是「重建后的预期位置」，不是「仓库自带」；引用时请勿当作已存在产物。
 
 ## 启动命令
 

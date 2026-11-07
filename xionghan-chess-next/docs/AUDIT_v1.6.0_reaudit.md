@@ -134,3 +134,57 @@ v1.6.0 当前处于"筹备"态，工程质量达发布基线，但**建议先行
 - 明确 C‑01/03/04/11/12 规则项仍待产品确认。
 
 > 编制：资深跨端棋牌全栈工程审计 & 交付工程师 ｜ 基准日 2026-09-27 ｜ 全部结论基于实测。
+
+---
+
+## 6. 整改执行台账（2026-11-07 复核）
+
+> 复核方式：**实测**。`./.venv/Scripts/python.exe -m pytest -q` → **125 passed / 1 warning / 32.64 s**
+> （Python 3.12.3）；git 侧用 `ls-files` / `ls-tree` / `show --name-status` 取证；
+> F-1 用 `scripts/benchmark_ai.py` 实跑（结果见 §6.2）。
+
+| # | §4 台账项 | 状态 | 证据 / 说明 |
+|---|---|---|---|
+| 1 | F-1 权威验收（50 局非截断 ≥55%） | ⛔ **仍未通过** | 尚无满足发布配置的胜率证据。本轮补跑 50 局（1/10 预算，§6.2），另发现满预算 50 局需 ≈43 h 机器时间，见 §6.2 |
+| 1b | 修正 `master_simulations` 工具误导 | ✅ 已修 | `core/benchmark.py:45-53`：该分支已改走 `ChessAI(MASTER)._master_move_score/_master_leaf_score`（加载 npz 先验），不再共用 hard 的 SEE 启发式 |
+| 2 | i18n 残留（`app.js:40-41,129`） | ✅ 已修 | `:40-41` 用 `t('replay.play'/'replay.pause')`；`:129` 用 `t('spectator.count',{count})`；`locales/zh-CN.json:565-571` 与 `en.json:565-571` 两侧键齐备 |
+| 3 | 仓库卫生（1429 个 LFS 二进制仍被跟踪） | ✅ **已结清** | `6653684 merge remote master` 一次删除 **1429** 条 `release/ archive/ build-onefile/` 路径（`git show --name-status` 计数）；`git ls-files release archive build-onefile` = **0**；`git ls-tree HEAD` 三者 = **0**；`git status` 无 `D` 待提交 |
+| 4 | 无速率限制（`/api/rooms`、`/api/auth/*`） | ✅ 已修 | `service/app.py:59-77` 按 IP 滑动窗口中间件；`XH_RATE_LIMIT_PER_MINUTE` **默认 0（关）**，不影响既有测试 |
+| 5 | Android `allowBackup="true"` | ✅ 已修 | `android/AndroidManifest.xml:3` `allowBackup="false"`，同处 `usesCleartextTraffic="false"` |
+| 5b | `obj/Debug` 残留 `2.0.0` | ⛔ 未结清 | 该目录被 `.gitignore` 的 `android/obj/` 覆盖、未入库；发布前 `clean` 重建即可，无需改代码 |
+| 6 | 令牌 TTL / 全部登出（可选） | ⏸ 未做 | 本就不阻断发布，继续挂账 |
+| 7 | F-10 规则拍板（C-01/03/04/11/12） | ⏸ 待产品 | 仅补等价性测试，未改语义 |
+
+### 6.1 本轮顺手销掉的文档债
+
+| 文件 | 问题 | 处置 |
+|---|---|---|
+| `README.md` | 标题仍写「匈汉象棋 1.5.0」，且只链 1.5.0 交付文档 | 改为 1.6.0，补链 `DELIVERY_1.6.0` / `QA_REPORT_1.6.0` / 本审计 |
+| `docs/DELIVERY_1.6.0.md` | 「产物目录」把 `release/*.exe` 写成既有产物 | 改为「产物不入库、按打包命令重建」，并注明当前工作树中 `release/`、`archive/`、`build-onefile/` **均不存在** |
+| `docs/VERSION_PLAN_1.6.0.md` §7 | 仍写「待执行 M1/M3/M4」 | 改为「已结清」，并指向本台账 |
+
+### 6.2 F-1 实跑数据与可行性（2026-11-07）
+
+**冒烟**（`--games 2 --max-plies 40 --hard-scale 0.1`，104 s）：master 单步 1.24–1.34 s，
+两局均 hard 胜（第 1 局 40 手自然终局，第 2 局 40 手触帽裁定）。
+
+**满预算不可行**：`CONFIGS[HARD].time_limit = CONFIGS[MASTER].time_limit = 12.0 s`
+（`core/ai.py:39-43`），故 `AI_TIME_SCALE=1.0` 时
+
+- 单局上限 240 手 × 平均 12 s ≈ **52 min/局**；
+- 50 局 ≈ **43 h**，非原审计估计的「数小时」。
+
+**本轮执行口径**：`--games 50 --max-plies 240 --hard-scale 0.1`，两侧预算相同（公平），
+输出 `benchmarks/master_vs_hard_50g_scale0.1_2026-11-07.json`。
+该数据**只能回答「1/10 预算下谁更强」**，不能替代发布配置的 ≥55% 验收——
+MCTS 对时间预算的敏感度显著高于 alpha-beta，外推不成立。
+
+**追加注意**：`scripts/benchmark_ai.py:20-29` 只在整轮结束后一次性写 `--output`，
+中途崩溃即全丢；正式长跑建议先 `--games 2` 冒烟，再分段跑并把 stdout 落日志。
+
+### 6.3 仍挂账
+
+1. **F-1 满预算验收**：需 ≥40 h 连续机器时间，必须单排夜间/周末，不建议在开发机前台跑。
+2. （跨线：2.0.x 分支）`benchmarks/selfplay_ab_2026-10-31.json` 与 `_conclusion.md` 尚未入库——
+   2026-10-31 已跑完 32 局 / 4593 s，reflog 中无 `bench(ai):` 提交，只差 `git add` + commit。
+3. `obj/Debug` 的 `2.0.0` 残留：发布前 clean rebuild。
