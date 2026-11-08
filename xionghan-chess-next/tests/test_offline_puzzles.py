@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -23,17 +22,22 @@ import pytest
 
 from xionghan_chess.core.puzzles import load_puzzles
 
+from _node_guard import module_skip_mark, require_node
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "build_offline_puzzles.py"
 PROBE = ROOT / "scripts" / "offline_puzzle_probe.cjs"
 OFFLINE_DIR = ROOT / "android" / "Resources" / "assets" / "offline"
 ENGINE = OFFLINE_DIR / "offline.js"
+
+# 缺 node 时整模块显式失败（不许静默 skip），守卫与逃生阀见 tests/_node_guard.py。
+if (mark := module_skip_mark()) is not None:
+    pytestmark = mark
 DATA = OFFLINE_DIR / "offline-puzzles.js"
 
 
 def _probe() -> list[dict]:
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required to run the offline engine")
+    require_node()
     completed = subprocess.run(
         ["node", str(PROBE), str(ENGINE), str(DATA)],
         capture_output=True, text=True, timeout=180,

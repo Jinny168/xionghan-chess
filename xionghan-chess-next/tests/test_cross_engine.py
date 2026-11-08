@@ -6,7 +6,6 @@ import os
 from dataclasses import asdict
 from pathlib import Path
 import random
-import shutil
 import subprocess
 
 import pytest
@@ -15,10 +14,20 @@ from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
 from xionghan_chess.core.profiles import get_profile
 
+from _node_guard import module_skip_mark, require_node
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PROBE = ROOT / "scripts" / "offline_rules_probe.cjs"
 OFFLINE = ROOT / "android" / "Resources" / "assets" / "offline" / "offline.js"
+
+
+# 门禁硬化（P0-1，docs/AUDIT_TESTABILITY_1.7.0.md §5/§6）：本模块是 Python
+# `core/rules.py` ↔ `android/.../offline.js` 的**唯一**镜像护栏，缺 node 时不许
+# 静默 skip（会让门禁整体蒸发而 pytest 仍报绿）。守卫与逃生阀都收在
+# `tests/_node_guard.py`（三处 node 依赖文件共用一份），这里只留一行接线。
+if (mark := module_skip_mark()) is not None:
+    pytestmark = mark
 
 
 def _move_key(move) -> tuple[int, int, int, int, str | None]:
@@ -45,8 +54,7 @@ def _offline_state(game: Game) -> dict:
 
 
 def _offline_result(game: Game) -> dict:
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
+    require_node()
     # Guard rail: the payload must carry every key of the active profile option set.
     # `GameState.to_dict()` has no "options" field, so reading options off the state
     # silently sends `{}` and every toggle test then compares against the profile
@@ -69,8 +77,7 @@ def _offline_result(game: Game) -> dict:
 
 def _probe_resurrect(game: Game, color: Color, row: int, col: int) -> dict:
     """Run one resurrection through offline.js and return its leg of the probe."""
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
+    require_node()
     payload = json.dumps({
         "profileId": game.profile.id,
         "options": asdict(game.rules.options),
@@ -88,8 +95,7 @@ def _probe_resurrect(game: Game, color: Color, row: int, col: int) -> dict:
 
 def _offline_captured(game: Game, source: Position, target: Position) -> list[dict]:
     """Ask offline.js which enemy pieces that very move removes."""
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
+    require_node()
     payload = json.dumps({
         "profileId": game.profile.id,
         "options": asdict(game.rules.options),
@@ -139,8 +145,7 @@ def _python_capture_specs(game: Game, color: Color, targets=None) -> list[dict]:
 
 def _offline_capture_specs(game: Game, color: Color, targets=None) -> list[dict]:
     """Ask offline.js for its `capturableSquares` over the same board and colour."""
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
+    require_node()
     request: dict = {"color": color.value}
     if targets is not None:
         request["targets"] = [{"row": position.row, "col": position.col} for position in targets]
@@ -748,8 +753,7 @@ def test_threefold_repetition_boundary_parity():
 
 def _offline_position_key(game: Game) -> str:
     """Ask offline.js for its `Rules.positionKey` on the very same state."""
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
+    require_node()
     payload = json.dumps({
         "profileId": game.profile.id,
         "options": asdict(game.rules.options),
@@ -812,8 +816,7 @@ def _probe_load_document(document: dict,
     `gameFromDocument` is the core `loadGameDocument` delegates to; going through
     it exercises the real load path (validation, ledger rebuild) without a DOM.
     """
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
+    require_node()
     payload = json.dumps({
         "profileId": document["profileId"],
         "options": document["options"],
@@ -1220,8 +1223,7 @@ def _random_game(index: int) -> Game:
 def _offline_full_probe(game: Game, check_for: Color, capture_color: Color,
                         captured_move: Move | None) -> dict:
     """One offline.js call that returns every parity leg for the same board."""
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
+    require_node()
     sent_options = asdict(game.rules.options)
     assert set(sent_options) >= set(asdict(game.profile.options)), (
         "test channel dropped options: payload must cover every profile option key"

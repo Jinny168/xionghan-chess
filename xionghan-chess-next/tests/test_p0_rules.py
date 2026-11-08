@@ -10,7 +10,6 @@ report the side as being in check rather than ending the game silently.
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -20,9 +19,15 @@ from xionghan_chess.core.model import Color, GameState, Piece, PieceType
 from xionghan_chess.core.profiles import get_profile
 from xionghan_chess.core.rules import RulesEngine
 
+from _node_guard import module_skip_mark, require_node
+
 ROOT = Path(__file__).resolve().parents[1]
 PROBE = ROOT / "scripts" / "offline_rules_probe.cjs"
 OFFLINE = ROOT / "android" / "Resources" / "assets" / "offline" / "offline.js"
+
+# 缺 node 时整模块显式失败（不许静默 skip），守卫与逃生阀见 tests/_node_guard.py。
+if (mark := module_skip_mark()) is not None:
+    pytestmark = mark
 
 
 def engine() -> RulesEngine:
@@ -55,8 +60,7 @@ def _state_dict(state: GameState) -> dict:
 
 
 def _probe(payload: dict) -> dict:
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for the offline engine check")
+    require_node()
     completed = subprocess.run(
         ["node", str(PROBE), str(OFFLINE)],
         input=json.dumps(payload), text=True, capture_output=True, check=True, timeout=30,
