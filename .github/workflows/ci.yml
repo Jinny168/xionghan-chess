@@ -261,9 +261,21 @@ jobs:
         # 为什么必须有这一步：`tests/conftest.py` 的汇总是**输出**，不是**断言**。
         # 81 条对拍全 skip 时 pytest rc=0，CI 一样绿 —— 那只是把「空绿」从 pytest 层
         # 搬到了 CI 层。这一步消费那行计数，把"看得见"变成"拦得住"。
-        # 两种失败形态分别对应两条 exit：
+        #
+        # 三个判据（都实测过，见提交说明）：
         #   · 跳过 ≠ 0        → 门禁被放宽/退化（例如有人设了 XH_ALLOW_NO_NODE）
-        #   · 通过 ≠ 收集      → 收集了但没全跑（例如将来给对拍加了 -k 白名单）
+        #   · 通过 < 收集      → 收集了但没全跑（例如将来给对拍加了 -k 白名单）
+        #   · 收集 < 81       → 对拍用例被删（只许增不许减，floor 见下）
+        #
+        # **为什么用 `通过 >= 收集` 而不是 `==`**（2026-11-08 实测发现）：
+        # `tests/conftest.py` 的 `_count()` 按 **nodeid 子串**匹配 `test_cross_engine.py`，
+        # 而 `pytest_collection_modifyitems` 里的 `_is_parity()` 按 **item.path** 匹配。
+        # `tests/test_gate_integrity.py:114/129/155` 三条 parametrize 的 id 字面就是
+        # `test_cross_engine.py`，于是它们的 nodeid 形如
+        # `...test_gate_integrity.py::test_x[test_cross_engine.py]` —— 子串命中，
+        # 真实整跑里出现过 **收集 81 | 通过 84**。用 `==` 会在 CI 上**假红**。
+        # 这条不对称是 conftest 的计数缺陷（建议改为按 path 匹配），但它落地前
+        # 这边不能靠它：`>=` 既能挡住"少跑"（80 < 81），又不会被多算的 3 条误伤。
         run: |
           set -uo pipefail
           log="$RUNNER_TEMP/pytest.log"
@@ -275,8 +287,10 @@ jobs:
           skipped=$(sed -E 's/.*跳过 ([0-9]+) \|.*/\1/' <<<"$line")
           echo "解析结果: 收集=$collected 通过=$passed 跳过=$skipped"
           [ "$skipped" = "0" ] || { echo "::error::对拍被跳过 $skipped 条（门禁未执行 = 空绿）"; exit 1; }
-          [ "$passed" = "$collected" ] || { echo "::error::通过 $passed ≠ 收集 $collected（对拍未全部执行）"; exit 1; }
-          echo "OK: 对拍门禁名副其实（$passed/$collected 通过，0 跳过）"
+          [ "$passed" -ge "$collected" ] || { echo "::error::通过 $passed < 收集 $collected（对拍未全部执行）"; exit 1; }
+          # floor：1.7.5 实收 81 条。允许增加，不允许悄悄减少 —— 删对拍用例是最安静的一种假绿。
+          [ "$collected" -ge 81 ] || { echo "::error::对拍用例从 81 掉到 $collected（有人删了对拍用例？）"; exit 1; }
+          echo "OK: 对拍门禁名副其实（通过 $passed / 收集 $collected，0 跳过）"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 3) gate-negative —— 负向自检：证明「缺 node 会红」在 runner 上也成立
