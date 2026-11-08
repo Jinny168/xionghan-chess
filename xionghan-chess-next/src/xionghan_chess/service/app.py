@@ -30,6 +30,7 @@ from xionghan_chess.core.puzzles import load_puzzles, puzzle_by_id
 from xionghan_chess.core.setup import FirstMove, profile_slots
 from xionghan_chess.i18n import normalize_language, t
 from .accounts import Account, AccountError, AccountStore
+from .ratelimit import LIMITER, RateLimitMiddleware
 
 
 manager = RoomManager()
@@ -80,6 +81,14 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="匈汉象棋 API", version="1.7.0", lifespan=lifespan)
+
+# P0-1：按 IP 的滑动窗口限流（`XH_RATE_LIMIT_PER_MINUTE`，**默认 0 = 关闭**）。
+# 这条曾存在于 1.6.0（台账 `AUDIT_v1.6.0_reaudit.md:156`），在 1.7.x 重构中被整段
+# 删除，于是 `/api/auth/*` 与 `/api/rooms` 又变成可无限刷的匿名写端点。
+# 必须挂在**应用构建期**（import 时）——`add_middleware` 在中间件栈建好之后再调用会抛
+# `RuntimeError`，而栈在首个请求/启动时就固化了。
+# 语义、取舍与已知风险见 `service/ratelimit.py` 顶部说明。
+app.add_middleware(RateLimitMiddleware, limiter=LIMITER)
 
 
 @app.exception_handler(RequestValidationError)
