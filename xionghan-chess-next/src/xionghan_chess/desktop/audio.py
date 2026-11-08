@@ -1,40 +1,116 @@
 from __future__ import annotations
 
-from pathlib import Path
+from collections.abc import Callable
 
 from PySide6.QtCore import QUrl
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer, QSoundEffect
 
+from .ui import theme
+from .texts import dl
+
+
+# 音效包：classic = 原有 7 个事件；web = 复刻投稿版 WebAudio 合成（8 个事件，多一个 undo）。
+# `undo` 只有 web 包有 —— classic 下静默，不拿 warn.wav 冒充。
+SOUND_PACKS: dict[str, dict[str, str]] = {
+    "classic": {
+        "select": "choose.wav", "move": "drop.wav", "capture": "eat.wav",
+        "check": "warn.wav", "win": "fc_victory_sound.wav",
+        "lose": "fc_defeat_sound.wav", "button": "button.wav",
+    },
+    "web": {
+        "select": "web/select.wav", "move": "web/move.wav", "capture": "web/capture.wav",
+        "check": "web/check.wav", "win": "web/win.wav", "lose": "web/lose.wav",
+        "click": "web/click.wav", "undo": "web/undo.wav",
+    },
+}
+DEFAULT_SOUND_PACK = "classic"
+
 
 class DesktopAudio:
     def __init__(self) -> None:
-        root = Path(__file__).resolve().parent / "resources" / "sounds"
-        files = {
-            "select": "choose.wav", "move": "drop.wav", "capture": "eat.wav",
-            "check": "warn.wav", "win": "fc_victory_sound.wav",
-            "lose": "fc_defeat_sound.wav", "button": "button.wav",
-        }
+        # S1-1：资源路径统一走 theme.resource()，本模块不再自己拼 __file__ 相对路径
+        # （audio.py 若被搬位置，旧写法会静默指到不存在的目录，音效全部静音而不报错）。
+        root = theme.resource("sounds")
+        # P1-S：失败要能说出来。此前没有订阅任何状态信号 —— 文件缺失或格式不支持时
+        # 只是「没有声音」，玩家和开发者都无从判断。现在把失败收集到 `failures`，
+        # 并可通过 `on_failure` 回调让界面提示一次。
+        self.failures: dict[str, str] = {}
+        self.on_failure: Callable[[str], None] | None = None
         self.effects: dict[str, QSoundEffect] = {}
-        for name, filename in files.items():
-            effect = QSoundEffect()
-            effect.setSource(QUrl.fromLocalFile(str(root / filename)))
-            self.effects[name] = effect
-        self.music_files = {"fc": root / "fc_background_sound.wav", "qq": root / "qq_background_sound.wav"}
+        # 音量先给默认值：_build_pack 里要用它设置 QSoundEffect 的音量
+        self.sound_volume = 70
+        self.music_volume = 40
+        self.sound_pack = DEFAULT_SOUND_PACK
+        self._build_pack(DEFAULT_SOUND_PACK)
+        # 阶段1 S1-5：BGM 由无压缩 WAV 换成 OGG/Vorbis（74.88 MB -> 5.98 MB，省 68.90 MB）。
+        # 依据 Qt 官方文档：QMediaPlayer 支持压缩格式；而短音效走 QSoundEffect，
+        # 官方要求"低延迟播放未压缩音频（通常 WAV）"，故 sounds/ 下其余 wav 不动。
+        self.music_files = {"fc": root / "fc_background_sound.ogg", "qq": root / "qq_background_sound.ogg"}
         self.output = QAudioOutput()
         self.player = QMediaPlayer()
         self.player.setAudioOutput(self.output)
         self.player.setLoops(QMediaPlayer.Loops.Infinite)
+        self.player.errorOccurred.connect(self._on_player_error)
         self.enabled = True
         self.music_enabled = False
         self.music_style = "fc"
         self.sound_volume = 70
         self.music_volume = 40
 
+    def _build_pack(self, pack: str) -> None:
+        """按包名重建 `QSoundEffect`。切包必须重建：`setSource` 换文件在部分平台不生效。"""
+        root = theme.resource("sounds")
+        for effect in self.effects.values():
+            effect.deleteLater()
+        self.effects = {}
+        self.sound_pack = pack if pack in SOUND_PACKS else DEFAULT_SOUND_PACK
+        for name, filename in SOUND_PACKS[self.sound_pack].items():
+            effect = QSoundEffect()
+            effect.setSource(QUrl.fromLocalFile(str(root / filename)))
+            effect.setVolume(self.sound_volume / 100)
+            effect.statusChanged.connect(lambda name=name: self._on_effect_status(name))
+            self.effects[name] = effect
+
+    def set_sound_pack(self, pack: str, audition: bool = True) -> None:
+        """切音效包；默认立刻试听 `select`，让用户当场听到差别。"""
+        if pack == self.sound_pack:
+            return
+        self._build_pack(pack)
+        if audition:
+            self.play("select")
+
+    # ---- P1-S：失败收集与上报 ----
+    def _record_failure(self, key: str, reason: str) -> None:
+        """同一个音源只报一次，避免每次播放都刷屏。"""
+        if key in self.failures:
+            return
+        self.failures[key] = reason
+        if self.on_failure is not None:
+            self.on_failure(f"{key}: {reason}")
+
+    def _on_effect_status(self, name: str) -> None:
+        effect = self.effects.get(name)
+        if effect is not None and effect.status() is QSoundEffect.Status.Error:
+            self._record_failure(name, dl("音效加载/播放失败（文件缺失或格式不支持）"))
+
+    def _on_player_error(self, error: QMediaPlayer.Error, message: str) -> None:
+        if error != QMediaPlayer.Error.NoError:
+            self._record_failure("music", message or dl("背景音乐加载失败"))
+
+    def failure_summary(self) -> str:
+        """给界面用的一句话；没有失败返回空串。"""
+        if not self.failures:
+            return ""
+        return dl("部分音效无法播放：") + "、".join(sorted(self.failures))
+
     def configure(self, config: dict) -> None:
         self.enabled = bool(config.get("sound", True))
         self.music_enabled = bool(config.get("music", False))
         self.music_style = str(config.get("music_style", "fc"))
         self.sound_volume = int(config.get("sound_volume", 70))
+        wanted_pack = str(config.get("sound_pack", DEFAULT_SOUND_PACK))
+        if wanted_pack != self.sound_pack:
+            self._build_pack(wanted_pack)
         self.music_volume = int(config.get("music_volume", 40))
         for effect in self.effects.values():
             effect.setVolume(self.sound_volume / 100)

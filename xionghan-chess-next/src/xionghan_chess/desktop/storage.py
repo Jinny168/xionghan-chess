@@ -8,7 +8,7 @@ from typing import Any
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.storage import game_document, game_from_content, game_from_document
 
-from .config import config_path
+from .config import data_dir, games_dir
 
 
 def save_game(game: Game, path: str | Path) -> Path:
@@ -23,13 +23,13 @@ def load_game(path: str | Path) -> Game:
 
 
 def autosave_game(game: Game) -> Path:
-    folder = config_path().parent / "games"
+    folder = games_dir()
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return save_game(game, folder / f"xionghan_{stamp}.xhgame")
 
 
 def statistics_path() -> Path:
-    return config_path().parent / "statistics.json"
+    return data_dir() / "statistics.json"
 
 
 def _statistics_defaults() -> dict[str, Any]:

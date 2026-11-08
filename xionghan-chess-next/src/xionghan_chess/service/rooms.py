@@ -19,6 +19,7 @@ from xionghan_chess.core.taunts import choose_taunt
 from xionghan_chess.i18n import normalize_language, t
 
 
+ZOMBIE_ROOM_SECONDS = 600   # 10 分钟没人连的 online 房视为僵尸
 RECONNECT_GRACE_SECONDS = int(os.getenv("RECONNECT_GRACE_SECONDS", "90"))
 
 
@@ -59,11 +60,14 @@ class Room:
     taunts_enabled: bool = True
     taunt_events: set[str] = field(default_factory=set)
     chat_history: list[dict[str, Any]] = field(default_factory=list)
+    # 刚接入/重连的 token：它们的**下一条** STATE 带完整 replay，之后一律不带
+    fresh_tokens: set[str] = field(default_factory=set)
 
     def tr(self, key: str, **params: object) -> str:
         return t(key, self.language, **params)
 
-    def snapshot(self, token: str | None = None, compact: bool = False) -> dict[str, Any]:
+    def snapshot(self, token: str | None = None,
+                 include_replay: bool = True) -> dict[str, Any]:
         seat = next((s for s in self.seats.values() if s.token == token), None)
         players = ([
             {"color": Color.RED.value, "name": self.tr("common.local_player_one"),
@@ -83,7 +87,7 @@ class Room:
             "players": players,
             "chatHistory": list(self.chat_history),
             "spectatorCount": sum(item.connected for item in self.spectators.values()),
-            "game": self.game.public_state(replay_tail=2 if compact else None),
+            "game": self.game.public_state(include_replay=include_replay),
         }
 
 
@@ -182,12 +186,13 @@ class RoomManager:
             room.spectators[token] = spectator
             return room, spectator
 
-    async def connect_spectator(self, room: Room, token: str,
-                                websocket: WebSocket) -> Spectator:
+    async def connect_spectator(self, room: Room, token: str, websocket: WebSocket,
+                                accepted: bool = False) -> Spectator:
         spectator = room.spectators.get(token)
         if spectator is None:
             raise GameError(room.tr("error.invalid_token"))
-        await websocket.accept()
+        if not accepted:
+            await websocket.accept()
         async with room.lock:
             previous = room.spectator_sockets.get(token)
             room.spectator_sockets[token] = websocket
@@ -218,12 +223,19 @@ class RoomManager:
             "quick": False, "timestamp": int(time.time() * 1000),
         })
 
-    async def connect(self, room: Room, token: str, websocket: WebSocket) -> PlayerSeat:
+    async def connect(self, room: Room, token: str, websocket: WebSocket,
+                      accepted: bool = False) -> PlayerSeat:
         seat = self.seat_for(room, token)
-        await websocket.accept()
+        # WS 现在**先握手再认证**（token 在首帧），握手已经做过了，这里不能再 accept 一次。
+        if not accepted:
+            await websocket.accept()
         async with room.lock:
             previous = room.sockets.get(token)
             room.sockets[token] = websocket
+            fresh = getattr(room, "fresh_tokens", None)
+            if fresh is None:
+                fresh = room.fresh_tokens = set()
+            fresh.add(token)          # 这一条 STATE 带完整 replay
             seat.connected = True
             seat.disconnected_at = None
             room.last_activity = time.time()
@@ -252,9 +264,14 @@ class RoomManager:
                 return
             revision_independent = {MessageType.CHAT, MessageType.DRAW_RESPONSE,
                                     MessageType.UNDO_RESPONSE, MessageType.RESTART_RESPONSE}
-            if (envelope.type not in revision_independent and envelope.revision is not None
-                    and envelope.revision != room.revision):
-                raise GameError(room.tr("error.client_stale"))
+            if envelope.type not in revision_independent:
+                # local 房**必须**带 revision：它没有 online 房那条 turn 兜底，
+                # 而原来的 `revision is not None and ...` 写法会让"不填 revision"整段跳过校验，
+                # 于是乱序/重复的落子消息会被直接采纳。
+                if room.mode == "local" and envelope.revision is None:
+                    raise GameError("local 房需要 revision")
+                if envelope.revision is not None and envelope.revision != room.revision:
+                    raise GameError(room.tr("error.client_stale"))
             if envelope.type is MessageType.CHAT:
                 text = str(envelope.payload.get("text", "")).strip()
                 if not text:
@@ -408,14 +425,20 @@ class RoomManager:
             revision = room.revision
             player_sockets = list(room.sockets.items())
             spectator_sockets = list(room.spectator_sockets.items())
+            # 刚接入/重连的 socket 第一条 STATE 带完整 replay，之后一律不带。
+            # 为什么不在 connect 里额外发一帧：那会让"一问一答"的时序整体后移一帧，
+            # 客户端按 revision 对齐的用例会读到上一条。
+            fresh = getattr(room, "fresh_tokens", set())
             player_messages = {
                 token: Envelope(type=MessageType.STATE, roomId=room.id, revision=revision,
-                                payload=room.snapshot(token, compact=True)).wire()
+                                payload=room.snapshot(token, include_replay=token in fresh)).wire()
                 for token in room.sockets
             }
+            if fresh:
+                room.fresh_tokens = set()
             spectator_message = Envelope(
                 type=MessageType.STATE, roomId=room.id, revision=revision,
-                payload=room.snapshot(None, compact=True)).wire()
+                payload=room.snapshot(None, include_replay=False)).wire()
         dead: list[tuple[str, WebSocket]] = []
         for token, socket in player_sockets:
             try:
@@ -488,7 +511,12 @@ class RoomManager:
                     changed.append(room)
                 abandoned = (room.mode in {"ai", "local"} and not room.sockets
                              and now - room.last_activity > 1800)
-                if abandoned or (room.game.state.finished and now - room.last_activity > 3600):
+                # S2：online 房如果**从未建立 socket**（匿名建房把配额占满的那条路），
+                # `disconnected_at` 恒为空、`abandoned` 又不覆盖 online → 永不回收。
+                # 用"创建时间"兜底，10 分钟没人连就清掉。
+                zombie = (room.mode == "online" and not room.sockets
+                          and now - getattr(room, "created_at", now) > ZOMBIE_ROOM_SECONDS)
+                if abandoned or zombie or (room.game.state.finished and now - room.last_activity > 3600):
                     stale.append(room_id)
         for room in changed:
             await self.broadcast(room)

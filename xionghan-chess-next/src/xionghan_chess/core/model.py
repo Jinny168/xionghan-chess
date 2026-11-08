@@ -27,14 +27,21 @@ class PieceType(StrEnum):
     GUARD = "guard"       # 尉/衛
     ARCHER = "archer"     # 射/䠶
     THUNDER = "thunder"   # 檑/礌
-    ARMOR = "armor"       # 甲/胄
-    ASSASSIN = "assassin" # 刺/伺
-    SHIELD = "shield"     # 楯/碷
     PATROL = "patrol"     # 巡/廵
 
 
 @dataclass(frozen=True, slots=True, order=True)
 class Position:
+    """棋盘坐标。
+
+    ⚠️ **这里不校验范围**：AI 与规则引擎会用 `Position(row + dr, col + dc)` 去"探测"越界格，
+    再靠 `get()` 返回 None 判断出界（`rules.py:55/193/476`、`ai.py:589/603/630`）。
+    在 `__post_init__` 里禁负会直接打断这套写法（实测 63 条测试红）。
+
+    越界防线放在**输入边界**：`storage.game_from_document()` 按 `profile.rows/cols`
+    校验存档里的每一枚子（见 `_assert_in_bounds`）——那里才是"外部数据进来"的地方。
+    """
+
     row: int
     col: int
 
@@ -104,7 +111,14 @@ class GameState:
         return self.winner is not None or self.draw
 
     def piece_at(self, position: Position) -> Piece | None:
-        return next((p for p in self.pieces if p.position == position), None)
+        # 搜索内每生成一个伪着法就要查一次目标格（cProfile：15 万次/5s），
+        # 直接比 row/col 比构造/比较 Position 快，语义完全等价（Position 是
+        # frozen dataclass，`==` 就是逐字段比）。
+        row, col = position.row, position.col
+        for piece in self.pieces:
+            if piece.position.row == row and piece.position.col == col:
+                return piece
+        return None
 
     def clone(self) -> "GameState":
         return GameState.from_dict(self.to_dict())
@@ -182,6 +196,24 @@ def piece_to_dict(piece: Piece) -> dict[str, Any]:
             "row": piece.position.row, "col": piece.position.col}
 
 
+class UnsupportedSaveError(ValueError):
+    """存档里出现已被移除的兵种（甲/楯/刺）。
+
+    1.7.5 起这三个类型从枚举里删掉了，旧存档直接 `PieceType(...)` 会抛一个
+    没有上下文的 `ValueError`；这里换成一句人话，并提示用哪个版本打开。
+    """
+
+
+REMOVED_PIECE_NAMES = {"armor": "甲/胄", "shield": "楯/碷", "assassin": "刺/伺"}
+
+
 def piece_from_dict(data: dict[str, Any]) -> Piece:
-    return Piece(data["id"], PieceType(data["type"]), Color(data["color"]),
+    raw = data["type"]
+    try:
+        kind = PieceType(raw)
+    except ValueError as exc:
+        name = REMOVED_PIECE_NAMES.get(str(raw), str(raw))
+        raise UnsupportedSaveError(
+            f"存档包含已移除的兵种：{name}；请用 1.7.4 或更早版本打开") from exc
+    return Piece(data["id"], kind, Color(data["color"]),
                  Position(int(data["row"]), int(data["col"])))

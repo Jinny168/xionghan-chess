@@ -1,0 +1,282 @@
+[
+ {
+  "id": "47bfd52b5443ea3f",
+  "fp": "54/12",
+  "red": 12238.2,
+  "black": -12298.2,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 701,
+   "stateIndex": 6,
+   "move": "7,11-7,6"
+  }
+ },
+ {
+  "id": "dd9e815207ba1ea6",
+  "fp": "53/10",
+  "red": 12362.42806,
+  "black": -12422.42806,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 701,
+   "stateIndex": 8,
+   "move": "7,11-7,6"
+  }
+ },
+ {
+  "id": "5fecf39dc1b58288",
+  "fp": "53/9",
+  "red": 12330.797806,
+  "black": -12390.797806,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 701,
+   "stateIndex": 10,
+   "move": "7,11-7,6"
+  }
+ },
+ {
+  "id": "353084402be78354",
+  "fp": "53/9",
+  "red": 12329.115935,
+  "black": -12389.115935,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 701,
+   "stateIndex": 12,
+   "move": "7,11-7,6"
+  }
+ },
+ {
+  "id": "042e524eeac5b2d7",
+  "fp": "54/10",
+  "red": 12149.26,
+  "black": -12209.26,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 702,
+   "stateIndex": 4,
+   "move": "5,1-5,6"
+  }
+ },
+ {
+  "id": "deb6701ffdba20bf",
+  "fp": "53/11",
+  "red": 12373.1,
+  "black": -12433.1,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 706,
+   "stateIndex": 12,
+   "move": "9,6-4,6"
+  }
+ },
+ {
+  "id": "f75e254910252eaa",
+  "fp": "54/6",
+  "red": 12386.25,
+  "black": -12446.25,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 708,
+   "stateIndex": 12,
+   "move": "6,4-4,3"
+  }
+ },
+ {
+  "id": "749778b66724c32f",
+  "fp": "54/4",
+  "red": 12471.85,
+  "black": -12531.85,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_complete",
+   "seed": 708,
+   "stateIndex": 12,
+   "move": "6,4-4,5"
+  }
+ },
+ {
+  "id": "d433d23d8e74b47f",
+  "fp": "48/11",
+  "red": 12208.6,
+  "black": -12268.6,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 700,
+   "stateIndex": 10,
+   "move": "7,11-7,6"
+  }
+ },
+ {
+  "id": "f4ce6727e8e1dbd1",
+  "fp": "48/10",
+  "red": 12237.2,
+  "black": -12297.2,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 700,
+   "stateIndex": 12,
+   "move": "7,5-7,6"
+  }
+ },
+ {
+  "id": "d591a0c9ada70390",
+  "fp": "48/10",
+  "red": 12258.1,
+  "black": -12318.1,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 701,
+   "stateIndex": 4,
+   "move": "7,11-7,6"
+  }
+ },
+ {
+  "id": "7735564771a9f1c0",
+  "fp": "48/10",
+  "red": 12239.9,
+  "black": -12299.9,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 701,
+   "stateIndex": 6,
+   "move": "7,11-7,6"
+  }
+ },
+ {
+  "id": "8b38f6789238d643",
+  "fp": "48/10",
+  "red": 12197.7,
+  "black": -12257.7,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 701,
+   "stateIndex": 8,
+   "move": "7,1-7,6"
+  }
+ },
+ {
+  "id": "fa780167840f8d57",
+  "fp": "47/9",
+  "red": 12066.3,
+  "black": -12126.3,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 701,
+   "stateIndex": 10,
+   "move": "7,1-7,6"
+  }
+ },
+ {
+  "id": "ebc1d8a4729143f2",
+  "fp": "48/11",
+  "red": 12164.46,
+  "black": -12224.46,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 703,
+   "stateIndex": 2,
+   "move": "5,1-5,6"
+  }
+ },
+ {
+  "id": "ee060d8a858c4d96",
+  "fp": "48/11",
+  "red": 12159.76,
+  "black": -12219.76,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 703,
+   "stateIndex": 4,
+   "move": "5,1-5,6"
+  }
+ },
+ {
+  "id": "b3fd785f96104135",
+  "fp": "48/12",
+  "red": 12269.1,
+  "black": -12329.1,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 704,
+   "stateIndex": 2,
+   "move": "6,1-6,6"
+  }
+ },
+ {
+  "id": "6e8418d4f5f01bb5",
+  "fp": "48/11",
+  "red": 12245.7,
+  "black": -12305.7,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 704,
+   "stateIndex": 4,
+   "move": "6,9-6,6"
+  }
+ },
+ {
+  "id": "e9d4846b9a9f8105",
+  "fp": "48/10",
+  "red": 12251.8,
+  "black": -12311.8,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 704,
+   "stateIndex": 6,
+   "move": "6,9-6,6"
+  }
+ },
+ {
+  "id": "baf8f5f4809bd511",
+  "fp": "48/10",
+  "red": 12186.9,
+  "black": -12246.9,
+  "sum": -60.0,
+  "pass": "A:seed700-709",
+  "src": {
+   "profile": "desktop_classic",
+   "seed": 704,
+   "stateIndex": 8,
+   "move": "6,9-6,6"
+  }
+ }
+]

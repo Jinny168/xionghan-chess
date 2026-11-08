@@ -8,6 +8,16 @@ from xionghan_chess.i18n import t
 from .model import Color, Piece, PieceType
 
 
+# The 13x13 "Xion Xiangqi" board. Red is the mirror image of Black, so Red's
+# back rank 0 corresponds to Black's back rank 12.
+XIONGHAN_ROWS = 13
+XIONGHAN_COLS = 13
+# Home rank of the patrol ("巡") before mirroring. Black starts on this rank and
+# Red starts on its mirror image, so the patrol may only ever move along one of
+# those two ranks. Only profiles that enable PieceType.PATROL place it.
+PATROL_HOME_ROW = 5
+
+
 @dataclass(frozen=True, slots=True)
 class RuleOptions:
     king_can_leave_palace: bool = True
@@ -25,6 +35,8 @@ class RuleOptions:
     pawn_full_movement_at_base: bool = True
     pawn_resurrection: bool = True
     pawn_promotion: bool = True
+    pawn_charge: bool = False                 # 敌阵冲锋（过阴山后直线多格，不吃子）
+    pawn_three_line_capture: bool = False     # 兵参与"三连吃子"（与甲同构）
     enforce_self_check: bool = True
     threefold_draw: bool = True
     no_progress_draw_plies: int = 120
@@ -39,9 +51,6 @@ class RuleOptions:
     guard_appear: bool = True
     archer_appear: bool = True
     thunder_appear: bool = True
-    armor_appear: bool = True
-    assassin_appear: bool = True
-    shield_appear: bool = True
     patrol_appear: bool = True
 
     def merged(self, values: dict[str, object] | None) -> "RuleOptions":
@@ -61,12 +70,13 @@ class RuleOptions:
             "pawn_promotion_enabled": "pawn_promotion",
             "pawn_backward_at_base_enabled": "pawn_backward_at_base",
             "pawn_full_movement_at_base_enabled": "pawn_full_movement_at_base",
+            "pawn_charge_enabled": "pawn_charge",
+            "pawn_three_line_capture_enabled": "pawn_three_line_capture",
             "ju_appear": "rook_appear", "ma_appear": "horse_appear",
             "xiang_appear": "elephant_appear", "shi_appear": "advisor_appear",
             "pao_appear": "cannon_appear", "wei_appear": "guard_appear",
             "she_appear": "archer_appear", "lei_appear": "thunder_appear",
-            "jia_appear": "armor_appear", "ci_appear": "assassin_appear",
-            "dun_appear": "shield_appear", "xun_appear": "patrol_appear",
+            "xun_appear": "patrol_appear",
         }
         normalized = {aliases.get(key, key): value for key, value in values.items()
                       if key not in {"archer_weak_mode", "sheWeakMode", "she_weak_mode"}}
@@ -125,15 +135,13 @@ RED_NAMES = {
     PieceType.KING: "漢", PieceType.ROOK: "俥", PieceType.HORSE: "傌",
     PieceType.ELEPHANT: "相", PieceType.ADVISOR: "仕", PieceType.CANNON: "炮",
     PieceType.PAWN: "兵", PieceType.GUARD: "尉", PieceType.ARCHER: "射",
-    PieceType.THUNDER: "檑", PieceType.ARMOR: "甲", PieceType.ASSASSIN: "刺",
-    PieceType.SHIELD: "楯", PieceType.PATROL: "巡",
+    PieceType.THUNDER: "檑", PieceType.PATROL: "巡",
 }
 BLACK_NAMES = {
     PieceType.KING: "汗", PieceType.ROOK: "車", PieceType.HORSE: "馬",
     PieceType.ELEPHANT: "象", PieceType.ADVISOR: "士", PieceType.CANNON: "砲",
     PieceType.PAWN: "卒", PieceType.GUARD: "衛", PieceType.ARCHER: "䠶",
-    PieceType.THUNDER: "礌", PieceType.ARMOR: "胄", PieceType.ASSASSIN: "伺",
-    PieceType.SHIELD: "碷", PieceType.PATROL: "廵",
+    PieceType.THUNDER: "礌", PieceType.PATROL: "廵",
 }
 
 
@@ -142,15 +150,15 @@ def specs(color: Color, items: Iterable[tuple[PieceType, int, int]]) -> list[Pie
 
 
 def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[PieceSpec]:
-    flip = (lambda row: 12 - row) if color is Color.RED else (lambda row: row)
+    flip = (lambda row: XIONGHAN_ROWS - 1 - row) if color is Color.RED else (lambda row: row)
     items: list[tuple[PieceType, int, int]] = []
     if complete:
+        # 软删甲/楯/刺：后排只保留射、仕、檑
+        # 尉与仕对调（(0,6)↔(1,5)）：尉改主教后原本两侧斜格被两只仕同时占死、首着 0，
+        # 玩家不愿动仕 → 整局可能不动尉。对调后尉首着 4，且仕/檑/王的首着数完全不变。
         items += [
-            (PieceType.ARCHER, 0, 0), (PieceType.SHIELD, 0, 1),
-            (PieceType.ARMOR, 0, 2), (PieceType.ASSASSIN, 0, 3),
-            (PieceType.THUNDER, 0, 4), (PieceType.GUARD, 0, 6),
-            (PieceType.THUNDER, 0, 8), (PieceType.ASSASSIN, 0, 9),
-            (PieceType.ARMOR, 0, 10), (PieceType.SHIELD, 0, 11),
+            (PieceType.ARCHER, 0, 0), (PieceType.THUNDER, 0, 4),
+            (PieceType.ADVISOR, 0, 6), (PieceType.THUNDER, 0, 8),
             (PieceType.ARCHER, 0, 12),
         ]
     elif web:
@@ -165,7 +173,7 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
         ]
     items += [
         (PieceType.ROOK, 1, 2), (PieceType.HORSE, 1, 3),
-        (PieceType.ELEPHANT, 1, 4), (PieceType.ADVISOR, 1, 5),
+        (PieceType.ELEPHANT, 1, 4), (PieceType.GUARD, 1, 5),
         (PieceType.KING, 1, 6), (PieceType.ADVISOR, 1, 7),
         (PieceType.ELEPHANT, 1, 8), (PieceType.HORSE, 1, 9),
         (PieceType.ROOK, 1, 10), (PieceType.CANNON, 3, 1),
@@ -173,7 +181,8 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
     ]
     items += [(PieceType.PAWN, 4, col) for col in range(0, 13, 2)]
     if complete or not web:
-        items += [(PieceType.PATROL, 5, 0), (PieceType.PATROL, 5, 12)]
+        items += [(PieceType.PATROL, PATROL_HOME_ROW, 0),
+                  (PieceType.PATROL, PATROL_HOME_ROW, XIONGHAN_COLS - 1)]
     return specs(color, [(kind, flip(row), col) for kind, row, col in items])
 
 

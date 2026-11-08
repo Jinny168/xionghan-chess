@@ -1,0 +1,351 @@
+"""按根着法打印搜索统计 —— **只读**测量工具，不改任何产品代码。
+
+## 为什么需要它
+
+目前团队里所有"改前/改后"的对照都在**各测各的局面**：一边 62 子 / 108 着、
+一边 59 子 / 113 着，数字互相引用就会得出相反结论（trunc 到底是 0 还是 12）。
+这个脚本把三件事固定下来，让换机器也能复现同一把尺子：
+
+1. **局面生成**：`--profile/--seed/--plies` 固定，走子策略是**确定性**的
+   （`idx = (中位 + seed) % 合法着数`，跳过逆着法与三次重复，避开立刻终局的吃王着法）；
+2. **测量口径**：临时覆盖 `QUIESCENCE_NODE_LIMIT`（只在**本进程**内）、
+   `AI_TIME_SCALE` 走产品自己的环境变量读取路径，不碰 `CONFIGS`；
+3. **provenance**：把上面每个参数的实际取值（含 `AI_TIME_SCALE` 及其来源）打进输出，
+   否则这组数字无法被引用。
+
+## 逐根数据是怎么来的（不改产品代码）
+
+`_root` 的循环里先 `apply_unchecked(state, move)` 再用该 child 调 `_search(depth-1, ..., ply=1)`。
+本脚本在运行时包两层：`rules.apply_unchecked` 记下"最近一次应用的着法"，
+`_search` 在 `ply == 1` 的**入口**读它（此时深层递归还没开始，读到的就是根着法），
+并记录 `qnodes` / `quiescence_truncations` 的增量与耗时。同一着法在多轮迭代加深里会被
+调用多次，输出时**按着法求和**。
+
+⚠️ 不能用 `child.state.history[-1]` 认根着法：`apply_unchecked` 走的是"纯状态变换"，
+**不写 history**，那里读到的是上一手真实对局记录（会把所有根着法错记成同一个）。
+
+这样既不复制 `_root` 的搜索逻辑（避免漂移），也不需要改 `core/ai.py`。
+
+用法::
+
+    python scripts/bench_roots.py --profile desktop_complete --seed 700 --plies 10
+    python scripts/bench_roots.py --cap 10 --json
+    python scripts/bench_roots.py --cap inf        # 等于关掉上限（阳性对照用）
+
+`--cap 10 / 80 / inf` 三次跑出来的 `trunc` 应当**单调**（这是"上限真的在生效"的自检）。
+
+## 可复现性：哪些字段稳定、哪些不稳定（实测）
+
+引擎是**时间受限**搜索（`time_limit` 是墙钟），所以同一命令重复跑：
+
+- **稳定**（逐次完全相同）：`pieces` / `legal` / `depth` / `trunc` / `fallbacks` / `move`，
+  以及逐根的 `move`、`root` 序号；
+- **不稳定**（随机器负载波动）：`nodes` / `qnodes` / `ms`。
+
+实测 `--plies 6` 连跑 5 次：`move`/`depth`/`trunc` 五次全同，`nodes` 在 74–106 之间浮动。
+
+## ⚠️ 负载敏感性：**"边界态"结论必须独占进程跑**
+
+技术侧实测过一次会**直接翻转结论**的环境因素（同一局面、同一参数）：
+
+| 运行环境 | depth | nodes | 选点 | 重复 |
+|---|---|---|---|---|
+| 同进程内先跑过一次 D1（有前序负载/缓存热） | **1** | 75–90 | `4,6-4,3` | 3/3 |
+| 无并发负载的干净进程 | **2** | 108–111 | `6,1-6,6` | 4/4 |
+
+nodes 差约 **25%** —— 足以让"刚好跨过 depth 2"变成"停在 depth 1"，连**选点**都会变。
+
+所以：
+
+- 凡结论是「**差一层 / 差一手 / 刚好达标**」这类边界判断，**必须在不跑别的东西的干净进程里跑**，
+  并且同一批局面**在同一次进程启动内连续测完**（避免"前几个局面把机器跑热"）；
+- 报告里要注明**是否单进程独占**（并发：无 / 有），否则这组数不能与别处比较；
+- **自动生成的基准局面必须存 FEN/JSON 快照**，不能只靠 `seed + plies`：自对弈路径依赖
+  `CONFIGS`，参数一变历史对比全部作废（实例：同名 `L6` 从 62/129 变成 62/85）。
+  这条与「同批同跑」是同一条纪律：**局面要冻结、批次要同一**。
+- 本脚本**不做并发检测、也不自动串行化**：`--json` 的 `provenance` 里只记录参数，
+  运行环境由调用者自己保证并声明。若你看到两次结果差 20% 以上而参数完全一致，**先怀疑负载**，
+  再怀疑改动。
+
+### 干净进程只是"可比"，不是"通过"
+
+干净进程只保证两组数可比；**通过判据必须在带负载下复测**。判据用公式，不用固定百分比：
+
+    预算 >= 1.14 * t_dn   （L1 轻载：nodes 掉 10-15%，设计点）
+    预算 >= 1.33 * t_dn   （L2 中载：nodes 掉约 25%，仅作"退化边界"记录）
+
+原因：nodes 掉 x% 意味着同层耗时 ×1/(1−x)：
+  - 掉 25% → ×1.33 → 需 33% 余量；
+  - 掉 12.5% → ×1.14 → 需 14% 余量。
+
+设计点取 L1；L2 不达标属预期，只记录"负载升高时退化到 1 层"。
+加载场景：桌面态边跑 25ms 落子动画 / 250ms 刷新；服务端态两房间并发（AI 与登录 PBKDF2 同池）。
+**任何声称"时间受限搜索的 nodes 逐次相同"的工具，要么不是时间受限，要么在缓存结果。**
+要横向对照，请比稳定字段，或用 `--cap` 的单调性当判据。
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import statistics
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from xionghan_chess.core.ai import CONFIGS, ChessAI, Difficulty  # noqa: E402
+from xionghan_chess.core.game import Game, GameError  # noqa: E402
+from xionghan_chess.core.model import Color, Move, Piece, PieceType  # noqa: E402
+import xionghan_chess.core.ai as ai_module  # noqa: E402
+
+POSITION_POLICY = ("每步从合法着法列表中位起、按 seed 做确定性轮转；"
+                   "跳过上一步的逆着法与第三次重复（position_key 计数），"
+                   "避开会立刻终局的吃王着法")
+
+
+def build_dense_position(profile: str) -> tuple[Game, list[str]]:
+    """`--scenario dense`：交错密集局面（红黑相间 6×6）。
+
+    用途是**阳性对照**：正常对局里单次静态搜索很少超过 80 节点，`--cap` 调到多少
+    `trunc` 都是 0，看不出上限有没有生效；这个局面里每一步吃子都会打开下一处吃子，
+    单次静态搜索能轻松破百，于是 `--cap 10/40/80/inf` 的 `trunc` 呈单调。
+    """
+    game = Game(profile)
+    pieces = [
+        Piece.create(PieceType.KING, Color.RED, game.profile.rows - 1, 6),
+        Piece.create(PieceType.KING, Color.BLACK, 0, 6),
+    ]
+    for row in range(3, 9):
+        for col in range(3, 9):
+            color = Color.RED if (row + col) % 2 == 0 else Color.BLACK
+            pieces.append(Piece.create(PieceType.PAWN, color, row, col))
+    game.state.pieces = pieces
+    game.state.turn = Color.RED
+    return game, []
+
+
+REPETITION_LIMIT = 3      # 同一 position_key 最多出现这么多次，超过就换候选
+
+
+def position_fingerprint(game: Game) -> str:
+    """唯一标识一个局面：`position_key`（含轮次、子力、升变池）。
+
+    `pieces/legal` 只是辅助显示 —— 两个局面子数与合法着数相同，完全可能是不同局面。
+    """
+    return game.rules.position_key(game.state)
+
+
+def build_position(profile: str, seed: int, plies: int) -> tuple[Game, list[str]]:
+    """按「seed 参与的确定性轮转」推进 `plies` 手，并避免走成原地打转。
+
+    ## 与 v1 的三处差别（v1 的 16 个"局面"实际只有 4 个独立局面）
+    1. **seed 真正参与决策**：v1 取"合法着法中位"，`seed` 完全不消费 →
+       700/701/702/703 生成逐子相同的局面。现在起点是
+       `idx = (median + seed) % len(pool)`，同 seed 完全一致、相邻 seed 至少差一位。
+    2. **禁止立刻回头**：跳过上一步的逆着法（`A→B` 之后不再走 `B→A`）。
+       v1 会在 `7,12 ↔ 7,10` 这类两步之间无限循环，`plies=8` 与 `plies=12` 是同一局面。
+    3. **三次重复检测**：用 `position_key` 计数，候选会让某局面第 4 次出现时换下一个候选。
+
+    策略**不依赖时间受限搜索**（不调 `choose_move`），所以同参可确定性重建。
+    """
+    game = Game(profile)
+    played: list[str] = []
+    last: Move | None = None
+    seen: dict[str, int] = {position_fingerprint(game): 1}
+
+    for _ in range(plies):
+        legal = game.rules.legal_moves(game.state)
+        if not legal or game.state.finished:
+            break
+        # 吃王的着法会让局面立刻终局，这里只是"造基准局面"，避开它
+        pool = sorted(
+            (move for move in legal
+             if (piece := game.state.piece_at(move.target)) is None
+             or piece.type is not PieceType.KING),
+            key=lambda move: move.key(),
+        ) or sorted(legal, key=lambda move: move.key())
+
+        start = (len(pool) // 2 + seed) % len(pool)
+        chosen: Move | None = None
+        for step in range(len(pool)):
+            candidate = pool[(start + step) % len(pool)]
+            if last is not None and _is_reverse(last, candidate):
+                continue
+            try:
+                probe = game.rules.apply_unchecked(game.state, candidate)
+            except GameError:
+                continue
+            if seen.get(game.rules.position_key(probe), 0) >= REPETITION_LIMIT:
+                continue
+            chosen = candidate
+            break
+        if chosen is None:                       # 全部候选都不合格：宁可停下
+            break
+        try:
+            game.move(chosen)
+        except GameError:
+            break
+        last = chosen
+        played.append(game.state.history[-1].move.key())
+        key = position_fingerprint(game)
+        seen[key] = seen.get(key, 0) + 1
+
+    return game, played
+
+
+def _is_reverse(previous: Move, candidate: Move) -> bool:
+    """`candidate` 是否正好把 `previous` 走回去（源/目标互换，同兵种同升变）。"""
+    return (candidate.source == previous.target
+            and candidate.target == previous.source
+            and candidate.promotion == previous.promotion)
+
+
+def instrument(ai: ChessAI, rules) -> dict[str, dict[str, float]]:
+    """给一个 `ChessAI` 实例装上"按根着法记账"的 `_search` 包装。"""
+    rows: dict[str, dict[str, float]] = {}
+    last_applied: dict[str, object] = {"move": None}
+    original_search = ai._search
+    original_apply = rules.apply_unchecked
+
+    def apply_wrapped(state, move, **kwargs):
+        last_applied["move"] = move
+        return original_apply(state, move, **kwargs)
+
+    def search_wrapped(game, depth, alpha, beta, deadline, cancel, ply, allow_null=True):
+        started = time.perf_counter()
+        qnodes_before = ai.qnodes
+        trunc_before = ai.quiescence_truncations
+        move = last_applied["move"] if ply == 1 else None
+        try:
+            return original_search(game, depth, alpha, beta, deadline, cancel, ply, allow_null)
+        finally:
+            if move is not None:
+                key = move.key()
+                row = rows.setdefault(key, {"qnodes": 0.0, "trunc": 0.0, "ms": 0.0, "calls": 0.0})
+                row["qnodes"] += ai.qnodes - qnodes_before
+                row["trunc"] += ai.quiescence_truncations - trunc_before
+                row["ms"] += (time.perf_counter() - started) * 1000
+                row["calls"] += 1
+
+    rules.apply_unchecked = apply_wrapped      # 仅本进程内生效
+    ai._search = search_wrapped               # type: ignore[method-assign]
+    return rows
+
+
+def parse_cap(raw: str) -> float:
+    text = raw.strip().lower()
+    if text in ("inf", "infinity", "∞", "none", "0"):
+        return float("inf")
+    return float(int(text))
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="按根着法打印搜索统计（只读）")
+    parser.add_argument("--profile", default="desktop_complete")
+    parser.add_argument("--seed", type=int, default=700)
+    parser.add_argument("--plies", type=int, default=10)
+    parser.add_argument("--difficulty", default=Difficulty.MEDIUM.value)
+    parser.add_argument("--cap", default="80", help="临时覆盖 QUIESCENCE_NODE_LIMIT（80 / 10 / inf）")
+    parser.add_argument("--budget-scale", type=float, default=1.0,
+                        help="作用于 time_limit 的测量缩放（通过 AI_TIME_SCALE 环境变量）")
+    parser.add_argument("--scenario", default="played", choices=("played", "dense"),
+                        help="played=按中位策略走 --plies 手；dense=交错密集局面（阳性对照）")
+    parser.add_argument("--json", action="store_true", help="机器可读输出")
+    args = parser.parse_args(argv)
+
+    # ---- 测量口径（只在本进程内生效）----
+    env_scale_before = os.environ.get("AI_TIME_SCALE")
+    os.environ["AI_TIME_SCALE"] = str(args.budget_scale)
+    cap_value = parse_cap(args.cap)
+    ai_module.QUIESCENCE_NODE_LIMIT = cap_value
+
+    difficulty = Difficulty(args.difficulty)
+    if args.scenario == "dense":
+        game, played = build_dense_position(args.profile)
+    else:
+        game, played = build_position(args.profile, args.seed, args.plies)
+
+    ai = ChessAI(difficulty, seed=args.seed)
+    rows = instrument(ai, game.rules)
+    started = time.perf_counter()
+    choice = ai.choose_move(game)
+    wall = time.perf_counter() - started
+
+    order = {move.key(): index for index, (_s, move, _t) in enumerate(ai.root_scores)}
+    table = []
+    for key, row in rows.items():
+        table.append({
+            "root": order.get(key, -1),
+            "move": key,
+            "qnodes": int(row["qnodes"]),
+            "trunc": int(row["trunc"]),
+            "ms": round(row["ms"]),
+            "calls": int(row["calls"]),
+        })
+    table.sort(key=lambda item: (item["root"] if item["root"] >= 0 else 10**6, item["move"]))
+
+    scale = os.environ.get("AI_TIME_SCALE", "1.0")
+    provenance = {
+        "profile": args.profile,
+        "seed": args.seed,
+        "plies": args.plies,
+        "difficulty": difficulty.value,
+        "cap": ("inf" if math.isinf(cap_value) else int(cap_value)),
+        "budget_scale": args.budget_scale,
+        "AI_TIME_SCALE": scale,
+        "AI_TIME_SCALE_source": "--budget-scale" if scale == str(args.budget_scale)
+                                else ("env(覆盖)" if env_scale_before else "default"),
+        "time_limit": CONFIGS[difficulty].time_limit * float(scale),
+        "randomness": CONFIGS[difficulty].randomness,
+        "scenario": args.scenario,
+        "position_policy": POSITION_POLICY,
+        "determinism": ("pieces/legal/depth/trunc/move 与逐根 move 稳定；"
+                        "nodes/qnodes/ms 受墙钟限制会波动"),
+        "played": played,
+    }
+    summary = {
+        # 唯一指纹：`pieces/legal` 相同也可能是不同局面，跨快照引用只认这个
+        "position_key": position_fingerprint(game),
+        "pieces": len(game.state.pieces),
+        "legal": len(game.rules.legal_moves(game.state)),
+        "nodes": ai.nodes,
+        "qnodes": ai.qnodes,
+        "depth": ai.completed_depth,
+        "trunc": ai.quiescence_truncations,
+        "fallbacks": ai.no_candidate_fallbacks,
+        "move": choice.key() if choice else None,
+        "wall": round(wall, 2),
+    }
+
+    if args.json:
+        print(json.dumps({"roots": table, "summary": summary, "provenance": provenance},
+                         ensure_ascii=False, indent=2))
+        return 0
+
+    header = f"{'root':>4}  {'move':<12}{'qnodes':>7}{'trunc':>7}{'ms':>7}{'calls':>7}"
+    print(header)
+    for row in table:
+        print(f"{row['root']:>4}  {row['move']:<12}{row['qnodes']:>7}{row['trunc']:>7}"
+              f"{row['ms']:>7}{row['calls']:>7}")
+    if table:
+        trunc_values = [row["trunc"] for row in table]
+        print(f"（逐根 ms 中位 {statistics.median(r['ms'] for r in table):.0f}，"
+              f"trunc 非零根 {sum(1 for value in trunc_values if value)}/{len(trunc_values)}）")
+
+    def _short(key: str, value: object) -> object:
+        if key == "position_key" and isinstance(value, str) and len(value) > 32:
+            return value[:32] + "…"
+        return value
+
+    print("summary: " + " ".join(f"{key}={_short(key, value)}" for key, value in summary.items()))
+    print("provenance: " + " ".join(f"{key}={value}" for key, value in provenance.items()))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

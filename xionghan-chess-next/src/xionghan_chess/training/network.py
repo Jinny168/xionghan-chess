@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from ..core.model import GameState
-from .encoding import ACTION_SIZE, FEATURE_SIZE, action_index, encode_state
+from .encoding import ACTION_SIZE, FEATURE_SIZE, encode_state
 
 
 class NumpyPolicyValueNet:
@@ -70,29 +70,3 @@ class NumpyPolicyValueNet:
         target.parent.mkdir(parents=True, exist_ok=True)
         self.np.savez_compressed(target, schema=1, w1=self.w1, b1=self.b1,
                                  wp=self.wp, bp=self.bp, wv=self.wv, bv=self.bv)
-
-    @classmethod
-    def load(cls, path: str | Path) -> "NumpyPolicyValueNet":
-        model = cls(hidden=1)
-        data = model.np.load(Path(path))
-        if int(data["schema"]) != 1:
-            raise ValueError("unsupported policy/value schema")
-        model.w1 = data["w1"].astype("float32")
-        model.b1 = data["b1"].astype("float32")
-        model.wp = data["wp"].astype("float32")
-        model.bp = data["bp"].astype("float32")
-        model.wv = data["wv"].astype("float32")
-        model.bv = data["bv"].astype("float32")
-        return model
-
-    def evaluate_state(self, state: GameState) -> tuple[object, float]:
-        np = self.np
-        x = np.asarray([encode_state(state)], dtype="float32")
-        hidden = np.tanh(x @ self.w1 + self.b1)
-        logits = (hidden @ self.wp + self.bp)[0]
-        value = float(np.tanh(hidden @ self.wv + self.bv)[0, 0])
-        return logits, value
-
-    def move_score(self, state: GameState, move) -> float:
-        logits, _ = self.evaluate_state(state)
-        return float(logits[action_index(move)])

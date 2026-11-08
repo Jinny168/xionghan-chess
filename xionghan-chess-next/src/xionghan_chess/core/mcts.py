@@ -11,6 +11,12 @@ from .game import Game
 from .model import Move
 
 
+# SEE 预处理的候选上限：吃子再多也只估算前 N 个，其余直接进候选。
+# 理由：MCTS 的时间盒是 12s，而一次 SEE 约毫秒级；captures 上百个时预处理
+# 自己就能吃掉几秒，且这段时间里没有任何 cancel 检查。
+SEE_CANDIDATE_LIMIT = 16
+
+
 @dataclass
 class _Node:
     move: Move | None = None
@@ -26,37 +32,42 @@ class MCTS:
 
     def __init__(self, time_limit: float = 0.35, simulations: int | None = None,
                  exploration: float = math.sqrt(2.0), seed: int | None = None,
-                 root_score: Callable[[Game, Move], float] | None = None,
-                 leaf_score: Callable[[Game, object], float] | None = None,
-                 root_limit: int = 40):
+                 root_score: Callable[[Game, Move], float] | None = None):
         self.time_limit = max(0.01, float(time_limit))
         self.simulations = simulations
         self.exploration = max(0.0, float(exploration))
         self.random = random.Random(seed)
         self.root_score = root_score
-        self.leaf_score = leaf_score
-        self.root_limit = max(1, int(root_limit))
         self.completed_simulations = 0
 
     def choose_move(self, game: Game, cancel: threading.Event | None = None) -> Move | None:
+        # ⚠️ 时间盒必须在**任何预处理之前**开始：原来 `deadline` 建在 SEE 预处理之后，
+        # 那段完全不受预算约束（实测 12s 预算跑出过 62.6s），且循环里没有 cancel 检查，
+        # 暂停/悔棋都停不下来。这两条一起修。
+        deadline = time.monotonic() + self.time_limit
         legal = game.rules.legal_moves(game.state)
         if not legal:
             return None
+        # The legacy player expanded from policy priors.  In the dependency-
+        # free engine, forcing available captures into the root candidate set
+        # provides the equivalent tactical prior while deeper playouts still
+        # decide which capture is sound.
         captures = [move for move in legal if game.rules.captured_by_move(game.state, move)]
-        candidates = legal
-        if self.root_score is not None:
-            scored = sorted(((self.root_score(game, move), move) for move in legal),
-                            key=lambda item: item[0], reverse=True)
-            if captures:
-                safe_captures = [(score, move) for score, move in scored
-                                 if move in captures and score >= 0]
-                if safe_captures:
-                    scored = safe_captures
-            candidates = [move for _, move in scored[:self.root_limit]] or legal
-        elif captures:
-            candidates = captures
+        candidates = captures or legal
+        if captures and self.root_score is not None:
+            # 只对前 `SEE_CANDIDATE_LIMIT` 个吃子做 SEE 估算：吃子很多时，预处理本身
+            # 就能吃掉几秒。超限/超预算的那些**直接当候选**，不再消耗预算。
+            safe: list[Move] = []
+            for index, move in enumerate(captures):
+                if cancel is not None and cancel.is_set():
+                    return None
+                if index >= SEE_CANDIDATE_LIMIT or time.monotonic() >= deadline:
+                    safe.extend(captures[index:])
+                    break
+                if self.root_score(game, move) >= 0:
+                    safe.append(move)
+            candidates = safe or [move for move in legal if move not in captures] or legal
         root = _Node(unexpanded=list(candidates))
-        deadline = time.monotonic() + self.time_limit
         self.completed_simulations = 0
         while (self.simulations is None and time.monotonic() < deadline) or (
                 self.simulations is not None and self.completed_simulations < self.simulations):
@@ -76,7 +87,7 @@ class MCTS:
                 state_game = self._apply(state_game, node.move)
                 path.append(node)
             if node.unexpanded:
-                move = node.unexpanded.pop(0 if self.root_score is not None else self.random.randrange(len(node.unexpanded)))
+                move = node.unexpanded.pop(self.random.randrange(len(node.unexpanded)))
                 state_game = self._apply(state_game, move)
                 child = _Node(move=move, parent=node, unexpanded=list(state_game.rules.legal_moves(state_game.state)))
                 node.children.append(child)
@@ -87,7 +98,7 @@ class MCTS:
                 item.visits += 1
                 item.value += result
             self.completed_simulations += 1
-        return max(root.children, key=lambda child: (child.value / max(1, child.visits), child.visits)).move if root.children else candidates[0]
+        return max(root.children, key=lambda child: child.visits).move if root.children else candidates[0]
 
     def _ucb(self, node: _Node, parent_visits: int, maximizing: bool = True) -> float:
         if not node.visits:
@@ -118,6 +129,4 @@ class MCTS:
             return 1.0
         if game.state.winner is root_color.opponent:
             return -1.0
-        if self.leaf_score is not None:
-            return max(-1.0, min(1.0, self.leaf_score(game, root_color)))
         return 0.0

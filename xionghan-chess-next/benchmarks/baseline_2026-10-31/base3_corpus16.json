@@ -1,0 +1,114 @@
+[
+ {
+  "profile": "desktop_complete",
+  "seed": 700,
+  "plies": 4,
+  "id": "c879a685ccbc5293",
+  "fp": "54/104"
+ },
+ {
+  "profile": "desktop_complete",
+  "seed": 701,
+  "plies": 4,
+  "id": "e99fb54fcad0b724",
+  "fp": "54/95"
+ },
+ {
+  "profile": "desktop_complete",
+  "seed": 702,
+  "plies": 4,
+  "id": "eb8cc7e2acddeaee",
+  "fp": "54/104"
+ },
+ {
+  "profile": "desktop_complete",
+  "seed": 703,
+  "plies": 4,
+  "id": "433f309b7e6b3a5e",
+  "fp": "54/95"
+ },
+ {
+  "profile": "desktop_complete",
+  "seed": 700,
+  "plies": 8,
+  "id": "befd138469ba3e55",
+  "fp": "54/99"
+ },
+ {
+  "profile": "desktop_complete",
+  "seed": 701,
+  "plies": 8,
+  "id": "08c1d38c5c8e305f",
+  "fp": "53/92"
+ },
+ {
+  "profile": "desktop_complete",
+  "seed": 702,
+  "plies": 8,
+  "id": "47901cf39ffcc18e",
+  "fp": "54/85"
+ },
+ {
+  "profile": "desktop_complete",
+  "seed": 703,
+  "plies": 8,
+  "id": "f214bfba3ff188ed",
+  "fp": "54/85"
+ },
+ {
+  "profile": "desktop_complete",
+  "seed": 700,
+  "plies": 12,
+  "id": "95b18d62c505def0",
+  "fp": "54/106"
+ },
+ {
+  "profile": "desktop_complete",
+  "seed": 701,
+  "plies": 12,
+  "id": "bd12780a22d10518",
+  "fp": "53/102"
+ },
+ {
+  "profile": "desktop_complete",
+  "seed": 702,
+  "plies": 12,
+  "id": "c5e21ca33b04f8c2",
+  "fp": "54/86"
+ },
+ {
+  "profile": "desktop_complete",
+  "seed": 703,
+  "plies": 12,
+  "id": "eb77d0b543dcd015",
+  "fp": "54/81"
+ },
+ {
+  "profile": "web",
+  "seed": 700,
+  "plies": 8,
+  "id": "a0ffc53c62f671e5",
+  "fp": "44/91"
+ },
+ {
+  "profile": "web",
+  "seed": 701,
+  "plies": 8,
+  "id": "a809960d02cca50c",
+  "fp": "44/127"
+ },
+ {
+  "profile": "traditional",
+  "seed": 700,
+  "plies": 8,
+  "id": "a2550f49e3960786",
+  "fp": "32/42"
+ },
+ {
+  "profile": "traditional",
+  "seed": 701,
+  "plies": 8,
+  "id": "9c5ee0503469af6f",
+  "fp": "32/43"
+ }
+]

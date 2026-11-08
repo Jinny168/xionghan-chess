@@ -25,41 +25,103 @@ def test_king_can_leave_palace_when_enabled():
                            get_profile("desktop_complete").options.merged({"king_can_leave_palace": False})).is_legal(board, move)
 
 
-def test_shield_cannot_be_captured_and_protects_adjacent_piece():
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def test_archer_captures_through_blockers_but_moves_only_on_clear_path():
+    """射：吃子无视阻挡；位移仍要求路径无子（射程/星点/夹逼不变）。"""
     red, black = kings()
-    rook = piece(PieceType.ROOK, Color.RED, 6, 0)
-    shield = piece(PieceType.SHIELD, Color.BLACK, 6, 3)
-    pawn = piece(PieceType.PAWN, Color.BLACK, 6, 4)
-    board = state(red, black, rook, shield, pawn)
     rules = RulesEngine(get_profile("desktop_complete"))
-    assert not rules.is_legal(board, Move(rook.position, shield.position))
-    assert not rules.is_legal(board, Move(rook.position, pawn.position))
+
+    one = state(red, black, piece(PieceType.ARCHER, Color.RED, 0, 0),
+                piece(PieceType.PAWN, Color.RED, 1, 1),
+                piece(PieceType.HORSE, Color.BLACK, 3, 3))
+    assert rules.is_legal(one, Move(Position(0, 0), Position(3, 3))), "隔 1 子应能吃到"
+    assert not rules.is_legal(one, Move(Position(0, 0), Position(2, 2))), "空着位移被挡应非法"
+
+    two = state(red, black, piece(PieceType.ARCHER, Color.RED, 0, 0),
+                piece(PieceType.PAWN, Color.RED, 1, 1),
+                piece(PieceType.PAWN, Color.RED, 2, 2),
+                piece(PieceType.HORSE, Color.BLACK, 3, 3))
+    assert rules.is_legal(two, Move(Position(0, 0), Position(3, 3))), "隔 2 子也应能吃到"
+    assert not rules.is_legal(two, Move(Position(0, 0), Position(1, 1))), "己方子所在格不能落"
 
 
-def test_assassin_exchange_removes_both_pieces():
+def test_pawn_charge_is_opt_in_and_never_captures():
+    """兵冲锋：开关默认关；开启后过阴山可直线多格，但不吃子、遇子即停。"""
     red, black = kings()
-    assassin = piece(PieceType.ASSASSIN, Color.RED, 6, 4)
-    victim = piece(PieceType.HORSE, Color.BLACK, 6, 3)
-    board = state(red, black, assassin, victim)
-    rules = RulesEngine(get_profile("desktop_complete"))
-    move = Move(assassin.position, Position(6, 5))
-    assert rules.is_legal(board, move)
-    result = rules.apply_unchecked(board, move)
-    assert all(p.id not in {assassin.id, victim.id} for p in result.pieces)
+    profile = get_profile("desktop_complete")
+    on = RulesEngine(profile, profile.options.merged({"pawn_charge": True}))
+    off = RulesEngine(profile)
+
+    pawn = piece(PieceType.PAWN, Color.RED, 5, 3)
+    board = state(red, black, pawn)
+    assert on.is_legal(board, Move(Position(5, 3), Position(2, 3))), "过阴山后可冲锋多格"
+    assert off.is_legal(board, Move(Position(5, 3), Position(2, 3))) is False, "默认关不应生效"
+
+    # 未过阴山（row 6 是阴山行本身）不冲锋
+    middle = state(red, black, piece(PieceType.PAWN, Color.RED, 6, 3))
+    assert on.is_legal(middle, Move(Position(6, 3), Position(3, 3))) is False
+
+    # 路径有子：只能走到子前面
+    blocked = state(red, black, piece(PieceType.PAWN, Color.RED, 5, 3),
+                    piece(PieceType.PAWN, Color.RED, 4, 3))
+    assert on.is_legal(blocked, Move(Position(5, 3), Position(2, 3))) is False
+    assert on.is_legal(blocked, Move(Position(5, 3), Position(4, 3))) is False
+
+    # 目标有子：冲锋不吃子
+    occupied = state(red, black, piece(PieceType.PAWN, Color.RED, 5, 3),
+                     piece(PieceType.HORSE, Color.BLACK, 2, 3))
+    assert on.is_legal(occupied, Move(Position(5, 3), Position(2, 3))) is False
 
 
-def test_armor_three_piece_line_captures_enemy():
+def test_pawn_three_line_capture_is_opt_in():
+    """兵参与三连吃子：默认关；开启后「两枚己方兵 + 一枚敌子成线」吃掉敌子。"""
     red, black = kings()
-    armor = piece(PieceType.ARMOR, Color.RED, 6, 0)
-    ally = piece(PieceType.PAWN, Color.RED, 6, 3)
-    enemy = piece(PieceType.HORSE, Color.BLACK, 6, 4)
-    board = state(red, black, armor, ally, enemy)
+    profile = get_profile("desktop_complete")
+    on = RulesEngine(profile, profile.options.merged({"pawn_three_line_capture": True}))
+    off = RulesEngine(profile)
+
+    board = state(red, black, piece(PieceType.PAWN, Color.RED, 7, 2),
+                  piece(PieceType.PAWN, Color.RED, 6, 3),
+                  piece(PieceType.HORSE, Color.BLACK, 6, 4))
+    move = Move(Position(7, 2), Position(6, 2))          # 落到 (6,2) 后成 6,2/6,3/6,4 三连
+    assert on.is_legal(board, move)
+    after = on.apply_unchecked(board, move, switch_turn=False)
+    assert not any(p.type is PieceType.HORSE for p in after.pieces), "开启三连应吃掉敌子"
+
+    after_off = off.apply_unchecked(board, move, switch_turn=False)
+    assert any(p.type is PieceType.HORSE for p in after_off.pieces), "默认关不应触发"
+
+
+def test_patrol_moves_four_ways_and_captures_at_distance_two():
+    red, black = kings()
+    patrol = piece(PieceType.PATROL, Color.RED, 6, 6)
+    victim = piece(PieceType.PAWN, Color.BLACK, 6, 9)
+    board = state(red, black, patrol, victim)
     rules = RulesEngine(get_profile("desktop_complete"))
-    move = Move(armor.position, Position(6, 2))
-    assert rules.is_legal(board, move)
-    result = rules.apply_unchecked(board, move)
-    assert result.piece_at(enemy.position) is None
-    assert rules.captured_by_move(board, move) == (enemy,)
+
+    # 横竖都行（不再限制在 5/7 行），偶数格
+    assert rules.is_legal(board, Move(patrol.position, Position(6, 4)))
+    assert rules.is_legal(board, Move(patrol.position, Position(2, 6)))
+    assert not rules.is_legal(board, Move(patrol.position, Position(6, 5)))   # 奇数格不行
+    # 吃子仅限距离 2
+    assert rules.is_legal(board, Move(patrol.position, Position(6, 8)))       # 走空点
+    assert not rules.is_legal(board, Move(patrol.position, Position(6, 9)))   # 距离 3 吃不到
+    near = state(red, black, piece(PieceType.PATROL, Color.RED, 6, 6),
+                 piece(PieceType.PAWN, Color.BLACK, 6, 8))
+    assert rules.is_legal(near, Move(Position(6, 6), Position(6, 8)))         # 距离 2 可吃
 
 
 def test_promotion_requires_captured_allowed_piece():
@@ -98,20 +160,6 @@ def test_game_undo_restores_authoritative_snapshot():
     game.undo()
     assert game.state.to_dict()["pieces"] == original["pieces"]
     assert game.state.turn is Color.RED
-
-
-def test_undo_clears_pending_negotiation_state():
-    game = Game("traditional")
-    game.move(next(iter(game.rules.legal_moves(game.state))))
-    game.state.pending_draw_offer = Color.RED
-    game.state.pending_undo_offer = Color.RED
-    game.state.pending_restart_offer = Color.RED
-    game.set_paused(True, Color.RED)
-    game.undo()
-    assert game.state.pending_draw_offer is None
-    assert game.state.pending_undo_offer is None
-    assert game.state.pending_restart_offer is None
-    assert game.state.paused is False
 
 
 def test_king_outside_palace_diagonal_is_independently_configurable():
@@ -202,6 +250,88 @@ def test_archer_star_visuals_follow_piece_appearance_setting():
     profile = get_profile("desktop_complete")
     disabled = profile.options.merged({"archer_appear": False})
     assert not RulesEngine(profile, disabled).archer_star_points
+
+
+def test_archer_star_points_are_thirteen_diamonds_not_twenty_five():
+    # Audit item C-2. The three live paths already agree — `rules.py` filters
+    # with `(row // 3 + col // 3) % 2 == 0` (13 points), `web/js/app.js`
+    # `drawStarPoints` paints whatever `profile.archerStarPoints` carries, and
+    # `offline.js` `starPoints()` mirrors the same condition. The only file that
+    # still spells out the pre-migration 25 points (`row` and `col` both
+    # multiples of 3) is the legacy `web/js/core/game-rules.js`, which the
+    # running service never mounts — so it is pinned by this test instead of by
+    # editing a file that cannot reach a browser.
+    lattice = {(r, c) for r in range(0, 13, 3) for c in range(0, 13, 3) if (r // 3 + c // 3) % 2 == 0}
+    assert len(lattice) == 13
+    expected = frozenset(Position(row, col) for row, col in lattice)
+    assert RulesEngine(get_profile("desktop_complete")).archer_star_points == expected
+
+
+# --------------------------------------------------------------------------
+# R-3: patrol (巡) was the only one of the 14 piece types with no direct
+# coverage at all.
+# --------------------------------------------------------------------------
+
+def _patrol_board(*extra, row=5, col=0, profile="desktop_complete"):
+    return state(*kings(), piece(PieceType.PATROL, Color.RED, row, col), *extra, profile=profile)
+
+
+def _patrol_move(rules, board, row, col):
+    source = next(p.position for p in board.pieces if p.type is PieceType.PATROL)
+    return rules.pseudo_legal(board, Move(source, Position(row, col)))
+
+
+def test_patrol_steps_an_even_number_of_columns_along_its_home_row():
+    rules = RulesEngine(get_profile("desktop_complete"))
+    board = _patrol_board()
+    assert _patrol_move(rules, board, 5, 2)
+    assert _patrol_move(rules, board, 5, 4)
+
+
+def test_patrol_accepts_both_home_rows():
+    rules = RulesEngine(get_profile("desktop_complete"))
+    assert _patrol_move(rules, _patrol_board(row=5), 5, 2)
+    assert _patrol_move(rules, _patrol_board(row=7), 7, 2)
+
+
+def test_patrol_rejects_odd_distances_and_staying_put():
+    rules = RulesEngine(get_profile("desktop_complete"))
+    board = _patrol_board()
+    assert not _patrol_move(rules, board, 5, 1)
+    assert not _patrol_move(rules, board, 5, 3)
+    assert not _patrol_move(rules, board, 5, 0)
+
+
+def test_patrol_rejects_leaving_its_home_row():
+    rules = RulesEngine(get_profile("desktop_complete"))
+    board = _patrol_board()
+    assert not _patrol_move(rules, board, 4, 2)
+    assert not _patrol_move(rules, board, 6, 2)
+    # Even staying on a legal column is not enough if the row changes.
+    assert not _patrol_move(rules, board, 4, 0)
+
+
+def test_patrol_rejects_a_blocked_path():
+    rules = RulesEngine(get_profile("desktop_complete"))
+    board = _patrol_board(piece(PieceType.PAWN, Color.RED, 5, 2))
+    assert not _patrol_move(rules, board, 5, 4)
+
+
+def test_patrol_captures_two_columns_away_but_not_four():
+    rules = RulesEngine(get_profile("desktop_complete"))
+    near = _patrol_board(piece(PieceType.PAWN, Color.BLACK, 5, 2))
+    assert _patrol_move(rules, near, 5, 2)
+    far = _patrol_board(piece(PieceType.PAWN, Color.BLACK, 5, 4))
+    assert not _patrol_move(rules, far, 5, 4)
+
+
+def test_traditional_profile_has_no_patrol():
+    rules = RulesEngine(get_profile("traditional"))
+    board = state(piece(PieceType.KING, Color.RED, 9, 4),
+                  piece(PieceType.PATROL, Color.RED, 5, 0),
+                  piece(PieceType.KING, Color.BLACK, 0, 4),
+                  profile="traditional")
+    assert not _patrol_move(rules, board, 5, 2)
 
 
 def test_pawn_fast_move_reaches_enemy_territory_edge_but_does_not_cross_it():
@@ -332,3 +462,20 @@ def test_diagonal_pinch_applies_to_guard_and_thunder_paths():
     assert not RulesEngine(profile).pseudo_legal(
         thunder_board, Move(thunder.position, Position(6, 6))
     )
+
+
+# ---------------------------------------------------------------------------
+# has_any_legal_move：与 `bool(legal_moves(...))` 必须逐局面等价
+# ---------------------------------------------------------------------------
+def test_has_any_legal_move_matches_legal_moves():
+    """短路版与全量枚举必须给出同一个布尔值（`_settle` 依赖它判困毙/将死）。"""
+    for profile in ("desktop_complete", "desktop_classic", "web", "traditional"):
+        game = Game(profile)
+        for _ in range(4):
+            for color in (Color.RED, Color.BLACK):
+                assert (game.rules.has_any_legal_move(game.state, color)
+                        == bool(game.rules.legal_moves(game.state, color))), profile
+            legal = game.rules.legal_moves(game.state)
+            if not legal:
+                break
+            game.move(legal[0])

@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager, suppress
 import asyncio
+import json
 from dataclasses import asdict
+import logging
 import os
-import time
 from pathlib import Path
 
+from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
@@ -16,12 +19,12 @@ from xionghan_chess.core.ai import Difficulty
 from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.avatars import normalize_avatar
 from xionghan_chess.core.game import GameError
-from xionghan_chess.core.model import Color, Position
+from xionghan_chess.core.model import Color, PieceType, Position
 from xionghan_chess.core.profiles import PROFILES
 from xionghan_chess.core.protocol import Envelope, MessageType
-from .rooms import RoomManager
+from .rooms import Room, RoomManager
 from xionghan_chess.core.rules import archer_star_points
-from xionghan_chess.core.storage import game_from_content
+from xionghan_chess.core.storage import game_from_content, game_from_document
 from xionghan_chess.core.storage import game_document
 from xionghan_chess.core.puzzles import load_puzzles, puzzle_by_id
 from xionghan_chess.core.setup import FirstMove, profile_slots
@@ -33,15 +36,38 @@ manager = RoomManager()
 accounts = AccountStore()
 WEB_DIR = Path(__file__).resolve().parents[3] / "web"
 LOCALES_DIR = Path(__file__).resolve().parents[3] / "locales"
+LOGGER = logging.getLogger(__name__)
+MAINTENANCE_INTERVAL_SECONDS = 5
+
+
+async def maintain_room(room: Room) -> None:
+    """Advance one room and push its snapshot, isolating failures to that room.
+
+    A raising room must never abort the maintenance loop: otherwise every other
+    room silently stops ticking (clocks freeze) and stops broadcasting.
+    """
+    try:
+        await manager.tick(room)
+        await manager.broadcast(room)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        LOGGER.exception("maintenance failed for room %s", room.id)
 
 
 async def maintenance() -> None:
     while True:
-        await asyncio.sleep(5)
+        await asyncio.sleep(MAINTENANCE_INTERVAL_SECONDS)
+        # Snapshot the rooms: cleanup() below may drop entries, and a raising
+        # room must not prevent the remaining rooms from being serviced.
         for room in list(manager.rooms.values()):
-            await manager.tick(room)
-            await manager.broadcast(room)
-        await manager.cleanup()
+            await maintain_room(room)
+        try:
+            await manager.cleanup()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            LOGGER.exception("maintenance cleanup failed")
 
 
 @asynccontextmanager
@@ -53,34 +79,37 @@ async def lifespan(_: FastAPI):
         await task
 
 
-app = FastAPI(title="匈汉象棋 API", version="1.6.0", lifespan=lifespan)
+app = FastAPI(title="匈汉象棋 API", version="1.7.0", lifespan=lifespan)
 
 
-_RATE_LIMIT: dict[str, list[float]] = {}
+@app.exception_handler(RequestValidationError)
+async def _validation_as_400(request, exc: RequestValidationError):
+    """请求体校验失败统一回 **400**（而不是 FastAPI 默认的 422），并给一句人话。
+
+    为什么改：422 是个协议细节，客户端只看到"unprocessable"；而这里最常见的失败是
+    **玩家名超长**（曾有人用 1MB 的名字让快照涨到 1.01MB）。要让人一眼知道改了哪里。
+    顺带也避免"静默截断"——截断会让两个不同的名字撞成一个。
+    """
+    details = []
+    for item in exc.errors():
+        field = ".".join(str(part) for part in item.get("loc", ()) if part != "body")
+        details.append(f"{field or '请求体'}：{item.get('msg', '无效')}")
+    return JSONResponse(status_code=400,
+                        content={"detail": "；".join(details) or "请求参数无效"})
 
 
-@app.middleware("http")
-async def rate_limit_middleware(request: Request, call_next):
-    # Optional, process-local per-IP sliding-window limiter. Disabled unless
-    # XH_RATE_LIMIT_PER_MINUTE > 0 (default off so local dev / CI tests are unaffected).
-    limit = int(os.getenv("XH_RATE_LIMIT_PER_MINUTE", "0") or "0")
-    if limit <= 0 or request.client is None:
-        return await call_next(request)
-    client_ip = request.client.host
-    now = time.monotonic()
-    window = _RATE_LIMIT.setdefault(client_ip, [])
-    while window and now - window[0] > 60.0:
-        window.pop(0)
-    if len(window) >= limit:
-        return JSONResponse(status_code=429, content={"detail": "请求过于频繁，请稍后再试"})
-    window.append(now)
-    return await call_next(request)
+# 玩家名上限（**按码点**，pydantic 的 max_length 就是字符数）：
+# 1MB 的名字曾让一次快照从 13KB 涨到 1.01MB，而它是**每 5 秒广播**的。
+# 超长要 400 而不是截断 —— 截断会让两个不同的名字变成同一个。
+MAX_PLAYER_NAME = 24
 
+# 单帧上限（B-05）：正常消息都在 1 KB 量级，64 KB 留两个数量级余量。
+MAX_FRAME_BYTES = 64 * 1024
 
 class CreateRoomRequest(BaseModel):
     profile_id: str = Field("web", alias="profileId")
     mode: str = "online"
-    player_name: str = Field("玩家", alias="playerName")
+    player_name: str = Field("玩家", alias="playerName", max_length=MAX_PLAYER_NAME)
     avatar_url: str = Field("", alias="avatarUrl", max_length=500)
     player_color: Color = Field(Color.RED, alias="playerColor")
     difficulty: Difficulty = Difficulty(os.getenv("AI_DEFAULT_DIFFICULTY", "medium"))
@@ -95,7 +124,7 @@ class CreateRoomRequest(BaseModel):
 
 
 class JoinRoomRequest(BaseModel):
-    player_name: str = Field("玩家", alias="playerName")
+    player_name: str = Field("玩家", alias="playerName", max_length=MAX_PLAYER_NAME)
     avatar_url: str = Field("", alias="avatarUrl", max_length=500)
     language: str = "zh-CN"
     model_config = {"populate_by_name": True}
@@ -104,7 +133,7 @@ class JoinRoomRequest(BaseModel):
 class ImportGameRequest(BaseModel):
     document: dict
     mode: str = "local"
-    player_name: str = Field("玩家", alias="playerName")
+    player_name: str = Field("玩家", alias="playerName", max_length=MAX_PLAYER_NAME)
     player_color: Color = Field(Color.RED, alias="playerColor")
     difficulty: Difficulty = Difficulty.MEDIUM
     language: str = "zh-CN"
@@ -176,7 +205,40 @@ async def profiles() -> list[dict]:
              "archerStarPoints": [{"row": point.row, "col": point.col}
                                   for point in sorted(archer_star_points(p),
                                                       key=lambda item: (item.row, item.col))],
+             # Mirrors Game.resurrect_pawn, which reads its home squares off
+             # `profile.pieces` instead of a hard coded rank.
+             "pawnHomeSquares": [{"row": spec.row, "col": spec.col}
+                                 for spec in p.pieces if spec.type is PieceType.PAWN],
              "options": asdict(p.options)} for p in PROFILES.values()]
+
+
+
+def validate_rule_options(values: dict[str, object]) -> dict[str, object]:
+    """按 `RuleOptions` 的字段类型校验，**未知键直接拒绝**。
+
+    为什么要这道关：`options` 一路是 `dict[str, object]`，`{"pawn_promotion": "yes"}`
+    会被当成 truthy 打开一条规则 —— 用户传了字符串也能"生效"，事后无从排查。
+    """
+    from dataclasses import fields as dc_fields
+
+    from xionghan_chess.core.profiles import RuleOptions
+
+    schema = {f.name: f.type for f in dc_fields(RuleOptions)}
+    cleaned: dict[str, object] = {}
+    for key, value in values.items():
+        if key not in schema:
+            raise ValueError(f"未知规则开关：{key}")
+        expected = schema[key]
+        if expected is bool or expected == "bool":
+            if not isinstance(value, bool):
+                raise ValueError(f"{key} 需要布尔值，收到 {type(value).__name__}")
+        elif expected is int or expected == "int":
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise ValueError(f"{key} 需要整数，收到 {type(value).__name__}")
+            if key == "no_progress_draw_plies" and not 10 <= value <= 500:
+                raise ValueError(f"{key} 超出合理范围 10–500：{value}")
+        cleaned[key] = value
+    return cleaned
 
 
 @app.post("/api/rooms")
@@ -187,7 +249,8 @@ async def create_room(request: CreateRoomRequest) -> dict:
         language = normalize_language(request.language)
         avatar_url = normalize_avatar(request.avatar_url)
         room, seat = await manager.create(request.profile_id, request.mode, request.player_name,
-                                          request.player_color, request.difficulty, request.options,
+                                          request.player_color, request.difficulty,
+                                          validate_rule_options(request.options),
                                           request.initial_minutes, language, {
                                               "firstMove": request.first_move.value,
                                               "redSlots": request.red_slots,
@@ -235,8 +298,19 @@ async def join_room(room_id: str, request: JoinRoomRequest) -> dict:
         raise HTTPException(400, str(exc)) from exc
 
 
+def _reject_query_token(request: Request) -> None:
+    """query 里的 token 一律拒绝 —— 它会进访问日志、浏览器历史、Referer。
+
+    不做兼容期：留一条兼容路径，等于把泄露渠道留着。
+    """
+    if request.query_params.get("token"):
+        raise HTTPException(400, "token 请放请求头 X-Room-Token，不要放在 query string")
+
+
 @app.get("/api/rooms/{room_id}")
-async def room_state(room_id: str, token: str | None = None) -> dict:
+async def room_state(room_id: str, request: Request,
+                     token: str | None = Header(None, alias="X-Room-Token")) -> dict:
+    _reject_query_token(request)
     try:
         return manager.require(room_id).snapshot(token)
     except GameError as exc:
@@ -254,7 +328,9 @@ async def spectate_room(room_id: str, request: SpectateRequest) -> dict:
 
 
 @app.get("/api/rooms/{room_id}/legal")
-async def legal_moves(room_id: str, token: str, row: int, col: int) -> dict:
+async def legal_moves(room_id: str, request: Request, row: int, col: int,
+                      token: str = Header(..., alias="X-Room-Token")) -> dict:
+    _reject_query_token(request)
     try:
         room = manager.require(room_id)
         seat = manager.seat_for(room, token)
@@ -278,11 +354,49 @@ async def legal_moves(room_id: str, token: str, row: int, col: int) -> dict:
         raise HTTPException(403, str(exc)) from exc
 
 
+AUTH_TIMEOUT_SECONDS = 5.0
+
+
+async def _await_auth_token(websocket: WebSocket) -> str:
+    """accept 之后读**首帧** `{"type": "auth", "token": ...}`，返回 token。
+
+    为什么不把 token 放 query：它会进访问日志 / 浏览器历史 / Referer。
+    为什么不放 `Sec-WebSocket-Protocol`：部分代理会剥掉该头，且浏览器兼容参差。
+    首帧方案两端（web / Android WebView / 桌面）都是同一套代码。
+
+    首帧非法、类型不对、或 5 秒内没来 → 直接 close(4401)，**不留半连接**。
+    """
+    await websocket.accept()
+    try:
+        raw = await asyncio.wait_for(websocket.receive_text(), timeout=AUTH_TIMEOUT_SECONDS)
+    except asyncio.TimeoutError:
+        await websocket.close(code=4401, reason="认证超时：首帧必须是 {type:auth, token:...}")
+        raise WebSocketDisconnect(code=4401)
+    except Exception:                      # noqa: BLE001 - 对端直接断开
+        raise WebSocketDisconnect(code=1006) from None
+    try:
+        message = json.loads(raw)
+    except json.JSONDecodeError:
+        await websocket.close(code=4401, reason="首帧不是合法 JSON")
+        raise WebSocketDisconnect(code=4401)
+    token = message.get("token") if isinstance(message, dict) else None
+    if not isinstance(token, str) or not token:
+        await websocket.close(code=4401, reason="首帧必须是 {type:auth, token:...}")
+        raise WebSocketDisconnect(code=4401)
+    return token
+
+
 @app.websocket("/ws/{room_id}")
-async def websocket_room(websocket: WebSocket, room_id: str, token: str) -> None:
+async def websocket_room(websocket: WebSocket, room_id: str) -> None:
+    if websocket.query_params.get("token"):
+        await websocket.accept()
+        await websocket.close(code=4401, reason="token 请放在首帧 auth，不要放 query string")
+        return
+    token: str | None = None
     try:
         room = manager.require(room_id)
-        seat = await manager.connect(room, token, websocket)
+        token = await _await_auth_token(websocket)
+        seat = await manager.connect(room, token, websocket, accepted=True)
         await manager.broadcast(room)
         while True:
             envelope = await receive_envelope(websocket)
@@ -294,17 +408,23 @@ async def websocket_room(websocket: WebSocket, room_id: str, token: str) -> None
                                                    revision=room.revision,
                                                    payload={"message": str(exc), "state": room.snapshot(token)}).wire())
     except WebSocketDisconnect:
-        if "room" in locals():
+        if "room" in locals() and token:
             await manager.disconnect(room, token, websocket)
     except GameError as exc:
         await websocket.close(code=4403, reason=str(exc))
 
 
 @app.websocket("/ws/{room_id}/spectate")
-async def websocket_spectator(websocket: WebSocket, room_id: str, token: str) -> None:
+async def websocket_spectator(websocket: WebSocket, room_id: str) -> None:
+    if websocket.query_params.get("token"):
+        await websocket.accept()
+        await websocket.close(code=4401, reason="token 请放在首帧 auth，不要放 query string")
+        return
+    token: str | None = None
     try:
         room = manager.require(room_id)
-        spectator = await manager.connect_spectator(room, token, websocket)
+        token = await _await_auth_token(websocket)
+        spectator = await manager.connect_spectator(room, token, websocket, accepted=True)
         while True:
             envelope = await receive_envelope(websocket)
             if envelope.type is not MessageType.CHAT:
@@ -321,17 +441,50 @@ async def websocket_spectator(websocket: WebSocket, room_id: str, token: str) ->
                                                    revision=room.revision,
                                                    payload={"message": str(exc)}).wire())
     except WebSocketDisconnect:
-        if "room" in locals():
+        if "room" in locals() and token:
             await manager.disconnect_spectator(room, token, websocket)
     except GameError as exc:
         await websocket.close(code=4403, reason=str(exc))
 
 
-async def receive_envelope(websocket: WebSocket) -> Envelope:
+async def _reject_protocol(websocket: WebSocket, reason: str) -> None:
+    """回一条协议错误帧，再关闭连接。
+
+    "发得出去就发"：对端已经断掉时 `send_json` 会抛，这里吞掉——**关闭与清理不能因为
+    发不出错误帧就跳过**（那正是审计里"连接断了但座位不清理"的成因）。
+    """
     try:
-        return Envelope.model_validate(await websocket.receive_json())
+        await websocket.send_json(Envelope(type=MessageType.ERROR,
+                                           payload={"message": reason}).wire())
+    except Exception:      # noqa: BLE001 - 对端已断属正常分支
+        pass
+    await websocket.close(code=1002, reason="Unsupported or invalid protocol message")
+
+
+async def receive_envelope(websocket: WebSocket) -> Envelope:
+    # `receive_json()` 对**非法 JSON** 抛的是 `json.JSONDecodeError`，不是 pydantic 的
+    # `ValidationError` —— 以前它直接穿透出去，既不回错误帧，也不进 `except WebSocketDisconnect`
+    # 的 `manager.disconnect()`，于是"连接断了但座位仍显示在线"。
+    # 单帧体积上限：先收文本再判长，因为 `receive_json()` 不暴露原始长度。
+    # 64 KB 的依据：正常消息（着法/聊天/心跳）都在 1 KB 量级，64 KB 留了两个数量级的余量，
+    # 又足以在有人用 1 MB 帧打 DoS 时立刻断开。做成常量而不是配置项：
+    # 这不是可调业务参数，调大只会放大风险。
+    try:
+        text = await websocket.receive_text()
+    except Exception:                     # noqa: BLE001 - 对端直接断开
+        raise WebSocketDisconnect(code=1002) from None
+    if len(text.encode("utf-8")) > MAX_FRAME_BYTES:
+        await _reject_protocol(websocket, f"消息过大（上限 {MAX_FRAME_BYTES // 1024} KB）")
+        raise WebSocketDisconnect(code=1002)
+    try:
+        raw = json.loads(text)
+    except json.JSONDecodeError as exc:
+        await _reject_protocol(websocket, "消息不是合法 JSON")
+        raise WebSocketDisconnect(code=1002) from exc
+    try:
+        return Envelope.model_validate(raw)
     except ValidationError as exc:
-        await websocket.close(code=1002, reason="Unsupported or invalid protocol message")
+        await _reject_protocol(websocket, "不支持的协议消息")
         raise WebSocketDisconnect(code=1002) from exc
 
 

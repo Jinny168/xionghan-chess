@@ -1,4 +1,6 @@
 .venv/
+# setuptools 构建产物：`pip install -e .` 会重写它，不应入库（每次安装都会弄脏工作区）
+*.egg-info/
 .pytest_cache/
 __pycache__/
 *.py[cod]
@@ -16,30 +18,13 @@ archive/
 # 归档：实验性/废弃构建（保留追溯，不跟踪、不发布）
 release/archive-experimental/
 training-data/
-
-# 投稿自动化本地状态（含手机号等个人信息，勿提交）
-.contest/
-.pw-profile/
-
-# 网页版（1024 投稿）：本地部署/QA 产物与会话态，均不入库
-webapp/.edgeone/
-webapp/screenshots/
-webapp/tests/fixtures/
-online/core/
-online/public/
-xhs-compose.png
-wall-hit.png
-mine-tab.png
-snapA.yaml
-snapB.yaml
-.wbapp_*.genie
-.workbuddy/applications.yaml
-.workbuddy/memory/automations/
-
-# 云服务实例凭据不入仓库；用 cloud-config.example.json 复制后自行填写。
-# server.mjs 在文件缺失时自动降级为离线模式，功能不受影响。
-online/cloud-config.json
-
-# 投稿素材二进制走 .gitattributes 的 LFS filter，入库只会留下悬空指针
-# （与「1429 个 LFS 二进制移出索引」同一口径）；素材留在本地另行分发。
-xhs/*.png
+# PyInstaller 单文件构建工作目录（packaging/build_windows.ps1 会重建）
+build-onefile/
+# 1.0.0 之前的冻结快照：整棵历史源码 + APK，只为本地追溯，不应再入库
+archive/
+# 根目录散落的桌面端调试截图（QA 过程产物，非发布物）
+/desktop-*.png
+# release/ 下历史网页版交付目录与顶层 APK/SHA256（本地追溯，不入库；*.exe 由仓库根 .gitignore 覆盖）
+release/匈漢象棋-*/
+release/匈漢象棋-*.apk
+release/SHA256SUMS-*.txt

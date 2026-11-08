@@ -185,3 +185,88 @@ release/匈漢象棋-2.0.0-网页版/src/.../__init__.py  → __version__ = "2.0
 - 新增本地 JSONL 自博弈采样、29×13×13 状态编码、28561 动作协议和可选 NumPy policy/value MLP；已完成采样→训练→NPZ 保存闭环。
 - 新增 master vs hard 机器可读基准工具。50 局快速筛查的 master 单步平均约 0.417 秒、最大约 0.442 秒，但均为 2 ply 截断局，**不得视为 55% 正式棋力验收**。
 - **待验收**：全部特色棋子手工局面、和棋边界以及至少 50 局非截断完整对弈；训练模型尚未接入生产 MCTS policy/value 推理。
+
+### 【已执行】1.6.0 一致性修复轮（2026-10-04，跨引擎对拍）
+- **起点**：`docs/AUDIT_1.6.0_full.md` 的 C-2 / R-*/O-* 系列。本轮只做**复核 + 复活端到端**，不做结构重构。
+- **复活兵卒（用户最高优先级，已闭环）**：`offline.js` 补 `pawnHomeSquares()` / `resurrectPawn()`，与 `core/game.py::resurrect_pawn` 逐条对齐（开关、行棋方、家乡行取自 `profile.pieces`、占用检查、从 `captured[color]` 回读死兵、7 兵上限、快照、切手、记谱、`recordPosition`、`settle(color, revived)`）；`move()` 与 `settle()` 改为传棋子对象。`offline_rules_probe.cjs` 加 resurrect 对拍腿（`tr` 桩 + `OfflineGame` 导出），`tests/test_cross_engine.py` 加 2 个复活对拍用例（落点/切手/损失池/history/positionCounts/记谱 + 3 类拒绝），并做变异测试证明断言非空转。
+- **出生行去硬编码**：`game.py::public_state["profile"]["pawnHomeSquares"]`、`service/app.py` `/api/profiles`、桌面端复活按钮统一由 `profile.pieces` 派生，`web/js/app.js` 按 `col` 查表取 `row`；`traditional`（10×9）正确落到 row 6 而非旧硬编码的 8。
+- **C-2 收口（无需改代码）**：复测证实 `web/js/core/game-rules.js` 的 25 点不在活体依赖链上——服务 `WEB_DIR` 运行期解析到内层 `web/`（`/js` 只有 `app.js`、`i18n.js`，无 `js/core`）；活体入口只有内层 `index.html`（module 加载 `/js/app.js?v=1.6.0`）；全树扫描中对旧资产引用的只有审计文档自己。活体侧三条链路本就都是 13 点菱形。改死文件既到不了浏览器又会撕裂历史快照，故改为加回归测试 `test_archer_star_points_are_thirteen_diamonds_not_twenty_five` 钉死；遗留文件保留不归档。
+- **校验**：全量 `pytest tests/ -q` = **146 passed / 0 failed**；`node --check` 对 `offline.js`、`offline-locales.js`、`web/js/app.js` 均通过；新星点用例经变异测试（临时把 `rules.py:26` 过滤改恒真）验证敏感。
+- **提交**：`714c1ce`（143 绿基线）、`6a11580`（复活收尾 + 出生行同源化，8 文件 +159/−10）、`cb2dab6`（星点 13 菱形回归 + 审计收口）、`bb26c68`（R-1a/b 间接吃王双写 + 5 条黄金用例）；**尚未 push**（`CONNECT tunnel failed, response 502`，网络侧问题）。
+- **R-1a/b 间接吃王（发布门槛）已交付**：甲的三格连线、刺的身后拖拽都会让王在「没有任何攻击者能走到它格子」的情况下消失，原先 `in_check` 全程 False、对局在沉默中结束。两侧双写（Python `rules.py` + `offline.js`），候选落点按各自规则收紧后统一回放 `apply_unchecked`，避免把甲/刺规则抄成第二份。对拍防不了「两侧同样错」，故另建 `tests/test_p0_rules.py` 钉期望值本身（2 个复现 + 2 个对照组 + 探针三腿），并对 offline.js 做变异测试验证断言有敏感度。校验：全量 **151 passed**。
+- **R-5 对拍维度 2→5 已交付**：探针新增 `capturedByMove` / `checkmate` / `stalemate` 三腿，`check` 腿支持显式 `checkFor`（不显式时取 `state.turn`，而缺王一侧的结论恒为 True，无法用于对比）。
+- **R-2 终局链覆盖已交付**：`Game._settle` 五级链（王被吃 → 攻入敌宫 → 将死 → 困毙 → 三次重复 → 无进展）此前只有 1 条用例，现补 10 条，含 4 组优先级与 3 个开关失效路径。直接驱动 `_settle` 而非攒完整对局——它是唯一接收「落子」而非 `Move` 的入口，优先级断言才不会被前一级吃掉（实测教训：用困毙盘测三次重复必然拿到 `stalemate`）。
+- **R-3「巡」覆盖已交付**：巡是 14 类棋子中唯一零直接覆盖的，补 7 条（偶数列、两条 home row、奇数/原地、离行、挡路、吃子 2 可 4 不可、traditional 未启用巡），并对 `_patrol` 偶性判定做变异测试验证敏感。
+- **R-4 刺兑子绕过盾——已交付，用户拍板保留**：审计两处结论自相矛盾（P0-R3 章节说留 v1.7.0 由产品拍板，5.3 表说 P0 本轮做），按后者做了两侧双写（拖拽前补盾保护判定，盾自身仍按"盾不可被兑"豁免），并补跨引擎对拍。
+  **规则语义固化：刺吃不掉被盾保护的棋子**（与 `PIECE_RULES.md:98` 一致）。实测两侧一致：刺 6,5→6,6 拖拽身后 (6,4) 的兵，兵旁有己方盾 → 移除列表为空；兵旁无盾 → 移除 `['pawn']`。
+- 顺带修 `offline.js::capturedByMove`：原写法取 `m.from.id`（跨引擎探针只传 `{row,col}`）会抛错；改按坐标取子并按 Python 过滤己方子（刺兑子会把刺自己一并移除）。
+- **校验**：全量 **169 passed**（约 47 秒）。期间一次 432 秒的读数系并发资源争用，非性能劣化，已复测确认。
+- **本轮不做**（另有安排）：**O-6** 统一 `capturable_squares`、结构重构（见下方编号对照）、P1-F AI 升变阻挡值、R-9b AI 估值延后。
+
+> ### ⚠️ O 编号对照（消除两套体系，防再发错工单）
+> 本文件上一版曾把「统一 `capturable_squares`」记为 **O-1**，属**笔误**。**权威编号一律以 `docs/AUDIT_1.6.0_full.md:340-360` §5.3/§5.4 定稿表为准**：
+>
+> | 主题 | 本文件旧写法 | 权威编号（`AUDIT_1.6.0_full.md`） |
+> |---|---|---|
+> | maintenance 异常隔离 | — | **O-1**（v1.6.0 本轮做，**已交付**） |
+> | 统一 `capturable_squares` | ~~O-1~~ | **O-6**（v1.7.0） |
+> | 广播/快照增量推送 | — | **O-7** |
+> | F-5 安全加固 | — | **O-8** |
+> | i18n 收尾（41 处） | O-9 | **O-9**（同号同义） |
+> | 规则语义调整 C-01~C-12 | — | **O-10**（需产品拍板） |
+> | master 正式棋力验收 | — | **O-11**（独立验收） |
+> | README 全面重写 | — | **O-12** |
+> | 「O-9…O-18 结构重构」 | O-9…O-18 | **该段编号不存在**；结构重构对应 §5.4 的 **O-5**（offline.js 薄壳化）等 |
+>
+> **结论：`O-13`…`O-18` 作废，此后统一使用上表右侧编号。**
+
+---
+
+## 8. v1.7.0 已定档处置（用户已批准）
+
+| 项 | 编号 | 处置 | 前置 / 备注 |
+|---|---|---|---|
+| 统一 `capturable_squares` | **O-6** | **进 v1.7.0，头号结构项** | **前置 = O-10 规则语义（C-01~C-12）需产品拍板；未拍板不开工** |
+| 广播/快照增量推送 | **O-7** | 进 v1.7.0 | **需先立压测基线**（新增 `scripts/benchmark_broadcast.py`） |
+| F-5 安全加固 | **O-8** | 进 v1.7.0 | 低成本高价值；建议并入 `accounts.py` 口令哈希核实 |
+| README 全面重写 | **O-12** | 进 v1.7.0 | 先合并重复 README |
+| offline.js 薄壳化 | **O-5** | **押后** | 与 O-6 同族，触及产品降级路径，单独版本做 |
+| i18n 收尾（41 处） | **O-9** | 进 v1.7.0 | **前置 E-02 重译 `PIECE_RULES.md`**，否则固化错译 |
+| master 正式棋力验收 | **O-11** | **独立验收任务**（**不属于 v1.6.0 遗留门槛**） | 需 50 局**非截断**完整对弈 |
+
+**纪律**：**O-6 不得夹带 P0-F**（P0-F「`_evaluate` 池盲」已被 **R-9b** 冻结为 AI 估值延后项；`ai.py:333-338` 候选生成层已读池，属另一层，勿混）。
+
+---
+
+## 9. 性能与包体预算（v1.7.0 验收依据）
+
+> ⚠️ 下表中**标注「待首采校准」的阈值是建议值，不是既成结论**；首次采样后须回填基线再定稿。
+
+### 9.1 实测基线（可复算）
+| 项 | 实测 | 出处 |
+|---|---|---|
+| APK（.NET MAUI, v1.5.0） | **37.9 MB** | `release/匈漢象棋-1.5.0-安卓版.apk` |
+| APK（MAUI 前 WebView 壳） | 8.8 MB | `archive/.../XionghanChess-Android-3.2.0.apk` |
+| APK 内游戏资源 | 仅 ~80 KB | `du -sh android/Resources/assets` |
+| .NET 链接/AOT | `PublishTrimmed=false` / `RunAOTCompilation=false` | `android/XionghanChessAndroid.csproj:11-12` |
+| minSdk | `SupportedOSPlatformVersion=21`（Android 5.0） | csproj:4 |
+| desktop resources | 126 MB（sounds 77 / fonts 31 / backgrounds 15 / icon.ico 4.63） | `du` |
+| ├ 两首未压缩 BGM | `fc_background_sound.wav` 31.96 MB + `qq_background_sound.wav` 42.92 MB = **74.9 MB（占 sounds 97%）** | Python `wave` |
+| web 代码 payload | js 84K + css 24K + html 24K = 132 KB | `du` |
+| 现有性能基线 | 全仓 0 条 | grep |
+
+**三条设计依据**
+1. **APK 体积与游戏资源无关**：Android 是 WebView 壳，资产不进 APK（assets 仅 80KB）。37.9MB ≈ .NET MAUI 运行时；8.8→37.8 的 +29MB 跳变点正是 v1.3.0（MAUI 迁移）。⇒ 裁资源救不了 APK，唯一杠杆是 linker/trimming/AOT（有反射风险）。
+2. **包体黑洞 = 两首未压缩 BGM WAV**（74.9MB / 77MB = 97%）；转 OGG/MP3 可 −70MB。**只影响桌面/Web 包，不影响 APK。**
+3. `icon.ico` = 4.63 MB，异常。
+
+### 9.2 预算表
+| 指标 | 采样口径 | 测量工具 | 阈值 | 硬/观测 |
+|---|---|---|---|---|
+| **帧率** | 对局→连走 30 步→AI 思考期；各端 3 次中位 | 桌面 dev-only `QTimer` 帧计数（**需加埋点**）；Web DevTools FPS meter；Android `dumpsys gfxinfo` | ①桌面/Web 动画期 **≥55 FPS 均帧**（目标 60）②Android minSdk21 低端机 **≥30 FPS 且无 >2 连续掉帧** ③AI 思考期 **0 次 ≥200ms 主线程卡顿** | 硬门槛（**待首采校准**） |
+| **内存** | 第 60 回合采 RSS/PSS；各端 3 次中位 | 桌面 `psutil`；Web DevTools Memory；Android `dumpsys meminfo` PSS | ①Android WebView 进程 **PSS ≤200 MB** ②桌面 RSS **≤基线×1.2**（**待定基线**）③126MB 资源是否常驻 **须先测** | ①硬门槛 ②③观测项 |
+| **加载时间** | Web：4G 限速+冷缓存，`performance.timing`，5 次中位；桌面：冷启含 `--onefile` 解压，3 次；Android：`am force-stop` 后 `am start -W`，3 次中位 | DevTools Timing；`Measure-Command`；`adb shell am start -W` | ①Web FCP **≤2.0s**（**前提：BGM 不得阻塞首屏**）②Android 冷启 **TotalTime ≤3.0s** ③桌面冷启 **待首采校准** | ①②硬门槛 ③观测项 |
+| **包体** | 每次 Release 构建后记录 | `aapt2 dump badging` / `unzip -l` / APK Analyzer | ①**APK ≤40 MB**（现 37.9，余量仅 2MB）②desktop 分发 **≤60 MB**（现 126MB，**须先 BGM 转码**）③web 静态包 **≤15 MB**（现 97MB，同上）④`icon.ico ≤256 KB` | 硬门槛 |
+
+**达标路径**：BGM 转 OGG/MP3（−70MB）+ 图标瘦身（−4.4MB）→ 桌面/Web 包体达标；APK 另需 linker/trimming spike。
+**测量纪律**：阈值首采后写入基线，防「凭感觉定系数」。

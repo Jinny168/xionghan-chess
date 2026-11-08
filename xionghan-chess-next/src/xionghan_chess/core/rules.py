@@ -1,10 +1,50 @@
 from __future__ import annotations
 
-from dataclasses import replace
-from typing import Callable, Iterable
+from dataclasses import dataclass, replace
+from enum import StrEnum
+from typing import Callable, Iterable, Iterator
 
 from .model import Color, GameState, Move, Piece, PieceType, Position
-from .profiles import RuleOptions, RuleProfile
+from .profiles import PATROL_HOME_ROW, RuleOptions, RuleProfile, XIONGHAN_ROWS
+
+
+# The patrol is confined to its own starting rank: Black's home rank and Red's
+# mirror image of it. Mirroring matches xionghan_side(), so PATROL_HOME_ROW and
+# XIONGHAN_ROWS - 1 - PATROL_HOME_ROW are the only two ranks it may occupy.
+# Profiles without PieceType.PATROL never place one, so this set is unreachable
+# on the 10x9 traditional board.
+PATROL_HOME_ROWS = frozenset({PATROL_HOME_ROW, XIONGHAN_ROWS - 1 - PATROL_HOME_ROW})
+
+
+class CaptureKind(StrEnum):
+    """How a move takes an enemy piece off the board."""
+    DIRECT = "direct"                        # the landing square is the victim's square
+    THREE_LINE = "three_line"                # 己方两子夹一敌子成线（兵，开关控制）
+    PROMOTION_CONSUME = "promotion_consume"  # reserved; never emitted by capturable_squares
+
+
+@dataclass(frozen=True, slots=True)
+class Removal:
+    """A single enemy piece removed by a move, attributed to the move's squares."""
+    kind: CaptureKind
+    victim_id: str
+    victim_type: PieceType
+    victim_color: Color
+    victim_position: Position
+    origin: Position
+    landing: Position
+
+
+@dataclass(frozen=True, slots=True)
+class CaptureSpec:
+    """Every way the piece standing on `position` can be captured."""
+    position: Position
+    removals: tuple[Removal, ...]
+
+
+def _removal_order(removal: Removal) -> tuple[str, int, int, int, int]:
+    return (removal.kind.value, removal.origin.row, removal.origin.col,
+            removal.landing.row, removal.landing.col)
 
 
 def archer_star_points(profile: RuleProfile) -> frozenset[Position]:
@@ -31,17 +71,46 @@ def archer_star_segments(profile: RuleProfile) -> tuple[tuple[Position, Position
     return tuple(segments)
 
 
+# Bumped whenever the `position_key` string format changes. `core/storage.py`
+# stamps it into every saved document, so a load can tell whether a repetition
+# ledger was written in the *current* format and re-derive it if not (see
+# `game_from_document`). Version 2 is "the key that includes the capture pool".
+POSITION_KEY_VERSION = 3
+# v3：key 里加入**影响合法着法的选项摘要**（`||opt:`）。
+# 旧存档的 `positionCounts` 作废：key 不匹配即从 0 计，最坏结果是"已重复 2 次的局面重新计"，
+# 不会误判和 —— 反向（沿用旧 key 的计数）才是会误判和的方向。
+
+
+def pool_signature(state: GameState) -> str:
+    """The pool half of a `position_key`, colour-tagged and sorted.
+
+    A capture pool is game state, not bookkeeping: it fixes which promotions are
+    legal (`pseudo_legal`'s pawn-promotion gate below) and how many pawns may be
+    revived (`game.py::resurrect_pawn`). Two states sharing a board and side to
+    move but holding different pools are therefore *different* positions, so the
+    pool is a first-class part of the repetition key -- not an AI-only cache
+    extra.
+    """
+    return ",".join(sorted(f"{color.value}:{piece.type.value}"
+                           for color in Color for piece in state.captured[color]))
+
+
 class RulesEngine:
     """Authoritative, side-effect free move validation for every delivery target."""
 
     def __init__(self, profile: RuleProfile, options: RuleOptions | None = None):
         self.profile = profile
         self.options = options or profile.options
+        # 预计算：`pseudo_legal` 每生成一个着法都要读这个属性（实测 46k 次/5s），
+        # 每次重建 frozenset 要付 14 次 `piece_enabled` 的 getattr，累计 1.09s。
+        # 安全性：`options` 只在构造时赋值，全仓没有原地修改（改规则会新建引擎）。
+        self._enabled_piece_types = frozenset(
+            kind for kind in self.profile.enabled_piece_types
+            if self.options.piece_enabled(kind))
 
     @property
     def enabled_piece_types(self) -> frozenset[PieceType]:
-        return frozenset(kind for kind in self.profile.enabled_piece_types
-                         if self.options.piece_enabled(kind))
+        return self._enabled_piece_types
 
     def inside(self, pos: Position) -> bool:
         return 0 <= pos.row < self.profile.rows and 0 <= pos.col < self.profile.cols
@@ -76,7 +145,7 @@ class RulesEngine:
         if piece is None or piece.color is not state.turn or piece.type not in self.enabled_piece_types:
             return False
         target = self.get(state, move.target)
-        if target and (target.color is piece.color or target.type is PieceType.SHIELD):
+        if target and target.color is piece.color:
             return False
         if move.promotion:
             if piece.type is not PieceType.PAWN or not self.options.pawn_promotion:
@@ -87,22 +156,22 @@ class RulesEngine:
                 return False
         elif piece.type is PieceType.PAWN and self.options.pawn_promotion and \
                 move.target.row == (0 if piece.color is Color.RED else self.profile.rows - 1):
-            promotable = [p for p in state.captured[piece.color]
-                          if p.type not in {PieceType.PAWN, PieceType.KING}
-                          and p.type in self.enabled_piece_types]
-            if promotable:
+            # Only non-emptiness is needed here, so ask the set directly -- this
+            # gate is the one promotion branch that runs on the pseudo_legal hot
+            # path, and `promotable_types` skips `promotion_types`' sort.
+            if self.promotable_types(state, piece.color):
                 return False
-        if target and self._protected_by_enemy_shield(state, target):
-            return False
 
+        # Every validator shares the (state, piece, move) signature so this table
+        # stays homogeneous; a validator that does not need `piece` (rook, horse,
+        # cannon, guard, archer, thunder, patrol) simply ignores it.
         validators: dict[PieceType, Callable[[GameState, Piece, Move], bool]] = {
             PieceType.ROOK: self._rook, PieceType.HORSE: self._horse,
             PieceType.ELEPHANT: self._elephant, PieceType.ADVISOR: self._advisor,
             PieceType.KING: self._king, PieceType.CANNON: self._cannon,
             PieceType.PAWN: self._pawn, PieceType.GUARD: self._guard,
             PieceType.ARCHER: self._archer, PieceType.THUNDER: self._thunder,
-            PieceType.ARMOR: self._armor, PieceType.ASSASSIN: self._assassin,
-            PieceType.SHIELD: self._shield, PieceType.PATROL: self._patrol,
+            PieceType.PATROL: self._patrol,
         }
         return validators[piece.type](state, piece, move)
 
@@ -114,10 +183,8 @@ class RulesEngine:
         next_state = self.apply_unchecked(state, move, switch_turn=False)
         return not self.in_check(next_state, state.turn)
 
-    def legal_moves(self, state: GameState, color: Color | None = None) -> list[Move]:
-        color = color or state.turn
-        probe = state if state.turn is color else replace(state, turn=color)
-        result: list[Move] = []
+    def _iter_legal(self, probe: GameState, color: Color) -> Iterator[Move]:
+        """枚举 `color` 的全部合法着法（`legal_moves` 与 `has_any_legal_move` 的唯一来源）。"""
         for piece in probe.pieces:
             if piece.color is not color:
                 continue
@@ -127,56 +194,85 @@ class RulesEngine:
                     promotions: list[PieceType | None] = [None]
                     if (piece.type is PieceType.PAWN and self.options.pawn_promotion
                             and row == (0 if color is Color.RED else self.profile.rows - 1)):
-                        available = {
-                            captured.type for captured in probe.captured[color]
-                            if captured.type not in {PieceType.PAWN, PieceType.KING}
-                            and captured.type in self.enabled_piece_types
-                        }
-                        if available:
-                            promotions = sorted(available, key=lambda item: item.value)
+                        promotions = self.promotion_types(probe, color) or [None]
                     for promotion in promotions:
                         move = Move(piece.position, target, promotion)
                         if self.is_legal(probe, move):
-                            result.append(move)
-        return result
+                            yield move
+
+    def legal_moves(self, state: GameState, color: Color | None = None) -> list[Move]:
+        color = color or state.turn
+        probe = state if state.turn is color else replace(state, turn=color)
+        return list(self._iter_legal(probe, color))
+
+    def has_any_legal_move(self, state: GameState, color: Color | None = None) -> bool:
+        """是否**存在**至少一个合法着法（命中即返回，不枚举全部）。
+
+        `legal_moves()` 要跑满 62 枚 × 13×13 个目标点（实测 257ms/次），而
+        `_settle` 每次落子都要问一句"对方还有没有着法"。这里用同一个生成器
+        短路取第一个 —— 语义与 `bool(legal_moves(...))` 完全等价，但常规局面
+        只需扫到第一个能走的子。
+        """
+        color = color or state.turn
+        probe = state if state.turn is color else replace(state, turn=color)
+        return next(self._iter_legal(probe, color), None) is not None
 
     def captured_by_move(self, state: GameState, move: Move) -> tuple[Piece, ...]:
         """Return enemy pieces removed by a move, including indirect captures."""
         moving = self.get(state, move.source)
         if moving is None:
             return ()
-        after_ids = {piece.id for piece in self.apply_unchecked(state, move, switch_turn=False).pieces}
-        return tuple(piece for piece in state.pieces
-                     if piece.color is not moving.color and piece.id not in after_ids)
+        return tuple(piece for piece in self.board_removals(state, move)
+                     if piece.color is not moving.color)
+
+    def board_removals(self, state: GameState, move: Move) -> tuple[Piece, ...]:
+        """Every piece a move takes off the board, of either colour.
+
+        The single removal producer is `_apply_move`; this reads it back as whole
+        pieces so `Game.move()` can log each removal into the matching
+        `state.captured` pool.
+        `captured_by_move` is this same set narrowed to the enemy.
+        """
+        if self.get(state, move.source) is None:
+            return ()
+        _, removals = self._apply_move(state, move)
+        removed_ids = {removal.victim_id for removal in removals}
+        return tuple(piece for piece in state.pieces if piece.id in removed_ids)
 
     def apply_unchecked(self, state: GameState, move: Move, switch_turn: bool = True) -> GameState:
+        if self.get(state, move.source) is None:
+            return state.clone()
+        clone, _ = self._apply_move(state, move)
+        if switch_turn:
+            clone.turn = clone.turn.opponent
+        return clone
+
+    def _apply_move(self, state: GameState, move: Move) -> tuple[GameState, list[Removal]]:
+        """Clone `state`, play `move`, and report every enemy piece it removes.
+
+        This is the single writer behind both `apply_unchecked` and
+        `captured_by_move`, so a move has exactly one implementation of "what do
+        I capture, and how" -- the indirect three-line sweep below is the same
+        predicate `capturable_squares` reads back when it answers the question
+        from the other direction.
+        """
         clone = state.clone()
         piece = clone.piece_at(move.source)
-        if piece is None:
-            return clone
+        removals: list[Removal] = []
         target = clone.piece_at(move.target)
-        removed: list[Piece] = []
         if target:
             clone.pieces.remove(target)
-            removed.append(target)
+            removals.append(Removal(CaptureKind.DIRECT, target.id, target.type,
+                                    target.color, target.position, move.source, move.target))
         clone.pieces[clone.pieces.index(piece)] = piece.at(move.target)
 
-        if piece.type is PieceType.ARMOR:
-            for captured in self._armor_captures(clone, piece.color):
+        if self._three_line_mover(piece):
+            for captured in self._three_line_removals(clone, piece.color, move.target):
                 if captured in clone.pieces:
                     clone.pieces.remove(captured)
-                    removed.append(captured)
-
-        if piece.type is PieceType.ASSASSIN:
-            dr, dc = move.target.row - move.source.row, move.target.col - move.source.col
-            reverse = Position(move.source.row - dr, move.source.col - dc)
-            dragged = clone.piece_at(reverse)
-            moved_piece = clone.piece_at(move.target)
-            if dragged and dragged.color is not piece.color and dragged.type is not PieceType.SHIELD:
-                clone.pieces.remove(dragged)
-                removed.append(dragged)
-                if moved_piece:
-                    clone.pieces.remove(moved_piece)
+                    removals.append(Removal(CaptureKind.THREE_LINE, captured.id, captured.type,
+                                            captured.color, captured.position,
+                                            move.source, move.target))
 
         if move.promotion and piece.type is PieceType.PAWN and self.options.pawn_promotion:
             promoted = clone.piece_at(move.target)
@@ -185,31 +281,192 @@ class RulesEngine:
                 dead = next((p for p in clone.captured[piece.color] if p.type is move.promotion), None)
                 if dead:
                     clone.captured[piece.color].remove(dead)
-        if switch_turn:
-            clone.turn = clone.turn.opponent
-        return clone
+        return clone, removals
 
     def in_check(self, state: GameState, color: Color) -> bool:
         king = next((p for p in state.pieces if p.color is color and p.type is PieceType.KING), None)
         if king is None:
             return True
-        opponent = replace(state, turn=color.opponent)
-        for piece in opponent.pieces:
-            if piece.color is color.opponent:
-                move = Move(piece.position, king.position)
-                if self.pseudo_legal(opponent, move):
-                    return True
-        return self._kings_facing(state)
+        threatened = self.capturable_squares(state, color.opponent, targets=(king.position,))
+        return bool(threatened) or self._kings_facing(state)
+
+    def capturable_squares(self, state: GameState, color: Color,
+                           targets: Iterable[Position] | None = None) -> dict[Position, CaptureSpec]:
+        """Map every square `color` can capture to the removals that do it.
+
+        The key is the victim's square: a direct capture is filed under the
+        square the attacker lands on, while a three-line capture is filed under
+        the square its victim occupied. `targets=None` enumerates
+        the whole board and exists for the HUD and the cross-engine parity gate
+        -- it is not a hot path. `targets=(k,)` is a point query that only looks
+        at the attackers which could reach `k`, keeping `in_check` the same order
+        of work as the direct-plus-indirect scan it replaces.
+
+        The function is pure: it never mutates `state` or its pieces, and two
+        calls with the same arguments return equal specs. Its *result* is blind
+        to the capture pool -- a pawn capturing on its promotion rank is filed as
+        an ordinary direct capture, the same whether the pool is empty or not, so
+        a caller that must ignore the pool can rely on it. The pool is still read
+        internally (`moves_to_target`) to model the mandatory promotion; it never
+        changes which removals exist and never yields a pool-consuming promotion.
+        """
+        probe = state if state.turn is color else replace(state, turn=color)
+        if targets is None:
+            victims = [piece.position for piece in state.pieces if piece.color is color.opponent]
+        else:
+            victims = list(targets)
+        found: dict[Position, CaptureSpec] = {}
+        for position in victims:
+            victim = self.get(state, position)
+            if victim is None or victim.color is not color.opponent:
+                continue
+            removals = self._capture_removals(probe, color, victim)
+            if not removals:
+                continue
+            removals.sort(key=_removal_order)
+            found[position] = CaptureSpec(position, tuple(removals))
+        if __debug__:
+            self._assert_capture_specs(found, color)
+        return found
+
+    def promotable_types(self, state: GameState, color: Color) -> set[PieceType]:
+        """The types `color`'s pawns may promote into right now, unordered.
+
+        The capture pool gates promotion, so this is exactly the set
+        `pseudo_legal`'s promotion branch reads back. It is the one place the
+        predicate lives: `promotion_types` wraps it sorted for candidate
+        generation, the `pseudo_legal` gate only needs non-emptiness, and
+        `ai.py`'s tactical scan iterates it as an unordered set -- none of them
+        may hand-roll the set again.
+        """
+        return {
+            captured.type for captured in state.captured[color]
+            if captured.type not in {PieceType.PAWN, PieceType.KING}
+            and captured.type in self.enabled_piece_types
+        }
+
+    def promotion_types(self, state: GameState, color: Color) -> list[PieceType]:
+        """`promotable_types` sorted -- the deterministic order candidate
+        generation, MCTS and SEE iterate in."""
+        return sorted(self.promotable_types(state, color), key=lambda item: item.value)
+
+    def moves_to_target(self, state: GameState, piece: Piece, target: Position) -> list[Move]:
+        """Every `Move` that carries `piece` onto `target`, one per promotion.
+
+        A pawn stepping onto its promotion rank must promote whenever the pool
+        offers a promotable type (`pseudo_legal`'s gate), so that square is
+        reachable *only* through a promotion move -- a bare `Move(from, to)` is
+        illegal there and would silently hide a capture (and thus a check). This
+        is the shared constructor behind `_capture_removals` and `ai_see`'s
+        recapture scan; neither may hand-roll the variant list again.
+        """
+        if (piece.type is PieceType.PAWN and self.options.pawn_promotion
+                and target.row == (0 if piece.color is Color.RED else self.profile.rows - 1)):
+            promotions = self.promotion_types(state, piece.color)
+            if promotions:
+                return [Move(piece.position, target, promotion) for promotion in promotions]
+        return [Move(piece.position, target)]
+
+    def _capture_removals(self, state: GameState, color: Color, victim: Piece) -> list[Removal]:
+        """Every move by `color` that removes `victim`, direct or indirect.
+
+        The candidate attackers are copied verbatim from the direct/indirect
+        scans this replaces, so the point query stays the same order of work: a
+        piece that can land on the victim, or a pawn whose landing completes a
+        three-cell line through it.
+
+        A direct capture is tested through `moves_to_target`, not a single bare
+        move: a pawn taking on its promotion rank only has legal *promotion*
+        moves, so asking about the bare move would miss the capture whenever the
+        pool is non-empty -- and with it a king capture masquerading as no check.
+        """
+        removals: list[Removal] = []
+        for piece in state.pieces:
+            if piece.color is not color:
+                continue
+            if any(self.pseudo_legal(state, move)
+                   for move in self.moves_to_target(state, piece, victim.position)):
+                removals.append(Removal(CaptureKind.DIRECT, victim.id, victim.type,
+                                        victim.color, victim.position,
+                                        piece.position, victim.position))
+            if self._three_line_mover(piece):
+                landings = []
+                for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
+                    for step in (1, 2):
+                        for sign in (1, -1):
+                            square = Position(victim.position.row + sign * step * dr,
+                                              victim.position.col + sign * step * dc)
+                            if self.inside(square):
+                                landings.append(square)
+            else:
+                continue
+            for landing in landings:
+                if self.get(state, landing) is not None:
+                    continue
+                move = Move(piece.position, landing)
+                if not self.pseudo_legal(state, move):
+                    continue
+                after = self.apply_unchecked(state, move, switch_turn=False)
+                if victim.id not in {p.id for p in after.pieces}:
+                    removals.append(Removal(CaptureKind.THREE_LINE, victim.id, victim.type,
+                                            victim.color, victim.position,
+                                            piece.position, landing))
+        return removals
+
+    def _assert_capture_specs(self, found: dict[Position, CaptureSpec], color: Color) -> None:
+        """Contract checks that hold for every capture spec (`python -O` skips)."""
+        for key, spec in found.items():
+            assert spec.position == key, "a spec is keyed by its victim's square"
+            assert spec.removals == tuple(sorted(spec.removals, key=_removal_order)), \
+                "removals must be sorted by the deterministic order"
+            for removal in spec.removals:
+                assert removal.kind is not CaptureKind.PROMOTION_CONSUME, \
+                    "capturable_squares never reports a pool-consuming promotion"
+                assert removal.victim_color is color.opponent, \
+                    "every removal hits the opposing side"
+                assert removal.victim_position == key, \
+                    "a removal's victim square is the spec's key"
 
     def checkmate(self, state: GameState, color: Color) -> bool:
-        return self.in_check(state, color) and not self.legal_moves(state, color)
+        return self.in_check(state, color) and not self.has_any_legal_move(state, color)
 
     def stalemate(self, state: GameState, color: Color) -> bool:
-        return not self.in_check(state, color) and not self.legal_moves(state, color)
+        return not self.in_check(state, color) and not self.has_any_legal_move(state, color)
 
     def position_key(self, state: GameState) -> str:
+        """Repetition key for one position, used by the threefold-draw ledger.
+
+        Format contract, mirrored byte-for-byte by `offline.js`
+        `Rules.positionKey` (a drift here splits the two repetition ledgers):
+
+            "<turn>|<board>||pool:<pool>"
+
+          - `<turn>`: `red` or `black`.
+          - `<board>`: every piece as `color:type:row:col`, sorted, joined by `;`.
+          - `||pool:` then `pool_signature(state)`: every captured piece as
+            `color:type`, sorted, joined by `,` (empty string when no pool).
+
+        The pool is part of the key because it changes the legal moves (which
+        promotions are offered, how many pawns can be revived), so the same
+        board with a different pool is a different position. Piece ids are
+        deliberately excluded: they are regenerated per game, so keying on them
+        would make the key never repeat and the draw could never fire.
+        """
         pieces = sorted((p.color.value, p.type.value, p.position.row, p.position.col) for p in state.pieces)
-        return f"{state.turn.value}|" + ";".join(f"{c}:{t}:{r}:{k}" for c, t, r, k in pieces)
+        board = ";".join(f"{color}:{kind}:{row}:{col}" for color, kind, row, col in pieces)
+        return (f"{state.turn.value}|{board}||pool:{pool_signature(state)}"
+                f"||opt:{self._option_digest()}")
+
+    def _option_digest(self) -> str:
+        """影响合法着法/吃子的选项摘要。
+
+        为什么 key 里要有它：`positionCounts` 会随存档/导入/网络带进选项不同的新对局，
+        那些计数是按**旧选项**算的。不含摘要时，两种不同规则下的同一盘面会共用一份计数。
+        只挑"改变合法着法"的字段，避免无谓抖动。
+        """
+        return (f"p3l{int(self.options.pawn_three_line_capture)}"
+                f"-promo{int(self.options.pawn_promotion)}"
+                f"-self{int(self.options.enforce_self_check)}")
 
     def _clear(self, state: GameState, source: Position, target: Position) -> bool:
         dr = (target.row > source.row) - (target.row < source.row)
@@ -271,8 +528,9 @@ class RulesEngine:
             if self._diagonal_path_pinched(state, move):
                 return False
             return True
-        in_enemy_territory = (piece.color is Color.RED and move.source.row <= middle) or \
-                             (piece.color is Color.BLACK and move.source.row >= middle)
+        # 与兵/快速行军同一口径：阴山行本身不算敌境（红 row ≤ 5、黑 row ≥ 7）。
+        in_enemy_territory = (piece.color is Color.RED and move.source.row < middle) or \
+                             (piece.color is Color.BLACK and move.source.row > middle)
         return self.options.elephant_can_cross_river and \
             self.options.elephant_gain_jump_two_enemy_territory and in_enemy_territory
 
@@ -317,7 +575,9 @@ class RulesEngine:
         dr, dc = move.target.row - move.source.row, move.target.col - move.source.col
         forward = -1 if piece.color is Color.RED else 1
         middle = self.profile.rows // 2
-        crossed = move.source.row <= middle if piece.color is Color.RED else move.source.row >= middle
+        # 阴山（中间行）本身**不算**进入敌境：红方 row ≤ 5、黑方 row ≥ 7 才可横走。
+        # 与 `distance_to_enemy_territory`（最远落行 5）和象的 `target.row < middle` 同一口径。
+        crossed = move.source.row < middle if piece.color is Color.RED else move.source.row > middle
         enemy_base = move.source.row == (0 if piece.color is Color.RED else self.profile.rows - 1)
         if enemy_base and self.options.pawn_full_movement_at_base:
             return abs(dr) + abs(dc) == 1
@@ -334,6 +594,16 @@ class RulesEngine:
                 self.get(state, Position(move.source.row + forward * step, move.source.col)) is None
                 for step in range(1, distance)
             )
+        # 敌阵冲锋（开关，默认关）：过阴山后沿直线任意格前进，不吃子、路径须全空。
+        # 放在"前进一格"之前，否则只会被一格判定截住。
+        if self.options.pawn_charge and dc == 0 and dr == forward * distance and distance >= 1:
+            if crossed:
+                if self.get(state, move.target):
+                    return False
+                return all(
+                    self.get(state, Position(move.source.row + forward * step, move.source.col)) is None
+                    for step in range(1, distance)
+                )
         if dr == forward and dc == 0:
             return True
         if crossed and dr == 0 and abs(dc) == 1:
@@ -346,8 +616,15 @@ class RulesEngine:
         return self.get(state, move.target) is None and self._between(state, move.source, move.target) == 1
 
     def _guard(self, state: GameState, piece: Piece, move: Move) -> bool:
-        return self._jump_over_one(state, move, True) and \
-            (not self._diagonal(move) or not self._diagonal_path_pinched(state, move))
+        """尉：**斜向任意距离**，路径必须无子（标准主教）；落点有敌子即吃。
+
+        夹逼口径与其它斜走子一致（`_diagonal_path_pinched`），不经 `_jump_over_one`。
+        """
+        if not self._diagonal(move):
+            return False
+        if self._diagonal_path_pinched(state, move):
+            return False
+        return self._clear(state, move.source, move.target)
 
     def _archer(self, state: GameState, piece: Piece, move: Move) -> bool:
         if not self._diagonal(move):
@@ -373,16 +650,21 @@ class RulesEngine:
 
         if self._diagonal_path_pinched(state, move):
             return False
-        for step in range(1, distance):
-            position = Position(move.source.row + step * step_row,
-                                move.source.col + step * step_col)
-            if self.get(state, position):
-                return False
+        # 位移仍要求路径无子；**吃子无视阻挡**（射程/星点/夹逼三项不变）。
+        if target is None:
+            for step in range(1, distance):
+                position = Position(move.source.row + step * step_row,
+                                    move.source.col + step * step_col)
+                if self.get(state, position):
+                    return False
         return True
 
     def _nearest_archer_star_distance(self, source: Position,
                                       step_row: int, step_col: int) -> int:
-        for distance in range(1, max(self.profile.rows, self.profile.cols)):
+        # A diagonal needs at most max(rows, cols) - 1 steps to leave the board,
+        # so this exclusive bound always covers the whole ray.
+        search_steps = max(self.profile.rows, self.profile.cols)
+        for distance in range(1, search_steps):
             position = Position(source.row + distance * step_row,
                                 source.col + distance * step_col)
             if not self.inside(position):
@@ -432,19 +714,11 @@ class RulesEngine:
         return self._clear(state, move.source, move.target) and \
             (not self._diagonal(move) or not self._diagonal_path_pinched(state, move))
 
-    def _armor(self, state: GameState, piece: Piece, move: Move) -> bool:
-        return self.get(state, move.target) is None and self._rook(state, piece, move)
-
-    def _assassin(self, state: GameState, piece: Piece, move: Move) -> bool:
-        return self.get(state, move.target) is None and self._rook(state, piece, move)
-
-    def _shield(self, state: GameState, piece: Piece, move: Move) -> bool:
-        return self._jump_over_one(state, move, False)
-
     def _patrol(self, state: GameState, piece: Piece, move: Move) -> bool:
-        if move.source.row not in {5, 7} or move.target.row != move.source.row:
+        """巡：横竖**同规则**（不再绑死在 5/7 行），走偶数格；吃子仅限距离 2。"""
+        if move.target.row != move.source.row and move.target.col != move.source.col:
             return False
-        distance = abs(move.target.col - move.source.col)
+        distance = abs(move.target.row - move.source.row) + abs(move.target.col - move.source.col)
         if distance == 0 or distance % 2 or not self._clear(state, move.source, move.target):
             return False
         return self.get(state, move.target) is None or distance == 2
@@ -456,39 +730,50 @@ class RulesEngine:
                 return False
         return True
 
-    def _protected_by_enemy_shield(self, state: GameState, target: Piece) -> bool:
-        return any(p.type is PieceType.SHIELD and p.color is target.color and
-                   max(abs(p.position.row - target.position.row), abs(p.position.col - target.position.col)) == 1
-                   for p in state.pieces)
+    def _three_line_mover(self, piece: Piece) -> bool:
+        """这枚子移动后是否结算"三连吃子"：只有兵，且需 `pawn_three_line_capture` 开关（默认关）。"""
+        return piece.type is PieceType.PAWN and self.options.pawn_three_line_capture
 
-    def _armor_captures(self, state: GameState, color: Color) -> list[Piece]:
+    def _three_line_removals(self, state: GameState, color: Color,
+                             landing: Position) -> list[Piece]:
+        """三连吃子：**只结算落点所在的线**。
+
+        口径（规则作者定稿）：
+        - 三子**紧挨**（相邻，窗口步长 1，天然满足）；
+        - **两枚我方 + 一枚敌方**，**任意顺序**（兵兵敌 / 兵敌兵 / 敌兵兵 都算）；
+        - 至少一枚是兵，且**移动的那枚兵必须在这个窗口里**；
+        - `pawn_three_line_capture` 开启（默认关）。
+
+        为什么按落点枚举而不是全盘扫描：全盘扫描会把"移动前就已存在的线"一并收割 ——
+        走一步无关的兵，远处已成线的敌子也会被吃，这既反直觉也让"能吃到"与"实际吃到"分叉。
+        """
+        if not self.options.pawn_three_line_capture:
+            return []
         captures: dict[str, Piece] = {}
-        directions = ((0, 1), (1, 0), (1, 1), (1, -1))
-        for row in range(self.profile.rows):
-            for col in range(self.profile.cols):
-                for dr, dc in directions:
-                    group = [self.get(state, Position(row + i * dr, col + i * dc)) for i in range(3)]
-                    if any(p is None for p in group):
-                        continue
-                    pieces = [p for p in group if p is not None]
-                    allies = [p for p in pieces if p.color is color]
-                    enemies = [p for p in pieces if p.color is not color]
-                    if len(allies) != 2 or len(enemies) != 1 or not any(p.type is PieceType.ARMOR for p in allies):
-                        continue
-                    if any(p.type is PieceType.SHIELD for p in allies):
-                        continue
-                    if any(self._adjacent_enemy_shield(state, p) for p in allies):
-                        continue
-                    if enemies[0].type is not PieceType.SHIELD:
-                        captures[enemies[0].id] = enemies[0]
+        for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
+            # 落点可能落在窗口的第 1/2/3 格 → 3 个偏移；4 向共 12 个窗口
+            for offset in (-2, -1, 0):
+                group = [self.get(state, Position(landing.row + (offset + i) * dr,
+                                                  landing.col + (offset + i) * dc))
+                         for i in range(3)]
+                if any(p is None for p in group):
+                    continue
+                allies = [p for p in group if p.color is color]
+                enemies = [p for p in group if p.color is not color]
+                if len(allies) != 2 or len(enemies) != 1:
+                    continue
+                if not any(p.type is PieceType.PAWN for p in allies):
+                    continue
+                if not any(p.position == landing for p in allies):
+                    continue
+                captures[enemies[0].id] = enemies[0]
         return list(captures.values())
 
-    def _adjacent_enemy_shield(self, state: GameState, piece: Piece) -> bool:
-        return any(p.type is PieceType.SHIELD and p.color is not piece.color and
-                   max(abs(p.position.row - piece.position.row), abs(p.position.col - piece.position.col)) == 1
-                   for p in state.pieces)
-
     def _kings_facing(self, state: GameState) -> bool:
+        """两王同一**直线**（同列或同行）且中间无子 → 照面，计入被将。"""
         kings = [p for p in state.pieces if p.type is PieceType.KING]
-        return len(kings) == 2 and kings[0].position.col == kings[1].position.col and \
-            self._clear(state, kings[0].position, kings[1].position)
+        if len(kings) != 2:
+            return False
+        same_line = (kings[0].position.col == kings[1].position.col
+                     or kings[0].position.row == kings[1].position.row)
+        return same_line and self._clear(state, kings[0].position, kings[1].position)
