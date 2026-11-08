@@ -63,7 +63,15 @@ def _fit_to_content(dialog: QDialog, ratio: float = 1.2) -> None:
         height = max(dialog.minimumHeight(), min(dialog.height(), int(hint.height() * ratio)))
         dialog.resize(width, height)
 
-    QTimer.singleShot(0, apply)
+    # **必须带 context 对象**（`dialog`）：不带它时定时器与 dialog 无生命周期绑定，
+    # 于是"打开设置页立刻关掉 / 被程序化取消"会在**下一拍事件循环**访问已删除的 C++
+    # 对象 → `RuntimeError: libshiboken: Internal C++ object (SettingsDialog) already deleted`。
+    # 这不是测试脏：本函数被 **6 个**对话框共用（设置 / 让子 / 教学 / 棋谱库 / 训练 …，
+    # `grep -n "_fit_to_content("` 可查全部调用点），任何短命对话框都踩得到，
+    # `tests/test_desktop_play_again.py` 的三文件顺序只是让它偶尔显形。
+    # 带 context 后语义是「dialog 销毁 → 定时器自动断开」，回调**不执行**（实测验证），
+    # 而不是"照跑但把异常吞掉" —— 后者只是把崩溃藏起来。
+    QTimer.singleShot(0, dialog, apply)
 
 
 class SettingsDialog(QDialog):
