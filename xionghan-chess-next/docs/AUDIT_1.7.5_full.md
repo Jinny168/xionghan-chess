@@ -111,15 +111,15 @@
 | # | 问题 | 证据 | 影响 |
 |---|---|---|---|
 | **P0-1** | **限流中间件跨版本丢失** | 1.6.0 台账 `AUDIT_v1.6.0_reaudit.md:156` 记「✅ 已修：`service/app.py:59-77` 按 IP 滑动窗口」；1.7.5 实测 `grep XH_RATE_LIMIT\|rate_limit` 于 `src/**` **0 命中**，`service/app.py` 无任何 `middleware` | `/api/auth/register\|login` 与 `/api/rooms` 可被脚本枚举/灌垃圾；1.6.0 已识别的 P3 风险原样重现 |
-| **P0-2** | **对拍门禁可静默蒸发** | `tests/test_cross_engine.py` 有 **7 处** `pytest.skip("Node.js is required…")`（:49/:73/:92/:143 等） | 无 node 环境下 81 条跨引擎对拍**全跳过**，CI 显示绿；规则镜像的实际保护力度为 0 |
+| **P0-2** | **对拍门禁可静默蒸发**（**已修；机制描述经复核实为过期**） | 修复前 `tests/test_cross_engine.py` 有 **7 处** `pytest.skip`（:49/:73/:92/:143/:752/:816/:1224）。**更正**：「无 node 时 81 条全跳过、CI 显示绿」是 1.7.0 时期的状态——当前 HEAD 的 `conftest.py` 钩子已会在无 node 时按 fail 处理（实测 `81 failed / rc=1`）。真实敞口只剩三条：`--noconftest`、测试文件被拷到 `tests/` 之外、以及**同型残留 2 处**（`test_offline_puzzles.py:36`、`test_p0_rules.py:59`）。已改为 `_require_node()` 硬失败 + `XH_ALLOW_NO_NODE=1` 显式逃生阀，修复前 `17 passed / 64 skipped / rc=0` → 修复后 `64 failed / rc=1` | 规则镜像的保护力度原本依赖 conftest 单点；现由模块内守卫 + 门禁自检 + CI 汇总行断言三层兜住 |
 | **P0-3** | **规则镜像无穷举/随机对拍** | `rules.py` 779 行 ↔ `android/Resources/assets/offline/offline.js` 双实现；`grep perft` 全仓 **0 处**；现有 43 条 `test_cross_engine` 为黄金用例 + 确定性序列 | 镜像漂移是最大结构风险（1.7.0 审计已列 P0-1），黄金用例**历史上两次放过真错**（F1/F2） |
-| **P0-4** | **整跑门禁在本机不可复现** | `pytest tests/ -m "not slow"`（882 条）在 58% 处被沙箱批量删除守卫拦截：`tmp_path` 清理 → `shutil.rmtree` → `SystemExit(1)`；`KNOWN_ISSUES` §1「整跑训练冒烟崩溃」疑同源 | 「全量绿」这一事实无法被稳定验证；只能分段跑（见 §1.3）。迁移到 CI 后须复核 §1 是否消失 |
+| **P0-4** | **整跑门禁在沙箱内不可复现**（**已定性：沙箱环境问题，非测试缺陷**） | 沙箱内跑到 58% 被批量删除守卫拦截（`tmp_path` 清理 → `shutil.rmtree` → `SystemExit(1)`）。**非沙箱 shell 实测：`pytest tests/ -m "not slow"` 879 项 465s 跑完，0 次 SystemExit**。拦截点在 `sitecustomize._check_bulk_delete_guard`，既不在 `tests/` 也不在 `conftest.py` | 仅影响「本机沙箱内整跑」；CI（GitHub runner 无该 sitecustomize）上不复现。`KNOWN_ISSUES` §1「整跑训练冒烟崩溃」应随之消失，待首次 CI 运行复核 |
 
 ### P1 — 重要（工程使能 / 性能）
 
 | # | 问题 | 证据 | 影响 |
 |---|---|---|---|
-| **P1-1** | **无 CI** | `.github/workflows` 不存在；`pyproject.toml:38-50` 已定义 `slow` marker 与「主门禁 `-m "not slow"`」口径，但无人自动执行 | 门禁靠人工记忆；合并/重构后回归只能靠下次手动跑 |
+| **P1-1** | **CI 存在，但装错依赖、缺断言**（**改判：原判「无 CI」有误**） | `.github/workflows/ci.yml` **早已入库**——我在 `xionghan-chess-next/` 子目录里查漏了，仓库根上有该文件（`git ls-files .github` 实测）。旧版三处硬伤：`pip install -e ".[test]"` 不含 PySide6/fonttools、`lfs: false` 取到 130 字节指针、无 `QT_QPA_PLATFORM` | 40+ 桌面用例靠 `importorskip` 静默跳过、字体用例必红、桌面用例无 display 直接 abort。已重写为 4 job（lint / test / gate-negative / slow），并把「对拍汇总行」接成真正的断言 step（原注释声称有第三道防线，实际无人消费该行） |
 | **P1-2** | **无依赖锁定** | `requirements/*.txt` 只有区间约束（`pydantic>=2.11,<3` 等），无 lock | 环境漂移；「本机能跑」不可复现 |
 | **P1-3** | **版本号 11 处手写** | `__init__.py` / `package.json` / `android/*.csproj` / `docker-compose.yml` / `welcome.html` / `web/index.html`（cache-buster ×2）/ `release/README.md` / 模型注释 | 有 `test_docs_single_source.py` 守卫，但**无生成脚本**，升级仍需手工改 11 处 |
 | **P1-4** | **服务端协议状态机单函数** | `rooms.py:261 handle` 105 行 / 36 分支 | 新增消息类型必须改这个函数；分支爆炸导致遗漏难发现 |
@@ -321,3 +321,40 @@ perft 覆盖的是「所有情况到深度 4」，而且**数字是廉价的**�
    修测试（弱档 0.5 倍率）+ 加「必须完成 depth ≥1」前提断言。
 4. **补声明 `fontTools`**：`test_bundled_fonts_cover_all_piece_glyphs` 依赖它做字形覆盖校验，
    但 `requirements/dev.txt` 未声明 → 新环境必红。已加入 dev 依赖并复验 23 passed。
+
+---
+
+## 9. S1 阶段执行结果（2026-11-08，团队协作）
+
+本轮 S1「止血」由四人分工完成，主理人只做仲裁与汇编。每项均附成员的实测原始输出要点。
+
+| 项 | 状态 | 证据 | 归属 |
+|---|---|---|---|
+| **P0-1 限流恢复** | ✅ 已修复 | 新增 `service/ratelimit.py`（191 行，纯 ASGI 中间件，零新依赖）；`app.py` 挂载 +9 行；新增 `tests/test_service_rate_limit.py`（217 行 / 13 用例）。**红→绿对照**：注释掉 `add_middleware` → `7 failed / 6 passed`；恢复 → `22 passed`（含既有 `test_service.py`）。真机 uvicorn（非 TestClient）实测：第 3 次 POST 返回 429 + `Retry-After: 60`；`GET /api/health` 不受限 | 主程序 |
+| **P0-2 对拍门禁硬化** | ✅ 已修复 | `test_cross_engine.py` 的 `pytest.skip` **7 → 0**，改为 `_require_node()` 硬失败 + `XH_ALLOW_NO_NODE=1` 模块级唯一逃生阀。**红→绿**：修复前（HEAD 副本 + `--noconftest`）`17 passed / 64 skipped / rc=0` → 修复后 `64 failed / rc=1`。新增 `tests/test_gate_integrity.py`（7 条自检，含 4 次真子进程、AST 结构 lint、正反双向运行时验证） | 质量 |
+| **P0-2 残留 D-2** | ✅ 已修复 | `tests/_node_guard.py` 提取为唯一守卫；`test_offline_puzzles.py` / `test_p0_rules.py` 的 `pytest.skip` 归零；`test_gate_integrity.py` 的 lint 扩为三文件循环 | 质量 |
+| **P1-1 / D-3 CI** | ✅ 已重写 | 旧 `ci.yml` 三处硬伤（`-e ".[test]"` 缺 PySide6/fonttools、`lfs:false` 取指针、无 `QT_QPA_PLATFORM`）全部修正。现为 **4 job**（lint 9 步 / test 12 步 / gate-negative 4 步 / slow 5 步），`slow.yml` 合并删除。**关键修复**：原注释声称「第三道防线 = 计数行」，但无人消费该行 —— 已补「对拍汇总行断言」step（`tee` + `set -o pipefail` + grep/sed，实测 4 组用例 rc 分别 0/1/1/1），并新增 weekly `gate-negative` job（摘掉 node 期望非零退出） | 架构 |
+| **R1 AI 预算** | ✅ 已修复 | `test_ai.py` 弱档 `AI_TIME_SCALE=0.5`、强档 0.1，并加 `completed_depth >= 1` 前提断言（非 MASTER）。修复前连跑 5 轮 **2 红 3 绿**（负载决定）；单跑 beginner 参数 100% 红（`depth=0`、返回王步）；修复后 **15 passed / 15.03s** | 主程序 |
+| **R1 附带：截断用例** | ✅ 已换局面 | `test_truncated_root_moves_never_become_best` 从 `Game("web")`（104 着，排序 **125ms**，4 倍慢机即撞穿 500ms 预算）换成 4 子残局（28 着，排序 **15ms**，需 31 倍）。8/8 绿、`trunc` 恒 27、耗时 **0.13s**（原 2.86s） | 主程序 |
+| **D-4 悬空定时器** | ✅ 已修复（产品侧） | `dialogs.py::_fit_to_content` 的 `QTimer.singleShot(0, apply)` → `singleShot(0, dialog, apply)`。**这是产品崩溃**：6 个对话框共用该辅助函数，「打开就关」即踩 `Internal C++ object already deleted`。新增 `tests/test_desktop_dialog_lifetime.py` 双向断言（活着→回调执行且尺寸=sizeHint×1.2；销毁→不执行且不抛）。回退产品改动 → `1 failed / 1 passed`（两面独立有效） | 主程序 |
+| **P0-4 整跑不可复现** | ✅ 已定性 | 沙箱守卫在**解释器退出阶段**杀进程（`SAFE_DELETE_FAIL_CLOSED`），出现过「32 条全绿但 rc=1」。**操作口径：本机判绿/红看 pytest 汇总行，不看 shell 退出码**。非沙箱 shell 实测 879 项跑完、0 次 SystemExit | 架构 + 主理人 |
+
+### 9.1 新增文件
+
+| 文件 | 行数 | 用途 |
+|---|---|---|
+| `src/xionghan_chess/service/ratelimit.py` | 191 | 滑动窗口限流（纯 ASGI，`MAX_TRACKED_CLIENTS=4096` 防泄漏） |
+| `tests/test_service_rate_limit.py` | 217 | 13 条（挂载反射 / 阈值语义 / 窗口滑动 / 按 IP 隔离 / 内存有界） |
+| `tests/test_gate_integrity.py` | 279→ | 门禁自检 7 条（lint 自验 8/8、AST 7/7、正反双向子进程） |
+| `tests/_node_guard.py` | — | 三个文件共用的 node 守卫（唯一来源） |
+| `tests/test_desktop_dialog_lifetime.py` | 132 | 对话框生命周期双向断言 |
+| `.github/workflows/ci.yml` | 278→403 | 4 job 全量重写 |
+| `.github/workflows/README.md` | — | 触发方式 + 本地复现 + 排查手册 |
+
+### 9.2 仍在跟踪
+
+| 项 | 状态 | 说明 |
+|---|---|---|
+| `test_service.py::test_local_mode_controls_both_colors_and_undoes_one_ply` | **待定性** | 仅整跑出现（单文件 9 passed、service 簇 39 passed）。两种假设：(a) 新增 3 个测试文件改变收集顺序，暴露既有顺序依赖；(b) 新用例留下 `service.app` 模块级单例污染。已派 qa-lead 用两两配对收窄，**禁止用 retry/`--ignore` 掩盖** |
+| P0-3 规则镜像 perft | 未做 | S2 范畴，见 §7.1 |
+| P1-2 依赖锁定 / P1-3 版本单源 / ruff+mypy | 未做 | S2 范畴 |
