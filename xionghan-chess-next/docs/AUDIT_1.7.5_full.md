@@ -49,6 +49,20 @@
 4. **历史比对**：13 份 `AUDIT_*` + 5 份 `QA_*` 逐条核实闭环状态。
 5. **外部检索**：棋类引擎测试范式、多端共享核心架构（见 §5）。
 
+### 1.3 门禁实测（2026-11-08）
+
+| 批次 | 范围 | 结果 |
+|---|---|---|
+| 核心逻辑 | `test_rules` / `test_game` / `test_ai` / `test_service` / `test_cross_engine` / `test_qa_regressions` | **162 passed**；跨引擎对拍 **81/81**，0 跳过 |
+| 桌面资源 | `test_desktop_theme_resources` | 23 passed（补装 `fontTools` 后；此前 `ModuleNotFoundError`） |
+| 版本与更新 | `test_docs_single_source` / `test_desktop_update` | 38 passed |
+| 判据 | `test_benchmark_acceptance` | 4 passed |
+
+**整跑（882 条）在本机不可复现**：跑到 58% 时被沙箱「批量删除守卫」拦截
+（`pytest` 清理 `tmp_path` → `shutil.rmtree` → `sitecustomize._check_bulk_delete_guard` → `SystemExit(1)`），
+**不是断言失败**。历史 `KNOWN_ISSUES` §1 记录的「整跑训练冒烟原生崩溃」疑与此同源。
+→ 列为 **P0-4：整跑不可复现**，需在无沙箱环境（CI）执行，或统一 `--basetemp` 且不自动清理。
+
 ---
 
 ## 2. 基线数据
@@ -99,6 +113,7 @@
 | **P0-1** | **限流中间件跨版本丢失** | 1.6.0 台账 `AUDIT_v1.6.0_reaudit.md:156` 记「✅ 已修：`service/app.py:59-77` 按 IP 滑动窗口」；1.7.5 实测 `grep XH_RATE_LIMIT\|rate_limit` 于 `src/**` **0 命中**，`service/app.py` 无任何 `middleware` | `/api/auth/register\|login` 与 `/api/rooms` 可被脚本枚举/灌垃圾；1.6.0 已识别的 P3 风险原样重现 |
 | **P0-2** | **对拍门禁可静默蒸发** | `tests/test_cross_engine.py` 有 **7 处** `pytest.skip("Node.js is required…")`（:49/:73/:92/:143 等） | 无 node 环境下 81 条跨引擎对拍**全跳过**，CI 显示绿；规则镜像的实际保护力度为 0 |
 | **P0-3** | **规则镜像无穷举/随机对拍** | `rules.py` 779 行 ↔ `android/Resources/assets/offline/offline.js` 双实现；`grep perft` 全仓 **0 处**；现有 43 条 `test_cross_engine` 为黄金用例 + 确定性序列 | 镜像漂移是最大结构风险（1.7.0 审计已列 P0-1），黄金用例**历史上两次放过真错**（F1/F2） |
+| **P0-4** | **整跑门禁在本机不可复现** | `pytest tests/ -m "not slow"`（882 条）在 58% 处被沙箱批量删除守卫拦截：`tmp_path` 清理 → `shutil.rmtree` → `SystemExit(1)`；`KNOWN_ISSUES` §1「整跑训练冒烟崩溃」疑同源 | 「全量绿」这一事实无法被稳定验证；只能分段跑（见 §1.3）。迁移到 CI 后须复核 §1 是否消失 |
 
 ### P1 — 重要（工程使能 / 性能）
 
@@ -304,3 +319,5 @@ perft 覆盖的是「所有情况到深度 4」，而且**数字是廉价的**�
 2. **单步耗时判据**：`MASTER_MOVE_CEILING_SECONDS = time_limit × 1.15 = 13.8`，附 4 条守卫。
 3. **beginner 档「不吃子」定性**：不是 AI 缺陷，是测试预算 50 ms 不足导致搜索退化为 `legal[0]`；
    修测试（弱档 0.5 倍率）+ 加「必须完成 depth ≥1」前提断言。
+4. **补声明 `fontTools`**：`test_bundled_fonts_cover_all_piece_glyphs` 依赖它做字形覆盖校验，
+   但 `requirements/dev.txt` 未声明 → 新环境必红。已加入 dev 依赖并复验 23 passed。
