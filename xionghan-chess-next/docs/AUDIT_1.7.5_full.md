@@ -328,6 +328,12 @@ perft 覆盖的是「所有情况到深度 4」，而且**数字是廉价的**�
 
 本轮 S1「止血」由四人分工完成，主理人只做仲裁与汇编。每项均附成员的实测原始输出要点。
 
+> **整跑状态（受污染，仅作方向参考）**：成员侧一次整跑结果为
+> `890 passed / 1 skipped / 0 failed`，`test_desktop_play_again` 与 `test_service` 两条均不在失败清单
+> ⇒ **当前工作树无失败项**。但耗时 1168.89s 不可引用：`test_expert_level` 两条实测 117.8s / 50.0s
+> vs 文档基线 27.7s / 14.6s = **4.2 倍污染**（三人在同一台机器并发跑 pytest）。
+> 这正说明「本机整跑」已不适合作为合并判据——见 §9 末的方法论。
+
 | 项 | 状态 | 证据 | 归属 |
 |---|---|---|---|
 | **P0-1 限流恢复** | ✅ 已修复 | 新增 `service/ratelimit.py`（191 行，纯 ASGI 中间件，零新依赖）；`app.py` 挂载 +9 行；新增 `tests/test_service_rate_limit.py`（217 行 / 13 用例）。**红→绿对照**：注释掉 `add_middleware` → `7 failed / 6 passed`；恢复 → `22 passed`（含既有 `test_service.py`）。真机 uvicorn（非 TestClient）实测：第 3 次 POST 返回 429 + `Retry-After: 60`；`GET /api/health` 不受限 | 主程序 |
@@ -355,6 +361,7 @@ perft 覆盖的是「所有情况到深度 4」，而且**数字是廉价的**�
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| `test_service.py::test_local_mode_controls_both_colors_and_undoes_one_ply` | **待定性** | 仅整跑出现（单文件 9 passed、service 簇 39 passed）。两种假设：(a) 新增 3 个测试文件改变收集顺序，暴露既有顺序依赖；(b) 新用例留下 `service.app` 模块级单例污染。已派 qa-lead 用两两配对收窄，**禁止用 retry/`--ignore` 掩盖** |
+| `test_service.py::test_local_mode_controls_both_colors_and_undoes_one_ply` | **待定性** | 仅整跑出现（单文件 9 passed、service 簇 39 passed）。两种假设：(a) 新增 3 个测试文件改变收集顺序，暴露既有顺序依赖；(b) 新用例留下 `service.app` 模块级单例污染。**已排除 (b) 的主要怀疑**：`test_service_rate_limit.py` 的 autouse fixture 只做 `monkeypatch.delenv` + `LIMITER.reset()`，没有比其他 service 用例多留状态 ⇒ **(a) 更可能**。已派 qa-lead 用两两配对收窄，**禁止用 retry/`--ignore` 掩盖** |
+| **`conftest._count()` 与 `_is_parity()` 口径不一致** | **已定位（S2 第一项）** | `_count()`（`conftest.py:90`）按 **nodeid 子串**匹配 `test_cross_engine.py`；`_is_parity()`（`:52`）按 **item.path** 匹配。`test_gate_integrity.py:114/129/155` 三条 parametrize 的 id 字面就是 `test_cross_engine.py` → 子串命中，多算 3 条，真实整跑出现「收集 81 / 通过 84」。CI 断言已用 `通过 >= 收集` + floor 81 绕过（`69c4e4f`），但该口径本身应统一为按 report 的 path 判定 |
 | P0-3 规则镜像 perft | 未做 | S2 范畴，见 §7.1 |
 | P1-2 依赖锁定 / P1-3 版本单源 / ruff+mypy | 未做 | S2 范畴 |
