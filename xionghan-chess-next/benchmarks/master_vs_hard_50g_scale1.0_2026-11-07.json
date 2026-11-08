@@ -1,0 +1,21 @@
+{
+  "games": 50,
+  "gamesTarget": 50,
+  "masterWins": 0,
+  "hardWins": 49,
+  "draws": 1,
+  "adjudicatedGames": 0,
+  "completedGames": 50,
+  "masterWinRate": 0.0,
+  "masterMoveMeanSeconds": 12.209,
+  "masterMoveMaxSeconds": 13.645,
+  "hardMoveMeanSeconds": 12.014,
+  "pliesMean": 35.2,
+  "engineHours": 5.93,
+  "acceptance": {
+    "enoughGames": true,
+    "enoughCompletedGames": true,
+    "winRateAtLeast55Percent": false,
+    "masterMoveAtMost12Seconds": false
+  }
+}

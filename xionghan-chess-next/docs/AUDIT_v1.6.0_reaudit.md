@@ -149,7 +149,7 @@ v1.6.0 当前处于"筹备"态，工程质量达发布基线，但**建议先行
 
 | # | §4 台账项 | 状态 | 证据 / 说明 |
 |---|---|---|---|
-| 1 | F-1 权威验收（50 局非截断 ≥55%） | ⛔ **仍未通过** | 1/10 一致预算 50 局已跑（§6.2）；满预算 50 局实测约 **4.3 h**（旧记「≈43 h」是把「每局跑满 240 手」的理论上限当成了实际，已作废），2026-11-07 14:20 起后台长跑中，进度见 §6.2 |
+| 1 | F-1 权威验收（50 局非截断 ≥55%） | ⛔ **验收已执行，结论不通过**（2026-11-08 16:12 收口） | 满预算（`--hard-scale 1.0`）50 局 **全部自然终局（0 裁定）**：**master 0 胜 / hard 49 胜 / 1 和**，`masterWinRate=0.0` ⇒ `winRateAtLeast55Percent=**false**`。0/50 的二项 95% 上限 **5.8%**，与 1/10 预算的 0/50 同向；**没有任何数据支持 master 档强于 hard**。另有独立缺陷 `masterMoveAtMost12Seconds=false`（峰 **13.645 s**），见 §6.3 第 2 项。数据见 §6.2 末表 |
 | 1b | 修正 `master_simulations` 工具误导 | ✅ 已修 | `core/benchmark.py:45-53`：该分支已改走 `ChessAI(MASTER)._master_move_score/_master_leaf_score`（加载 npz 先验），不再共用 hard 的 SEE 启发式 |
 | 2 | i18n 残留（`app.js:40-41,129`） | ✅ 已修 | `:40-41` 用 `t('replay.play'/'replay.pause')`；`:129` 用 `t('spectator.count',{count})`；`locales/zh-CN.json:565-571` 与 `en.json:565-571` 两侧键齐备 |
 | 3 | 仓库卫生（1429 个 LFS 二进制仍被跟踪） | ✅ **已结清** | `6653684 merge remote master` 一次删除 **1429** 条 `release/ archive/ build-onefile/` 路径（`git show --name-status` 计数）；`git ls-files release archive build-onefile` = **0**；`git ls-tree HEAD` 三者 = **0**；`git status` 无 `D` 待提交 |
@@ -200,28 +200,37 @@ v1.6.0 当前处于"筹备"态，工程质量达发布基线，但**建议先行
 1/10 预算的结果不能线性外推到 1.0 预算。但它替换掉了仓库里原先唯一那条
 「2 ply 截断 + 非生产配置」的 0/50 无效筛查，成为当前最可信的一致预算样本。
 
-**满预算进展（2026-11-07 14:20 起，进行中；16:55 复核 25/50）**：
+**满预算终局（2026-11-07 14:20 起跑，2026-11-08 16:12 收口，50/50 完成）**：
 
 | 指标 | 值 |
 |---|---|
-| 已完成 | **25/50**（JSONL 局号 1–25 连号无重复，单写入者） |
-| 胜负 | master 0 / hard 25 / 0 和 / **0 裁定** |
-| 手数 | 均值 31.9 |
-| 单步耗时 | master 均 12.121 s / 峰 12.376 s；hard 均 12.005 s |
-| 引擎机时 | 2.67 h |
-| 成本 | 约 **5.2 min/局** → 50 局约 **4.3 h**，无需 43 h |
+| 完成度 | **50/50**（JSONL 局号 1–50 连号无重复、单写入者；`completedGames=50`） |
+| 胜负 | **master 0 胜 / hard 49 胜 / 1 和**，`masterWinRate=0.0` |
+| 裁定 | **0**（`adjudicatedGames=0`，全部自然终局） |
+| 执色 | master 红 25 / 黑 25，完全对称 |
+| 手数 | 均值 **35.2**、中位 34、范围 13–87 |
+| 单步耗时 | master 均 **12.209 s** / 峰 **13.645 s**；hard 均 12.014 s |
+| 引擎机时 | **5.93 h**（比预估 4.3 h 高 38%，因含中断续跑的同分布偏差） |
+| `acceptance` | `enoughGames=true`、`enoughCompletedGames=true`、`winRateAtLeast55Percent=**false**`、`masterMoveAtMost12Seconds=**false**` |
+
+**结论**：F-1 验收**正式不通过**。满预算下 master 50 局 0 胜、1 和（第 50 局 46 手和棋），
+0/50 的二项 95% 置信上限 **5.8%** ⇒「master 胜率 ≥55%」被统计强力否定。
+连同 1/10 预算的 0/50，两条独立样本同向，`master` 档当前不是「更强的难度」，
+而是**与 hard 同等预算下更弱的一侧**；`docs/VERSION_PLAN_1.6.0.md` 中把 master 当作
+最高难度的表述应视为不符合实测。
+
+**运行口径备查**：
 
 - 后台由 `.venv/Scripts/python.exe` 拉起（venv 启动器会派生一个子解释器，
   `Get-Process python` 会看到**两个 PID**，CPU 只在子进程累加，不是并发重复跑）。
   进程 `PriorityClass=AboveNormal`，否则会被系统压到约 25% 单核。
 - 值守自动化 `55c647ad-f8ff-45d4-9df2-6cfae1a41370`（每 2 h，2026-11-09 00:00 失效）：
-  仅在无实例时 `--resume` 续跑，绝不并发第二个实例；已实测其 `--summarize` 命令可跑通。
-- 单步实测 **均 12.13 s / 峰 12.38 s**，`masterMoveAtMost12Seconds` 判 **false**：
-  预算写的是 12.0 s，但搜索收尾会超约 0.3 s（≈3%）。要守住「≤12 s」这条判据，
-  需把 `CONFIGS[MASTER].time_limit` 收到 **11.5 s** 左右，或把判据改成带容差——
-  **这是本轮新发现的独立缺陷，与棋力无关**。长跑结束前不得改该配置，
-  否则代码与正在跑的基准口径不一致。
-- 前 25 局 master 0 胜；与 1/10 预算的 0/50 方向一致，但**仍不能外推**，须等 50 局跑完。
+  仅在无实例时 `--resume` 续跑，绝不并发第二个实例。
+- 单步峰 **13.645 s** 对 12.0 s 预算 = 超 **13.7%**（首轮探针为 3%，随局数上升）。
+  `masterMoveAtMost12Seconds` 判 false：预算写 12.0 s，但 MCTS 收尾（展开 + 备份）必然溢出。
+  要守住「≤12 s」这条判据，需把 `CONFIGS[MASTER].time_limit` 收到 **11.5 s 以上余量**
+  （实测 13.7% 溢出 ⇒ 需 ≤10.5 s），或把判据改成带容差（如 `time_limit × 1.15`）——
+  **这是独立于棋力的判据/实现口径缺陷，需用户拍板；本轮不动配置，避免再次改变基准口径。**
 
 **断点**：原脚本只在整轮结束后一次性写 `--output`，长跑中断即全丢。已补 `--checkpoint`
 （逐局追加 JSONL）、`--quiet`、`--start-game` / `--resume` / `--summarize`；
@@ -232,13 +241,16 @@ v1.6.0 当前处于"筹备"态，工程质量达发布基线，但**建议先行
 注意 `--summarize` 需用 `.venv/Scripts/python.exe`（裸 `python` 无 `xionghan_chess` 包，
 或显式 `PYTHONPATH=src`）。
 
-### 6.3 仍挂账（2026-11-07 16:55 复核）
+### 6.3 仍挂账（2026-11-08 16:20 复核）
 
-1. **F-1 满预算验收**：`benchmarks/master_vs_hard_50g_scale1.0_2026-11-07.jsonl` 后台长跑中
-   （25/50，总量约 4.3 h，旧记「≥40 h」已作废）。跑完读 `--summarize` 的 `acceptance` 四项，
-   并把最终 JSON / JSONL / log 入库。
-2. **`masterMoveAtMost12Seconds=false`**：峰 12.376 s > 12 s，独立缺陷。收口后二选一：
-   `CONFIGS[MASTER].time_limit` 收到 11.5 s，或给判据加容差；需用户拍板。
+1. ~~F-1 满预算验收~~ **已销账（2026-11-08 16:12）**：50/50 完成，最终
+   `master_vs_hard_50g_scale1.0_2026-11-07.{json,jsonl,log}` 已入库。
+   结论 **不通过**（0 胜 / 49 负 / 1 和，`winRateAtLeast55Percent=false`），详见 §6.2 末表。
+   **注意：这是「结论已产出」，不是「指标已达标」**——若要以 master 为最高难度发布，
+   必须先解决棋力倒挂（master 弱于 hard）。
+2. **`masterMoveAtMost12Seconds=false`**：满预算实测峰 **13.645 s**（超 12.0 s 预算 **13.7%**，
+   首轮探针仅 3%，随局数上升）。收口二选一：`CONFIGS[MASTER].time_limit` 收到 **≤10.5 s**
+   （留 13.7% 余量），或给判据加容差（如 `time_limit × 1.15`）；需用户拍板。
 3. 令牌 TTL / 全部登出（可选，本就不阻断发布）。
 4. F-10 规则语义 C-01/03/04/11/12 待产品拍板。
 5. **推送策略未定**：本地 master 相对 `origin/master` 为 `342 behind / 14 ahead`，远端已是 1.7.5；
