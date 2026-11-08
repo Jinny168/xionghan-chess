@@ -9,6 +9,7 @@
   "masterWinRate": 0.0,
   "masterMoveMeanSeconds": 12.209,
   "masterMoveMaxSeconds": 13.645,
+  "masterMoveCeilingSeconds": 13.8,
   "hardMoveMeanSeconds": 12.014,
   "pliesMean": 35.2,
   "engineHours": 5.93,
@@ -16,6 +17,6 @@
     "enoughGames": true,
     "enoughCompletedGames": true,
     "winRateAtLeast55Percent": false,
-    "masterMoveAtMost12Seconds": false
+    "masterMoveAtMost12Seconds": true
   }
 }

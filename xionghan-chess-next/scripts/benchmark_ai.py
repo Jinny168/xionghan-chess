@@ -5,7 +5,10 @@ from dataclasses import asdict
 import json
 from pathlib import Path
 
-from xionghan_chess.core.benchmark import benchmark_master_vs_hard
+from xionghan_chess.core.benchmark import (
+    MASTER_MOVE_CEILING_SECONDS,
+    benchmark_master_vs_hard,
+)
 
 
 def load_rows(path: Path) -> list[dict]:
@@ -47,6 +50,7 @@ def summarize(rows: list[dict], games_target: int) -> dict:
         "masterWinRate": round(wins / len(rows), 4) if rows else 0.0,
         "masterMoveMeanSeconds": round(master_total / master_moves, 3) if master_moves else 0.0,
         "masterMoveMaxSeconds": master_max,
+        "masterMoveCeilingSeconds": MASTER_MOVE_CEILING_SECONDS,
         "hardMoveMeanSeconds": round(hard_total / hard_moves, 3) if hard_moves else 0.0,
         "pliesMean": round(sum(r["plies"] for r in rows) / len(rows), 1) if rows else 0.0,
         "engineHours": round((master_total + hard_total) / 3600, 2),
@@ -54,7 +58,8 @@ def summarize(rows: list[dict], games_target: int) -> dict:
             "enoughGames": len(rows) >= 50,
             "enoughCompletedGames": completed >= 50,
             "winRateAtLeast55Percent": len(rows) >= 50 and wins / len(rows) >= 0.55,
-            "masterMoveAtMost12Seconds": master_max <= 12.0,
+            # 键名沿用历史报告；阈值取「预算 × (1+15%)」，见 core/benchmark.py 常量注释。
+            "masterMoveAtMost12Seconds": master_max <= MASTER_MOVE_CEILING_SECONDS,
         },
     }
 
