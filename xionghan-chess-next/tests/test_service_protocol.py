@@ -35,6 +35,8 @@
 from __future__ import annotations
 
 import asyncio
+import queue
+import threading
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -52,6 +54,45 @@ PROFILE = "web"
 
 # 死锁护栏：单条消息处理正常在毫秒级，2 秒还没完就说明锁语义被破坏。
 HANDLE_TIMEOUT_SECONDS = 2.0
+
+# WS 收帧护栏：正常帧也是毫秒级，2 秒没到只可能是"根本没发出来"。
+WS_RECV_TIMEOUT_SECONDS = 2.0
+
+
+def _recv_json(socket: Any, *, timeout: float = WS_RECV_TIMEOUT_SECONDS) -> dict[str, Any]:
+    """带超时的 `socket.receive_json()`：帧不来就**失败**，而不是把 CI 挂到 job timeout。
+
+    为什么需要：Starlette 的 WS 测试会话没有接收超时原语，本仓也没有 pytest-timeout。
+    "广播漏发"过去的表现是**阻塞**（实测把 `broadcast` 截成只发第一个 socket 时，
+    真 WS 用例挂了 120s+ 才被我 side 掉），CI 侧只会显示 job timeout —— 一条红色的断言
+    远好过一个不说话的挂死。
+
+    实现：daemon 线程收帧 + `queue.get(timeout)`。**不用 ThreadPoolExecutor** ——
+    它的 `shutdown(wait=True)`（含 `with` 退出）会等那个阻塞的接收线程，等于把挂死还回去；
+    daemon 线程不会阻止解释器退出。
+
+    ⚠️ 2 秒是**判据不是兜底**：正常帧毫秒级，所以超时只可能是"帧没发出来"（漏发/只发
+    一方/自锁），与"帧到了但内容不对"（后续字段断言负责）在失败消息上明确区分。
+    """
+
+    box: queue.Queue[Any] = queue.Queue(maxsize=1)
+
+    def _worker() -> None:
+        try:
+            box.put(socket.receive_json())
+        except BaseException as exc:          # 原样转交给主线程，不在工作线程里吞掉
+            box.put(exc)
+
+    threading.Thread(target=_worker, daemon=True).start()
+    try:
+        item = box.get(timeout=timeout)
+    except queue.Empty:
+        raise AssertionError(
+            f"{timeout:g}s 内没收到 WS 帧 —— 帧根本没发到这条 socket（广播漏发 / 只发了"
+            "一方 / 自锁阻塞），不是内容不对：内容问题由后续字段断言负责") from None
+    if isinstance(item, BaseException):
+        raise item
+    return item
 
 
 async def _online_pair(manager: RoomManager,
@@ -310,22 +351,22 @@ def test_broadcast_frame_sequence_is_stable() -> None:
         frames = []
         with client.websocket_connect(f"/ws/{room_id}") as socket:
             socket.send_json({"type": "auth", "token": token})
-            frames.append(socket.receive_json())                       # 1) 首帧 state（带 replay）
+            frames.append(_recv_json(socket))                       # 1) 首帧 state（带 replay）
             socket.send_json({"type": "move", "roomId": room_id,
                               "revision": frames[0]["revision"], "protocolVersion": 1,
                               "payload": {"from": {"row": socket_move.source.row,
                                                    "col": socket_move.source.col},
                                           "to": {"row": socket_move.target.row,
                                                  "col": socket_move.target.col}}})
-            frames.append(socket.receive_json())                       # 2) state（revision+1）
+            frames.append(_recv_json(socket))                       # 2) state（revision+1）
             socket.send_json({"type": "chat", "roomId": room_id,
                               "revision": frames[1]["revision"], "protocolVersion": 1,
                               "payload": {"text": "好棋", "quick": True}})
-            frames.append(socket.receive_json())                       # 3) chat（revision 不变）
+            frames.append(_recv_json(socket))                       # 3) chat（revision 不变）
             socket.send_json({"type": "resign", "roomId": room_id,
                               "revision": frames[1]["revision"], "protocolVersion": 1,
                               "payload": {}})
-            frames.append(socket.receive_json())                       # 4) state（revision+1）
+            frames.append(_recv_json(socket))                       # 4) state（revision+1）
 
     assert [(frame["type"], frame["revision"]) for frame in frames] == [
         ("state", 0), ("state", 1), ("chat", 1), ("state", 2)]
@@ -361,19 +402,19 @@ def test_pending_offers_reach_both_sockets() -> None:
 
         with client.websocket_connect(f"/ws/{room_id}") as red_ws:
             red_ws.send_json({"type": "auth", "token": red_token})
-            red_ws.receive_json()                      # 红方自己的首帧
+            _recv_json(red_ws)                      # 红方自己的首帧
             with client.websocket_connect(f"/ws/{room_id}") as black_ws:
                 black_ws.send_json({"type": "auth", "token": black_token})
-                black_first = black_ws.receive_json()  # 黑方首帧
-                red_second = red_ws.receive_json()     # 黑方接入触发的广播（红方也要收）
+                black_first = _recv_json(black_ws)  # 黑方首帧
+                red_second = _recv_json(red_ws)     # 黑方接入触发的广播（红方也要收）
                 revision = red_second["revision"]
                 assert black_first["revision"] == revision
 
                 # 红方求和 → 两边的 STATE 都要带 pendingDrawOffer=red
                 red_ws.send_json({"type": "draw_offer", "roomId": room_id,
                                   "revision": revision, "protocolVersion": 1, "payload": {}})
-                red_frame = red_ws.receive_json()
-                black_frame = black_ws.receive_json()
+                red_frame = _recv_json(red_ws)
+                black_frame = _recv_json(black_ws)
                 assert red_frame["type"] == black_frame["type"] == "state"
                 assert red_frame["revision"] == black_frame["revision"] == revision + 1
                 assert red_frame["payload"]["game"]["pendingDrawOffer"] == Color.RED.value
@@ -387,13 +428,13 @@ def test_pending_offers_reach_both_sockets() -> None:
                                                        "col": move.source.col},
                                               "to": {"row": move.target.row,
                                                      "col": move.target.col}}})
-                red_ws.receive_json()
-                black_ws.receive_json()
+                _recv_json(red_ws)
+                _recv_json(black_ws)
                 black_ws.send_json({"type": "undo_request", "roomId": room_id,
                                     "revision": red_frame["revision"] + 1,
                                     "protocolVersion": 1, "payload": {}})
-                red_undo = red_ws.receive_json()
-                black_undo = black_ws.receive_json()
+                red_undo = _recv_json(red_ws)
+                black_undo = _recv_json(black_ws)
 
     assert red_undo["type"] == black_undo["type"] == "state"
     assert red_undo["payload"]["game"]["pendingUndoOffer"] == Color.BLACK.value
