@@ -244,9 +244,12 @@ def test_unavailable_slot_that_is_not_the_f1a_pair_still_raises():
     否则"宽松加载"会把真损坏的存档一起放过 —— 那比拒载更糟（用户以为读到了）。
     """
     document = _legacy_f1a_document("desktop_classic")
-    document["setup"]["redSlots"] = [
-        slot.replace("red:guard:11:5", "red:armor:11:5") for slot in document["setup"]["redSlots"]
-    ]
+    slots = document["setup"]["redSlots"]
+    # 前提断言不是装饰：替换目标不存在时 `str.replace` 是空转，文档仍然合法，
+    # 于是"应该报错"的用例会变成"不报错"—— 那种反向用例等于没有。
+    assert "red:guard:11:5" in slots, "前提：旧档里必须有这个尉槽位"
+    document["setup"]["redSlots"] = [slot.replace("red:guard:11:5", "red:armor:11:5") for slot in slots]
+    assert "red:armor:11:5" in document["setup"]["redSlots"], "前提：替换必须真的发生"
     with pytest.raises(ValueError, match="unavailable piece slots"):
         game_from_document(document)
 
@@ -254,9 +257,10 @@ def test_unavailable_slot_that_is_not_the_f1a_pair_still_raises():
 def test_guard_slot_on_a_non_f1a_square_still_raises():
     """同类型也不泛化：尉槽位若不在旧对调位，仍按"该档不启用尉"报错。"""
     document = _legacy_f1a_document("desktop_classic")
-    document["setup"]["redSlots"] = [
-        slot.replace("red:guard:11:5", "red:guard:2:5") for slot in document["setup"]["redSlots"]
-    ]
+    slots = document["setup"]["redSlots"]
+    assert "red:guard:11:5" in slots, "前提：旧档里必须有这个尉槽位"
+    document["setup"]["redSlots"] = [slot.replace("red:guard:11:5", "red:guard:2:5") for slot in slots]
+    assert "red:guard:2:5" in document["setup"]["redSlots"], "前提：替换必须真的发生"
     with pytest.raises(ValueError, match="unavailable piece slots"):
         game_from_document(document)
 
