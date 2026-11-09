@@ -524,3 +524,50 @@ def test_broadcast_fans_out_to_every_socket() -> None:
             assert frame["revision"] == room.revision, seat
 
     _run(scenario)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 12) 路由表覆盖自检 —— 新增 MessageType 必须登记，或显式归入 PING 早退
+# ─────────────────────────────────────────────────────────────────────────────
+def test_apply_table_covers_every_message_type() -> None:
+    """路由表必须覆盖**全部"客户端→服务端"类型**，且三类例外都要显式点名。
+
+    为什么需要这条：漏登记**不会报错**。查表拿到 None 会走 `error.unsupported_message`，
+    于是"服务端忘了接这个类型"表现得和"协议不支持"一模一样 —— 不崩溃、现有测试全绿，
+    只是功能静默消失。新增消息类型时这就是典型的静默降级。
+
+    ⚠️ 断言**不能**写成 `set(handlers) | {PING} == set(MessageType)`：那会要求给
+    `HELLO` / `JOIN` / `STATE` / `ERROR` 也登记处理函数，而它们是**服务端→客户端**类型，
+    客户端发来即非法，必须继续走 `unsupported_message`。为了"让断言通过"去给它们登记
+    handler，等于把非法消息变成合法处理 —— 那是行为变更，不是补覆盖。
+    所以例外分两桶、都在测试里写死：进表反而错。
+    """
+    handlers = set(RoomManager()._apply_handlers())
+    # 桶 1：锁内早退，不进表
+    short_circuit = {MessageType.PING}
+    # 桶 2：服务端→客户端类型，客户端发来一律 unsupported（故意不登记）
+    server_to_client = {MessageType.HELLO, MessageType.JOIN,
+                        MessageType.STATE, MessageType.ERROR}
+
+    missing = set(MessageType) - handlers - short_circuit - server_to_client
+    assert not missing, (
+        "新增 MessageType 必须显式决定归属：登记处理函数 / 归入 PING 早退 / "
+        f"归入 server_to_client（故意不支持）。当前未归属：{sorted(m.name for m in missing)}")
+    assert not (handlers & short_circuit), (
+        "PING 在 handle 锁内早退，不该进路由表（进了也是永远调用不到的死配置）")
+    assert not (handlers & server_to_client), (
+        "服务端→客户端类型不该有处理函数：登记它们等于接受非法客户端消息，"
+        f"属行为变更。多登记了：{sorted(m.name for m in handlers & server_to_client)}")
+    assert handlers <= set(MessageType), (
+        f"路由表里有已不存在的 MessageType：{sorted(m.name for m in handlers - set(MessageType))}")
+
+    # 结构对了还要行为对：服务端→客户端类型发给 handle 必须被拒成 unsupported_message。
+    async def scenario() -> None:
+        manager = RoomManager()
+        room, red, _black = await _online_pair(manager)
+        for message_type in sorted(server_to_client, key=lambda m: m.name):
+            with pytest.raises(GameError) as exc:
+                await _send(manager, room, red, message_type)
+            assert str(exc.value) == t("error.unsupported_message"), message_type.name
+
+    _run(scenario)
