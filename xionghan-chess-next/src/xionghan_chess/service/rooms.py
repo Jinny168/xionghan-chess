@@ -372,6 +372,12 @@ class RoomManager:
 
     def _apply_draw_offer(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
         if room.mode == "local":
+            # S3-C：local 房没有协商对象，提和即终局 —— 这条路径**绕过** Game.offer_draw
+            # （不设 pending、直接写 draw），所以 finished 守卫必须在这里单独补，
+            # 不能指望 core 那层。此前一局已经和棋/分胜负之后还能再点提和：状态被重设
+            # 成同一个值、revision 照涨、两端各收一帧毫无变化的 STATE。
+            if room.game.state.finished:
+                raise GameError(room.tr("error.game_finished"))
             room.game.state.draw = True
             room.game.state.result_reason = "draw_agreement"
         else:

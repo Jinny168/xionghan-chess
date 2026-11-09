@@ -126,8 +126,19 @@ class Game:
         self.state.result_reason = "resignation"
 
     def offer_draw(self, color: Color) -> None:
+        # S3-C：三条状态前置条件，与 resign / resurrect_pawn / offer_restart 对齐。
+        #   ① finished —— 终局后提和会把一局已判和/已分胜负的棋盘重新挂上协商状态；
+        #      此前这里没有守卫，local 房实测能在 finished=True 之后继续提和并涨 revision。
+        #   ② turn —— 只在轮到自己的时候能提和（原有语义，未变）。
+        #   ③ 已有 pending —— 此前只校验回合，同一方连提两次都"成功"：状态值不变，
+        #      revision 照涨，并且每次都整帧重播 STATE，客户端会被同一个 pending 连弹两次框。
+        #      `offer_restart` 早就有这条守卫，draw 漏了属于同类消息策略分裂。
+        if self.state.finished:
+            raise GameError(self._t("error.game_finished"))
         if color is not self.state.turn:
             raise GameError(self._t("error.draw_own_turn"))
+        if self.state.pending_draw_offer is not None:
+            raise GameError(self._t("error.draw_already_pending"))
         self.state.pending_draw_offer = color
 
     def respond_draw(self, color: Color, accept: bool) -> None:

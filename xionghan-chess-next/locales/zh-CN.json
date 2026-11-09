@@ -462,6 +462,7 @@
     "illegal_move": "非法走棋",
     "no_undo": "没有可悔的棋",
     "draw_own_turn": "只能在自己的回合提和",
+    "draw_already_pending": "已有待处理的提和，请等待对方回应",
     "no_pending_draw": "当前没有待处理的提和",
     "no_undo_move": "当前没有可撤销的走棋",
     "no_pending_undo": "当前没有待处理的悔棋请求",

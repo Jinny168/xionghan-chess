@@ -153,7 +153,7 @@ def test_resign_ends_game_and_bumps_revision() -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 2) DRAW_OFFER —— 只在**自己回合**可提议；只记 pending，不是和棋
+# 2) DRAW_OFFER —— 只在**自己回合**可提议；只记 pending，不是和棋；已有 pending 则拒绝
 # ─────────────────────────────────────────────────────────────────────────────
 def test_draw_offer_requires_own_turn_and_records_pending_offer() -> None:
     async def scenario() -> None:
@@ -173,12 +173,56 @@ def test_draw_offer_requires_own_turn_and_records_pending_offer() -> None:
         assert room.game.state.finished is False           # 只是提议，局面没结束
         assert room.revision == before + 1
 
-        # 锁住现状（**不是**背书）：`Game.offer_draw` 不做去重，只有 turn 校验，所以同一方
-        # 重复提议不报错、revision 照常再 +1。是否「重复提议应拒绝」是产品判断，
-        # 不在本安全网里改语义 —— 若将来判定为缺陷，改这条用例并同步改 core。
+        # ★ S3-C 协议行为变更：同一方在 pending 未决时再提和必须**拒绝**。
+        #   本用例原先锁的是旧现状（"`Game.offer_draw` 不做去重，只有 turn 校验，所以同一方
+        #   重复提议不报错、revision 照常再 +1"，原文自注「不是背书」）。产品判定为缺陷，
+        #   本次随 core 守卫（`Game.offer_draw` 的 pending 判断，与 `Game.offer_restart` 对齐）
+        #   同步改为新语义：GameError（draw_already_pending）、pending 保持原值、revision 不变。
+        #   旧行为的三条副作用（状态值不变却 revision+1、每次整帧重播 STATE、客户端被同一个
+        #   pending 连弹两次框）都源于「不拒绝」，所以这一条要连 revision 一起钉死。
+        before_duplicate = room.revision
+        with pytest.raises(GameError):
+            await _send(manager, room, red, MessageType.DRAW_OFFER)
+        assert room.revision == before_duplicate, "重复提和被拒时 revision 不许变"
+        assert room.game.state.pending_draw_offer is Color.RED, "原提议必须保留，不能被覆盖或清掉"
+        assert room.game.state.finished is False
+
+        # 应答清掉 pending 之后，同一方**可以**再提（不是"一局只能提一次"）
+        await _send(manager, room, black, MessageType.DRAW_RESPONSE, {"accept": False})
+        assert room.game.state.pending_draw_offer is None
         await _send(manager, room, red, MessageType.DRAW_OFFER)
-        assert room.revision == before + 2
         assert room.game.state.pending_draw_offer is Color.RED
+
+    _run(scenario)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2b) DRAW_OFFER —— local 房「提和即终局」这条旁路也要挡住终局后提和
+# ─────────────────────────────────────────────────────────────────────────────
+def test_draw_offer_rejected_after_game_finished_in_local_room() -> None:
+    """local 房不设 pending、直接写 `draw=True`，**绕过** `Game.offer_draw`。
+
+    所以 core 那层的 finished 守卫盖不到它，必须在 `_apply_draw_offer` 里单独补。
+    此前这条路径没有守卫：一局已经和棋之后还能再点提和 —— 状态被重设成同一个值、
+    revision 照涨、两端各收一帧毫无变化的 STATE。
+    """
+
+    async def scenario() -> None:
+        manager = RoomManager()
+        room, seat = await manager.create(PROFILE, "local", "本机玩家", Color.RED)
+
+        await _send(manager, room, seat, MessageType.DRAW_OFFER)
+        assert room.game.state.draw is True
+        assert room.game.state.finished is True
+        assert room.game.state.result_reason == "draw_agreement"
+        assert room.game.state.pending_draw_offer is None   # local 不设 pending
+
+        before = room.revision
+        with pytest.raises(GameError):
+            await _send(manager, room, seat, MessageType.DRAW_OFFER)
+        assert room.revision == before, "终局后提和被拒时 revision 不许变"
+        assert room.game.state.draw is True
+        assert room.game.state.result_reason == "draw_agreement"
 
     _run(scenario)
 

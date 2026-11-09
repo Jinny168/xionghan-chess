@@ -462,6 +462,7 @@
     "illegal_move": "Illegal move",
     "no_undo": "No move can be undone",
     "draw_own_turn": "You can offer a draw only on your turn",
+    "draw_already_pending": "A draw offer is already pending. Wait for the opponent to respond",
     "no_pending_draw": "No draw offer is pending",
     "no_undo_move": "There is no move to undo",
     "no_pending_undo": "No undo request is pending",
