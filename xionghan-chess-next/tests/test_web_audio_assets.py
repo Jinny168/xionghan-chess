@@ -55,12 +55,14 @@ BGM_ANCHORS = {
         "sha256": "7696d93f90b6a9923e2af7527a99bb091ca9d01fe01a2c9cdf0a92f77cd687d0",
         "sample_rate": 44100,
         "channels": 2,
+        "bitrate": 128000,
         "duration": 190.000,
     },
     "qq_background_sound.mp3": {
         "sha256": "8a6dd5a79a7c2feb4f4366f23622ca9ec2736a6d474d5a87270b5f42fe902819",
         "sample_rate": 48000,
         "channels": 2,
+        "bitrate": 128000,
         "duration": 234.389,
     },
 }
@@ -91,12 +93,13 @@ def _id3v2_size(data: bytes) -> int:
 
 
 def mp3_stream_info(path: Path) -> dict[str, int | float]:
-    """数帧求时长。返回 sample_rate / channels / duration。"""
+    """数帧求时长。返回 sample_rate / channels / bitrate / duration（均取第一帧）。"""
     data = path.read_bytes()
     pos = _id3v2_size(data)
     frames = 0
     sample_rate = 0
     channels = 0
+    bitrate_value = 0
     samples_per_frame = 0
     while pos + 4 <= len(data):
         b0, b1, b2, b3 = data[pos:pos + 4]
@@ -117,6 +120,7 @@ def mp3_stream_info(path: Path) -> dict[str, int | float]:
         if not frames:                 # 以第一帧为准（CBR 全程一致）
             sample_rate = rate
             channels = 1 if mode == 3 else 2
+            bitrate_value = bitrate
         frames += 1
         pos += (144 if mpeg1 else 72) * bitrate // rate + padding
     if not frames:
@@ -125,6 +129,7 @@ def mp3_stream_info(path: Path) -> dict[str, int | float]:
         "frames": frames,
         "sample_rate": sample_rate,
         "channels": channels,
+        "bitrate": bitrate_value,
         "duration": frames * samples_per_frame / sample_rate,
     }
 
@@ -160,6 +165,9 @@ def test_bgm_files_are_real_mp3_with_pinned_params() -> None:
             f"{name} 采样率 {info['sample_rate']} ≠ 锚点 {anchor['sample_rate']}")
         assert info["channels"] == anchor["channels"], (
             f"{name} 声道 {info['channels']} ≠ 锚点 {anchor['channels']}")
+        # 用户定案：BGM 保持 mp3 128k。体积门禁只能拦"变大"，这条拦"降码率换时长"。
+        assert info["bitrate"] == anchor["bitrate"] == 128000, (
+            f"{name} 码率 {info['bitrate']} ≠ 128000")
         expected = float(anchor["duration"])
         # 0.5%：见模块注释「关于时长断言的口径」（解析器多算 Xing/Info 帧，实测偏长 0.07s）
         assert abs(float(info["duration"]) - expected) <= expected * 0.005, (
