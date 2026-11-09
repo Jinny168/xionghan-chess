@@ -138,7 +138,7 @@ def test_truncated_root_moves_never_become_best(monkeypatch):
     """把上限压到 0 → 所有根着法的静态搜索都被截断 → 必须退回初始序首着。
 
     **为什么用 4 子残局而不是 `Game("web")`**：本用例验的是「截断兜底」这条逻辑，
-    与开局有多少合法着**无关**。而 `Game("web")` 有 104 个合法着，`choose_move` 一上来
+    与开局有多少合法着**无关**。而 `Game("web")` 有 107 个合法着，`choose_move` 一上来
     要对它们逐个做将军预筛（`apply_unchecked + in_check`）—— 实测这笔排序**本身就要
     125ms**（5 轮 125–125ms），吃掉 BEGINNER 500ms 预算的四分之一；一旦它把预算吃光，
     `_root` 的第一个 `_guard` 就抛 `SearchTimeout`，**一次根着法都没轮到**，
@@ -151,7 +151,7 @@ def test_truncated_root_moves_never_become_best(monkeypatch):
     **所以换局面不是为了跑得快，是为了让"红"只可能由截断逻辑引起，而不是由机器速度引起。**
     """
     monkeypatch.setattr("xionghan_chess.core.ai.QUIESCENCE_NODE_LIMIT", 0)
-    # 4 子残局：28 个合法着（vs 开局的 104 个），足以产出 27 次截断，覆盖不受影响。
+    # 4 子残局：28 个合法着（vs 开局的 107 个），足以产出 27 次截断，覆盖不受影响。
     game = Game.from_state(GameState("desktop_complete", [
         Piece.create(PieceType.KING, Color.RED, 11, 6),
         Piece.create(PieceType.KING, Color.BLACK, 1, 4),

@@ -67,6 +67,32 @@ def test_guard_and_advisor_are_swapped_at_the_opening() -> None:
     assert moves_from(0, 6, Color.BLACK) == 2
 
 
+def test_opening_never_contains_a_type_the_profile_disables() -> None:
+    """不变量：开局阵容里不许出现该档 `enabled_piece_types` 之外的棋子。
+
+    F1-a 的由来。`desktop_classic` / `web` 的 (11,5) 曾是一枚 GUARD：95c2784 的
+    尉/仕对调**只对启用尉的完整档成立**，而这两档的 enabled 不含 GUARD，于是留下了
+    一枚 `moves=0` + `guard_appear=False` 的尉 —— 玩家看不见它，它却真实占格，
+    实测各挡掉 4 个合法着（classic 110→114、web 104→108 是"删掉它"的差值），
+    同时还顶掉了本该在那里的第二只仕。
+
+    根因不是"坐标写错"，而是 roster 只按 `piece_enabled`（即 `*_appear`）过滤、
+    不看 `enabled_piece_types` —— 两套口径各说各话，所以这枚子既被放进 `pieces`
+    又被判定"不显示"。因此这里钉的不是坐标，是**集合关系**：
+    以后任何 profile 的 `pieces` 与 `enabled_piece_types` 再对不上，这条立刻红。
+    """
+    for profile_id in ("desktop_complete", "desktop_classic", "web", "traditional"):
+        game = Game(profile_id)
+        stray = sorted(
+            (piece.type.value, piece.position.row, piece.position.col)
+            for piece in game.state.pieces
+            if piece.type not in game.profile.enabled_piece_types
+        )
+        assert not stray, (
+            f"{profile_id} 开局含该档未启用的棋子：{stray} —— "
+            "这类子走不动、又按 *_appear=False 不显示，却真实占格挡住其他子。")
+
+
 def test_delivery_profiles_have_distinct_piece_sets() -> None:
     """各交付档的初始棋子集必须互不相同（否则"选档案"没有意义）。"""
     sets = {}

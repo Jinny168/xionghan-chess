@@ -149,7 +149,17 @@ def specs(color: Color, items: Iterable[tuple[PieceType, int, int]]) -> list[Pie
     return [PieceSpec(kind, color, row, col) for kind, row, col in items]
 
 
-def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[PieceSpec]:
+def xionghan_side(color: Color, complete: bool, web: bool = False, *,
+                  enabled: frozenset[PieceType]) -> list[PieceSpec]:
+    """一方（黑方原始行号）的 13x13 开局阵容。
+
+    `enabled` 是该档的 `enabled_piece_types`。**必填、无默认值**：中心格放哪一枚必须
+    由"这档到底允许哪些子"决定，而不是由调用方的 `complete`/`web` 顺带决定 ——
+    早先这里无条件放 GUARD，于是 `desktop_classic` / `web`（两档的 enabled 都不含 GUARD）
+    在 (1,5)/(11,5) 各留了一枚**永远不能动、又被 guard_appear 标成不显示**的尉：
+    它在 `state.pieces` 里真实占格、真实挡俥/炮/马腿（实测各挡掉 4 个合法着），
+    而玩家看不见它。见 F1-a。
+    """
     # flip 显式标注：两个 lambda 的三元 join 会被 mypy 推成 <unknown>，
     # 后面 flip(row) 就成了 untyped call（mypy strict，S2-3）。
     flip: Callable[[int], int] = (lambda row: XIONGHAN_ROWS - 1 - row) if color is Color.RED else (lambda row: row)
@@ -158,6 +168,7 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
         # 软删甲/楯/刺：后排只保留射、仕、檑
         # 尉与仕对调（(0,6)↔(1,5)）：尉改主教后原本两侧斜格被两只仕同时占死、首着 0，
         # 玩家不愿动仕 → 整局可能不动尉。对调后尉首着 4，且仕/檑/王的首着数完全不变。
+        # 这一对调**只对完整档成立**（只有它启用尉）；见下方 palace_slot。
         items += [
             (PieceType.ARCHER, 0, 0), (PieceType.THUNDER, 0, 4),
             (PieceType.ADVISOR, 0, 6), (PieceType.THUNDER, 0, 8),
@@ -173,9 +184,12 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
             (PieceType.ARCHER, 0, 0), (PieceType.THUNDER, 0, 4),
             (PieceType.THUNDER, 0, 8), (PieceType.ARCHER, 0, 12),
         ]
+    # F1-a：尉/仕对调的前提是"尉真的在场上"。不启用尉的档（classic/web）中心格放仕，
+    # 与 95c2784 之前的布局、以及 offline.js 的 `side()` 完全一致。
+    palace_slot = PieceType.GUARD if PieceType.GUARD in enabled else PieceType.ADVISOR
     items += [
         (PieceType.ROOK, 1, 2), (PieceType.HORSE, 1, 3),
-        (PieceType.ELEPHANT, 1, 4), (PieceType.GUARD, 1, 5),
+        (PieceType.ELEPHANT, 1, 4), (palace_slot, 1, 5),
         (PieceType.KING, 1, 6), (PieceType.ADVISOR, 1, 7),
         (PieceType.ELEPHANT, 1, 8), (PieceType.HORSE, 1, 9),
         (PieceType.ROOK, 1, 10), (PieceType.CANNON, 3, 1),
@@ -210,17 +224,20 @@ CLASSIC = WEB | {PieceType.PATROL}
 PROFILES: dict[str, RuleProfile] = {
     "desktop_complete": RuleProfile(
         "desktop_complete", "完整模式", 13, 13,
-        tuple(xionghan_side(Color.BLACK, True) + xionghan_side(Color.RED, True)), ALL,
+        tuple(xionghan_side(Color.BLACK, True, enabled=ALL)
+              + xionghan_side(Color.RED, True, enabled=ALL)), ALL,
         RuleOptions(), RED_NAMES, BLACK_NAMES,
     ),
     "desktop_classic": RuleProfile(
         "desktop_classic", "经典模式", 13, 13,
-        tuple(xionghan_side(Color.BLACK, False) + xionghan_side(Color.RED, False)), CLASSIC,
+        tuple(xionghan_side(Color.BLACK, False, enabled=CLASSIC)
+              + xionghan_side(Color.RED, False, enabled=CLASSIC)), CLASSIC,
         RuleOptions(), RED_NAMES, BLACK_NAMES,
     ),
     "web": RuleProfile(
         "web", "精简模式", 13, 13,
-        tuple(xionghan_side(Color.BLACK, False, True) + xionghan_side(Color.RED, False, True)), WEB,
+        tuple(xionghan_side(Color.BLACK, False, True, enabled=WEB)
+              + xionghan_side(Color.RED, False, True, enabled=WEB)), WEB,
         RuleOptions(pawn_resurrection=False, pawn_promotion=False), RED_NAMES, BLACK_NAMES,
     ),
     "traditional": RuleProfile(
