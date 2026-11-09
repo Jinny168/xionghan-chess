@@ -112,7 +112,11 @@ jobs:
         # S2-3：ruff/mypy 不进 requirements/dev.txt —— 它们是门禁工具不是业务依赖，
         # 钉死版本是为了让"本机绿 = CI 绿"成立：ruff 升一个 minor 就可能多出规则
         # 把 CI 打红。升级时须本机重跑两条命令后再改这里的版本号。
-        run: pip install "ruff==0.17.4" "mypy==2.4.1"
+        # pydantic 是 mypy 的**类型信息依赖**：core/protocol.py 继承 BaseModel，
+        # 不装它 BaseModel 就是 Any，strict 的 disallow_subclassing_any 必红
+        # （run #122 实证 3 errors）。版本必须与 lock 里的 pin 保持一致——
+        # 升级 pydantic 时两处一起改。core 的第三方依赖盘过全量，只有这一个。
+        run: pip install "ruff==0.17.4" "mypy==2.4.1" "pydantic==2.14.3"
 
       - name: ruff check（全仓，配置在 pyproject [tool.ruff]）
         # 口径「小而真」：E4/E7/E9/F + W + I（见 pyproject 注释），豁免集中在
