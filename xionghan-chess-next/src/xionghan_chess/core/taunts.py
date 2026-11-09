@@ -56,12 +56,18 @@ TAUNTS_EN: dict[str, tuple[str, ...]] = {
 # 语言键 → 场景表。`language` 走 `_language_key` 归一，不直接索引。
 TAUNTS: dict[str, dict[str, tuple[str, ...]]] = {"zh": TAUNTS_ZH, "en": TAUNTS_EN}
 
-# 频率上限（每局）：总量 ≤6；每场景各自上限；两次之间至少隔 2 手。
-TAUNT_TOTAL_LIMIT = 6
-TAUNT_MIN_PLY_GAP = 2
+# 频率上限（每局）：总量 ≤4；每场景各自上限；两次之间至少隔 4 手。
+# 用户口径（2026-11-09 定稿）：6/2 → 4/4；`draw_declined` 也计入总量 4。
+TAUNT_TOTAL_LIMIT = 4
+TAUNT_MIN_PLY_GAP = 4
 TAUNT_SCENE_LIMITS: dict[str, int] = {
     "opening": 1, "check": 2, "draw_declined": 1, "victory": 1, "defeat": 1,
 }
+
+# 「局势大幅波动」触发阈值：AI 视角 `_evaluate` 的一步变化 ≥240（VALUES 兵=120，即 2 兵）。
+# AI 变好 → `check`（挑衅），AI 变差 → `defeat`（自嘲）。方向由 service/desktop 判定，
+# 这里只放数值，避免两端各写一个 240。
+TAUNT_SWING_THRESHOLD = 240.0
 
 
 def _language_key(language: str) -> str:
@@ -92,15 +98,28 @@ def select_taunt(scene: TauntScene | str, language: str = "zh-CN",
     return values[index]
 
 
+def swing_scene(previous_eval: float, current_eval: float) -> TauntScene | None:
+    """一步之内 AI 视角评估变化 ≥ `TAUNT_SWING_THRESHOLD` 时该说哪一句。
+
+    - AI 变好（delta > 0）→ `check`（挑衅类）；
+    - AI 变差（delta < 0）→ `defeat`（自嘲类）；
+    - 变化不足 → `None`（本步不触发）。
+    """
+    delta = current_eval - previous_eval
+    if abs(delta) < TAUNT_SWING_THRESHOLD:
+        return None
+    return "check" if delta > 0 else "defeat"
+
+
 def taunt_allowed(scene: TauntScene | str, plies: int, sent_total: int,
                   sent_by_scene: dict[str, int], last_ply: int | None,
                   last_text: str | None, next_text: str | None = None) -> tuple[bool, str]:
     """频率判定（纯函数）。返回 `(是否允许, 原因)`；原因仅用于测试/诊断。
 
     规则（与设计口径一致）：
-    - 每局总量 ≤ `TAUNT_TOTAL_LIMIT`（6）；
+    - 每局总量 ≤ `TAUNT_TOTAL_LIMIT`（4）；
     - 每场景各自的 `TAUNT_SCENE_LIMITS`；
-    - 两次台词至少隔 `TAUNT_MIN_PLY_GAP`（2）手；
+    - 两次台词至少隔 `TAUNT_MIN_PLY_GAP`（4）手；
     - 同一句不连续：`select_taunt` 已主动跳过上一句，这里在 `next_text` 给出时再兜一层
       （调用方若自己选词，仍然受这条约束）。
     """

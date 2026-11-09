@@ -24,6 +24,7 @@ from xionghan_chess.core.ai import DRAW_ACCEPT_THRESHOLD, ChessAI, Difficulty, s
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, PieceType
 from xionghan_chess.core.protocol import Envelope, MessageType
+from xionghan_chess.core.taunts import TAUNT_MIN_PLY_GAP, TAUNT_TOTAL_LIMIT
 from xionghan_chess.service.rooms import RoomManager
 
 PACKAGE = Path(__file__).resolve().parents[1] / "src" / "xionghan_chess"
@@ -149,6 +150,92 @@ def test_online_room_still_pends_the_offer() -> None:
         assert room.game.state.pending_draw_offer is Color.RED
         assert room.game.state.draw is False
         assert room.revision == revision + 1
+
+    asyncio.run(scenario())
+
+
+def _first_legal(room) -> tuple[dict[str, int], dict[str, int]]:
+    move = next(iter(room.game.rules.legal_moves(room.game.state)))
+    return ({"row": move.source.row, "col": move.source.col},
+            {"row": move.target.row, "col": move.target.col})
+
+
+# ── 2b. 局势波动触发（每步一次，|Δ| ≥ 240）────────────────────────────────
+
+def test_swing_check_after_a_positive_jump(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AI_TIME_SCALE", "0.1")
+
+    async def scenario() -> None:
+        manager = RoomManager()
+        room, human = await manager.create("traditional", "ai", "player", Color.RED,
+                                           difficulty=Difficulty.BEGINNER)
+        current = manager._ai_eval(room.game, room)
+        room.last_ai_eval = current - 600        # 人为制造"AI 一步间大幅变好"
+        source, target = _first_legal(room)
+        await asyncio.wait_for(manager.handle(
+            room, human, Envelope(type=MessageType.MOVE, revision=room.revision,
+                                  payload={"from": source, "to": target})), timeout=5)
+        assert room.chat_history, "正向波动应广播一条台词"
+        assert room.chat_history[0]["scene"] == "check"
+        assert room.last_ai_eval != current - 600, "基线必须更新到当前局面"
+
+    asyncio.run(scenario())
+
+
+def test_swing_defeat_after_a_negative_jump(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AI_TIME_SCALE", "0.1")
+
+    async def scenario() -> None:
+        manager = RoomManager()
+        room, human = await manager.create("traditional", "ai", "player", Color.RED,
+                                           difficulty=Difficulty.BEGINNER)
+        current = manager._ai_eval(room.game, room)
+        room.last_ai_eval = current + 600        # 人为制造"AI 一步间大幅变差"
+        source, target = _first_legal(room)
+        await asyncio.wait_for(manager.handle(
+            room, human, Envelope(type=MessageType.MOVE, revision=room.revision,
+                                  payload={"from": source, "to": target})), timeout=5)
+        assert room.chat_history, "负向波动应广播一条台词"
+        assert room.chat_history[0]["scene"] == "defeat"
+
+    asyncio.run(scenario())
+
+
+def test_ai_eval_is_deterministic() -> None:
+    """`last_ai_eval` 的来源必须可复现：同局面两次求值逐位相同。"""
+    game = Game("traditional")
+    assert ChessAI(Difficulty.BEGINNER)._evaluate(game, Color.BLACK) == \
+        ChessAI(Difficulty.BEGINNER)._evaluate(game, Color.BLACK)
+
+
+def test_draw_declined_is_counted_and_blocked_by_the_four_per_game_limit() -> None:
+    """`draw_declined` 计入每局 4 条：第 5 条（账本已满）不再发。
+
+    不靠"真走 4 手再提和"来构造：第一手合法着法在 9 手时就会终局，间隔会被
+    "最小 4 手"误判成 too_soon，测的就不是总数上限了。这里直接填满账本。
+    """
+    async def scenario() -> None:
+        manager = RoomManager()
+        room, human = await manager.create("traditional", "ai", "player", Color.RED,
+                                           difficulty=Difficulty.BEGINNER)
+
+        async def offer() -> None:
+            await manager.handle(room, human, Envelope(type=MessageType.DRAW_OFFER,
+                                                       revision=room.revision))
+
+        await offer()
+        assert len(room.chat_history) == 1
+        assert room.taunt_sent_total == 1
+        assert room.taunt_sent_by_scene.get("draw_declined") == 1
+
+        # 账本填到 4，并把 last_ply 放到 4 手之前（排除 too_soon 干扰）。
+        room.taunt_sent_total = TAUNT_TOTAL_LIMIT
+        room.taunt_last_ply = len(room.game.state.history) - TAUNT_MIN_PLY_GAP
+        before = len(room.chat_history)
+
+        await offer()
+        assert room.game.state.draw is False, "均势时 AI 应拒绝"
+        assert len(room.chat_history) == before, "达到总数上限后，拒绝提和不得再发台词"
 
     asyncio.run(scenario())
 

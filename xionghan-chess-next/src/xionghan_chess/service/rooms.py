@@ -16,7 +16,7 @@ from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, Move, PieceType, Position
 from xionghan_chess.core.profiles import get_profile
 from xionghan_chess.core.protocol import Envelope, MessageType
-from xionghan_chess.core.taunts import TauntScene, select_taunt, taunt_allowed
+from xionghan_chess.core.taunts import TauntScene, select_taunt, swing_scene, taunt_allowed
 from xionghan_chess.i18n import normalize_language, t
 
 ZOMBIE_ROOM_SECONDS = 600   # 10 分钟没人连的 online 房视为僵尸
@@ -65,6 +65,9 @@ class Room:
     taunt_sent_by_scene: dict[str, int] = field(default_factory=dict)
     taunt_last_ply: int | None = None
     taunt_last_text: str = ""
+    # AI 视角的最近一次评估：每步后与当前值比较，一步变化 ≥2 兵触发 check/defeat。
+    # 创建时初始化为开局评估，之后每次 MOVE（以及悔棋/复活/重开）后更新。
+    last_ai_eval: float = 0.0
     chat_history: list[dict[str, Any]] = field(default_factory=list)
     # 刚接入/重连的 token：它们的**下一条** STATE 带完整 replay，之后一律不带
     fresh_tokens: set[str] = field(default_factory=set)
@@ -107,6 +110,14 @@ _REVISION_INDEPENDENT: frozenset[MessageType] = frozenset({
     MessageType.UNDO_RESPONSE, MessageType.RESTART_RESPONSE,
 })
 
+# 这些消息会**改变局面但不推进一手的评估序列**（悔棋/复活/重开）：处理完后要把
+# `last_ai_eval` 重同步到当前局面，否则下一次 MOVE 的 delta 会把"局面回退"误读成
+# "AI 一步间突然变差"，凭空触发一条 defeat 台词。
+_AI_EVAL_RESYNC: frozenset[MessageType] = frozenset({
+    MessageType.UNDO_REQUEST, MessageType.UNDO_RESPONSE, MessageType.RESURRECT,
+    MessageType.RESTART, MessageType.RESTART_REQUEST, MessageType.RESTART_RESPONSE,
+})
+
 # 分派表里处理函数的类型。**刻意是同步签名**（返回 Awaitable 就不匹配）：
 # `Room.lock` 是 `asyncio.Lock`（非重入），锁内出现任何 await 都可能自锁，而 mypy 会替
 # 我们在"有人把处理函数改成 async / 往里加 await"时直接报错，不等线上偶发卡死。
@@ -144,6 +155,7 @@ class RoomManager:
                 room.seats[player_color.opponent] = PlayerSeat(
                     secrets.token_urlsafe(32), player_color.opponent,
                     "Xionghan AI" if language == "en" else "匈汉棋灵", True, None, True)
+                room.last_ai_eval = self._ai_eval(room.game, room)
             self.rooms[room_id] = room
             return room, seat
 
@@ -167,6 +179,7 @@ class RoomManager:
                 room.seats[player_color.opponent] = PlayerSeat(
                     secrets.token_urlsafe(32), player_color.opponent,
                     "Xionghan AI" if language == "en" else "匈汉棋灵", True, None, True)
+                room.last_ai_eval = self._ai_eval(room.game, room)
             room.game.state.turn_started_at = time.monotonic()
             self.rooms[room_id] = room
             return room, seat
@@ -452,6 +465,32 @@ class RoomManager:
         room.game.set_paused(paused, seat.color)
         room.revision += 1
 
+    @staticmethod
+    def _ai_color(room: Room) -> Color | None:
+        seat = next((item for item in room.seats.values() if item.is_ai), None)
+        return seat.color if seat is not None else None
+
+    @classmethod
+    def _ai_eval(cls, game: Game, room: Room) -> float:
+        """AI 视角评估（与难度无关；约 1ms，不跑搜索、不用 RNG）。"""
+        color = cls._ai_color(room)
+        if color is None:
+            return 0.0
+        return ChessAI(Difficulty.BEGINNER)._evaluate(game, color)
+
+    @staticmethod
+    def _ai_snapshot(room: Room) -> Game:
+        """在锁内克隆一步后的局面，锁外再求值 —— 避免评估读到一个正在被改的 state。"""
+        return Game.from_state(room.game.state.clone(), room.game.options, room.game.setup)
+
+    @classmethod
+    def _swing_scene(cls, room: Room, game: Game) -> TauntScene | None:
+        """更新 `last_ai_eval` 并返回本步的波动场景（不足 2 兵返回 None）。"""
+        current = cls._ai_eval(game, room)
+        scene = swing_scene(room.last_ai_eval, current)
+        room.last_ai_eval = current
+        return scene
+
     async def _after_apply(self, room: Room, seat: PlayerSeat, envelope: Envelope,
                            apply_result: dict[str, Any] | None) -> None:
         """锁**外**的统一收尾：广播 + AI 跟进。
@@ -472,6 +511,19 @@ class RoomManager:
         if (envelope.type is MessageType.DRAW_OFFER and apply_result is not None
                 and apply_result.get("drawDeclined") and room.mode == "ai"):
             await self._broadcast_ai_taunt(room, "draw_declined")
+        if room.mode == "ai":
+            if envelope.type is MessageType.MOVE and not room.game.state.finished:
+                # 每步只判一次：与上一步后的评估比较，|Δ| ≥2 兵才触发。
+                async with room.lock:
+                    snapshot = self._ai_snapshot(room)
+                scene = self._swing_scene(room, snapshot)
+                if scene is not None:
+                    await self._broadcast_ai_taunt(room, scene)
+            elif envelope.type in _AI_EVAL_RESYNC:
+                # 局面被回退/换成另一局：只重同步基线，**不**触发台词。
+                async with room.lock:
+                    snapshot = self._ai_snapshot(room)
+                room.last_ai_eval = self._ai_eval(snapshot, room)
         if room.mode == "ai" and room.game.state.finished:
             scene = self._finished_ai_scene(room)
             if scene:
@@ -493,6 +545,9 @@ class RoomManager:
             difficulty = room.ai_difficulty
         ai = ChessAI(difficulty)
         move = await asyncio.to_thread(ai.choose_move, Game.from_state(state, options))
+        # 锁外求值要用的快照与两个布尔量都在锁内取好，避免锁外读到半更新的局面。
+        snapshot: Game | None = None
+        gives_check = near_opening = False
         async with room.lock:
             if (move and not room.game.state.paused and not room.game.state.finished
                     and room.game.state.turn is state.turn
@@ -502,12 +557,17 @@ class RoomManager:
                     room.revision += 1
                     if room.game.state.finished:
                         scene = self._finished_ai_scene(room)
-                    elif room.game.rules.in_check(room.game.state, room.game.state.turn):
-                        scene = "check"
-                    elif len(room.game.state.history) <= 2:
-                        scene = "opening"
+                    else:
+                        snapshot = self._ai_snapshot(room)
+                        gives_check = room.game.rules.in_check(
+                            room.game.state, room.game.state.turn)
+                        near_opening = len(room.game.state.history) <= 2
                 except GameError:
                     pass
+        if snapshot is not None:
+            # 优先级：终局（victory/defeat）> 局势波动 > 将军 > 开局寒暄。
+            scene = self._swing_scene(room, snapshot) or (
+                "check" if gives_check else ("opening" if near_opening else None))
         await self.broadcast(room)
         if scene:
             await self._broadcast_ai_taunt(room, scene)

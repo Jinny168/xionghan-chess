@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
 )
 
 from xionghan_chess import __version__
-from xionghan_chess.core.ai import CONFIGS, Difficulty, should_accept_draw
+from xionghan_chess.core.ai import CONFIGS, ChessAI, Difficulty, should_accept_draw
 from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
 
 # AI 看门狗：思考预算耗尽后再等这么久，仍无信号就判定 worker 不会回来了（毫秒）。
@@ -43,7 +43,7 @@ CHAT_HISTORY_LIMIT = 200
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position
 from xionghan_chess.core.storage import game_document
-from xionghan_chess.core.taunts import select_taunt, taunt_allowed, taunts
+from xionghan_chess.core.taunts import select_taunt, swing_scene, taunt_allowed, taunts
 from xionghan_chess.i18n import t
 
 from . import net
@@ -224,8 +224,7 @@ class MainWindow(QMainWindow):
     def new_game(self) -> None:
         self.puzzle_session=None
         self.chat_messages.clear()      # 换局清空（悔棋不清，聊天是历史）
-        self._reset_taunt_ledger()
-        self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local";self._reset_ui_cache();self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh()
+        self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local";self._reset_ui_cache();self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh();self._reset_taunt_ledger()
         if not local and self.game.state.turn is not human:self.start_ai()
 
     def start_mode(self, mode: str) -> None:
@@ -251,6 +250,9 @@ class MainWindow(QMainWindow):
             if not self._judge_puzzle(move):return
             self.refresh()
             if self.game.state.finished:self.add_ai_taunt("defeat")
+            elif self.config.get("game_mode","ai")=="ai":
+                scene=self._swing_scene()
+                if scene:self.add_ai_taunt(scene)
             if not self.game.state.finished and self.config.get("game_mode","ai")=="ai":self.start_ai()
         except GameError as exc:QMessageBox.warning(self,dl("非法走棋"),str(exc))
 
@@ -345,7 +347,13 @@ class MainWindow(QMainWindow):
             return
         try:
             if move:
-                record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound();scene="victory" if self.game.state.finished else ("check" if self.game.rules.in_check(self.game.state,self.game.state.turn) else ("opening" if len(self.game.state.history)<=2 else None));self.add_ai_taunt(scene)
+                record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound()
+                if self.game.state.finished:
+                    scene="victory"
+                else:
+                    # 优先级：局势波动 > 将军 > 开局寒暄（终局已在上面单列）。
+                    scene=self._swing_scene() or ("check" if self.game.rules.in_check(self.game.state,self.game.state.turn) else ("opening" if len(self.game.state.history)<=2 else None))
+                self.add_ai_taunt(scene)
         except GameError as exc:self.ai_failed(str(exc));return
         self._release_ai()
 
@@ -361,8 +369,26 @@ class MainWindow(QMainWindow):
         self.chat_messages.scrollToBottom()
 
     def _reset_taunt_ledger(self) -> None:
-        """每局重置台词账本（与 `core.taunts.taunt_allowed` 的"每局"口径对齐）。"""
+        """每局重置台词账本与 AI 评估基线（与 `core.taunts` 的"每局"口径对齐）。"""
         self._taunt_total=0;self._taunt_by_scene={};self._taunt_last_ply=None;self._taunt_last_text=""
+        self._last_ai_eval=0.0
+        game=getattr(self,"game",None)
+        if game is not None and self.config.get("game_mode","ai")=="ai":self._last_ai_eval=self._ai_eval(game)
+
+    def _ai_eval(self, game: Game) -> float:
+        return ChessAI(Difficulty.BEGINNER)._evaluate(game,Color(self.config["human_color"]).opponent)
+
+    def _swing_scene(self) -> str | None:
+        """本步 AI 视角评估变化 ≥2 兵 → check（变好）/ defeat（变差）；并更新基线。"""
+        if self.config.get("game_mode","ai")!="ai":return None
+        current=self._ai_eval(self.game)
+        scene=swing_scene(self._last_ai_eval,current)
+        self._last_ai_eval=current
+        return scene
+
+    def _resync_ai_eval(self) -> None:
+        """悔棋/复活会改变局面但不属于"一手"：只重同步基线，不触发台词。"""
+        if self.game and self.config.get("game_mode","ai")=="ai":self._last_ai_eval=self._ai_eval(self.game)
 
     def add_ai_taunt(self, scene: str | None) -> None:
         if not scene or not self.config.get("taunts",True):return
@@ -402,7 +428,7 @@ class MainWindow(QMainWindow):
         if self.puzzle_session is not None:self.puzzle_session.reset()
         try:self.cancel.set();plies=1 if self.config.get("game_mode")=="local" else (2 if len(self.game.state.history)>=2 else 1);self.game.undo(plies);self.cancel=threading.Event();self.board.locked=False
         except GameError as exc:QMessageBox.information(self,dl("悔棋"),str(exc));self.refresh();return
-        self.refresh()
+        self.refresh();self._resync_ai_eval()
     def toggle_pause(self) -> None:
         if not self.game or self.game.state.finished:return
         if self.network:self.send_network("pause",{"paused":not self.game.state.paused});return
@@ -448,7 +474,7 @@ class MainWindow(QMainWindow):
         # 8/4; `traditional` (10x9) keeps its pawns on row 6.
         row=next((spec.row for spec in self.game.profile.pieces if spec.type is PieceType.PAWN and spec.color is color),8 if color is Color.RED else 4)
         for col in range(0,self.game.profile.cols,2):
-            try:self.game.resurrect_pawn(color,Position(row,col));self.refresh()
+            try:self.game.resurrect_pawn(color,Position(row,col));self.refresh();self._resync_ai_eval()
             except GameError:continue
             if self.config.get("game_mode","ai")=="ai":self.start_ai()
             return

@@ -7,11 +7,13 @@ from xionghan_chess.core.taunts import (
     SCENE_NAMES,
     TAUNT_MIN_PLY_GAP,
     TAUNT_SCENE_LIMITS,
+    TAUNT_SWING_THRESHOLD,
     TAUNT_TOTAL_LIMIT,
     TAUNTS_EN,
     TAUNTS_ZH,
     choose_taunt,
     select_taunt,
+    swing_scene,
     taunt_allowed,
     taunts,
 )
@@ -56,6 +58,7 @@ def test_select_taunt_is_deterministic_and_skips_the_previous_line():
 
 
 def test_taunt_allowed_enforces_all_four_rules():
+    assert TAUNT_TOTAL_LIMIT == 4 and TAUNT_MIN_PLY_GAP == 4
     assert taunt_allowed("opening", 2, 0, {}, None, None) == (True, "")
     assert taunt_allowed("opening", 2, TAUNT_TOTAL_LIMIT, {}, None, None) == (False, "total_limit")
     assert taunt_allowed("check", 10, 0, {"check": TAUNT_SCENE_LIMITS["check"]}, None, None) == (
@@ -65,6 +68,17 @@ def test_taunt_allowed_enforces_all_four_rules():
     assert taunt_allowed("check", 10, 0, {}, 1, "同一句", "同一句") == (False, "same_text")
     assert taunt_allowed("check", 10, 0, {}, 1, "上一句", "另一句") == (True, "")
     assert taunt_allowed("random", 10, 0, {}, None, None) == (False, "not_a_scene")
+
+
+def test_swing_scene_maps_direction_and_threshold():
+    """AI 变好 → check（挑衅），变差 → defeat（自嘲）；|Δ| < 2 兵不触发。"""
+    assert TAUNT_SWING_THRESHOLD == 240.0
+    assert swing_scene(0.0, TAUNT_SWING_THRESHOLD) == "check"
+    assert swing_scene(0.0, TAUNT_SWING_THRESHOLD - 0.1) is None
+    assert swing_scene(0.0, -TAUNT_SWING_THRESHOLD) == "defeat"
+    assert swing_scene(0.0, -(TAUNT_SWING_THRESHOLD - 0.1)) is None
+    assert swing_scene(-500.0, 0.0) == "check"
+    assert swing_scene(500.0, 0.0) == "defeat"
 
 
 def test_ai_taunt_history_respects_setting_and_deduplicates():
