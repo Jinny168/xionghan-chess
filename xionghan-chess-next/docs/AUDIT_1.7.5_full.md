@@ -412,3 +412,52 @@ perft 覆盖的是「所有情况到深度 4」，而且**数字是廉价的**�
 3. **共享工作区纪律**：并行团队下共享文件不允许留未提交在途改动（当日两次事故：checkout 丢文件、add 连带）；每小单元做完即 commit，主理人统一推送。
 4. **grep 门禁自检四条子进程用例**合计 ~4.5s（占主门禁 ≈1%）→ 不并入 slow。
 5. **遗留（下轮）**：slow job 安装 step 切 lock；desktop/service 包 mypy 收编（service 先）；render 密度 linux/traditional 精确基线待日志可读后标定。
+
+## §11 S3「结构」执行结果（2026-11-09，Wave A + Wave B）
+
+### 11.1 交付清单（`fea6560..a5e86d8`，10 个提交）
+
+| 项 | 提交 | 内容 |
+|---|---|---|
+| S3-A1 CI 收尾 | `f8546c8` | slow job 改从 `requirements/lock/py312-dev.txt` 安装（与 test 同一份 lock，缓存键复用） |
+| S3-A1 mypy 收编 | `78b6d63` | mypy `files` 加 service 包，strict 全量 **32 错误 → 0**（无 per-module 豁免、零 `type: ignore`） |
+| S3-A1 density 取证 | `174b4a0`→`f4d0fcd` | 主门禁加 `-rfEP`，`[density]` 行转 `::notice::`（**注意：`-rP` 会顶掉 FAILED 行，必须 `-rfEP`**） |
+| S3-A1 二维基线 | `c1138a1` / `d02a8ab` | 基线键改 `(sys.platform, platformName())`；win32 双插件各一档；linux/traditional 用 #127 实测 **0.68**；ratio 打 3 位小数 |
+| S3-A1 类型信息依赖 | `b51f8e2` | lint job 补 `fastapi==0.162.2`（`--no-deps`），修 **26 条** `untyped-decorator`；`disallow_untyped_decorators` 未关 |
+| S3-A3 音频压缩 | `f17c1b5` | web BGM WAV→mp3 128k：**76.32 → 7.85 MiB（−89.7%）**；桌面/Android 零改动；4 条资产守卫测试；`pyproject` package-data 补 `sounds/web/*` |
+| S3-B Step 0 安全网 | `dfa3792` / `bb0ecbb` / `22c3320` | 6 条零覆盖分支直测 + 帧序列快照 + 3 条净增（双端广播 / local vs online 拒绝键 / 招魂关闭）+ 快速失败变体；**3 次突变验证**（摘 RESIGN / 合并 RESTART 分叉 / 截断广播） |
+| S3-B Step 1 | `004cbc1` | `handle` 锁外收尾抽 `_after_apply`（19+/2−，`chat_payload` 显式化） |
+| S3-B Step 2 | `2ce5647` | 锁内 90 行 if/elif → **5 行**（PING 早退 → `_check_revision` → 12 项路由表 → 同步 handler）；`_Apply` 同步签名让 **mypy 守"锁内零 await"**（改 async 实测报 `Coroutine` 不匹配） |
+| S3-B 覆盖自检 | `4c0db21` | 三桶断言：进表 12 / PING 不得进表 / 服务端→客户端 4 类不得进表 + 逐个验证被拒；突变删 PAUSE 必红 |
+| S3-B P3 超时 | `a5e86d8` | `_recv_json` 2s 超时（daemon 线程 + `queue.get`，**不用 ThreadPoolExecutor**——其 shutdown 会等阻塞线程）；13 处裸 `receive_json()` 全替换；突变实测 **2.50s 失败**（此前 120s+ 挂死） |
+
+### 11.2 拆分前后（`RoomManager.handle`）
+
+| 指标 | 拆分前 | 拆分后 |
+|---|---|---|
+| 锁内代码 | 90 行 if/elif（12 类型） | **5 行**：PING 早退 → revision 校验 → 查表 → 同步 handler |
+| 锁内 `await` | 靠注释纪律 | **mypy 类型约束**（`_Apply` 全同步） |
+| 锁外收尾 | `handle` 尾部 12 行 | `_after_apply(room, seat, envelope, chat_payload)` |
+| 路由表 | — | `_apply_handlers()` 12 项，**无 `getattr` 字符串**（strict 下会退化成 Any） |
+| 测试覆盖 | 6 类零覆盖 | 12 条协议用例（含帧快照、双端扇出、拒绝路径、覆盖自检） |
+
+Step 3（职责对象化）**不做**：触发线写死为 `_apply_move`/`_apply_restart` > 40 行，实测 21/10 行。
+
+### 11.3 CI 全链（`#125→#136`）
+
+`#125`(db2170f) / `#126`(fea6560) / `#129`(b51f8e2) / `#130`(d02a8ab) / `#131`(dfa3792) / `#132`(004cbc1) / `#133`(22c3320) / `#134`(2ce5647) / `#135`(4c0db21) / `#136`(a5e86d8) 均全绿；期间 `#127`（mypy 缺 fastapi 类型信息）、`#128`（同上）为已知红，修复后转绿。
+
+### 11.4 本轮沉淀（新增，长期有效）
+
+1. **跨成员转述必须粘贴原文块**，禁止重写数字/符号。本日曾把「105 行 / `asyncio.Lock` 非重入」在转述时写成「416 行 / `RLock` 重入不死锁」，导致上游被误判"伪造"——**伪的是中转，不是原件**。文档中称「原文原样转你」而实际改写，是最严重的一类事故。
+2. **上游"实测"必须附命令原文**。无可复现输出的数字不进方案；下游引用上游结论时，只写自己核对过的部分（「转发件不可信」≠「原件伪造」）。
+3. **验收/派单里的数字必须自己重算**，不引用记忆。本日四次沿用旧口径（"14 项"实为 12 项、API 名、测绘转述、覆盖公式）共性相同。
+4. **共享工作区**：`src/` 的「改名 + 搬移」必须一次 Edit 完成（或先在 `%TEMP%` 副本做整再整体写回）；改 `src/` 前后报「N 分钟不可跑／已可跑」；半成品窗口会让别人红在非回归上。
+5. **门禁设计**：类型约束优于注释纪律（`_Apply` 同步签名）；**"覆盖"与"失败形态"是两个维度**（双端广播的覆盖已有，但假 socket 版把 120s 挂死变成 0.5s 失败）；安全网本身要防"挂死而非报错"（`_recv_json` 超时）。
+6. **例外必须写死在测试里**才叫「显式决定」：`_apply_handlers()` 三桶断言（进表 12 / PING 早退 / 服务端→客户端 4 类不得进表），否则新增类型会静默降级成 `unsupported_message`。
+
+### 11.5 遗留（下轮）
+
+- `slow` job 已切 lock；desktop 包 mypy 收编（service 已完成）；render 密度新组合需先标定再入表。
+- 镜像生成化（offline.js 由 Python 规则生成）——独立立项，优先级按"双端不一致事故的期望成本"定，不与 handle 串行。
+- P3 候选：重复 `draw_offer` 是否应拒绝（产品判断，需同时动 core 与用例）、`playSound` 的 `catch(()=>{})` 改 `[sfx]` warn、victory/defeat 降采样（省 0.96 MiB，需 A/B 听感）。
