@@ -63,6 +63,23 @@ class SearchConfig:
     candidate_count: int
     branch_limit: int
     root_limit: int
+    # 主搜索节点上限（`_search` 调用次数；**不含** qnodes）。`None` = 不启用。
+    # 到点抛 `SearchTimeout`，理由记 `"nodes"`；墙钟到点记 `"wall"`。
+    # 设计口径（S4-2a）：`max_nodes` 是"常规生效的界"，cap 只兜底；
+    # 具体数值由 `scripts/measure_node_budget.py` 实测反解，不在此写死。
+    max_nodes: int | None = None
+
+
+def resolve_time_scale(instance: float | None, env: str | None) -> float:
+    """时间缩放解析：实例参数 → 环境变量 `AI_TIME_SCALE` → 1.0。
+
+    环境变量保留历史上限 `max(0.1, ...)`（0.05 实际按 0.1 跑，`bench_roots` 的
+    provenance 依赖这条）；**实例参数按原值使用** —— 它是显式 API，调用方自己负责，
+    不再猜测"你是不是手滑传小了"。
+    """
+    if instance is not None:
+        return instance
+    return max(0.1, float(env)) if env is not None else 1.0
 
 
 CONFIGS = {
@@ -159,8 +176,12 @@ class TTEntry:
 
 class ChessAI:
     def __init__(self, difficulty: Difficulty | str = Difficulty.MEDIUM, seed: int | None = None,
-                 config: SearchConfig | None = None):
+                 config: SearchConfig | None = None, time_scale: float | None = None):
         """`config` 是**实例级**搜索参数：标定 / A/B 用它换预算，不去改全局表。
+
+        `time_scale` 是**预算缩放**（与搜索参数正交，刻意不放进 `SearchConfig`）：
+        优先级 `实例参数 → 环境变量 AI_TIME_SCALE → 1.0`。旧实现每次 `choose_move`
+        都读进程环境变量，同进程交替跑两种预算会互相串；显式参数把这条也收进实例。
 
         `CONFIGS` 只在**构造时**解析一次（未注入 config 时）：
           · 所以运行期替换 `CONFIGS[level]`（历史实验脚本那种
@@ -174,6 +195,7 @@ class ChessAI:
         # 实例级配置：**唯一解析点**。三个读取者（choose_move / _search / _quiescence）
         # 一律走 self._config，任何一处回头读 CONFIGS 都会让注入半失效。
         self._config: SearchConfig = config if config is not None else CONFIGS[self.difficulty]
+        self.time_scale = time_scale
         self.random = random.Random(seed)
         self.transposition: dict[str, TTEntry] = {}
         self.history: dict[tuple[PieceType, int, int], int] = {}
@@ -206,13 +228,22 @@ class ChessAI:
         # 选点退化成排序首着（`initial_order[0]` / 早退时的 `legal[0]`）。
         # 每次 `choose_move` 归零，由 benchmark 汇总累加 —— 只看"下得怪"是看不出这条的。
         self.zero_depth_moves = 0
+        # 本次 / 本手的截断理由："wall" / "nodes" / "cancel" / None。
+        #  `bound_reason`：本手是否被截断（不论 depth）；`zero_depth_reason`：只有
+        #  completed_depth == 0 时才有值。benchmark 用它们分账，判定"这批数据能不能用"。
+        self.bound_reason: str | None = None
+        self.zero_depth_reason: str | None = None
+        self._timeout_reason: str | None = None
         self._qnode_base = 0
         self._qnode_truncated = False
 
     def choose_move(self, game: Game, cancel: threading.Event | None = None) -> Move | None:
         # 配置来自实例（构造时解析一次），这里**不读全局 CONFIGS**。
         cfg = self._config
-        time_scale = max(0.1, float(os.getenv("AI_TIME_SCALE", "1.0")))
+        time_scale = resolve_time_scale(self.time_scale, os.getenv("AI_TIME_SCALE"))
+        self.bound_reason = None
+        self.zero_depth_reason = None
+        self._timeout_reason = None
         if self.difficulty is Difficulty.MASTER:
             # Import lazily to keep the conventional search engine independent
             # and to avoid loading MCTS for the four established difficulty tiers.
@@ -271,11 +302,14 @@ class ChessAI:
                 if abs(score) >= VALUES[PieceType.KING]:
                     break
         except SearchTimeout:
-            pass
+            # 理由在抛点写入（`_guard` → wall/cancel、节点预算 → nodes）。
+            # 没写到的理论分支按 wall 处理（旧行为里只有墙钟与取消）。
+            self.bound_reason = self._timeout_reason or "wall"
         # 一行都没搜完（含"第一轮 `_root` 就超时"与"取消已置位"）：选点不是搜出来的。
         # 只记数、不改行为；调用方（benchmark）累加后能直接看出某档预算是否低于排序成本。
         if self.completed_depth == 0:
             self.zero_depth_moves += 1
+            self.zero_depth_reason = self.bound_reason
         self._active_deadline = math.inf
         self._active_cancel = None
         if cfg.randomness and self.root_scores and self.random.random() < cfg.randomness:
@@ -326,6 +360,11 @@ class ChessAI:
                 cancel: threading.Event | None, ply: int, allow_null: bool = True) -> float:
         self._guard(deadline, cancel)
         self.nodes += 1
+        # 节点预算：**逐节点**检查（逐根着法检查会重新变成非确定）。到点即抛，
+        # 由 `choose_move` 归到"最后一层完整深度"。`None` = 不启用。
+        if self._config.max_nodes is not None and self.nodes >= self._config.max_nodes:
+            self._timeout_reason = "nodes"
+            raise SearchTimeout
         key = evaluation_key(game.rules, game.state)
         original_alpha = alpha
         original_beta = beta
@@ -881,9 +920,13 @@ class ChessAI:
         return (abs(move.target.row - king.position.row) <= reach
                 and abs(move.target.col - king.position.col) <= reach)
 
-    @staticmethod
-    def _guard(deadline: float, cancel: threading.Event | None) -> None:
-        if time.monotonic() >= deadline or (cancel and cancel.is_set()):
+    def _guard(self, deadline: float, cancel: threading.Event | None) -> None:
+        # 记理由再抛：`choose_move` 用它把本手归到 wall / cancel / nodes。
+        if cancel is not None and cancel.is_set():
+            self._timeout_reason = "cancel"
+            raise SearchTimeout
+        if time.monotonic() >= deadline:
+            self._timeout_reason = "wall"
             raise SearchTimeout
 
 

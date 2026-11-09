@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import os
+import math
 import statistics
 import time
 from collections.abc import Callable, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from .ai import CONFIGS, ChessAI, Difficulty, SearchConfig
@@ -62,6 +62,10 @@ class MatchResult:
     plies: int
     master_seconds: float
     hard_seconds: float
+    # 逐手耗时随局落盘：`--resume` 后仍能精确重算 median/p95（不能由 mean 反推）。
+    # 旧 JSONL 没有这两个键，`scripts/benchmark_ai.py --summarize` 不读它们，兼容。
+    a_move_times: list[float] = field(default_factory=list)
+    b_move_times: list[float] = field(default_factory=list)
 
 
 def _move_ceiling(level_a: Difficulty, a_config: SearchConfig | None) -> float:
@@ -74,14 +78,32 @@ def _move_ceiling(level_a: Difficulty, a_config: SearchConfig | None) -> float:
     return round(budget * (1 + MASTER_MOVE_TIME_TOLERANCE), 3)
 
 
-def _starting_game(game_index: int, profile: str, book: Sequence[Opening] | None,
-                   position_builder: PositionBuilder | None) -> Game:
-    """第 `game_index` 局的起始局面。
+def book_index(game_index: int, games: int, size: int) -> int:
+    """第 `game_index` 局用开局书的哪一条：**等距、端点含**，不是"前 N 条"。
 
-    - 无 book：初始局面（历史行为，50 局 = 25 个起点、每起点换色各一局）；
-    - 有 book：`book[(index // 2) % len(book)]` —— **相邻两局同一开局、颜色互换**，
-      保持"成对开局"的对照结构，同时让 50 局拿到 25 个不同起点。
+    旧写法 `(i // 2) % size` 在 n=50 时只用到前 25 条（书有 64 条），后 39 条一次不进。
+    书按 `seed 主序 × plies` 排列时，"取前 N"还会让 n 较小的一批集中在前几个 seed。
+
+    规则：
+    - `openings = min(max(1, games // 2), size)`；局数超过书容量才允许复用；
+    - 否则 `idx = round(k * (size-1) / (openings-1))`，`k = i // 2`（相邻两局同一开局）；
+    - n=50 → 25 条、n=64 → 32 条、n=96 → 48 条；`index` 覆盖首尾。
     """
+    if size <= 0:
+        raise ValueError("开局书不能为空")
+    if games // 2 >= size:
+        return (game_index // 2) % size
+    openings = min(max(1, games // 2), size)
+    if openings == 1:
+        return 0
+    step = (size - 1) / (openings - 1)
+    return round((game_index // 2) * step)
+
+
+def _starting_game(game_index: int, games: int, profile: str,
+                   book: Sequence[Opening] | None,
+                   position_builder: PositionBuilder | None) -> Game:
+    """第 `game_index` 局的起始局面（无 book 时从初始局面开局）。"""
     if book is None:
         return Game(profile)
     if position_builder is None:
@@ -90,8 +112,27 @@ def _starting_game(game_index: int, profile: str, book: Sequence[Opening] | None
             "请由调用方注入，例如 "
             "position_builder=lambda p, s, n: bench_roots.build_position(p, s, n)[0]"
         )
-    entry = book[(game_index // 2) % len(book)]
+    entry = book[book_index(game_index, games, len(book))]
     return position_builder(entry.profile, entry.seed, entry.plies)
+
+
+def time_stats(values: Sequence[float]) -> dict[str, float | int]:
+    """median / p95 / max（p95 用 nearest-rank，不插值）。
+
+    三个数的分工（S4-2 定稿）：median 喂 `EXPECTED_MOVE_SECONDS`；p95 只作参考；
+    max 只为兼容旧报告。**不能由 mean 推 median/p95。**
+    """
+    if not values:
+        return {"n": 0, "median": 0.0, "p95": 0.0, "max": 0.0}
+    ordered = sorted(values)
+    count = len(ordered)
+    rank = max(1, math.ceil(0.95 * count))
+    return {
+        "n": count,
+        "median": float(statistics.median(ordered)),
+        "p95": float(ordered[min(count - 1, rank - 1)]),
+        "max": float(ordered[-1]),
+    }
 
 
 def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
@@ -120,9 +161,9 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
       不改全局 `CONFIGS`；
     - **`on_game`**：每局结束回调（长对局可逐局落盘，崩溃不丢已完成局）。
 
-    `time_scale` 作用于**双方**：它走的是产品自己的 `AI_TIME_SCALE` 环境变量，
-    而该变量在 `choose_move` 里是全局读取的（历史参数名 `hard_time_scale` 有误导，
-    实际两边都缩放）。传 `a_simulations` 时 A 方改走 MCTS 固定模拟次数。
+    `time_scale` 作用于**双方**，通过 `ChessAI(time_scale=...)` 注入实例，
+    **不再写 `os.environ`**（进程级环境变量会让同进程并行的两场对局互相串）。
+    传 `a_simulations` 时 A 方改走 MCTS 固定模拟次数。
     """
     level_a, level_b = Difficulty(level_a), Difficulty(level_b)
     if book is not None and position_builder is None:
@@ -133,60 +174,68 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
     results: list[MatchResult] = []
     a_move_times: list[float] = []
     b_move_times: list[float] = []
-    # 「一手都没搜完」的次数：预算低于一次排序成本时，选点退化成排序首着。
-    # 只在汇总里输出（不进 UI、不影响选点），但它是"这档预算到底够不够"的直接证据。
-    zero_depth_moves = {"a": 0, "b": 0}
+    # 诊断账本：
+    #   zeroDepth* = 一手都没搜完（强退化信号）；
+    #   bound*     = 任何一手被截断（判据用，不论 depth）；
+    #   totalMoves 用来算 nodesTrunc/totalMoves ≤2% 的比率。
+    zero_depth = {"a": 0, "b": 0}
+    zero_depth_reasons = {"a": {"wall": 0, "nodes": 0, "cancel": 0},
+                          "b": {"wall": 0, "nodes": 0, "cancel": 0}}
+    bound_reasons = {"a": {"wall": 0, "nodes": 0, "cancel": 0},
+                     "b": {"wall": 0, "nodes": 0, "cancel": 0}}
+    total_moves = {"a": 0, "b": 0}
     used_openings: list[Opening] = []
-    previous_scale = os.environ.get("AI_TIME_SCALE")
-    os.environ["AI_TIME_SCALE"] = str(time_scale)
-    try:
-        for game_index in range(start_game, start_game + games):
-            game = _starting_game(game_index, profile, book, position_builder)
-            if book is not None:
-                used_openings.append(book[(game_index // 2) % len(book)])
-            a_color = Color.RED if game_index % 2 == 0 else Color.BLACK
-            totals = {"a": 0.0, "b": 0.0}
-            for ply in range(max_plies):
-                if game.state.finished:
-                    break
-                is_a = game.state.turn is a_color
-                started = time.perf_counter()
-                if is_a and a_simulations is not None:
-                    # 固定模拟次数：A 方走 MCTS，评分器借 B 方实例的 SEE（与档位无关）。
-                    scorer = ChessAI(level_b, config=b_config)._see_score
-                    move = MCTS(simulations=a_simulations,
-                                seed=seed + game_index * max_plies + ply,
-                                root_score=scorer).choose_move(game)
-                else:
-                    level, config = (level_a, a_config) if is_a else (level_b, b_config)
-                    engine = ChessAI(level, seed=seed + game_index * max_plies + ply,
-                                     config=config)
-                    move = engine.choose_move(game)
-                    zero_depth_moves["a" if is_a else "b"] += engine.zero_depth_moves
-                elapsed = time.perf_counter() - started
-                bucket = a_move_times if is_a else b_move_times
-                bucket.append(elapsed)
-                totals["a" if is_a else "b"] += elapsed
-                if move is None:
-                    break
-                game.move(move)
-            adjudicated = not game.state.finished
-            winner = game.state.winner
-            if adjudicated:
-                score = ChessAI(level_b)._evaluate(game, Color.RED)
-                winner = Color.RED if score > 100 else Color.BLACK if score < -100 else None
-            result = MatchResult(
-                game_index + 1, a_color.value, winner.value if winner else None,
-                adjudicated, len(game.state.history), totals["a"], totals["b"],
-            )
-            results.append(result)
-            if on_game is not None:
-                on_game(result)
-    finally:
-        if previous_scale is None:
-            os.environ.pop("AI_TIME_SCALE", None)
-        else:
-            os.environ["AI_TIME_SCALE"] = previous_scale
+    for game_index in range(start_game, start_game + games):
+        game = _starting_game(game_index, games, profile, book, position_builder)
+        if book is not None:
+            used_openings.append(book[book_index(game_index, games, len(book))])
+        a_color = Color.RED if game_index % 2 == 0 else Color.BLACK
+        totals = {"a": 0.0, "b": 0.0}
+        game_times: dict[str, list[float]] = {"a": [], "b": []}
+        for ply in range(max_plies):
+            if game.state.finished:
+                break
+            is_a = game.state.turn is a_color
+            side = "a" if is_a else "b"
+            started = time.perf_counter()
+            if is_a and a_simulations is not None:
+                # 固定模拟次数：A 方走 MCTS，评分器借 B 方实例的 SEE（与档位无关）。
+                scorer = ChessAI(level_b, config=b_config)._see_score
+                move = MCTS(simulations=a_simulations,
+                            seed=seed + game_index * max_plies + ply,
+                            root_score=scorer).choose_move(game)
+            else:
+                level, config = (level_a, a_config) if is_a else (level_b, b_config)
+                engine = ChessAI(level, seed=seed + game_index * max_plies + ply,
+                                 config=config, time_scale=time_scale)
+                move = engine.choose_move(game)
+                total_moves[side] += 1
+                if engine.zero_depth_moves:
+                    zero_depth[side] += engine.zero_depth_moves
+                    zero_depth_reasons[side][engine.zero_depth_reason or "wall"] += 1
+                if engine.bound_reason is not None:
+                    bound_reasons[side][engine.bound_reason] += 1
+            elapsed = time.perf_counter() - started
+            bucket = a_move_times if is_a else b_move_times
+            bucket.append(elapsed)
+            game_times[side].append(elapsed)
+            totals[side] += elapsed
+            if move is None:
+                break
+            game.move(move)
+        adjudicated = not game.state.finished
+        winner = game.state.winner
+        if adjudicated:
+            score = ChessAI(level_b)._evaluate(game, Color.RED)
+            winner = Color.RED if score > 100 else Color.BLACK if score < -100 else None
+        result = MatchResult(
+            game_index + 1, a_color.value, winner.value if winner else None,
+            adjudicated, len(game.state.history), totals["a"], totals["b"],
+            game_times["a"], game_times["b"],
+        )
+        results.append(result)
+        if on_game is not None:
+            on_game(result)
     a_wins = sum(item.winner == item.master_color for item in results)
     b_wins = sum(item.winner is not None and item.winner != item.master_color
                  for item in results)
@@ -209,7 +258,12 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
         "adjudicatedGames": sum(item.adjudicated for item in results),
         # 诊断：A/B 各自"一手都没搜完"的着数。>0 说明该档预算低于一次排序成本，
         # 选点退化成排序首着 —— 这时讨论"棋力"没有意义，先看预算。
-        "zeroDepthMoves": dict(zero_depth_moves),
+        "zeroDepthMoves": dict(zero_depth),
+        # 判据账本：`boundReasons.wall > 0` → 本批不可引用；`nodes` 触发占比 ≤2%。
+        "zeroDepthReasons": zero_depth_reasons,
+        "boundReasons": bound_reasons,
+        "totalMoves": total_moves,
+        "moveTimeStats": {"a": time_stats(a_move_times), "b": time_stats(b_move_times)},
         "book": None if book is None else {
             "size": len(book),
             "used": [f"{entry.profile}#{entry.seed}@{entry.plies}"

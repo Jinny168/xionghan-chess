@@ -24,6 +24,7 @@ from xionghan_chess.core.benchmark import (
     Opening,
     benchmark_master_vs_hard,
     benchmark_match,
+    book_index,
 )
 from xionghan_chess.core.game import Game
 
@@ -133,3 +134,39 @@ def test_injected_configs_are_used_and_globals_stay_clean() -> None:
     assert CONFIGS == before
     assert report["zeroDepthMoves"] == {"a": 0, "b": 0}
     assert report["results"][0]["plies"] >= 1
+
+
+def test_book_index_spreads_evenly_and_mixes_plies() -> None:
+    """等距取样：n=64 用满 32 个 seed、plies 16/16；n=50 → 25 seed、14/11。"""
+    book = [Opening("p", 700 + seed, plies) for seed in range(32) for plies in (6, 10)]
+    expected = {
+        32: {"openings": 16, "seeds": 16, "plies6": 8},
+        50: {"openings": 25, "seeds": 25, "plies6": 14},
+        64: {"openings": 32, "seeds": 32, "plies6": 16},
+        96: {"openings": 48, "seeds": 32, "plies6": 24},
+    }
+    for games, spec in expected.items():
+        used = [book[book_index(index, games, len(book))] for index in range(games)]
+        unique = {(entry.seed, entry.plies) for entry in used}
+        assert len(unique) == spec["openings"]
+        assert len({entry.seed for entry in used}) == spec["seeds"]
+        assert sum(plies == 6 for _seed, plies in unique) == spec["plies6"]
+        assert {entry.plies for entry in used} == {6, 10}, "两档 plies 必须都进入样本"
+
+
+def test_report_carries_reason_ledgers_and_move_time_stats() -> None:
+    """截断原因分账 + median/p95/max：判据与 `EXPECTED_MOVE_SECONDS` 的数据源。"""
+    zero_budget = SearchConfig(depth=2, time_limit=1e-9, randomness=0.0,
+                               quiescence_depth=0, candidate_count=1,
+                               branch_limit=1, root_limit=2)
+    report = benchmark_match(
+        "beginner", "easy", games=1, profile="traditional", max_plies=1, seed=0,
+        a_config=zero_budget, b_config=_cheap_config(),
+    )
+    assert report["boundReasons"]["a"]["wall"] >= 1
+    assert report["zeroDepthReasons"]["a"]["wall"] >= 1
+    assert report["totalMoves"]["a"] == 1
+    stats = report["moveTimeStats"]["a"]
+    assert stats["n"] == 1
+    assert set(stats) == {"n", "median", "p95", "max"}
+    assert stats["median"] == stats["p95"] == stats["max"]
