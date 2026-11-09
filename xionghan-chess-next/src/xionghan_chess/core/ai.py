@@ -885,3 +885,25 @@ class ChessAI:
     def _guard(deadline: float, cancel: threading.Event | None) -> None:
         if time.monotonic() >= deadline or (cancel and cancel.is_set()):
             raise SearchTimeout
+
+
+# ── 提和判定 ────────────────────────────────────────────────────────────────
+# AI 只在**自评落后**时接受玩家提和。单位就是 `VALUES`：兵 = 120，所以 -150 ≈ 落后
+# 1.25 个兵。阈值只在这里定义一处 —— 桌面与服务端都必须调 `should_accept_draw`，
+# 不要各自复制一个数字（复制的那一刻两端就会开始漂）。
+DRAW_ACCEPT_THRESHOLD = -150.0
+
+
+def should_accept_draw(game: Game, color: Color) -> bool:
+    """`color` 一方是否应当接受和棋：自评 ≤ 阈值（闭区间）才接受。
+
+    符号方向容易写反，用构造局面钉住（`tests/test_ai_draw.py`）：
+    - AI 少一个车（-900）→ 分数为负 → **接受**；
+    - 均势（初始局面，分数约 0）→ 不接受；
+    - AI 多一个车 → 正分 → 不接受。
+
+    用 `BEGINNER` 实例取 `_evaluate` 只是"借一个评估函数"：`_evaluate` 与难度参数无关，
+    且该实例不跑搜索、不消费 RNG。
+    """
+    score = ChessAI(Difficulty.BEGINNER)._evaluate(game, color)
+    return score <= DRAW_ACCEPT_THRESHOLD
