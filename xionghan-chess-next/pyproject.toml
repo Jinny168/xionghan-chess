@@ -33,7 +33,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-"xionghan_chess.desktop" = ["resources/icon.ico", "resources/fonts/*", "resources/sounds/*", "resources/backgrounds/*", "resources/avatars/*", "resources/docs/*"]
+"xionghan_chess.desktop" = ["resources/icon.ico", "resources/fonts/*", "resources/sounds/*", "resources/sounds/web/*", "resources/backgrounds/*", "resources/avatars/*", "resources/docs/*"]
 
 # ── ruff（S2-3 接入 CI lint job）─────────────────────────────────────────────
 # 规则口径「小而真」：E4/E7/E9/F = 语法与明确缺陷（未用变量、重复字典键、
