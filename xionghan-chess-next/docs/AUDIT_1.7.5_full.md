@@ -525,14 +525,11 @@ F1-a 前保存的 classic/web 棋谱 `setup.*Slots` 含 `*:guard:1:5`，加载�
 
 ### 12.6 遗留
 
-- **S5 数据层 codegen**：按裁决"视 S1–S4 稳定后再议"，未做；做时生成区块必须保留 `const TYPES=` / `const canvas=` 锚点。
+- **S5 数据层 codegen（已完成数据面）**：`scripts/gen_offline_data.py` 从 `core/profiles.py` 生成
+  `TYPES` / `NAMES` / `DEFAULT_OPTIONS` / `PROFILE_DATA`，保留 `const TYPES=` / `const canvas=` 锚点；
+  `--check` 已入门禁（`tests/test_offline_data_codegen.py`）。**逻辑型镜像仍在**（`Rules` 手写），
+  属下一层问题，不在本次范围。
 - **webapp/ 第三套引擎**：冻结、不随规则更新、CI 零引用；它不是生成化先例（产物未入库、验证器不在门禁），是反例。
-- **22 kHz 音频档（待产品听感决定）**：候选在 `%TEMP%\xh_ds_probe\`。若采纳，**四份文件必须同步**（desktop 与 web 各一套 victory/defeat，`test_classic_effects_are_byte_identical_to_desktop` 会卡单边改动）：
-  ```bash
-  ffmpeg -i <原始wav> -ac 1 -ar 22050 -c:a pcm_s16le <输出>
-  # 4 个路径：src/.../sounds/fc_victory|defeat_sound.wav、web/assets/sounds/fc_victory|defeat_sound.wav
-  # `.gitattributes` 的 4 条 `-filter` 例外在 a452b03 已存在，沿用即可（check-attr 应为 unset）
-  # 替换后跑：音频 4 个测试文件 + QSoundEffect 加载实测 + node --check
-  ```
-  增量收益：再省 0.639 MiB（两侧合计）。
-- **AI 模式提和（待产品定口径）**：当前静默死路（AI 不响应 `DRAW_RESPONSE`，`pending` 永占，两端 UI 不给自己看）。三选一：AI 接受 / 明确拒绝并提示 / 保持现状。
+- **22 kHz 音频档（已裁决：不做）**：产品决定"不设双档、一律 44.1 kHz、含 BGM"，见
+  `tests/test_audio_quality_guard.py` 的守卫；原候选与命令仅作历史记录，不再执行。
+- **AI 模式提和（已完成）**：`core/should_accept_draw` + 服务端/桌面共用；桌面不再"点一下即和"，被拒会发 `draw_declined` 快捷语。

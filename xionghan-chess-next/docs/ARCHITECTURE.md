@@ -6,7 +6,7 @@
 - `core/game.py` 是唯一状态转换入口，负责历史、悔棋、复活、升变和结果结算。
 - `core/ai.py` 只调用规则引擎生成合法着法。
 - 联网时 FastAPI 服务端持有权威 `Game`，客户端只提交走棋意图。
-- Web/Android 离线端的规则引擎是 JS 镜像；**v2.0 前不引入 WASM/Pyodide**（瓶颈在 movegen，且安卓 `file://` 换 origin 会丢 localStorage），结论与重开条件见 [`WASM_DECISION.md`](WASM_DECISION.md)。
+- Web/Android 离线端的规则引擎是 JS 镜像；**v2.0 前不引入 WASM/Pyodide**（瓶颈在 movegen，且安卓 `file://` 换 origin 会丢 localStorage），结论与重开条件见 [`WASM_DECISION.md`](WASM_DECISION.md)。离线数据区（`TYPES`/`DEFAULT_OPTIONS`/`PROFILES`）由 `scripts/gen_offline_data.py` 从 `core/profiles.py` 生成，`--check` 已入门禁；`Rules` 实现仍为手写。
 
 | 档案 | 棋盘 | 默认棋子 |
 | --- | --- | --- |

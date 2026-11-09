@@ -180,7 +180,7 @@ def test_android_selection_sound_and_puzzle_i18n_guards_are_present():
 def test_android_offline_no_progress_draw_matches_core_contract():
     root = Path(__file__).resolve().parents[1]
     offline = (root / "android/Resources/assets/offline/offline.js").read_text(encoding="utf-8")
-    assert "no_progress_draw_plies:120" in offline
+    assert re.search(r'no_progress_draw_plies["\']?\s*:\s*120', offline)
     assert "noProgressPlies()>=this.options.no_progress_draw_plies" in offline
     assert "record.captured?.length||record.pieceType==='pawn'" in offline
     assert "this.state.resultReason='no_progress'" in offline
