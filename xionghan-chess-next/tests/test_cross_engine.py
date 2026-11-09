@@ -763,6 +763,93 @@ def test_threefold_repetition_boundary_parity():
             _assert_parity(game)
 
 
+def _offline_play_move(game: Game, move: Move) -> dict:
+    """Play `move` on offline.js's own `OfflineGame` and return its settle verdict.
+
+    The payload carries the **pre-move** board *and* Python's `positionCounts`,
+    so both engines settle the very same ledger: a verdict difference here is a
+    rule difference, not a bookkeeping one. This is the only leg that reaches
+    `OfflineGame.settle()` —— 其余各腿都停在 `Rules`，而 `Rules` 没有重复概念。
+    """
+    require_node()
+    payload = json.dumps({
+        "profileId": game.profile.id,
+        "options": asdict(game.rules.options),
+        "state": _offline_state(game),
+        "playMove": {
+            "from": {"row": move.source.row, "col": move.source.col},
+            "to": {"row": move.target.row, "col": move.target.col},
+            "promotion": move.promotion.value if move.promotion else None,
+        },
+    })
+    completed = subprocess.run(
+        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
+        capture_output=True, check=True, timeout=30,
+    )
+    leg = json.loads(completed.stdout)["playMove"]
+    assert leg["ok"], f"offline.js rejected a legal move: {leg['error']}"
+    return leg
+
+
+def test_threefold_ignores_a_stale_ledger_on_both_engines():
+    """台账里"别的局面早重复过三次"不得单独把棋局判和（Python 的 L-06 口径）。
+
+    可达性（不是构造出来的场景）：`offline.js::legacyFenDocument` 产出的文档
+    `snapshots: []`，而 `gameFromDocument` 只在 snapshots 非空时重建台账 ——
+    存盘台账原样生效。所以"台账里留着旧局面的 3 次计数"是 UGC 能造出来的状态。
+
+    S4 之前 offline.js 用 `Math.max(...Object.values(positionCounts)) >= 3` 判和，
+    注入一份 stale key 就误判和（当前局面其实只出现 1 次）——这条用例当时是红的。
+    """
+    game = Game("web")
+    game.state.position_counts = {"stale-key": 3}
+    move = Move(Position(8, 0), Position(7, 0))
+    observed = _offline_play_move(game, move)
+    game.move(move)
+    assert game.state.draw is False, "Python 只看当前局面的计数，不该判和"
+    assert game.state.result_reason is None
+    after_key = game.rules.position_key(game.state)
+    assert game.state.position_counts.get(after_key) == 1, "走子后的局面是第一次出现"
+    assert game.state.position_counts["stale-key"] == 3, "旧台账还在，只是不该被用来判和"
+    assert observed["draw"] == game.state.draw, (
+        f"判和分叉：offline.js draw={observed['draw']} "
+        f"(reason={observed['resultReason']})，Python draw={game.state.draw}")
+    assert observed["resultReason"] == game.state.result_reason
+    assert observed["pieceCount"] == len(game.state.pieces)
+
+
+# 4 手一个循环：第 4 手回到起点，第 8 手回到起点 → 起点局面计数到 3。
+_REPETITION_SHUFFLE = (
+    ((6, 4), (6, 5)), ((6, 8), (6, 9)),
+    ((6, 5), (6, 4)), ((6, 9), (6, 8)),
+)
+
+
+def test_threefold_fires_on_both_engines():
+    """真重复三次时两端必须**都**判和，且理由同为 `threefold_repetition`。
+
+    这条与上一条合起来才把口径钉死：上一条禁"误判"，这一条禁"漏判"。
+    `Game.from_state` 不走构造函数那条 `_record_position`，起点要手动记 1 次。
+    """
+    game = _sparse("desktop_classic", [
+        (PieceType.ROOK, Color.RED, 6, 4),
+        (PieceType.ROOK, Color.BLACK, 6, 8),
+    ])
+    start_key = game.rules.position_key(game.state)
+    game.state.position_counts = {start_key: 1}
+    for ply in range(8):
+        (source_row, source_col), (target_row, target_col) = _REPETITION_SHUFFLE[ply % 4]
+        move = Move(Position(source_row, source_col), Position(target_row, target_col))
+        observed = _offline_play_move(game, move)
+        game.move(move)
+        assert observed["draw"] == game.state.draw, f"第 {ply + 1} 手判和分叉"
+        assert observed["resultReason"] == game.state.result_reason, f"第 {ply + 1} 手终局理由分叉"
+        assert observed["pieceCount"] == len(game.state.pieces)
+    assert game.state.draw is True, "起点局面第 3 次出现应判和"
+    assert game.state.result_reason == "threefold_repetition"
+    assert game.state.position_counts[start_key] == 3
+
+
 def _offline_position_key(game: Game) -> str:
     """Ask offline.js for its `Rules.positionKey` on the very same state."""
     require_node()

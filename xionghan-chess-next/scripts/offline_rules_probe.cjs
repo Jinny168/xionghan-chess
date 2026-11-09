@@ -117,4 +117,39 @@ if (request.loadDocument !== undefined) {
   }
 }
 
+// Settlement leg: plays ONE move through `OfflineGame.move()` and reports the
+// verdict it settles on. `Rules.legalAll` has no repetition notion -- the draw
+// lives in `OfflineGame.settle()`, which is the code this leg pins. The caller
+// sends the pre-move state (Python's, ledger included), so a verdict difference
+// here is a *rule* difference, not a bookkeeping one.
+if (request.playMove) {
+  const game = new context.__offline.OfflineGame(request.profileId);
+  game.options = {...profile.options, ...(request.options || {})};
+  game.rules = new context.__offline.Rules(game.profile, game.options);
+  game.state = JSON.parse(JSON.stringify(state));
+  // `_offline_state` (the Python helper every leg shares) deliberately drops the
+  // clocks -- the `Rules` legs never tick. This leg drives `OfflineGame.move()`,
+  // which calls `tick()` and therefore needs `state.clocksMs`. Give it the same
+  // 20-minute default `new OfflineGame()` would have used, so the settlement
+  // verdict is never a timeout.
+  game.state.clocksMs = game.state.clocksMs || {red: 20 * 60000, black: 20 * 60000};
+  const {from, to, promotion} = request.playMove;
+  try {
+    game.move({from, to, promotion: promotion || null});
+    // `null`-normalise: the payload's state (via `_offline_state`) carries no
+    // `resultReason`/`winner`, so the fields arrive `undefined` and
+    // `JSON.stringify` would drop the keys entirely -- a missing key and a
+    // `null` verdict are different things to the caller.
+    result.playMove = {ok: true, error: null,
+                       draw: game.state.draw,
+                       winner: game.state.winner ?? null,
+                       resultReason: game.state.resultReason ?? null,
+                       pieceCount: game.state.pieces.length,
+                       positionCounts: game.state.positionCounts};
+  } catch (error) {
+    result.playMove = {ok: false, error: error.message, draw: null, winner: null,
+                       resultReason: null, pieceCount: null, positionCounts: null};
+  }
+}
+
 process.stdout.write(JSON.stringify(result));
