@@ -338,17 +338,20 @@ jobs:
             grep -E "^[0-9]+ (passed|failed)" "$RUNNER_TEMP/pytest.log" | tail -3 | sed 's/^/::error::/' || true
           fi
           # ── density 值取证（红绿都发；**不参与判定**，rc 只由上面的 pytest 决定）──
-          # 用途：`test_desktop_piece_render.py` 的密度回归指标目前有 linux 一档暂记值，
-          # 下一跑要拿**被门禁实际跑出来的**数去标定。注解是匿名可读的唯一日志通道
-          # （logs API 对非 admin 403，run #120/#121 实测），所以值必须变成 ::notice::。
+          # 用途：`test_desktop_piece_render.py` 的密度基线仍有暂记档（(linux,offscreen)
+          # 的 traditional），下一跑要拿**被门禁实际跑出来的**数去标定。注解是匿名可读的
+          # 唯一日志通道（logs API 对非 admin 403，run #120/#121 实测），故必须转 ::notice::。
           #
-          # ⚠️ 必须取**同一次 pytest 进程**的数，不能另起一次重跑：这行依赖进程级上下文。
-          # 本机实测（win32，同一份代码）：整跑三风格**全红**（cartoon ratio 0.78 /
-          # artwork 0.524），单独跑该文件**全绿**（ratio 1.00 / artwork 0.420）。根因是
-          # `tests/test_desktop_dialog_lifetime.py` 在 import 期
-          # `os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")` —— 整跑会 import 到它，
-          # 单跑不会，于是两次用的**不是同一个 Qt 平台插件**，渲染结果自然不同。
-          # 换句话说，重跑拿到的值是另一个量：拿它去标定基线，就是把基线带偏。
+          # ⚠️ 必须取**同一次 pytest 进程**的数，不能另起一次重跑：密度依赖进程级上下文
+          # ——具体是"最终加载了哪个 Qt 平台插件"。实测同一台 win32、同一 commit、同一条
+          # 命令，只改一个环境变量就翻脸：windows 插件 ratio 1.14/1.45/1.00，
+          # offscreen 插件 ratio 0.77/0.91/0.78（差约 30%，远超 ±0.12）。
+          # 而插件由环境 + import 顺序共同决定（`tests/test_desktop_dialog_lifetime.py`
+          # 在 import 期 `setdefault("QT_QPA_PLATFORM","offscreen")`），重跑拿到的可能是
+          # 另一个量，拿它标定就是把基线带偏。
+          # 自 S3-A3 起基线按 (sys.platform, platformName) 二维登记，打印行也带上插件名：
+          #   [density] linux/offscreen/traditional: fallback=… artwork=… ratio=… baseline=…
+          # 于是下面 grep 到的每一行都能直接对号入座，不需要猜是哪个渲染上下文。
           grep -E "^\[density\]" "$RUNNER_TEMP/pytest.log" | sed 's/^/::notice::/' || true
           exit "$rc"
 

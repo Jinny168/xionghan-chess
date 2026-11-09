@@ -183,23 +183,38 @@ FILL_COLOR = {
     "modern": (255, 255, 255),
     "cartoon": (255, 255, 255),
 }
-# 密度基线**按平台分别登记**（键 = `sys.platform`）：Qt 的字族光栅后端不同，
-# 同一份代码的密度**不可互比**（Windows 1.10/1.51/1.04 vs ubuntu+fontconfig
-# 0.48/0.41 —— 差一倍以上）。这是**回归指标**（防漂移），不是"正确性判据"——
-# Windows（用户实际看到的）上没有任何字重能让三风格同时进 0.85–1.25。
-# 标定来源：
-#   · win32 —— Windows 11 本机标定（原值原样保留，不许为 Linux 通过而放宽，
-#     否则会掩盖 Windows 侧回归）；
-#   · linux —— CI #123（ubuntu runner，2026-11-09）失败消息原文实测：
-#     modern 0.213/0.446 = 0.48、cartoon 0.214/0.524 = 0.41。traditional 在
-#     #123 通过（落在 0.76±0.12 的通过区间内），精确值未取得，暂沿用旧
-#     offscreen 档的 0.76 —— 测试无论绿红都打印实测值，下轮 CI 日志据此
-#     精确标定。
-# 旧键 "offscreen"（0.76/0.96/0.82）废弃：它把 macOS/Windows 的 offscreen
-# 度量混成一档，与 ubuntu fontconfig 不是一回事（#123 实证差一倍）。
-DENSITY_BASELINE = {
-    "win32": {"traditional": 1.10, "modern": 1.51, "cartoon": 1.04},
-    "linux": {"traditional": 0.76, "modern": 0.48, "cartoon": 0.41},
+# 密度基线**按 (平台, Qt 平台插件) 二维登记**：Qt 的字族光栅后端不同，同一份代码的
+# 密度**不可互比**。这条口径经过两次修正才定下来，别再退回去：
+#   ① 第一版只按 `sys.platform` 分档 —— **不够**。实测同一台 win32 机器、同一个
+#      commit、同一条命令，只改一个环境变量就翻脸：
+#        windows 插件   ratio = 1.14 / 1.45 / 1.00 → 对旧 win32 档 1.10/1.51/1.04 绿
+#        offscreen 插件 ratio = 0.77 / 0.91 / 0.78 → 三风格一致偏低约 30%，远超 ±0.12
+#      于是"本机绿 / 本机红"会随 shell 里有没有 `QT_QPA_PLATFORM=offscreen` 漂移，
+#      而门禁只认得其中一档。**隐含上下文依赖比阈值松紧危险得多**，这是修正的动机。
+#      （触发路径：整跑会 import 到 `tests/test_desktop_dialog_lifetime.py`，它在
+#       import 期 `setdefault("QT_QPA_PLATFORM","offscreen")`；单跑不会 → 同一份代码
+#       两种渲染上下文。修法不是删那行 setdefault，而是把插件变成**登记维度**。）
+#   ② 所以键改成 `(sys.platform, QApplication.platformName())`，未登记的组合
+#      **skip 并说明原因**，绝不拿另一档的基线硬比（那必然误红）。
+# 这是**回归指标**（防漂移），不是"正确性判据" —— Windows 窗口插件下没有任何字重能让
+# 三风格同时进 0.85–1.25。
+#
+# 标定来源（每条都要能追到一次实测，不许凭感觉填）：
+#   · ("win32","windows") —— Windows 11 本机标定，原值原样保留（不许为了让 Linux 通过
+#     而放宽，否则会掩盖 Windows 侧回归）；复测 ratio = 1.14 / 1.45 / 1.00，在 ±0.12 内。
+#   · ("win32","offscreen") —— 2026-11-10 本机实测（commit f4d0fcd，仅设
+#     `QT_QPA_PLATFORM=offscreen`）：fallback/artwork = 0.334/0.433、0.407/0.446、
+#     0.407/0.524 ⇒ ratio 0.77 / 0.91 / 0.78；两次独立整跑逐位相同，稳定。
+#   · ("linux","offscreen") —— CI #123（ubuntu runner，2026-11-09）失败消息原文实测：
+#     modern 0.213/0.446 = 0.48、cartoon 0.214/0.524 = 0.41。traditional 在 #123 通过
+#     （落在 0.76±0.12 的通过区间内）但精确值未取得，**暂沿用旧 offscreen 档的 0.76**；
+#     ci.yml 加 `-rfEP` 后每跑都会把这行打成 `::notice::`，下轮 CI 日志据此精确标定。
+# 旧的单键 "offscreen"（0.76/0.96/0.82）已废弃：它把 macOS/Windows 的 offscreen 度量
+# 混成一档，与 ubuntu fontconfig 不是一回事（#123 实证差一倍），与现在这版也不同源。
+DENSITY_BASELINE: dict[tuple[str, str], dict[str, float]] = {
+    ("win32", "windows"): {"traditional": 1.10, "modern": 1.51, "cartoon": 1.04},
+    ("win32", "offscreen"): {"traditional": 0.77, "modern": 0.91, "cartoon": 0.78},
+    ("linux", "offscreen"): {"traditional": 0.76, "modern": 0.48, "cartoon": 0.41},
 }
 DENSITY_TOLERANCE = 0.12
 
@@ -282,10 +297,13 @@ def test_fallback_density_matches_the_platform_baseline(
     口径：**3 型回退均值 ÷ 11 型位图均值**，两侧共用同一个 `_ink_stats()` 掩膜
     （画布填该风格盘面色 + 色距 >60 + 只统计 `r < 0.62R`）。
 
-    ⚠️ 两条铁律：
-    1. **两个平台的数不可互比**：Qt 的字族光栅后端不同，基线按 `sys.platform`
-       分档登记（见 `DENSITY_BASELINE` 的标定来源注释）；
-    2. **必须先 `theme.load_bundled_fonts()`**（`qt_app` fixture 已做），否则字族落到
+    ⚠️ 三条铁律：
+    1. **基线按 (平台, Qt 平台插件) 二维登记**：Qt 的字族光栅后端不同，同一份代码的
+       密度不可互比。同一个 win32 在 `windows` 与 `offscreen` 两种插件下差约 30%
+       （实测 1.14/1.45/1.00 vs 0.77/0.91/0.78）—— 只按 `sys.platform` 分档会让
+       "本机绿/本机红"随 `QT_QPA_PLATFORM` 漂移。见 `DENSITY_BASELINE` 的标定来源注释；
+    2. **未登记的组合一律 skip**，不拿另一档的基线硬比 —— 跨组合比较必然误红；
+    3. **必须先 `theme.load_bundled_fonts()`**（`qt_app` fixture 已做），否则字族落到
        系统替代字体，墨量只剩约 1/10，任何比值都不可信。
 
     真正的硬门禁在别处：字族随风格（`test_fallback_family_follows_style`）、
@@ -293,20 +311,25 @@ def test_fallback_density_matches_the_platform_baseline(
     字高/盘径 0.48–0.56、盘径 0.78 格。这里只在超出基线 ±0.12 时报「漂移了」。
     """
     platform = sys.platform
-    baseline = DENSITY_BASELINE.get(platform)
+    # 插件名从**实际在跑的** QApplication 取，不读 env：env 只说明"请求了什么"，
+    # platformName() 才是"真的用了什么"（插件加载失败会 fallback，两者会不一致）。
+    qpa = qt_app.platformName()
+    key = (platform, qpa)
+    baseline = DENSITY_BASELINE.get(key)
     if baseline is None:
-        pytest.skip(f"平台 {platform!r} 没有密度基线（只有 win32 / linux 有），"
-                    "不要拿没标定过的平台的数来比")
+        pytest.skip(f"采集环境 {key!r} 没有密度基线（已登记：{sorted(DENSITY_BASELINE)}）。"
+                    "密度与 Qt 平台插件强相关，不要拿没标定过的组合的数来比")
     _fh, fallback = _style_density(style, FALLBACK_KINDS, fallback=True)
     _ah, artwork = _style_density(style, ART_KINDS, fallback=False)
     ratio = fallback / artwork
     expected = baseline[style]
-    # 实测值无论绿红都打进日志：linux 档的 traditional 还是暂记值（见基线表
-    # 注释），下一轮 CI 的这行输出就是它的精确标定来源。
-    print(f"[density] {platform}/{style}: fallback={fallback:.3f} artwork={artwork:.3f} "
+    # 实测值无论绿红都打进日志。(linux, offscreen) 档的 traditional 还是暂记值（见基线表
+    # 注释），下一轮 CI 的这行输出（ci.yml 已把它转成 ::notice::）就是它的精确标定来源。
+    # 行里必须带 qpa：同一平台两种插件的数差 30%，只写 platform 的话日志会误导标定。
+    print(f"[density] {platform}/{qpa}/{style}: fallback={fallback:.3f} artwork={artwork:.3f} "
           f"ratio={ratio:.2f} baseline={expected:.2f}", flush=True)
     assert abs(ratio - expected) <= DENSITY_TOLERANCE, (
-        f"{platform}/{style}: 回退密度 {fallback:.3f} / 图片 {artwork:.3f} = {ratio:.2f}，"
+        f"{platform}/{qpa}/{style}: 回退密度 {fallback:.3f} / 图片 {artwork:.3f} = {ratio:.2f}，"
         f"基线 {expected:.2f} ± {DENSITY_TOLERANCE} —— 渲染管线或字重/字族被改动了？")
 
 
