@@ -734,10 +734,24 @@ def test_full_opening_parity_for_every_13x13_profile(profile_id):
 # --- draw / repetition ------------------------------------------------------
 
 def test_threefold_repetition_boundary_parity():
-    """Threefold is decided in Python's Game._settle, not in offline.js.
+    """只钉住「重复局面之后，两端的走法集合仍一致」。
 
-    offline.js `Rules.legalAll` has no notion of repetition, so this asserts the
-    reachable move set still agrees once a position has been seen twice.
+    事实更正（S1）：两端**都**在各自的状态机里判和 —— Python 在
+    `core/game.py:288-292` 的 `Game._settle`，`offline.js:107` 的
+    `OfflineGame.settle()` 也判和。这里原先写的是
+
+        "Threefold is decided in Python's Game._settle, not in offline.js"
+
+    那句话是错的，并且给了一条**不存在的覆盖**背书：它让读者以为 JS 侧没有
+    判和逻辑，因此不必对齐。（`Rules.legalAll` 确实没有重复概念，但判和不在
+    `Rules` 而在 `OfflineGame`。）
+
+    两端的判和**口径**当时还不同：Python 只看当前 `position_key` 的计数，
+    JS 用 `Math.max(...Object.values(positionCounts))`。口径对齐与「结算结果」
+    的对拍是随后 S4 的两条用例，本条**不**覆盖它们。
+
+    本条自身仍然只断言：一个局面被走到第二次时，`legalAll` 与 `inCheck`
+    两端逐着一致。
     """
     game = Game("desktop_classic")
     # Walk a deterministic sequence, recording positions so the third occurrence

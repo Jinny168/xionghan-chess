@@ -253,14 +253,16 @@ def test_archer_star_visuals_follow_piece_appearance_setting():
 
 
 def test_archer_star_points_are_thirteen_diamonds_not_twenty_five():
-    # Audit item C-2. The three live paths already agree — `rules.py` filters
-    # with `(row // 3 + col // 3) % 2 == 0` (13 points), `web/js/app.js`
-    # `drawStarPoints` paints whatever `profile.archerStarPoints` carries, and
-    # `offline.js` `starPoints()` mirrors the same condition. The only file that
-    # still spells out the pre-migration 25 points (`row` and `col` both
-    # multiples of 3) is the legacy `web/js/core/game-rules.js`, which the
-    # running service never mounts — so it is pinned by this test instead of by
-    # editing a file that cannot reach a browser.
+    # Audit item C-2。三条**活**路径已经一致：`rules.py` 用
+    # `(row // 3 + col // 3) % 2 == 0` 过滤出 13 点；`web/js/app.js`
+    # `drawStarPoints` 只画 `profile.archerStarPoints` 送来的点（不自己算）；
+    # `android/.../offline.js` `starPoints()` 镜像同一条件。
+    #
+    # 这里原有一句「唯一还写着迁移前 25 点的是 legacy `web/js/core/game-rules.js`，
+    # 它被本测试钉住，所以不必去改一个到不了浏览器的文件」。S1 更正：那个路径属于
+    # 迁移前遗留树，已随 `108b166`（2026-10-30 清理遗留树）删除 —— 现在 `ls web/js/`
+    # 只有 app.js / atlas.js / i18n.js / ribbon.js。一句指向不存在文件的注释等于给
+    # 一条**不能执行**的覆盖背书，故删去，本测试只钉 `RulesEngine` 自己的产出。
     lattice = {(r, c) for r in range(0, 13, 3) for c in range(0, 13, 3) if (r // 3 + c // 3) % 2 == 0}
     assert len(lattice) == 13
     expected = frozenset(Position(row, col) for row, col in lattice)
