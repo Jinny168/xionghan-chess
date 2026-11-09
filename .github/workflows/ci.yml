@@ -354,6 +354,42 @@ jobs:
           [ "$collected" -ge 81 ] || { echo "::error::对拍用例从 81 掉到 $collected（有人删了对拍用例？）"; exit 1; }
           echo "OK: 对拍门禁名副其实（通过 $passed / 收集 $collected，0 跳过）"
 
+      - name: "density 值取证（绿跑也留痕 → ::notice:: 注解）"
+        # 目的：给 `tests/test_desktop_piece_render.py` 的密度回归指标留下**绿跑**的
+        # 精确数值，供下一跑标定 linux/traditional（该档目前是暂记值）。
+        # 注解是匿名可读的唯一日志通道（logs API 对非 admin 403，run #120/#121 实测），
+        # 所以这些数必须变成 ::notice:: 才能被人读到。
+        #
+        # ⚠️ 为什么必须是**独立一步 + 自己加 `-s`**，而不是在主 pytest 的 pytest.log 上 grep：
+        # pytest 默认按 fd 级捕获 stdout，**通过**用例里的 `print(..., flush=True)` 不会
+        # 进入日志（只有失败时以 "Captured stdout call" 段落出现）。本机实测
+        # `pytest tests/test_desktop_piece_render.py -q` 的 16 passed 输出里一条 [density]
+        # 都没有；加 `-s` 才有（3 条，见下）。所以在主 pytest 那条 run 里加
+        # `grep '[density]' pytest.log`，绿跑**永远**空转 —— 那是假取证，不是取证。
+        # 这里只重跑密度那 3 条用例（本机 0.6s，CI 秒级），不重复其余任何东西。
+        #
+        # `if: always()`：主门禁红了也要拿到数（基线标定与红绿无关，红的那次更需要数字）。
+        # **这一步不参与判定**：全程 `|| true` + 拿不到数只发 ::warning::，job 的红绿
+        # 完全由上面的主 pytest / 对拍断言决定。
+        if: always()
+        run: |
+          set -uo pipefail
+          log="$RUNNER_TEMP/density.log"
+          pytest "tests/test_desktop_piece_render.py::test_fallback_density_matches_the_platform_baseline" \
+            -q -s > "$log" 2>&1 || true
+          count=$(grep -c '\[density\]' "$log" || true)
+          echo "捕获到 ${count:-0} 条 [density] 行（linux 期望 3 条：traditional/modern/cartoon）"
+          if [ "${count:-0}" -eq 0 ]; then
+            # 不判红：密度用例在无基线的平台上会 skip（DENSITY_BASELINE 只有 win32/linux），
+            # 那属于"没值可标定"，不是失败。留下尾部输出让人一眼看出是 skip 还是崩了。
+            echo "::warning::没拿到 [density] 行 —— 密度用例被跳过或渲染链没起来，本轮无值可标定"
+            tail -8 "$log"
+            exit 0
+          fi
+          # 去掉 pytest -q 的进度点（行可能是 ".[density] ..."）。::notice:: 必须在行首
+          # 才被 Actions 解析成注解，所以先清点再前缀。
+          grep '\[density\]' "$log" | sed 's/^\.*//' | sed 's/^/::notice::/'
+
   # ═══════════════════════════════════════════════════════════════════════════
   # 3) gate-negative —— 负向自检：证明「缺 node 会红」在 runner 上也成立
   # ═══════════════════════════════════════════════════════════════════════════
