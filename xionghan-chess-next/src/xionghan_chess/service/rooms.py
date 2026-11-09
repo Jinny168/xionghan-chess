@@ -11,12 +11,12 @@ from typing import Any
 
 from fastapi import WebSocket
 
-from xionghan_chess.core.ai import ChessAI, Difficulty
+from xionghan_chess.core.ai import ChessAI, Difficulty, should_accept_draw
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, Move, PieceType, Position
 from xionghan_chess.core.profiles import get_profile
 from xionghan_chess.core.protocol import Envelope, MessageType
-from xionghan_chess.core.taunts import TauntScene, choose_taunt
+from xionghan_chess.core.taunts import TauntScene, select_taunt, taunt_allowed
 from xionghan_chess.i18n import normalize_language, t
 
 ZOMBIE_ROOM_SECONDS = 600   # 10 分钟没人连的 online 房视为僵尸
@@ -59,6 +59,12 @@ class Room:
     language: str = "zh-CN"
     taunts_enabled: bool = True
     taunt_events: set[str] = field(default_factory=set)
+    # 台词频率账本（core.taunts.taunt_allowed 消费）：不要用 `chat_history` 反推 ——
+    # 它只保留最近 20 条，长局里会误判"还没说过"。
+    taunt_sent_total: int = 0
+    taunt_sent_by_scene: dict[str, int] = field(default_factory=dict)
+    taunt_last_ply: int | None = None
+    taunt_last_text: str = ""
     chat_history: list[dict[str, Any]] = field(default_factory=list)
     # 刚接入/重连的 token：它们的**下一条** STATE 带完整 replay，之后一律不带
     fresh_tokens: set[str] = field(default_factory=set)
@@ -281,8 +287,9 @@ class RoomManager:
         处理函数的类型是 `_Apply`（同步签名），这是刻意的类型约束 —— 见模块级 `_Apply`
         注释：谁把它改成 async 或往里加 await，mypy 会直接报错。
         """
-        # 锁内只做状态修改；`chat_payload` 是唯一需要跨出锁的一段数据（CHAT 帧的载荷）。
-        chat_payload: dict[str, Any] | None = None
+        # 锁内只做状态修改；`apply_result` 是唯一需要跨出锁的一段数据
+        # （CHAT 的广播载荷 / DRAW_OFFER 的 `drawDeclined`）。
+        apply_result: dict[str, Any] | None = None
         async with room.lock:
             if envelope.type is MessageType.PING:
                 return
@@ -290,8 +297,8 @@ class RoomManager:
             handler = self._apply_handlers().get(envelope.type)
             if handler is None:
                 raise GameError(room.tr("error.unsupported_message"))
-            chat_payload = handler(room, seat, envelope)
-        await self._after_apply(room, seat, envelope, chat_payload)
+            apply_result = handler(room, seat, envelope)
+        await self._after_apply(room, seat, envelope, apply_result)
 
     @staticmethod
     def _check_revision(room: Room, envelope: Envelope) -> None:
@@ -370,7 +377,8 @@ class RoomManager:
         room.game.resign(resigning)
         room.revision += 1
 
-    def _apply_draw_offer(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+    def _apply_draw_offer(self, room: Room, seat: PlayerSeat,
+                          envelope: Envelope) -> dict[str, Any] | None:
         if room.mode == "local":
             # S3-C：local 房没有协商对象，提和即终局 —— 这条路径**绕过** Game.offer_draw
             # （不设 pending、直接写 draw），所以 finished 守卫必须在这里单独补，
@@ -380,9 +388,20 @@ class RoomManager:
                 raise GameError(room.tr("error.game_finished"))
             room.game.state.draw = True
             room.game.state.result_reason = "draw_agreement"
-        else:
-            room.game.offer_draw(seat.color)
+            room.revision += 1
+            return None
+        room.game.offer_draw(seat.color)
         room.revision += 1
+        if room.mode != "ai":
+            return None
+        # AI 房：玩家提和 → AI 立刻应答（同步，锁内零 await）。判定用 core 的唯一实现，
+        # 两端不许各写一个阈值。拒绝时把结果带出锁外，由 `_after_apply` 广播台词。
+        ai_seat = next((item for item in room.seats.values() if item.is_ai), None)
+        if ai_seat is None:
+            return None
+        accept = should_accept_draw(room.game, ai_seat.color)
+        room.game.respond_draw(ai_seat.color, accept)
+        return {"drawDeclined": not accept}
 
     def _apply_draw_response(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
         room.game.respond_draw(seat.color, bool(envelope.payload.get("accept")))
@@ -434,7 +453,7 @@ class RoomManager:
         room.revision += 1
 
     async def _after_apply(self, room: Room, seat: PlayerSeat, envelope: Envelope,
-                           chat_payload: dict[str, Any] | None) -> None:
+                           apply_result: dict[str, Any] | None) -> None:
         """锁**外**的统一收尾：广播 + AI 跟进。
 
         ⚠️ **必须**在 `async with room.lock` 之外调用：`Room.lock` 是 `asyncio.Lock`
@@ -442,14 +461,17 @@ class RoomManager:
         调用会立刻自锁，表现为整房间卡死且无异常。锁内保持零 `await` 是这条不变量的
         另一半（谁往锁内加 await，都有可能触发同类死锁）。
 
-        `chat_payload` 只对 CHAT 有值：CHAT 走 `broadcast_envelope` 且**不**涨 revision，
-        其余消息一律走整帧 STATE 广播。
+        `apply_result` 只对两类消息有值：CHAT（广播载荷，且**不**涨 revision）与
+        DRAW_OFFER（AI 房的 `drawDeclined`，用于决定要不要播拒绝台词）。
         """
         if envelope.type is MessageType.CHAT:
             await self.broadcast_envelope(room, MessageType.CHAT,
-                                          chat_payload if chat_payload is not None else {})
+                                          apply_result if apply_result is not None else {})
             return
         await self.broadcast(room)
+        if (envelope.type is MessageType.DRAW_OFFER and apply_result is not None
+                and apply_result.get("drawDeclined") and room.mode == "ai"):
+            await self._broadcast_ai_taunt(room, "draw_declined")
         if room.mode == "ai" and room.game.state.finished:
             scene = self._finished_ai_scene(room)
             if scene:
@@ -498,17 +520,32 @@ class RoomManager:
         return "victory" if room.game.state.winner is ai_seat.color else "defeat"
 
     async def _broadcast_ai_taunt(self, room: Room, scene: TauntScene) -> None:
-        event_key = f"{scene}:{len(room.game.state.history)}"
-        if not room.taunts_enabled or event_key in room.taunt_events:
+        """AI 台词：设置 → 去重 → 频率 → 确定性选词 → 广播。账本只在这里更新。"""
+        if not room.taunts_enabled:
             return
         ai_seat = next((seat for seat in room.seats.values() if seat.is_ai), None)
         if ai_seat is None:
             return
+        plies = len(room.game.state.history)
+        event_key = f"{scene}:{plies}"
+        if event_key in room.taunt_events:
+            return
+        text = select_taunt(scene, room.language, f"{room.id}:{event_key}",
+                            [room.taunt_last_text] if room.taunt_last_text else [])
+        allowed, _reason = taunt_allowed(
+            scene, plies, room.taunt_sent_total, room.taunt_sent_by_scene,
+            room.taunt_last_ply, room.taunt_last_text, text)
+        if not allowed or text is None:
+            return
         room.taunt_events.add(event_key)
+        room.taunt_sent_total += 1
+        room.taunt_sent_by_scene[scene] = room.taunt_sent_by_scene.get(scene, 0) + 1
+        room.taunt_last_ply = plies
+        room.taunt_last_text = text
         payload = {
             "color": ai_seat.color.value,
             "sender": ai_seat.display_name,
-            "text": choose_taunt(scene),
+            "text": text,
             "quick": True,
             "automated": True,
             "scene": scene,

@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
 )
 
 from xionghan_chess import __version__
-from xionghan_chess.core.ai import CONFIGS, Difficulty
+from xionghan_chess.core.ai import CONFIGS, Difficulty, should_accept_draw
 from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
 
 # AI 看门狗：思考预算耗尽后再等这么久，仍无信号就判定 worker 不会回来了（毫秒）。
@@ -43,7 +43,7 @@ CHAT_HISTORY_LIMIT = 200
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position
 from xionghan_chess.core.storage import game_document
-from xionghan_chess.core.taunts import choose_taunt, taunts
+from xionghan_chess.core.taunts import select_taunt, taunt_allowed, taunts
 from xionghan_chess.i18n import t
 
 from . import net
@@ -141,7 +141,7 @@ class _SquareHost(QWidget):
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
-        super().__init__();theme.load_bundled_fonts();self.config=load_config();set_language(self.config.get("language","zh-CN"));self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._shown_result=False;self._play_again_pending=False
+        super().__init__();theme.load_bundled_fonts();self.config=load_config();set_language(self.config.get("language","zh-CN"));self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._shown_result=False;self._play_again_pending=False;self._reset_taunt_ledger()
         # P1-B：界面刷新快照（棋盘/棋谱/阵亡/将军），换局时必须清空
         self._reset_ui_cache()
         # 思考态读条：100ms 只负责让棋盘重绘，**start_ai 起、finish_ai 止**，不常驻。
@@ -224,6 +224,7 @@ class MainWindow(QMainWindow):
     def new_game(self) -> None:
         self.puzzle_session=None
         self.chat_messages.clear()      # 换局清空（悔棋不清，聊天是历史）
+        self._reset_taunt_ledger()
         self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local";self._reset_ui_cache();self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh()
         if not local and self.game.state.turn is not human:self.start_ai()
 
@@ -359,10 +360,24 @@ class MainWindow(QMainWindow):
             self.chat_messages.takeItem(0)
         self.chat_messages.scrollToBottom()
 
+    def _reset_taunt_ledger(self) -> None:
+        """每局重置台词账本（与 `core.taunts.taunt_allowed` 的"每局"口径对齐）。"""
+        self._taunt_total=0;self._taunt_by_scene={};self._taunt_last_ply=None;self._taunt_last_text=""
+
     def add_ai_taunt(self, scene: str | None) -> None:
         if not scene or not self.config.get("taunts",True):return
-        sender="Xionghan AI" if self.config.get("language")=="en" else "匈汉棋灵"
-        self._append_chat(f"{sender}：{choose_taunt(scene)}")
+        if not self.game:return
+        lang=self.config.get("language","zh-CN")
+        plies=len(self.game.state.history)
+        text=select_taunt(scene,lang,f"{self.game.profile.id}:{plies}:{scene}:{self._taunt_total}",
+                          [self._taunt_last_text] if self._taunt_last_text else [])
+        allowed,_reason=taunt_allowed(scene,plies,self._taunt_total,self._taunt_by_scene,
+                                      self._taunt_last_ply,self._taunt_last_text,text)
+        if not allowed or text is None:return
+        self._taunt_total+=1;self._taunt_by_scene[scene]=self._taunt_by_scene.get(scene,0)+1
+        self._taunt_last_ply=plies;self._taunt_last_text=text
+        sender="Xionghan AI" if lang.startswith("en") else "匈汉棋灵"
+        self._append_chat(f"{sender}：{text}")
 
     def ai_failed(self, result: object) -> None:
         message,cancel=result if isinstance(result,tuple) else (str(result),self.cancel)
@@ -405,7 +420,22 @@ class MainWindow(QMainWindow):
         color=self.game.state.turn if self.config.get("game_mode")=="local" else Color(self.config["human_color"]);self.game.resign(color);self.refresh()
     def draw_game(self) -> None:
         if self.network:self.send_network("draw_offer");return
-        if QMessageBox.question(self,dl("提和"),dl("确认以和棋结束当前对局？"))==QMessageBox.StandardButton.Yes:self.game.state.draw=True;self.game.state.result_reason="draw_agreement";self.refresh()
+        if self.config.get("game_mode")!="ai":
+            # 本地双人：没有协商对象，保留"确认即和"的旧语义。
+            if QMessageBox.question(self,dl("提和"),dl("确认以和棋结束当前对局？"))==QMessageBox.StandardButton.Yes:self.game.state.draw=True;self.game.state.result_reason="draw_agreement";self.refresh()
+            return
+        # AI 模式：此前是"点一下立刻和棋"——玩家在任何回合都能单方面终局，且 AI 没有表态。
+        # 现在与 Web 端一致：只能在自己回合提和，由 AI 用 core 的唯一判定决定接不接受。
+        human=Color(self.config["human_color"])
+        try:
+            self.game.offer_draw(human)
+        except GameError as exc:
+            QMessageBox.information(self,dl("提和"),str(exc));return
+        ai_color=human.opponent
+        accept=should_accept_draw(self.game,ai_color)
+        self.game.respond_draw(ai_color,accept)
+        self.refresh()
+        if not accept:self.add_ai_taunt("draw_declined")
 
     def replay_game(self) -> None:
         if not self.game or not self.game.state.history:
