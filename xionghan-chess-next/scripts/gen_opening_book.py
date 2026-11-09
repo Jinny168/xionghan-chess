@@ -10,8 +10,9 @@
 
 - 生成器：`scripts/bench_roots.py::build_position`（确定性走子，不依赖时间受限搜索）；
 - 范围：`profile=desktop_complete`，`seed ∈ [700, 731]` × `plies ∈ {6, 10}` = **64 条**；
-- 指纹：`RulesEngine.position_key`（与 `bench_roots.position_fingerprint` 同一口径），
-  存进每条 `fp` —— 它只用于核对重建，对局时不消费；
+- 指纹：`fp` 用 `RulesEngine.position_key`（`bench_roots.position_fingerprint` 的
+  同一口径）—— `pieces/legal` 子数/合法着数相同也可能是不同局面，所以它们只作为
+  **辅助显示**字段一起存，不能当唯一键；`fp` 只用于核对重建，对局时不消费；
 - 写盘：`json.dumps(..., sort_keys=True, indent=2)` + 结尾一个 `\\n`，**无时间戳、
   无环境信息**，`newline="\\n"` 固定换行。`.gitattributes` 里对
   `benchmarks/openings/*.json` 标了 `-text`，避免 autocrlf 在检出时改写字节。
@@ -59,7 +60,11 @@ def build_entries(profile: str = DEFAULT_PROFILE, seeds: tuple[int, ...] = DEFAU
                 "profile": profile,
                 "seed": seed,
                 "plies": plies,
+                # 唯一键：position_key（含轮次/子力/阵亡池）。对局时不消费。
                 "fp": position_fingerprint(game),
+                # 辅助显示（人读快照用）：子数 / 合法着数。**不是**唯一指纹。
+                "pieces": len(game.state.pieces),
+                "legal": len(game.rules.legal_moves(game.state)),
             })
     return entries
 

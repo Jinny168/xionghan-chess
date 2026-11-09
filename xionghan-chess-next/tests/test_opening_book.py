@@ -55,6 +55,8 @@ def test_book_structure_and_diversity() -> None:
     fingerprints = {item["fp"] for item in entries}
     assert len(fingerprints) == 64, "64 条开局必须互不相同（指纹口径）"
     assert all(isinstance(item["fp"], str) and item["fp"] for item in entries)
+    # pieces/legal 是辅助显示（相同不代表同一局面），但必须存在且合理。
+    assert all(item["pieces"] > 0 and item["legal"] > 0 for item in entries)
 
 
 def test_generate_text_is_byte_deterministic() -> None:
@@ -73,10 +75,12 @@ def test_loaded_book_entries_are_openings_with_fingerprints() -> None:
 
 
 def test_build_game_rebuilds_the_played_plies() -> None:
-    """`build_game(profile, seed, plies)` 是 benchmark 侧注入的生成器：手数必须对得上。"""
-    entry = load_book()[0]
-    game = build_game(entry.profile, entry.seed, entry.plies)
-    assert len(game.state.history) == entry.plies
+    """`build_game(profile, seed, plies)` 是 benchmark 侧注入的生成器：手数/子数/着数必须对得上。"""
+    item = _payload()["openings"][0]
+    game = build_game(item["profile"], item["seed"], item["plies"])
+    assert len(game.state.history) == item["plies"]
+    assert len(game.state.pieces) == item["pieces"]
+    assert len(game.rules.legal_moves(game.state)) == item["legal"]
 
 
 @pytest.mark.slow
