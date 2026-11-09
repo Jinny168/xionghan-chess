@@ -204,17 +204,25 @@ FILL_COLOR = {
 #     而放宽，否则会掩盖 Windows 侧回归）；复测 ratio = 1.14 / 1.45 / 1.00，在 ±0.12 内。
 #   · ("win32","offscreen") —— 2026-11-10 本机实测（commit f4d0fcd，仅设
 #     `QT_QPA_PLATFORM=offscreen`）：fallback/artwork = 0.334/0.433、0.407/0.446、
-#     0.407/0.524 ⇒ ratio 0.77 / 0.91 / 0.78；两次独立整跑逐位相同，稳定。
-#   · ("linux","offscreen") —— CI #123（ubuntu runner，2026-11-09）失败消息原文实测：
-#     modern 0.213/0.446 = 0.48、cartoon 0.214/0.524 = 0.41。traditional 在 #123 通过
-#     （落在 0.76±0.12 的通过区间内）但精确值未取得，**暂沿用旧 offscreen 档的 0.76**；
-#     ci.yml 加 `-rfEP` 后每跑都会把这行打成 `::notice::`，下轮 CI 日志据此精确标定。
+#     0.407/0.524 ⇒ ratio 0.77 / 0.91 / 0.78；两次独立整跑逐位相同（lead-programmer
+#     另一台独立复算 0.7720/0.9116/0.7780，逐位一致）。
+#   · ("linux","offscreen") —— CI #127（ubuntu runner，2026-11-10）的 `::notice::` 注解
+#     原文（ci.yml 的 `-rfEP` 取证首次生效，注释可匿名经 API 复核）：
+#       [density] linux/traditional: fallback=0.295 artwork=0.433 ratio=0.68 baseline=0.76
+#       [density] linux/modern:      fallback=0.213 artwork=0.446 ratio=0.48 baseline=0.48
+#       [density] linux/cartoon:     fallback=0.214 artwork=0.524 ratio=0.41 baseline=0.41
+#     traditional 从 **0.76（历史暂记）改为实测 0.68**：暂记值不是"保守"而是**吃掉灵敏度**
+#     —— 真值 0.68 时，基线 0.76 要掉到 0.65 以下才报（|0.65-0.76|=0.11<0.12），
+#     等于漏掉一次 0.03 的真实漂移；写死 0.68 后两侧各留 0.12。modern/cartoon 与
+#     CI #123 的实测（0.48 / 0.41）一致，未动。
+#     精度：本文件那行 ratio 打 **3 位小数**，所以下一次 notice 能把每一档定到 ±0.001；
+#     0.68 这格是 2 位小数的历史值（0.295/0.433 = 0.6813），在 ±0.12 公差下绰绰有余。
 # 旧的单键 "offscreen"（0.76/0.96/0.82）已废弃：它把 macOS/Windows 的 offscreen 度量
 # 混成一档，与 ubuntu fontconfig 不是一回事（#123 实证差一倍），与现在这版也不同源。
 DENSITY_BASELINE: dict[tuple[str, str], dict[str, float]] = {
     ("win32", "windows"): {"traditional": 1.10, "modern": 1.51, "cartoon": 1.04},
     ("win32", "offscreen"): {"traditional": 0.77, "modern": 0.91, "cartoon": 0.78},
-    ("linux", "offscreen"): {"traditional": 0.76, "modern": 0.48, "cartoon": 0.41},
+    ("linux", "offscreen"): {"traditional": 0.68, "modern": 0.48, "cartoon": 0.41},
 }
 DENSITY_TOLERANCE = 0.12
 
@@ -323,13 +331,14 @@ def test_fallback_density_matches_the_platform_baseline(
     _ah, artwork = _style_density(style, ART_KINDS, fallback=False)
     ratio = fallback / artwork
     expected = baseline[style]
-    # 实测值无论绿红都打进日志。(linux, offscreen) 档的 traditional 还是暂记值（见基线表
-    # 注释），下一轮 CI 的这行输出（ci.yml 已把它转成 ::notice::）就是它的精确标定来源。
+    # 实测值无论绿红都打进日志。linux/offscreen 的每一格都是靠这行 notice 定的值
+    # （见基线表注释）。**ratio 打 3 位小数**：2 位会让"精确标定"的上限只有 ±0.005，
+    # 而标定值直接决定下次能发现多大的漂移；3 位够把每一档定到 ±0.001。
     # 行里必须带 qpa：同一平台两种插件的数差 30%，只写 platform 的话日志会误导标定。
     print(f"[density] {platform}/{qpa}/{style}: fallback={fallback:.3f} artwork={artwork:.3f} "
-          f"ratio={ratio:.2f} baseline={expected:.2f}", flush=True)
+          f"ratio={ratio:.3f} baseline={expected:.2f}", flush=True)
     assert abs(ratio - expected) <= DENSITY_TOLERANCE, (
-        f"{platform}/{qpa}/{style}: 回退密度 {fallback:.3f} / 图片 {artwork:.3f} = {ratio:.2f}，"
+        f"{platform}/{qpa}/{style}: 回退密度 {fallback:.3f} / 图片 {artwork:.3f} = {ratio:.3f}，"
         f"基线 {expected:.2f} ± {DENSITY_TOLERANCE} —— 渲染管线或字重/字族被改动了？")
 
 
