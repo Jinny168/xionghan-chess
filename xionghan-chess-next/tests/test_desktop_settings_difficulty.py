@@ -83,3 +83,23 @@ def test_unknown_difficulty_never_silently_becomes_beginner(qt_app: QApplication
     dialog = SettingsDialog(config, parent)
     assert dialog.difficulty.currentData() != "beginner"
     dialog.deleteLater()
+
+
+@pytest.mark.parametrize("legacy,expected,hint", [
+    ("easy", "medium", "初级"),
+    ("expert", "hard", "专家"),
+    ("master", "hard", "大师"),
+])
+def test_legacy_difficulty_is_normalized_and_shows_a_hint(
+        qt_app: QApplication, legacy: str, expected: str, hint: str) -> None:
+    """旧档位先归一，再插入一条不可选提示；绝不静默回落成「入门」。"""
+    config = _config(difficulty=legacy)
+    parent = _Parent(config)
+    dialog = SettingsDialog(config, parent)
+    assert dialog.difficulty.currentData() == expected
+    assert dialog._unknown_difficulty is False
+    placeholder = dialog.difficulty.model().item(0)
+    assert placeholder is not None and not placeholder.isEnabled()
+    assert hint in placeholder.text()
+    assert dialog.value()["difficulty"] == expected
+    dialog.deleteLater()

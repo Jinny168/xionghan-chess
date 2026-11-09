@@ -79,7 +79,7 @@ def test_ratio_is_monotonic_and_capped(qt_app: QApplication,
     clock = _Clock()
     monkeypatch.setattr(bw.time, "monotonic", clock)
     board = make_board()
-    board.begin_thinking(CONFIGS[Difficulty.BEGINNER].time_limit)   # 0.5s
+    board.begin_thinking(CONFIGS[Difficulty.BEGINNER].time_limit)   # 3s（cap）
 
     ratios = []
     for step in range(1, 4):
@@ -97,7 +97,7 @@ def test_hard_ratio_is_small_at_one_second(qt_app: QApplication,
     clock = _Clock()
     monkeypatch.setattr(bw.time, "monotonic", clock)
     board = make_board()
-    board.begin_thinking(CONFIGS[Difficulty.HARD].time_limit)       # 12s
+    board.begin_thinking(CONFIGS[Difficulty.HARD].time_limit)       # 120s
     clock.now += 1.0
     assert board.thinking_ratio() <= 0.1
 
@@ -121,13 +121,18 @@ def test_progress_clears_only_after_end_thinking(qt_app: QApplication,
     assert busy != idle, "结束思考后画面必须变（读条与秒数消失）"
 
 
-def test_progress_uses_config_time_limit(qt_app: QApplication) -> None:
-    """`begin_thinking` 收到多少预算就按多少算 —— app 层必须传 CONFIGS 的值。"""
+def test_progress_uses_expected_move_seconds(qt_app: QApplication) -> None:
+    """读条分母是 `EXPECTED_MOVE_SECONDS`（中位耗时），不是 cap。
+
+    cap 是"最坏允许"，拿它当分母会让读条在正常对局里永远停在个位数百分比，
+    玩家读作"AI 卡住了"。"""
+    from xionghan_chess.core.ai import EXPECTED_MOVE_SECONDS
+
     board = make_board()
-    board.begin_thinking(CONFIGS[Difficulty.MEDIUM].time_limit)
-    assert board.thinking_limit == pytest.approx(CONFIGS[Difficulty.MEDIUM].time_limit)
-    # 不写死秒数：medium 预算会随产品调整（5s→6s），写死就变成「改预算必红」的假测试
-    assert board.thinking_limit == pytest.approx(CONFIGS[Difficulty.MEDIUM].time_limit)
+    expected = EXPECTED_MOVE_SECONDS[Difficulty.MEDIUM]
+    board.begin_thinking(expected)
+    assert board.thinking_limit == pytest.approx(expected)
+    assert board.thinking_limit != pytest.approx(CONFIGS[Difficulty.MEDIUM].time_limit)
 
 
 # ---------------------------------------------------------------------------

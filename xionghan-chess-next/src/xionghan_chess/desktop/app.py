@@ -32,11 +32,15 @@ from PySide6.QtWidgets import (
 )
 
 from xionghan_chess import __version__
-from xionghan_chess.core.ai import CONFIGS, ChessAI, Difficulty, should_accept_draw
+from xionghan_chess.core.ai import (
+    EXPECTED_MOVE_SECONDS,
+    WATCHDOG_SECONDS,
+    ChessAI,
+    Difficulty,
+    normalize_difficulty,
+    should_accept_draw,
+)
 from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
-
-# AI 看门狗：思考预算耗尽后再等这么久，仍无信号就判定 worker 不会回来了（毫秒）。
-AI_WATCHDOG_GRACE_MS = 5000
 
 # 聊天区上限：长局只追加不清空会让内存线性涨（审计 2-1）。
 CHAT_HISTORY_LIMIT = 200
@@ -290,10 +294,16 @@ class MainWindow(QMainWindow):
              else f"Correct — step {session.cursor+1}/{session.total}"),5000)
         return True
 
+    def _configured_difficulty(self) -> Difficulty:
+        """配置里的档位字符串 → 枚举；旧档先归一，非法值防御性回落中级。"""
+        try:
+            return Difficulty(normalize_difficulty(str(self.config.get("difficulty", "medium"))))
+        except ValueError:
+            return Difficulty.MEDIUM
+
     def _begin_thinking(self) -> None:
-        """起表：预算**只**从 `CONFIGS` 读，前端不写第二份时长。"""
-        difficulty = Difficulty(self.config.get("difficulty", "medium"))
-        self.board.begin_thinking(CONFIGS[difficulty].time_limit)
+        """起表：读条分母来自 `EXPECTED_MOVE_SECONDS`（中位耗时），不是 cap。"""
+        self.board.begin_thinking(EXPECTED_MOVE_SECONDS[self._configured_difficulty()])
         self.thinking_timer.start()
 
     def _end_thinking(self) -> None:
@@ -311,8 +321,8 @@ class MainWindow(QMainWindow):
         # 世代号防止"上一次的看门狗"误伤新一局。
         self._ai_generation = getattr(self, "_ai_generation", 0) + 1
         generation = self._ai_generation
-        limit_ms = int(CONFIGS[Difficulty(self.config.get("difficulty", "medium"))].time_limit * 1000)
-        QTimer.singleShot(limit_ms + AI_WATCHDOG_GRACE_MS, lambda: self._ai_watchdog(generation))
+        limit_ms = int(WATCHDOG_SECONDS[self._configured_difficulty()] * 1000)
+        QTimer.singleShot(limit_ms, lambda: self._ai_watchdog(generation))
         worker=AIWorker(self.game,self.config["difficulty"],self.cancel);worker.signals.finished.connect(self.finish_ai);worker.signals.failed.connect(self.ai_failed);self.pool.start(worker)
 
     def _release_ai(self) -> None:

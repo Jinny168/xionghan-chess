@@ -44,8 +44,14 @@ def test_ucb_reverses_exploitation_for_opponent_nodes():
     assert engine._ucb(favorable, 8, maximizing=False) < engine._ucb(unfavorable, 8, maximizing=False)
 
 
-def test_master_is_exposed_as_the_top_ai_tier():
-    """六档（expert 插在 hard 与 master 之间）；master 仍是最高档。"""
+def test_difficulty_enum_keeps_internal_tiers_for_puzzles_and_archives():
+    """对外三档定稿后，枚举里的 easy/expert/master **保留**给题库与旧存档。
+
+    它们不再出现在设置页；master 仍走 MCTS（`ChessAI(Difficulty.MASTER)` 不归一）。
+    """
     assert [item.value for item in Difficulty] == [
         "beginner", "easy", "medium", "hard", "expert", "master"
     ]
+    from xionghan_chess.core.ai import CONFIGS
+
+    assert all(item in CONFIGS for item in Difficulty)

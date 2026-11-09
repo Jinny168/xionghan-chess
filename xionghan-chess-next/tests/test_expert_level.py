@@ -58,22 +58,26 @@ def test_expert_config_is_fixed_depth_three() -> None:
     assert (hard.depth, hard.time_limit, hard.randomness) == (3, 120.0, 0.0)
 
 
-def test_expert_is_in_the_difficulty_dropdown() -> None:
-    """设置页下拉里要在 hard 之后、master 之前。"""
+def test_dropdown_exposes_only_the_three_public_tiers() -> None:
+    """对外只三档；expert 等内部档不再出现在下拉里，旧值以不可选提示出现。"""
     from PySide6.QtWidgets import QApplication
 
+    from xionghan_chess.desktop.config import DEFAULTS
     from xionghan_chess.desktop.ui.dialogs import SettingsDialog
 
     QApplication.instance() or QApplication([])
-    from xionghan_chess.desktop.config import DEFAULTS
-
     config = {**DEFAULTS, "profile": "desktop_complete", "language": "zh-CN",
-              "difficulty": "expert"}
+              "difficulty": "medium"}
     dialog = SettingsDialog(config)
     values = [dialog.difficulty.itemData(i) for i in range(dialog.difficulty.count())]
-    assert values == ["beginner", "easy", "medium", "hard", "expert", "master"]
-    assert dialog.difficulty.findData("expert") >= 0
+    assert values == ["beginner", "medium", "hard"]
     dialog.deleteLater()
+
+    legacy = SettingsDialog({**config, "difficulty": "expert"})
+    all_values = [legacy.difficulty.itemData(i) for i in range(legacy.difficulty.count())]
+    assert all_values[0] == "hard" and not legacy.difficulty.model().item(0).isEnabled()
+    assert legacy.difficulty.currentData() == "hard"
+    legacy.deleteLater()
 
 
 # 默认集：最坏 + 中位偏上两条；其余标 slow（见模块 docstring 的取舍说明）

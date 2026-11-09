@@ -25,9 +25,15 @@ def options_of(select_id: str) -> list[tuple[str, str]]:
     return re.findall(r'<option value="([^"]*)"[^>]*>([^<]*)</option>', match.group(1))
 
 
-def test_difficulty_has_six_levels_in_desktop_order() -> None:
+def test_difficulty_has_three_public_levels_in_desktop_order() -> None:
     values = [value for value, _ in options_of("difficultySelect")]
-    assert values == ["beginner", "easy", "medium", "hard", "expert", "master"], values
+    assert values == ["beginner", "medium", "hard"], values
+
+
+def test_legacy_difficulty_values_are_mapped_in_preferences() -> None:
+    """旧 localStorage 里的 easy/expert/master 必须归一到三档。"""
+    assert "{easy:'medium',expert:'hard',master:'hard'}" in APP_JS, \
+        "app.js loadPreferences 缺少旧档位映射"
 
 
 def test_background_has_no_raw_colour_option_and_defaults_to_1() -> None:
