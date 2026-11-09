@@ -66,6 +66,14 @@ class MatchResult:
     # 旧 JSONL 没有这两个键，`scripts/benchmark_ai.py --summarize` 不读它们，兼容。
     a_move_times: list[float] = field(default_factory=list)
     b_move_times: list[float] = field(default_factory=list)
+    # 逐局截断账本：`--resume` 后仍能汇总"这批数据能不能引用"。
+    # 键：wall / nodes / cancel；`*_moves` 是该方总着数（算 nodes 占比的分母）。
+    a_bound_reasons: dict[str, int] = field(default_factory=dict)
+    b_bound_reasons: dict[str, int] = field(default_factory=dict)
+    a_zero_depth_reasons: dict[str, int] = field(default_factory=dict)
+    b_zero_depth_reasons: dict[str, int] = field(default_factory=dict)
+    a_moves: int = 0
+    b_moves: int = 0
 
 
 def _move_ceiling(level_a: Difficulty, a_config: SearchConfig | None) -> float:
@@ -114,6 +122,33 @@ def _starting_game(game_index: int, games: int, profile: str,
         )
     entry = book[book_index(game_index, games, len(book))]
     return position_builder(entry.profile, entry.seed, entry.plies)
+
+
+def wilson_interval(wins: int, games: int, z: float = 1.96) -> tuple[float, float]:
+    """Wilson 95% 置信区间（闭式，无第三方依赖）。
+
+    小样本下正态近似会产生负下界（0/50 时尤其明显），Wilson 不会。边界：
+    `0/50 → (0, 0.0714)`、`50/50 → (0.9286, 1.0)`。
+    """
+    if games <= 0:
+        return (0.0, 0.0)
+    if wins < 0 or wins > games:
+        raise ValueError(f"wins={wins} 超出 [0, {games}]")
+    p = wins / games
+    denominator = 1 + z * z / games
+    center = (p + z * z / (2 * games)) / denominator
+    half = z * math.sqrt(p * (1 - p) / games + z * z / (4 * games * games)) / denominator
+    return (max(0.0, center - half), min(1.0, center + half))
+
+
+def elo_from_win_rate(rate: float) -> float | None:
+    """胜率 → Elo 差（`-400·log10(1/p - 1)`）；`p=0`/`p=1` 无定义，返回 `None`。
+
+    不返回 `inf`：`inf` 会污染后续均值/中位数，调用方也没法区分"极强"和"算错了"。
+    """
+    if rate <= 0.0 or rate >= 1.0:
+        return None
+    return -400.0 * math.log10(1.0 / rate - 1.0)
 
 
 def time_stats(values: Sequence[float]) -> dict[str, float | int]:
@@ -192,6 +227,11 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
         a_color = Color.RED if game_index % 2 == 0 else Color.BLACK
         totals = {"a": 0.0, "b": 0.0}
         game_times: dict[str, list[float]] = {"a": [], "b": []}
+        game_bound = {"a": {"wall": 0, "nodes": 0, "cancel": 0},
+                      "b": {"wall": 0, "nodes": 0, "cancel": 0}}
+        game_zero = {"a": {"wall": 0, "nodes": 0, "cancel": 0},
+                     "b": {"wall": 0, "nodes": 0, "cancel": 0}}
+        game_moves = {"a": 0, "b": 0}
         for ply in range(max_plies):
             if game.state.finished:
                 break
@@ -210,11 +250,15 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
                                  config=config, time_scale=time_scale)
                 move = engine.choose_move(game)
                 total_moves[side] += 1
+                game_moves[side] += 1
                 if engine.zero_depth_moves:
                     zero_depth[side] += engine.zero_depth_moves
-                    zero_depth_reasons[side][engine.zero_depth_reason or "wall"] += 1
+                    reason = engine.zero_depth_reason or "wall"
+                    zero_depth_reasons[side][reason] += 1
+                    game_zero[side][reason] += 1
                 if engine.bound_reason is not None:
                     bound_reasons[side][engine.bound_reason] += 1
+                    game_bound[side][engine.bound_reason] += 1
             elapsed = time.perf_counter() - started
             bucket = a_move_times if is_a else b_move_times
             bucket.append(elapsed)
@@ -232,6 +276,8 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
             game_index + 1, a_color.value, winner.value if winner else None,
             adjudicated, len(game.state.history), totals["a"], totals["b"],
             game_times["a"], game_times["b"],
+            game_bound["a"], game_bound["b"], game_zero["a"], game_zero["b"],
+            game_moves["a"], game_moves["b"],
         )
         results.append(result)
         if on_game is not None:
