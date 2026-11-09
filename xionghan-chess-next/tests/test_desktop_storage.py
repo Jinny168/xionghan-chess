@@ -224,6 +224,8 @@ def test_opening_archive_from_before_f1a_is_upgraded_on_load(profile_id):
     assert game.state.piece_at(Position(1, 5)).type is PieceType.ADVISOR
     assert len(game.rules.legal_moves(game.state)) == _F1A_PERFT[profile_id]
     # 旧台账里的键带 guard，升级后永远产生不出来 —— 必须重建，不能留幽灵键
+    # 事前侧「旧档确有含 guard 的键」由 _legacy_f1a_document 的 == plies+1 自证断言保证；
+    # 删掉它，本行会退化为恒绿（迁移没发生也通过）—— 见 docs/AUDIT §12 判据。
     assert all("guard" not in key for key in game.state.position_counts)
 
 
