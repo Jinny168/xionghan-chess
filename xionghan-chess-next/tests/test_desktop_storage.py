@@ -160,6 +160,13 @@ def _legacy_f1a_document(profile_id: str, plies: int = 0) -> dict:
     那两个坐标的 `advisor` 退回 `guard`、`setup` 槽位同步退回 —— 这样得到的文档
     与 `0bc3377` 时代 `game_document()` 的产物同形（柯桥良用旧代码生成的四份 fixture
     已对照过：加载结果逐项一致）。
+
+    ⚠️ **台账（`positionCounts`）不能靠字符串替换回退，只能从源头重算。** 实测三种替换
+    写法都还原不出真旧键：① 朴素 `replace(':advisor:',':guard:')` 会连**合法的第二只仕**
+    `(11,7)` 一起改成尉，造出 `guard:11:7` 这个从不存在的局面；② 就算只替换两格也不等，
+    因为 `position_key` 的棋盘段是 `sorted()` 过的、`advisor < guard`，**改类型会改变段
+    在字符串里的排列位置**。手改派生值得到的是"从未存在过的状态"，拿它去断言比空转更坏
+    （可能冤枉实现，也可能恒真）。所以这里先改**棋子**，再让引擎用 `position_key` 重算。
     """
     game = Game(profile_id)
     assert PieceType.GUARD not in game.profile.enabled_piece_types, profile_id
@@ -167,6 +174,8 @@ def _legacy_f1a_document(profile_id: str, plies: int = 0) -> dict:
         game.move(sorted(game.rules.legal_moves(game.state), key=lambda m: m.key())[0])
 
     data = game_document(game)
+    # 迁移前的 live key：用来证明"回退真的改变了局面"（③）
+    key_before_retrofit = game.rules.position_key(game.state)
 
     def downgrade_pieces(state_dict: dict) -> None:
         for piece in state_dict["pieces"]:
@@ -181,6 +190,24 @@ def _legacy_f1a_document(profile_id: str, plies: int = 0) -> dict:
             slot.replace("advisor:11:5", "guard:11:5").replace("advisor:1:5", "guard:1:5")
             for slot in data["setup"][key]
         ]
+
+    # 从源头重算台账：每个 snapshot（走子前的局面）+ live 局面，逐个用 position_key 生成
+    counts: dict[str, int] = {}
+    for state_dict in [*data.get("snapshots", []), data["state"]]:
+        position_key = game.rules.position_key(GameState.from_dict(state_dict))
+        counts[position_key] = counts.get(position_key, 0) + 1
+    data["state"]["positionCounts"] = counts
+
+    # ── fixture 自证（三条各管一件事，都不做"重算结果 vs 重算结果"的自我比较）──
+    # ① 源头确实改了：两个目标格上都已经是尉
+    retro = GameState.from_dict(data["state"])
+    assert retro.piece_at(Position(1, 5)).type is PieceType.GUARD
+    assert retro.piece_at(Position(11, 5)).type is PieceType.GUARD
+    # ② 派生确实是重算出来的：旧档里含 guard 的键数 == plies+1（写数字，不写 any(...)）
+    assert sum("guard" in key for key in counts) == plies + 1
+    # ③ 回退真的改变了局面：抓"改了棋子、却拿错 state 去重算"
+    old_key = game.rules.position_key(retro)
+    assert old_key != key_before_retrofit
     return data
 
 
