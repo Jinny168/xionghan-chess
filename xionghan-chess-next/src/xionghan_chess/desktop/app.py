@@ -41,6 +41,7 @@ from xionghan_chess.core.ai import (
     should_accept_draw,
 )
 from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
+from xionghan_chess.desktop.snapshot_guard import should_accept_snapshot
 
 # 聊天区上限：长局只追加不清空会让内存线性涨（审计 2-1）。
 CHAT_HISTORY_LIMIT = 200
@@ -145,7 +146,7 @@ class _SquareHost(QWidget):
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
-        super().__init__();theme.load_bundled_fonts();self.config=load_config();set_language(self.config.get("language","zh-CN"));self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._shown_result=False;self._play_again_pending=False;self._reset_taunt_ledger()
+        super().__init__();theme.load_bundled_fonts();self.config=load_config();self.session_color=Color(self.config["human_color"]);set_language(self.config.get("language","zh-CN"));self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._shown_result=False;self._play_again_pending=False;self._reset_taunt_ledger()
         # P1-B：界面刷新快照（棋盘/棋谱/阵亡/将军），换局时必须清空
         self._reset_ui_cache()
         # 思考态读条：100ms 只负责让棋盘重绘，**start_ai 起、finish_ai 止**，不常驻。
@@ -228,7 +229,7 @@ class MainWindow(QMainWindow):
     def new_game(self) -> None:
         self.puzzle_session=None
         self.chat_messages.clear()      # 换局清空（悔棋不清，聊天是历史）
-        self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local";self._reset_ui_cache();self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh();self._reset_taunt_ledger()
+        self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);self.session_color=human;local=self.config.get("game_mode","ai")=="local";self._reset_ui_cache();self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh();self._reset_taunt_ledger()
         if not local and self.game.state.turn is not human:self.start_ai()
 
     def start_mode(self, mode: str) -> None:
@@ -865,13 +866,14 @@ class MainWindow(QMainWindow):
             snapshot=message["payload"];game_data=snapshot["game"]
             self.apply_network_state(snapshot)
             draw_key=(game_data.get("pendingDrawOffer"),len(game_data.get("history",[])))
-            if draw_key[0] and draw_key[0]!=self.config["human_color"] and draw_key!=self._handled_draw_offer:self._handled_draw_offer=draw_key;self.send_network("draw_response",{"accept":QMessageBox.question(self,t("action.draw", lang),t("dialog.pending_draw", lang))==QMessageBox.StandardButton.Yes})
+            if draw_key[0] and draw_key[0]!=self.session_color.value and draw_key!=self._handled_draw_offer:self._handled_draw_offer=draw_key;self.send_network("draw_response",{"accept":QMessageBox.question(self,t("action.draw", lang),t("dialog.pending_draw", lang))==QMessageBox.StandardButton.Yes})
             undo_key=(game_data.get("pendingUndoOffer"),len(game_data.get("history",[])))
-            if undo_key[0] and undo_key[0]!=self.config["human_color"] and undo_key!=self._handled_undo_offer:self._handled_undo_offer=undo_key;self.send_network("undo_response",{"accept":QMessageBox.question(self,t("action.undo", lang),t("dialog.pending_undo", lang))==QMessageBox.StandardButton.Yes})
+            if undo_key[0] and undo_key[0]!=self.session_color.value and undo_key!=self._handled_undo_offer:self._handled_undo_offer=undo_key;self.send_network("undo_response",{"accept":QMessageBox.question(self,t("action.undo", lang),t("dialog.pending_undo", lang))==QMessageBox.StandardButton.Yes})
 
     def apply_network_state(self, snapshot: dict[str, object] | None) -> None:
         if not snapshot:return
-        game_data=snapshot["game"];self.revision=snapshot["revision"];self.config["human_color"]=snapshot.get("youAre") or self.config["human_color"];self.network_players={item["color"]:item for item in snapshot.get("players",[])};self.puzzle_session=None;self.game=Game.from_state(GameState.from_dict(game_data),game_data["profile"]["options"],game_data.get("setup"));self._reset_ui_cache();replay=game_data.get("replay",[]);self.game._snapshots=[item for item in replay[:-1] if isinstance(item,dict)];self.board.set_game(self.game,Color(self.config["human_color"]),False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
+        if not should_accept_snapshot(self.room_id,self.revision,snapshot.get("roomId"),snapshot["revision"]):return
+        game_data=snapshot["game"];self.revision=snapshot["revision"];self.session_color=Color(snapshot.get("youAre") or self.session_color.value);self.network_players={item["color"]:item for item in snapshot.get("players",[])};self.puzzle_session=None;self.game=Game.from_state(GameState.from_dict(game_data),game_data["profile"]["options"],game_data.get("setup"));self._reset_ui_cache();replay=game_data.get("replay",[]);self.game._snapshots=[item for item in replay[:-1] if isinstance(item,dict)];self.board.set_game(self.game,self.session_color,False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
         if not self.game.state.history:self._stats_recorded=False;self._autosaved=False
         lang=self.config.get("language","zh-CN")
         self.statusBar().showMessage(f"{'房间' if lang!='en' else 'Room'} {snapshot['roomId']} · {'状态版本' if lang!='en' else 'revision'} {self.revision}");self.refresh()
@@ -1128,7 +1130,7 @@ class MainWindow(QMainWindow):
             self._shown_result = False
             return
         if not self._stats_recorded:
-            record_result(self.game, self.config["human_color"])
+            record_result(self.game, self.session_color.value)
             self._stats_recorded = True
         if self.config.get("autosave", True) and not self._autosaved:
             try:

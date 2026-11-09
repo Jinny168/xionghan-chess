@@ -8,13 +8,14 @@ const replayDialog = $('#replayDialog');
 const replayBoard = $('#replayBoard');
 const replayCtx = replayBoard.getContext('2d');
 const app = {
-  roomId: null, token: null, color: null, revision: 0, state: null, socket: null,
+  roomId: null, token: null, color: null, revision: 0, session: null, state: null, socket: null,
   mode: 'ai', selected: null, legal: [], capturable: [], dragging: null,
   replayIndex: null, replaySource: null, replayTimer: null, sound: true, music: true,
   preferences: {systemTheme:'light',font:'system',boardTheme:'classic',pageBackground:'none',boardBackground:'1',pieceStyle:'traditional',musicStyle:'fc',volume:70,animation:true,selection:true,legalTargets:true,captureHints:true,taunts:true,autosave:true,initialMinutes:20,countdownSeconds:30,language:'zh-CN',flipped:false},
   options: {}, profiles: new Map(), pieceImages: new Map(), animation: null, legalPromise: null, resultKey: null, reconnectTimer: null, reconnectAttempts: 0,
   setupSlots: {}, spectator: false, account: null, authToken: localStorage.getItem('xh-auth-token'), cloudTimer: null, puzzleSession: null, selectedPuzzle: null, customBackgrounds: new Map(),
 };
+app.session = globalThis.XHState.createSession();
 const sounds={select:new Audio('/assets/sounds/choose.wav'),move:new Audio('/assets/sounds/drop.wav'),capture:new Audio('/assets/sounds/eat.wav'),check:new Audio('/assets/sounds/warn.wav'),win:new Audio('/assets/sounds/fc_victory_sound.wav'),lose:new Audio('/assets/sounds/fc_defeat_sound.wav'),button:new Audio('/assets/sounds/button.wav')};
 const builtinAvatars=Array.from({length:9},(_,index)=>`avatar-${String(index+1).padStart(2,'0')}`);
 function avatarUrl(value){return value?.startsWith('builtin:')?`/assets/avatars/${value.slice(8)}.webp`:value||''}
@@ -100,7 +101,7 @@ async function spectateGame(){const code=$('#roomInput').value.trim().toUpperCas
 // S3-C：换局/换房时服务端 revision 从头开始（新房间从 0/1 起），所以每次新会话都要把
 // 基线打到 -1，否则 receiveSnapshot 里「同一房间内 revision 只许前进」的守卫会把新局首帧
 // 当成过期帧丢掉 —— 表现是进新局后棋盘一直停在上一局。
-function acceptSession(data){app.roomId=data.roomId;app.revision=-1;app.token=data.token;app.color=data.color||null;app.spectator=!!data.spectator;app.resultKey=null;app.reconnectAttempts=0;receiveSnapshot(data.snapshot);safeStorageSet('xh-session',JSON.stringify({roomId:app.roomId,token:app.token,color:app.color,mode:app.mode,spectator:app.spectator}));connect()}
+function acceptSession(data){app.roomId=data.roomId;app.session=globalThis.XHState.createSession(data.roomId);app.revision=-1;app.token=data.token;app.color=data.color||null;app.spectator=!!data.spectator;app.resultKey=null;app.reconnectAttempts=0;receiveSnapshot(data.snapshot);safeStorageSet('xh-session',JSON.stringify({roomId:app.roomId,token:app.token,color:app.color,mode:app.mode,spectator:app.spectator}));connect()}
 function connect(){
   if(!app.roomId||!app.token||app.socket?.readyState===WebSocket.CONNECTING||app.socket?.readyState===WebSocket.OPEN)return;clearTimeout(app.reconnectTimer);const protocol=location.protocol==='https:'?'wss':'ws',suffix=app.spectator?'/spectate':'',socket=new WebSocket(`${protocol}://${location.host}/ws/${app.roomId}${suffix}`);app.socket=socket;
   socket.onopen=()=>{if(app.socket!==socket)return;app.reconnectAttempts=0;clearTimeout(app.reconnectTimer);socket.send(JSON.stringify({type:'auth',token:app.token}));$('#connectionText').textContent=app.mode==='local'?t('status.local_sync'):t('status.connected')};
@@ -113,12 +114,12 @@ function appendChat(payload){if(payload.automated&&app.preferences.taunts===fals
 function sendChat(quick=false){const input=$('#chatInput'),text=(quick?$('#quickChatSelect').value:input.value).trim();if(!text)return;send('chat',{text,quick});if(!quick)input.value=''}
 function showRecordView(view){const chat=view==='chat';$('#chatView').hidden=!chat;$('#moveList').hidden=chat;$('#moveCount').hidden=chat;$('#showMovesButton').classList.toggle('active',!chat);$('#showChatButton').classList.toggle('active',chat)}
 function receiveSnapshot(snapshot){
-  // S3-C：同一房间内 revision 只许前进。此前只判 `!==`，乱序/重复帧会把旧状态盖回来
-  // （重复提和正好连发两帧，是最容易撞上的场景：先应答第一帧后，第二帧会把棋盘从
-  // 「已终局」翻回「未终局」再弹一次对话框）。跨房间不比较 —— 新房间 revision 从 0 起，
-  // 由 acceptSession 把基线重置为 -1 兜住。
-  if(snapshot.roomId===app.roomId&&snapshot.revision<app.revision){console.warn('[state] stale snapshot',snapshot.revision,'<',app.revision);return}
-  const previous=app.state,revisionChanged=snapshot.revision!==app.revision;app.revision=snapshot.revision;app.state=snapshot.game;app.mode=snapshot.mode;app.options=snapshot.game.profile.options;$('#modeSelect').value=app.mode;syncModeControls();if(revisionChanged){app.selected=null;app.legal=[];app.capturable=[]}
+  // 服务端权威层的接受规则收在 state.js（与桌面 desktop/snapshot_guard.py 同口径）：
+  // 同房间 revision 只许前进；换房/new session 由 applySnapshot 重置基线。
+  if(!app.session)app.session=globalThis.XHState.createSession(app.roomId);
+  const decision=globalThis.XHState.applySnapshot(app.session,snapshot);
+  if(!decision.accept){console.warn('[state] rejected snapshot',decision.reason,snapshot.revision);return}
+  app.roomId=app.session.roomId;const previous=app.state,revisionChanged=decision.revisionChanged;app.revision=app.session.revision;app.state=snapshot.game;app.mode=snapshot.mode;app.options=snapshot.game.profile.options;$('#modeSelect').value=app.mode;syncModeControls();if(revisionChanged){app.selected=null;app.legal=[];app.capturable=[]}
   if(!previous&&snapshot.chatHistory?.length){$('#chatMessages').innerHTML='';snapshot.chatHistory.forEach(appendChat)}
   $('#roomCode').textContent=snapshot.roomId;$('#roomInput').value=snapshot.roomId;const turnRibbon=$('#turnRibbon');turnRibbon.className=ribbonClass(app.state);turnRibbon.textContent=app.state.finished?t('status.game_over'):(app.state.paused?t('status.paused'):(app.state.check?`${t('status.check')} · `:'')+t('status.turn',{color:t(`common.${app.state.turn}`)}));if(app.state.check&&turnRibbon.animate)turnRibbon.animate([{transform:'scale(1)',color:'inherit'},{transform:'scale(1.08)',color:CHECK_PULSE_MID},{transform:'scale(1)',color:'inherit'}],{duration:900,iterations:2});
   $('#spectatorCount').textContent=`${snapshot.spectatorCount||0} 人观战`;
