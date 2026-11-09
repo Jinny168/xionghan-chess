@@ -44,6 +44,7 @@ from fastapi.testclient import TestClient
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, PieceType, Position
 from xionghan_chess.core.protocol import Envelope, MessageType
+from xionghan_chess.i18n import t
 from xionghan_chess.service.app import app
 from xionghan_chess.service.rooms import PlayerSeat, Room, RoomManager
 
@@ -332,3 +333,135 @@ def test_broadcast_frame_sequence_is_stable() -> None:
     assert "replay" not in frames[1]["payload"]["game"]    # 之后一律不带（载荷膨胀防线）
     assert frames[2]["payload"]["text"] == "好棋"
     assert frames[3]["payload"]["game"]["winner"] == Color.RED.value
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8) 双端广播可见性 —— offer 是"给对方看的"，只有两个 socket 都收到才算生效
+# ─────────────────────────────────────────────────────────────────────────────
+def test_pending_offers_reach_both_sockets() -> None:
+    """`DRAW_OFFER` / `UNDO_REQUEST` 之后，**两个** socket 的 STATE 里都要看到对应 pending 字段。
+
+    为什么必须走 WS 而不是直连 `handle`：上面 1-6 条只证明"状态被改了"，证明不了"广播到了
+    对手那条 socket"；第 7 条是单 socket 的 local 房，根本没有第二个收件人。
+    拆分时若把第二个 socket 的帧丢了、或者只给发起方发，只有这条会红。
+
+    ⚠️ 已知代价：如果帧真的丢了，本用例会**阻塞**而不是快速失败（Starlette 的 WS 测试会话
+    没有接收超时原语，本仓也没有 pytest-timeout），CI 侧表现为 job timeout。我实测过这个
+    场景（把 `broadcast` 的发送循环截成 1 个 socket）：它挂住、不报错。正确代码上本用例是
+    毫秒级，所以这只在"有人真的改坏广播"时付出代价 —— 可接受，但别误以为它会给出漂亮的
+    失败信息。要给 WS 接收加超时，需要单独引入机制，不在本轮范围。
+    """
+    with TestClient(app) as client:
+        created = client.post("/api/rooms", json={
+            "profileId": "traditional", "mode": "online",
+            "playerName": "red", "playerColor": "red"}).json()
+        room_id, red_token = created["roomId"], created["token"]
+        joined = client.post(f"/api/rooms/{room_id}/join", json={"playerName": "black"}).json()
+        black_token = joined["token"]
+
+        with client.websocket_connect(f"/ws/{room_id}") as red_ws:
+            red_ws.send_json({"type": "auth", "token": red_token})
+            red_ws.receive_json()                      # 红方自己的首帧
+            with client.websocket_connect(f"/ws/{room_id}") as black_ws:
+                black_ws.send_json({"type": "auth", "token": black_token})
+                black_first = black_ws.receive_json()  # 黑方首帧
+                red_second = red_ws.receive_json()     # 黑方接入触发的广播（红方也要收）
+                revision = red_second["revision"]
+                assert black_first["revision"] == revision
+
+                # 红方求和 → 两边的 STATE 都要带 pendingDrawOffer=red
+                red_ws.send_json({"type": "draw_offer", "roomId": room_id,
+                                  "revision": revision, "protocolVersion": 1, "payload": {}})
+                red_frame = red_ws.receive_json()
+                black_frame = black_ws.receive_json()
+                assert red_frame["type"] == black_frame["type"] == "state"
+                assert red_frame["revision"] == black_frame["revision"] == revision + 1
+                assert red_frame["payload"]["game"]["pendingDrawOffer"] == Color.RED.value
+                assert black_frame["payload"]["game"]["pendingDrawOffer"] == Color.RED.value
+
+                # 红方走一步，然后黑方请求悔棋 → 两边的 STATE 都要带 pendingUndoOffer=black
+                move = next(iter(Game("traditional").rules.legal_moves(Game("traditional").state)))
+                red_ws.send_json({"type": "move", "roomId": room_id,
+                                  "revision": red_frame["revision"], "protocolVersion": 1,
+                                  "payload": {"from": {"row": move.source.row,
+                                                       "col": move.source.col},
+                                              "to": {"row": move.target.row,
+                                                     "col": move.target.col}}})
+                red_ws.receive_json()
+                black_ws.receive_json()
+                black_ws.send_json({"type": "undo_request", "roomId": room_id,
+                                    "revision": red_frame["revision"] + 1,
+                                    "protocolVersion": 1, "payload": {}})
+                red_undo = red_ws.receive_json()
+                black_undo = black_ws.receive_json()
+
+    assert red_undo["type"] == black_undo["type"] == "state"
+    assert red_undo["payload"]["game"]["pendingUndoOffer"] == Color.BLACK.value
+    assert black_undo["payload"]["game"]["pendingUndoOffer"] == Color.BLACK.value
+    assert red_undo["revision"] == black_undo["revision"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 9) 拒绝键随模式不同 —— local / online 走两个不同前置检查，键不一样
+# ─────────────────────────────────────────────────────────────────────────────
+def test_undo_request_without_history_uses_mode_specific_error_key() -> None:
+    """无历史时悔棋的**拒绝键不同**：
+
+    · local  —— `handle` 直接 `Game.undo(1)` → `Game.undo` 的前置检查 → `error.no_undo`
+    · online —— `handle` 调 `Game.offer_undo` → 另一处前置检查 → `error.no_undo_move`
+
+    两个键来自**两个不同函数的前置检查**，而它们在 `handle` 里只隔着一个 `if room.mode`
+    分叉。拆分成一个门时最容易把两条合并、只留一个键 —— 那会让客户端的中文提示退化，
+    而且没有任何现有用例会红（两类各只被"有历史"的成功路径覆盖过）。
+    """
+    async def scenario() -> None:
+        manager = RoomManager()
+
+        local_room, local_seat = await manager.create(PROFILE, "local", "本机玩家", Color.RED)
+        local_before = local_room.revision
+        with pytest.raises(GameError) as local_exc:
+            await _send(manager, local_room, local_seat, MessageType.UNDO_REQUEST)
+        assert local_room.revision == local_before
+
+        online_room, red, _black = await _online_pair(manager)
+        online_before = online_room.revision
+        with pytest.raises(GameError) as online_exc:
+            await _send(manager, online_room, red, MessageType.UNDO_REQUEST)
+        assert online_room.revision == online_before
+
+        assert str(local_exc.value) == t("error.no_undo")
+        assert str(online_exc.value) == t("error.no_undo_move")
+        assert str(local_exc.value) != str(online_exc.value)
+
+    _run(scenario)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10) 招魂被配置关闭时的拒绝 —— web 默认关，desktop 默认开
+# ─────────────────────────────────────────────────────────────────────────────
+def test_resurrect_rejects_when_rule_is_disabled_by_profile() -> None:
+    """`web` profile 默认关闭招魂（profiles.py:224 `RuleOptions(pawn_resurrection=False)`），
+    RESURRECT 必须在 `Game.resurrect_pawn` 的第一道**配置检查**上拒绝（`error.resurrect_not_allowed`），
+    而不是掉进位置/归属那些后面的检查。
+
+    这条同时说明 RESURRECT 的**可达性**：默认开启招魂的只有 `desktop_complete` /
+    `desktop_classic`，`web` 用户走不到这条分支。所以上面第 5 条才显式传
+    `options={"pawn_resurrection": True}`；两条合起来，才把"能不能开"与"开了怎么走"都钉住。
+    """
+    async def scenario() -> None:
+        manager = RoomManager()
+        room, red, _black = await _online_pair(manager)      # 不传 options → web 默认（关）
+        game = room.game
+        assert game.options.pawn_resurrection is False
+        home = next(Position(spec.row, spec.col) for spec in game.profile.pieces
+                    if spec.type is PieceType.PAWN and spec.color is Color.RED)
+        before = room.revision
+
+        with pytest.raises(GameError) as exc:
+            await _send(manager, room, red, MessageType.RESURRECT,
+                        {"row": home.row, "col": home.col})
+
+        assert str(exc.value) == t("error.resurrect_not_allowed")
+        assert room.revision == before          # 拒绝路径不涨 revision
+
+    _run(scenario)
