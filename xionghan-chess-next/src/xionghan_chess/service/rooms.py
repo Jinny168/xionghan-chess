@@ -258,6 +258,8 @@ class RoomManager:
         await self.broadcast(room)
 
     async def handle(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        # 锁内只做状态修改；`chat_payload` 是唯一需要跨出锁的一段数据（CHAT 帧的载荷）。
+        chat_payload: dict[str, Any] | None = None
         async with room.lock:
             if envelope.type is MessageType.PING:
                 return
@@ -277,7 +279,7 @@ class RoomManager:
                     raise GameError(room.tr("error.chat_empty"))
                 if len(text) > 80:
                     raise GameError(room.tr("error.chat_too_long"))
-                payload = {
+                chat_payload = {
                     "color": seat.color.value,
                     "sender": seat.display_name,
                     "text": text,
@@ -351,8 +353,23 @@ class RoomManager:
                 room.revision += 1
             else:
                 raise GameError(room.tr("error.unsupported_message"))
+        await self._after_apply(room, seat, envelope, chat_payload)
+
+    async def _after_apply(self, room: Room, seat: PlayerSeat, envelope: Envelope,
+                           chat_payload: dict[str, Any] | None) -> None:
+        """锁**外**的统一收尾：广播 + AI 跟进。
+
+        ⚠️ **必须**在 `async with room.lock` 之外调用：`Room.lock` 是 `asyncio.Lock`
+        （非重入），而 `broadcast` / `broadcast_envelope` 自己会再取同一把锁 —— 在锁内
+        调用会立刻自锁，表现为整房间卡死且无异常。锁内保持零 `await` 是这条不变量的
+        另一半（谁往锁内加 await，都有可能触发同类死锁）。
+
+        `chat_payload` 只对 CHAT 有值：CHAT 走 `broadcast_envelope` 且**不**涨 revision，
+        其余消息一律走整帧 STATE 广播。
+        """
         if envelope.type is MessageType.CHAT:
-            await self.broadcast_envelope(room, MessageType.CHAT, payload)
+            await self.broadcast_envelope(room, MessageType.CHAT,
+                                          chat_payload if chat_payload is not None else {})
             return
         await self.broadcast(room)
         if room.mode == "ai" and room.game.state.finished:
