@@ -152,4 +152,24 @@ if (request.playMove) {
   }
 }
 
+// Native-opening leg: reports the board `new OfflineGame(profileId)` builds BY
+// ITSELF -- not the board the payload carries. Every other leg overwrites
+// `game.state` with Python's pieces, so the JS-side roster (`side()` /
+// `PROFILES` / `DEFAULT_OPTIONS`) has never been compared against
+// `profiles.py`. That blind spot is why the 2026-10-31 guard/advisor swap in
+// `profiles.py` shipped with `offline.js` untouched and all 81 parity cases
+// stayed green. `perft1` is `legalAll().length` (perft at depth 1).
+if (request.nativeOpening) {
+  const game = new context.__offline.OfflineGame(request.profileId);
+  const state = game.state;
+  result.nativeOpening = {
+    profileId: game.profile.id,
+    rows: game.profile.rows,
+    cols: game.profile.cols,
+    pieces: state.pieces.map(p => ({type: p.type, color: p.color, row: p.row, col: p.col})),
+    options: game.options,
+    perft1: game.rules.legalAll(state).length,
+  };
+}
+
 process.stdout.write(JSON.stringify(result));

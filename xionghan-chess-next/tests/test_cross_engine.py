@@ -195,6 +195,83 @@ def test_cross_engine_after_deterministic_play_sequence():
 
 
 # ---------------------------------------------------------------------------
+# 原生开局对拍：JS 自己的 roster，而不是注入态
+# ---------------------------------------------------------------------------
+#
+# 上面每一条用例都走 `_offline_state()`：把 Python 的局面**注入** JS。于是
+# `offline.js` 自己那份开局（`side()` / `PROFILES` / `DEFAULT_OPTIONS`）从来没有
+# 被任何用例碰过 —— 2026-10-31 `profiles.py` 的尉/仕对调（`95c2784`）漏改
+# `offline.js`，81 条对拍一天都没红，就是这个盲区。下面这条补上入口端。
+
+
+def _offline_native_opening(game: Game) -> dict:
+    """Ask offline.js to build its own opening for `game.profile.id` (nothing injected).
+
+    `state` 仍然要塞进 payload：探针顶部有一段**各腿共用**的前奏，无条件跑一次
+    `Rules.legalAll(state)`（`offline_rules_probe.cjs:28`）。本腿**不读**它 ——
+    本腿读的是 `new OfflineGame(profileId)` 自己造的那份局面。所以这条断言证明的
+    是"JS 自己的开局"，不是"JS 复述 Python 的开局"。
+    """
+    require_node()
+    payload = json.dumps({
+        "profileId": game.profile.id,
+        "state": _offline_state(game),
+        "nativeOpening": True,
+    })
+    completed = subprocess.run(
+        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
+        capture_output=True, check=True, timeout=30,
+    )
+    return json.loads(completed.stdout)["nativeOpening"]
+
+
+@pytest.mark.parametrize("profile_id", ["desktop_complete", "traditional"])
+def test_native_opening_matches_python_roster(profile_id):
+    """JS 自建开局必须与 Python 同档逐项一致：roster / 尺寸 / 选项 / perft(1)。
+
+    **另两档 `desktop_classic` / `web` 暂不对拍**：Python 侧那两档盘上有一枚
+    `enabled_piece_types` 之外的尉（`(1,5)`/`(11,5)`，实测 0 个合法着法却
+    `appear=True`），它属于**规则口径**问题而不是镜像问题，对齐方向待 F1 裁决
+    （任务 #6）。这里刻意不用 xfail/skip 掩盖 —— 少一档就是少一档，写明白。
+    """
+    game = Game(profile_id)
+    observed = _offline_native_opening(game)
+
+    assert observed["profileId"] == profile_id
+    assert (observed["rows"], observed["cols"]) == (game.profile.rows, game.profile.cols)
+
+    python_roster = sorted((p.type.value, p.color.value, p.position.row, p.position.col)
+                           for p in game.state.pieces)
+    js_roster = sorted((item["type"], item["color"], item["row"], item["col"])
+                       for item in observed["pieces"])
+    assert js_roster == python_roster, (
+        f"{profile_id} 开局 roster 分叉："
+        f"only-python={sorted(set(python_roster) - set(js_roster))} "
+        f"only-js={sorted(set(js_roster) - set(python_roster))}")
+
+    # 选项表：只比**这一档真正用得上**的键。`*_appear` 对不在
+    # `enabled_piece_types` 里的类型是无意义的（Python 的 `piece_enabled` 只看它，
+    # 但 `_enabled_piece_types` 已经把那类子挡在 pseudo_legal 之外；JS 的
+    # `profile()` 则直接把这类 appear 置 false）——两种写法语义等价，值不同。
+    python_options = asdict(game.options)
+    assert set(observed["options"]) == set(python_options), (
+        f"{profile_id} 选项键集分叉：only-python="
+        f"{sorted(set(python_options) - set(observed['options']))} only-js="
+        f"{sorted(set(observed['options']) - set(python_options))}")
+    unused_appear = {f"{kind.value}_appear" for kind in PieceType
+                     if kind not in game.profile.enabled_piece_types}
+    meaningful = {key: value for key, value in python_options.items()
+                  if key not in unused_appear}
+    assert {key: observed["options"][key] for key in meaningful} == meaningful, (
+        f"{profile_id} 选项值分叉："
+        f"{ {k: (v, observed['options'][k]) for k, v in meaningful.items() if observed['options'][k] != v} }")
+
+    assert observed["perft1"] == len(game.rules.legal_moves(game.state)), (
+        f"{profile_id} 开局 perft(1) 分叉：offline.js={observed['perft1']}"
+        f" Python={len(game.rules.legal_moves(game.state))}")
+
+
+# ---------------------------------------------------------------------------
 # O-4 per-piece-type parity coverage
 # ---------------------------------------------------------------------------
 #
