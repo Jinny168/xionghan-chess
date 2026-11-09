@@ -1,8 +1,8 @@
 """三档目标参数表的守卫（`scripts/level_targets.py`）。
 
-这张表是 S4-2a 的输入：测量/标定都从它生成 `SearchConfig`，**不读 `CONFIGS`**
-（后者数值属 S4-2b）。表被改错时，测出来的 `max_nodes` 与标定胜率都会偏，
-但报告本身不会报错——所以把关键字段钉在这里。
+这张表是测量/标定的输入：从它生成 `SearchConfig`。S4-2b 之后三档数值与
+`core.ai.CONFIGS` 一致（由 `test_level_targets_match_configs.py` 钉住）；
+这里继续守字段级细节（candidate_count、cap、max_nodes 占位）。
 """
 
 from __future__ import annotations
@@ -28,18 +28,19 @@ def test_three_tiers_match_the_design_table() -> None:
     assert (hard.depth, hard.root_limit, hard.branch_limit,
             hard.quiescence_depth) == (3, 18, 18, 6)
 
-    assert (beginner.cap, medium.cap, hard.cap) == (2.0, 15.0, 60.0)
+    assert (beginner.cap, medium.cap, hard.cap) == (3.0, 30.0, 120.0)
+    assert (beginner.candidate_count, medium.candidate_count,
+            hard.candidate_count) == (3, 1, 1)
     assert beginner.randomness == 0.30
     assert medium.randomness == hard.randomness == 0.0
 
 
 def test_config_injection_and_max_nodes_sentinel() -> None:
     medium = TARGETS["medium"]
-    assert medium.config().max_nodes == medium.max_nodes == 500
+    # 三档都暂不启用 max_nodes（中局节点数无可靠测量）。
+    assert medium.config().max_nodes is None
     assert medium.config(cap=300.0).time_limit == 300.0
-    assert medium.config(max_nodes=None).max_nodes is None
     assert medium.config(max_nodes=1234).max_nodes == 1234
-    # 入门/高级在测量回填前不启用预算。
     assert TARGETS["beginner"].config().max_nodes is None
     assert TARGETS["hard"].config().max_nodes is None
 
@@ -51,8 +52,7 @@ def test_tier_config_is_frozen_and_does_not_touch_global_configs() -> None:
     config = TARGETS["hard"].config()
     assert config.depth == 3
     assert CONFIGS == before
-    assert CONFIGS[Difficulty.HARD].depth != config.depth, (
-        "目标值（d3）与当前 CONFIGS（d8）必须不同：S4-2b 才改全局表")
+    assert CONFIGS[Difficulty.HARD].depth == config.depth == 3
     assert isinstance(TARGETS["hard"], Tier)
 
 

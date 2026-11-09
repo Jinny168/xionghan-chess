@@ -83,35 +83,59 @@ def resolve_time_scale(instance: float | None, env: str | None) -> float:
 
 
 CONFIGS = {
-    Difficulty.BEGINNER: SearchConfig(2, 0.5, 0.35, 1, 5, 3, 5),
+    # 对外三档（S4-2b 定稿）：cap 由 40 手冒烟实测反推 —— beginner max 2.0008 ×1.5、
+    # medium max 14.63 ×2.05、hard 按 medium 比例留 4×（hard 中局 d3 未实测）。
+    # `max_nodes` 三档全 None：中局节点数没有可靠测量，半成品值会确定性截断；
+    # `scripts/measure_node_budget.py` 保留，等有 64×8 数据再回填。
+    Difficulty.BEGINNER: SearchConfig(1, 3.0, 0.30, 1, 3, 6, 10, None),
     Difficulty.EASY: SearchConfig(4, 1.5, 0.15, 3, 4, 6, 10),
-    # 为什么维持 5s 而不调到 6s：
-    #   · 预算在本引擎是"软上限"——`_guard` 逐子节点检查，一个根着法可以越过 deadline
-    #     再跑完（实测可超 0.1–0.5s）。所以加预算是把"结算点"往后挪，治不了
-    #     "同一配置一会儿 d2 一会儿 d1"的抖动。
-    #   · 真正的解是机制层的：① 每层/每子节点前做剩余时间硬检查；② 提前返回必须全档通用
-    #     （不许 hard 专属）。两条落地后再一次性重评预算。
-    Difficulty.MEDIUM: SearchConfig(6, 5.0, 0.05, 4, 3, 10, 18),
-    # `root_limit` 32 → 18：12s 下 19/21 次（3 轮 × 7 局面，本机 18/21）能完成 depth 2，
-    # 按“完成 d2 的时刻”计余量 min 58.8%。**这是用根宽换深度**：root_limit 是对排序结果的
-    # 截断，113 个合法着只搜前 18，排序在第 19 名之后的好手算不到。
-    Difficulty.HARD: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 18),
+    Difficulty.MEDIUM: SearchConfig(2, 30.0, 0.0, 4, 1, 10, 18, None),
+    Difficulty.HARD: SearchConfig(3, 120.0, 0.0, 6, 1, 18, 18, None),
     # MASTER 走 MCTS（`mcts.choose_move`），**只取 `time_limit` 生效**；
     # `root_limit` / `branch_limit` / `depth` / `quiescence_depth` 对大师档是**无效字段**。
-    # 因此：
-    #   · H18（根宽 32→18）不适用于大师档 —— 不要把这里的 32 改成 18，那是无操作；
-    #   · 也不能拿这里的 32 去反驳 H18 —— 两者含义不同（一个是迭代加深的根宽，
-    #     一个是 MCTS 的 SEE 候选上限 `SEE_CANDIDATE_LIMIT=16`）。
     # 保留 config 条目是为了让 analysis / 配置类代码在分发搜索前能安全读 `CONFIGS`。
     # EXPERT（专家）：**固定 d3**，不靠时间收敛。
     #   · `depth=3` 是硬上限：迭代加深到 3 就停，35s 只是"别跑飞"的安全网；
     #   · 实测 d3 最慢 28.78s，35s 留约 20% 余量；超时仍按迭代加深回落到 d2（语义不变）；
     #   · `root_limit` 沿用 HARD 的 18 —— 不改根宽，才能把"深度"这个变量单独归因；
     #   · `quiescence_depth` / `branch_limit` / `candidate_count` 与 HARD 一致。
-    #   HARD 档的 12s / depth 8 / root 18 **一格未动**。
     Difficulty.EXPERT: SearchConfig(3, 35.0, 0.0, 6, 1, 18, 18),
     Difficulty.MASTER: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 32),
 }
+
+# 对外档位的中位单步耗时（读条分母）。占位值来自 S4-2b 冒烟（40 手）：
+#   beginner 0.353s / medium 4.17s；hard 中局 d3 未实测，暂按 medium ×~4.8 估 20s。
+# TODO(S4-2c)：拿到 hard 全量标定后回填；改这里必须同时改 `WATCHDOG_SECONDS` 的守卫测试。
+EXPECTED_MOVE_SECONDS: dict[Difficulty, float] = {
+    Difficulty.BEGINNER: 0.35,
+    Difficulty.MEDIUM: 4.2,
+    Difficulty.HARD: 20.0,
+}
+
+# 看门狗 = cap × 1.15（与 `benchmark.MASTER_MOVE_TIME_TOLERANCE` 同口径）。
+WATCHDOG_SECONDS: dict[Difficulty, float] = {
+    difficulty: round(CONFIGS[difficulty].time_limit * 1.15, 3)
+    for difficulty in (Difficulty.BEGINNER, Difficulty.MEDIUM, Difficulty.HARD)
+}
+
+# 旧档位别名：只用于**字符串**（旧配置/旧 URL 参数）。内部传 `Difficulty` 枚举时
+# 原样保留 —— MASTER 仍要走 MCTS，不能被归一成 HARD。
+LEGACY_DIFFICULTY_ALIASES: dict[str, str] = {
+    "easy": "medium",
+    "expert": "hard",
+    "master": "hard",
+}
+
+
+def normalize_difficulty(value: str) -> str:
+    """旧档位字符串归一；未知值原样返回（交给 `Difficulty(...)` 决定是否报错）。"""
+    return LEGACY_DIFFICULTY_ALIASES.get(value, value)
+
+
+# 入门档"随机从近优着法里挑一个"的窗口：分数差 ≤ 这个值才进候选。
+# 旧值 90（不足 1 个兵）配 randomness=0.30 时实际几乎总选同一手；300（2.5 兵）才能
+# 让"入门会漏攻击"真正发生。只在 randomness > 0 的档生效（当前仅 beginner）。
+RANDOM_PICK_WINDOW = 300
 
 VALUES = {
     PieceType.KING: 50_000, PieceType.ROOK: 900, PieceType.CANNON: 500,
@@ -191,7 +215,8 @@ class ChessAI:
             搜索时读到另一个值"的裂缝（旧代码 `_search` / `_quiescence` 每次都
             回头读全局表，注入就永远注入不干净）。
         """
-        self.difficulty = Difficulty(difficulty)
+        self.difficulty = (difficulty if isinstance(difficulty, Difficulty)
+                           else Difficulty(normalize_difficulty(difficulty)))
         # 实例级配置：**唯一解析点**。三个读取者（choose_move / _search / _quiescence）
         # 一律走 self._config，任何一处回头读 CONFIGS 都会让注入半失效。
         self._config: SearchConfig = config if config is not None else CONFIGS[self.difficulty]
@@ -315,7 +340,7 @@ class ChessAI:
         if cfg.randomness and self.root_scores and self.random.random() < cfg.randomness:
             best_score = self.root_scores[0][0]
             candidates = [item[1] for item in self.root_scores[:cfg.candidate_count]
-                          if best_score - item[0] <= 90]
+                          if best_score - item[0] <= RANDOM_PICK_WINDOW]
             if len(candidates) > 1:
                 return self.random.choice(candidates)
         return best

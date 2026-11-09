@@ -54,8 +54,8 @@ def test_expert_config_is_fixed_depth_three() -> None:
     assert expert.randomness == 0.0
     assert expert.root_limit == hard.root_limit == 18, "不改根宽，才能把深度单独归因"
 
-    # hard 档一格未动
-    assert (hard.depth, hard.time_limit, hard.randomness) == (8, 12.0, 0.0)
+    # hard 档按 S4-2b 定稿改为 d3 / 120s（原 d8 / 12s 作废）。
+    assert (hard.depth, hard.time_limit, hard.randomness) == (3, 120.0, 0.0)
 
 
 def test_expert_is_in_the_difficulty_dropdown() -> None:

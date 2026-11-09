@@ -89,10 +89,10 @@
   },
   "difficulty": {
     "label": "AI difficulty",
-    "beginner": "Beginner · about 0.5 s per move",
+    "beginner": "Beginner · up to 3 s per move · misses your attacks",
     "easy": "Easy · about 1.5 s per move",
-    "medium": "Medium · about 5 s per move",
-    "hard": "Hard · about 12 s per move",
+    "medium": "Medium · up to 30 s per move · takes free material",
+    "hard": "Hard · up to 120 s per move · punishes a loose move",
     "expert": "Expert · fixed 3 plies, 35 s cap (measured 10–30 s)",
     "master": "Master · about 12 s per move (search-based)"
   },

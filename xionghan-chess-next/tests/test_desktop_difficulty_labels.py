@@ -61,10 +61,14 @@ def test_labels_do_not_claim_more_strength(locale: str) -> None:
             assert word not in label, f"{locale}/{difficulty.value} 含禁用措辞「{word}」：{label!r}"
 
 
-def test_master_and_hard_share_the_budget_at_config_level() -> None:
-    """配置层：大师与高级预算相同（大师换的是 MCTS，不是预算）。"""
-    assert (CONFIGS[Difficulty.MASTER].time_limit
-            == CONFIGS[Difficulty.HARD].time_limit), "预算一旦分叉，这条与文案都要改"
+def test_master_and_hard_budgets_are_independent() -> None:
+    """S4-2b：hard 改为 120s，master 仍 12s（MCTS 只取 time_limit）。
+
+    两者不再共享预算，所以拆成两条独立断言 —— 以前"改一个必须改另一个"的
+    耦合（`MASTER == HARD`）随三档定稿一起解除。
+    """
+    assert CONFIGS[Difficulty.MASTER].time_limit == 12.0
+    assert CONFIGS[Difficulty.HARD].time_limit == 120.0
 
 
 @pytest.mark.parametrize("locale", list(LOCALES))

@@ -26,6 +26,7 @@ class Tier:
     cap: float
     randomness: float
     quiescence_depth: int
+    candidate_count: int
     branch_limit: int
     root_limit: int
     max_nodes: int | None
@@ -39,7 +40,7 @@ class Tier:
             time_limit=self.cap if cap is None else cap,
             randomness=self.randomness,
             quiescence_depth=self.quiescence_depth,
-            candidate_count=1,
+            candidate_count=self.candidate_count,
             branch_limit=self.branch_limit,
             root_limit=self.root_limit,
             max_nodes=resolved_max,
@@ -48,13 +49,12 @@ class Tier:
 
 TARGETS: dict[str, Tier] = {
     # 入门：d1 结构上恒 10 节点（root_limit 10），max_nodes 设了也不会触发。
-    # cap 2.0（用户定案）：d1 实测最坏 0.35s，1.0 只有 2.9× 慢机余量，2.0 给 5.7×；
-    # 玩家实际等待仍由中位 0.19s 决定，文案写"上限 2 秒"。
-    "beginner": Tier(1, 2.0, 0.30, 1, 6, 10, None),
-    # 中级：`max_nodes=500` 是联调占位值，最终由 measure 的 p99.9 反解回填。
-    "medium": Tier(2, 15.0, 0.0, 4, 10, 18, 500),
-    # 高级：预算待测量；在测出来之前不启用 max_nodes（避免半成品数值）。
-    "hard": Tier(3, 60.0, 0.0, 6, 18, 18, None),
+    # cap 3.0：40 手冒烟 max 2.0008 ×1.5；玩家等待仍由中位 0.35s 决定。
+    "beginner": Tier(1, 3.0, 0.30, 1, 3, 6, 10, None),
+    # 中级：cap 30（40 手冒烟 max 14.63 ×2.05）；max_nodes 暂 None（中局无可靠测量）。
+    "medium": Tier(2, 30.0, 0.0, 4, 1, 10, 18, None),
+    # 高级：cap 120（按 medium 比例留 4×，未实测）；max_nodes 暂 None。
+    "hard": Tier(3, 120.0, 0.0, 6, 1, 18, 18, None),
 }
 
 LEVELS: tuple[str, ...] = tuple(TARGETS)
