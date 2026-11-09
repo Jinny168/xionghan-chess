@@ -114,15 +114,35 @@ jobs:
         # 现状 100%；没有这道门禁，覆盖率会在下一次重构里悄悄退回去（app.py 曾 6.2%）。
         run: python scripts/check_annotations.py
 
-      - name: 安装 ruff + mypy（版本钉死）
+      - name: 安装 ruff + mypy + 类型信息依赖（版本全部钉死）
         # S2-3：ruff/mypy 不进 requirements/dev.txt —— 它们是门禁工具不是业务依赖，
         # 钉死版本是为了让"本机绿 = CI 绿"成立：ruff 升一个 minor 就可能多出规则
         # 把 CI 打红。升级时须本机重跑两条命令后再改这里的版本号。
-        # pydantic 是 mypy 的**类型信息依赖**：core/protocol.py 继承 BaseModel，
-        # 不装它 BaseModel 就是 Any，strict 的 disallow_subclassing_any 必红
-        # （run #122 实证 3 errors）。版本必须与 lock 里的 pin 保持一致——
-        # 升级 pydantic 时两处一起改。core 的第三方依赖盘过全量，只有这一个。
-        run: pip install "ruff==0.17.4" "mypy==2.4.1" "pydantic==2.14.3"
+        #
+        # 除工具本身外，还要装**被检查代码的类型信息依赖**（mypy strict 的硬前提）。
+        # 这条清单必须与 pyproject 的 `[tool.mypy].files` 同步维护：收编一个包 →
+        # 把它的类型信息依赖列进来。忘了列，就是"本机绿、CI 红"（见下 fastapi）。
+        #
+        # · pydantic —— core/protocol.py 继承 BaseModel。不装它 BaseModel 就是 Any，
+        #   strict 的 disallow_subclassing_any 必红（run #122 实证 3 errors）。
+        # · fastapi —— S3-A1 把 service 收进 files 之后才需要（run #127 实证）：
+        #   不装它 `@app.get/@app.post/@app.websocket/@app.exception_handler` 全是 Any，
+        #   strict 的 disallow_untyped_decorators 直接报错。**不许为此关掉该检查**，
+        #   也不许给端点加 `# type: ignore` —— 那道检查抓的正是"装饰器把函数变成
+        #   untyped"这类会静默漏掉参数/返回值错误的问题。
+        # 两者版本都 pin 自 requirements/lock/py312-dev.txt（pydantic 2.14.3 /
+        # fastapi 0.162.2），升级时 lock 与本行必须一起改。
+        run: |
+          pip install "ruff==0.17.4" "mypy==2.4.1" "pydantic==2.14.3"
+          # `--no-deps` 是有意的：这一步要的是 fastapi 的 **py.typed 类型信息**，
+          # 不是能跑起来的运行时。带依赖装会把 starlette/anyio/idna 一并拉进来，而
+          # 它们的版本不在 pin 表里 → 给"本机绿=CI绿"新开一个漂移面。
+          # scratch venv 实测（ruff 0.17.4 / mypy 2.4.1 / pydantic 2.14.3 与上面逐字一致）：
+          #   无 fastapi            → Found 26 errors in 1 file（全 untyped-decorator），rc=1
+          #   +fastapi 0.162.2(--no-deps，**无 starlette**）→ Success: 23 source files，rc=0
+          # 即 starlette 缺失对类型检查无影响（ignore_missing_imports 下它是 Any），
+          # 决定项是 fastapi 自己的装饰器签名。
+          pip install --no-deps "fastapi==0.162.2"
 
       - name: ruff check（全仓，配置在 pyproject [tool.ruff]）
         # 口径「小而真」：E4/E7/E9/F + W + I（见 pyproject 注释），豁免集中在

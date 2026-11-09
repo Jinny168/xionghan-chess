@@ -104,6 +104,12 @@ markers = [
 # service 之所以该进 files：它是唯一对外暴露的进程（`xionghan-server` 入口
 # = service/app.py:run），协议层的 payload 是 `dict[str, Any]`，标注一松，
 # 形状错误就只能在运行时以 500 的形式出现。
+#
+# ⚠️ 收编纪律（S3-A4 补充）：往 files 里加一个包，必须同时把它的**类型信息依赖**
+# 加进 ci.yml lint job 的安装 step，否则 strict 会在跑 CI 时才红、而本机因为装了
+# 全量依赖是绿的（run #127 实证：service 进 files 后，CI 缺 fastapi →
+# `@app.get` 等装饰器变 Any → disallow_untyped_decorators 报 26 处）。
+# 现行清单：core → pydantic；service → fastapi（装法见 ci.yml，版本 pin 自 lock）。
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true
