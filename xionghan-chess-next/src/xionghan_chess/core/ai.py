@@ -158,8 +158,22 @@ class TTEntry:
 
 
 class ChessAI:
-    def __init__(self, difficulty: Difficulty | str = Difficulty.MEDIUM, seed: int | None = None):
+    def __init__(self, difficulty: Difficulty | str = Difficulty.MEDIUM, seed: int | None = None,
+                 config: SearchConfig | None = None):
+        """`config` 是**实例级**搜索参数：标定 / A/B 用它换预算，不去改全局表。
+
+        `CONFIGS` 只在**构造时**解析一次（未注入 config 时）：
+          · 所以运行期替换 `CONFIGS[level]`（历史实验脚本那种
+            `CONFIGS[MEDIUM] = replace(...)`）对**已构造**的实例不再生效 ——
+            那正是本参数要取代的模式；需要换参数请注入 `config`。
+          · 一个实例的整局搜索只有一个配置来源，不会出现"构造时读一个值、
+            搜索时读到另一个值"的裂缝（旧代码 `_search` / `_quiescence` 每次都
+            回头读全局表，注入就永远注入不干净）。
+        """
         self.difficulty = Difficulty(difficulty)
+        # 实例级配置：**唯一解析点**。三个读取者（choose_move / _search / _quiescence）
+        # 一律走 self._config，任何一处回头读 CONFIGS 都会让注入半失效。
+        self._config: SearchConfig = config if config is not None else CONFIGS[self.difficulty]
         self.random = random.Random(seed)
         self.transposition: dict[str, TTEntry] = {}
         self.history: dict[tuple[PieceType, int, int], int] = {}
@@ -183,15 +197,21 @@ class ChessAI:
         self.lmr_researches = 0
         self._active_deadline = math.inf
         self._active_cancel: threading.Event | None = None
-        self.quiescence_depth = CONFIGS[self.difficulty].quiescence_depth
+        self.quiescence_depth = self._config.quiescence_depth
         # 被 QUIESCENCE_NODE_LIMIT 截断的次数（诊断/测试用，不进 UI）
         self.quiescence_truncations = 0
         self.no_candidate_fallbacks = 0
+        # 「一手都没搜完」的次数（诊断用，不进 UI、不改行为）：
+        # 预算低于一次排序成本时，`_root` 连一轮都没写回 `root_scores` 就超时，
+        # 选点退化成排序首着（`initial_order[0]` / 早退时的 `legal[0]`）。
+        # 每次 `choose_move` 归零，由 benchmark 汇总累加 —— 只看"下得怪"是看不出这条的。
+        self.zero_depth_moves = 0
         self._qnode_base = 0
         self._qnode_truncated = False
 
     def choose_move(self, game: Game, cancel: threading.Event | None = None) -> Move | None:
-        cfg = CONFIGS[self.difficulty]
+        # 配置来自实例（构造时解析一次），这里**不读全局 CONFIGS**。
+        cfg = self._config
         time_scale = max(0.1, float(os.getenv("AI_TIME_SCALE", "1.0")))
         if self.difficulty is Difficulty.MASTER:
             # Import lazily to keep the conventional search engine independent
@@ -216,6 +236,7 @@ class ChessAI:
         self.null_prunes = self.lmr_researches = 0
         self.quiescence_truncations = 0
         self.no_candidate_fallbacks = 0
+        self.zero_depth_moves = 0
         legal = game.rules.legal_moves(game.state)
         if not legal:
             return None
@@ -251,6 +272,10 @@ class ChessAI:
                     break
         except SearchTimeout:
             pass
+        # 一行都没搜完（含"第一轮 `_root` 就超时"与"取消已置位"）：选点不是搜出来的。
+        # 只记数、不改行为；调用方（benchmark）累加后能直接看出某档预算是否低于排序成本。
+        if self.completed_depth == 0:
+            self.zero_depth_moves += 1
         self._active_deadline = math.inf
         self._active_cancel = None
         if cfg.randomness and self.root_scores and self.random.random() < cfg.randomness:
@@ -342,7 +367,7 @@ class ChessAI:
         best_move = None
         ordered = self._order(game, moves, entry.best_move if entry else None, ply)
         if not in_check:
-            base_limit = CONFIGS[self.difficulty].branch_limit
+            base_limit = self._config.branch_limit
             ordered = ordered[:base_limit + max(0, 4 - depth) * 2]
         for index, move in enumerate(ordered):
             self._guard(deadline, cancel)
@@ -421,7 +446,7 @@ class ChessAI:
         ]
         ordered = self._order(game, tactical, ply=ply)
         if not in_check:
-            ordered = ordered[:max(6, CONFIGS[self.difficulty].branch_limit)]
+            ordered = ordered[:max(6, self._config.branch_limit)]
         for move in ordered:
             self._guard(deadline, cancel)
             child = Game.from_state(game.rules.apply_unchecked(game.state, move), game.options, game.setup)
