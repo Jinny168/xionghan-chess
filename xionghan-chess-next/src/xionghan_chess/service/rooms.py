@@ -587,7 +587,9 @@ class RoomManager:
         if ai_seat is None:
             return
         plies = len(room.game.state.history)
-        event_key = f"{scene}:{plies}"
+        # 事件键带 `sent_total`：`draw_declined` 在同一手上可能连续发生多次
+        # （提和→被拒→再提和），只按 `scene:plies` 去重会把第二次起全部吞掉。
+        event_key = f"{scene}:{plies}:{room.taunt_sent_total}"
         if event_key in room.taunt_events:
             return
         text = select_taunt(scene, room.language, f"{room.id}:{event_key}",

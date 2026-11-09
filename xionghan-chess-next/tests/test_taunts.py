@@ -68,6 +68,10 @@ def test_taunt_allowed_enforces_all_four_rules():
     assert taunt_allowed("check", 10, 0, {}, 1, "同一句", "同一句") == (False, "same_text")
     assert taunt_allowed("check", 10, 0, {}, 1, "上一句", "另一句") == (True, "")
     assert taunt_allowed("random", 10, 0, {}, None, None) == (False, "not_a_scene")
+    # 「被拒必发」：draw_declined 绕过 4 手冷却，但仍受总数 4 约束。
+    assert taunt_allowed("draw_declined", 10, 0, {}, 10, "上一句") == (True, "")
+    assert taunt_allowed("draw_declined", 10, TAUNT_TOTAL_LIMIT, {}, 10, "上一句") == (
+        False, "total_limit")
 
 
 def test_swing_scene_maps_direction_and_threshold():

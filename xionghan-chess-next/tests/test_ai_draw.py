@@ -24,7 +24,7 @@ from xionghan_chess.core.ai import DRAW_ACCEPT_THRESHOLD, ChessAI, Difficulty, s
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, PieceType
 from xionghan_chess.core.protocol import Envelope, MessageType
-from xionghan_chess.core.taunts import TAUNT_MIN_PLY_GAP, TAUNT_TOTAL_LIMIT
+from xionghan_chess.core.taunts import TAUNT_TOTAL_LIMIT
 from xionghan_chess.service.rooms import RoomManager
 
 PACKAGE = Path(__file__).resolve().parents[1] / "src" / "xionghan_chess"
@@ -208,11 +208,11 @@ def test_ai_eval_is_deterministic() -> None:
         ChessAI(Difficulty.BEGINNER)._evaluate(game, Color.BLACK)
 
 
-def test_draw_declined_is_counted_and_blocked_by_the_four_per_game_limit() -> None:
-    """`draw_declined` 计入每局 4 条：第 5 条（账本已满）不再发。
+def test_draw_declined_bypasses_cooldown_but_stops_at_the_four_per_game_limit() -> None:
+    """「被拒必发」优先于 4 手冷却；但每局最多 4 条，第 5 次被拒不再发。
 
-    不靠"真走 4 手再提和"来构造：第一手合法着法在 9 手时就会终局，间隔会被
-    "最小 4 手"误判成 too_soon，测的就不是总数上限了。这里直接填满账本。
+    连续 5 次提和都在**同一手**（不推进棋局）：若 `draw_declined` 不绕过冷却，
+    第 2 次起就会因 too_soon 被压掉——这正是要锁住的优先级。
     """
     async def scenario() -> None:
         manager = RoomManager()
@@ -223,19 +223,15 @@ def test_draw_declined_is_counted_and_blocked_by_the_four_per_game_limit() -> No
             await manager.handle(room, human, Envelope(type=MessageType.DRAW_OFFER,
                                                        revision=room.revision))
 
-        await offer()
-        assert len(room.chat_history) == 1
-        assert room.taunt_sent_total == 1
-        assert room.taunt_sent_by_scene.get("draw_declined") == 1
+        for index in range(1, TAUNT_TOTAL_LIMIT + 1):
+            await offer()
+            assert room.game.state.draw is False, "均势时 AI 应拒绝"
+            assert len(room.chat_history) == index, f"第 {index} 次被拒应发一条"
+            assert room.chat_history[-1]["scene"] == "draw_declined"
 
-        # 账本填到 4，并把 last_ply 放到 4 手之前（排除 too_soon 干扰）。
-        room.taunt_sent_total = TAUNT_TOTAL_LIMIT
-        room.taunt_last_ply = len(room.game.state.history) - TAUNT_MIN_PLY_GAP
-        before = len(room.chat_history)
-
+        assert room.taunt_sent_total == TAUNT_TOTAL_LIMIT
         await offer()
-        assert room.game.state.draw is False, "均势时 AI 应拒绝"
-        assert len(room.chat_history) == before, "达到总数上限后，拒绝提和不得再发台词"
+        assert len(room.chat_history) == TAUNT_TOTAL_LIMIT, "第 5 次被拒不得再发（总数 4）"
 
     asyncio.run(scenario())
 

@@ -58,11 +58,16 @@ TAUNTS: dict[str, dict[str, tuple[str, ...]]] = {"zh": TAUNTS_ZH, "en": TAUNTS_E
 
 # 频率上限（每局）：总量 ≤4；每场景各自上限；两次之间至少隔 4 手。
 # 用户口径（2026-11-09 定稿）：6/2 → 4/4；`draw_declined` 也计入总量 4。
+# `draw_declined` 是"被拒必发"：不受 4 手冷却约束，也只受总数 4 约束（不做单场景限 1），
+# 否则连续两次提和被拒时"必发"就不成立。
 TAUNT_TOTAL_LIMIT = 4
 TAUNT_MIN_PLY_GAP = 4
 TAUNT_SCENE_LIMITS: dict[str, int] = {
-    "opening": 1, "check": 2, "draw_declined": 1, "victory": 1, "defeat": 1,
+    "opening": 1, "check": 2, "draw_declined": TAUNT_TOTAL_LIMIT,
+    "victory": 1, "defeat": 1,
 }
+# 绕过冷却的场景（"必发"类）。
+TAUNT_COOLDOWN_EXEMPT: frozenset[str] = frozenset({"draw_declined"})
 
 # 「局势大幅波动」触发阈值：AI 视角 `_evaluate` 的一步变化 ≥240（VALUES 兵=120，即 2 兵）。
 # AI 变好 → `check`（挑衅），AI 变差 → `defeat`（自嘲）。方向由 service/desktop 判定，
@@ -119,7 +124,8 @@ def taunt_allowed(scene: TauntScene | str, plies: int, sent_total: int,
     规则（与设计口径一致）：
     - 每局总量 ≤ `TAUNT_TOTAL_LIMIT`（4）；
     - 每场景各自的 `TAUNT_SCENE_LIMITS`；
-    - 两次台词至少隔 `TAUNT_MIN_PLY_GAP`（4）手；
+    - 两次台词至少隔 `TAUNT_MIN_PLY_GAP`（4）手；`draw_declined` 例外（被拒必发，
+      见 `TAUNT_COOLDOWN_EXEMPT`），但仍计入总数；
     - 同一句不连续：`select_taunt` 已主动跳过上一句，这里在 `next_text` 给出时再兜一层
       （调用方若自己选词，仍然受这条约束）。
     """
@@ -129,7 +135,8 @@ def taunt_allowed(scene: TauntScene | str, plies: int, sent_total: int,
         return False, "total_limit"
     if sent_by_scene.get(scene, 0) >= TAUNT_SCENE_LIMITS[scene]:
         return False, "scene_limit"
-    if last_ply is not None and plies - last_ply < TAUNT_MIN_PLY_GAP:
+    if last_ply is not None and plies - last_ply < TAUNT_MIN_PLY_GAP \
+            and scene not in TAUNT_COOLDOWN_EXEMPT:
         return False, "too_soon"
     if next_text is not None and last_text is not None and next_text == last_text:
         return False, "same_text"
