@@ -47,6 +47,12 @@ target-version = "py312"
 line-length = 120
 extend-exclude = [
   # 历史实验的**冻结快照**（stage1/2/3 一次性脚本 × 多个基线目录），改它=篡改实验记录。
+  # `benchmarks/` 只收快照（一次性脚本 + 结果 JSON/JSONL + 结论 md），**不接收新工具**：
+  # 新工具一律放 `scripts/`（在本 lint 范围内）。
+  # 2026-11-09 删除 `benchmarks/selfplay_ab.py`：它 A/B 的旧 VALUES 引用了已删除的
+  # SHIELD/ASSASSIN/ARMOR，A 侧已无法构造（`--help` 就 AttributeError），且它改写
+  # 全局 `CONFIGS[level]` 的换参方式已被 `ChessAI(config=...)` + `benchmark_match` 取代。
+  # 实验记录保留：`selfplay_ab_2026-10-31.json` 与 `..._conclusion.md`。
   "benchmarks",
 ]
 
