@@ -5,6 +5,7 @@ import os
 import secrets
 import string
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -88,6 +89,22 @@ class Room:
             "spectatorCount": sum(item.connected for item in self.spectators.values()),
             "game": self.game.public_state(include_replay=include_replay),
         }
+
+
+# 不校验客户端 revision 的四类。它们本身就是「对别人请求的应答/旁路消息」，对方那条请求
+# 可能已经把 revision 抬高过，再校验就会误杀。
+# ⚠️ **「不校验」≠「不产生」**：除 CHAT 外，这四类在成功时同样 `room.revision += 1`。
+# 这两件事常被混为一谈（旧代码把它写成一个叫 `revision_independent` 的局部 set，名字只
+# 说了前半句），所以这里提成模块级常量并起一个说明两面的名字。
+_REVISION_INDEPENDENT: frozenset[MessageType] = frozenset({
+    MessageType.CHAT, MessageType.DRAW_RESPONSE,
+    MessageType.UNDO_RESPONSE, MessageType.RESTART_RESPONSE,
+})
+
+# 分派表里处理函数的类型。**刻意是同步签名**（返回 Awaitable 就不匹配）：
+# `Room.lock` 是 `asyncio.Lock`（非重入），锁内出现任何 await 都可能自锁，而 mypy 会替
+# 我们在"有人把处理函数改成 async / 往里加 await"时直接报错，不等线上偶发卡死。
+_Apply = Callable[[Room, PlayerSeat, Envelope], dict[str, Any] | None]
 
 
 class RoomManager:
@@ -258,102 +275,157 @@ class RoomManager:
         await self.broadcast(room)
 
     async def handle(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        """单条协议消息：**锁内**只做同步状态修改，**锁外**统一广播（见 `_after_apply`）。
+
+        锁内只剩三件事：PING 早退、revision 校验、查表调用一个**同步**处理函数。
+        处理函数的类型是 `_Apply`（同步签名），这是刻意的类型约束 —— 见模块级 `_Apply`
+        注释：谁把它改成 async 或往里加 await，mypy 会直接报错。
+        """
         # 锁内只做状态修改；`chat_payload` 是唯一需要跨出锁的一段数据（CHAT 帧的载荷）。
         chat_payload: dict[str, Any] | None = None
         async with room.lock:
             if envelope.type is MessageType.PING:
                 return
-            revision_independent = {MessageType.CHAT, MessageType.DRAW_RESPONSE,
-                                    MessageType.UNDO_RESPONSE, MessageType.RESTART_RESPONSE}
-            if envelope.type not in revision_independent:
-                # local 房**必须**带 revision：它没有 online 房那条 turn 兜底，
-                # 而原来的 `revision is not None and ...` 写法会让"不填 revision"整段跳过校验，
-                # 于是乱序/重复的落子消息会被直接采纳。
-                if room.mode == "local" and envelope.revision is None:
-                    raise GameError("local 房需要 revision")
-                if envelope.revision is not None and envelope.revision != room.revision:
-                    raise GameError(room.tr("error.client_stale"))
-            if envelope.type is MessageType.CHAT:
-                text = str(envelope.payload.get("text", "")).strip()
-                if not text:
-                    raise GameError(room.tr("error.chat_empty"))
-                if len(text) > 80:
-                    raise GameError(room.tr("error.chat_too_long"))
-                chat_payload = {
-                    "color": seat.color.value,
-                    "sender": seat.display_name,
-                    "text": text,
-                    "quick": bool(envelope.payload.get("quick")),
-                    "timestamp": int(time.time() * 1000),
-                }
-                room.last_activity = time.time()
-            elif envelope.type is MessageType.MOVE:
-                if room.mode != "local" and room.game.state.turn is not seat.color:
-                    raise GameError(room.tr("error.not_your_turn"))
-                source = envelope.payload.get("from", {})
-                target = envelope.payload.get("to", {})
-                promotion = envelope.payload.get("promotion")
-                move = Move(Position(int(source["row"]), int(source["col"])),
-                            Position(int(target["row"]), int(target["col"])),
-                            PieceType(promotion) if promotion else None)
-                room.game.move(move)
-                room.revision += 1
-                room.last_activity = time.time()
-            elif envelope.type is MessageType.RESIGN:
-                resigning = room.game.state.turn if room.mode == "local" else seat.color
-                room.game.resign(resigning)
-                room.revision += 1
-            elif envelope.type is MessageType.DRAW_OFFER:
-                if room.mode == "local":
-                    room.game.state.draw = True
-                    room.game.state.result_reason = "draw_agreement"
-                else:
-                    room.game.offer_draw(seat.color)
-                room.revision += 1
-            elif envelope.type is MessageType.DRAW_RESPONSE:
-                room.game.respond_draw(seat.color, bool(envelope.payload.get("accept")))
-                room.revision += 1
-            elif envelope.type is MessageType.UNDO_REQUEST:
-                if room.mode == "local":
-                    room.game.undo(1)
-                else:
-                    room.game.offer_undo(seat.color)
-                room.revision += 1
-            elif envelope.type is MessageType.UNDO_RESPONSE:
-                room.game.respond_undo(seat.color, bool(envelope.payload.get("accept")))
-                room.revision += 1
-            elif envelope.type is MessageType.RESURRECT:
-                color = room.game.state.turn if room.mode == "local" else seat.color
-                room.game.resurrect_pawn(color, Position(int(envelope.payload["row"]),
-                                                         int(envelope.payload["col"])))
-                room.revision += 1
-            elif envelope.type is MessageType.RESTART:
-                if room.mode == "online":
-                    room.game.offer_restart(seat.color)
-                else:
-                    profile_id = room.game.profile.id
-                    room.game = Game(profile_id, envelope.payload.get("options"), room.initial_minutes,
-                                     room.language, room.game.setup)
-                room.revision += 1
-            elif envelope.type is MessageType.RESTART_REQUEST:
-                if room.mode != "online":
-                    raise GameError(room.tr("error.unsupported_message"))
-                room.game.offer_restart(seat.color)
-                room.revision += 1
-            elif envelope.type is MessageType.RESTART_RESPONSE:
-                accepted = room.game.respond_restart(seat.color, bool(envelope.payload.get("accept")))
-                if accepted:
-                    profile_id = room.game.profile.id
-                    room.game = Game(profile_id, envelope.payload.get("options"), room.initial_minutes,
-                                     room.language, room.game.setup)
-                room.revision += 1
-            elif envelope.type is MessageType.PAUSE:
-                paused = bool(envelope.payload.get("paused", not room.game.state.paused))
-                room.game.set_paused(paused, seat.color)
-                room.revision += 1
-            else:
+            self._check_revision(room, envelope)
+            handler = self._apply_handlers().get(envelope.type)
+            if handler is None:
                 raise GameError(room.tr("error.unsupported_message"))
+            chat_payload = handler(room, seat, envelope)
         await self._after_apply(room, seat, envelope, chat_payload)
+
+    @staticmethod
+    def _check_revision(room: Room, envelope: Envelope) -> None:
+        """客户端 revision 校验（`_REVISION_INDEPENDENT` 里的四类跳过校验）。"""
+        if envelope.type in _REVISION_INDEPENDENT:
+            return
+        # local 房**必须**带 revision：它没有 online 房那条 turn 兜底，
+        # 而原来的 `revision is not None and ...` 写法会让"不填 revision"整段跳过校验，
+        # 于是乱序/重复的落子消息会被直接采纳。
+        if room.mode == "local" and envelope.revision is None:
+            raise GameError("local 房需要 revision")
+        if envelope.revision is not None and envelope.revision != room.revision:
+            raise GameError(room.tr("error.client_stale"))
+
+    def _apply_handlers(self) -> dict[MessageType, _Apply]:
+        """`MessageType` → **同步**处理函数（12 项）。
+
+        每次 handle 重建一次（12 个 bound method，量级 1µs；对比一次 JSON 序列化 ~100µs）。
+        用表而不是 if/elif 链的两个理由：
+        ① 锁内从 90 行压到 5 行，两相位边界一眼可辨；
+        ② "12 个类型齐不齐"可数 —— 漏一项时 `.get()` 返回 None 会走
+           `error.unsupported_message`（与原 `else` 分支行为一致），不会静默落进别的分支。
+        不用 `getattr(self, "名字")`：那在 strict 下退化成 Any，等于把 `_Apply` 的类型
+        约束换掉 —— 而类型约束正是这条重构的主要产出，不能为省一次字典构造丢掉。
+        """
+        return {
+            MessageType.CHAT: self._apply_chat,
+            MessageType.MOVE: self._apply_move,
+            MessageType.RESIGN: self._apply_resign,
+            MessageType.DRAW_OFFER: self._apply_draw_offer,
+            MessageType.DRAW_RESPONSE: self._apply_draw_response,
+            MessageType.UNDO_REQUEST: self._apply_undo_request,
+            MessageType.UNDO_RESPONSE: self._apply_undo_response,
+            MessageType.RESURRECT: self._apply_resurrect,
+            MessageType.RESTART: self._apply_restart,
+            MessageType.RESTART_REQUEST: self._apply_restart_request,
+            MessageType.RESTART_RESPONSE: self._apply_restart_response,
+            MessageType.PAUSE: self._apply_pause,
+        }
+
+    # ── 锁内处理函数：全部 `def`（同步）。约定：成功时各自 `room.revision += 1`；
+    #    **唯一例外是 CHAT**（不改局面、也不涨 revision），它返回要广播的载荷。 ──
+
+    def _apply_chat(self, room: Room, seat: PlayerSeat,
+                    envelope: Envelope) -> dict[str, Any]:
+        text = str(envelope.payload.get("text", "")).strip()
+        if not text:
+            raise GameError(room.tr("error.chat_empty"))
+        if len(text) > 80:
+            raise GameError(room.tr("error.chat_too_long"))
+        payload = {
+            "color": seat.color.value,
+            "sender": seat.display_name,
+            "text": text,
+            "quick": bool(envelope.payload.get("quick")),
+            "timestamp": int(time.time() * 1000),
+        }
+        room.last_activity = time.time()
+        return payload
+
+    def _apply_move(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        if room.mode != "local" and room.game.state.turn is not seat.color:
+            raise GameError(room.tr("error.not_your_turn"))
+        source = envelope.payload.get("from", {})
+        target = envelope.payload.get("to", {})
+        promotion = envelope.payload.get("promotion")
+        move = Move(Position(int(source["row"]), int(source["col"])),
+                    Position(int(target["row"]), int(target["col"])),
+                    PieceType(promotion) if promotion else None)
+        room.game.move(move)
+        room.revision += 1
+        room.last_activity = time.time()
+
+    def _apply_resign(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        resigning = room.game.state.turn if room.mode == "local" else seat.color
+        room.game.resign(resigning)
+        room.revision += 1
+
+    def _apply_draw_offer(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        if room.mode == "local":
+            room.game.state.draw = True
+            room.game.state.result_reason = "draw_agreement"
+        else:
+            room.game.offer_draw(seat.color)
+        room.revision += 1
+
+    def _apply_draw_response(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        room.game.respond_draw(seat.color, bool(envelope.payload.get("accept")))
+        room.revision += 1
+
+    def _apply_undo_request(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        if room.mode == "local":
+            room.game.undo(1)
+        else:
+            room.game.offer_undo(seat.color)
+        room.revision += 1
+
+    def _apply_undo_response(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        room.game.respond_undo(seat.color, bool(envelope.payload.get("accept")))
+        room.revision += 1
+
+    def _apply_resurrect(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        color = room.game.state.turn if room.mode == "local" else seat.color
+        room.game.resurrect_pawn(color, Position(int(envelope.payload["row"]),
+                                                 int(envelope.payload["col"])))
+        room.revision += 1
+
+    def _apply_restart(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        if room.mode == "online":
+            room.game.offer_restart(seat.color)
+        else:
+            profile_id = room.game.profile.id
+            room.game = Game(profile_id, envelope.payload.get("options"), room.initial_minutes,
+                             room.language, room.game.setup)
+        room.revision += 1
+
+    def _apply_restart_request(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        if room.mode != "online":
+            raise GameError(room.tr("error.unsupported_message"))
+        room.game.offer_restart(seat.color)
+        room.revision += 1
+
+    def _apply_restart_response(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        accepted = room.game.respond_restart(seat.color, bool(envelope.payload.get("accept")))
+        if accepted:
+            profile_id = room.game.profile.id
+            room.game = Game(profile_id, envelope.payload.get("options"), room.initial_minutes,
+                             room.language, room.game.setup)
+        room.revision += 1
+
+    def _apply_pause(self, room: Room, seat: PlayerSeat, envelope: Envelope) -> None:
+        paused = bool(envelope.payload.get("paused", not room.game.state.paused))
+        room.game.set_paused(paused, seat.color)
+        room.revision += 1
 
     async def _after_apply(self, room: Room, seat: PlayerSeat, envelope: Envelope,
                            chat_payload: dict[str, Any] | None) -> None:
