@@ -17,7 +17,10 @@
 **B 段（验证）**：按 `c = floor(cap × 0.85 / rate)` 生成候选（rate 分别取 p50/p95/max），
 在目标 cap 下实跑，数 `wallBound / nodesTrunc / degradeMoves / max_wall_over_cap`。
 选值：**`wall==0 且 nodesTrunc ≤1% 且 max_wall < cap×0.9` 中 `max_nodes` 最大的一行**；
-若初始三候全过，继续向上探 `×1.3`（最多 3 次）直到失败，保证候选里含"会失败的一侧"。
+但只有**存在失败候选**时才叫"括号住了"（`upperBoundBracketed=true`）。
+若初始三候**全过**，上界没有被夹住——此时"取最大"取到的是候选集上界、不是可行域边界，
+所以取 `c50`（候选里最大、最不可能触发截断的那个），标 `upperBoundBracketed=false`，
+**不再向上 ×1.3 探**（探出来的只会是"永不绑定"的大值，没有信息量）。
 
 **全败归因**（不要用两个分位数相乘）：
 `max_wall_natural > cap×0.9` → `cap_too_small`（报 lead 抬 cap）；
@@ -163,6 +166,19 @@ def candidates_from(a: dict[str, object], tier: Tier) -> list[tuple[str, int]]:
     return sorted(unique, key=lambda item: item[1], reverse=True)
 
 
+def choose_candidate(results: list[dict[str, object]]) -> tuple[dict[str, object] | None, bool]:
+    """从实跑结果选值。`results` 必须按 `max_nodes` 从大到小排。
+
+    - 有失败候选 → 取"通过者中最大"（第一个通过的），`bracketed=True`；
+    - 全过 → 取第一个（`c50`，候选集最大），`bracketed=False`（上界没夹住）；
+    - 全败 → `(None, False)`。
+    """
+    passing = [item for item in results if bool(item["passes_internal"])]
+    if not passing:
+        return None, False
+    return passing[0], len(passing) != len(results)
+
+
 def measure_level(level: str, entries, plies: int, *, skip_b: bool) -> dict[str, object]:
     tier = TARGETS[level]
     print(f"[{level}] A 段：{len(entries)} 开局 × {plies} 手，cap={MEASURE_CAP}s（不绑墙钟）",
@@ -175,6 +191,7 @@ def measure_level(level: str, entries, plies: int, *, skip_b: bool) -> dict[str,
         "a": a,
         "candidates": [],
         "selected": None,
+        "upperBoundBracketed": False,
         "verdict": None,
     }
     nodes = a["nodes"]
@@ -198,23 +215,10 @@ def measure_level(level: str, entries, plies: int, *, skip_b: bool) -> dict[str,
         outcome["passes_internal"] = internal_pass(outcome)
         results.append(outcome)
 
-    selected = next((item for item in results if bool(item["passes_internal"])), None)
-    if selected is not None and all(bool(item["passes_internal"]) for item in results):
-        # 上界没夹住：向上探，直到出现失败（最多 3 次）。
-        probe = int(selected["max_nodes"])
-        for _ in range(3):
-            probe = math.floor(probe * 1.3)
-            outcome = section_b(
-                sweep(level, tier, entries, plies, cap=tier.cap, max_nodes=probe), tier)
-            outcome.update({"rate_source": "probe", "max_nodes": probe})
-            outcome["passes_internal"] = internal_pass(outcome)
-            results.append(outcome)
-            if not outcome["passes_internal"]:
-                break
-            selected = outcome
-
+    selected, bracketed = choose_candidate(results)
     report["candidates"] = results
     report["selected"] = selected
+    report["upperBoundBracketed"] = bracketed
     if selected is None:
         max_wall_natural = float(a["max_wall_natural"])
         report["verdict"] = ("cap_too_small" if max_wall_natural > tier.cap * INTERNAL_WALL_RATIO
@@ -261,7 +265,8 @@ def main(argv: list[str] | None = None) -> int:
         payload["levels"][level] = report  # type: ignore[index]
         if not args.skip_b:
             print(render_table(report), flush=True)
-        print(f"  verdict={report['verdict']}  selected={report['selected']}", flush=True)
+        print(f"  verdict={report['verdict']}  bracketed={report['upperBoundBracketed']}  "
+              f"selected={report['selected']}", flush=True)
 
     target = Path(args.out)
     target.parent.mkdir(parents=True, exist_ok=True)

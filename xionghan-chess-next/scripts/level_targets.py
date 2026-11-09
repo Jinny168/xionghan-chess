@@ -48,7 +48,9 @@ class Tier:
 
 TARGETS: dict[str, Tier] = {
     # 入门：d1 结构上恒 10 节点（root_limit 10），max_nodes 设了也不会触发。
-    "beginner": Tier(1, 1.0, 0.30, 1, 6, 10, None),
+    # cap 2.0（用户定案）：d1 实测最坏 0.35s，1.0 只有 2.9× 慢机余量，2.0 给 5.7×；
+    # 玩家实际等待仍由中位 0.19s 决定，文案写"上限 2 秒"。
+    "beginner": Tier(1, 2.0, 0.30, 1, 6, 10, None),
     # 中级：`max_nodes=500` 是联调占位值，最终由 measure 的 p99.9 反解回填。
     "medium": Tier(2, 15.0, 0.0, 4, 10, 18, 500),
     # 高级：预算待测量；在测出来之前不启用 max_nodes（避免半成品数值）。
