@@ -43,8 +43,6 @@ from xionghan_chess.core.benchmark import (  # noqa: E402
 
 DEFAULT_BOOK = opening_book.DEFAULT_OUT
 
-DEFAULT_CHECKPOINT = ROOT / "benchmarks" / "calibration_runs" / f"{date.today()}.jsonl"
-
 
 def _parse_max_nodes(raw: str, level: str) -> int | None:
     text = raw.strip().lower()
@@ -83,50 +81,70 @@ def _zero_reasons(rows: list[dict[str, object]], side: str) -> dict[str, int]:
     return total
 
 
+def default_checkpoint(level_a: str, level_b: str) -> Path:
+    """默认 checkpoint 文件名带对局双方：同一天跑多对不会互相覆盖。"""
+    return (ROOT / "benchmarks" / "calibration_runs"
+            / f"{date.today()}-{level_a}-vs-{level_b}.jsonl")
+
+
+def _clean_times(rows: list[dict[str, object]], side: str) -> list[float]:
+    """未被截断的手；旧 checkpoint 没有 clean 字段时退回全量（兼容）。"""
+    clean = [float(value) for row in rows
+             for value in (row.get(f"{side}_clean_move_times") or [])]
+    if clean:
+        return clean
+    return [float(value) for row in rows for value in (row.get(f"{side}_move_times") or [])]
+
+
 def summarize(rows: list[dict[str, object]], level_a: str, level_b: str,
-              book_size: int) -> dict[str, object]:
+              book_size: int, target_n: int) -> dict[str, object]:
     games = len(rows)
     wins = sum(row.get("winner") == row.get("master_color") for row in rows)
     losses = sum(row.get("winner") is not None
                  and row.get("winner") != row.get("master_color") for row in rows)
     draws = games - wins - losses
-    point = wins / games if games else 0.0
-    low, high = wilson_interval(wins, games)
+    # 和棋按半分计入：k_eff = W + 0.5·D。用 W/n 会系统性低估势均力敌的对局。
+    score = wins + 0.5 * draws
+    point = score / games if games else 0.0
+    low, high = wilson_interval(score, games)
     a_bound = _aggregate_reasons(rows, "a")
     b_bound = _aggregate_reasons(rows, "b")
     a_zero = _zero_reasons(rows, "a")
     b_zero = _zero_reasons(rows, "b")
     a_moves = sum(int(row.get("a_moves", 0)) for row in rows)
     b_moves = sum(int(row.get("b_moves", 0)) for row in rows)
-    a_times = [float(value) for row in rows for value in (row.get("a_move_times") or [])]
-    b_times = [float(value) for row in rows for value in (row.get("b_move_times") or [])]
+    a_times = _clean_times(rows, "a")
+    b_times = _clean_times(rows, "b")
+    # 门槛按整数 k_eff 找（n=32→22、n=64→40）；和棋只影响实际 k_eff，不改变门槛。
     threshold = next((count for count in range(games + 1)
                       if games and count / games >= 0.60
                       and wilson_interval(count, games)[0] >= 0.50), None)
     nodes_ratio_a = a_bound["nodes"] / a_moves if a_moves else 0.0
     nodes_ratio_b = b_bound["nodes"] / b_moves if b_moves else 0.0
     gates = {
-        "enoughGames": games >= 2,
+        "enoughGames": games >= target_n,
         "wallClean": a_bound["wall"] == 0 and b_bound["wall"] == 0,
         "noZeroDepth": sum(a_zero.values()) == 0 and sum(b_zero.values()) == 0,
         "nodesRatioAtMost2Percent": nodes_ratio_a <= 0.02 and nodes_ratio_b <= 0.02,
     }
+    win_rate_pass = point >= 0.60 and low >= 0.50
     return {
         "levels": {"a": level_a, "b": level_b},
-        "games": games,
+        "games": games, "targetGames": target_n,
         "wins": wins, "losses": losses, "draws": draws,
+        "score": score,
         "winRate": round(point, 4),
         "wilson95": [round(low, 4), round(high, 4)],
         "elo": (None if (elo_value := elo_from_win_rate(point)) is None
                 else round(elo_value, 1) or 0.0),
         "thresholdWins": threshold,
-        "winRatePass": point >= 0.60 and low >= 0.50,
+        "winRatePass": win_rate_pass,
         "moveTimes": {"a": time_stats(a_times), "b": time_stats(b_times)},
         "boundReasons": {"a": a_bound, "b": b_bound},
         "zeroDepthReasons": {"a": a_zero, "b": b_zero},
         "moves": {"a": a_moves, "b": b_moves},
         "gates": gates,
-        "pass": (point >= 0.60 and low >= 0.50 and gates["wallClean"]
+        "pass": (win_rate_pass and gates["enoughGames"] and gates["wallClean"]
                  and gates["noZeroDepth"] and gates["nodesRatioAtMost2Percent"]),
         "book": {
             "size": book_size,
@@ -142,7 +160,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--n", type=int, default=32, help="总局数（必须偶数：每开局红黑各一）")
     parser.add_argument("--max-plies", type=int, default=100)
     parser.add_argument("--book", default=str(DEFAULT_BOOK))
-    parser.add_argument("--checkpoint", default=str(DEFAULT_CHECKPOINT))
+    parser.add_argument("--checkpoint", default="",
+                        help="默认 benchmarks/calibration_runs/<date>-<a>-vs-<b>.jsonl")
     parser.add_argument("--output", default="")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--cap-a", default="auto", help="auto / 秒数")
@@ -154,7 +173,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.n % 2 != 0:
         parser.error("--n 必须是偶数：每开局恰好两局（红黑各一），奇数最后一局不成对")
     book = opening_book.load_book(Path(args.book))
-    checkpoint = Path(args.checkpoint)
+    checkpoint = (Path(args.checkpoint) if args.checkpoint
+                  else default_checkpoint(args.level_a, args.level_b))
     rows = _load_rows(checkpoint) if args.resume else []
     start_game = len(rows)
     if start_game >= args.n:
@@ -181,13 +201,13 @@ def main(argv: list[str] | None = None) -> int:
                 seed=0, time_scale=1.0,
                 a_config=config_a, b_config=config_b,
                 book=book, position_builder=opening_book.build_game,
-                on_game=on_game, start_game=start_game,
+                on_game=on_game, start_game=start_game, total_games=args.n,
             )
         finally:
             handle.close()
         rows = _load_rows(checkpoint)
 
-    report = summarize(rows, args.level_a, args.level_b, len(book))
+    report = summarize(rows, args.level_a, args.level_b, len(book), args.n)
     # 开局 provenance（按绝对局号还原取样规则；报告可逐局审计）。
     for row in rows:
         game = int(row.get("game", 0))

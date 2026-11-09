@@ -385,9 +385,10 @@ class ChessAI:
                 cancel: threading.Event | None, ply: int, allow_null: bool = True) -> float:
         self._guard(deadline, cancel)
         self.nodes += 1
-        # 节点预算：**逐节点**检查（逐根着法检查会重新变成非确定）。到点即抛，
-        # 由 `choose_move` 归到"最后一层完整深度"。`None` = 不启用。
-        if self._config.max_nodes is not None and self.nodes >= self._config.max_nodes:
+        # 节点预算：**逐节点**检查。`self.nodes` 先 +1 表示"这一节点已进入搜索"，
+        # 因此必须用 `>` 而不是 `>=`：`max_nodes=N` 的语义是"允许 N 个节点跑完"，
+        # 第 N+1 个进入时才截断。`None` = 不启用。
+        if self._config.max_nodes is not None and self.nodes > self._config.max_nodes:
             self._timeout_reason = "nodes"
             raise SearchTimeout
         key = evaluation_key(game.rules, game.state)

@@ -155,7 +155,7 @@ def test_book_index_spreads_evenly_and_mixes_plies() -> None:
 
 
 def test_report_carries_reason_ledgers_and_move_time_stats() -> None:
-    """截断原因分账 + median/p95/max：判据与 `EXPECTED_MOVE_SECONDS` 的数据源。"""
+    """截断原因分账 + 耗时统计：median/p95 只用**未截断**的手。"""
     zero_budget = SearchConfig(depth=2, time_limit=1e-9, randomness=0.0,
                                quiescence_depth=0, candidate_count=1,
                                branch_limit=1, root_limit=2)
@@ -167,6 +167,37 @@ def test_report_carries_reason_ledgers_and_move_time_stats() -> None:
     assert report["zeroDepthReasons"]["a"]["wall"] >= 1
     assert report["totalMoves"]["a"] == 1
     stats = report["moveTimeStats"]["a"]
-    assert stats["n"] == 1
+    assert stats["n"] == 0, "被墙钟截断的手不能进 median/p95（它代表预算，不代表档位）"
     assert set(stats) == {"n", "median", "p95", "max"}
+    # 全量耗时仍保留（acceptance 的 max 判据要用）
+    assert len(report["results"][0]["a_move_times"]) == 1
+    assert report["results"][0]["a_clean_move_times"] == []
+
+
+def test_clean_move_times_exclude_truncated_moves() -> None:
+    report = benchmark_match(
+        "beginner", "easy", games=1, profile="traditional", max_plies=1, seed=0,
+        a_config=_cheap_config(), b_config=_cheap_config(),
+    )
+    stats = report["moveTimeStats"]["a"]
+    assert stats["n"] == 1
     assert stats["median"] == stats["p95"] == stats["max"]
+
+
+def test_chunked_run_uses_total_games_for_book_sampling() -> None:
+    """分块跑（start_game=32）必须与整批的 [32:64] 用同一批开局。"""
+    book = [Opening("p", 700 + seed, plies) for seed in range(32) for plies in (6, 10)]
+    calls: list[tuple[str, int, int]] = []
+
+    def builder(profile: str, seed: int, plies: int) -> Game:
+        calls.append((profile, seed, plies))
+        return Game("traditional")
+
+    report = benchmark_match("beginner", "easy", games=32, start_game=32,
+                             total_games=64, max_plies=0, book=book,
+                             position_builder=builder)
+    expected = [f"{entry.profile}#{entry.seed}@{entry.plies}"
+                for entry in (book[book_index(i, 64, len(book))] for i in range(32, 64))]
+    assert report["book"]["used"] == expected
+    assert len(report["book"]["used"]) == 32
+    assert all(index < 64 for index in (book_index(i, 64, len(book)) for i in range(32, 64)))

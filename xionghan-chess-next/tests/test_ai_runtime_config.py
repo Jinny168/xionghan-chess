@@ -65,7 +65,8 @@ def test_max_nodes_truncates_with_reason() -> None:
     engine = ChessAI(Difficulty.MEDIUM, seed=0, config=cfg)
     move = engine.choose_move(Game("traditional"))
     assert move is not None
-    assert engine.nodes >= 3
+    # 口径：`max_nodes=N` 允许 N 个节点跑完，第 N+1 个进入时才截断。
+    assert engine.nodes == 4
     assert engine.completed_depth == 0, "第 1 层根着法都没走完就被节点预算截断"
     assert engine.bound_reason == "nodes"
     assert engine.zero_depth_moves == 1

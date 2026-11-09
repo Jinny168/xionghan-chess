@@ -66,6 +66,9 @@ class MatchResult:
     # 旧 JSONL 没有这两个键，`scripts/benchmark_ai.py --summarize` 不读它们，兼容。
     a_move_times: list[float] = field(default_factory=list)
     b_move_times: list[float] = field(default_factory=list)
+    # 未被截断（`bound_reason is None`）的逐手耗时：median/p95 只用这一组。
+    a_clean_move_times: list[float] = field(default_factory=list)
+    b_clean_move_times: list[float] = field(default_factory=list)
     # 逐局截断账本：`--resume` 后仍能汇总"这批数据能不能引用"。
     # 键：wall / nodes / cancel；`*_moves` 是该方总着数（算 nodes 占比的分母）。
     a_bound_reasons: dict[str, int] = field(default_factory=dict)
@@ -124,9 +127,10 @@ def _starting_game(game_index: int, games: int, profile: str,
     return position_builder(entry.profile, entry.seed, entry.plies)
 
 
-def wilson_interval(wins: int, games: int, z: float = 1.96) -> tuple[float, float]:
+def wilson_interval(wins: float, games: int, z: float = 1.96) -> tuple[float, float]:
     """Wilson 95% 置信区间（闭式，无第三方依赖）。
 
+    `wins` 允许小数：和棋按半分计入时用 `k_eff = W + 0.5·D`。
     小样本下正态近似会产生负下界（0/50 时尤其明显），Wilson 不会。边界：
     `0/50 → (0, 0.0714)`、`50/50 → (0.9286, 1.0)`。
     """
@@ -181,7 +185,8 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
                     book: Sequence[Opening] | None = None,
                     position_builder: PositionBuilder | None = None,
                     on_game: GameHook | None = None,
-                    start_game: int = 0) -> dict[str, Any]:
+                    start_game: int = 0,
+                    total_games: int | None = None) -> dict[str, Any]:
     """跑一场**任意两档**之间的对局，返回机器可读的验收数据。
 
     口径（与历史 `master vs hard` 完全一致，只是双方可换）：
@@ -199,16 +204,24 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
     `time_scale` 作用于**双方**，通过 `ChessAI(time_scale=...)` 注入实例，
     **不再写 `os.environ`**（进程级环境变量会让同进程并行的两场对局互相串）。
     传 `a_simulations` 时 A 方改走 MCTS 固定模拟次数。
+
+    `total_games`：分块跑（`start_game>0`）时传"整批总局数"，取样索引按整批算，
+    保证分块与一次跑完逐局一致；默认等于 `games`。
     """
     level_a, level_b = Difficulty(level_a), Difficulty(level_b)
     if book is not None and position_builder is None:
         # 显式失败，不要静默退化成"从初始局面开局"——否则整批标定用了错的起点。
         raise ValueError("book 需要 position_builder（见 benchmark_match 文档）")
     a_ceiling = _move_ceiling(level_a, a_config)
+    total = games if total_games is None else total_games
+    if total <= 0:
+        total = games
 
     results: list[MatchResult] = []
     a_move_times: list[float] = []
     b_move_times: list[float] = []
+    a_clean_times: list[float] = []
+    b_clean_times: list[float] = []
     # 诊断账本：
     #   zeroDepth* = 一手都没搜完（强退化信号）；
     #   bound*     = 任何一手被截断（判据用，不论 depth）；
@@ -221,12 +234,13 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
     total_moves = {"a": 0, "b": 0}
     used_openings: list[Opening] = []
     for game_index in range(start_game, start_game + games):
-        game = _starting_game(game_index, games, profile, book, position_builder)
+        game = _starting_game(game_index, total, profile, book, position_builder)
         if book is not None:
-            used_openings.append(book[book_index(game_index, games, len(book))])
+            used_openings.append(book[book_index(game_index, total, len(book))])
         a_color = Color.RED if game_index % 2 == 0 else Color.BLACK
         totals = {"a": 0.0, "b": 0.0}
         game_times: dict[str, list[float]] = {"a": [], "b": []}
+        game_clean: dict[str, list[float]] = {"a": [], "b": []}
         game_bound = {"a": {"wall": 0, "nodes": 0, "cancel": 0},
                       "b": {"wall": 0, "nodes": 0, "cancel": 0}}
         game_zero = {"a": {"wall": 0, "nodes": 0, "cancel": 0},
@@ -238,6 +252,7 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
             is_a = game.state.turn is a_color
             side = "a" if is_a else "b"
             started = time.perf_counter()
+            clean = True
             if is_a and a_simulations is not None:
                 # 固定模拟次数：A 方走 MCTS，评分器借 B 方实例的 SEE（与档位无关）。
                 scorer = ChessAI(level_b, config=b_config)._see_score
@@ -249,6 +264,7 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
                 engine = ChessAI(level, seed=seed + game_index * max_plies + ply,
                                  config=config, time_scale=time_scale)
                 move = engine.choose_move(game)
+                clean = engine.bound_reason is None
                 total_moves[side] += 1
                 game_moves[side] += 1
                 if engine.zero_depth_moves:
@@ -263,6 +279,9 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
             bucket = a_move_times if is_a else b_move_times
             bucket.append(elapsed)
             game_times[side].append(elapsed)
+            if clean:
+                (a_clean_times if is_a else b_clean_times).append(elapsed)
+                game_clean[side].append(elapsed)
             totals[side] += elapsed
             if move is None:
                 break
@@ -276,6 +295,7 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
             game_index + 1, a_color.value, winner.value if winner else None,
             adjudicated, len(game.state.history), totals["a"], totals["b"],
             game_times["a"], game_times["b"],
+            game_clean["a"], game_clean["b"],
             game_bound["a"], game_bound["b"], game_zero["a"], game_zero["b"],
             game_moves["a"], game_moves["b"],
         )
@@ -290,6 +310,7 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
     completed_games = sum(not item.adjudicated for item in results)
     return {
         "games": games,
+        "totalGames": total,
         "levels": {"a": level_a.value, "b": level_b.value},
         "masterWins": a_wins, "hardWins": b_wins, "draws": draws,
         "masterWinRate": a_wins / games if games else 0.0,
@@ -309,7 +330,9 @@ def benchmark_match(level_a: Difficulty | str = Difficulty.MASTER,
         "zeroDepthReasons": zero_depth_reasons,
         "boundReasons": bound_reasons,
         "totalMoves": total_moves,
-        "moveTimeStats": {"a": time_stats(a_move_times), "b": time_stats(b_move_times)},
+        # median/p95 只统计"没被截断"的手：被 wall/nodes 打断的那一手代表的是预算，
+        # 不是这一档的真实耗时。max/mean 仍用全量，供旧报告与 acceptance 兼容。
+        "moveTimeStats": {"a": time_stats(a_clean_times), "b": time_stats(b_clean_times)},
         "book": None if book is None else {
             "size": len(book),
             "used": [f"{entry.profile}#{entry.seed}@{entry.plies}"
