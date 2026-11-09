@@ -126,7 +126,11 @@ jobs:
       # Windows 读 %APPDATA%，Linux 读 $XDG_CONFIG_HOME/~/.config。
       # 在 ubuntu 上 setenv("APPDATA") 是**无效**的，用例会写进真实的 HOME。
       # 这里把 XDG 根挪到 runner 临时目录，至少保证不污染 runner、不跨 run 残留。
-      XDG_CONFIG_HOME: ${{ runner.temp }}/xdg-config
+      # XDG_CONFIG_HOME 由下方「导出 XDG_CONFIG_HOME」step 写入 GITHUB_ENV：
+      # job 级 env **不支持 runner 上下文** —— `${{ runner.temp }}` 写在这里
+      # 会被 GitHub 表达式校验直接拒绝整个 workflow 文件
+      # （"Unrecognized named-value: 'runner'"，run #115-#117 三连红、
+      # 一个 job 都没起就失败的根因），step 级与 GITHUB_ENV 不受此限。
       # **刻意不设 `AI_TIME_SCALE`。** 它是个全局时间倍率（core/ai.py:192），
       # 一设就等于把所有 AI 用例的墙钟预算一起改掉 —— 那会同时掩盖真实缺陷
       # （`test_ai.py::test_truncated_root_moves_never_become_best` 现在就是靠预算
@@ -153,6 +157,11 @@ jobs:
           # `test_desktop_pieces_assets` 与 `test_web_sound_pack` 会红，
           # 而 `test_desktop_pieces_assets` 的注释恰好就写了这个失败模式。
           lfs: true
+
+      - name: 导出 XDG_CONFIG_HOME（runner 临时目录）
+        # 见上方 job 级 env 注释：runner 上下文在 job 级 env 不合法，
+        # 用 GITHUB_ENV 导出，对后续所有 step（桌面冒烟、主 pytest、对拍断言）生效。
+        run: echo "XDG_CONFIG_HOME=$RUNNER_TEMP/xdg-config" >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@v5
         with:
