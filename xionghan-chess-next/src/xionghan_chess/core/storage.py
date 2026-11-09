@@ -8,11 +8,88 @@ from typing import Any
 
 from .game import Game
 from .legacy import migrate_legacy_game
-from .model import GameState, UnsupportedSaveError
+from .model import Color, GameState, Piece, PieceType, UnsupportedSaveError
 from .profiles import RuleProfile, get_profile
 from .rules import POSITION_KEY_VERSION
+from .setup import slot_id
 
 FORMAT_VERSION = 1
+
+# ── F1-a 旧档迁移 ───────────────────────────────────────────────────────────
+# `95c2784` 把尉/仕对调了开局位，但只有 `desktop_complete` 启用尉；`desktop_classic`
+# 与 `web` 当时被连带换成了一枚"走不动、不显示、却会挡子"的尉。F1-a 已把那两档的
+# roster 改回仕，于是**F1-a 之前保存的这两档棋谱**里，`setup.redSlots/blackSlots`
+# 仍写着 `red:guard:11:5` / `black:guard:1:5` —— 直接加载会被 `GameSetup.build` 的
+# `unavailable piece slots` 拒掉，老用户升级后打不开自己的棋谱。
+#
+# 这里只做**这一对类型**的显式映射，且坐标限定在旧对调位，**不**泛化成"任意同坐标
+# 替换"：后者会把"槽位里写着一个已删除/未启用的兵种"这类真损坏一起静默吞掉，
+# 而那正是我们想继续报错的（见 `test_removed_pieces_are_gone` 与下面两条反向用例）。
+F1A_LEGACY_GUARD_SQUARES: frozenset[tuple[int, int]] = frozenset({(1, 5), (11, 5)})
+
+
+def _f1a_migrate_slot(slot: object) -> object:
+    """`red:guard:11:5` → `red:advisor:11:5`；其它槽位原样返回。
+
+    形状不认识（段数不对、颜色/坐标不是字面量）时原样返回，让 `GameSetup.build`
+    继续用它那条 `unavailable piece slots` 报错 —— 迁移不该顺手把解析失败也吃掉。
+    """
+    if not isinstance(slot, str):
+        return slot
+    parts = slot.split(":")
+    if len(parts) != 4 or parts[1] != PieceType.GUARD.value:
+        return slot
+    try:
+        color = Color(parts[0])
+        square = (int(parts[2]), int(parts[3]))
+    except ValueError:
+        return slot
+    if square not in F1A_LEGACY_GUARD_SQUARES:
+        return slot
+    return slot_id(color, PieceType.ADVISOR, square[0], square[1])
+
+
+def _f1a_migrate_setup(setup: Any, profile: RuleProfile) -> Any:
+    """把旧文档 `setup` 里的旧对调位尉槽位映射成仕。
+
+    只在"该档不启用尉"时生效（`desktop_complete` 的尉是对调后正确的，不能动）。
+    `setup` 形状不认识时原样返回，交给 `GameSetup.from_dict` 自己判断 —— 迁移不该
+    顺手把"存档结构是坏的"也一起吃掉。
+    """
+    if not isinstance(setup, dict) or PieceType.GUARD in profile.enabled_piece_types:
+        return setup
+    migrated: dict[str, Any] = dict(setup)
+    for key in ("redSlots", "blackSlots"):
+        slots = migrated.get(key)
+        if isinstance(slots, list):
+            migrated[key] = [_f1a_migrate_slot(slot) for slot in slots]
+    return migrated
+
+
+def _f1a_migrate_opening_pieces(state: GameState, profile: RuleProfile) -> bool:
+    """把**开局存档**盘面上的旧对调位尉升级成仕；返回是否真的改过。
+
+    只对 `history` 为空的存档生效。**有历史的对局一律原样保留**：改了就会与
+    `history[].pieceType` 对不上（复盘里出现"走过尉、盘上没有尉"），而且对进行中的
+    对局做追溯性棋子变更，可能让那枚子凭空变得能动。进行中的档里那枚尉保持原语义：
+    `enabled_piece_types` 把它挡在伪合法着之外（自己 0 着），但它**仍然是合法的吃子
+    目标** —— 别把它写成"这枚子彻底无效"。
+    """
+    if PieceType.GUARD in profile.enabled_piece_types or state.history:
+        return False
+    stale = [piece for piece in state.pieces
+             if piece.type is PieceType.GUARD
+             and (piece.position.row, piece.position.col) in F1A_LEGACY_GUARD_SQUARES]
+    if not stale:
+        return False
+    upgrading = {(piece.color, piece.position.row, piece.position.col) for piece in stale}
+    state.pieces = [
+        Piece.create(PieceType.ADVISOR, piece.color, piece.position.row, piece.position.col)
+        if (piece.color, piece.position.row, piece.position.col) in upgrading
+        else piece
+        for piece in state.pieces
+    ]
+    return True
 
 
 def game_document(game: Game) -> dict[str, Any]:
@@ -82,6 +159,8 @@ def game_from_document(data: dict[str, Any]) -> Game:
         raise ValueError("棋谱规则档案与局面不一致")
     _profile = get_profile(profile_id)
     _assert_in_bounds(_profile, state, "当前局面")
+    # F1-a：句柄在文档加载边界（见 F1A_LEGACY_GUARD_SQUARES 注释）。
+    migrated_pieces = _f1a_migrate_opening_pieces(state, _profile)
     raw_snapshots = data.get("snapshots", [])
     if not isinstance(raw_snapshots, list):
         raise ValueError("棋谱复盘数据无效")
@@ -96,11 +175,14 @@ def game_from_document(data: dict[str, Any]) -> Game:
         snapshots.append(snapshot.to_dict())
     if snapshots and len(snapshots) != len(state.history):
         raise ValueError("棋谱步数与复盘数据不一致")
-    game = Game.from_state(state, data.get("options", {}), data.get("setup"))
+    game = Game.from_state(state, data.get("options", {}),
+                           _f1a_migrate_setup(data.get("setup"), _profile))
     game._snapshots = snapshots
     # A document written before the pool entered the key cannot be trusted as-is;
     # anything carrying today's marker is loaded verbatim.
-    if int(data.get("positionKeyVersion", 1)) < POSITION_KEY_VERSION:
+    if migrated_pieces or int(data.get("positionKeyVersion", 1)) < POSITION_KEY_VERSION:
+        # 开局档被迁移过时也要重建：旧台账里的键带 `guard`，升级后再也产生不出来，
+        # 留着就是一串永远不会再命中、也永远清不掉的幽灵键。
         game.state.position_counts = _rebuild_position_counts(game)
     game.state.turn_started_at = time.monotonic()
     return game

@@ -3,7 +3,7 @@ import pytest
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.legacy import migrate_legacy_game
-from xionghan_chess.core.model import Color, GameState, Piece, PieceType
+from xionghan_chess.core.model import Color, GameState, Piece, PieceType, Position
 from xionghan_chess.core.profiles import get_profile
 from xionghan_chess.desktop import storage
 from xionghan_chess.desktop.storage import (
@@ -138,3 +138,125 @@ def test_statistics_upgrade_old_schema_and_track_streak(tmp_path, monkeypatch):
     assert stats["games"] == 3
     assert stats["winStreak"] == {"current": 1, "max": 1}
     assert stats["perColor"][game.state.turn.value]["wins"] == 1
+
+
+# ── F1-a 旧档迁移：`guard@(1,5)/(11,5)` → `advisor` ─────────────────────────
+# `95c2784` 的尉/仕对调只在启用尉的 `desktop_complete` 上成立；`desktop_classic` /
+# `web` 当时被连带换成了一枚"走不动、不显示、却挡子"的尉，F1-a 已把 roster 改回仕。
+# 于是**F1-a 之前保存的这两档棋谱**，`setup` 槽位里还写着 `red:guard:11:5`，
+# 直接加载会被 `GameSetup.build` 的 `unavailable piece slots` 拒掉 —— 用户升级后
+# 打不开自己的棋谱。迁移在 `storage.game_from_document`（文档加载边界）做。
+# 注意：离线端文档不带 `setup`（`offline.js::gameDocument()` 不写），所以这条覆盖
+# 不到离线包；离线题库 13 题也全是 `desktop_complete`，不受影响。
+_F1A_SQUARES = {(1, 5), (11, 5)}
+_F1A_PERFT = {"desktop_classic": 113, "web": 107}
+_F1A_PERFT_MID = {"desktop_classic": 110, "web": 104}
+
+
+def _legacy_f1a_document(profile_id: str, plies: int = 0) -> dict:
+    """造一份 **F1-a 之前**会写出的存档（把 (1,5)/(11,5) 的仕退回成尉）。
+
+    做法：先用今天的代码摆出局面并（可选）走几手，再把 `state` 与 `snapshots` 里
+    那两个坐标的 `advisor` 退回 `guard`、`setup` 槽位同步退回 —— 这样得到的文档
+    与 `0bc3377` 时代 `game_document()` 的产物同形（柯桥良用旧代码生成的四份 fixture
+    已对照过：加载结果逐项一致）。
+    """
+    game = Game(profile_id)
+    assert PieceType.GUARD not in game.profile.enabled_piece_types, profile_id
+    for _ in range(plies):
+        game.move(sorted(game.rules.legal_moves(game.state), key=lambda m: m.key())[0])
+
+    data = game_document(game)
+
+    def downgrade_pieces(state_dict: dict) -> None:
+        for piece in state_dict["pieces"]:
+            if piece["type"] == PieceType.ADVISOR.value and (piece["row"], piece["col"]) in _F1A_SQUARES:
+                piece["type"] = PieceType.GUARD.value
+
+    downgrade_pieces(data["state"])
+    for snapshot in data.get("snapshots", []):
+        downgrade_pieces(snapshot)
+    for key in ("redSlots", "blackSlots"):
+        data["setup"][key] = [
+            slot.replace("advisor:11:5", "guard:11:5").replace("advisor:1:5", "guard:1:5")
+            for slot in data["setup"][key]
+        ]
+    return data
+
+
+@pytest.mark.parametrize("profile_id", ["desktop_classic", "web"])
+def test_opening_archive_from_before_f1a_is_upgraded_on_load(profile_id):
+    """验收 1：开局档（`history` 为空）→ 槽位与盘面都升级为仕，perft 回到新布局值。"""
+    document = _legacy_f1a_document(profile_id)
+    assert any("guard:11:5" in slot for slot in document["setup"]["redSlots"]), "前提：旧档槽位里确实有尉"
+
+    game = game_from_document(document)
+
+    assert all("guard" not in slot for slot in game.setup.red_slots + game.setup.black_slots)
+    assert game.state.piece_at(Position(11, 5)).type is PieceType.ADVISOR
+    assert game.state.piece_at(Position(1, 5)).type is PieceType.ADVISOR
+    assert len(game.rules.legal_moves(game.state)) == _F1A_PERFT[profile_id]
+    # 旧台账里的键带 guard，升级后永远产生不出来 —— 必须重建，不能留幽灵键
+    assert all("guard" not in key for key in game.state.position_counts)
+
+
+@pytest.mark.parametrize("profile_id", ["desktop_classic", "web"])
+def test_in_progress_archive_from_before_f1a_still_loads_but_keeps_the_board(profile_id):
+    """验收 2：进行中档 → 只保证能开。
+
+    盘面原样（那枚尉仍是尉），因为对进行中的对局做追溯性棋子变更会让它凭空变得能动，
+    并让 `history[].pieceType` 与盘面对不上。它能做的着法仍是 0，但**仍然是合法吃子
+    目标** —— "死子"不等于"无效子"。
+    """
+    document = _legacy_f1a_document(profile_id, plies=1)
+    assert document["state"]["history"], "前提：这份档有对局历史"
+
+    game = game_from_document(document)
+
+    assert all("guard" not in slot for slot in game.setup.red_slots)      # 槽位仍要迁移，否则拒载
+    guard = game.state.piece_at(Position(1, 5))
+    assert guard.type is PieceType.GUARD, "进行中的档不许改盘面"
+    assert game.state.piece_at(Position(11, 5)).type is PieceType.GUARD
+    assert len(game.rules.legal_moves(game.state)) == _F1A_PERFT_MID[profile_id]
+    assert PieceType.GUARD.value not in {record.piece_type.value for record in game.state.history}
+
+    # 它自己的合法着 = 0（`enabled_piece_types` 把它挡在伪合法着之外）
+    own = [m for m in game.rules.legal_moves(game.state)
+           if (m.source.row, m.source.col) == (1, 5)]
+    assert own == []
+
+    # 但它仍然可以被吃：在 (2,5) 放一枚红俥，应能吃掉 (1,5) 的尉并产生一条 removal
+    game.state.pieces.append(Piece.create(PieceType.ROOK, Color.RED, 2, 5))
+    captures = [m for m in game.rules.legal_moves(game.state, Color.RED)
+                if (m.target.row, m.target.col) == (1, 5)]
+    assert len(captures) == 1
+    assert len(game.rules.board_removals(game.state, captures[0])) == 1
+
+    # 还能继续下：黑方（存档时轮到黑）走一步不报错
+    assert game.state.turn is Color.BLACK
+    game.move(sorted(game.rules.legal_moves(game.state), key=lambda m: m.key())[0])
+    assert len(game.state.history) == 2
+
+
+def test_unavailable_slot_that_is_not_the_f1a_pair_still_raises():
+    """验收 3：迁移只处理 `guard@(1,5)/(11,5)` 这一对，别的坏槽位必须继续报错。
+
+    否则"宽松加载"会把真损坏的存档一起放过 —— 那比拒载更糟（用户以为读到了）。
+    """
+    document = _legacy_f1a_document("desktop_classic")
+    document["setup"]["redSlots"] = [
+        slot.replace("red:guard:11:5", "red:armor:11:5") for slot in document["setup"]["redSlots"]
+    ]
+    with pytest.raises(ValueError, match="unavailable piece slots"):
+        game_from_document(document)
+
+
+def test_guard_slot_on_a_non_f1a_square_still_raises():
+    """同类型也不泛化：尉槽位若不在旧对调位，仍按"该档不启用尉"报错。"""
+    document = _legacy_f1a_document("desktop_classic")
+    document["setup"]["redSlots"] = [
+        slot.replace("red:guard:11:5", "red:guard:2:5") for slot in document["setup"]["redSlots"]
+    ]
+    with pytest.raises(ValueError, match="unavailable piece slots"):
+        game_from_document(document)
+
