@@ -31,13 +31,21 @@
 |---|---|---|
 | [RUN_LOCAL_PLAN.md](RUN_LOCAL_PLAN.md) | 本机可玩交付计划：桌面版 + 网页版 | 参考 |
 
+## current · 维护中（可更新）
+
+| 文件 | 用途 | 是否权威 |
+|---|---|---|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 架构与功能说明（含三档 AI、WASM 结论、离线数据 codegen） | ✅ 维护中 |
+| [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | 已知问题与未完成实测登记 | ✅ 维护中 |
+| [WASM_DECISION.md](WASM_DECISION.md) | WASM 可行性结论、证据与重开条件 | ✅ 维护中 |
+| [AUDIT_1.7.5_full.md](AUDIT_1.7.5_full.md) | v1.7.5 全面审计（最近一次，含 S1–S5 执行记录） | 参考 |
+
 ## history · 历史快照（只读不改）
 
 | 文件 | 用途 | 是否权威 |
 |---|---|---|
 | [AI_FIXES.md](AI_FIXES.md) | AI Bug 修复清单 | ❌ 历史快照 |
 | [AI_v1.3.0.md](AI_v1.3.0.md) | 匈汉象棋 AI 引擎优化 v1.3.0（方案 + 实施 + 审计） | ❌ 历史快照 |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | 架构与功能说明 | ❌ 历史快照 |
 | [AUDIT_1.6.0_full.md](AUDIT_1.6.0_full.md) | 匈汉象棋 v1.6.0 全面审计报告 | ❌ 历史快照 |
 | [AUDIT_DESKTOP_1.7.0.md](AUDIT_DESKTOP_1.7.0.md) | 匈汉象棋 v1.7.0 桌面版架构与工程审计报告 | ❌ 历史快照 |
 | [AUDIT_STRUCTURE_1.7.0.md](AUDIT_STRUCTURE_1.7.0.md) | 匈汉象棋 v1.7.0 结构审计报告（目录 / 命名 / 依赖 / 职责） | ❌ 历史快照 |
@@ -57,7 +65,6 @@
 | [DOCS_PLAN_2026-10-31.md](DOCS_PLAN_2026-10-31.md) | 文档盘点与归并方案（2026-10-31） | ❌ 历史快照 |
 | [GAP_ANALYSIS_vs_legacy.md](GAP_ANALYSIS_vs_legacy.md) | 新旧版本功能差异审计：缺失功能清单与补全方案 | ❌ 历史快照 |
 | [i18n-language-switch.md](i18n-language-switch.md) | 匈汉象棋 · 中英文切换（i18n）功能规划与 AI 提示词 | ❌ 历史快照 |
-| [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | 已知问题 | ❌ 历史快照 |
 | [QA_PIECE_ATLAS.md](QA_PIECE_ATLAS.md) | 棋子图谱 / 三风格棋子美术 · 验收用例 | ❌ 历史快照 |
 | [QA_REPORT_1.4.0.md](QA_REPORT_1.4.0.md) | v1.4.0 QA 报告 | ❌ 历史快照 |
 | [QA_REPORT_1.5.0.md](QA_REPORT_1.5.0.md) | v1.5.0 QA 报告 | ❌ 历史快照 |

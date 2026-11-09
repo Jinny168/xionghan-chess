@@ -39,14 +39,14 @@ py -3.11 -m venv .venv
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[test]"
-# 日常门禁（约 83 秒，跳过 slow）
+# 日常门禁（约 2–3 分钟，跳过 slow；当前 1019 条）
 .\.venv\Scripts\python.exe -m pytest tests/ -m "not slow"
-# 全量（约 132 秒，含专家档 14 条深度用例 + 性能护栏）
+# 全量（含 slow；改评估/搜索参数后必跑）
 .\.venv\Scripts\python.exe -m pytest tests/ -m slow
 ```
 
-> 日常门禁用 `-m "not slow"`（约 83s）；**改评估 / 走法排序 / 搜索参数 / 难度参数后必须跑全量**
-> （`-m slow`，约 132s）。裸 `pytest` 会跑全量、更慢 —— 门禁命令请显式写出来，不要靠全局默认。
+> 日常门禁用 `-m "not slow"`（当前 1019 条，约 2–3 分钟，随用例数增长）；**改评估 / 走法排序 / 搜索参数 / 难度参数后必须跑全量**
+> （`-m slow`）。裸 `pytest` 会跑全量、更慢 —— 门禁命令请显式写出来，不要靠全局默认。
 
 ## 功能摘要
 
