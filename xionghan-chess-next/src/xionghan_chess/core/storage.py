@@ -121,6 +121,12 @@ def _rebuild_position_counts(game: Game) -> dict[str, int]:
 
     The snapshot list is the pre-move state of every ply and the live state is
     the last one, which is exactly the set `Game._record_position` counted.
+
+    ⚠️ **只在"盘面被迁移过"或"键格式换代"时调用，不要为了"统一"对所有文档重算。**
+    F1-a 迁移只升级**开局档**（`history` 为空）的盘面；进行中的档（`history` 非空）
+    盘面原样保留，它的 `snapshots` 里本来就有那枚旧子，`position_key(state)` 就在
+    原台账里 —— **保留原键是对的、自洽的**。若把它也一起重算，等于把 mid 档的守卫
+    键抹掉、计数从 0 重新开始，那正是 L-06 当初修的错判方向的反向错误。
     """
     counts: dict[str, int] = {}
     for snapshot in game._snapshots:

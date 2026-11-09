@@ -264,3 +264,22 @@ def test_guard_slot_on_a_non_f1a_square_still_raises():
     with pytest.raises(ValueError, match="unavailable piece slots"):
         game_from_document(document)
 
+
+def test_opening_does_not_migrate_a_profile_that_enables_guard():
+    """3c：迁移的前置条件「仅当该档 `enabled_piece_types` 不含 guard」必须生效。
+
+    `desktop_complete` 的 `(1,5)/(11,5)` 是 `95c2784` 对调后**合法**的尉
+    （`guard@(11,5)` 实测 4 着）。迁移条件一旦被写宽成"任何 `(1,5)` 上的 guard 都
+    改成仕"，就会把 F1-a 的修正**反向渗透**到这唯一不需要它的一档。
+
+    为什么这条必须单独存在：四档 `nativeOpening` 对拍只测**全新开局**，根本不走
+    存档路径 —— 条件写宽了那条腿不会红。**它是这条前置条件唯一的守卫。**
+    """
+    game = Game("desktop_complete")
+    loaded = game_from_document(game_document(game))
+
+    assert loaded.state.piece_at(Position(1, 5)).type is PieceType.GUARD
+    assert loaded.state.piece_at(Position(11, 5)).type is PieceType.GUARD
+    assert len(loaded.rules.legal_moves(loaded.state)) == 108
+    assert any("guard" in slot for slot in loaded.setup.red_slots + loaded.setup.black_slots)
+
