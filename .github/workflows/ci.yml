@@ -16,6 +16,12 @@ name: CI
 #   push / PR          → lint + test          （slow 不跑，故不阻塞合并）
 #   workflow_dispatch  → lint + test + slow   （手动全套）
 #   schedule（每周）    → slow only            （只跑墙钟级回归）
+#
+# 依赖安装源（唯一口径，S3-A1 起）
+#   test 与 slow **必须装同一份** `requirements/lock/py312-dev.txt`，且两个 job 的
+#   `cache-dependency-path` 逐字相同。理由：两个 job 装到不同依赖版本时，
+#   「slow 红 / test 绿」（或反过来）无法归因 —— 慢用例（专家档 d3、bench_roots
+#   200 手）恰恰对版本漂移最敏感。同一份 lock 之下，slow 红才等于代码/预算问题。
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -443,12 +449,18 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          # **与 test job 的 cache-dependency-path 逐字相同**（S3-A1 起）。
+          # 两个作用：
+          #   ① 缓存键由「实际被安装的文件」决定 —— S3-A1 起 slow 也从 lock 装，
+          #      所以键必须包含 lock；同时保留 dev.txt，dev.txt 变了 lock 就该重新
+          #      生成，键里带上它至少能让"忘了重新生成"时缓存失效。
+          #   ② setup-python 的键 = 这些文件的 hash + OS + python 版本。两个 job 列
+          #      同一组文件 → 同一个键 → slow 直接复用 test 已暖好的 pip 缓存，
+          #      不额外占一份缓存配额。以前 slow 多列了 core/server/desktop/
+          #      pyproject.toml，键与 test 不同，等于白存一份。
           cache-dependency-path: |
-            xionghan-chess-next/requirements/core.txt
-            xionghan-chess-next/requirements/server.txt
-            xionghan-chess-next/requirements/desktop.txt
+            xionghan-chess-next/requirements/lock/py312-dev.txt
             xionghan-chess-next/requirements/dev.txt
-            xionghan-chess-next/pyproject.toml
 
       - uses: actions/setup-node@v4
         with:
@@ -457,10 +469,17 @@ jobs:
           # 装上 node 只是让汇总行如实（约 5s），不是在 slow 里跑对拍。
           node-version: "22"
 
-      - name: 安装测试依赖（requirements/dev.txt）
+      - name: 安装测试依赖（lock：requirements/lock/py312-dev.txt）
+        # S3-A1：从裸 `requirements/dev.txt` 切到 lock。**slow 与 test 必须装同一
+        # 份 lock** —— 否则「slow 绿 / test 红」（或反过来）根本无法归因：两个 job
+        # 可能只是装到了不同的依赖版本，而慢用例（专家档 d3、bench_roots 200 手）
+        # 恰恰是对搜索预算/墙钟最敏感的那批，版本漂移首先在这里显形。
+        # 把安装源统一成 lock 之后，"同一份 lock 下 slow 红"才等于"代码/预算问题"。
+        # lock 的生成口径（源文件、uv 命令、py3.12 目标）写在 lock 文件头注释里；
+        # dev.txt（及其 -r 链上的 server/desktop/core）改了必须重新生成并一起提交。
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements/dev.txt
+          pip install -r requirements/lock/py312-dev.txt
 
       - name: pytest（全量墙钟级）
         # 专家档用例内部已用 AI_TIME_SCALE 把预算抬到 180s 并只断言 completed_depth==3
