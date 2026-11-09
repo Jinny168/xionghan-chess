@@ -225,14 +225,19 @@ def _offline_native_opening(game: Game) -> dict:
     return json.loads(completed.stdout)["nativeOpening"]
 
 
-@pytest.mark.parametrize("profile_id", ["desktop_complete", "traditional"])
+@pytest.mark.parametrize("profile_id", [
+    "desktop_complete", "desktop_classic", "web", "traditional",
+])
 def test_native_opening_matches_python_roster(profile_id):
     """JS 自建开局必须与 Python 同档逐项一致：roster / 尺寸 / 选项 / perft(1)。
 
-    **另两档 `desktop_classic` / `web` 暂不对拍**：Python 侧那两档盘上有一枚
-    `enabled_piece_types` 之外的尉（`(1,5)`/`(11,5)`，实测 0 个合法着法却
-    `appear=True`），它属于**规则口径**问题而不是镜像问题，对齐方向待 F1 裁决
-    （任务 #6）。这里刻意不用 xfail/skip 掩盖 —— 少一档就是少一档，写明白。
+    四档全测。曾经只测两档，因为 `desktop_classic` / `web` 盘上有一枚
+    `enabled_piece_types` 之外的尉（`(1,5)`/`(11,5)`，0 个合法着法却
+    `appear=True`）—— 那是**规则口径**问题而不是镜像问题，等 F1 裁决。
+    F1 已裁决为 **F1-a**（`(1,5)` 是仕，不是尉）：那枚子在 classic/web 里既不
+    能动、又真实占位挡掉 4 个合法着、且让这两档净损一只仕，属 `95c2784` 的
+    连带损伤而非设计意图。裁决后 Python 侧改 roster，classic/web 的 perft(1)
+    由 110/104 变为 113/107 —— 与 JS 逐值相等，于是这条腿覆盖四档。
     """
     game = Game(profile_id)
     observed = _offline_native_opening(game)
@@ -1221,6 +1226,43 @@ def test_resurrect_pawn_rejections_match_across_engines():
     game = _resurrection_game()
     assert len(game.state.pieces) == 2
     assert game.state.turn is Color.RED
+
+
+def test_resurrect_pawn_cap_is_seven_on_both_engines():
+    """`RESTORE_PAWN_LIMIT = 7` 的边界：第 7 枚可以招魂，第 8 枚必须拒绝。
+
+    这个 `7` 有**三个使用点**：`game.py:21`（常量，`Game.resurrect_pawn` 用它）、
+    `ai.py`（import 同一个常量做池估值）、`offline.js::resurrectPawn`（**字面量**）。
+    三方一致此前只靠 `offline.js` 那段注释与 Python 互指 —— 注释不是门禁，所以
+    这里把边界钉住：6 → 允许（边界内），7 → 拒绝（边界外）。只测拒绝不测允许，
+    会漏掉"两侧都把上限写成 6"这种同向错误。
+    """
+    # Red's pawn home squares are row 8, even columns (13x13); leave (8,12) free.
+    home = [(8, 0), (8, 2), (8, 4), (8, 6), (8, 8), (8, 10)]
+
+    def pawn_count(game: Game) -> int:
+        return sum(1 for piece in game.state.pieces
+                   if piece.type is PieceType.PAWN and piece.color is Color.RED)
+
+    under = _resurrection_game([(PieceType.PAWN, Color.RED, row, col) for row, col in home])
+    assert pawn_count(under) == 6
+    accepted = _probe_resurrect(under, Color.RED, 8, 12)
+    assert accepted["ok"] is True, f"offline.js refused the 7th pawn: {accepted['error']}"
+    under.resurrect_pawn(Color.RED, Position(8, 12))
+    assert pawn_count(under) == 7
+
+    # 7 兵：第 7 枚放在 (6,6)（不占任何 home 位），(8,12) 仍空着。
+    at_cap = _resurrection_game(
+        [(PieceType.PAWN, Color.RED, row, col) for row, col in home]
+        + [(PieceType.PAWN, Color.RED, 6, 6)])
+    assert pawn_count(at_cap) == 7
+    with pytest.raises(GameError):
+        at_cap.resurrect_pawn(Color.RED, Position(8, 12))
+    refused = _probe_resurrect(at_cap, Color.RED, 8, 12)
+    assert refused["ok"] is False, "offline.js 的上限不是 7（或根本没有上限）"
+    assert refused["state"] is None
+    assert pawn_count(at_cap) == 7
+    assert at_cap.state.turn is Color.RED
 
 
 # --- O-6 capture specs -------------------------------------------------------
