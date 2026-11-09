@@ -101,7 +101,12 @@ class AccountStore:
                     "INSERT INTO users(username,display_name,password_hash,salt,created_at) VALUES(?,?,?,?,?)",
                     (username, display_name.strip() or username, password_hash, salt, now),
                 )
-                account = Account(cursor.lastrowid, username, display_name.strip() or username, "", now)
+                # 不变式：sqlite3 的 `lastrowid` 标注是 `int | None`（对非 INSERT 语句
+                # 才可能是 None），这条 INSERT 成功返回时必有自增主键。用 assert 表达，
+                # 而不是 `or 0` —— 真的拿到 None 时应当立刻炸，不该静默写出 id=0 的账号。
+                row_id = cursor.lastrowid
+                assert row_id is not None, "INSERT users 未返回自增主键"
+                account = Account(int(row_id), username, display_name.strip() or username, "", now)
         except sqlite3.IntegrityError as exc:
             raise AccountError("用户名已存在") from exc
         return account, self._create_session(account.id)
@@ -177,13 +182,19 @@ class AccountStore:
                   game_id: int | None = None) -> dict[str, Any]:
         encoded = json.dumps(document, ensure_ascii=False)
         now = int(time.time())
+        # 落库后的 id 单独用一个已确定非 None 的局部量承接：形参 `game_id` 是
+        # `int | None`（None = 新建），而 `cursor.lastrowid` 的标注同样是
+        # `int | None`，两者混用会让下面的 `get_game(user_id, ...)` 收不窄。
+        saved_id: int
         with self._lock, self.connect() as db:
             if game_id is None:
                 cursor = db.execute(
                     "INSERT INTO cloud_games(user_id,title,document,created_at,updated_at) VALUES(?,?,?,?,?)",
                     (user_id, title.strip() or "匈汉棋局", encoded, now, now),
                 )
-                game_id = cursor.lastrowid
+                row_id = cursor.lastrowid
+                assert row_id is not None, "INSERT cloud_games 未返回自增主键"
+                saved_id = int(row_id)
             else:
                 cursor = db.execute(
                     "UPDATE cloud_games SET title=?,document=?,updated_at=? WHERE id=? AND user_id=?",
@@ -191,7 +202,8 @@ class AccountStore:
                 )
                 if not cursor.rowcount:
                     raise AccountError("云端棋局不存在")
-        return self.get_game(user_id, game_id)
+                saved_id = game_id
+        return self.get_game(user_id, saved_id)
 
     def get_game(self, user_id: int, game_id: int) -> dict[str, Any]:
         with self.connect() as db:

@@ -7,6 +7,7 @@ import os
 from contextlib import asynccontextmanager, suppress
 from dataclasses import asdict
 from pathlib import Path
+from typing import Any, AsyncIterator
 
 from fastapi import (
     FastAPI,
@@ -80,7 +81,7 @@ async def maintenance() -> None:
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     task = asyncio.create_task(maintenance())
     yield
     task.cancel()
@@ -100,7 +101,7 @@ app.add_middleware(RateLimitMiddleware, limiter=LIMITER)
 
 
 @app.exception_handler(RequestValidationError)
-async def _validation_as_400(request, exc: RequestValidationError):
+async def _validation_as_400(request: Request, exc: RequestValidationError) -> JSONResponse:
     """请求体校验失败统一回 **400**（而不是 FastAPI 默认的 422），并给一句人话。
 
     为什么改：422 是个协议细节，客户端只看到"unprocessable"；而这里最常见的失败是
@@ -148,7 +149,7 @@ class JoinRoomRequest(BaseModel):
 
 
 class ImportGameRequest(BaseModel):
-    document: dict
+    document: dict[str, Any]
     mode: str = "local"
     player_name: str = Field("玩家", alias="playerName", max_length=MAX_PLAYER_NAME)
     player_color: Color = Field(Color.RED, alias="playerColor")
@@ -175,7 +176,7 @@ class ProfileRequest(BaseModel):
 
 
 class CloudGameRequest(BaseModel):
-    document: dict
+    document: dict[str, Any]
     title: str = ""
     game_id: int | None = Field(None, alias="gameId")
     model_config = {"populate_by_name": True}
@@ -191,7 +192,7 @@ class SpectateRequest(BaseModel):
 
 
 class AnalyzeRequest(BaseModel):
-    document: dict
+    document: dict[str, Any]
     difficulty: Difficulty = Difficulty.BEGINNER
 
 
@@ -210,12 +211,12 @@ def current_account(authorization: str | None) -> tuple[Account, str]:
 
 
 @app.get("/api/health")
-async def health() -> dict:
+async def health() -> dict[str, Any]:
     return {"status": "ok", "rooms": len(manager.rooms), "version": app.version}
 
 
 @app.get("/api/profiles")
-async def profiles() -> list[dict]:
+async def profiles() -> list[dict[str, Any]]:
     return [{"id": p.id, "title": p.title, "rows": p.rows, "cols": p.cols,
              "pieceTypes": sorted(t.value for t in p.enabled_piece_types),
              "pieceSlots": profile_slots(p, p.options),
@@ -259,7 +260,7 @@ def validate_rule_options(values: dict[str, object]) -> dict[str, object]:
 
 
 @app.post("/api/rooms")
-async def create_room(request: CreateRoomRequest) -> dict:
+async def create_room(request: CreateRoomRequest) -> dict[str, Any]:
     if request.mode not in {"online", "ai", "local"}:
         raise HTTPException(400, "mode must be online, ai or local")
     try:
@@ -282,7 +283,7 @@ async def create_room(request: CreateRoomRequest) -> dict:
 
 
 @app.post("/api/rooms/import")
-async def import_room(request: ImportGameRequest) -> dict:
+async def import_room(request: ImportGameRequest) -> dict[str, Any]:
     if request.mode not in {"ai", "local"}:
         raise HTTPException(400, "imported games support ai or local mode")
     try:
@@ -301,7 +302,7 @@ async def import_room(request: ImportGameRequest) -> dict:
 
 
 @app.post("/api/rooms/{room_id}/join")
-async def join_room(room_id: str, request: JoinRoomRequest) -> dict:
+async def join_room(room_id: str, request: JoinRoomRequest) -> dict[str, Any]:
     try:
         room, seat = await manager.join(room_id.upper(), request.player_name,
                                         normalize_avatar(request.avatar_url))
@@ -326,7 +327,7 @@ def _reject_query_token(request: Request) -> None:
 
 @app.get("/api/rooms/{room_id}")
 async def room_state(room_id: str, request: Request,
-                     token: str | None = Header(None, alias="X-Room-Token")) -> dict:
+                     token: str | None = Header(None, alias="X-Room-Token")) -> dict[str, Any]:
     _reject_query_token(request)
     try:
         return manager.require(room_id).snapshot(token)
@@ -335,7 +336,7 @@ async def room_state(room_id: str, request: Request,
 
 
 @app.post("/api/rooms/{room_id}/spectate")
-async def spectate_room(room_id: str, request: SpectateRequest) -> dict:
+async def spectate_room(room_id: str, request: SpectateRequest) -> dict[str, Any]:
     try:
         room, spectator = await manager.add_spectator(room_id.upper(), request.display_name)
         return {"roomId": room.id, "token": spectator.token,
@@ -346,7 +347,7 @@ async def spectate_room(room_id: str, request: SpectateRequest) -> dict:
 
 @app.get("/api/rooms/{room_id}/legal")
 async def legal_moves(room_id: str, request: Request, row: int, col: int,
-                      token: str = Header(..., alias="X-Room-Token")) -> dict:
+                      token: str = Header(..., alias="X-Room-Token")) -> dict[str, Any]:
     _reject_query_token(request)
     try:
         room = manager.require(room_id)
@@ -506,7 +507,7 @@ async def receive_envelope(websocket: WebSocket) -> Envelope:
 
 
 @app.post("/api/auth/register")
-async def register(request: CredentialsRequest) -> dict:
+async def register(request: CredentialsRequest) -> dict[str, Any]:
     try:
         account, token = await asyncio.to_thread(
             accounts.register, request.username, request.password, request.display_name)
@@ -517,7 +518,7 @@ async def register(request: CredentialsRequest) -> dict:
 
 
 @app.post("/api/auth/login")
-async def login(request: CredentialsRequest) -> dict:
+async def login(request: CredentialsRequest) -> dict[str, Any]:
     try:
         account, token = await asyncio.to_thread(accounts.login, request.username, request.password)
         return {"account": account.public(), "token": token,
@@ -527,21 +528,21 @@ async def login(request: CredentialsRequest) -> dict:
 
 
 @app.post("/api/auth/logout")
-async def logout(authorization: str | None = Header(None)) -> dict:
+async def logout(authorization: str | None = Header(None)) -> dict[str, Any]:
     _, token = current_account(authorization)
     await asyncio.to_thread(accounts.logout, token)
     return {"ok": True}
 
 
 @app.get("/api/me")
-async def me(authorization: str | None = Header(None)) -> dict:
+async def me(authorization: str | None = Header(None)) -> dict[str, Any]:
     account, _ = current_account(authorization)
     return {"account": account.public(), "preferences": accounts.preferences(account.id)}
 
 
 @app.put("/api/me/preferences")
 async def save_cloud_preferences(request: PreferencesRequest,
-                                 authorization: str | None = Header(None)) -> dict:
+                                 authorization: str | None = Header(None)) -> dict[str, Any]:
     account, _ = current_account(authorization)
     return {"preferences": await asyncio.to_thread(
         accounts.save_preferences, account.id, request.preferences)}
@@ -549,7 +550,7 @@ async def save_cloud_preferences(request: PreferencesRequest,
 
 @app.put("/api/me/profile")
 async def save_profile(request: ProfileRequest,
-                       authorization: str | None = Header(None)) -> dict:
+                       authorization: str | None = Header(None)) -> dict[str, Any]:
     account, _ = current_account(authorization)
     try:
         updated = await asyncio.to_thread(accounts.update_profile, account.id,
@@ -561,14 +562,14 @@ async def save_profile(request: ProfileRequest,
 
 @app.get("/api/me/games")
 async def cloud_games(favorite: bool | None = None,
-                      authorization: str | None = Header(None)) -> list[dict]:
+                      authorization: str | None = Header(None)) -> list[dict[str, Any]]:
     account, _ = current_account(authorization)
     return await asyncio.to_thread(accounts.list_games, account.id, favorite)
 
 
 @app.post("/api/me/games")
 async def save_cloud_game(request: CloudGameRequest,
-                          authorization: str | None = Header(None)) -> dict:
+                          authorization: str | None = Header(None)) -> dict[str, Any]:
     account, _ = current_account(authorization)
     try:
         game_from_document(request.document)
@@ -579,7 +580,7 @@ async def save_cloud_game(request: CloudGameRequest,
 
 
 @app.get("/api/me/games/{game_id}")
-async def cloud_game(game_id: int, authorization: str | None = Header(None)) -> dict:
+async def cloud_game(game_id: int, authorization: str | None = Header(None)) -> dict[str, Any]:
     account, _ = current_account(authorization)
     try:
         return await asyncio.to_thread(accounts.get_game, account.id, game_id)
@@ -589,7 +590,7 @@ async def cloud_game(game_id: int, authorization: str | None = Header(None)) -> 
 
 @app.put("/api/me/games/{game_id}/favorite")
 async def favorite_cloud_game(game_id: int, request: FavoriteRequest,
-                              authorization: str | None = Header(None)) -> dict:
+                              authorization: str | None = Header(None)) -> dict[str, Any]:
     account, _ = current_account(authorization)
     try:
         return await asyncio.to_thread(accounts.favorite_game, account.id, game_id, request.favorite)
@@ -598,14 +599,14 @@ async def favorite_cloud_game(game_id: int, request: FavoriteRequest,
 
 
 @app.delete("/api/me/games/{game_id}")
-async def delete_cloud_game(game_id: int, authorization: str | None = Header(None)) -> dict:
+async def delete_cloud_game(game_id: int, authorization: str | None = Header(None)) -> dict[str, Any]:
     account, _ = current_account(authorization)
     await asyncio.to_thread(accounts.delete_game, account.id, game_id)
     return {"ok": True}
 
 
 @app.post("/api/analysis")
-async def analysis(request: AnalyzeRequest) -> dict:
+async def analysis(request: AnalyzeRequest) -> dict[str, Any]:
     try:
         game = game_from_document(request.document)
         return await asyncio.to_thread(analyze_game, game, request.difficulty)
@@ -614,7 +615,7 @@ async def analysis(request: AnalyzeRequest) -> dict:
 
 
 @app.get("/api/puzzles")
-async def puzzles(difficulty: str | None = None) -> list[dict]:
+async def puzzles(difficulty: str | None = None) -> list[dict[str, Any]]:
     items = load_puzzles()
     if difficulty:
         items = [item for item in items if item.difficulty == difficulty]
@@ -622,7 +623,7 @@ async def puzzles(difficulty: str | None = None) -> list[dict]:
 
 
 @app.get("/api/puzzles/{puzzle_id}")
-async def puzzle(puzzle_id: str, reveal: bool = False) -> dict:
+async def puzzle(puzzle_id: str, reveal: bool = False) -> dict[str, Any]:
     try:
         return puzzle_by_id(puzzle_id).payload(reveal)
     except KeyError as exc:

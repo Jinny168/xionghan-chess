@@ -130,10 +130,14 @@ jobs:
         # 新问题（含被豁免文件之外的新风格漂移）一律红。
         run: ruff check .
 
-      - name: mypy（core 包 strict 全量，配置在 pyproject [tool.mypy]）
+      - name: mypy（core + service 包 strict 全量，配置在 pyproject [tool.mypy]）
         # core 是三个引擎实现共用的规则/局面模型，类型错了下游全错，所以第一轮
-        # 就上 strict（21 处已修到 0，见 pyproject 注释）。desktop/service 后续
-        # 逐包收编：收进 files 前不挡合并，收进去之后红就是真红。
+        # 就上 strict（21 处已修到 0，见 pyproject 注释）。
+        # S3-A1 收编 service（第二步）：它是唯一对外进程（`xionghan-server` 入口
+        # = service/app.py:run），协议 payload 全是 dict[str, Any]，标注一松，
+        # 形状错误只会在运行时以 500 出现。收编前实测 32 处（明细见 pyproject 注释），
+        # 已全部修到 0；此后这里红就是真红。
+        # 仍是 desktop/training 未收编：逐包推进，收一个包就加进 files，不许回退。
         run: |
           mypy > mypy.out 2>&1 || {
             grep -E "error:" mypy.out | head -30 | sed 's/^/::error::/'

@@ -15,7 +15,7 @@ from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, Move, PieceType, Position
 from xionghan_chess.core.profiles import get_profile
 from xionghan_chess.core.protocol import Envelope, MessageType
-from xionghan_chess.core.taunts import choose_taunt
+from xionghan_chess.core.taunts import TauntScene, choose_taunt
 from xionghan_chess.i18n import normalize_language, t
 
 ZOMBIE_ROOM_SECONDS = 600   # 10 分钟没人连的 online 房视为僵尸
@@ -364,7 +364,10 @@ class RoomManager:
             await self._play_ai(room)
 
     async def _play_ai(self, room: Room) -> None:
-        scene: str | None = None
+        # scene 的取值域就是 core/taunts.py 的 TauntScene（opening/check/victory/defeat）。
+        # 标注成 str 会让 `choose_taunt(scene)` 在 strict 下报 arg-type；这里不是加
+        # cast 糊过去，而是把真实取值域写出来 —— 以后谁多加一个 scene 值，mypy 会立刻红。
+        scene: TauntScene | None = None
         async with room.lock:
             if room.game.state.finished or room.game.state.paused:
                 return
@@ -393,13 +396,13 @@ class RoomManager:
             await self._broadcast_ai_taunt(room, scene)
 
     @staticmethod
-    def _finished_ai_scene(room: Room) -> str | None:
+    def _finished_ai_scene(room: Room) -> TauntScene | None:
         ai_seat = next((seat for seat in room.seats.values() if seat.is_ai), None)
         if ai_seat is None or room.game.state.winner is None:
             return None
         return "victory" if room.game.state.winner is ai_seat.color else "defeat"
 
-    async def _broadcast_ai_taunt(self, room: Room, scene: str) -> None:
+    async def _broadcast_ai_taunt(self, room: Room, scene: TauntScene) -> None:
         event_key = f"{scene}:{len(room.game.state.history)}"
         if not room.taunts_enabled or event_key in room.taunt_events:
             return
@@ -427,7 +430,9 @@ class RoomManager:
             # 刚接入/重连的 socket 第一条 STATE 带完整 replay，之后一律不带。
             # 为什么不在 connect 里额外发一帧：那会让"一问一答"的时序整体后移一帧，
             # 客户端按 revision 对齐的用例会读到上一条。
-            fresh = getattr(room, "fresh_tokens", set())
+            # `Room.fresh_tokens` 是 dataclass 已声明的字段，getattr 的默认值只是
+            # 对老调用面的防御。显式标注是因为 `getattr(..., set())` 推不出元素类型。
+            fresh: set[str] = getattr(room, "fresh_tokens", set())
             player_messages = {
                 token: Envelope(type=MessageType.STATE, roomId=room.id, revision=revision,
                                 payload=room.snapshot(token, include_replay=token in fresh)).wire()

@@ -84,10 +84,28 @@ markers = [
 # 首轮实测：非 strict 下 18 处 Optional/类型不一致 + strict 下共 21 处
 # （缺参数标注 7、裸 dict 5、Returning Any 8、lambda join 成 unknown 2、
 # json.loads Any 1 —— 数字有交叠，见提交说明），已全部修复为 0。
-# desktop/service/training 依赖面大、错误密度未知，留给后续轮次逐包收编：
+# desktop/training 依赖面大、错误密度未知，留给后续轮次逐包收编：
 # 收一个包就把它加进 files，不许回退。
+#
+# 第二轮（S3-A1，2026-11-10）：收编 **service 包**，仍是 strict 全量、无 per-module 豁免。
+# 收编前用全新缓存目录（`--cache-dir .mypy_cache_svc`）实测 32 处，分布：
+#   · app.py 28 处 —— 裸 `dict` 泛型 25（19 处端点 `-> dict` + 3 处
+#     `-> list[dict]` + 3 处 pydantic 字段 `document: dict`）、缺返回/参数标注 3
+#     （lifespan、_validation_as_400 的 request 与返回值）
+#   · accounts.py 2 处 —— sqlite3 `cursor.lastrowid` 标注是 `int | None`，
+#     直接塞给 `Account(id: int)` 与 `get_game(game_id: int)` 收不窄
+#   · rooms.py 2 处 —— `choose_taunt(scene: TauntScene)` 收到的是 `str`；
+#     `getattr(room, "fresh_tokens", set())` 推不出元素类型
+# 修法一律是**把真实类型写出来**（`dict[str, Any]`、`AsyncIterator[None]`、
+# 把 scene 的取值域标成 core 里已有的 `TauntScene`、用不变式 assert 收窄
+# lastrowid），没有一处 `# type: ignore`、没有放宽 strict、没有 per-module 降级。
+# 收编后 23 files（core 18 + service 5）rc=0。
+#
+# service 之所以该进 files：它是唯一对外暴露的进程（`xionghan-server` 入口
+# = service/app.py:run），协议层的 payload 是 `dict[str, Any]`，标注一松，
+# 形状错误就只能在运行时以 500 的形式出现。
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true
 strict = true
-files = ["src/xionghan_chess/core"]
+files = ["src/xionghan_chess/core", "src/xionghan_chess/service"]
