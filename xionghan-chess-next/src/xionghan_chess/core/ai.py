@@ -103,13 +103,15 @@ CONFIGS = {
     Difficulty.MASTER: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 32),
 }
 
-# 对外档位的中位单步耗时（读条分母）。占位值来自 S4-2b 冒烟（40 手）：
-#   beginner 0.353s / medium 4.17s；hard 中局 d3 未实测，暂按 medium ×~4.8 估 20s。
-# TODO(S4-2c)：拿到 hard 全量标定后回填；改这里必须同时改 `WATCHDOG_SECONDS` 的守卫测试。
+# 对外档位的中位单步耗时（读条分母）。来源：
+#   beginner / medium：S4-2b 40 手冒烟（0.353 / 4.17s）；
+#   hard：2026-11-09 hard vs medium 40 手探针（n=40，median 15.47 / p95 31.79 / max 40.54s，
+#         报告 `benchmarks/hard_probe_40ply_2026-11-09.json`）。
+# 改这里必须同时改 `WATCHDOG_SECONDS` 的守卫测试。
 EXPECTED_MOVE_SECONDS: dict[Difficulty, float] = {
     Difficulty.BEGINNER: 0.35,
     Difficulty.MEDIUM: 4.2,
-    Difficulty.HARD: 20.0,
+    Difficulty.HARD: 15.5,
 }
 
 # 看门狗 = cap × 1.15（与 `benchmark.MASTER_MOVE_TIME_TOLERANCE` 同口径）。

@@ -13,13 +13,15 @@
   断言退出码与 `TRAINING_SMOKE_OK` 标记。**覆盖保留**，不跳过、不摘出门禁。
   若换机器后连子进程也崩，说明是机器内存/驱动层，届时再单独定位。
 
-## 2. S4 档位重标定的三项未完成实测（不阻塞当前版本）
+## 2. S4 档位重标定的两项未完成实测（不阻塞当前版本）
 
-- **hard 中局耗时未实测**：`hard` 的 cap 120 s 与 `EXPECTED_MOVE_SECONDS=20 s` 是按
-  medium 中局数据外推的 provisional 值；中局 d3 的真实 median/p95/max 仍缺。
+- **hard 中局耗时已实测（2026-11-09）**：hard vs medium 40 手 × 2 局，
+  `n=40, median 15.47 / p95 31.79 / max 40.54 s`，cap 120 s 未绑定（wall/nodes 均为 0）；
+  `EXPECTED_MOVE_SECONDS[hard]` 已回填 **15.5 s**，报告见
+  `benchmarks/hard_probe_40ply_2026-11-09.json`。
 - **`max_nodes` 三档全关**：中局节点数没有可靠分布，半成品值会确定性截断；
   工具 `scripts/measure_node_budget.py` 保留，回填时需同步 `level_targets` 与 `CONFIGS`（T6 会红）。
 - **n=32/64 胜率验收未跑**：单侧判据已定（点估计 ≥0.60 且 Wilson 下界 ≥0.50；n=32 ≥22 胜、
   n=64 ≥40 胜），但 1.7 h+ 的机时未占用；在跑完前，任何文档不得写"档位胜率已验证"。
 
-处置：等一次大机时窗口统一跑 hard 探针 + `beginner vs medium` n=32；跑完把本条目删除。
+处置：等一次大机时窗口跑 `beginner vs medium` n=32；跑完把本条目删除。

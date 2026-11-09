@@ -71,7 +71,7 @@ def test_expected_and_watchdog_seconds() -> None:
     assert EXPECTED_MOVE_SECONDS == {
         Difficulty.BEGINNER: 0.35,
         Difficulty.MEDIUM: 4.2,
-        Difficulty.HARD: 20.0,
+        Difficulty.HARD: 15.5,
     }
     assert WATCHDOG_SECONDS == {
         Difficulty.BEGINNER: 3.45,
