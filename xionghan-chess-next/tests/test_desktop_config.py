@@ -27,8 +27,19 @@ from xionghan_chess.desktop import config as desktop_config
 
 @pytest.fixture()
 def isolated_appdata(tmp_path, monkeypatch):
-    """把 APPDATA 指到临时目录，隔离真实用户配置。"""
-    monkeypatch.setenv("APPDATA", str(tmp_path))
+    """把**全部平台的配置根**都指进临时目录，隔离真实用户配置。
+
+    只改 APPDATA 不够：`config_root()` 在 Linux 读 `XDG_CONFIG_HOME`、macOS 读
+    `HOME`。CI 上 desktop smoke 先于 pytest 跑，且 ci.yml 给两个 step 共用同一个
+    `XDG_CONFIG_HOME`（$RUNNER_TEMP/xdg-config）——smoke 的 load_config /
+    _apply_settings 会在那里留下 settings.json，「file absent」前提被 **step 顺序**
+    打破（#123 实证：本用例读到 smoke 留下的 profile=traditional；Windows 本机
+    永远复现不了，因为 smoke 不在 pytest 前跑）。三个 env 全指进 tmp_path 后，
+    用例与 CI step 顺序解耦。
+    """
+    monkeypatch.setenv("APPDATA", str(tmp_path / "appdata"))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
     return tmp_path
 
 

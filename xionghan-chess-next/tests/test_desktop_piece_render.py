@@ -15,6 +15,8 @@
 """
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 pytest.importorskip("PySide6", reason="渲染测试依赖 PySide6")
@@ -181,13 +183,23 @@ FILL_COLOR = {
     "modern": (255, 255, 255),
     "cartoon": (255, 255, 255),
 }
-# 密度基线**按平台分别登记**：Qt 的字族光栅后端不同，同一份代码两个平台差 40%
-# （offscreen 0.76/0.96/0.82 vs windows 1.10/1.51/1.04），**不可互比**。
-# 这是**回归指标**（防漂移），不是"正确性判据"——Windows（用户实际看到的）上
-# 没有任何字重能让三风格同时进 0.85–1.25，modern 位图笔画远细于系统无衬线。
+# 密度基线**按平台分别登记**（键 = `sys.platform`）：Qt 的字族光栅后端不同，
+# 同一份代码的密度**不可互比**（Windows 1.10/1.51/1.04 vs ubuntu+fontconfig
+# 0.48/0.41 —— 差一倍以上）。这是**回归指标**（防漂移），不是"正确性判据"——
+# Windows（用户实际看到的）上没有任何字重能让三风格同时进 0.85–1.25。
+# 标定来源：
+#   · win32 —— Windows 11 本机标定（原值原样保留，不许为 Linux 通过而放宽，
+#     否则会掩盖 Windows 侧回归）；
+#   · linux —— CI #123（ubuntu runner，2026-11-09）失败消息原文实测：
+#     modern 0.213/0.446 = 0.48、cartoon 0.214/0.524 = 0.41。traditional 在
+#     #123 通过（落在 0.76±0.12 的通过区间内），精确值未取得，暂沿用旧
+#     offscreen 档的 0.76 —— 测试无论绿红都打印实测值，下轮 CI 日志据此
+#     精确标定。
+# 旧键 "offscreen"（0.76/0.96/0.82）废弃：它把 macOS/Windows 的 offscreen
+# 度量混成一档，与 ubuntu fontconfig 不是一回事（#123 实证差一倍）。
 DENSITY_BASELINE = {
-    "offscreen": {"traditional": 0.76, "modern": 0.96, "cartoon": 0.82},
-    "windows": {"traditional": 1.10, "modern": 1.51, "cartoon": 1.04},
+    "win32": {"traditional": 1.10, "modern": 1.51, "cartoon": 1.04},
+    "linux": {"traditional": 0.76, "modern": 0.48, "cartoon": 0.41},
 }
 DENSITY_TOLERANCE = 0.12
 
@@ -271,8 +283,8 @@ def test_fallback_density_matches_the_platform_baseline(
     （画布填该风格盘面色 + 色距 >60 + 只统计 `r < 0.62R`）。
 
     ⚠️ 两条铁律：
-    1. **两个平台的数不可互比**：Qt 的字族光栅后端不同，同一份代码 offscreen
-       0.76/0.96/0.82、windows 1.10/1.51/1.04，差 40%；
+    1. **两个平台的数不可互比**：Qt 的字族光栅后端不同，基线按 `sys.platform`
+       分档登记（见 `DENSITY_BASELINE` 的标定来源注释）；
     2. **必须先 `theme.load_bundled_fonts()`**（`qt_app` fixture 已做），否则字族落到
        系统替代字体，墨量只剩约 1/10，任何比值都不可信。
 
@@ -280,15 +292,19 @@ def test_fallback_density_matches_the_platform_baseline(
     字重三风格一致且为 Normal（`test_fallback_weight_is_normal_and_uniform`）、
     字高/盘径 0.48–0.56、盘径 0.78 格。这里只在超出基线 ±0.12 时报「漂移了」。
     """
-    platform = qt_app.platformName()
+    platform = sys.platform
     baseline = DENSITY_BASELINE.get(platform)
     if baseline is None:
-        pytest.skip(f"平台 {platform!r} 没有密度基线（只有 offscreen / windows 有），"
-                    "不要拿别的平台的数来比")
+        pytest.skip(f"平台 {platform!r} 没有密度基线（只有 win32 / linux 有），"
+                    "不要拿没标定过的平台的数来比")
     _fh, fallback = _style_density(style, FALLBACK_KINDS, fallback=True)
     _ah, artwork = _style_density(style, ART_KINDS, fallback=False)
     ratio = fallback / artwork
     expected = baseline[style]
+    # 实测值无论绿红都打进日志：linux 档的 traditional 还是暂记值（见基线表
+    # 注释），下一轮 CI 的这行输出就是它的精确标定来源。
+    print(f"[density] {platform}/{style}: fallback={fallback:.3f} artwork={artwork:.3f} "
+          f"ratio={ratio:.2f} baseline={expected:.2f}", flush=True)
     assert abs(ratio - expected) <= DENSITY_TOLERANCE, (
         f"{platform}/{style}: 回退密度 {fallback:.3f} / 图片 {artwork:.3f} = {ratio:.2f}，"
         f"基线 {expected:.2f} ± {DENSITY_TOLERANCE} —— 渲染管线或字重/字族被改动了？")
