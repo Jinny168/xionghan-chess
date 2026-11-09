@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import os
 import statistics
 import time
+from dataclasses import asdict, dataclass
+from typing import Any
 
 from .ai import CONFIGS, ChessAI, Difficulty
 from .game import Game
 from .mcts import MCTS
 from .model import Color
-
 
 # 单步耗时判据的容差与上限。
 #
@@ -41,7 +41,7 @@ class MatchResult:
 def benchmark_master_vs_hard(games: int = 50, profile: str = "traditional",
                              max_plies: int = 240, seed: int = 0,
                              hard_time_scale: float = 1.0,
-                             master_simulations: int | None = None) -> dict:
+                             master_simulations: int | None = None) -> dict[str, Any]:
     """Run a color-balanced match and return machine-readable acceptance data."""
     results: list[MatchResult] = []
     master_move_times: list[float] = []

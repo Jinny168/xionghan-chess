@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
 import threading
+from dataclasses import dataclass
 from typing import Any
 
 from .ai import ChessAI, Difficulty

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
 import os
 import secrets
 import string
 import time
+from dataclasses import dataclass, field
 from typing import Any
 
 from fastapi import WebSocket
@@ -13,11 +13,10 @@ from fastapi import WebSocket
 from xionghan_chess.core.ai import ChessAI, Difficulty
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, Move, PieceType, Position
-from xionghan_chess.core.protocol import Envelope, MessageType
 from xionghan_chess.core.profiles import get_profile
+from xionghan_chess.core.protocol import Envelope, MessageType
 from xionghan_chess.core.taunts import choose_taunt
 from xionghan_chess.i18n import normalize_language, t
-
 
 ZOMBIE_ROOM_SECONDS = 600   # 10 分钟没人连的 online 房视为僵尸
 RECONNECT_GRACE_SECONDS = int(os.getenv("RECONNECT_GRACE_SECONDS", "90"))

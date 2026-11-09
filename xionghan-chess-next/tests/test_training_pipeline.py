@@ -9,7 +9,12 @@ import pytest
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Move, Position
-from xionghan_chess.training.encoding import ACTION_SIZE, FEATURE_SIZE, action_index, encode_state
+from xionghan_chess.training.encoding import (
+    ACTION_SIZE,
+    FEATURE_SIZE,
+    action_index,
+    encode_state,
+)
 from xionghan_chess.training.selfplay import append_jsonl, collect_game
 
 

@@ -11,7 +11,12 @@ from __future__ import annotations
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import (
-    Color, GameState, Move, Piece, PieceType, Position,
+    Color,
+    GameState,
+    Move,
+    Piece,
+    PieceType,
+    Position,
 )
 
 ON = {"pawn_three_line_capture": True}

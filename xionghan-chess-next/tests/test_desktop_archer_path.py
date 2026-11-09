@@ -44,7 +44,7 @@ def build(pieces: list[Piece] | None = None) -> tuple[Game, list]:
     game = Game("desktop_complete")
     if pieces is not None:
         game.state.pieces = list(pieces)
-    archer = next(piece for piece in game.state.pieces if piece.position == ARCHER)
+    _archer = next(piece for piece in game.state.pieces if piece.position == ARCHER)
     legal = [move for move in game.rules.legal_moves(game.state) if move.source == ARCHER]
     return game, legal
 
@@ -112,7 +112,7 @@ def test_path_stops_before_the_blocker(qt_app: QApplication) -> None:
 # ---------------------------------------------------------------------------
 def test_path_endpoint_is_the_farthest_legal_target(qt_app: QApplication) -> None:
     game, legal = build()
-    rays = BoardWidget().archer_rays()
+    _rays = BoardWidget().archer_rays()
     marked, board = render(game, legal, selected=ARCHER)
     plain, _ = render(game, legal, selected=None)
 

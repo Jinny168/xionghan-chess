@@ -20,7 +20,6 @@ pytest.importorskip("PySide6", reason="MainWindow 依赖 PySide6")
 
 from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
 
-from xionghan_chess.core.model import Color  # noqa: E402
 from xionghan_chess.desktop import app as appmod  # noqa: E402
 from xionghan_chess.desktop.ui import theme  # noqa: E402
 

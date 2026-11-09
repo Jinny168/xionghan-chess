@@ -364,7 +364,7 @@ def test_pawn_fast_move_cannot_capture_or_jump_and_can_be_disabled():
     disabled = RulesEngine(profile, profile.options.merged({
         "pawn_fast_move_before_enemy_territory": False,
     }))
-    assert not disabled.pseudo_legal(board := state(red, black, pawn),
+    assert not disabled.pseudo_legal(_board := state(red, black, pawn),
                                      Move(pawn.position, Position(5, 0)))
 
 

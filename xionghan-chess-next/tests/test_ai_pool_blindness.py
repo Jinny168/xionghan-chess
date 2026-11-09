@@ -40,7 +40,7 @@ import time
 
 import pytest
 
-from xionghan_chess.core.ai import ChessAI, VALUES, evaluation_key, pool_signature
+from xionghan_chess.core.ai import VALUES, ChessAI, evaluation_key, pool_signature
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
 

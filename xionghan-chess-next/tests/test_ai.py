@@ -1,9 +1,18 @@
 import threading
+
 import pytest
 
 from xionghan_chess.core.ai import ChessAI, Difficulty
 from xionghan_chess.core.game import Game
-from xionghan_chess.core.model import Color, GameState, Move, MoveRecord, Piece, PieceType, Position
+from xionghan_chess.core.model import (
+    Color,
+    GameState,
+    Move,
+    MoveRecord,
+    Piece,
+    PieceType,
+    Position,
+)
 
 
 def test_ai_returns_only_legal_move():

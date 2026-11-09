@@ -13,13 +13,11 @@ import json
 import subprocess
 from pathlib import Path
 
-import pytest
+from _node_guard import module_skip_mark, require_node
 
 from xionghan_chess.core.model import Color, GameState, Piece, PieceType
 from xionghan_chess.core.profiles import get_profile
 from xionghan_chess.core.rules import RulesEngine
-
-from _node_guard import module_skip_mark, require_node
 
 ROOT = Path(__file__).resolve().parents[1]
 PROBE = ROOT / "scripts" / "offline_rules_probe.cjs"

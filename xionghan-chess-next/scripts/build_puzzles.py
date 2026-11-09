@@ -28,13 +28,12 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from xionghan_chess.core.game import Game  # noqa: E402
 from xionghan_chess.core.model import (  # noqa: E402
-    Color,
     Move,
     PieceType,
     Position,
 )
-from xionghan_chess.core.rules import CaptureKind  # noqa: E402
 from xionghan_chess.core.puzzles import Puzzle  # noqa: E402
+from xionghan_chess.core.rules import CaptureKind  # noqa: E402
 from xionghan_chess.core.storage import game_document, game_from_document  # noqa: E402
 
 DATA = ROOT / "src" / "xionghan_chess" / "core" / "data" / "puzzles.json"

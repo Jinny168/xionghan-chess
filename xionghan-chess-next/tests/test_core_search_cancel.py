@@ -15,12 +15,10 @@ from __future__ import annotations
 import threading
 import time
 
-import pytest
-
-from xionghan_chess.core.game import Game
-from xionghan_chess.core.mcts import SEE_CANDIDATE_LIMIT, MCTS
-from xionghan_chess.core.model import Color, Piece, PieceType
 from xionghan_chess.core.analysis import analyze_game
+from xionghan_chess.core.game import Game
+from xionghan_chess.core.mcts import MCTS, SEE_CANDIDATE_LIMIT
+from xionghan_chess.core.model import Color, Piece, PieceType
 
 
 def _capture_rich_position() -> Game:

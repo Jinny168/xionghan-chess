@@ -1,17 +1,23 @@
 from __future__ import annotations
 
-from contextlib import asynccontextmanager, suppress
 import asyncio
 import json
-from dataclasses import asdict
 import logging
 import os
+from contextlib import asynccontextmanager, suppress
+from dataclasses import asdict
 from pathlib import Path
 
-from fastapi.responses import JSONResponse
-from fastapi import FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    FastAPI,
+    Header,
+    HTTPException,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
@@ -22,16 +28,18 @@ from xionghan_chess.core.game import GameError
 from xionghan_chess.core.model import Color, PieceType, Position
 from xionghan_chess.core.profiles import PROFILES
 from xionghan_chess.core.protocol import Envelope, MessageType
-from .rooms import Room, RoomManager
-from xionghan_chess.core.rules import archer_star_points
-from xionghan_chess.core.storage import game_from_content, game_from_document
-from xionghan_chess.core.storage import game_document
 from xionghan_chess.core.puzzles import load_puzzles, puzzle_by_id
+from xionghan_chess.core.rules import archer_star_points
 from xionghan_chess.core.setup import FirstMove, profile_slots
-from xionghan_chess.i18n import normalize_language, t
+from xionghan_chess.core.storage import (
+    game_from_content,
+    game_from_document,
+)
+from xionghan_chess.i18n import normalize_language
+
 from .accounts import Account, AccountError, AccountStore
 from .ratelimit import LIMITER, RateLimitMiddleware
-
+from .rooms import Room, RoomManager
 
 manager = RoomManager()
 accounts = AccountStore()

@@ -15,7 +15,6 @@
 
 from __future__ import annotations
 
-
 from xionghan_chess.core import benchmark
 from xionghan_chess.core.ai import CONFIGS, Difficulty
 

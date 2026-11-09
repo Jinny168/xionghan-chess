@@ -29,14 +29,13 @@ from __future__ import annotations
 import ast
 import importlib.util
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
-
 
 ROOT = Path(__file__).resolve().parents[1]
 TESTS = ROOT / "tests"

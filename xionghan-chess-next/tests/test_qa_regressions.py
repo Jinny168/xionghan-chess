@@ -1,19 +1,19 @@
 import asyncio
 import json
-from pathlib import Path
 import re
 import tomllib
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pytest
 
 import xionghan_chess
+import xionghan_chess.service.rooms as rooms_module
 from xionghan_chess.core.game import GameError
 from xionghan_chess.core.model import Color
 from xionghan_chess.core.protocol import Envelope, MessageType
 from xionghan_chess.service.accounts import AccountStore
 from xionghan_chess.service.rooms import RoomManager
-import xionghan_chess.service.rooms as rooms_module
 
 
 class FakeWebSocket:

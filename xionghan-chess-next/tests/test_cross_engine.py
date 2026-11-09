@@ -1,21 +1,19 @@
 from __future__ import annotations
 
-from functools import lru_cache
 import json
 import os
-from dataclasses import asdict
-from pathlib import Path
 import random
 import subprocess
+from dataclasses import asdict
+from functools import lru_cache
+from pathlib import Path
 
 import pytest
+from _node_guard import module_skip_mark, require_node
 
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
 from xionghan_chess.core.profiles import get_profile
-
-from _node_guard import module_skip_mark, require_node
-
 
 ROOT = Path(__file__).resolve().parents[1]
 PROBE = ROOT / "scripts" / "offline_rules_probe.cjs"

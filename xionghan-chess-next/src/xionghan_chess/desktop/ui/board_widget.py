@@ -13,8 +13,17 @@ import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
-    QBrush, QColor, QFont, QFontMetricsF, QMouseEvent, QPainter, QPaintEvent, QPainterPath,
-    QPen, QPixmap, QRadialGradient,
+    QBrush,
+    QColor,
+    QFont,
+    QFontMetricsF,
+    QMouseEvent,
+    QPainter,
+    QPainterPath,
+    QPaintEvent,
+    QPen,
+    QPixmap,
+    QRadialGradient,
 )
 from PySide6.QtWidgets import QWidget
 
@@ -24,7 +33,6 @@ from xionghan_chess.i18n import t
 
 from . import piece_assets, theme
 from .board_geometry import cell_layout, point_to_position, view_position
-
 
 # 缺图回退（**仅 image 模式**）的配色：美术从 66 张位图反推，让回退格与位图同材质。
 # 传统=象牙白+深棕环，现代=纯白+细红/黑环，卡通=纯白+粗粉/蓝环。
@@ -318,7 +326,7 @@ class BoardWidget(QWidget):
             painter.restore()
         painter.setPen(QPen(QColor(self.theme["frame"]), 5))
         painter.drawRect(rect)
-        rows, cols = self.game.profile.rows, self.game.profile.cols
+        rows, _cols = self.game.profile.rows, self.game.profile.cols
         painter.setPen(QPen(QColor(self.theme["line"]), 1.15))
         if rows == 13:
             self._draw_xionghan_grid(painter, left, top, cw, ch)

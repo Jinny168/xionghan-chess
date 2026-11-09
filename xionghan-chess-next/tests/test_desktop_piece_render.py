@@ -19,7 +19,7 @@ import pytest
 
 pytest.importorskip("PySide6", reason="渲染测试依赖 PySide6")
 
-from PySide6.QtCore import QPointF, Qt  # noqa: E402
+from PySide6.QtCore import QPointF  # noqa: E402
 from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPixmap  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
@@ -29,7 +29,11 @@ from xionghan_chess.core.profiles import PROFILES  # noqa: E402
 from xionghan_chess.desktop.config import DEFAULTS  # noqa: E402
 from xionghan_chess.desktop.ui import piece_assets, theme  # noqa: E402
 from xionghan_chess.desktop.ui.board_widget import (  # noqa: E402
-    GLYPH_MODE, IMAGE_MODE, BoardWidget, _piece_font, draw_fallback_piece,
+    GLYPH_MODE,
+    IMAGE_MODE,
+    BoardWidget,
+    _piece_font,
+    draw_fallback_piece,
 )
 
 SIZE = 620

@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import asdict
-from datetime import datetime
 import json
 import time
+from dataclasses import asdict
+from datetime import datetime
 from typing import Any
 
 from .game import Game
 from .legacy import migrate_legacy_game
 from .model import GameState, UnsupportedSaveError
-from .profiles import get_profile
+from .profiles import RuleProfile, get_profile
 from .rules import POSITION_KEY_VERSION
-
 
 FORMAT_VERSION = 1
 
@@ -55,7 +54,7 @@ def _rebuild_position_counts(game: Game) -> dict[str, int]:
     return counts
 
 
-def _assert_in_bounds(profile, state, where: str) -> None:
+def _assert_in_bounds(profile: RuleProfile, state: GameState, where: str) -> None:
     """按 `profile.rows/cols` 校验坐标上界。
 
     `Position` 只管非负；上界依赖棋盘尺寸，所以在这里查。

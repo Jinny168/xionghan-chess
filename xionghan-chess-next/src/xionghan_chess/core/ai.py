@@ -1,19 +1,22 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
-from enum import StrEnum
 import math
 import os
 import random
 import threading
 import time
+from dataclasses import dataclass, replace
+from enum import StrEnum
 
+from .ai_see import static_exchange_score
 from .game import RESTORE_PAWN_LIMIT, Game
-from .model import Color, GameState, Move, PieceType, Position
+from .model import Color, GameState, Move, Piece, PieceType, Position
+from .rules import RulesEngine
+from .rules import pool_signature as pool_signature
+
 # `pool_signature` is re-exported here (rules.py owns the format) because the
 # pool-blindness guardrail test imports it alongside `evaluation_key`.
-from .rules import RulesEngine, pool_signature
-from .ai_see import static_exchange_score
+# 「显式 as 再导出」是 ruff F401 认可的唯一再导出写法（S2-3 接入门禁时补的）。
 
 
 class Difficulty(StrEnum):
@@ -580,7 +583,7 @@ class ChessAI:
         return score
 
     @staticmethod
-    def _mobility_targets(game: Game, piece) -> list[Position]:
+    def _mobility_targets(game: Game, piece: Piece) -> list[Position]:
         row, col = piece.position.row, piece.position.col
         candidates: set[Position] = set()
         if piece.type in {PieceType.ROOK, PieceType.CANNON, PieceType.THUNDER}:
@@ -637,7 +640,8 @@ class ChessAI:
                      if piece.color is color and piece.type is PieceType.KING), None)
         if king is None:
             return -VALUES[PieceType.KING]
-        score = self._king_cover(game, color) * (12 if phase >= 0.45 else 5)
+        # score 中途会与 phase（float）相乘累减，显式 float 起步（S2-3 mypy）。
+        score: float = self._king_cover(game, color) * (12 if phase >= 0.45 else 5)
         if game.rules.palace(color, king.position):
             score += 25 * phase
         for enemy in game.state.pieces:
@@ -674,7 +678,7 @@ class ChessAI:
         return attacks, pressure
 
     @staticmethod
-    def _attack_geometry(moving, target) -> bool:
+    def _attack_geometry(moving: Piece, target: Piece) -> bool:
         dr = abs(target.position.row - moving.position.row)
         dc = abs(target.position.col - moving.position.col)
         if moving.type in {PieceType.ROOK, PieceType.CANNON}:
@@ -697,7 +701,7 @@ class ChessAI:
             return dr == 0 or dc == 0 or dr == dc
         return False
 
-    def _is_developed(self, game: Game, piece) -> bool:
+    def _is_developed(self, game: Game, piece: Piece) -> bool:
         return not any(spec.color is piece.color and spec.type is piece.type and
                        spec.row == piece.position.row and spec.col == piece.position.col
                        for spec in game.profile.pieces)
@@ -750,7 +754,8 @@ class ChessAI:
         self.see_calls += 1
         guard = None
         if math.isfinite(self._active_deadline):
-            guard = lambda: self._guard(self._active_deadline, self._active_cancel)
+            def guard() -> None:
+                return self._guard(self._active_deadline, self._active_cancel)
         score = static_exchange_score(game, move, VALUES, guard)
         if len(self.see_cache) >= 30_000:
             self.see_cache.clear()

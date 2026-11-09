@@ -39,8 +39,8 @@ import pytest
 
 pytest.importorskip("PySide6", reason="桌面端用例依赖 PySide6")
 
-from PySide6.QtWidgets import QApplication, QDialog  # noqa: E402
 import shiboken6  # noqa: E402
+from PySide6.QtWidgets import QApplication, QDialog  # noqa: E402
 
 from xionghan_chess.desktop.ui.dialogs import _fit_to_content  # noqa: E402
 

@@ -16,11 +16,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from xionghan_chess.core.game import Game          # noqa: E402
-from xionghan_chess.core.model import (            # noqa: E402
-    Color, GameState, Piece, PieceType, Position,
+from xionghan_chess.core.game import Game  # noqa: E402
+from xionghan_chess.core.model import (  # noqa: E402
+    Color,
+    GameState,
+    Piece,
+    PieceType,
+    Position,
 )
-from xionghan_chess.core.profiles import RuleOptions  # noqa: E402
 
 PROFILE = "web"
 

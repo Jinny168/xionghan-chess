@@ -18,11 +18,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
+from _node_guard import module_skip_mark, require_node
 
 from xionghan_chess.core.puzzles import load_puzzles
-
-from _node_guard import module_skip_mark, require_node
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "build_offline_puzzles.py"

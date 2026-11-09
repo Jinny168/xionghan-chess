@@ -30,8 +30,8 @@ parametrize id as a parity case and inflated the summary line.
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
 
 import pytest
 

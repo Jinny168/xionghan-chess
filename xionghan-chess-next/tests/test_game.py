@@ -1,7 +1,15 @@
 import pytest
 
 from xionghan_chess.core.game import Game, GameError
-from xionghan_chess.core.model import Color, GameState, Move, MoveRecord, Piece, PieceType, Position
+from xionghan_chess.core.model import (
+    Color,
+    GameState,
+    Move,
+    MoveRecord,
+    Piece,
+    PieceType,
+    Position,
+)
 from xionghan_chess.core.storage import game_document, game_from_document
 
 

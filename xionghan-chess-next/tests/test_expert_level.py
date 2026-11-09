@@ -37,7 +37,6 @@ from pathlib import Path
 import pytest
 
 from xionghan_chess.core.ai import CONFIGS, ChessAI, Difficulty
-from xionghan_chess.core.game import Game
 
 ROOT = Path(__file__).resolve().parent.parent
 CORPUS = json.loads(

@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import ctypes
 import sys
-from pathlib import Path
 from ctypes import POINTER, Structure, byref, c_ulong, c_ushort, c_void_p, c_wchar_p
+from pathlib import Path
 
 ole32 = ctypes.oledll.ole32
 shell32 = ctypes.oledll.shell32                 # oledll：HRESULT 失败自动抛 OSError

@@ -60,3 +60,7 @@ docker/nginx/ssl/*.key
 .workbuddy/
 .tmpbase/
 _scratch_*.py
+
+# ruff / mypy 工具缓存（S2-3）
+.ruff_cache/
+.mypy_cache/

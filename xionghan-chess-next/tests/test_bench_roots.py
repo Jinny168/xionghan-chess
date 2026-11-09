@@ -21,7 +21,12 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from bench_roots import REPETITION_LIMIT, _is_reverse, build_position, position_fingerprint  # noqa: E402
+from bench_roots import (  # noqa: E402
+    REPETITION_LIMIT,
+    _is_reverse,
+    build_position,
+    position_fingerprint,
+)
 
 from xionghan_chess.core.game import Game  # noqa: E402
 

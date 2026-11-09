@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import math
 import random
 import threading
 import time
 from collections.abc import Callable
+from dataclasses import dataclass, field
 
 from .game import Game
-from .model import Move
-
+from .model import Color, Move
 
 # SEE 预处理的候选上限：吃子再多也只估算前 N 个，其余直接进候选。
 # 理由：MCTS 的时间盒是 12s，而一次 SEE 约毫秒级；captures 上百个时预处理
@@ -84,6 +83,9 @@ class MCTS:
                 maximizing = state_game.state.turn is game.state.turn
                 node = max(node.children,
                            key=lambda child: self._ucb(child, node.visits, maximizing))
+                # 不变式：children 里的节点除根外必有 move（建子节点时已带上），
+                # 根节点不会进这个循环（root.unexpanded 非空）。收窄给 mypy（S2-3）。
+                assert node.move is not None
                 state_game = self._apply(state_game, node.move)
                 path.append(node)
             if node.unexpanded:
@@ -112,7 +114,7 @@ class MCTS:
     def _apply(game: Game, move: Move) -> Game:
         return Game.from_state(game.rules.apply_unchecked(game.state, move), game.options, game.setup)
 
-    def _rollout(self, game: Game, root_color, deadline: float, cancel: threading.Event | None) -> float:
+    def _rollout(self, game: Game, root_color: Color, deadline: float, cancel: threading.Event | None) -> float:
         for _ in range(32):
             if cancel and cancel.is_set():
                 break

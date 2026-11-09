@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import asdict, replace
 import time
+from dataclasses import asdict
+from typing import Any
 
 from xionghan_chess.i18n import normalize_language, t
 
 from .model import Color, GameState, Move, MoveRecord, Piece, PieceType, Position
 from .profiles import RuleOptions, RuleProfile, get_profile
 from .rules import RulesEngine
-from .setup import FirstMove, GameSetup
+from .setup import GameSetup
 
 
 class GameError(ValueError):
@@ -26,7 +27,7 @@ class Game:
                  option_overrides: dict[str, object] | None = None,
                  initial_minutes: int = 20,
                  language: str = "zh-CN",
-                 setup: GameSetup | dict | None = None):
+                 setup: GameSetup | dict[str, Any] | None = None):
         self.language = normalize_language(language)
         self.profile = get_profile(profile) if isinstance(profile, str) else profile
         self.options = self.profile.options.merged(option_overrides)
@@ -36,12 +37,12 @@ class Game:
         self.state = GameState(self.profile.id, self.setup.initial_pieces(self.profile),
                                turn=self.setup.resolved_first_move)
         self.state.clocks_ms = {Color.RED: initial_minutes * 60_000, Color.BLACK: initial_minutes * 60_000}
-        self._snapshots: list[dict] = []
+        self._snapshots: list[dict[str, Any]] = []
         self._record_position()
 
     @classmethod
     def from_state(cls, state: GameState, option_overrides: dict[str, object] | RuleOptions | None = None,
-                   setup: GameSetup | dict | None = None) -> "Game":
+                   setup: GameSetup | dict[str, Any] | None = None) -> "Game":
         if isinstance(option_overrides, RuleOptions):
             option_overrides = asdict(option_overrides)
         game = cls(state.profile_id, option_overrides, setup=setup)
@@ -228,7 +229,7 @@ class Game:
             action = self._t("notation.capture") if captured else self._t("notation.move")
         return f"{name} {move.source.row + 1},{move.source.col + 1} {action} {move.target.row + 1},{move.target.col + 1}"
 
-    def public_state(self, include_replay: bool = True) -> dict:
+    def public_state(self, include_replay: bool = True) -> dict[str, Any]:
         """局面快照。`include_replay=False` 用于**常规广播**。
 
         `replay` 是每一步的完整局面历史，随步数线性膨胀（60 手约 2.29 MB），

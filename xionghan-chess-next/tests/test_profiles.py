@@ -1,8 +1,6 @@
-from xionghan_chess.core.model import PieceType, Position
 from xionghan_chess.core.game import Game
+from xionghan_chess.core.model import PieceType, Position
 from xionghan_chess.core.profiles import get_profile
-
-
 
 
 def test_rule_options_can_be_overridden_without_mutating_profile():

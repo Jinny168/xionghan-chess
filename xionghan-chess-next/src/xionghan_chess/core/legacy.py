@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+import json
 from dataclasses import asdict
 from datetime import datetime
-import json
 from typing import Any
 
 from .model import Color, GameState, Piece, PieceType
 from .profiles import get_profile
 from .setup import GameSetup
-
 
 FEN_PIECES = {
     "k": PieceType.KING, "r": PieceType.ROOK, "n": PieceType.HORSE,
@@ -25,7 +24,9 @@ def migrate_legacy_game(value: str | dict[str, Any]) -> dict[str, Any]:
         if not text:
             raise ValueError("legacy game file is empty")
         try:
-            parsed = json.loads(text)
+            # 显式 dict[str, Any]：json.loads 返回 Any，不标注则函数尾部的
+            # `return parsed` 变成 Returning Any（mypy strict，S2-3）。
+            parsed: dict[str, Any] = json.loads(text)
         except json.JSONDecodeError:
             parsed = {"position": text}
     elif isinstance(value, dict):

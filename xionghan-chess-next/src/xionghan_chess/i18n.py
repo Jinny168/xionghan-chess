@@ -5,7 +5,6 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-
 DEFAULT_LANGUAGE = "zh-CN"
 SUPPORTED_LANGUAGES = ("zh-CN", "en")
 

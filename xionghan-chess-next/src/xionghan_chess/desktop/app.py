@@ -1,24 +1,39 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 import os
 import sys
 import threading
 from collections.abc import Callable
+from dataclasses import asdict
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThreadPool, QTimer, Signal, QUrl
+from PySide6.QtCore import Qt, QThreadPool, QTimer, QUrl
 from PySide6.QtGui import QAction, QDesktopServices, QFont, QIcon, QKeySequence
 from PySide6.QtWebSockets import QWebSocket
 from PySide6.QtWidgets import (
-    QApplication, QComboBox, QFileDialog, QFrame, QGridLayout, QGroupBox, QHBoxLayout, QScrollArea,
-    QInputDialog, QLabel, QLineEdit, QListWidget, QMainWindow, QMessageBox, QPushButton,
-    QSpinBox, QSplitter, QTabWidget, QVBoxLayout, QWidget,
+    QApplication,
+    QComboBox,
+    QFileDialog,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSplitter,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
 
 from xionghan_chess import __version__
-from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
 from xionghan_chess.core.ai import CONFIGS, Difficulty
+from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
 
 # AI 看门狗：思考预算耗尽后再等这么久，仍无信号就判定 worker 不会回来了（毫秒）。
 AI_WATCHDOG_GRACE_MS = 5000
@@ -27,11 +42,15 @@ AI_WATCHDOG_GRACE_MS = 5000
 CHAT_HISTORY_LIMIT = 200
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position
-from xionghan_chess.core.profiles import PROFILES, profile_rule_values
 from xionghan_chess.core.storage import game_document
 from xionghan_chess.core.taunts import choose_taunt, taunts
 from xionghan_chess.i18n import t
+
+from . import net
+from . import training as puzzle_judge
+from . import update as version_check
 from .audio import DesktopAudio
+
 # `settings` 别名而非 `config`：本类实例上有一个 `self.config`（用户配置字典），
 # 若把模块导入成 `config`，方法体里的 `games_dir()` 会先命中**模块**
 # 而 `self.config` 是属性 —— 两者同名极易读错，故模块一律走 `settings.`。
@@ -42,18 +61,28 @@ from .config import (
     save_config,
     settings_differ_in_game_breaking_keys,
 )
-from . import net
+from .storage import (
+    autosave_game,
+    load_game,
+    load_statistics,
+    record_result,
+    reset_statistics,
+    save_game,
+)
 from .texts import dl, dlf, set_language
-from . import training as puzzle_judge
-from . import update as version_check
-from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
-from .ui.dialogs import DocumentDialog, GameLibraryDialog, GLYPH_STYLE_DATA, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
-from .ui.board_widget import THINKING_TICK_MS, BoardWidget
-from .ui.piece_atlas import PieceAtlasDialog
-from .ui.workers import AIWorker, AnalysisWorker, HttpWorker
 from .ui import theme
-
-
+from .ui.board_widget import THINKING_TICK_MS, BoardWidget
+from .ui.dialogs import (
+    GLYPH_STYLE_DATA,
+    DocumentDialog,
+    GameLibraryDialog,
+    HandicapDialog,
+    ReplayDialog,
+    SettingsDialog,
+    TrainingDialog,
+)
+from .ui.piece_atlas import PieceAtlasDialog
+from .ui.workers import AIWorker, HttpWorker
 
 
 def build_result_dialog(parent: QWidget, title: str, text: str, lang: str,
@@ -195,7 +224,7 @@ class MainWindow(QMainWindow):
     def new_game(self) -> None:
         self.puzzle_session=None
         self.chat_messages.clear()      # 换局清空（悔棋不清，聊天是历史）
-        self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local";self._reset_ui_cache();self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh();
+        self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local";self._reset_ui_cache();self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh()
         if not local and self.game.state.turn is not human:self.start_ai()
 
     def start_mode(self, mode: str) -> None:
@@ -219,7 +248,7 @@ class MainWindow(QMainWindow):
             # S2-7 配套：题目模式下先判对错。答错时 `_judge_puzzle` 已经把棋退回去并
             # 自己刷新过了，这里直接返回，避免再走进 AI / 终局提示分支。
             if not self._judge_puzzle(move):return
-            self.refresh();
+            self.refresh()
             if self.game.state.finished:self.add_ai_taunt("defeat")
             if not self.game.state.finished and self.config.get("game_mode","ai")=="ai":self.start_ai()
         except GameError as exc:QMessageBox.warning(self,dl("非法走棋"),str(exc))
@@ -389,7 +418,7 @@ class MainWindow(QMainWindow):
         # 8/4; `traditional` (10x9) keeps its pawns on row 6.
         row=next((spec.row for spec in self.game.profile.pieces if spec.type is PieceType.PAWN and spec.color is color),8 if color is Color.RED else 4)
         for col in range(0,self.game.profile.cols,2):
-            try:self.game.resurrect_pawn(color,Position(row,col));self.refresh();
+            try:self.game.resurrect_pawn(color,Position(row,col));self.refresh()
             except GameError:continue
             if self.config.get("game_mode","ai")=="ai":self.start_ai()
             return

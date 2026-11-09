@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import secrets
 from dataclasses import dataclass
 from enum import StrEnum
-import secrets
 from typing import Any, Iterable
 
 from .model import Color, Piece, PieceType

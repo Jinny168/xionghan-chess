@@ -108,6 +108,24 @@ jobs:
         # 现状 100%；没有这道门禁，覆盖率会在下一次重构里悄悄退回去（app.py 曾 6.2%）。
         run: python scripts/check_annotations.py
 
+      - name: 安装 ruff + mypy（版本钉死）
+        # S2-3：ruff/mypy 不进 requirements/dev.txt —— 它们是门禁工具不是业务依赖，
+        # 钉死版本是为了让"本机绿 = CI 绿"成立：ruff 升一个 minor 就可能多出规则
+        # 把 CI 打红。升级时须本机重跑两条命令后再改这里的版本号。
+        run: pip install "ruff==0.17.4" "mypy==2.4.1"
+
+      - name: ruff check（全仓，配置在 pyproject [tool.ruff]）
+        # 口径「小而真」：E4/E7/E9/F + W + I（见 pyproject 注释），豁免集中在
+        # per-file-ignores 并逐条注明原因。基线干净是 2026-11-09 本机 rc=0 实测的，
+        # 新问题（含被豁免文件之外的新风格漂移）一律红。
+        run: ruff check .
+
+      - name: mypy（core 包 strict 全量，配置在 pyproject [tool.mypy]）
+        # core 是三个引擎实现共用的规则/局面模型，类型错了下游全错，所以第一轮
+        # 就上 strict（21 处已修到 0，见 pyproject 注释）。desktop/service 后续
+        # 逐包收编：收进 files 前不挡合并，收进去之后红就是真红。
+        run: mypy
+
   # ═══════════════════════════════════════════════════════════════════════════
   # 2) test —— 主门禁，阻断合并
   # ═══════════════════════════════════════════════════════════════════════════

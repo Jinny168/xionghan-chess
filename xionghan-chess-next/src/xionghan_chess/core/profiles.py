@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, replace
-from typing import Iterable
+from typing import Callable
 
 from xionghan_chess.i18n import t
 
 from .model import Color, Piece, PieceType
-
 
 # The 13x13 "Xion Xiangqi" board. Red is the mirror image of Black, so Red's
 # back rank 0 corresponds to Black's back rank 12.
@@ -150,7 +150,9 @@ def specs(color: Color, items: Iterable[tuple[PieceType, int, int]]) -> list[Pie
 
 
 def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[PieceSpec]:
-    flip = (lambda row: XIONGHAN_ROWS - 1 - row) if color is Color.RED else (lambda row: row)
+    # flip 显式标注：两个 lambda 的三元 join 会被 mypy 推成 <unknown>，
+    # 后面 flip(row) 就成了 untyped call（mypy strict，S2-3）。
+    flip: Callable[[int], int] = (lambda row: XIONGHAN_ROWS - 1 - row) if color is Color.RED else (lambda row: row)
     items: list[tuple[PieceType, int, int]] = []
     if complete:
         # 软删甲/楯/刺：后排只保留射、仕、檑
@@ -187,7 +189,7 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
 
 
 def traditional_side(color: Color) -> list[PieceSpec]:
-    flip = (lambda row: 9 - row) if color is Color.RED else (lambda row: row)
+    flip: Callable[[int], int] = (lambda row: 9 - row) if color is Color.RED else (lambda row: row)
     base = [
         (PieceType.ROOK, 0, 0), (PieceType.HORSE, 0, 1),
         (PieceType.ELEPHANT, 0, 2), (PieceType.ADVISOR, 0, 3),

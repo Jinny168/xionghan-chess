@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from enum import StrEnum
 from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
-
-PROTOCOL_VERSION = 1
+# Literal[1] 而非 int：Envelope.protocol_version 是 Literal[1] 字段，默认值必须同型，
+# 否则 mypy 报 arg-type（S2-3）。值仍是一个 1，运行期无差别。
+PROTOCOL_VERSION: Literal[1] = 1
 
 
 class MessageType(StrEnum):

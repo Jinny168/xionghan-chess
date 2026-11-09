@@ -7,12 +7,12 @@ from xionghan_chess.core.analysis import analyze_game, quality_for_loss
 from xionghan_chess.core.avatars import avatar_asset_name, normalize_avatar
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color
-from xionghan_chess.core.puzzles import load_puzzles
 from xionghan_chess.core.profiles import get_profile
+from xionghan_chess.core.puzzles import load_puzzles
 from xionghan_chess.core.setup import GameSetup, profile_slots
 from xionghan_chess.core.storage import game_from_document
-from xionghan_chess.service.accounts import AccountStore
 from xionghan_chess.service import app as service_app
+from xionghan_chess.service.accounts import AccountStore
 
 
 def test_custom_setup_requires_equal_counts_and_supports_black_first():

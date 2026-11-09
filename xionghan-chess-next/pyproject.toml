@@ -35,6 +35,36 @@ where = ["src"]
 [tool.setuptools.package-data]
 "xionghan_chess.desktop" = ["resources/icon.ico", "resources/fonts/*", "resources/sounds/*", "resources/backgrounds/*", "resources/avatars/*", "resources/docs/*"]
 
+# ── ruff（S2-3 接入 CI lint job）─────────────────────────────────────────────
+# 规则口径「小而真」：E4/E7/E9/F = 语法与明确缺陷（未用变量、重复字典键、
+# 未定义名等），W = 空白卫生，I = import 排序。语义类规则（SIM/BLE/TRY/PLW/UP）
+# 本轮刻意不启用：那会一次性产生几百条豁免，基线就成了"默认红转绿"的假门禁。
+# 分批启用见任务排期（S2 后续轮次）。
+[tool.ruff]
+target-version = "py312"
+# 仅 E501 消费 line-length；本仓库现状最长 1230 字符（desktop/ui/dialogs.py），
+# E501 未选中，此值只是给将来启用时的现实目标，不产生当前约束。
+line-length = 120
+extend-exclude = [
+  # 历史实验的**冻结快照**（stage1/2/3 一次性脚本 × 多个基线目录），改它=篡改实验记录。
+  "benchmarks",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "W", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# desktop/app.py：① E402 —— 模块级常量（AI_WATCHDOG_GRACE_MS 等）按业务分组插在
+# import 块之间，是有意排版；挪动属于纯样式 churn。② E701/E702 —— 该文件与
+# dialogs.py 是"一行多语句"的紧凑手写风格，合计 650+ 处；机械拆行是大扫除且
+# 极易在搬运中引入笔误，留待桌面端专项重构（届时连 E501 一起清）。
+"src/xionghan_chess/desktop/app.py" = ["E402", "E701", "E702"]
+"src/xionghan_chess/desktop/ui/dialogs.py" = ["E701", "E702"]
+# board_widget.py：与 app.py 同源风格的紧凑 painter 代码（13 处一行多语句），同批豁免。
+"src/xionghan_chess/desktop/ui/board_widget.py" = ["E701", "E702"]
+# test_desktop_piece_render.py：像素级断言循环里的紧凑写法（3 处），同批豁免。
+"tests/test_desktop_piece_render.py" = ["E701", "E702"]
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
@@ -48,3 +78,16 @@ addopts = ["--strict-markers"]
 markers = [
   "slow: wall-clock performance regression guardrail (`-m 'not slow'` to skip)",
 ]
+
+# ── mypy（S2-3 接入 CI lint job）────────────────────────────────────────────
+# 渐进式收编第一轮（2026-11-09）：core 包直接上 **strict 全量**。
+# 首轮实测：非 strict 下 18 处 Optional/类型不一致 + strict 下共 21 处
+# （缺参数标注 7、裸 dict 5、Returning Any 8、lambda join 成 unknown 2、
+# json.loads Any 1 —— 数字有交叠，见提交说明），已全部修复为 0。
+# desktop/service/training 依赖面大、错误密度未知，留给后续轮次逐包收编：
+# 收一个包就把它加进 files，不许回退。
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+strict = true
+files = ["src/xionghan_chess/core"]

@@ -13,8 +13,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
 from xionghan_chess.core.profiles import get_profile
@@ -58,7 +56,7 @@ def test_pawn_sideways_boundary_is_row5() -> None:
       * `rules.py` 的 `crossed` 改为 `row < middle`；
       * 与 `distance_to_enemy_territory`（最远落行 5）、象的 `target.row < middle` 三处一致。
     """
-    rules = _rules()
+    _engine = _rules()
     on_middle = _state(_piece(PieceType.PAWN, Color.RED, 6, 3), *_kings_off_column())
     middle_targets = {(m.target.row, m.target.col)
                       for m in _moves_from(on_middle, Position(6, 3))}
@@ -92,7 +90,7 @@ def test_behavior_lock_pawn_promotion_is_forced() -> None:
     疑点：`rules.py:155-161` 在池非空时直接判裸着法非法 —— 强制；
           `rules.py:298-304` 执行时从 `state.captured` 移除同类型阵亡子。
     """
-    rules = _rules()
+    _engine = _rules()
     state = _state(_piece(PieceType.PAWN, Color.RED, 1, 3), *_kings_off_column())
     state.captured[Color.RED].append(_piece(PieceType.ROOK, Color.RED, 9, 9))
 

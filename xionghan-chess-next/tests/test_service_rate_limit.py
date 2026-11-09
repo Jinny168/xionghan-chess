@@ -27,8 +27,8 @@ from fastapi.testclient import TestClient  # noqa: E402
 from xionghan_chess.service.app import app  # noqa: E402
 from xionghan_chess.service.ratelimit import (  # noqa: E402
     ENV_VAR,
-    LIMITER,
     LIMITED_METHODS,
+    LIMITER,
     MAX_TRACKED_CLIENTS,
     RateLimitMiddleware,
     SlidingWindowLimiter,

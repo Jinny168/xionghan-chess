@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from xionghan_chess.core.protocol import Envelope, MessageType, PROTOCOL_VERSION
+from xionghan_chess.core.protocol import PROTOCOL_VERSION, Envelope, MessageType
 
 
 def test_protocol_uses_stable_camel_case_wire_format():

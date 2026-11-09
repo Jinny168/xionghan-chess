@@ -1,4 +1,3 @@
-import json
 
 import pytest
 
@@ -7,7 +6,12 @@ from xionghan_chess.core.legacy import migrate_legacy_game
 from xionghan_chess.core.model import Color, GameState, Piece, PieceType
 from xionghan_chess.core.profiles import get_profile
 from xionghan_chess.desktop import storage
-from xionghan_chess.desktop.storage import game_document, game_from_document, load_game, save_game
+from xionghan_chess.desktop.storage import (
+    game_document,
+    game_from_document,
+    load_game,
+    save_game,
+)
 
 
 def test_game_document_round_trip_preserves_state_and_replay(tmp_path):

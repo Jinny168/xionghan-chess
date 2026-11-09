@@ -109,7 +109,10 @@ def test_animation_duration_is_about_450ms(qt_app: QApplication) -> None:
     取这一档而不是 550ms/16ms，是因为实测 900×900 单帧 max 14.3ms（超 12ms 掉帧线）、
     1470px p95 已 16.2ms —— 20ms 定时器下两个尺寸都在预算内。
     """
-    from xionghan_chess.desktop.ui.board_widget import ANIMATION_FRAMES, ANIMATION_TIMER_MS
+    from xionghan_chess.desktop.ui.board_widget import (
+        ANIMATION_FRAMES,
+        ANIMATION_TIMER_MS,
+    )
 
     assert ANIMATION_TIMER_MS == 20
     duration = ANIMATION_FRAMES * ANIMATION_TIMER_MS
@@ -120,7 +123,11 @@ def test_animation_duration_is_about_450ms(qt_app: QApplication) -> None:
 def test_animation_stops_after_the_last_frame(qt_app: QApplication) -> None:
     """跑满帧数后必须清掉动画状态；脉冲走完后定时器必须停（不得常驻）。"""
     from xionghan_chess.desktop.ui.board_widget import (
-        ANIMATION_FRAMES, CHECK_PULSE_FRAMES, BoardWidget as Widget,
+        ANIMATION_FRAMES,
+        CHECK_PULSE_FRAMES,
+    )
+    from xionghan_chess.desktop.ui.board_widget import (
+        BoardWidget as Widget,
     )
 
     game = Game("web")

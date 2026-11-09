@@ -45,11 +45,11 @@ RISK（已知，未在此处解决）
 
 from __future__ import annotations
 
-from collections import deque
 import logging
 import math
 import os
 import time
+from collections import deque
 
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send

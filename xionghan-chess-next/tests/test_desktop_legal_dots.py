@@ -168,50 +168,6 @@ def test_star_ticks_are_hidden_under_legal_targets(qt_app: QApplication) -> None
 
 
 # ---------------------------------------------------------------------------
-# 3) 选中时，可走点所在格的星位刻线必须藏起来
-# ---------------------------------------------------------------------------
-def _tick_pixel(image: QImage, board: BoardWidget, position: Position) -> tuple[int, int, int, int]:
-    """星位刻线**外端**的取样点：距格心 0.17 cell 的对角方向。
-
-    可走点半径是 0.13 cell，这个位置在圆外，所以像素只反映"有没有刻线"。
-    """
-    _rect, left, top, cw, ch = board._geometry()
-    shown = board._view_position(position)
-    offset = 0.17 * min(cw, ch)
-    return image.pixelColor(int(left + shown.col * cw + offset),
-                            int(top + shown.row * ch + offset)).getRgb()
-
-
-def test_star_ticks_are_hidden_under_legal_targets(qt_app: QApplication) -> None:
-    """射的最远落点恰好是星位：不藏刻线的话，那一格会变成"一个星号"。
-
-    验收两条：选中时**没有**刻线；取消选中后刻线**回来**（防止永久删掉）。
-    """
-    game = Game("desktop_complete")
-    archer = next(piece for piece in game.state.pieces
-                  if piece.type is PieceType.ARCHER and piece.color is Color.RED
-                  and piece.position.col == 0)
-    legal = [move for move in game.rules.legal_moves(game.state) if move.source == archer.position]
-    stars = game.rules.archer_star_points
-    on_star = [move.target for move in legal if move.target in stars]
-    assert on_star, "这个局面里射的最远落点应当正好落在星位上"
-
-    board = make_board("classic", game.state.pieces, legal)
-    board.selected = archer.position
-    selected = render(board)
-    board.selected = None
-    restored = render(board)
-
-    target = on_star[0]
-    assert _tick_pixel(selected, board, target) != _tick_pixel(restored, board, target), \
-        "选中时该格的星位刻线应当被隐藏"
-    # 控制组：另一个星位（不是可走点）刻线必须还在
-    other = next(point for point in sorted(stars) if point not in {move.target for move in legal})
-    assert _tick_pixel(selected, board, other) == _tick_pixel(restored, board, other), \
-        "不相干的星位不该被隐藏"
-
-
-# ---------------------------------------------------------------------------
 # 4) 半径按主题取值：浅色 0.13 / 深色 0.15
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize("theme_name", THEMES)
@@ -222,7 +178,10 @@ def test_dot_radius_per_theme(qt_app: QApplication, theme_name: str) -> None:
     但深底上小面积色块的显眼度还取决于面积。所有棋子仍然同尺寸（只是深色档整体大一档），
     所以这不是"只让射显眼"。
     """
-    from xionghan_chess.desktop.ui.board_widget import LEGAL_DOT_RATIO, LEGAL_DOT_RATIO_DARK
+    from xionghan_chess.desktop.ui.board_widget import (
+        LEGAL_DOT_RATIO,
+        LEGAL_DOT_RATIO_DARK,
+    )
 
     board = make_board(theme_name, [Piece.create(PieceType.KING, Color.RED, 11, 6)])
     expected = LEGAL_DOT_RATIO_DARK if theme_name == "dark" else LEGAL_DOT_RATIO

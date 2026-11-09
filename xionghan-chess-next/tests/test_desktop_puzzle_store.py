@@ -56,7 +56,11 @@ def test_install_adds_puzzle_and_persists(tmp_path: Path, store: Path) -> None:
 
 def test_installed_puzzle_is_playable(store: Path) -> None:
     """导入的题必须能被判定器认作「解法首着正确」，否则导入等于没导入。"""
-    from xionghan_chess.desktop.training import VERDICT_CORRECT, VERDICT_SOLVED, PuzzleSession
+    from xionghan_chess.desktop.training import (
+        VERDICT_CORRECT,
+        VERDICT_SOLVED,
+        PuzzleSession,
+    )
 
     puzzle_store.install_puzzles(_write(Path(store).parent / "a.json", [_entry()]), path=store)
     loaded, _ = puzzle_store.load_user_puzzles(store)

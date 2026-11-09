@@ -5,7 +5,6 @@ from collections.abc import Callable, Mapping
 from .game import Game
 from .model import Move, Piece, PieceType, Position
 
-
 Guard = Callable[[], None]
 
 

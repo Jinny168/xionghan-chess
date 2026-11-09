@@ -18,7 +18,10 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from xionghan_chess.core.game import Game  # noqa: E402
 from xionghan_chess.core.model import (  # noqa: E402
-    Color, GameState, Move, Piece, PieceType, Position,
+    Color,
+    GameState,
+    Piece,
+    PieceType,
 )
 from xionghan_chess.core.rules import RulesEngine  # noqa: E402
 
@@ -62,7 +65,6 @@ def build(profile_id: str, pieces: list[Piece], turn: Color) -> Game:
 
 
 def random_position(rng: random.Random, attacker: Color) -> list[Piece] | None:
-    rows, cols = 13, 13
     taken: set[tuple[int, int]] = set()
     pieces: list[Piece] = []
 

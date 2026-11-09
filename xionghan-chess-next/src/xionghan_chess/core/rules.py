@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import Callable, Iterable, Iterator
 
 from .model import Color, GameState, Move, Piece, PieceType, Position
-from .profiles import PATROL_HOME_ROW, RuleOptions, RuleProfile, XIONGHAN_ROWS
-
+from .profiles import PATROL_HOME_ROW, XIONGHAN_ROWS, RuleOptions, RuleProfile
 
 # The patrol is confined to its own starting rank: Black's home rank and Red's
 # mirror image of it. Mirroring matches xionghan_side(), so PATROL_HOME_ROW and
@@ -191,7 +191,10 @@ class RulesEngine:
             for row in range(self.profile.rows):
                 for col in range(self.profile.cols):
                     target = Position(row, col)
-                    promotions: list[PieceType | None] = [None]
+                    # Sequence 而非 list：list 不变（invariant），promotion_types 的
+                    # list[PieceType] 赋不进 list[PieceType | None]；这里只读不写，
+                    # 用协变的 Sequence 即可（S2-3 mypy）。
+                    promotions: Sequence[PieceType | None] = [None]
                     if (piece.type is PieceType.PAWN and self.options.pawn_promotion
                             and row == (0 if color is Color.RED else self.profile.rows - 1)):
                         promotions = self.promotion_types(probe, color) or [None]
@@ -258,6 +261,8 @@ class RulesEngine:
         """
         clone = state.clone()
         piece = clone.piece_at(move.source)
+        # 不变式：合法着法的起点必有己方棋子（is_legal 已保证），收窄给 mypy（S2-3）。
+        assert piece is not None, f"apply_move: 起点 {move.source} 无子"
         removals: list[Removal] = []
         target = clone.piece_at(move.target)
         if target:
@@ -756,10 +761,13 @@ class RulesEngine:
                 group = [self.get(state, Position(landing.row + (offset + i) * dr,
                                                   landing.col + (offset + i) * dc))
                          for i in range(3)]
-                if any(p is None for p in group):
+                # any() 收窄不了 list 元素类型，这里显式过滤后按长度判空（等价于
+                # "3 格都有子"），让 allies/enemies 的元素类型是 Piece（S2-3 mypy）。
+                resolved = [p for p in group if p is not None]
+                if len(resolved) != 3:
                     continue
-                allies = [p for p in group if p.color is color]
-                enemies = [p for p in group if p.color is not color]
+                allies = [p for p in resolved if p.color is color]
+                enemies = [p for p in resolved if p.color is not color]
                 if len(allies) != 2 or len(enemies) != 1:
                     continue
                 if not any(p.type is PieceType.PAWN for p in allies):

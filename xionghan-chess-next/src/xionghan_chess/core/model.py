@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import time
+import uuid
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Any
-import time
-import uuid
 
 
 class Color(StrEnum):

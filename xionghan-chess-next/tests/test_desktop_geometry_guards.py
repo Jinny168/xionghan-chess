@@ -117,7 +117,6 @@ def test_document_dialog_body_is_usable(qt_app) -> None:
     dialog.resize(dialog.minimumSize())
     dialog.show()
     qt_app.processEvents()
-    body = dialog.findChild(type(dialog.findChildren(type(dialog))[0])) if False else None
     from PySide6.QtWidgets import QTextBrowser
     browser = dialog.findChild(QTextBrowser)
     assert browser is not None, "DocumentDialog 里没有正文控件"

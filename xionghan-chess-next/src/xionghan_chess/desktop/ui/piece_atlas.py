@@ -33,9 +33,22 @@ from collections.abc import Callable
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPixmap
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QMessageBox,
-    QButtonGroup, QDialog, QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
-    QPushButton, QScrollArea, QSizePolicy, QTextBrowser, QVBoxLayout, QWidget,
+    QButtonGroup,
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
 )
 
 from xionghan_chess.core.game import Game
@@ -47,8 +60,13 @@ from xionghan_chess.i18n import normalize_language, t
 from ..config import save_config
 from ..texts import dl
 from . import piece_assets, theme
-from .board_widget import (GLYPH_MODE, IMAGE_MODE, BoardWidget, draw_fallback_piece,
-                           draw_piece_glyph)
+from .board_widget import (
+    GLYPH_MODE,
+    IMAGE_MODE,
+    BoardWidget,
+    draw_fallback_piece,
+    draw_piece_glyph,
+)
 from .dialogs import GLYPH_STYLE_DATA, DocumentDialog
 
 # 左侧清单的顺序：先「常规 7 型」（任何档案都有），再「特色 7 型」。

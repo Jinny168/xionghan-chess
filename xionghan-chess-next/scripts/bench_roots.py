@@ -98,10 +98,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+import xionghan_chess.core.ai as ai_module  # noqa: E402
 from xionghan_chess.core.ai import CONFIGS, ChessAI, Difficulty  # noqa: E402
 from xionghan_chess.core.game import Game, GameError  # noqa: E402
 from xionghan_chess.core.model import Color, Move, Piece, PieceType  # noqa: E402
-import xionghan_chess.core.ai as ai_module  # noqa: E402
 
 POSITION_POLICY = ("每步从合法着法列表中位起、按 seed 做确定性轮转；"
                    "跳过上一步的逆着法与第三次重复（position_key 计数），"

@@ -26,7 +26,11 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from xionghan_chess.core.game import Game  # noqa: E402
 from xionghan_chess.core.model import (  # noqa: E402
-    Color, GameState, Move, Piece, PieceType, Position,
+    Color,
+    GameState,
+    Move,
+    Piece,
+    PieceType,
 )
 from xionghan_chess.core.profiles import PROFILES, get_profile  # noqa: E402
 
@@ -87,7 +91,6 @@ def transition_of(game: Game, before: dict, move: Move, record) -> dict:
 def self_play_cases(rng: random.Random, profile_id: str, games: int, plies: int) -> tuple[list, list]:
     cases: list[dict] = []
     transitions: list[dict] = []
-    profile = get_profile(profile_id)
     for game_index in range(games):
         game = Game(profile_id)
         if game.setup.resolved_first_move is Color.BLACK:
@@ -169,7 +172,7 @@ def _options_dict_from(options) -> dict:
 
 def option_variant_cases(rng: random.Random) -> list[dict]:
     """同一局面在不同规则开关下的判定差异（验证开关真的生效）。"""
-    from dataclasses import asdict, replace
+    from dataclasses import asdict
 
     from xionghan_chess.core.rules import RulesEngine
 

@@ -7,7 +7,6 @@ from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Move, Position
 from xionghan_chess.i18n import t
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 

@@ -1,7 +1,7 @@
+import asyncio
+
 from xionghan_chess.core.taunts import TAUNTS, choose_taunt, taunts
 from xionghan_chess.service.rooms import RoomManager
-
-import asyncio
 
 
 def test_taunt_catalog_has_all_scenes_and_random_selection():

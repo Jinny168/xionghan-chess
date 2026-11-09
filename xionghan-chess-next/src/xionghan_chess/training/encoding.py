@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from ..core.model import Color, GameState, Move, PieceType
 
-
 BOARD_SIZE = 13
 SQUARES = BOARD_SIZE * BOARD_SIZE
 PIECE_TYPES = tuple(PieceType)

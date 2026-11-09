@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import random
+from pathlib import Path
 
 from ..core.game import Game
 from ..core.mcts import MCTS
