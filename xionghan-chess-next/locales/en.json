@@ -125,6 +125,7 @@
     "selection": "Selected piece highlight",
     "legal_targets": "Show legal targets",
     "capture_hints": "Show capturable pieces",
+    "taunts": "AI quick chat",
     "autosave": "Auto-save finished replays",
     "autosave_desktop": "Auto-save finished replays",
     "game_mode": "Game mode",

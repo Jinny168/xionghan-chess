@@ -125,6 +125,7 @@
     "selection": "选中棋子高亮",
     "legal_targets": "显示可行落点",
     "capture_hints": "提示可吃棋子",
+    "taunts": "AI 快捷语",
     "autosave": "结束后自动保存棋谱",
     "autosave_desktop": "对局结束后自动保存棋谱",
     "game_mode": "对战方式",

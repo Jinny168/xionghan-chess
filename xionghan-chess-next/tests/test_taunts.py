@@ -1,5 +1,6 @@
 import asyncio
 import re
+from pathlib import Path
 
 import pytest
 
@@ -19,18 +20,47 @@ from xionghan_chess.core.taunts import (
 )
 from xionghan_chess.service.rooms import RoomManager
 
+# 用户定稿的 12 条（场景内顺序即展示顺序）。测试逐字钉住：改一个字都要连测试一起改。
+EXPECTED_ZH = {
+    "opening": ("请多指教。", "开局不必急。", "我先落子，静观其变。"),
+    "check": ("将军，脚下留神。", "这一手，你大概没算到。", "让一让，我要过路了。"),
+    "victory": ("承让，这局收官不错。", "多谢指教，再来一局？"),
+    "defeat": ("好棋，我记下了。", "这一手我确实没想到。"),
+    "draw_declined": ("和棋？我这局还没下够。", "局面还没到那一步。"),
+}
+EXPECTED_EN = {
+    "opening": ("Your move.", "No need to rush the opening.",
+                "I'll start and see where this goes."),
+    "check": ("Check — mind your footing.", "Bet you didn't count on that one.",
+              "Coming through."),
+    "victory": ("Good game — clean finish.", "Thanks for the game. Again?"),
+    "defeat": ("Well played. Noted.", "I genuinely missed that."),
+    "draw_declined": ("A draw? I'm not done yet.", "The position isn't there yet."),
+}
 
-def test_bilingual_tables_have_identical_scene_keys():
-    """ZH / EN 键集必须相同；`random` 是聚合伪场景，不在场景表里。"""
+
+def test_bilingual_tables_match_the_final_12_lines():
+    """用户定稿 12 条：opening 3 / check 3 / victory 2 / defeat 2 / draw_declined 2。"""
     assert set(TAUNTS_ZH) == set(TAUNTS_EN) == set(SCENE_NAMES)
     assert "random" not in TAUNTS_ZH
-    for scene, zh_values in TAUNTS_ZH.items():
-        en_values = TAUNTS_EN[scene]
-        assert zh_values and len(zh_values) == len(en_values)
-        assert all(text.strip() for text in zh_values + en_values)
-    assert len(taunts("random")) >= 16
+    for scene in SCENE_NAMES:
+        assert TAUNTS_ZH[scene] == EXPECTED_ZH[scene], scene
+        assert TAUNTS_EN[scene] == EXPECTED_EN[scene], scene
+    assert sum(len(values) for values in TAUNTS_ZH.values()) == 12
+    assert len(taunts("random")) == 12
     assert taunts("random", "en") != taunts("random", "zh-CN")
     assert choose_taunt("check", seed=3) in TAUNTS_ZH["check"]
+
+
+def test_taunt_switch_uses_the_global_setting_label():
+    """两端标签统一为「AI 快捷语 / AI quick chat」，且是全局设置项。"""
+    from xionghan_chess.i18n import t
+
+    assert t("settings.taunts", "zh-CN") == "AI 快捷语"
+    assert t("settings.taunts", "en") == "AI quick chat"
+    web = Path(__file__).resolve().parents[1] / "web"
+    assert "AI 快捷语" in (web / "index.html").read_text(encoding="utf-8")
+    assert "tauntsEnabled: 'settings.taunts'" in (web / "js" / "i18n.js").read_text(encoding="utf-8")
 
 
 def test_unknown_scene_raises_keyerror_instead_of_falling_back():

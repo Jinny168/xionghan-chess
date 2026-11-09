@@ -32,25 +32,21 @@ SCENE_NAMES: tuple[str, ...] = tuple(
     name for name in get_args(TauntScene) if name != "random")
 
 TAUNTS_ZH: dict[str, tuple[str, ...]] = {
-    "opening": ("请多指教", "先行一步，静观其变。", "棋局方始，莫急。", "让我们看看谁更稳。"),
-    "check": ("将军，留神脚下。", "这一手可不轻松。", "王前有变，慎之。", "请接招。"),
-    "victory": ("承让，这局棋妙在收官。", "胜负已分，再来一局？", "多谢指教。", "这一局我先取胜。"),
-    "defeat": ("好棋，我记下了。", "此局受教，再战。", "胜负常事，下一局见。", "这一手确实漂亮。"),
-    "draw_declined": ("此局尚未到和棋之时。", "再走走看，胜负未分。", "局面还有变化，暂不接受。",
-                      "想和？先过这一关。"),
+    "opening": ("请多指教。", "开局不必急。", "我先落子，静观其变。"),
+    "check": ("将军，脚下留神。", "这一手，你大概没算到。", "让一让，我要过路了。"),
+    "victory": ("承让，这局收官不错。", "多谢指教，再来一局？"),
+    "defeat": ("好棋，我记下了。", "这一手我确实没想到。"),
+    "draw_declined": ("和棋？我这局还没下够。", "局面还没到那一步。"),
 }
 
 TAUNTS_EN: dict[str, tuple[str, ...]] = {
-    "opening": ("A good game to you.", "I'll take the first step and watch.",
-                "The board is set — no rush.", "Let's see who holds steadier."),
-    "check": ("Check — mind your footing.", "That move was not easy.",
-              "Your king is exposed; be careful.", "Your move."),
-    "victory": ("A good game — the endgame was the art.", "The result is settled. Another?",
-                "Thank you for the game.", "I take this one."),
-    "defeat": ("Well played — noted.", "A lesson for me. Again.",
-               "Win and loss are common. Next game.", "That move was truly fine."),
-    "draw_declined": ("Not a draw yet.", "Let's play on — nothing is settled.",
-                      "The position still has life.", "A draw? Not so fast."),
+    "opening": ("Your move.", "No need to rush the opening.",
+                "I'll start and see where this goes."),
+    "check": ("Check — mind your footing.", "Bet you didn't count on that one.",
+              "Coming through."),
+    "victory": ("Good game — clean finish.", "Thanks for the game. Again?"),
+    "defeat": ("Well played. Noted.", "I genuinely missed that."),
+    "draw_declined": ("A draw? I'm not done yet.", "The position isn't there yet."),
 }
 
 # 语言键 → 场景表。`language` 走 `_language_key` 归一，不直接索引。

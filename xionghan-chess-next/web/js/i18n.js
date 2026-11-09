@@ -222,6 +222,7 @@ export function applyStaticI18n() {
     selectionEnabled: 'settings.selection',
     legalTargetsEnabled: 'settings.legal_targets',
     captureHintsEnabled: 'settings.capture_hints',
+    tauntsEnabled: 'settings.taunts',
     autosaveEnabled: 'settings.autosave',
   };
   for (const [id, key] of Object.entries(checkboxLabels)) {

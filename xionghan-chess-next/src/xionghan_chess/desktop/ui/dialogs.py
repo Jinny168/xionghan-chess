@@ -153,7 +153,7 @@ class SettingsDialog(QDialog):
         self.selection_highlight=QCheckBox(t("settings.selection", self.language));self.selection_highlight.setChecked(config.get("selection_highlight",True))
         self.legal_targets=QCheckBox(t("settings.legal_targets", self.language));self.legal_targets.setChecked(config.get("legal_targets",True))
         self.capture_hints=QCheckBox(t("settings.capture_hints", self.language));self.capture_hints.setChecked(config.get("capture_hints",True))
-        self.taunts=QCheckBox("棋灵挑衅短语" if self.language!="en" else "AI taunts");self.taunts.setChecked(config.get("taunts",True))
+        self.taunts=QCheckBox(t("settings.taunts", self.language));self.taunts.setChecked(config.get("taunts",True))
         self.autosave=QCheckBox(t("settings.autosave_desktop", self.language));self.autosave.setChecked(config.get("autosave",True))
 
         game_tab=QWidget();game_layout=QVBoxLayout(game_tab);game_form=QFormLayout()
@@ -177,7 +177,7 @@ class SettingsDialog(QDialog):
         appearance_form.addRow(t("settings.sound_volume", self.language),self.sound_volume);appearance_form.addRow(dl("音效风格"),self.sound_pack);appearance_form.addRow(t("settings.music", self.language),self.music)
         appearance_form.addRow(t("settings.music_style", self.language),self.music_style);appearance_form.addRow(t("settings.music_volume", self.language),self.music_volume)
         appearance_form.addRow(t("settings.animation", self.language),self.animations);appearance_form.addRow(t("settings.selection", self.language),self.selection_highlight)
-        appearance_form.addRow(t("settings.legal_targets", self.language),self.legal_targets);appearance_form.addRow(t("settings.capture_hints", self.language),self.capture_hints);appearance_form.addRow("棋灵挑衅" if self.language!="en" else "AI taunts",self.taunts)
+        appearance_form.addRow(t("settings.legal_targets", self.language),self.legal_targets);appearance_form.addRow(t("settings.capture_hints", self.language),self.capture_hints);appearance_form.addRow(t("settings.taunts", self.language),self.taunts)
         tabs.addTab(appearance_tab,t("settings.appearance_tab", self.language))
 
         self._active_profile_id = config["profile"]
