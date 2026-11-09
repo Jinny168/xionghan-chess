@@ -17,7 +17,11 @@ const DEFAULT_OPTIONS={king_can_leave_palace:true,king_diagonal_in_palace:true,k
 for(const type of TYPES)DEFAULT_OPTIONS[`${type}_appear`]=true;
 let idCounter=0;
 function piece(type,color,row,col){return{id:`offline-${++idCounter}`,type,color,row,col}}
-function side(color,complete=false,web=false){const flip=r=>color==='red'?12-r:r,items=[];if(complete)items.push(['archer',0,0],['thunder',0,4],['guard',0,6],['thunder',0,8],['archer',0,12]);else items.push(['archer',0,0],['thunder',0,4],['thunder',0,8],['archer',0,12]);items.push(['rook',1,2],['horse',1,3],['elephant',1,4],['advisor',1,5],['king',1,6],['advisor',1,7],['elephant',1,8],['horse',1,9],['rook',1,10],['cannon',3,1],['cannon',3,11]);for(let c=0;c<13;c+=2)items.push(['pawn',4,c]);if(complete||!web)items.push(['patrol',5,0],['patrol',5,12]);return items.map(([t,r,c])=>piece(t,color,flip(r),c))}
+// 完整档的尉/仕归位跟 `profiles.py`（95c2784 定稿）：(0,6)=仕、(1,5)=尉。
+// 其余档的 (1,5) **故意仍留仕** —— Python 那两档盘上是一枚 `enabled_piece_types`
+// 之外、0 个合法着法的尉，属**规则口径**问题而非镜像问题，对齐方向待裁决
+// （任务 #6 F1）。`nativeOpening` 腿因此只对 desktop_complete / traditional 对拍。
+function side(color,complete=false,web=false){const flip=r=>color==='red'?12-r:r,items=[];if(complete)items.push(['archer',0,0],['thunder',0,4],['advisor',0,6],['thunder',0,8],['archer',0,12]);else items.push(['archer',0,0],['thunder',0,4],['thunder',0,8],['archer',0,12]);const mid=complete?['guard',1,5]:['advisor',1,5];items.push(['rook',1,2],['horse',1,3],['elephant',1,4],mid,['king',1,6],['advisor',1,7],['elephant',1,8],['horse',1,9],['rook',1,10],['cannon',3,1],['cannon',3,11]);for(let c=0;c<13;c+=2)items.push(['pawn',4,c]);if(complete||!web)items.push(['patrol',5,0],['patrol',5,12]);return items.map(([t,r,c])=>piece(t,color,flip(r),c))}
 function traditionalSide(color){const flip=r=>color==='red'?9-r:r,items=[['rook',0,0],['horse',0,1],['elephant',0,2],['advisor',0,3],['king',0,4],['advisor',0,5],['elephant',0,6],['horse',0,7],['rook',0,8],['cannon',2,1],['cannon',2,7]];for(let c=0;c<9;c+=2)items.push(['pawn',3,c]);return items.map(([t,r,c])=>piece(t,color,flip(r),c))}
 function starPoints(){const points=[];for(let r=0;r<13;r+=3)for(let c=0;c<13;c+=3)if((r/3+c/3)%2===0)points.push(pos(r,c));return points}
 const STANDARD=['king','rook','horse','elephant','advisor','cannon','pawn'],WEB=[...STANDARD,'archer','thunder'],CLASSIC=[...WEB,'patrol'];
