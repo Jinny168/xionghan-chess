@@ -89,8 +89,10 @@ jobs:
 
       - name: JS 语法检查（= package.json 的 `npm run check` 口径）
         run: |
+          node --check web/js/state.js
           node --check web/js/app.js
           node --check web/js/i18n.js
+          node --test web/js/state.test.cjs
 
       - name: JS 语法检查（对拍探针，CommonJS）
         # 跨引擎对拍靠 node 直接跑这几个文件；它们语法坏了，test job 会以
