@@ -167,14 +167,12 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          # 缓存键必须指向**实际被安装**的文件；仓库根没有 requirements.txt，
-          # 不写这一行 setup-python 会找不到依赖文件、缓存永远不命中。
+          # 缓存键必须指向**实际被安装**的文件；S2-3 起安装源是 lock 文件，
+          # 同时保留 dev.txt——dev.txt 变了 lock 就该重新生成，键里带上它
+          # 可以在"忘了重新生成"时至少让缓存失效、装到新东西而非旧缓存。
           cache-dependency-path: |
-            xionghan-chess-next/requirements/core.txt
-            xionghan-chess-next/requirements/server.txt
-            xionghan-chess-next/requirements/desktop.txt
+            xionghan-chess-next/requirements/lock/py312-dev.txt
             xionghan-chess-next/requirements/dev.txt
-            xionghan-chess-next/pyproject.toml
 
       - uses: actions/setup-node@v4
         with:
@@ -200,26 +198,32 @@ jobs:
         # 已经装过的包在这里是 no-op（约 5–10s）；用这条换掉"猜 runner 镜像里有什么"。
         run: |
           sudo apt-get update -qq
+          # 音频库：desktop_smoke 与 40+ 桌面用例的 import 链经 app.py:34 → audio.py:6
+          # 无条件拉 PySide6.QtMultimedia，其 Linux 后端链接 ALSA/Pulse 系统库，
+          # 缺失时 import 即崩（run #118 实证：smoke step 1 秒内 exit 1，pytest 未跑）。
+          # runner 镜像（20261101.360.1）不带这两者，须显式装（noble 包名带 t64 后缀的只有 alsa）。
           sudo apt-get install -y --no-install-recommends \
-            libegl1 libgl1 libglib2.0-0 libfontconfig1 libxkbcommon0 libdbus-1-3
+            libegl1 libgl1 libglib2.0-0 libfontconfig1 libxkbcommon0 libdbus-1-3 \
+            libasound2t64 libpulse-mainloop-glib0
 
-      - name: 安装测试依赖（requirements/dev.txt）
-        # dev.txt = server + desktop + pytest/httpx/pyinstaller/fonttools，
+      - name: 安装测试依赖（lock：requirements/lock/py312-dev.txt）
+        # S2-3 起从 lock 安装而不是裸 dev.txt：锁版本 + 锁内容（全量 hash），
+        # 排除"上游发新版把 CI 装挂/装变"这种与代码无关的翻车。lock 的生成口径
+        # （源文件、命令、py3.12 目标版本）写在 lock 文件头注释里；dev.txt 改了
+        # 必须重新 `uv pip compile` 并一起提交，否则装的就是过期锁定。
+        # dev.txt = server + desktop + pytest/httpx/pyinstaller/fonttools/pillow，
         # 其中 desktop 是**必须**的：40+ 个桌面测试文件在模块顶层
         # `pytest.importorskip("PySide6")`，少装就静默跳过（不是红）。
         # fonttools 同理：test_desktop_theme_resources 缺它就是 ModuleNotFoundError。
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements/dev.txt
+          pip install -r requirements/lock/py312-dev.txt
 
-      - name: 补装 Pillow（资产门禁用；dev.txt 未声明）
-        # 现状：Pillow 只在 pyproject 的 `build` extra 里，dev.txt 没装它，
-        # 于是 test_desktop_pieces_assets 里 4 条 Pillow 用例走 importorskip **静默跳过**：
-        #   - test_pillow_reads_every_image_as_160_square_rgba
-        #   - test_bbox_constants_match_measured_alpha_bounds[3 风格]
-        # 也就是说「棋子裁剪框是否与美术一致」这道门禁在本机是靠 venv 里有 PIL 才成立的。
-        # 这里显式装上，把这个静默跳过变成真跑（实测本机 Pillow 12.3.0 下 17 passed）。
-        run: pip install "pillow>=11,<13"
+      # 旧这里有一条「补装 Pillow」step：dev.txt 当时没声明 pillow，导致
+      # test_desktop_pieces_assets 里 4 条 Pillow 用例 importorskip 静默跳过。
+      # 2026-11-09 已把 pillow 声明进 dev.txt 并锁进 py312-dev.txt（与 fonttools
+      # 同先例：依赖声明缺陷修在源头，而不是在 CI 打补丁），故该 step 删除；
+      # 预检 step 的 `import PIL` 仍然兜底。
 
       - name: 预检（LFS 资产已实体化 + Pillow 可导入）
         # 卡点而不是靠下游测试报错：LFS 没取到时，测试会以"图片尺寸不对"
