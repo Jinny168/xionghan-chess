@@ -447,6 +447,7 @@ def test_resurrect_rejects_when_rule_is_disabled_by_profile() -> None:
     这条同时说明 RESURRECT 的**可达性**：默认开启招魂的只有 `desktop_complete` /
     `desktop_classic`，`web` 用户走不到这条分支。所以上面第 5 条才显式传
     `options={"pawn_resurrection": True}`；两条合起来，才把"能不能开"与"开了怎么走"都钉住。
+    它也是**真实用户路径**：客户端并不判档案，直接发 resurrect 就会撞在这里被拒。
     """
     async def scenario() -> None:
         manager = RoomManager()
@@ -463,5 +464,63 @@ def test_resurrect_rejects_when_rule_is_disabled_by_profile() -> None:
 
         assert str(exc.value) == t("error.resurrect_not_allowed")
         assert room.revision == before          # 拒绝路径不涨 revision
+
+    _run(scenario)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 11) 双端扇出的**快速失败**版本：假 socket 替掉真 WS
+# ─────────────────────────────────────────────────────────────────────────────
+class _RecordingSocket:
+    """假 socket：只把 `broadcast` 发来的帧记下来。
+
+    `broadcast()` 对**每个 token** 单独序列化一条 STATE（rooms.py `for token, socket in
+    player_sockets`），所以两个 stub 各收自己那一份 —— 直驱 `handle` 时没有真 socket，
+    这是观察"扇出"的最小手段。
+    """
+
+    def __init__(self) -> None:
+        self.frames: list[dict[str, Any]] = []
+
+    async def send_json(self, data: dict[str, Any]) -> None:
+        self.frames.append(data)
+
+
+def test_broadcast_fans_out_to_every_socket() -> None:
+    """双端广播的**快速失败**版本（与第 8 条并存，不是重复）。
+
+    为什么两条都要：
+    · 第 8 条走真 TestClient WS —— 证明帧真的过了传输层到达对端，但 Starlette 的 WS 会话
+      没有接收超时，广播一旦漏发，那条用例会**阻塞**到 job timeout（我在 docstring 里
+      记过这个代价）；
+    · 本用例把 `room.sockets` 换成只记帧的 stub —— 同一类回归**立即断言失败**，并且能
+      直接指出是哪个 seat 没收到。一快一真，成本都极低。
+    """
+
+    async def scenario() -> None:
+        manager = RoomManager()
+        room, red, black = await _online_pair(manager)
+        red_sock, black_sock = _RecordingSocket(), _RecordingSocket()
+        room.sockets = {red.token: red_sock, black.token: black_sock}
+
+        await _send(manager, room, red, MessageType.DRAW_OFFER)
+        assert red_sock.frames, "提和后红方 socket 一帧都没收到"
+        assert black_sock.frames, "提和后黑方 socket 一帧都没收到"
+        for seat, socket in (("red", red_sock), ("black", black_sock)):
+            frame = socket.frames[-1]
+            assert frame["type"] == MessageType.STATE.value, seat
+            assert frame["payload"]["game"]["pendingDrawOffer"] == Color.RED.value, seat
+            assert frame["revision"] == room.revision, seat
+        assert red_sock.frames[-1]["revision"] == black_sock.frames[-1]["revision"]
+
+        # 悔棋请求同样要扇出到两边（先走一手让 history 非空）
+        source, target = _first_legal_move(room)
+        await _send(manager, room, red, MessageType.MOVE, {"from": source, "to": target})
+        await _send(manager, room, black, MessageType.UNDO_REQUEST)
+        for seat, socket in (("red", red_sock), ("black", black_sock)):
+            frame = socket.frames[-1]
+            assert frame["type"] == MessageType.STATE.value, seat
+            assert frame["payload"]["game"]["pendingUndoOffer"] == Color.BLACK.value, seat
+            assert frame["revision"] == room.revision, seat
 
     _run(scenario)
