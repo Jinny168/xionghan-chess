@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 import ast
+import importlib.util
 import os
 from pathlib import Path
 import re
@@ -47,6 +48,12 @@ NODE_DEPENDENT = (
     ("test_offline_puzzles.py", "离线题库 ↔ 离线引擎"),
     ("test_p0_rules.py", "黄金值经 rules probe 复核"),
 )
+
+# 参数化 id 故意不带 ".py"：conftest 的对拍归属判定以前是**子串匹配**，形如
+# `…::test_x[test_cross_engine.py]` 的 id 会被误计成对拍用例（实测把汇总行从
+# 「收集 81 | 通过 81」污染成「通过 84」）。现在 conftest 改成文件名精确比对，
+# id 这里再做一层：不让本文件自己再制造同类形状。
+NODE_DEPENDENT_IDS = [name.removesuffix(".py") for name, _ in NODE_DEPENDENT]
 
 GATE_SUMMARY = re.compile(r"通过 (\d+) \| 失败 (\d+) \| 跳过 (\d+)")
 
@@ -111,7 +118,7 @@ def test_skip_lint_is_self_validated_before_it_judges_anything():
     assert not wrong, f"skip lint 自验失败：{wrong}"
 
 
-@pytest.mark.parametrize("filename,label", NODE_DEPENDENT, ids=[n for n, _ in NODE_DEPENDENT])
+@pytest.mark.parametrize("filename,label", NODE_DEPENDENT, ids=NODE_DEPENDENT_IDS)
 def test_node_dependent_module_has_no_case_level_skip(filename: str, label: str):
     """防回潮：三个 node 依赖模块里不许再出现用例级 skip。"""
     source = (TESTS / filename).read_text(encoding="utf-8")
@@ -126,7 +133,7 @@ def test_node_dependent_module_has_no_case_level_skip(filename: str, label: str)
 
 # --- 2. 唯一 skip 入口 ------------------------------------------------------
 
-@pytest.mark.parametrize("filename,label", NODE_DEPENDENT, ids=[n for n, _ in NODE_DEPENDENT])
+@pytest.mark.parametrize("filename,label", NODE_DEPENDENT, ids=NODE_DEPENDENT_IDS)
 def test_only_the_escape_valve_may_skip_module(filename: str, label: str):
     """模块级 skip 只允许一行，且必须由 `module_skip_mark()` 提供。"""
     source = (TESTS / filename).read_text(encoding="utf-8")
@@ -152,7 +159,7 @@ def test_escape_valve_condition_lives_in_the_guard_module_only():
     assert "def require_node()" in guard and "pytest.fail(NO_NODE_REASON" in guard
 
 
-@pytest.mark.parametrize("filename,label", NODE_DEPENDENT, ids=[n for n, _ in NODE_DEPENDENT])
+@pytest.mark.parametrize("filename,label", NODE_DEPENDENT, ids=NODE_DEPENDENT_IDS)
 def test_modules_do_not_carry_a_second_copy_of_the_guard(filename: str, label: str):
     """三个模块只能 import 守卫，不得自带第二份（新增同步点的味道）。"""
     source = (TESTS / filename).read_text(encoding="utf-8")
@@ -162,6 +169,42 @@ def test_modules_do_not_carry_a_second_copy_of_the_guard(filename: str, label: s
             "不要复制第二份守卫（那正是本项目『隐性同步点』的老毛病）"
         )
     assert "from _node_guard import" in source, f"{label}（{filename}）没有接上共享守卫"
+
+
+# --- 3. 汇总行的归属判定 -----------------------------------------------------
+
+def _load_conftest():
+    """把 `tests/conftest.py` 当普通模块加载，只为了单测它的两个纯函数。"""
+    spec = importlib.util.spec_from_file_location("xh_tests_conftest", TESTS / "conftest.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_gate_counter_counts_only_the_parity_file_not_lookalikes():
+    """汇总行必须按**文件名精确**归属，子串匹配会把本文件的参数化 id 数进去。
+
+    实测过的事故：`…::test_x[test_cross_engine.py]` 这种 id 里含 `test_cross_engine.py`
+    这串字，旧实现 `PARITY_MODULE in nodeid` 把它当对拍用例，于是汇总行从
+    「收集 81 | 通过 81」变成「**通过 84**」——CI 里那条 `通过 == 收集` 断言会因此
+    假红，而人看到的是"门禁自己算错了"。
+    """
+    conf = _load_conftest()
+    samples = [
+        ("tests/test_cross_engine.py::test_x[traditional]", True),
+        ("xionghan-chess-next/tests/test_cross_engine.py::test_w", True),
+        ("tests/test_gate_integrity.py::test_y[test_cross_engine.py]", False),
+        ("tests/test_cross_engine_extra.py::test_z", False),
+        ("tests/test_cross_engine.py", True),
+    ]
+    wrong = [(nodeid, expected) for nodeid, expected in samples
+             if conf._is_parity_nodeid(nodeid) is not expected]
+    hits = sum(1 for _, expected in samples if expected)
+    print(f"[GATE-COUNTER] 归属判定自验 {len(samples) - len(wrong)}/{len(samples)} 通过"
+          f"（应命中 {hits} 条 / 应不命中 {len(samples) - hits} 条）")
+    assert not wrong, f"对拍用例归属判定错误：{wrong}"
+    # 子串法对第 3 条会判成 True —— 这正是本用例存在的理由。
+    assert "test_cross_engine.py" in samples[2][0], "样本 3 已不含形近子串，本用例失去意义"
 
 
 # --- 4. 结构 lint -----------------------------------------------------------

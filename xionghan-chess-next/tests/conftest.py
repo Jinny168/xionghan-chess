@@ -22,12 +22,15 @@ Two nets now stand between that failure mode and a green build:
 
 Nothing here touches any assertion in ``test_cross_engine.py``; this hook is the
 second net, not the first. No marker is registered on the tests themselves (that
-would mean editing the parity module); membership is decided by module path.
+would mean editing the parity module); membership is decided by **exact file
+name** -- not by substring, which used to count any `…[test_cross_engine.py]`
+parametrize id as a parity case and inflated the summary line.
 """
 
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import shutil
 
 import pytest
@@ -49,9 +52,26 @@ NO_NODE_MESSAGE = (
 _PARITY_TOTAL = 0
 
 
+def _is_parity_path(path: str | os.PathLike[str]) -> bool:
+    """Exact **file name** match, not substring.
+
+    原来这里是 `PARITY_MODULE in str(path)` —— 只要 nodeid 里出现
+    `test_cross_engine.py` 这几个字就算对拍用例。于是任何
+    `…::test_x[test_cross_engine.py]` 这种**参数化 id** 都会被误计（实测把汇总行
+    从「收集 81 | 通过 81」污染成「通过 84」），`test_cross_engine_extra.py` 之类的
+    新文件同样会被误计。按文件名精确比对，别名再像也不算。
+    """
+    return Path(str(path)).name == PARITY_MODULE
+
+
+def _is_parity_nodeid(nodeid: str) -> bool:
+    """Same rule applied to a report nodeid (`path::test[param]`)."""
+    return _is_parity_path(str(nodeid).split("::", 1)[0])
+
+
 def _is_parity(item: pytest.Item) -> bool:
     path = getattr(item, "path", None) or getattr(item, "fspath", "")
-    return PARITY_MODULE in str(path)
+    return _is_parity_path(path)
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -87,7 +107,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus: int, config: pytest.Co
 
     def _count(outcome: str) -> int:
         return sum(1 for rep in stats.get(outcome, [])
-                   if PARITY_MODULE in getattr(rep, "nodeid", ""))
+                   if _is_parity_nodeid(getattr(rep, "nodeid", "")))
 
     passed, failed = _count("passed"), _count("failed")
     skipped, errored = _count("skipped"), _count("error")
