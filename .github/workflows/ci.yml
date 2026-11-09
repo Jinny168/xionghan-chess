@@ -311,13 +311,46 @@ jobs:
         # Actions 默认 shell 是 `bash -e`（不含 pipefail），此时 `pytest | tee` 的退出码
         # 取的是 tee 的 0 —— pytest 红、job 绿。实测：`false | tee x` 无 pipefail → rc=0，
         # 有 pipefail → rc=1。
+        #
+        # `-rfEP`（S3-A1）：`P` = 把「通过且有 stdout 输出」的用例的捕获输出一并打印。
+        # 这是 `[density]` 取证能在**绿跑**被读到的前提 —— pytest 默认按 fd 捕获 stdout，
+        # 通过用例里的 `print(..., flush=True)` 不进日志。本机实测同一文件：
+        #   `-q`        → 16 passed，输出里 0 条 [density]
+        #   `-q -rfEP`  → 3 条 [density]（traditional / modern / cartoon）
+        #
+        # **`f` 与 `E` 必须一起写上**：`-r <chars>` 是**替换**默认的 summary 字符集，
+        # 不是追加。只写 `-rP` 时 FAILED/ERROR 行会从 short summary 里消失，下面那条
+        # 「把 FAILED 行转 ::error::」的 grep 就永远空转 —— 本机实测 `-rP` 红跑只剩
+        # 「::error::3 failed, 899 passed…」一行、没有任何失败用例名（根因不可见）。
+        # 加上 fE 之后实测恢复：`::error::FAILED tests/…::test_x` + 汇总行 + density 行。
+        #
+        # 不选 `A`（all）：整跑 895 条里绝大多数没有 stdout，本机实测 `-q` 约 30 行、
+        # `-q -rfEP` 243 行；-rA 会把每条 PASSED 都打一遍，对取证没有增益。
+        # 这一项只增加日志丰富度，不改变任何判定。
         run: |
           set -o pipefail
-          pytest tests/ -m "not slow" -q --durations=15 | tee "$RUNNER_TEMP/pytest.log" || {
-            grep -E "^(FAILED|ERROR) " "$RUNNER_TEMP/pytest.log" | head -40 | sed 's/^/::error::/'
-            grep -E "^[0-9]+ (passed|failed)" "$RUNNER_TEMP/pytest.log" | tail -3 | sed 's/^/::error::/'
-            exit 1
-          }
+          rc=0
+          pytest tests/ -m "not slow" -q --durations=15 -rfEP | tee "$RUNNER_TEMP/pytest.log" || rc=$?
+          # 失败时才把 FAILED/ERROR 与汇总行转 ::error::（原有行为）。两条 grep 各加
+          # `|| true`：匹配不到时不该提前把脚本掐掉、连汇总行注解都吞了。
+          if [ "$rc" -ne 0 ]; then
+            grep -E "^(FAILED|ERROR) " "$RUNNER_TEMP/pytest.log" | head -40 | sed 's/^/::error::/' || true
+            grep -E "^[0-9]+ (passed|failed)" "$RUNNER_TEMP/pytest.log" | tail -3 | sed 's/^/::error::/' || true
+          fi
+          # ── density 值取证（红绿都发；**不参与判定**，rc 只由上面的 pytest 决定）──
+          # 用途：`test_desktop_piece_render.py` 的密度回归指标目前有 linux 一档暂记值，
+          # 下一跑要拿**被门禁实际跑出来的**数去标定。注解是匿名可读的唯一日志通道
+          # （logs API 对非 admin 403，run #120/#121 实测），所以值必须变成 ::notice::。
+          #
+          # ⚠️ 必须取**同一次 pytest 进程**的数，不能另起一次重跑：这行依赖进程级上下文。
+          # 本机实测（win32，同一份代码）：整跑三风格**全红**（cartoon ratio 0.78 /
+          # artwork 0.524），单独跑该文件**全绿**（ratio 1.00 / artwork 0.420）。根因是
+          # `tests/test_desktop_dialog_lifetime.py` 在 import 期
+          # `os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")` —— 整跑会 import 到它，
+          # 单跑不会，于是两次用的**不是同一个 Qt 平台插件**，渲染结果自然不同。
+          # 换句话说，重跑拿到的值是另一个量：拿它去标定基线，就是把基线带偏。
+          grep -E "^\[density\]" "$RUNNER_TEMP/pytest.log" | sed 's/^/::notice::/' || true
+          exit "$rc"
 
       - name: 对拍门禁汇总行断言（区分「绿」与「空绿」）
         # 为什么必须有这一步：`tests/conftest.py` 的汇总是**输出**，不是**断言**。
@@ -353,42 +386,6 @@ jobs:
           # floor：1.7.5 实收 81 条。允许增加，不允许悄悄减少 —— 删对拍用例是最安静的一种假绿。
           [ "$collected" -ge 81 ] || { echo "::error::对拍用例从 81 掉到 $collected（有人删了对拍用例？）"; exit 1; }
           echo "OK: 对拍门禁名副其实（通过 $passed / 收集 $collected，0 跳过）"
-
-      - name: "density 值取证（绿跑也留痕 → ::notice:: 注解）"
-        # 目的：给 `tests/test_desktop_piece_render.py` 的密度回归指标留下**绿跑**的
-        # 精确数值，供下一跑标定 linux/traditional（该档目前是暂记值）。
-        # 注解是匿名可读的唯一日志通道（logs API 对非 admin 403，run #120/#121 实测），
-        # 所以这些数必须变成 ::notice:: 才能被人读到。
-        #
-        # ⚠️ 为什么必须是**独立一步 + 自己加 `-s`**，而不是在主 pytest 的 pytest.log 上 grep：
-        # pytest 默认按 fd 级捕获 stdout，**通过**用例里的 `print(..., flush=True)` 不会
-        # 进入日志（只有失败时以 "Captured stdout call" 段落出现）。本机实测
-        # `pytest tests/test_desktop_piece_render.py -q` 的 16 passed 输出里一条 [density]
-        # 都没有；加 `-s` 才有（3 条，见下）。所以在主 pytest 那条 run 里加
-        # `grep '[density]' pytest.log`，绿跑**永远**空转 —— 那是假取证，不是取证。
-        # 这里只重跑密度那 3 条用例（本机 0.6s，CI 秒级），不重复其余任何东西。
-        #
-        # `if: always()`：主门禁红了也要拿到数（基线标定与红绿无关，红的那次更需要数字）。
-        # **这一步不参与判定**：全程 `|| true` + 拿不到数只发 ::warning::，job 的红绿
-        # 完全由上面的主 pytest / 对拍断言决定。
-        if: always()
-        run: |
-          set -uo pipefail
-          log="$RUNNER_TEMP/density.log"
-          pytest "tests/test_desktop_piece_render.py::test_fallback_density_matches_the_platform_baseline" \
-            -q -s > "$log" 2>&1 || true
-          count=$(grep -c '\[density\]' "$log" || true)
-          echo "捕获到 ${count:-0} 条 [density] 行（linux 期望 3 条：traditional/modern/cartoon）"
-          if [ "${count:-0}" -eq 0 ]; then
-            # 不判红：密度用例在无基线的平台上会 skip（DENSITY_BASELINE 只有 win32/linux），
-            # 那属于"没值可标定"，不是失败。留下尾部输出让人一眼看出是 skip 还是崩了。
-            echo "::warning::没拿到 [density] 行 —— 密度用例被跳过或渲染链没起来，本轮无值可标定"
-            tail -8 "$log"
-            exit 0
-          fi
-          # 去掉 pytest -q 的进度点（行可能是 ".[density] ..."）。::notice:: 必须在行首
-          # 才被 Actions 解析成注解，所以先清点再前缀。
-          grep '\[density\]' "$log" | sed 's/^\.*//' | sed 's/^/::notice::/'
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 3) gate-negative —— 负向自检：证明「缺 node 会红」在 runner 上也成立
