@@ -461,3 +461,57 @@ Step 3（职责对象化）**不做**：触发线写死为 `_apply_move`/`_apply
 - `slow` job 已切 lock；desktop 包 mypy 收编（service 已完成）；render 密度新组合需先标定再入表。
 - 镜像生成化（offline.js 由 Python 规则生成）——独立立项，优先级按"双端不一致事故的期望成本"定，不与 handle 串行。
 - P3 候选：重复 `draw_offer` 是否应拒绝（产品判断，需同时动 core 与用例）、`playSound` 的 `catch(()=>{})` 改 `[sfx]` warn、victory/defeat 降采样（省 0.96 MiB，需 A/B 听感）。
+
+## §12 S3-C「镜像一致性」执行结果（2026-11-09，Wave C）
+
+### 12.1 结论：缩范围做——补「输入端对拍」，不做走子逻辑 codegen
+
+Python 规则引擎（`core/rules.py`）与离线镜像（`android/Resources/assets/offline/offline.js`，**不是** `web/js/offline.js`，该文件不存在）的关系是：**走子校验器由 60+ 条定向对拍钉着，是资产不是负债**。真正的风险在「数据/状态机」层，且 81 条原对拍有一个**结构盲区**：所有用例都把 Python state 注入 JS，**JS 自己那份开局 roster 从未进入对拍**。方案 B（codegen 走子函数）与 A（运行时读 JSON 表）均否决——前者要再造一套语义表达，后者在 Android `file://` origin 下不可靠（`MainActivity.cs` 未开 `AllowFileAccessFromFileURLs`）。
+
+### 12.2 交付（`18a4acf..c4a1ee8`）
+
+| 提交 | 内容 |
+|---|---|
+| `18a4acf` | 音效播放失败不再静默（`[sfx]` warn，与 BGM 对齐） |
+| `a452b03` | victory/defeat 转 44100/mono：**−1.279 MiB（两侧）**；实测原文件为伪立体声（L−R 差分 −64 dB RMS），单声道化近恒等；4 条 LFS 例外，blob 为实体非指针 |
+| `b63e3b8` | `draw_offer` 三处对齐：core 补 `finished`/`已有 pending` 守卫、local 旁路补 `finished`、web 补二次确认与同房间 revision 单调性守卫（换房基线 −1）；协议用例同步改写 |
+| `15ae157` | S1 更正两处"假覆盖"注释（threefold docstring、引用已删文件的注释） |
+| `8e553c2` | S4 threefold 改「只看当前局面」，与 L-06 同义；新增 2 条对拍 |
+| `b41e08c` → `0bc3377` | S2 `nativeOpening` 探针腿（唯一不注入 Python 局面的腿）+ S3 修 complete 分支尉/仕归位（104→108） |
+| `2610533` | F1-a：classic/web 的 (1,5)/(11,5) 恢复为仕（110→113 / 104→107）；`xionghan_side(enabled=...)` 必填；不变量门禁；题库重生成（web 档不再含非法尉） |
+| `2fef65f` | 原生开局覆盖 4 档 + `RESTORE_PAWN_LIMIT=7` 第 8 次招魂对拍（对拍 88 条） |
+| `5633e42` | **旧档迁移**：F1-a 之前的 classic/web 棋谱不再拒载（三档口径，见 12.3） |
+| `256596a` / `c9e2ef9` / `c4a1ee8` | 反向用例前提断言；`3c` 过度映射守卫；恒绿断言改「改源头重算」 |
+
+### 12.3 旧档迁移（发布阻断项，已闭环）
+
+F1-a 前保存的 classic/web 棋谱 `setup.*Slots` 含 `*:guard:1:5`，加载会在 `GameSetup.build` 抛 `unavailable piece slots`。迁移放 `storage.game_from_document`（唯一加载漏斗），**分档**：
+
+| 存档 | 结果 |
+|---|---|
+| 开局档（`history` 空） | slots 与 `state.pieces` 均升级为 advisor；`perft(1)` 113/107 |
+| 进行中档（`history` 非空） | 只保证能加载；盘面原样（guard，110/104）；`history[].pieceType` 不改；能续走 |
+| 未知不可用槽位 | 仍抛 `ValueError`（迁移不吞真损坏） |
+
+映射仅 `guard↔advisor`、仅 `{(1,5),(11,5)}`、仅在该档不启用尉时生效。进行中档那枚尉的语义：**不能动（0 合法着），但仍是合法吃子目标**（稀疏局面实测 `capturable_squares` 返回 1 条）——"死子"不等于"无效子"。
+
+### 12.4 本轮"假覆盖"四例与判据（建议入档）
+
+> **判据：一条用例只有在「把被测实现改回旧行为」之后变红，才算测到东西。** 做不到时退一步：断言 fixture 里"坏/旧"的那半边在造完后确实存在（写具体数字，不写 `any(...)`）。
+
+| # | 形态 | 实例 |
+|---|---|---|
+| 1 | 拿局面当规则 | 完整开局盘上"死尉不可被吃"是局面结论，换稀疏局面才是规则结论 |
+| 2 | 造坏值空转 | `str.replace` 目标不存在 → 断言全落空 → "未报错"被误读成"迁移放过了真损坏" |
+| 3 | 造旧数据只改一半 | 只退棋子、没退台账键 → "迁移生效"在没生效时也绿 |
+| 4 | 手改派生值 | `position_key` 棋盘段 `sorted()` 且 `advisor < guard`，字符串替换造出的旧键**从未存在过**；朴素替换还会误改合法的第二只仕 |
+
+### 12.5 CI（`#137→#145`）
+
+`#137`(6bbf3e3)、`#138`(d425dcd)、`#139`(18a4acf)、`#140`(8e553c2)、`#141`(b63e3b8)、`#142`(0bc3377)、`#144`(256596a)、`#145`(c4a1ee8) 均全绿；`#136`/`#143` 被同分支并发策略取代。全量 **953 passed / 1 skipped**，对拍 **88 条全绿**，perft 锚点 108/11647/44/1920 未变。
+
+### 12.6 遗留
+
+- **S5 数据层 codegen**：按裁决"视 S1–S4 稳定后再议"，未做；做时生成区块必须保留 `const TYPES=` / `const canvas=` 锚点。
+- **webapp/ 第三套引擎**：冻结、不随规则更新、CI 零引用；它不是生成化先例（产物未入库、验证器不在门禁），是反例。
+- 待产品决策：22 kHz 音频档（再省 0.639 MiB，候选在 `%TEMP%`）、AI 模式提和口径（当前静默死路）。
