@@ -120,6 +120,18 @@ def _clean_times(rows: list[dict[str, object]], side: str) -> list[float]:
     return [float(value) for row in rows for value in (row.get(f"{side}_move_times") or [])]
 
 
+def _max_true_run(flags: list[bool]) -> int:
+    best = run = 0
+    for flag in flags:
+        run = run + 1 if flag else 0
+        best = max(best, run)
+    return best
+
+
+def _zero_flags(rows: list[dict[str, object]], side: str) -> list[bool]:
+    return [bool(flag) for row in rows for flag in (row.get(f"{side}_zero_depth_flags") or [])]
+
+
 def summarize(
     rows: list[dict[str, object]],
     level_a: str,
@@ -142,6 +154,23 @@ def summarize(
     b_zero = _zero_reasons(rows, "b")
     a_moves = sum(int(row.get("a_moves", 0)) for row in rows)
     b_moves = sum(int(row.get("b_moves", 0)) for row in rows)
+    a_flags = _zero_flags(rows, "a")
+    b_flags = _zero_flags(rows, "b")
+    a_zero_count = sum(a_flags) if a_flags else sum(a_zero.values())
+    b_zero_count = sum(b_flags) if b_flags else sum(b_zero.values())
+    a_zero_rate = a_zero_count / a_moves if a_moves else 0.0
+    b_zero_rate = b_zero_count / b_moves if b_moves else 0.0
+    a_max_consecutive = max(
+        max((int(row.get("a_zero_depth_max_consecutive", 0)) for row in rows), default=0),
+        _max_true_run(a_flags),
+    )
+    b_max_consecutive = max(
+        max((int(row.get("b_zero_depth_max_consecutive", 0)) for row in rows), default=0),
+        _max_true_run(b_flags),
+    )
+    a_games_gt1 = sum(1 for row in rows if sum(bool(flag) for flag in (row.get("a_zero_depth_flags") or [])) > 1)
+    b_games_gt1 = sum(1 for row in rows if sum(bool(flag) for flag in (row.get("b_zero_depth_flags") or [])) > 1)
+    k2_evaluated = a_moves >= 300 and b_moves >= 300
     a_times = _clean_times(rows, "a")
     b_times = _clean_times(rows, "b")
     # 门槛按整数 k_eff 找（n=32→22、n=64→40）；和棋只影响实际 k_eff，不改变门槛。
@@ -169,6 +198,18 @@ def summarize(
         "noZeroDepth": sum(a_zero.values()) == 0 and sum(b_zero.values()) == 0,
         "nodesRatioAtMost2Percent": nodes_ratio_a <= 0.02 and nodes_ratio_b <= 0.02,
     }
+    gates["zeroDepthEvaluated"] = k2_evaluated
+    gates["zeroDepthRateAtMost1Percent"] = (a_zero_rate <= 0.01 and b_zero_rate <= 0.01) if k2_evaluated else True
+    gates["zeroDepthNoConsecutive"] = (a_max_consecutive <= 1 and b_max_consecutive <= 1) if k2_evaluated else True
+    gates["zeroDepthAtMostOnePerGame"] = (a_games_gt1 == 0 and b_games_gt1 == 0) if k2_evaluated else True
+    a_upper = min(1.0, 3 / a_moves) if a_zero_count == 0 and a_moves else wilson_interval(a_zero_count, a_moves)[1]
+    b_upper = min(1.0, 3 / b_moves) if b_zero_count == 0 and b_moves else wilson_interval(b_zero_count, b_moves)[1]
+    k2_note = (
+        f"A {a_zero_count}/{a_moves}，点估计 {a_zero_rate:.1%}，95% 上界 {a_upper:.1%}；"
+        f"B {b_zero_count}/{b_moves}，点估计 {b_zero_rate:.1%}，95% 上界 {b_upper:.1%}；"
+        f"连续 A={a_max_consecutive} B={b_max_consecutive}；单局>1 A={a_games_gt1} B={b_games_gt1}"
+        + ("" if k2_evaluated else "（样本 <300 手，K2 未评估）")
+    )
     wall_note = (
         f"本结果为产品 cap 下的 wall-bound 数据，wall 占比 {wall_percent:.2f}%"
         if not wall_enforced
@@ -194,6 +235,11 @@ def summarize(
         "moves": {"a": a_moves, "b": b_moves},
         "wallPercent": wall_percent,
         "wallBoundNote": wall_note,
+        "zeroDepthK2": k2_note,
+        "zeroDepthK2Evaluated": k2_evaluated,
+        "zeroDepthRate": {"a": round(a_zero_rate, 4), "b": round(b_zero_rate, 4)},
+        "zeroDepthMaxConsecutive": {"a": a_max_consecutive, "b": b_max_consecutive},
+        "zeroDepthGamesWithGt1": {"a": a_games_gt1, "b": b_games_gt1},
         "gates": gates,
         "pass": (
             win_rate_pass
@@ -201,7 +247,23 @@ def summarize(
             and (gates["wallClean"] or not wall_enforced)
             and gates["noZeroDepth"]
             and gates["nodesRatioAtMost2Percent"]
+            and gates["zeroDepthRateAtMost1Percent"]
+            and gates["zeroDepthNoConsecutive"]
+            and gates["zeroDepthAtMostOnePerGame"]
         ),
+        "failedGates": [
+            name
+            for name in (
+                "enoughGames",
+                "wallClean",
+                "noZeroDepth",
+                "nodesRatioAtMost2Percent",
+                "zeroDepthRateAtMost1Percent",
+                "zeroDepthNoConsecutive",
+                "zeroDepthAtMostOnePerGame",
+            )
+            if gates[name] is False and (name != "wallClean" or wall_enforced)
+        ],
         "book": {
             "size": book_size,
             "used": [f"{row.get('opening')}" for row in rows if row.get("opening")],

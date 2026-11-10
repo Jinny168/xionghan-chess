@@ -31,6 +31,14 @@ BLUNDER_SEE = 300
 BLUNDER_VICTIM = 450
 
 
+def _max_true_run(flags: list[bool]) -> int:
+    best = run = 0
+    for flag in flags:
+        run = run + 1 if flag else 0
+        best = max(best, run)
+    return best
+
+
 def _free_capture_keys(game: Game, color: Color) -> set[str]:
     """该方当前所有 SEE≥300 的吃子着法 key；用于"漏吃"判定。"""
     found: set[str] = set()
@@ -120,6 +128,12 @@ class MatchResult:
     # 逐手零深度标记（与 `*_move_times` 同长、同顺序）：用于判「连续两手零深度」。
     a_zero_depth_flags: list[bool] = field(default_factory=list)
     b_zero_depth_flags: list[bool] = field(default_factory=list)
+    # K2：该局该方连续零深度的最大长度（按方分开）。
+    a_zero_depth_max_consecutive: int = 0
+    b_zero_depth_max_consecutive: int = 0
+    # K3-b：本局每手「与最佳根着法的分差」（cp，非负）；供 p50/p90/≥450 占比。
+    a_gaps: list[float] = field(default_factory=list)
+    b_gaps: list[float] = field(default_factory=list)
     # K3：每手最多记 1 次，按 送子(3) > 漏吃(2) > 漏杀(1) 取最严重一类。
     a_blunders: int = 0
     b_blunders: int = 0
@@ -310,6 +324,7 @@ def benchmark_match(
         game_moves = {"a": 0, "b": 0}
         game_depths: dict[str, list[int]] = {"a": [], "b": []}
         game_zero_flags: dict[str, list[bool]] = {"a": [], "b": []}
+        game_gaps: dict[str, list[float]] = {"a": [], "b": []}
         game_blunders = {"a": 0, "b": 0}
         game_hangs = {"a": 0, "b": 0}
         streak = {"a": 0, "b": 0}
@@ -321,6 +336,7 @@ def benchmark_match(
             side = "a" if is_a else "b"
             started = time.perf_counter()
             clean = True
+            engine: ChessAI | None = None
             if is_a and a_simulations is not None:
                 # 固定模拟次数：A 方走 MCTS，评分器借 B 方实例的 SEE（与档位无关）。
                 scorer = ChessAI(level_b, config=b_config)._see_score
@@ -345,6 +361,10 @@ def benchmark_match(
                 if engine.bound_reason is not None:
                     bound_reasons[side][engine.bound_reason] += 1
                     game_bound[side][engine.bound_reason] += 1
+            if move is not None and engine is not None and engine.root_scores:
+                best_score = engine.root_scores[0][0]
+                chosen = next((score for score, item, _ in engine.root_scores if item.key() == move.key()), best_score)
+                game_gaps[side].append(max(0.0, float(best_score - chosen)))
             elapsed = time.perf_counter() - started
             bucket = a_move_times if is_a else b_move_times
             bucket.append(elapsed)
@@ -411,6 +431,10 @@ def benchmark_match(
             b_blunders_max_consecutive=max_streak["b"],
             a_zero_depth_flags=game_zero_flags["a"],
             b_zero_depth_flags=game_zero_flags["b"],
+            a_zero_depth_max_consecutive=_max_true_run(game_zero_flags["a"]),
+            b_zero_depth_max_consecutive=_max_true_run(game_zero_flags["b"]),
+            a_gaps=game_gaps["a"],
+            b_gaps=game_gaps["b"],
         )
         results.append(result)
         if on_game is not None:
@@ -420,6 +444,26 @@ def benchmark_match(
     draws = len(results) - a_wins - b_wins
     decisive = a_wins + b_wins
     completed_games = sum(not item.adjudicated for item in results)
+    a_zero_games_gt1 = sum(sum(item.a_zero_depth_flags) > 1 for item in results)
+    b_zero_games_gt1 = sum(sum(item.b_zero_depth_flags) > 1 for item in results)
+    a_zero_max_consecutive = max((item.a_zero_depth_max_consecutive for item in results), default=0)
+    b_zero_max_consecutive = max((item.b_zero_depth_max_consecutive for item in results), default=0)
+    a_gaps = [gap for item in results for gap in item.a_gaps]
+    b_gaps = [gap for item in results for gap in item.b_gaps]
+
+    def _percentile(values: list[float], q: float) -> float:
+        if not values:
+            return 0.0
+        ordered = sorted(values)
+        return ordered[min(len(ordered) - 1, max(0, int(-(-q * len(ordered) // 1)) - 1))]
+
+    def _gap_stats(values: list[float]) -> dict[str, float]:
+        return {
+            "p50": round(_percentile(values, 0.50), 1),
+            "p90": round(_percentile(values, 0.90), 1),
+            "ge450Share": round(sum(gap >= 450 for gap in values) / len(values), 4) if values else 0.0,
+        }
+
     a_blunders = sum(item.a_blunders for item in results)
     b_blunders = sum(item.b_blunders for item in results)
     a_hangs = sum(item.a_blunder_hangs for item in results)
@@ -464,6 +508,12 @@ def benchmark_match(
             # 键名沿用历史报告；阈值以 `masterMoveCeilingSeconds` 为准。
             "masterMoveAtMost12Seconds": max(a_move_times, default=0.0) <= a_ceiling,
         },
+        "aZeroDepthGamesWithGt1": a_zero_games_gt1,
+        "bZeroDepthGamesWithGt1": b_zero_games_gt1,
+        "aZeroDepthMaxConsecutive": a_zero_max_consecutive,
+        "bZeroDepthMaxConsecutive": b_zero_max_consecutive,
+        "aGapStats": _gap_stats(a_gaps),
+        "bGapStats": _gap_stats(b_gaps),
         "aBlunders": a_blunders,
         "bBlunders": b_blunders,
         "aBlunderHangShare": round(a_hangs / a_blunders, 4) if a_blunders else 0.0,

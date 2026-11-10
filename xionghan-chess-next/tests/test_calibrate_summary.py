@@ -143,3 +143,36 @@ def test_load_search_config_defaults_max_nodes_to_none() -> None:
     )
     config = _load_search_config(raw, "--config-a")
     assert config.max_nodes is None
+
+
+def _rows_with_flags(count: int, flags: list[bool]) -> list[dict[str, object]]:
+    rows = []
+    for index in range(count):
+        row = _row("red" if index % 2 == 0 else "black")
+        row["a_zero_depth_flags"] = flags[:1] if index == 0 else [False]
+        row["b_zero_depth_flags"] = [False]
+        row["a_moves"] = 1
+        row["b_moves"] = 1
+        row["a_zero_depth_max_consecutive"] = 0
+        row["b_zero_depth_max_consecutive"] = 0
+        rows.append(row)
+    return rows
+
+
+def test_k2_zero_rate_and_sample_gate_are_reported() -> None:
+    report = summarize(_rows_with_flags(300, [False]), "beginner", "medium", 64, 300)
+    assert report["zeroDepthK2Evaluated"] is True
+    assert report["gates"]["zeroDepthRateAtMost1Percent"] is True
+    assert "0/300" in report["zeroDepthK2"]
+    assert "上界" in report["zeroDepthK2"]
+
+
+def test_k2_consecutive_and_per_game_gates_go_red() -> None:
+    rows = _rows_with_flags(300, [False])
+    rows[0]["a_zero_depth_flags"] = [True, True]
+    rows[0]["a_moves"] = 2
+    rows[0]["a_zero_depth_max_consecutive"] = 2
+    report = summarize(rows, "beginner", "medium", 64, 300)
+    assert report["gates"]["zeroDepthNoConsecutive"] is False
+    assert report["gates"]["zeroDepthAtMostOnePerGame"] is False
+    assert "zeroDepthNoConsecutive" in report["failedGates"]
