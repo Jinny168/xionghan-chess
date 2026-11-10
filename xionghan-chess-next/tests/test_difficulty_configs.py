@@ -34,7 +34,7 @@ def test_three_public_tiers_keep_the_current_values() -> None:
         beginner.branch_limit,
         beginner.root_limit,
         beginner.sample_margin,
-    ) == (1, 2.0, 0.55, 1, 4, 6, 14, 150)
+    ) == (1, 2.0, 0.55, 1, 4, 6, 16, 150)
 
     medium = CONFIGS[Difficulty.MEDIUM]
     assert (
@@ -45,7 +45,7 @@ def test_three_public_tiers_keep_the_current_values() -> None:
         medium.candidate_count,
         medium.branch_limit,
         medium.root_limit,
-    ) == (2, 5.0, 0.0, 2, 1, 3, 5)
+    ) == (2, 5.0, 0.0, 2, 1, 3, 3)
 
     hard = CONFIGS[Difficulty.HARD]
     assert (hard.depth, hard.time_limit, hard.randomness, hard.branch_limit, hard.root_limit) == (3, 12.0, 0.0, 8, 10)
