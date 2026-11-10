@@ -72,3 +72,28 @@ def test_checkpoint_name_carries_both_levels() -> None:
     path = default_checkpoint("medium", "hard")
     assert "medium-vs-hard" in path.name
     assert path.name.endswith(".jsonl")
+
+
+def test_product_wall_is_recorded_not_enforced() -> None:
+    """产品 cap 下 wall 必然绑定：只记录 wall 占比，不因此判 pass=False。"""
+    rows = _rows(22, 0, 10)
+    for row in rows:
+        row["a_bound_reasons"] = {"wall": 1, "nodes": 0, "cancel": 0}
+        row["b_bound_reasons"] = {"wall": 1, "nodes": 0, "cancel": 0}
+    report = summarize(rows, "beginner", "medium", 64, 32, tiers_name="product")
+    assert report["gates"]["wallClean"] is False
+    assert report["gates"]["wallCleanEnforced"] is False
+    assert report["wallPercent"] == 100.0
+    assert "wall-bound" in report["wallBoundNote"]
+    assert report["pass"] is True, "product 的 wall 不应把可引用数据判死"
+
+
+def test_target_wall_remains_a_hard_gate() -> None:
+    rows = _rows(22, 0, 10)
+    for row in rows:
+        row["a_bound_reasons"] = {"wall": 1, "nodes": 0, "cancel": 0}
+        row["b_bound_reasons"] = {"wall": 1, "nodes": 0, "cancel": 0}
+    report = summarize(rows, "beginner", "medium", 64, 32, tiers_name="target")
+    assert report["gates"]["wallClean"] is False
+    assert report["gates"]["wallCleanEnforced"] is True
+    assert report["pass"] is False, "target 表的 wallClean 仍是硬门"

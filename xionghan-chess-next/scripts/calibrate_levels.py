@@ -95,7 +95,12 @@ def _clean_times(rows: list[dict[str, object]], side: str) -> list[float]:
 
 
 def summarize(
-    rows: list[dict[str, object]], level_a: str, level_b: str, book_size: int, target_n: int
+    rows: list[dict[str, object]],
+    level_a: str,
+    level_b: str,
+    book_size: int,
+    target_n: int,
+    tiers_name: str = "product",
 ) -> dict[str, object]:
     games = len(rows)
     wins = sum(row.get("winner") == row.get("master_color") for row in rows)
@@ -124,12 +129,25 @@ def summarize(
     )
     nodes_ratio_a = a_bound["nodes"] / a_moves if a_moves else 0.0
     nodes_ratio_b = b_bound["nodes"] / b_moves if b_moves else 0.0
+    total_moves = a_moves + b_moves
+    wall_moves = a_bound["wall"] + b_bound["wall"]
+    wall_percent = round(100.0 * wall_moves / total_moves, 2) if total_moves else 0.0
+    wall_clean = wall_moves == 0
+    # 产品三档的 depth 是"时间预算下的上限"：d6/5s、d8/12s 几乎每手都会被墙钟截断。
+    # 因此 product 下 `wallClean` 只记录、不判 red；target 表（预算足够跑完深度）仍当硬门。
+    wall_enforced = tiers_name == "target"
     gates = {
         "enoughGames": games >= target_n,
-        "wallClean": a_bound["wall"] == 0 and b_bound["wall"] == 0,
+        "wallClean": wall_clean,
+        "wallCleanEnforced": wall_enforced,
         "noZeroDepth": sum(a_zero.values()) == 0 and sum(b_zero.values()) == 0,
         "nodesRatioAtMost2Percent": nodes_ratio_a <= 0.02 and nodes_ratio_b <= 0.02,
     }
+    wall_note = (
+        f"本结果为产品 cap 下的 wall-bound 数据，wall 占比 {wall_percent:.2f}%"
+        if not wall_enforced
+        else f"target 表：wallClean 为硬门（wall 占比 {wall_percent:.2f}%）"
+    )
     win_rate_pass = point >= 0.60 and low >= 0.50
     return {
         "levels": {"a": level_a, "b": level_b},
@@ -148,11 +166,13 @@ def summarize(
         "boundReasons": {"a": a_bound, "b": b_bound},
         "zeroDepthReasons": {"a": a_zero, "b": b_zero},
         "moves": {"a": a_moves, "b": b_moves},
+        "wallPercent": wall_percent,
+        "wallBoundNote": wall_note,
         "gates": gates,
         "pass": (
             win_rate_pass
             and gates["enoughGames"]
-            and gates["wallClean"]
+            and (gates["wallClean"] or not wall_enforced)
             and gates["noZeroDepth"]
             and gates["nodesRatioAtMost2Percent"]
         ),
@@ -194,6 +214,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cap-b", default="auto")
     parser.add_argument("--max-nodes-a", default="auto", help="auto / none / 整数")
     parser.add_argument("--max-nodes-b", default="auto")
+    parser.add_argument(
+        "--time-scale", type=float, default=1.0, help="两侧 ChessAI 的预算缩放（默认 1.0；代理标定可 0.25）"
+    )
     args = parser.parse_args(argv)
     tiers = PRODUCT_TIERS if args.tiers == "product" else TARGETS
 
@@ -230,7 +253,7 @@ def main(argv: list[str] | None = None) -> int:
                 max_plies=args.max_plies,
                 initial_minutes=args.initial_minutes,
                 seed=0,
-                time_scale=1.0,
+                time_scale=args.time_scale,
                 a_config=config_a,
                 b_config=config_b,
                 book=book,
@@ -243,7 +266,7 @@ def main(argv: list[str] | None = None) -> int:
             handle.close()
         rows = _load_rows(checkpoint)
 
-    report = summarize(rows, args.level_a, args.level_b, len(book), args.n)
+    report = summarize(rows, args.level_a, args.level_b, len(book), args.n, args.tiers)
     # 开局 provenance（按绝对局号还原取样规则；报告可逐局审计）。
     for row in rows:
         game = int(row.get("game", 0))
@@ -264,6 +287,7 @@ def main(argv: list[str] | None = None) -> int:
         f"threshold={report['thresholdWins']}  pass={report['pass']}"
     )
     print(f"gates={report['gates']}  bound={report['boundReasons']}")
+    print(report["wallBoundNote"])
     print(f"报告：{output}")
     return 0
 
