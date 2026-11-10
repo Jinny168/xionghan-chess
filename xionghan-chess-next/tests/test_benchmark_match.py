@@ -278,3 +278,46 @@ def test_result_rows_carry_completed_depth_and_wall_moves() -> None:
     assert 0 <= row["b_completed_depth"] <= 1
     assert row["a_wall_moves"] <= row["a_moves"]
     assert row["b_wall_moves"] <= row["b_moves"]
+
+
+def test_k3_counts_a_hanging_horse(monkeypatch) -> None:
+    """A 走一步把马留在黑車口里 → a_blunders=1、hang_share=1。"""
+    from xionghan_chess.core.ai import ChessAI
+    from xionghan_chess.core.benchmark import Opening
+    from xionghan_chess.core.model import Color, GameState, Piece, PieceType
+
+    state = GameState(
+        "traditional",
+        [
+            Piece.create(PieceType.KING, Color.RED, 9, 4),
+            Piece.create(PieceType.HORSE, Color.RED, 5, 4),
+            Piece.create(PieceType.KING, Color.BLACK, 0, 4),
+            Piece.create(PieceType.ROOK, Color.BLACK, 5, 0),
+        ],
+        turn=Color.RED,
+    )
+
+    def choose_king_move(self, game, cancel=None):
+        # 只走王，故意不救 5,4 的马。
+        return next(
+            move
+            for move in game.rules.legal_moves(game.state)
+            if game.state.piece_at(move.source).type is PieceType.KING
+        )
+
+    monkeypatch.setattr(ChessAI, "choose_move", choose_king_move)
+    report = benchmark_match(
+        Difficulty.BEGINNER,
+        Difficulty.MEDIUM,
+        games=1,
+        max_plies=1,
+        a_config=_cheap_config(1.0),
+        b_config=_cheap_config(1.0),
+        book=[Opening("traditional", 0, 0)],
+        position_builder=lambda profile, seed, plies: Game.from_state(state),
+    )
+
+    row = report["results"][0]
+    assert row["a_blunders"] >= 1
+    assert row["a_blunder_hangs"] >= 1
+    assert report["aBlunderHangShare"] > 0

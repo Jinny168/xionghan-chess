@@ -7,7 +7,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from .ai import CONFIGS, ChessAI, Difficulty, SearchConfig
+from .ai import CONFIGS, VALUES, ChessAI, Difficulty, SearchConfig
+from .ai_see import static_exchange_score
 from .game import Game
 from .mcts import MCTS
 from .model import Color
@@ -24,6 +25,38 @@ from .model import Color
 # 收敛、耗时由局面复杂度决定，验收口径不使用该参数。
 MASTER_MOVE_TIME_TOLERANCE = 0.15
 MASTER_MOVE_CEILING_SECONDS = round(CONFIGS[Difficulty.MASTER].time_limit * (1 + MASTER_MOVE_TIME_TOLERANCE), 3)
+
+# K3「明显低级失误」判定阈值（设计契约 v2）。
+BLUNDER_SEE = 300
+BLUNDER_VICTIM = 450
+
+
+def _free_capture_keys(game: Game, color: Color) -> set[str]:
+    """该方当前所有 SEE≥300 的吃子着法 key；用于"漏吃"判定。"""
+    found: set[str] = set()
+    for move in game.rules.legal_moves(game.state, color):
+        if not game.rules.captured_by_move(game.state, move):
+            continue
+        if static_exchange_score(game, move, VALUES) >= BLUNDER_SEE:
+            found.add(move.key())
+    return found
+
+
+def _has_hanging_capture(game: Game, color: Color) -> bool:
+    """该方是否存在一手 SEE≥300、且被吃子价值≥450 的吃子（送子判定）。"""
+    for move in game.rules.legal_moves(game.state, color):
+        victims = game.rules.captured_by_move(game.state, move)
+        if not any(VALUES[piece.type] >= BLUNDER_VICTIM for piece in victims):
+            continue
+        if static_exchange_score(game, move, VALUES) >= BLUNDER_SEE:
+            return True
+    return False
+
+
+def _has_mate_in_one(game: Game, color: Color) -> bool:
+    """漏杀判定占位：mate-in-1 枚举成本高，先保留字段与接口。"""
+    return False
+
 
 # 开局书里的一条：`Game(profile)` 走 `build_position(profile, seed, plies)` 生成。
 # `fp` 是生成时的局面指纹（`RulesEngine.position_key`）——只用于**核对重建是否一致**，
@@ -84,6 +117,15 @@ class MatchResult:
     # 该局该方被 wall 截断的着数（与 `*_bound_reasons["wall"]` 同源，落盘便于逐局审计）。
     a_wall_moves: int = 0
     b_wall_moves: int = 0
+    # K3：每手最多记 1 次，按 送子(3) > 漏吃(2) > 漏杀(1) 取最严重一类。
+    a_blunders: int = 0
+    b_blunders: int = 0
+    # 送子次数（用于汇总 hang_share = 送子 / 全部失误）。
+    a_blunder_hangs: int = 0
+    b_blunder_hangs: int = 0
+    # 该方连续低级失误的最大长度（跨手；不要求相邻手属于同一方）。
+    a_blunders_max_consecutive: int = 0
+    b_blunders_max_consecutive: int = 0
 
 
 def _move_ceiling(level_a: Difficulty, a_config: SearchConfig | None) -> float:
@@ -264,6 +306,10 @@ def benchmark_match(
         game_zero = {"a": {"wall": 0, "nodes": 0, "cancel": 0}, "b": {"wall": 0, "nodes": 0, "cancel": 0}}
         game_moves = {"a": 0, "b": 0}
         game_depths: dict[str, list[int]] = {"a": [], "b": []}
+        game_blunders = {"a": 0, "b": 0}
+        game_hangs = {"a": 0, "b": 0}
+        streak = {"a": 0, "b": 0}
+        max_streak = {"a": 0, "b": 0}
         for ply in range(max_plies):
             if game.state.finished:
                 break
@@ -303,7 +349,27 @@ def benchmark_match(
             totals[side] += elapsed
             if move is None:
                 break
+            mover_color = game.state.turn
+            before_free = _free_capture_keys(game, mover_color)
+            missed_capture = bool(before_free) and move.key() not in before_free
             game.move(move)
+            if missed_capture and not _free_capture_keys(game, mover_color):
+                # "走完消失了"才算漏吃；仍能下回合吃的不算。
+                blunder = "missed_capture"
+            else:
+                blunder = None
+            if _has_mate_in_one(game, mover_color):
+                blunder = blunder or "missed_mate"
+            if _has_hanging_capture(game, game.state.turn):
+                blunder = "hang"
+            if blunder is not None:
+                game_blunders[side] += 1
+                if blunder == "hang":
+                    game_hangs[side] += 1
+                streak[side] += 1
+                max_streak[side] = max(max_streak[side], streak[side])
+            else:
+                streak[side] = 0
         adjudicated = not game.state.finished
         winner = game.state.winner
         if adjudicated:
@@ -331,6 +397,12 @@ def benchmark_match(
             b_completed_depth=round(sum(game_depths["b"]) / len(game_depths["b"]), 2) if game_depths["b"] else 0.0,
             a_wall_moves=game_bound["a"]["wall"],
             b_wall_moves=game_bound["b"]["wall"],
+            a_blunders=game_blunders["a"],
+            b_blunders=game_blunders["b"],
+            a_blunder_hangs=game_hangs["a"],
+            b_blunder_hangs=game_hangs["b"],
+            a_blunders_max_consecutive=max_streak["a"],
+            b_blunders_max_consecutive=max_streak["b"],
         )
         results.append(result)
         if on_game is not None:
@@ -340,6 +412,10 @@ def benchmark_match(
     draws = len(results) - a_wins - b_wins
     decisive = a_wins + b_wins
     completed_games = sum(not item.adjudicated for item in results)
+    a_blunders = sum(item.a_blunders for item in results)
+    b_blunders = sum(item.b_blunders for item in results)
+    a_hangs = sum(item.a_blunder_hangs for item in results)
+    b_hangs = sum(item.b_blunder_hangs for item in results)
     return {
         "games": games,
         "totalGames": total,
@@ -380,6 +456,10 @@ def benchmark_match(
             # 键名沿用历史报告；阈值以 `masterMoveCeilingSeconds` 为准。
             "masterMoveAtMost12Seconds": max(a_move_times, default=0.0) <= a_ceiling,
         },
+        "aBlunders": a_blunders,
+        "bBlunders": b_blunders,
+        "aBlunderHangShare": round(a_hangs / a_blunders, 4) if a_blunders else 0.0,
+        "bBlunderHangShare": round(b_hangs / b_blunders, 4) if b_blunders else 0.0,
         "results": [asdict(item) for item in results],
     }
 
