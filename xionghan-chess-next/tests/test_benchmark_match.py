@@ -323,6 +323,8 @@ def test_k3_counts_a_hanging_horse(monkeypatch) -> None:
     assert row["a_blunders"] >= 1
     assert row["a_blunder_hangs"] >= 1
     assert report["aBlunderHangShare"] > 0
+    assert row["a_raw_hangs"] >= row["a_avoidable_hangs"] >= 0
+    assert "aAvoidableHangGamesWithGt5" in report
 
 
 def test_k3b_gap_stats_are_reported() -> None:

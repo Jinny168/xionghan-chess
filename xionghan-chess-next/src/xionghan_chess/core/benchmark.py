@@ -50,15 +50,21 @@ def _free_capture_keys(game: Game, color: Color) -> set[str]:
     return found
 
 
-def _has_hanging_capture(game: Game, color: Color) -> bool:
-    """该方是否存在一手 SEE≥300、且被吃子价值≥450 的吃子（送子判定）。"""
+def _hanging_victim_ids(game: Game, color: Color) -> set[str]:
+    """该方一手 SEE≥300、被吃子价值≥450 的吃子会命中的棋子 id。"""
+    ids: set[str] = set()
     for move in game.rules.legal_moves(game.state, color):
         victims = game.rules.captured_by_move(game.state, move)
         if not any(VALUES[piece.type] >= BLUNDER_VICTIM for piece in victims):
             continue
         if static_exchange_score(game, move, VALUES) >= BLUNDER_SEE:
-            return True
-    return False
+            ids.update(piece.id for piece in victims)
+    return ids
+
+
+def _has_hanging_capture(game: Game, color: Color) -> bool:
+    """该方是否存在一手 SEE≥300、且被吃子价值≥450 的吃子（送子判定）。"""
+    return bool(_hanging_victim_ids(game, color))
 
 
 def _has_mate_in_one(game: Game, color: Color) -> bool:
@@ -143,6 +149,13 @@ class MatchResult:
     # 该方连续低级失误的最大长度（跨手；不要求相邻手属于同一方）。
     a_blunders_max_consecutive: int = 0
     b_blunders_max_consecutive: int = 0
+    # K3-a v2：raw_hangs 保持旧口径；avoidable 只计「首次被攻击 + 走前 eval ±300」。
+    a_raw_hangs: int = 0
+    b_raw_hangs: int = 0
+    a_avoidable_hangs: int = 0
+    b_avoidable_hangs: int = 0
+    a_avoidable_hang_max_consecutive: int = 0
+    b_avoidable_hang_max_consecutive: int = 0
 
 
 def _move_ceiling(level_a: Difficulty, a_config: SearchConfig | None) -> float:
@@ -329,6 +342,10 @@ def benchmark_match(
         game_hangs = {"a": 0, "b": 0}
         streak = {"a": 0, "b": 0}
         max_streak = {"a": 0, "b": 0}
+        seen_hung: dict[str, set[str]] = {"a": set(), "b": set()}
+        avoid_streak = {"a": 0, "b": 0}
+        avoid_max = {"a": 0, "b": 0}
+        avoid_count = {"a": 0, "b": 0}
         for ply in range(max_plies):
             if game.state.finished:
                 break
@@ -376,6 +393,7 @@ def benchmark_match(
             if move is None:
                 break
             mover_color = game.state.turn
+            eval_before = engine._evaluate(game, mover_color) if engine is not None else 0.0
             before_free = _free_capture_keys(game, mover_color)
             missed_capture = bool(before_free) and move.key() not in before_free
             game.move(move)
@@ -386,8 +404,16 @@ def benchmark_match(
                 blunder = None
             if _has_mate_in_one(game, mover_color):
                 blunder = blunder or "missed_mate"
-            if _has_hanging_capture(game, game.state.turn):
+            hung_ids = _hanging_victim_ids(game, game.state.turn)
+            hang = bool(hung_ids)
+            if hang:
                 blunder = "hang"
+            avoidable_here = False
+            if hang and abs(eval_before) <= 300:
+                new_ids = hung_ids - seen_hung[side]
+                if new_ids:
+                    avoidable_here = True
+            seen_hung[side].update(hung_ids)
             if blunder is not None:
                 game_blunders[side] += 1
                 if blunder == "hang":
@@ -396,6 +422,12 @@ def benchmark_match(
                 max_streak[side] = max(max_streak[side], streak[side])
             else:
                 streak[side] = 0
+            if avoidable_here:
+                avoid_count[side] += 1
+                avoid_streak[side] += 1
+                avoid_max[side] = max(avoid_max[side], avoid_streak[side])
+            else:
+                avoid_streak[side] = 0
         adjudicated = not game.state.finished
         winner = game.state.winner
         if adjudicated:
@@ -435,6 +467,12 @@ def benchmark_match(
             b_zero_depth_max_consecutive=_max_true_run(game_zero_flags["b"]),
             a_gaps=game_gaps["a"],
             b_gaps=game_gaps["b"],
+            a_raw_hangs=game_blunders["a"],
+            b_raw_hangs=game_blunders["b"],
+            a_avoidable_hangs=avoid_count["a"],
+            b_avoidable_hangs=avoid_count["b"],
+            a_avoidable_hang_max_consecutive=avoid_max["a"],
+            b_avoidable_hang_max_consecutive=avoid_max["b"],
         )
         results.append(result)
         if on_game is not None:
@@ -464,6 +502,10 @@ def benchmark_match(
             "ge450Share": round(sum(gap >= 450 for gap in values) / len(values), 4) if values else 0.0,
         }
 
+    a_avoid = sum(item.a_avoidable_hangs for item in results)
+    b_avoid = sum(item.b_avoidable_hangs for item in results)
+    a_avoid_gt5 = sum(item.a_avoidable_hangs > 5 for item in results)
+    b_avoid_gt5 = sum(item.b_avoidable_hangs > 5 for item in results)
     a_blunders = sum(item.a_blunders for item in results)
     b_blunders = sum(item.b_blunders for item in results)
     a_hangs = sum(item.a_blunder_hangs for item in results)
@@ -512,6 +554,12 @@ def benchmark_match(
         "bZeroDepthGamesWithGt1": b_zero_games_gt1,
         "aZeroDepthMaxConsecutive": a_zero_max_consecutive,
         "bZeroDepthMaxConsecutive": b_zero_max_consecutive,
+        "aAvoidableHangs": a_avoid,
+        "bAvoidableHangs": b_avoid,
+        "aAvoidableHangGamesWithGt5": a_avoid_gt5,
+        "bAvoidableHangGamesWithGt5": b_avoid_gt5,
+        "aRawHangs": sum(item.a_raw_hangs for item in results),
+        "bRawHangs": sum(item.b_raw_hangs for item in results),
         "aGapStats": _gap_stats(a_gaps),
         "bGapStats": _gap_stats(b_gaps),
         "aBlunders": a_blunders,
