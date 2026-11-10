@@ -183,6 +183,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--level-b", choices=levels, required=True)
     parser.add_argument("--n", type=int, default=32, help="总局数（必须偶数：每开局红黑各一）")
     parser.add_argument("--max-plies", type=int, default=100)
+    parser.add_argument(
+        "--initial-minutes", type=int, default=180, help="对局包干时钟（默认 180：避免 d8/12s 在 10 分钟内自然超时）"
+    )
     parser.add_argument("--book", default=str(DEFAULT_BOOK))
     parser.add_argument("--checkpoint", default="", help="默认 benchmarks/calibration_runs/<date>-<a>-vs-<b>.jsonl")
     parser.add_argument("--output", default="")
@@ -225,6 +228,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.level_b,
                 games=args.n - start_game,
                 max_plies=args.max_plies,
+                initial_minutes=args.initial_minutes,
                 seed=0,
                 time_scale=1.0,
                 a_config=config_a,

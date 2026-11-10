@@ -110,11 +110,16 @@ def book_index(game_index: int, games: int, size: int) -> int:
 
 
 def _starting_game(
-    game_index: int, games: int, profile: str, book: Sequence[Opening] | None, position_builder: PositionBuilder | None
+    game_index: int,
+    games: int,
+    profile: str,
+    book: Sequence[Opening] | None,
+    position_builder: PositionBuilder | None,
+    initial_minutes: int = 10,
 ) -> Game:
     """第 `game_index` 局的起始局面（无 book 时从初始局面开局）。"""
     if book is None:
-        return Game(profile)
+        return Game(profile, initial_minutes=initial_minutes)
     if position_builder is None:
         raise ValueError(
             "book 需要 position_builder：core 不 import scripts/bench_roots（分层），"
@@ -122,7 +127,11 @@ def _starting_game(
             "position_builder=lambda p, s, n: bench_roots.build_position(p, s, n)[0]"
         )
     entry = book[book_index(game_index, games, len(book))]
-    return position_builder(entry.profile, entry.seed, entry.plies)
+    game = position_builder(entry.profile, entry.seed, entry.plies)
+    # 开局书构建过程也走真实时钟；统一重置为标定用的大时钟，避免 d8/12s 的对局
+    # 在 10 分钟默认包干内自然超时（这不是棋力差异，是工具时钟）。
+    game.state.clocks_ms = {color: initial_minutes * 60_000 for color in game.state.clocks_ms}
+    return game
 
 
 def wilson_interval(wins: float, games: int, z: float = 1.96) -> tuple[float, float]:
@@ -185,6 +194,7 @@ def benchmark_match(
     b_config: SearchConfig | None = None,
     book: Sequence[Opening] | None = None,
     position_builder: PositionBuilder | None = None,
+    initial_minutes: int = 10,
     on_game: GameHook | None = None,
     start_game: int = 0,
     total_games: int | None = None,
@@ -234,7 +244,7 @@ def benchmark_match(
     total_moves = {"a": 0, "b": 0}
     used_openings: list[Opening] = []
     for game_index in range(start_game, start_game + games):
-        game = _starting_game(game_index, total, profile, book, position_builder)
+        game = _starting_game(game_index, total, profile, book, position_builder, initial_minutes)
         if book is not None:
             used_openings.append(book[book_index(game_index, total, len(book))])
         a_color = Color.RED if game_index % 2 == 0 else Color.BLACK
@@ -370,6 +380,7 @@ def benchmark_master_vs_hard(
     start_game: int = 0,
     book: Sequence[Opening] | None = None,
     position_builder: PositionBuilder | None = None,
+    initial_minutes: int = 10,
 ) -> dict[str, Any]:
     """`benchmark_match(MASTER, HARD)` 的薄封装：旧调用（含位置参数）一律不改。"""
     return benchmark_match(
@@ -383,6 +394,7 @@ def benchmark_master_vs_hard(
         a_simulations=master_simulations,
         book=book,
         position_builder=position_builder,
+        initial_minutes=initial_minutes,
         on_game=on_game,
         start_game=start_game,
     )

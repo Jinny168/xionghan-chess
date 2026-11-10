@@ -251,3 +251,11 @@ def test_chunked_run_uses_total_games_for_book_sampling() -> None:
     assert report["book"]["used"] == expected
     assert len(report["book"]["used"]) == 32
     assert all(index < 64 for index in (book_index(i, 64, len(book)) for i in range(32, 64)))
+
+
+def test_calibration_clock_can_be_raised_for_product_caps() -> None:
+    """产品 hard 12s×50 手会超过默认 10 分钟包干；标定必须能显式放大时钟。"""
+    from xionghan_chess.core.benchmark import _starting_game
+
+    game = _starting_game(0, 1, "traditional", None, None, initial_minutes=180)
+    assert set(game.state.clocks_ms.values()) == {180 * 60_000}
