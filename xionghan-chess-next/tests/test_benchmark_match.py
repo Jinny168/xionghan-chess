@@ -323,3 +323,20 @@ def test_k3_counts_a_hanging_horse(monkeypatch) -> None:
     assert row["a_blunders"] >= 1
     assert row["a_blunder_hangs"] >= 1
     assert report["aBlunderHangShare"] > 0
+
+
+def test_k3b_gap_stats_are_reported() -> None:
+    """K3-b：每手与最佳根着法的分差要能出 p50/p90/≥450 占比。"""
+    report = benchmark_match(
+        Difficulty.BEGINNER,
+        Difficulty.MEDIUM,
+        games=2,
+        max_plies=4,
+        a_config=_cheap_config(1.0),
+        b_config=_cheap_config(1.0),
+    )
+    for side in ("a", "b"):
+        stats = report[f"{side}GapStats"]
+        assert set(stats) == {"p50", "p90", "ge450Share"}
+        assert 0.0 <= stats["ge450Share"] <= 1.0
+        assert stats["p50"] <= stats["p90"]
