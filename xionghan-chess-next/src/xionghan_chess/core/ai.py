@@ -307,14 +307,18 @@ class ChessAI:
         self.null_prunes = self.lmr_researches = 0
         self.quiescence_truncations = 0
         self.no_candidate_fallbacks = 0
+        self._prefix_calls = 0
         legal = game.rules.legal_moves(game.state)
         if not legal:
             return None
         best = legal[0]
         previous_score: float | None = None
         try:
-            initial_order = self._order(game, legal)
-            initial_order = sorted(initial_order, key=lambda move: self._root_bias(game, move) < -100)
+            initial_order = self._order(game, legal, deadline=deadline, cancel=cancel)
+            initial_order = sorted(
+                initial_order,
+                key=lambda move: self._root_bias(game, move, deadline, cancel) < -100,
+            )
             best = initial_order[0]
             search_moves = initial_order[: cfg.root_limit]
             for depth in range(1, cfg.depth + 1):
@@ -420,8 +424,11 @@ class ChessAI:
         alpha: float = -math.inf,
         beta: float = math.inf,
     ) -> tuple[float, Move | None]:
-        ordered = self._order(game, moves, self.principal_move)
-        ordered = sorted(ordered, key=lambda move: self._root_bias(game, move) < -100)
+        ordered = self._order(game, moves, self.principal_move, deadline=deadline, cancel=cancel)
+        ordered = sorted(
+            ordered,
+            key=lambda move: self._root_bias(game, move, deadline, cancel) < -100,
+        )
         best_score, best_move = -math.inf, None
         scores: list[tuple[float, Move, bool]] = []
         try:
@@ -524,7 +531,7 @@ class ChessAI:
 
         value = -math.inf
         best_move = None
-        ordered = self._order(game, moves, entry.best_move if entry else None, ply)
+        ordered = self._order(game, moves, entry.best_move if entry else None, ply, deadline, cancel)
         if not in_check:
             base_limit = self._config.branch_limit
             ordered = ordered[: base_limit + max(0, 4 - depth) * 2]
@@ -621,7 +628,7 @@ class ChessAI:
                 or (self._capture_value(game, move) > 0 and self._see_score(game, move) >= 0)
             ]
         )
-        ordered = self._order(game, tactical, ply=ply)
+        ordered = self._order(game, tactical, ply=ply, deadline=deadline, cancel=cancel)
         if not in_check:
             ordered = ordered[: max(6, self._config.branch_limit)]
         for move in ordered:
@@ -969,7 +976,17 @@ class ChessAI:
             for piece in game.state.pieces
         )
 
-    def _root_bias(self, game: Game, move: Move) -> float:
+    def _root_bias(
+        self,
+        game: Game,
+        move: Move,
+        deadline: float | None = None,
+        cancel: threading.Event | None = None,
+    ) -> float:
+        if deadline is not None:
+            self._prefix_calls += 1
+            if self._prefix_calls % 16 == 0:
+                self._guard(deadline, cancel)
         bias = 0.0
         moving = game.state.piece_at(move.source)
         if moving is None:
@@ -1016,8 +1033,22 @@ class ChessAI:
         self.see_cache[key] = score
         return score
 
-    def _order(self, game: Game, moves: list[Move], preferred: Move | None = None, ply: int = 0) -> list[Move]:
+    def _order(
+        self,
+        game: Game,
+        moves: list[Move],
+        preferred: Move | None = None,
+        ply: int = 0,
+        deadline: float | None = None,
+        cancel: threading.Event | None = None,
+    ) -> list[Move]:
+        calls = 0
+
         def score(move: Move) -> int:
+            nonlocal calls
+            calls += 1
+            if deadline is not None and calls % 16 == 0:
+                self._guard(deadline, cancel)
             if preferred == move:
                 return 10_000_000
             moving = game.state.piece_at(move.source)
