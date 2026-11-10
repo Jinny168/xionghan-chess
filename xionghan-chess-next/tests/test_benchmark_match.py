@@ -259,3 +259,22 @@ def test_calibration_clock_can_be_raised_for_product_caps() -> None:
 
     game = _starting_game(0, 1, "traditional", None, None, initial_minutes=180)
     assert set(game.state.clocks_ms.values()) == {180 * 60_000}
+
+
+def test_result_rows_carry_completed_depth_and_wall_moves() -> None:
+    """逐局 JSONL 必须能看出"实际完成几层"，否则只看到 wall 占比。"""
+    report = benchmark_match(
+        Difficulty.BEGINNER,
+        Difficulty.MEDIUM,
+        games=2,
+        max_plies=2,
+        a_config=_cheap_config(1.0),
+        b_config=_cheap_config(1.0),
+    )
+    row = report["results"][0]
+    assert "a_completed_depth" in row and "b_completed_depth" in row
+    assert "a_wall_moves" in row and "b_wall_moves" in row
+    assert 0 <= row["a_completed_depth"] <= 1
+    assert 0 <= row["b_completed_depth"] <= 1
+    assert row["a_wall_moves"] <= row["a_moves"]
+    assert row["b_wall_moves"] <= row["b_moves"]

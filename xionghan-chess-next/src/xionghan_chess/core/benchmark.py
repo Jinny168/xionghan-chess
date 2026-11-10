@@ -75,6 +75,15 @@ class MatchResult:
     b_zero_depth_reasons: dict[str, int] = field(default_factory=dict)
     a_moves: int = 0
     b_moves: int = 0
+    # 实际完成深度：该局该方**所有着法**的 `ChessAI.completed_depth` 均值（保留 2 位）。
+    # 口径说明：`CONFIGS[d].depth` 是"最多允许几层"，墙钟截断后实际只完成较浅的层；
+    # 用均值而不是"最后一手"，避免残局手数不同导致的样本偏差。MCTS 路径无此字段，
+    # 不参与均值；该方 0 着法时记 0。
+    a_completed_depth: float = 0.0
+    b_completed_depth: float = 0.0
+    # 该局该方被 wall 截断的着数（与 `*_bound_reasons["wall"]` 同源，落盘便于逐局审计）。
+    a_wall_moves: int = 0
+    b_wall_moves: int = 0
 
 
 def _move_ceiling(level_a: Difficulty, a_config: SearchConfig | None) -> float:
@@ -254,6 +263,7 @@ def benchmark_match(
         game_bound = {"a": {"wall": 0, "nodes": 0, "cancel": 0}, "b": {"wall": 0, "nodes": 0, "cancel": 0}}
         game_zero = {"a": {"wall": 0, "nodes": 0, "cancel": 0}, "b": {"wall": 0, "nodes": 0, "cancel": 0}}
         game_moves = {"a": 0, "b": 0}
+        game_depths: dict[str, list[int]] = {"a": [], "b": []}
         for ply in range(max_plies):
             if game.state.finished:
                 break
@@ -272,6 +282,7 @@ def benchmark_match(
                 engine = ChessAI(level, seed=seed + game_index * max_plies + ply, config=config, time_scale=time_scale)
                 move = engine.choose_move(game)
                 clean = engine.bound_reason is None
+                game_depths[side].append(engine.completed_depth)
                 total_moves[side] += 1
                 game_moves[side] += 1
                 if engine.zero_depth_moves:
@@ -316,6 +327,10 @@ def benchmark_match(
             game_zero["b"],
             game_moves["a"],
             game_moves["b"],
+            a_completed_depth=round(sum(game_depths["a"]) / len(game_depths["a"]), 2) if game_depths["a"] else 0.0,
+            b_completed_depth=round(sum(game_depths["b"]) / len(game_depths["b"]), 2) if game_depths["b"] else 0.0,
+            a_wall_moves=game_bound["a"]["wall"],
+            b_wall_moves=game_bound["b"]["wall"],
         )
         results.append(result)
         if on_game is not None:
