@@ -23,9 +23,11 @@ perft 从某局面出发递归数合法走法树的叶子（`core/perft.py`，�
    （`_diagonal_path_pinched`：路径任一格两侧正交邻格都被占则整步非法），
    在工作区临时禁用该口径后 perft(3) 恰好回到 79666。这是两引擎共有的
    有意规则差异，不是 bug。
-2. **镜像引擎对拍**：以上全部数值都由 `android/.../offline.js`（跨引擎对拍
-   门禁守护的镜像实现）用同一定义独立复算并逐个相等（perft 递归走
-   `legalAll`/`applyUnchecked`，与 Python 侧零共享代码）。
+2. **镜像引擎对拍**：2.0 规则变更后，13x13 初始 depth 1/2 已用
+   `android/.../offline.js`（跨引擎对拍门禁守护的镜像实现）按同一定义独立复算，
+   两边均为 110 / 12097（perft 递归走 `legalAll`/`applyUnchecked`，与 Python
+   零共享代码）。中局/残局锚点在同一次 2.0 迁移中用 Python 重算；offline 侧
+   只保留 parity 断言（1.7 的具体落点已不适用）。
 3. **手工核对**：中局锚点红方被黑車将军，9 个应着逐着手工枚举
    （垫 3 + 炮吃 1 + 走王 5，见用例内注释——其中象垫被夹逼否决、仕垫是
    容易漏的第 3 个垫着，两处都以引擎裁决为准写明理由）；13x13 初始局面
@@ -134,8 +136,8 @@ def test_traditional_initial_depth3_is_79496():
 # --- 锚点二：匈汉 13x13 初始局面 ---------------------------------------------
 
 
-def test_xionghan_initial_depth1_is_108_with_hand_checked_groups():
-    """108 着；兵 15、王 3 两项按图逐子手工推算核对（推算过程见注释）。
+def test_xionghan_initial_depth1_is_110_with_hand_checked_groups():
+    """110 着（offline.js 独立复算同为 110）；兵 15、王 3 两项按图逐子手工推算核对。
 
     兵（红，8 行，列 0..12 偶数）：0/12 列的兵前路被己巡 (7,0)/(7,12) 堵死
     （前进 1 目标被占、快走路径必经该格），0 着；其余 5 兵各有 前进 1 + 快走
@@ -155,8 +157,8 @@ def test_xionghan_initial_depth1_is_108_with_hand_checked_groups():
     assert by_type[PieceType.KING] == 3
 
 
-def test_xionghan_initial_depth2_is_11647():
-    """11647 = offline.js 独立复算值（镜像引擎对拍，模块 docstring 佐证 2）。"""
+def test_xionghan_initial_depth2_is_12097():
+    """12097 = offline.js 独立复算值（2026-11-10 重跑：Python 与 JS 均为 12097）。"""
     engine = _engine("desktop_complete")
     state = _initial_state("desktop_complete")
     assert perft(engine, state, 2) == 12097
