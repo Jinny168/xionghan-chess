@@ -26,26 +26,33 @@ class Difficulty(StrEnum):
     MASTER = "master"
 
 
-# 2.0.0 的档位兼容层。
-#
-# **为什么不采用 1.7.x 的 `easy→medium / expert→hard / master→hard`**：main 线上
-# 这六档是**六个独立档位**（各自的深度/预算/取样参数都不同，master 还走 MCTS）。
-# 把 expert/master 并回 hard 会把 2.0.0 的档位设计直接回退掉。
-#
-# 这里保留旧外部名 → **同名档位** 的映射：外部配置/旧 URL 里写的是哪一档，仍进哪一档；
-# 兼容层只做大小写/空白归一，未知值原样返回，交给 `Difficulty(...)` 报错。
+# 对外档位（产品口径，2026-11 并档）：只有三档。
+# `EASY / EXPERT / MASTER` 三个枚举成员保留，只为旧配置/旧存档能载入；
+# 它们的 `CONFIGS` 条目是 **同一对象别名**，不复制数值（复制会制造两份真相）。
+PUBLIC_DIFFICULTIES: tuple[Difficulty, ...] = (
+    Difficulty.BEGINNER,
+    Difficulty.MEDIUM,
+    Difficulty.HARD,
+)
+
+# 旧名 → 三档。`easy` 归 **beginner** 而不是 medium：easy 是 1.5s/d4/randomness 0.35，
+# medium 是 5s/d6/randomness 0.05（近乎满强度）。把「初级」直接抬到中级 = 变强，
+# 把 easy 留在入门侧才是「并档不坑人」的方向。
 LEGACY_DIFFICULTY_ALIASES: dict[str, str] = {
     "beginner": "beginner",
-    "easy": "easy",
+    "easy": "beginner",
     "medium": "medium",
     "hard": "hard",
-    "expert": "expert",
-    "master": "master",
+    "expert": "hard",
+    "master": "hard",
 }
 
 
 def normalize_difficulty(value: str) -> str:
-    """旧外部档位名 → main 的 Difficulty 值（仅大小写/空白归一）。"""
+    """旧档位名 → 三档之一（只做 strip/lower + 查表；未知值原样返回给 `Difficulty` 报错）。
+
+    并档后的口径：`easy→beginner`、`expert→hard`、`master→hard`。
+    """
     key = value.strip().lower()
     return LEGACY_DIFFICULTY_ALIASES.get(key, key)
 
@@ -111,39 +118,24 @@ CONFIGS = {
     #     `candidate_count` 只影响多样性 —— 三个旋钮别混着调；
     #   · **取样集合不含第 1 名**：包含它会让名义 0.35 的真实弱化率只剩约 28%，
     #     概率也就无法标定；
-    #   · beginner 的分差放到 150（≈1.25 个兵）才够出窗口，easy 沿用 90。
+    #   · beginner 的分差放到 150（≈1.25 个兵）才够出窗口。
     Difficulty.BEGINNER: SearchConfig(2, 0.5, 0.55, 1, 4, 3, 5, sample_margin=150),
-    Difficulty.EASY: SearchConfig(4, 1.5, 0.35, 3, 3, 6, 10),
     # 为什么维持 5s 而不调到 6s：
     #   · 预算在本引擎是"软上限"——`_guard` 逐子节点检查，一个根着法可以越过 deadline
     #     再跑完（实测可超 0.1–0.5s）。所以加预算是把"结算点"往后挪，治不了
     #     "同一配置一会儿 d2 一会儿 d1"的抖动。
-    #   · 真正的解是机制层的：① 每层/每子节点前做剩余时间硬检查；② 提前返回必须全档通用
-    #     （不许 hard 专属）。两条落地后再一次性重评预算。
+    #   · 真正的解是机制层的：① 每层/每子节点前做剩余时间硬检查；② 提前返回必须全档通用。
     Difficulty.MEDIUM: SearchConfig(6, 5.0, 0.05, 4, 3, 10, 18),
-    # `root_limit` 32 → 18：12s 下 19/21 次（3 轮 × 7 局面，本机 18/21）能完成 depth 2，
-    # 按“完成 d2 的时刻”计余量 min 58.8%。**这是用根宽换深度**：root_limit 是对排序结果的
-    # 截断，113 个合法着只搜前 18，排序在第 19 名之后的好手算不到。
+    # `root_limit` 32 → 18：12s 下 19/21 次（3 轮 × 7 局面，本机 18/21）能完成 depth 2。
     Difficulty.HARD: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 18),
-    # MASTER 走 MCTS（`mcts.choose_move`），**只取 `time_limit` 生效**；
-    # `root_limit` / `branch_limit` / `depth` / `quiescence_depth` 对大师档是**无效字段**。
-    # 因此：
-    #   · H18（根宽 32→18）不适用于大师档 —— 不要把这里的 32 改成 18，那是无操作；
-    #   · 也不能拿这里的 32 去反驳 H18 —— 两者含义不同（一个是迭代加深的根宽，
-    #     一个是 MCTS 的 SEE 候选上限 `SEE_CANDIDATE_LIMIT=16`）。
-    # 保留 config 条目是为了让 analysis / 配置类代码在分发搜索前能安全读 `CONFIGS`。
-    # EXPERT（专家）：**固定 d3**，不靠时间收敛。
-    #   · `depth=3` 是硬上限：迭代加深到 3 就停，35s 只是"别跑飞"的安全网；
-    #   · 实测 d3 最慢 28.78s，35s 留约 20% 余量；超时仍按迭代加深回落到 d2（语义不变）；
-    #   · `root_limit` 沿用 HARD 的 18 —— 不改根宽，才能把"深度"这个变量单独归因；
-    #   · `quiescence_depth` / `branch_limit` / `candidate_count` 与 HARD 一致。
-    #   HARD 档的 12s / depth 8 / root 18 **一格未动**。
-    Difficulty.EXPERT: SearchConfig(3, 35.0, 0.0, 6, 1, 18, 18),
-    Difficulty.MASTER: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 32),
 }
 
-# 读条分母 / 看门狗：2.0.0 主线原先把 `CONFIGS[d].time_limit` 直接当读条分母，
-# 语义上"读条 = 预算"；这里保持同一行为（六档全覆盖），只把常量名字对齐 master 线。
+# 旧枚举 → 三档别名。**同一对象**，不是 `replace()` 出来的副本。
+CONFIGS[Difficulty.EASY] = CONFIGS[Difficulty.BEGINNER]
+CONFIGS[Difficulty.EXPERT] = CONFIGS[Difficulty.HARD]
+CONFIGS[Difficulty.MASTER] = CONFIGS[Difficulty.HARD]
+
+# 读条分母 / 看门狗：沿用"读条 = 预算"口径；三档 + 三个旧别名（同一对象）。
 # 未来若改成"中位耗时"分母，必须连 `test_desktop_thinking_progress.py` 一起改。
 EXPECTED_MOVE_SECONDS: dict[Difficulty, float] = {
     difficulty: CONFIGS[difficulty].time_limit for difficulty in Difficulty
@@ -296,14 +288,9 @@ class ChessAI:
         self._timeout_reason = None
         # 计数是**每次调用**的口径（benchmark 汇总时才累加），不能实例累计。
         self.zero_depth_moves = 0
-        if self.difficulty is Difficulty.MASTER:
-            # Import lazily to keep the conventional search engine independent
-            # and to avoid loading MCTS for the four established difficulty tiers.
-            from .mcts import MCTS
-
-            return MCTS(
-                time_limit=cfg.time_limit * time_scale, seed=self.random.randrange(2**32), root_score=self._see_score
-            ).choose_move(game, cancel)
+        # MCTS 已从产品档位下线：`MASTER` 只是旧配置兼容名（`CONFIGS[MASTER]`
+        # 指向 HARD，同一对象），这里不再分派到 `core/mcts.py`。代码与
+        # `tests/test_mcts_integration.py` 保留，仅作研究/基准路径显式构造。
         deadline = time.monotonic() + cfg.time_limit * time_scale
         self._active_deadline = deadline
         self._active_cancel = cancel

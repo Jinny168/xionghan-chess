@@ -120,15 +120,17 @@ def test_gate_blocks_sampling_when_best_is_a_clean_capture() -> None:
 
 
 def test_practice_difficulty_parameters_are_the_agreed_ones() -> None:
-    """两档陪练参数必须是设计定稿值，防止有人"顺手调一下"。"""
+    """并档后 easy 只是 beginner 的别名；入门陪练参数仍是设计定稿值。"""
     beginner = CONFIGS["beginner"]
     easy = CONFIGS["easy"]
+    assert easy is beginner
     assert (beginner.randomness, beginner.candidate_count, beginner.sample_margin) == (0.55, 4, 150)
-    assert (easy.randomness, easy.candidate_count, easy.sample_margin) == (0.35, 3, 90)
 
 
 def test_strong_difficulties_never_sample() -> None:
     """hard 及以上 randomness 必须为 0；medium 只允许既有的一点点。"""
-    for level in ("hard", "expert", "master"):
-        assert CONFIGS[level].randomness == 0.0, f"{level} 不应带取样概率"
+    hard = CONFIGS["hard"]
+    for level in ("expert", "master"):
+        assert CONFIGS[level] is hard, f"{level} 应只是 hard 的别名"
+    assert hard.randomness == 0.0
     assert CONFIGS["medium"].randomness <= 0.05, "medium 的取样概率不该被本轮放大"

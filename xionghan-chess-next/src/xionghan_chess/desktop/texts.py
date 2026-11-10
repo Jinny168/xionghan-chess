@@ -206,7 +206,7 @@ TEMPLATES: dict[str, str] = {
     "第 {step} / {total} 步 · {notation}": "Move {step} / {total} · {notation}",
     "背景 {index}": "Background {index}",
     "未知档位「{name}」，已回落到默认": "Unknown level “{name}” — reverted to the default",
-    "旧档位「初级」已并入中级": "The old “Easy” tier now uses Medium",
+    "旧档位「初级」已并入入门": "The old “Easy” tier now uses Beginner",
     "旧档位「专家」已并入高级": "The old “Expert” tier now uses Hard",
     "旧档位「大师」已并入高级": "The old “Master” tier now uses Hard",
     "{exc}\n\n文件：{path}": "{exc}\n\nFile: {path}",
@@ -227,7 +227,7 @@ def current_language() -> str:
 # 旧档位并入提示。放在这里而不是 dialogs：`test_desktop_texts` 禁止 UI 模块出现
 # 未包 `dl()` 的中文字面量，而这个映射需要**运行时**按当前语言翻译。
 _DIFFICULTY_ALIAS_HINTS = {
-    "easy": "旧档位「初级」已并入中级",
+    "easy": "旧档位「初级」已并入入门",
     "expert": "旧档位「专家」已并入高级",
     "master": "旧档位「大师」已并入高级",
 }

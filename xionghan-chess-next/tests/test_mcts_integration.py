@@ -7,22 +7,18 @@ from xionghan_chess.core.game import Game
 from xionghan_chess.core.mcts import MCTS, _Node
 
 
-def test_master_difficulty_dispatches_to_mcts(monkeypatch):
+def test_master_is_no_longer_dispatched_to_mcts(monkeypatch):
+    """MCTS 已从产品档位下线；显式 `ChessAI(MASTER)` 也只走常规搜索。"""
     game = Game()
-    expected = game.rules.legal_moves(game.state)[0]
-    observed: dict[str, object] = {}
-
-    def choose(self, candidate, cancel=None):
-        observed["time_limit"] = self.time_limit
-        observed["cancel"] = cancel
-        return expected
-
-    monkeypatch.setattr(MCTS, "choose_move", choose)
-    monkeypatch.setenv("AI_TIME_SCALE", "0.5")
     cancel = threading.Event()
+    monkeypatch.setenv("AI_TIME_SCALE", "0.01")
 
-    assert ChessAI(Difficulty.MASTER, seed=7).choose_move(game, cancel) == expected
-    assert observed == {"time_limit": 6.0, "cancel": cancel}
+    def boom(self, candidate, cancel=None):
+        raise AssertionError("MASTER 不应再分派到 MCTS")
+
+    monkeypatch.setattr(MCTS, "choose_move", boom)
+    move = ChessAI(Difficulty.MASTER, seed=7).choose_move(game, cancel)
+    assert move is not None and game.rules.is_legal(game.state, move)
 
 
 def test_seeded_mcts_is_reproducible_and_legal():
@@ -47,7 +43,7 @@ def test_ucb_reverses_exploitation_for_opponent_nodes():
 def test_difficulty_enum_keeps_internal_tiers_for_puzzles_and_archives():
     """对外三档定稿后，枚举里的 easy/expert/master **保留**给题库与旧存档。
 
-    它们不再出现在设置页；master 仍走 MCTS（`ChessAI(Difficulty.MASTER)` 不归一）。
+    它们不再出现在设置页；MCTS 代码保留但**不再从档位分派**，仅研究/基准显式构造。
     """
     assert [item.value for item in Difficulty] == ["beginner", "easy", "medium", "hard", "expert", "master"]
     from xionghan_chess.core.ai import CONFIGS

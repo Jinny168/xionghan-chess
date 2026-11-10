@@ -714,3 +714,20 @@ def test_apply_table_covers_every_message_type() -> None:
             assert str(exc.value) == t("error.unsupported_message"), message_type.name
 
     _run(scenario)
+
+
+def test_create_ai_room_accepts_legacy_difficulty_easy() -> None:
+    """旧名 `easy` 仍能建房（服务端 200），实际档位由 core 归一（easy→beginner）。"""
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/rooms",
+            json={
+                "profileId": "traditional",
+                "mode": "local",
+                "playerName": "legacy-easy",
+                "difficulty": "easy",
+                "ruleVersion": RULE_VERSION,
+            },
+        )
+    assert response.status_code == 200, response.text
+    assert response.json()["roomId"]

@@ -47,6 +47,7 @@ from PySide6.QtWidgets import (
 
 from xionghan_chess.core import daily as daily_quiz
 from xionghan_chess.core import puzzles as puzzle_chapters
+from xionghan_chess.core.ai import PUBLIC_DIFFICULTIES, normalize_difficulty
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, PieceType
 from xionghan_chess.core.profiles import OPTION_DEPENDS_ON, PROFILES, display_value, profile_rule_values, stored_value
@@ -56,7 +57,7 @@ from xionghan_chess.i18n import normalize_language, t
 
 from ..puzzle_store import available_puzzles, install_puzzles
 from ..storage import load_game
-from ..texts import dl, dlf
+from ..texts import difficulty_alias_hint, dl, dlf
 from . import piece_assets, theme
 from .board_widget import BoardWidget
 from .workers import AnalysisWorker
@@ -115,22 +116,24 @@ class SettingsDialog(QDialog):
         # 将来会变成"提前返回时刻"，两者不再相等。当前文案仍是 12 秒（本版本确实跑满 12s），
         # 等"提前收手"落地后要连同大师档一起改（大师不吃提前收手，"与高级同预算"会说谎）。
         self.difficulty = QComboBox()
-        [
-            (self.difficulty.addItem(t(f"difficulty.{value}", self.language), value))
-            for value in ("beginner", "easy", "medium", "hard", "expert", "master")
-        ]
-        # 未知档位（旧档 / 手改 / 将来并档）**显式回落**到默认，并把原值作为不可选条目
-        # 显示出来。原来的 `max(0, findData(...))` 会静默落到「入门」——并档那天就成了
-        # 「所有高级玩家无声降级」，而且用户在界面上看不出任何异样。
-        self._unknown_difficulty = self.difficulty.findData(config["difficulty"]) < 0
+        for value in PUBLIC_DIFFICULTIES:
+            self.difficulty.addItem(t(f"difficulty.{value.value}", self.language), value.value)
+        # 旧档（easy/expert/master）**不是未知**：归一后落到三档，并在顶部插一条
+        # 不可选提示「已并入入门/高级」。真正不认识的值才走「未知档位 + 回落默认」，
+        # 绝不允许静默落到第 0 项——那会把高级玩家无声降级。
+        raw_difficulty = str(config["difficulty"])
+        normalized = normalize_difficulty(raw_difficulty)
+        alias_hint = difficulty_alias_hint(raw_difficulty) if normalized != raw_difficulty.strip().lower() else None
+        self._unknown_difficulty = self.difficulty.findData(normalized) < 0
         if self._unknown_difficulty:
-            self.difficulty.insertItem(
-                0, dlf("未知档位「{name}」，已回落到默认", name=str(config["difficulty"])), config["difficulty"]
-            )
+            self.difficulty.insertItem(0, dlf("未知档位「{name}」，已回落到默认", name=raw_difficulty), raw_difficulty)
             self.difficulty.model().item(0).setEnabled(False)
             self.difficulty.setCurrentIndex(max(0, self.difficulty.findData("medium")))
         else:
-            self.difficulty.setCurrentIndex(max(0, self.difficulty.findData(config["difficulty"])))
+            if alias_hint:
+                self.difficulty.insertItem(0, alias_hint, raw_difficulty)
+                self.difficulty.model().item(0).setEnabled(False)
+            self.difficulty.setCurrentIndex(max(0, self.difficulty.findData(normalized)))
         self.color = QComboBox()
         self.color.addItem(t("option.red_first", self.language), "red")
         self.color.addItem(t("option.black_second", self.language), "black")

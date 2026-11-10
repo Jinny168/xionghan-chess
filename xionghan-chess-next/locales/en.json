@@ -90,11 +90,11 @@
   "difficulty": {
     "label": "AI difficulty",
     "beginner": "Beginner · about 0.5 s per move",
-    "easy": "Easy · about 1.5 s per move",
+    "easy": "Easy (merged into Beginner)",
     "medium": "Medium · about 5 s per move",
     "hard": "Hard · about 12 s per move",
-    "expert": "Expert · fixed 3 plies, 35 s cap (measured 10–30 s)",
-    "master": "Master · about 12 s per move (search-based)"
+    "expert": "Expert (merged into Hard)",
+    "master": "Master (merged into Hard)"
   },
   "settings": {
     "title": "Rule settings",

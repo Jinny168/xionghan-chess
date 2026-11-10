@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from xionghan_chess.core.ai import CONFIGS, Difficulty
+from xionghan_chess.core.ai import CONFIGS, PUBLIC_DIFFICULTIES, Difficulty
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCALES = {"zh-CN": ROOT / "locales" / "zh-CN.json", "en": ROOT / "locales" / "en.json"}
@@ -35,7 +35,7 @@ def load(locale: str) -> dict:
 
 
 @pytest.mark.parametrize("locale", list(LOCALES))
-@pytest.mark.parametrize("difficulty", list(Difficulty))
+@pytest.mark.parametrize("difficulty", PUBLIC_DIFFICULTIES)
 def test_label_seconds_match_config(locale: str, difficulty: Difficulty) -> None:
     label = load(locale)[difficulty.value]
     numbers = NUMBER.findall(label)
@@ -53,17 +53,15 @@ def test_label_seconds_match_config(locale: str, difficulty: Difficulty) -> None
 
 @pytest.mark.parametrize("locale", list(LOCALES))
 def test_labels_do_not_claim_more_strength(locale: str) -> None:
-    for difficulty in Difficulty:
+    for difficulty in PUBLIC_DIFFICULTIES:
         label = load(locale)[difficulty.value]
         for word in FORBIDDEN:
             assert word not in label, f"{locale}/{difficulty.value} 含禁用措辞「{word}」：{label!r}"
 
 
-def test_master_and_hard_share_the_budget_at_config_level() -> None:
-    """配置层：大师与高级预算相同（大师换的是 MCTS，不是预算）。"""
-    assert CONFIGS[Difficulty.MASTER].time_limit == CONFIGS[Difficulty.HARD].time_limit, (
-        "预算一旦分叉，这条与文案都要改"
-    )
+def test_master_is_an_alias_of_hard_after_merge() -> None:
+    """并档后 MASTER 只是 HARD 的别名（同一对象），不再有独立预算/MCTS 分派。"""
+    assert CONFIGS[Difficulty.MASTER] is CONFIGS[Difficulty.HARD]
 
 
 @pytest.mark.parametrize("locale", list(LOCALES))
@@ -74,7 +72,7 @@ def test_labels_do_not_compare_budgets_across_levels(locale: str) -> None:
     "同预算"会让玩家困惑"预算一样为什么慢一倍"。**文案层不再承诺档间预算关系。**
     """
     banned = ("同预算", "同一预算", "same budget")
-    for difficulty in Difficulty:
+    for difficulty in PUBLIC_DIFFICULTIES:
         label = load(locale)[difficulty.value]
         for word in banned:
             assert word not in label, f"{locale}/{difficulty.value} 含跨档比较措辞「{word}」：{label!r}"
