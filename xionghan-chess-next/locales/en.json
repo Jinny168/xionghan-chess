@@ -89,7 +89,7 @@
   },
   "difficulty": {
     "label": "AI difficulty",
-    "beginner": "1 move ahead. Misses your less obvious attacks.",
+    "beginner": "1 move ahead. You dodge the immediate recapture, but nothing beyond that.",
     "easy": "Easy (merged into Beginner)",
     "medium": "2 moves ahead. Free pieces get taken.",
     "hard": "3 moves ahead. One loose move gets punished.",

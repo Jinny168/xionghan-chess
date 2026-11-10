@@ -119,10 +119,10 @@ CONFIGS = {
     #   · **取样集合不含第 1 名**：包含它会让名义 0.35 的真实弱化率只剩约 28%，
     #     概率也就无法标定；
     #   · beginner 的分差放到 150（≈1.25 个兵）才够出窗口。
-    Difficulty.BEGINNER: SearchConfig(1, 2.0, 0.55, 1, 4, 3, 5, sample_margin=150),
-    # B′：depth 写 2（真能达到），root 18→9、branch 10→6，让 d2 装进 cap 5s。
+    Difficulty.BEGINNER: SearchConfig(1, 2.0, 0.55, 3, 4, 3, 5, sample_margin=150),
+    # B′：depth 写 2（真能达到），root 18→7、branch 10→5，让 d2 装进 cap 5s。
     # 实测 d2@root18/b10 需 5.8–12.1s；节点≈root×branch，180→54 后中局约 3.3s。
-    Difficulty.MEDIUM: SearchConfig(2, 5.0, 0.0, 4, 1, 6, 9),
+    Difficulty.MEDIUM: SearchConfig(2, 5.0, 0.0, 4, 1, 5, 7),
     # B′：depth 3（真能达到），root 18→10、branch 18→10，让 d3 装进 cap 12s。
     Difficulty.HARD: SearchConfig(3, 12.0, 0.0, 6, 1, 10, 10),
 }
