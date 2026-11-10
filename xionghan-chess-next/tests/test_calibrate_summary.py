@@ -132,3 +132,14 @@ def test_load_search_config_rejects_wrong_shape() -> None:
         _load_search_config('{"depth": 2}', "--config-a")
     with pytest.raises(SystemExit):
         _load_search_config('{"depth": 2, "bogus": 1}', "--config-a")
+
+
+def test_load_search_config_defaults_max_nodes_to_none() -> None:
+    from calibrate_levels import _load_search_config
+
+    raw = (
+        '{"depth":2,"time_limit":2.0,"randomness":0.55,"quiescence_depth":1,'
+        '"candidate_count":4,"branch_limit":3,"root_limit":5,"sample_margin":150}'
+    )
+    config = _load_search_config(raw, "--config-a")
+    assert config.max_nodes is None

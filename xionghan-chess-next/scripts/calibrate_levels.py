@@ -60,6 +60,8 @@ def _load_search_config(raw: str, label: str) -> SearchConfig:
         raise SystemExit(f"{label} 不是合法 JSON：{exc}") from exc
     if not isinstance(data, dict):
         raise SystemExit(f"{label} 必须是 JSON object，实际 {type(data).__name__}")
+    # `max_nodes` 有默认值 None；扫候选时省略它等价于"不启用节点预算"。
+    data.setdefault("max_nodes", None)
     allowed = set(SearchConfig.__dataclass_fields__)
     unknown = sorted(set(data) - allowed)
     missing = sorted(allowed - set(data))
