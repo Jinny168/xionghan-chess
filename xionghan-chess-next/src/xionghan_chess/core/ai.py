@@ -140,8 +140,12 @@ CONFIGS[Difficulty.MASTER] = CONFIGS[Difficulty.HARD]
 EXPECTED_MOVE_SECONDS: dict[Difficulty, float] = {
     difficulty: CONFIGS[difficulty].time_limit for difficulty in Difficulty
 }
+# 搜索开始前有一段**不可中断前缀**（`legal_moves` + 两次 `_order`/`_root_bias` 全扫），
+# 架构总监实测 p50≈0.30s、max=0.78s；看门狗必须把这段加上，否则 cap=2.0 时
+# 2.3s 的旧公式会掐掉 p95≈2.5s 的合法长手，表现为"AI 走了个怪手"。
+PREFIX_MAX = 0.78
 WATCHDOG_SECONDS: dict[Difficulty, float] = {
-    difficulty: round(CONFIGS[difficulty].time_limit * 1.15, 3) for difficulty in Difficulty
+    difficulty: round(PREFIX_MAX + CONFIGS[difficulty].time_limit * 1.15, 3) for difficulty in Difficulty
 }
 
 VALUES = {

@@ -14,6 +14,7 @@ from xionghan_chess.core.ai import (
     CONFIGS,
     EXPECTED_MOVE_SECONDS,
     LEGACY_DIFFICULTY_ALIASES,
+    PREFIX_MAX,
     PUBLIC_DIFFICULTIES,
     WATCHDOG_SECONDS,
     ChessAI,
@@ -90,5 +91,17 @@ def test_unknown_difficulty_still_raises() -> None:
 def test_expected_and_watchdog_seconds_cover_public_tiers_and_aliases() -> None:
     for difficulty in Difficulty:
         assert EXPECTED_MOVE_SECONDS[difficulty] == CONFIGS[difficulty].time_limit
-        assert WATCHDOG_SECONDS[difficulty] == round(CONFIGS[difficulty].time_limit * 1.15, 3)
+        assert WATCHDOG_SECONDS[difficulty] == round(PREFIX_MAX + CONFIGS[difficulty].time_limit * 1.15, 3)
         assert WATCHDOG_SECONDS[difficulty] > CONFIGS[difficulty].time_limit
+
+
+def test_watchdog_includes_the_uninterruptible_prefix() -> None:
+    """看门狗 = 前缀 0.78 + cap×1.15；cap 2.0 时必须留到 3.08s（p95≈2.5s 是合法手）。
+
+    当前发布的 beginner cap 是 0.5（不是 2.0）；2.0 是 r040 候选的注入值，
+    公式本身覆盖它即可。medium/hard 按发布值 5.0/12.0 断言。
+    """
+    assert WATCHDOG_SECONDS[Difficulty.BEGINNER] == pytest.approx(PREFIX_MAX + 0.5 * 1.15)
+    assert PREFIX_MAX + 2.0 * 1.15 > 2.5, "cap 2.0 的 p95 合法手不能被看门狗误杀"
+    assert WATCHDOG_SECONDS[Difficulty.MEDIUM] == pytest.approx(PREFIX_MAX + 5.0 * 1.15)
+    assert WATCHDOG_SECONDS[Difficulty.HARD] == pytest.approx(PREFIX_MAX + 12.0 * 1.15)
