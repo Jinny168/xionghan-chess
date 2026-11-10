@@ -278,6 +278,8 @@ def test_result_rows_carry_completed_depth_and_wall_moves() -> None:
     assert 0 <= row["b_completed_depth"] <= 1
     assert row["a_wall_moves"] <= row["a_moves"]
     assert row["b_wall_moves"] <= row["b_moves"]
+    assert len(row["a_zero_depth_flags"]) == row["a_moves"]
+    assert len(row["b_zero_depth_flags"]) == row["b_moves"]
 
 
 def test_k3_counts_a_hanging_horse(monkeypatch) -> None:

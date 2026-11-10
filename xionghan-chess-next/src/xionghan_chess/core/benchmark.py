@@ -117,6 +117,9 @@ class MatchResult:
     # 该局该方被 wall 截断的着数（与 `*_bound_reasons["wall"]` 同源，落盘便于逐局审计）。
     a_wall_moves: int = 0
     b_wall_moves: int = 0
+    # 逐手零深度标记（与 `*_move_times` 同长、同顺序）：用于判「连续两手零深度」。
+    a_zero_depth_flags: list[bool] = field(default_factory=list)
+    b_zero_depth_flags: list[bool] = field(default_factory=list)
     # K3：每手最多记 1 次，按 送子(3) > 漏吃(2) > 漏杀(1) 取最严重一类。
     a_blunders: int = 0
     b_blunders: int = 0
@@ -306,6 +309,7 @@ def benchmark_match(
         game_zero = {"a": {"wall": 0, "nodes": 0, "cancel": 0}, "b": {"wall": 0, "nodes": 0, "cancel": 0}}
         game_moves = {"a": 0, "b": 0}
         game_depths: dict[str, list[int]] = {"a": [], "b": []}
+        game_zero_flags: dict[str, list[bool]] = {"a": [], "b": []}
         game_blunders = {"a": 0, "b": 0}
         game_hangs = {"a": 0, "b": 0}
         streak = {"a": 0, "b": 0}
@@ -323,6 +327,7 @@ def benchmark_match(
                 move = MCTS(
                     simulations=a_simulations, seed=seed + game_index * max_plies + ply, root_score=scorer
                 ).choose_move(game)
+                game_zero_flags[side].append(False)
             else:
                 level, config = (level_a, a_config) if is_a else (level_b, b_config)
                 engine = ChessAI(level, seed=seed + game_index * max_plies + ply, config=config, time_scale=time_scale)
@@ -331,6 +336,7 @@ def benchmark_match(
                 game_depths[side].append(engine.completed_depth)
                 total_moves[side] += 1
                 game_moves[side] += 1
+                game_zero_flags[side].append(engine.zero_depth_moves > 0)
                 if engine.zero_depth_moves:
                     zero_depth[side] += engine.zero_depth_moves
                     reason = engine.zero_depth_reason or "wall"
@@ -403,6 +409,8 @@ def benchmark_match(
             b_blunder_hangs=game_hangs["b"],
             a_blunders_max_consecutive=max_streak["a"],
             b_blunders_max_consecutive=max_streak["b"],
+            a_zero_depth_flags=game_zero_flags["a"],
+            b_zero_depth_flags=game_zero_flags["b"],
         )
         results.append(result)
         if on_game is not None:
