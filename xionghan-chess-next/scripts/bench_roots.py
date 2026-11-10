@@ -98,14 +98,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+import xionghan_chess.core.ai as ai_module  # noqa: E402
 from xionghan_chess.core.ai import CONFIGS, ChessAI, Difficulty  # noqa: E402
 from xionghan_chess.core.game import Game, GameError  # noqa: E402
 from xionghan_chess.core.model import Color, Move, Piece, PieceType  # noqa: E402
-import xionghan_chess.core.ai as ai_module  # noqa: E402
 
-POSITION_POLICY = ("每步从合法着法列表中位起、按 seed 做确定性轮转；"
-                   "跳过上一步的逆着法与第三次重复（position_key 计数），"
-                   "避开会立刻终局的吃王着法")
+POSITION_POLICY = (
+    "每步从合法着法列表中位起、按 seed 做确定性轮转；"
+    "跳过上一步的逆着法与第三次重复（position_key 计数），"
+    "避开会立刻终局的吃王着法"
+)
 
 
 def build_dense_position(profile: str) -> tuple[Game, list[str]]:
@@ -129,7 +131,7 @@ def build_dense_position(profile: str) -> tuple[Game, list[str]]:
     return game, []
 
 
-REPETITION_LIMIT = 3      # 同一 position_key 最多出现这么多次，超过就换候选
+REPETITION_LIMIT = 3  # 同一 position_key 最多出现这么多次，超过就换候选
 
 
 def position_fingerprint(game: Game) -> str:
@@ -164,9 +166,11 @@ def build_position(profile: str, seed: int, plies: int) -> tuple[Game, list[str]
             break
         # 吃王的着法会让局面立刻终局，这里只是"造基准局面"，避开它
         pool = sorted(
-            (move for move in legal
-             if (piece := game.state.piece_at(move.target)) is None
-             or piece.type is not PieceType.KING),
+            (
+                move
+                for move in legal
+                if (piece := game.state.piece_at(move.target)) is None or piece.type is not PieceType.KING
+            ),
             key=lambda move: move.key(),
         ) or sorted(legal, key=lambda move: move.key())
 
@@ -184,7 +188,7 @@ def build_position(profile: str, seed: int, plies: int) -> tuple[Game, list[str]
                 continue
             chosen = candidate
             break
-        if chosen is None:                       # 全部候选都不合格：宁可停下
+        if chosen is None:  # 全部候选都不合格：宁可停下
             break
         try:
             game.move(chosen)
@@ -200,9 +204,11 @@ def build_position(profile: str, seed: int, plies: int) -> tuple[Game, list[str]
 
 def _is_reverse(previous: Move, candidate: Move) -> bool:
     """`candidate` 是否正好把 `previous` 走回去（源/目标互换，同兵种同升变）。"""
-    return (candidate.source == previous.target
-            and candidate.target == previous.source
-            and candidate.promotion == previous.promotion)
+    return (
+        candidate.source == previous.target
+        and candidate.target == previous.source
+        and candidate.promotion == previous.promotion
+    )
 
 
 def instrument(ai: ChessAI, rules) -> dict[str, dict[str, float]]:
@@ -232,8 +238,8 @@ def instrument(ai: ChessAI, rules) -> dict[str, dict[str, float]]:
                 row["ms"] += (time.perf_counter() - started) * 1000
                 row["calls"] += 1
 
-    rules.apply_unchecked = apply_wrapped      # 仅本进程内生效
-    ai._search = search_wrapped               # type: ignore[method-assign]
+    rules.apply_unchecked = apply_wrapped  # 仅本进程内生效
+    ai._search = search_wrapped  # type: ignore[method-assign]
     return rows
 
 
@@ -251,10 +257,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--plies", type=int, default=10)
     parser.add_argument("--difficulty", default=Difficulty.MEDIUM.value)
     parser.add_argument("--cap", default="80", help="临时覆盖 QUIESCENCE_NODE_LIMIT（80 / 10 / inf）")
-    parser.add_argument("--budget-scale", type=float, default=1.0,
-                        help="作用于 time_limit 的测量缩放（通过 AI_TIME_SCALE 环境变量）")
-    parser.add_argument("--scenario", default="played", choices=("played", "dense"),
-                        help="played=按中位策略走 --plies 手；dense=交错密集局面（阳性对照）")
+    parser.add_argument(
+        "--budget-scale", type=float, default=1.0, help="作用于 time_limit 的测量缩放（通过 AI_TIME_SCALE 环境变量）"
+    )
+    parser.add_argument(
+        "--scenario",
+        default="played",
+        choices=("played", "dense"),
+        help="played=按中位策略走 --plies 手；dense=交错密集局面（阳性对照）",
+    )
     parser.add_argument("--json", action="store_true", help="机器可读输出")
     args = parser.parse_args(argv)
 
@@ -279,14 +290,16 @@ def main(argv: list[str] | None = None) -> int:
     order = {move.key(): index for index, (_s, move, _t) in enumerate(ai.root_scores)}
     table = []
     for key, row in rows.items():
-        table.append({
-            "root": order.get(key, -1),
-            "move": key,
-            "qnodes": int(row["qnodes"]),
-            "trunc": int(row["trunc"]),
-            "ms": round(row["ms"]),
-            "calls": int(row["calls"]),
-        })
+        table.append(
+            {
+                "root": order.get(key, -1),
+                "move": key,
+                "qnodes": int(row["qnodes"]),
+                "trunc": int(row["trunc"]),
+                "ms": round(row["ms"]),
+                "calls": int(row["calls"]),
+            }
+        )
     table.sort(key=lambda item: (item["root"] if item["root"] >= 0 else 10**6, item["move"]))
 
     scale = os.environ.get("AI_TIME_SCALE", "1.0")
@@ -298,14 +311,14 @@ def main(argv: list[str] | None = None) -> int:
         "cap": ("inf" if math.isinf(cap_value) else int(cap_value)),
         "budget_scale": args.budget_scale,
         "AI_TIME_SCALE": scale,
-        "AI_TIME_SCALE_source": "--budget-scale" if scale == str(args.budget_scale)
-                                else ("env(覆盖)" if env_scale_before else "default"),
+        "AI_TIME_SCALE_source": "--budget-scale"
+        if scale == str(args.budget_scale)
+        else ("env(覆盖)" if env_scale_before else "default"),
         "time_limit": CONFIGS[difficulty].time_limit * float(scale),
         "randomness": CONFIGS[difficulty].randomness,
         "scenario": args.scenario,
         "position_policy": POSITION_POLICY,
-        "determinism": ("pieces/legal/depth/trunc/move 与逐根 move 稳定；"
-                        "nodes/qnodes/ms 受墙钟限制会波动"),
+        "determinism": ("pieces/legal/depth/trunc/move 与逐根 move 稳定；nodes/qnodes/ms 受墙钟限制会波动"),
         "played": played,
     }
     summary = {
@@ -323,19 +336,19 @@ def main(argv: list[str] | None = None) -> int:
     }
 
     if args.json:
-        print(json.dumps({"roots": table, "summary": summary, "provenance": provenance},
-                         ensure_ascii=False, indent=2))
+        print(json.dumps({"roots": table, "summary": summary, "provenance": provenance}, ensure_ascii=False, indent=2))
         return 0
 
     header = f"{'root':>4}  {'move':<12}{'qnodes':>7}{'trunc':>7}{'ms':>7}{'calls':>7}"
     print(header)
     for row in table:
-        print(f"{row['root']:>4}  {row['move']:<12}{row['qnodes']:>7}{row['trunc']:>7}"
-              f"{row['ms']:>7}{row['calls']:>7}")
+        print(f"{row['root']:>4}  {row['move']:<12}{row['qnodes']:>7}{row['trunc']:>7}{row['ms']:>7}{row['calls']:>7}")
     if table:
         trunc_values = [row["trunc"] for row in table]
-        print(f"（逐根 ms 中位 {statistics.median(r['ms'] for r in table):.0f}，"
-              f"trunc 非零根 {sum(1 for value in trunc_values if value)}/{len(trunc_values)}）")
+        print(
+            f"（逐根 ms 中位 {statistics.median(r['ms'] for r in table):.0f}，"
+            f"trunc 非零根 {sum(1 for value in trunc_values if value)}/{len(trunc_values)}）"
+        )
 
     def _short(key: str, value: object) -> object:
         if key == "position_key" and isinstance(value, str) and len(value) > 32:

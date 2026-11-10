@@ -38,10 +38,18 @@ def fonts(qt_app: QApplication) -> None:
 
 def _config(**overrides: object) -> dict:
     base = {
-        "profile": "desktop_complete", "language": "zh-CN", "difficulty": "medium",
-        "human_color": "red", "initial_minutes": 20, "sound": True, "sound_volume": 70,
-        "theme": "classic", "font": "system", "background": "none",
-        "piece_style": "traditional", "piece_render": "glyph",
+        "profile": "desktop_complete",
+        "language": "zh-CN",
+        "difficulty": "medium",
+        "human_color": "red",
+        "initial_minutes": 20,
+        "sound": True,
+        "sound_volume": 70,
+        "theme": "classic",
+        "font": "system",
+        "background": "none",
+        "piece_style": "traditional",
+        "piece_render": "glyph",
     }
     base.update(overrides)
     return base
@@ -57,7 +65,7 @@ class _Parent(QWidget):
 
 def test_dropdown_first_item_is_the_glyph_fallback(qt_app: QApplication) -> None:
     config = _config(piece_render="image", piece_style="cartoon")
-    parent = _Parent(config)          # 必须持有引用：父控件被 GC 会连带销毁对话框
+    parent = _Parent(config)  # 必须持有引用：父控件被 GC 会连带销毁对话框
     dialog = SettingsDialog(config, parent)
     assert dialog.piece_style.itemData(0) == GLYPH_STYLE_DATA
     assert dialog.piece_style.currentData() == "cartoon", "image 态应落在当前风格上"
@@ -86,11 +94,9 @@ def test_choosing_a_style_enables_image(qt_app: QApplication) -> None:
     dialog.deleteLater()
 
 
-def test_missing_style_resources_disable_that_option(
-        qt_app: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_missing_style_resources_disable_that_option(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
     real = piece_assets.preload
-    monkeypatch.setattr(piece_assets, "preload",
-                        lambda style=None: 0 if style == "cartoon" else real(style))
+    monkeypatch.setattr(piece_assets, "preload", lambda style=None: 0 if style == "cartoon" else real(style))
     config = _config()
     parent = _Parent(config)
     dialog = SettingsDialog(config, parent)

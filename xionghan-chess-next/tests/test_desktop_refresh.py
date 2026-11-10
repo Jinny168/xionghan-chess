@@ -39,10 +39,8 @@ def silent_dialogs(monkeypatch: pytest.MonkeyPatch) -> dict[str, list]:
     次数供断言使用。
     """
     calls: dict[str, list] = {"information": [], "question": []}
-    monkeypatch.setattr(QMessageBox, "information",
-                        staticmethod(lambda *a, **k: calls["information"].append(a[1:3])))
-    monkeypatch.setattr(QMessageBox, "question",
-                        staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
+    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: calls["information"].append(a[1:3])))
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
     # 结果弹窗已改为自定义按钮的 QMessageBox，`information` 不再是它的出口；
     # 不 patch 这一层，终局用例会真的模态执行并挂住。
     monkeypatch.setattr(appmod, "show_result_dialog", staticmethod(lambda *a, **k: False))
@@ -195,17 +193,6 @@ def test_banner_prefixes_check_state(window, monkeypatch: pytest.MonkeyPatch) ->
     assert "将军" not in window.banner.text()
 
 
-def test_banner_prefixes_check_state(window, monkeypatch: pytest.MonkeyPatch) -> None:
-    """被将时横幅要写「将军 · 红方行棋」——盘内那两个字常被棋子盖住。"""
-    monkeypatch.setattr(window, "_check_state", lambda state: True)
-    window.refresh()
-    assert window.banner.text().startswith("将军 · "), window.banner.text()
-
-    monkeypatch.setattr(window, "_check_state", lambda state: False)
-    window.refresh()
-    assert "将军" not in window.banner.text()
-
-
 def test_banner_check_prefix_clears_on_the_same_refresh(window) -> None:
     """解开将军后的**第一次** refresh 横幅就不能再有「将军」。
 
@@ -217,8 +204,8 @@ def test_banner_check_prefix_clears_on_the_same_refresh(window) -> None:
     game = window.game
     game.state.pieces = [
         Piece.create(PieceType.KING, Color.BLACK, 1, 6),
-        Piece.create(PieceType.KING, Color.RED, 12, 0),   # 不能与黑将同列（会"照面"）
-        Piece.create(PieceType.ROOK, Color.RED, 1, 9),   # 沿第 1 行将军
+        Piece.create(PieceType.KING, Color.RED, 12, 0),  # 不能与黑将同列（会"照面"）
+        Piece.create(PieceType.ROOK, Color.RED, 1, 9),  # 沿第 1 行将军
     ]
     game.state.turn = Color.BLACK
     window._reset_ui_cache()
@@ -227,36 +214,9 @@ def test_banner_check_prefix_clears_on_the_same_refresh(window) -> None:
 
     # 车挪到不将军的格子：子数与走子数都不变
     before = (len(game.state.pieces), len(game.state.history))
-    game.state.pieces = [piece.at(Position(12, 9)) if piece.type is PieceType.ROOK else piece
-                         for piece in game.state.pieces]   # 挪到第 12 行，不再照将
-    assert (len(game.state.pieces), len(game.state.history)) == before
-    window.refresh()
-    assert "将军" not in window.banner.text(), f"将军解除后仍有残留：{window.banner.text()}"
-
-
-def test_banner_check_prefix_clears_on_the_same_refresh(window) -> None:
-    """解开将军后的**第一次** refresh 横幅就不能再有「将军」。
-
-    这里刻意让"子数、走子数都不变"，只把车挪到不将军的位置 ——
-    只按 (走子数/子数) 做缓存签名会残留一帧，故 `_check_state` 用盘面指纹。
-    """
-    from xionghan_chess.core.model import Piece, PieceType, Position
-
-    game = window.game
     game.state.pieces = [
-        Piece.create(PieceType.KING, Color.BLACK, 1, 6),
-        Piece.create(PieceType.KING, Color.RED, 12, 0),   # 不能与黑将同列（会"照面"）
-        Piece.create(PieceType.ROOK, Color.RED, 1, 9),   # 沿第 1 行将军
-    ]
-    game.state.turn = Color.BLACK
-    window._reset_ui_cache()
-    window.refresh()
-    assert window.banner.text().startswith("将军 · "), window.banner.text()
-
-    # 车挪到不将军的格子：子数与走子数都不变
-    before = (len(game.state.pieces), len(game.state.history))
-    game.state.pieces = [piece.at(Position(12, 9)) if piece.type is PieceType.ROOK else piece
-                         for piece in game.state.pieces]   # 挪到第 12 行，不再照将
+        piece.at(Position(12, 9)) if piece.type is PieceType.ROOK else piece for piece in game.state.pieces
+    ]  # 挪到第 12 行，不再照将
     assert (len(game.state.pieces), len(game.state.history)) == before
     window.refresh()
     assert "将军" not in window.banner.text(), f"将军解除后仍有残留：{window.banner.text()}"

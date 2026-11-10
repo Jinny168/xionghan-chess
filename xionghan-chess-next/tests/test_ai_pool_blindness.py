@@ -40,7 +40,7 @@ import time
 
 import pytest
 
-from xionghan_chess.core.ai import ChessAI, VALUES, evaluation_key, pool_signature
+from xionghan_chess.core.ai import VALUES, ChessAI, evaluation_key, pool_signature
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
 
@@ -72,24 +72,30 @@ def _see_board() -> list[Piece]:
     """给 SEE 用的小盘面：红车 (6,4) 可以合法吃掉黑兵 (6,6)。"""
     return [
         _piece(PieceType.KING, Color.RED, 12, 6),
-        _piece(PieceType.KING, Color.BLACK, 11, 0),   # 与红王不同行也不同列，避免照面
+        _piece(PieceType.KING, Color.BLACK, 11, 0),  # 与红王不同行也不同列，避免照面
         _piece(PieceType.ROOK, Color.RED, 6, 4),
         _piece(PieceType.PAWN, Color.BLACK, 6, 6),
     ]
 
 
-def _game_with_pool(captured_red: list[Piece], *, board: list[Piece] | None = None,
-                    options: dict | None = None) -> Game:
+def _game_with_pool(
+    captured_red: list[Piece], *, board: list[Piece] | None = None, options: dict | None = None
+) -> Game:
     """盘面相同、仅红方「死子池」不同的局面。
 
     `state.captured[color]` 的语义是**该方的死子**（`game.py:70` 按被吃子自身颜色入池，
     `rules.py:98` 升变时按升变方颜色读池），所以这里放红方的死子表示「红方已损失这些子，
     因而可以把触底的兵升变成它们」。
     """
-    return Game.from_state(GameState(
-        "desktop_complete", board if board is not None else _board(), turn=Color.RED,
-        captured={Color.RED: list(captured_red), Color.BLACK: []},
-    ), options)
+    return Game.from_state(
+        GameState(
+            "desktop_complete",
+            board if board is not None else _board(),
+            turn=Color.RED,
+            captured={Color.RED: list(captured_red), Color.BLACK: []},
+        ),
+        options,
+    )
 
 
 def _stocked_pool() -> list[Piece]:
@@ -100,8 +106,7 @@ def _stocked_pool() -> list[Piece]:
 
 
 def _mirror(piece: Piece, rows: int) -> Piece:
-    return Piece.create(piece.type, piece.color.opponent, rows - 1 - piece.position.row,
-                        piece.position.col)
+    return Piece.create(piece.type, piece.color.opponent, rows - 1 - piece.position.row, piece.position.col)
 
 
 def _promotion_types(game: Game) -> set[PieceType]:
@@ -115,13 +120,14 @@ def _expected_pool_value(pool: list[Piece], color: Color, game: Game) -> float:
     enabled = game.rules.enabled_piece_types
     total = 0.0
     if game.options.pawn_promotion:
-        total += sum(VALUES[piece.type] for piece in pool
-                     if piece.type not in {PieceType.PAWN, PieceType.KING}
-                     and piece.type in enabled)
+        total += sum(
+            VALUES[piece.type]
+            for piece in pool
+            if piece.type not in {PieceType.PAWN, PieceType.KING} and piece.type in enabled
+        )
     if game.options.pawn_resurrection:
         dead = sum(1 for piece in pool if piece.type is PieceType.PAWN)
-        fielded = sum(1 for piece in game.state.pieces
-                      if piece.type is PieceType.PAWN and piece.color is color)
+        fielded = sum(1 for piece in game.state.pieces if piece.type is PieceType.PAWN and piece.color is color)
         total += min(dead, max(0, 7 - fielded)) * VALUES[PieceType.PAWN]
     return total
 
@@ -131,8 +137,9 @@ def _assert_fixtures_differ_only_by_pool(empty: Game, stocked: Game) -> None:
 
     若这条不成立，下面所有「池影响估值」的结论都可能只是盘面不同导致的。
     """
-    assert [(p.type, p.color, p.position.row, p.position.col) for p in empty.state.pieces] == \
-           [(p.type, p.color, p.position.row, p.position.col) for p in stocked.state.pieces]
+    assert [(p.type, p.color, p.position.row, p.position.col) for p in empty.state.pieces] == [
+        (p.type, p.color, p.position.row, p.position.col) for p in stocked.state.pieces
+    ]
     assert empty.state.turn is stocked.state.turn is Color.RED
     assert empty.state.captured[Color.RED] == []
     assert {p.type for p in stocked.state.captured[Color.RED]} == {PieceType.ROOK, PieceType.HORSE}
@@ -140,6 +147,7 @@ def _assert_fixtures_differ_only_by_pool(empty: Game, stocked: Game) -> None:
 
 
 # --- ① 估值纳入池价值 ---------------------------------------------------------
+
 
 def test_evaluate_includes_promotion_pool_value():
     """池空 vs 池里有车/马 ⇒ `_evaluate` 的差值**恰为池中可升变子的价值和**。
@@ -163,16 +171,19 @@ def test_evaluate_includes_promotion_pool_value():
 
 def test_pool_value_matches_rules_derived_expectation():
     """`_pool_value` 与「照规则独立重构的期望」逐项一致（池项整口径）。"""
-    for captured in ([], _stocked_pool(),
-                     [_piece(PieceType.PAWN, Color.RED, 0, 0)],
-                     [_piece(PieceType.CANNON, Color.RED, 0, 0), _piece(PieceType.PAWN, Color.RED, 0, 2)],
-                     [_piece(PieceType.KING, Color.RED, 0, 0)]):
+    for captured in (
+        [],
+        _stocked_pool(),
+        [_piece(PieceType.PAWN, Color.RED, 0, 0)],
+        [_piece(PieceType.CANNON, Color.RED, 0, 0), _piece(PieceType.PAWN, Color.RED, 0, 2)],
+        [_piece(PieceType.KING, Color.RED, 0, 0)],
+    ):
         game = _game_with_pool(captured)
-        assert ChessAI()._pool_value(game, Color.RED) == pytest.approx(
-            _expected_pool_value(captured, Color.RED, game))
+        assert ChessAI()._pool_value(game, Color.RED) == pytest.approx(_expected_pool_value(captured, Color.RED, game))
 
 
 # --- ② 候选生成层读池（对照，行为不变）---------------------------------------
+
 
 def test_tactical_moves_reads_promotion_pool_contrast():
     """对照：候选生成层**确实读池** —— 同样的两个局面，升变类型集合不同。
@@ -192,6 +203,7 @@ def test_tactical_moves_reads_promotion_pool_contrast():
 
 # --- ③ 判和键纳入池（方案 A，由用户拍板）------------------------------------
 
+
 def test_position_key_includes_capture_pool():
     """`position_key` 现在**含池** —— 这是方案 A 的规则语义变更，用户已拍板。
 
@@ -206,11 +218,11 @@ def test_position_key_includes_capture_pool():
     stocked = _game_with_pool(_stocked_pool())
     _assert_fixtures_differ_only_by_pool(empty, stocked)
 
-    assert empty.rules.position_key(empty.state) != \
-           stocked.rules.position_key(stocked.state)
+    assert empty.rules.position_key(empty.state) != stocked.rules.position_key(stocked.state)
 
 
 # --- ④ AI 缓存改为池感知 ------------------------------------------------------
+
 
 def test_evaluation_cache_is_pool_aware():
     """同一实例对池不同的两局面各成一项，不再复用对方分数（修法前只会有一项）。"""
@@ -261,18 +273,18 @@ def test_see_cache_key_is_pool_aware():
 
 # --- ⑤ 规则门控与上限 ---------------------------------------------------------
 
+
 def test_pool_value_respects_rule_gates():
     """池项受规则开关门控：升变/复活关掉即不计，禁止成为"白给分"。"""
     base = ChessAI()._evaluate(_game_with_pool([]), Color.RED)
 
     promotion_off = _game_with_pool(_stocked_pool(), options={"pawn_promotion": False})
-    assert ChessAI()._evaluate(promotion_off, Color.RED) == pytest.approx(base), \
-        "pawn_promotion=False 时升变项必须为 0"
+    assert ChessAI()._evaluate(promotion_off, Color.RED) == pytest.approx(base), "pawn_promotion=False 时升变项必须为 0"
 
-    resurrection_off = _game_with_pool([_piece(PieceType.PAWN, Color.RED, 0, 0)],
-                                       options={"pawn_resurrection": False})
-    assert ChessAI()._evaluate(resurrection_off, Color.RED) == pytest.approx(base), \
+    resurrection_off = _game_with_pool([_piece(PieceType.PAWN, Color.RED, 0, 0)], options={"pawn_resurrection": False})
+    assert ChessAI()._evaluate(resurrection_off, Color.RED) == pytest.approx(base), (
         "pawn_resurrection=False 时复活的兵项必须为 0"
+    )
 
 
 def test_pool_value_never_counts_a_captured_king():
@@ -280,7 +292,8 @@ def test_pool_value_never_counts_a_captured_king():
     with_king = _game_with_pool([_piece(PieceType.KING, Color.RED, 0, 0)])
     assert ChessAI()._pool_value(with_king, Color.RED) == pytest.approx(0.0)
     assert ChessAI()._evaluate(with_king, Color.RED) == pytest.approx(
-        ChessAI()._evaluate(_game_with_pool([]), Color.RED))
+        ChessAI()._evaluate(_game_with_pool([]), Color.RED)
+    )
 
 
 def test_pool_value_counts_only_revivable_pawns():
@@ -295,6 +308,7 @@ def test_pool_value_counts_only_revivable_pawns():
 
 # --- ⑥ 镜像对称（连池一起镜像）-----------------------------------------------
 
+
 def test_evaluate_mirrors_board_and_pool_together():
     """红黑镜像（**含镜像池**）后估值相等：池项没有引入颜色偏置。
 
@@ -304,15 +318,22 @@ def test_evaluate_mirrors_board_and_pool_together():
     """
     pieces = _board()
     pool = _stocked_pool()
-    game = Game.from_state(GameState(
-        "desktop_complete", pieces, turn=Color.RED,
-        captured={Color.RED: list(pool), Color.BLACK: []},
-    ))
+    game = Game.from_state(
+        GameState(
+            "desktop_complete",
+            pieces,
+            turn=Color.RED,
+            captured={Color.RED: list(pool), Color.BLACK: []},
+        )
+    )
     rows = game.profile.rows
-    mirror_game = Game.from_state(GameState(
-        "desktop_complete", [_mirror(p, rows) for p in pieces], turn=Color.BLACK,
-        captured={Color.BLACK: [_mirror(p, rows) for p in pool], Color.RED: []},
-    ))
+    mirror_game = Game.from_state(
+        GameState(
+            "desktop_complete",
+            [_mirror(p, rows) for p in pieces],
+            turn=Color.BLACK,
+            captured={Color.BLACK: [_mirror(p, rows) for p in pool], Color.RED: []},
+        )
+    )
 
-    assert ChessAI()._evaluate(game, Color.RED) == pytest.approx(
-        ChessAI()._evaluate(mirror_game, Color.BLACK))
+    assert ChessAI()._evaluate(game, Color.RED) == pytest.approx(ChessAI()._evaluate(mirror_game, Color.BLACK))

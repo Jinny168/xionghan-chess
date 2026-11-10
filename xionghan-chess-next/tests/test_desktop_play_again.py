@@ -45,8 +45,7 @@ def window(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch, tmp_path):
     theme.load_bundled_fonts()
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
     monkeypatch.setattr(QMessageBox, "warning", staticmethod(lambda *a, **k: None))
-    monkeypatch.setattr(QMessageBox, "question",
-                        staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
     # 默认静默结果弹窗（返回"未点再来一局"），个别用例再单独改写
     monkeypatch.setattr(appmod, "show_result_dialog", staticmethod(lambda *a, **k: False))
     win = appmod.MainWindow()
@@ -168,7 +167,7 @@ def test_two_clicks_open_only_one_game(window, monkeypatch) -> None:
 
     monkeypatch.setattr(window, "new_game", counting_new_game)
     window.trigger_play_again()
-    window.trigger_play_again()          # 第二下应当被 `_play_again_pending` 吃掉
+    window.trigger_play_again()  # 第二下应当被 `_play_again_pending` 吃掉
     drain(QApplication.instance())
     assert len(calls) == 1, f"连点两次开了 {len(calls)} 局"
 
@@ -216,7 +215,7 @@ class _FakeSession:
     cursor = 0
     total = 3
 
-    class puzzle:            # noqa: N801 - 仅作占位
+    class puzzle:  # noqa: N801 - 仅作占位
         title = "测试题"
 
 

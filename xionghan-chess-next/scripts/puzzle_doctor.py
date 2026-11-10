@@ -23,7 +23,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from xionghan_chess.core.ai import ChessAI, Difficulty  # noqa: E402
 from xionghan_chess.core.game import Game, GameError  # noqa: E402
 from xionghan_chess.core.model import Color, Move, Position  # noqa: E402
 from xionghan_chess.core.puzzles import Puzzle, load_puzzles  # noqa: E402
@@ -70,6 +69,7 @@ def _mate_in_one(game: Game) -> list[Move]:
 
 def _document(game: Game) -> dict:
     from xionghan_chess.core.storage import game_document
+
     return game_document(game)
 
 
@@ -129,8 +129,7 @@ def check(puzzle: Puzzle, *, quick: bool) -> list[str]:
     elif len(lines) > 1:
         problems.append(f"能强制杀到底的首着有 {len(lines)} 手（应恰好 1 手）")
     elif lines[0][0].key() != puzzle.solution[0].key():
-        problems.append(
-            f"解法首着不是唯一解：题面写 {puzzle.solution[0].key()}，实际唯一首着 {lines[0][0].key()}")
+        problems.append(f"解法首着不是唯一解：题面写 {puzzle.solution[0].key()}，实际唯一首着 {lines[0][0].key()}")
     elif len(lines[0]) != total:
         problems.append(f"最强线长度 {len(lines[0])} ply，与解法 {total} ply 不一致")
 
@@ -164,15 +163,24 @@ def main() -> int:
     if args.file:
         # 出题器的产物还没入库，按同一套 Puzzle 结构解析
         from xionghan_chess.core.puzzles import Puzzle as _Puzzle
+
         raw = json.loads(Path(args.file).read_text(encoding="utf-8"))
+
         def _to_puzzle(item: dict) -> _Puzzle:
             return _Puzzle(
-                str(item["id"]), str(item["title"]), str(item["difficulty"]),
-                str(item.get("description", "")), dict(item["document"]),
-                tuple(Move(Position(m["from"]["row"], m["from"]["col"]),
-                           Position(m["to"]["row"], m["to"]["col"])) for m in item["solution"]),
-                tuple(item.get("hints", [])), tuple(item.get("tags", [])),
+                str(item["id"]),
+                str(item["title"]),
+                str(item["difficulty"]),
+                str(item.get("description", "")),
+                dict(item["document"]),
+                tuple(
+                    Move(Position(m["from"]["row"], m["from"]["col"]), Position(m["to"]["row"], m["to"]["col"]))
+                    for m in item["solution"]
+                ),
+                tuple(item.get("hints", [])),
+                tuple(item.get("tags", [])),
             )
+
         puzzles = [_to_puzzle(item) for item in raw]
     else:
         puzzles = load_puzzles()

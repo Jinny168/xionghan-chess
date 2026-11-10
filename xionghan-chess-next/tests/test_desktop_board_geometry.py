@@ -3,6 +3,7 @@
 这些是**纯函数**（不 import PySide6），所以能在 CI 的 pytest job 里跑 ——
 这是桌面端第一批不需要 PySide6 的自动化覆盖。
 """
+
 from __future__ import annotations
 
 import pytest
@@ -76,10 +77,10 @@ def test_point_out_of_bounds_returns_none(rows, cols, flipped):
     _, _, gl, gt, cw, ch, _pad = cell_layout(900.0, 700.0, rows, cols)
     far = 5.0
     for x, y in (
-        (gl - cw * far, gt - ch * far),                       # 左上外侧
-        (gl + (cols + far) * cw, gt + (rows + far) * ch),     # 右下外侧
-        (gl - cw * far, gt + (rows + far) * ch),              # 左下外侧
-        (gl + (cols + far) * cw, gt - ch * far),              # 右上外侧
+        (gl - cw * far, gt - ch * far),  # 左上外侧
+        (gl + (cols + far) * cw, gt + (rows + far) * ch),  # 右下外侧
+        (gl - cw * far, gt + (rows + far) * ch),  # 左下外侧
+        (gl + (cols + far) * cw, gt - ch * far),  # 右上外侧
     ):
         assert point_to_position(x, y, gl, gt, cw, ch, rows, cols, flipped) is None
 

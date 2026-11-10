@@ -31,7 +31,7 @@ def qt_app() -> QApplication:
 def _dialog(config: dict | None = None) -> tuple[QWidget, TrainingDialog]:
     """返回 (父窗口, 对话框)。父窗口由调用方持有，保证对话框不会被提前回收。"""
     parent = QWidget()
-    parent.config = config if config is not None else {}   # TrainingDialog 只读 parent.config
+    parent.config = config if config is not None else {}  # TrainingDialog 只读 parent.config
     return parent, TrainingDialog(parent)
 
 
@@ -60,8 +60,7 @@ def test_clicking_daily_starts_that_puzzle_without_selection(qt_app: QApplicatio
 def test_button_reads_streak_from_parent_config(qt_app: QApplication) -> None:
     """昨天做完了、今天还没做 → 按钮显示「第 N+1 天」而不是清零。"""
     yesterday = date.fromordinal(date.today().toordinal() - 1)
-    record = daily_quiz.DailyRecord(day=yesterday.isoformat(), id="x", done=True,
-                                    streak=3, best=3)
+    record = daily_quiz.DailyRecord(day=yesterday.isoformat(), id="x", done=True, streak=3, best=3)
     parent, dialog = _dialog({"daily": record.to_dict()})
     text = dialog.daily_button.text()
     assert "4" in text, f"连续天数没接上：{text}"
@@ -69,8 +68,7 @@ def test_button_reads_streak_from_parent_config(qt_app: QApplication) -> None:
 
 
 def test_button_shows_solved_state_for_today(qt_app: QApplication) -> None:
-    record = daily_quiz.DailyRecord(day=date.today().isoformat(), id="x", done=True,
-                                    streak=5, best=5)
+    record = daily_quiz.DailyRecord(day=date.today().isoformat(), id="x", done=True, streak=5, best=5)
     parent, dialog = _dialog({"daily": record.to_dict()})
     text = dialog.daily_button.text().lower()
     assert "明天" in text or "tomorrow" in text

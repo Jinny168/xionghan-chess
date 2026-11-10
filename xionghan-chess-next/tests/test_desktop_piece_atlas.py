@@ -8,6 +8,7 @@
 - 两个入口（菜单 / 设置页按钮）打开的是同一个窗口；
 - 图谱本身的缩略图始终走图片路径，与棋盘的 `piece_render` 无关。
 """
+
 from __future__ import annotations
 
 import pytest
@@ -21,9 +22,10 @@ from xionghan_chess.desktop import app as appmod  # noqa: E402
 from xionghan_chess.desktop.config import load_config  # noqa: E402
 from xionghan_chess.desktop.ui import theme  # noqa: E402
 from xionghan_chess.desktop.ui.dialogs import GLYPH_STYLE_DATA, SettingsDialog  # noqa: E402
-from xionghan_chess.desktop.ui.dialogs import GLYPH_STYLE_DATA  # noqa: E402
 from xionghan_chess.desktop.ui.piece_atlas import (  # noqa: E402
-    PIECE_OPTION_KEYS, THUMB, PieceAtlasDialog,
+    PIECE_OPTION_KEYS,
+    THUMB,
+    PieceAtlasDialog,
 )
 
 
@@ -77,12 +79,15 @@ def test_constructs_without_a_game(qt_app: QApplication, config: dict) -> None:
     dialog.deleteLater()
 
 
-
-
 def test_unavailable_pieces_are_marked_and_greyed(qt_app: QApplication) -> None:
     """`traditional` 档案没有特色子（刺/巡等）—— 必须灰显并注明「本档案不使用」。"""
-    config = {"profile": "traditional", "language": "zh-CN",
-              "piece_style": "traditional", "piece_render": "glyph", "rule_options": {}}
+    config = {
+        "profile": "traditional",
+        "language": "zh-CN",
+        "piece_style": "traditional",
+        "piece_render": "glyph",
+        "rule_options": {},
+    }
     dialog = PieceAtlasDialog(config)
     rows = {}
     for row in range(dialog._list.count()):
@@ -94,8 +99,6 @@ def test_unavailable_pieces_are_marked_and_greyed(qt_app: QApplication) -> None:
     assert rows["patrol"].foreground().color().lightness() < 200, "未启用项没有灰显"
     assert "本档案不使用" not in rows["rook"].text()
     dialog.deleteLater()
-
-
 
 
 def test_thumbnail_edge_is_a_single_value(atlas: PieceAtlasDialog) -> None:
@@ -159,8 +162,7 @@ def window(monkeypatch: pytest.MonkeyPatch, tmp_path, qt_app: QApplication):
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
     # 结果弹窗改为自定义按钮框后，静默点转移到 `show_result_dialog`（否则会真模态挂住）
     monkeypatch.setattr(appmod, "show_result_dialog", staticmethod(lambda *a, **k: False))
-    monkeypatch.setattr(QMessageBox, "question",
-                        staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
     win = appmod.MainWindow()
     yield win
     win.timer.stop()
@@ -225,8 +227,7 @@ def test_settings_dialog_exposes_the_same_atlas(window, monkeypatch: pytest.Monk
     dialog = SettingsDialog(window.config, window)
     assert dialog.piece_style.currentData() == GLYPH_STYLE_DATA
     assert "书法字形" in dialog.piece_style.currentText()
-    assert [dialog.piece_style.itemData(index) for index in range(1, 4)] == [
-        "traditional", "modern", "cartoon"]
+    assert [dialog.piece_style.itemData(index) for index in range(1, 4)] == ["traditional", "modern", "cartoon"]
     opened: list[dict] = []
 
     class _FakeAtlas:
@@ -284,16 +285,16 @@ def _preset_keys(atlas: PieceAtlasDialog) -> list[str]:
     return [atlas._preset.itemData(i) for i in range(atlas._preset.count())]
 
 
-@pytest.mark.parametrize("kind", [PieceType.ROOK, PieceType.CANNON, PieceType.HORSE,
-                                  PieceType.PAWN, PieceType.PATROL])
+@pytest.mark.parametrize("kind", [PieceType.ROOK, PieceType.CANNON, PieceType.HORSE, PieceType.PAWN, PieceType.PATROL])
 def test_non_diagonal_pieces_are_not_offered_pinch_demos(atlas, kind) -> None:
     """车/炮/马/兵/巡没有斜走段 —— 不该给它们演示夹逼。"""
     _select_kind(atlas, kind)
     assert "clamp" not in _preset_keys(atlas)
 
 
-@pytest.mark.parametrize("kind", [PieceType.ADVISOR, PieceType.ELEPHANT, PieceType.GUARD,
-                                  PieceType.ARCHER, PieceType.THUNDER])
+@pytest.mark.parametrize(
+    "kind", [PieceType.ADVISOR, PieceType.ELEPHANT, PieceType.GUARD, PieceType.ARCHER, PieceType.THUNDER]
+)
 def test_diagonal_pieces_are_offered_pinch_demos(atlas, kind) -> None:
     _select_kind(atlas, kind)
     assert "clamp" in _preset_keys(atlas)
@@ -314,7 +315,8 @@ def test_clamp_demo_uses_the_selected_piece_as_subject(atlas: PieceAtlasDialog) 
         board = _load_preset(atlas, "clamp")
         subject = board.game.state.piece_at(Position(6, 6))
         assert subject is not None and subject.type is kind, (
-            f"{kind.value} 的夹逼演示主角变成了 {subject.type if subject else None}")
+            f"{kind.value} 的夹逼演示主角变成了 {subject.type if subject else None}"
+        )
         assert not [m for m in board.legal if m.target == Position(9, 9)], "被夹逼的斜线不该给出落点"
 
 
@@ -322,23 +324,31 @@ def test_pawn_three_line_demo_follows_the_toggle(qt_app: QApplication, config: d
     on = PieceAtlasDialog(dict(config))
     _select_kind(on, PieceType.PAWN)
     assert "three" in _preset_keys(on), "完整模式默认开启三连，应提供演示"
-    on.close(); on.deleteLater()
+    on.close()
+    on.deleteLater()
 
     off_config = dict(config)
     off_config["rule_options"] = {"pawn_three_line_capture": False}
     off = PieceAtlasDialog(off_config)
     _select_kind(off, PieceType.PAWN)
     assert "three" not in _preset_keys(off), "关掉三连后不该再演示它"
-    off.close(); off.deleteLater()
+    off.close()
+    off.deleteLater()
 
 
 def test_dependent_switch_is_greyed_with_a_reason(qt_app: QApplication) -> None:
     """上游关闭时，下游开关必须置灰并给出原因 —— 不能出现"勾着却不生效"。"""
     from PySide6.QtWidgets import QCheckBox
 
-    dialog = PieceAtlasDialog({"profile": "desktop_classic", "language": "zh-CN",
-                               "piece_style": "traditional", "piece_render": "glyph",
-                               "rule_options": {}})
+    dialog = PieceAtlasDialog(
+        {
+            "profile": "desktop_classic",
+            "language": "zh-CN",
+            "piece_style": "traditional",
+            "piece_render": "glyph",
+            "rule_options": {},
+        }
+    )
     _select_kind(dialog, PieceType.HORSE)
     boxes = {b.text(): b for b in dialog._detail.findChildren(QCheckBox)}
     dependent = next(b for text, b in boxes.items() if "可吃子" in text)
@@ -352,8 +362,7 @@ def test_king_demo_never_shows_two_red_kings(atlas: PieceAtlasDialog) -> None:
     _select_kind(atlas, PieceType.KING)
     for preset in _preset_keys(atlas):
         board = _load_preset(atlas, preset)
-        red_kings = [p for p in board.game.state.pieces
-                     if p.type is PieceType.KING and p.color is Color.RED]
+        red_kings = [p for p in board.game.state.pieces if p.type is PieceType.KING and p.color is Color.RED]
         assert len(red_kings) == 1, f"{preset} 局里出现了 {len(red_kings)} 个红王"
 
 
@@ -364,8 +373,6 @@ def test_demo_preset_pinch_blocks_the_pinched_diagonal(atlas: PieceAtlasDialog) 
     targets = [move.target for move in board.legal]
     assert Position(9, 9) not in targets, "被夹逼的斜线不该给出落点"
     assert targets, "其它方向仍应有合法着法（否则演示盘像坏图）"
-
-
 
 
 def test_demo_preset_facing_puts_the_king_in_check(atlas: PieceAtlasDialog) -> None:
@@ -386,6 +393,7 @@ def test_switches_are_piece_scoped_only(atlas: PieceAtlasDialog) -> None:
     QApplication.processEvents()
 
     from PySide6.QtWidgets import QCheckBox
+
     boxes = atlas._detail.findChildren(QCheckBox)
     texts = " ".join(box.text() for box in boxes)
     assert "直冲" in texts and "夹一敌子" in texts, "兵的两个开关必须在图谱里可写"
@@ -405,7 +413,7 @@ def test_toggling_a_switch_writes_config_and_offers_restart(qt_app: QApplication
     dialog._list.setCurrentRow(labels.index("pawn"))
     QApplication.processEvents()
 
-    dialog._ask_restart = lambda: True          # 模拟点「现在重开」
+    dialog._ask_restart = lambda: True  # 模拟点「现在重开」
     box = next(b for b in dialog._detail.findChildren(QCheckBox) if "直冲" in b.text())
     # 完整模式默认开启冲锋，所以这里**反向**拨一次来验证"写回配置"这条链路；
     # 若仍写成 setChecked(True)，在默认已勾选时不会发 toggled，测试会假绿。

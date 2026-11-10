@@ -33,7 +33,43 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-"xionghan_chess.desktop" = ["resources/icon.ico", "resources/fonts/*", "resources/sounds/*", "resources/backgrounds/*", "resources/avatars/*", "resources/docs/*"]
+"xionghan_chess.desktop" = ["resources/icon.ico", "resources/fonts/*", "resources/sounds/*", "resources/sounds/web/*", "resources/backgrounds/*", "resources/avatars/*", "resources/docs/*"]
+
+# ── ruff（S2-3 接入 CI lint job）─────────────────────────────────────────────
+# 规则口径「小而真」：E4/E7/E9/F = 语法与明确缺陷（未用变量、重复字典键、
+# 未定义名等），W = 空白卫生，I = import 排序。语义类规则（SIM/BLE/TRY/PLW/UP）
+# 本轮刻意不启用：那会一次性产生几百条豁免，基线就成了"默认红转绿"的假门禁。
+# 分批启用见任务排期（S2 后续轮次）。
+[tool.ruff]
+target-version = "py312"
+# 仅 E501 消费 line-length；本仓库现状最长 1230 字符（desktop/ui/dialogs.py），
+# E501 未选中，此值只是给将来启用时的现实目标，不产生当前约束。
+line-length = 120
+extend-exclude = [
+  # 历史实验的**冻结快照**（stage1/2/3 一次性脚本 × 多个基线目录），改它=篡改实验记录。
+  # `benchmarks/` 只收快照（一次性脚本 + 结果 JSON/JSONL + 结论 md），**不接收新工具**：
+  # 新工具一律放 `scripts/`（在本 lint 范围内）。
+  # 2026-11-09 删除 `benchmarks/selfplay_ab.py`：它 A/B 的旧 VALUES 引用了已删除的
+  # SHIELD/ASSASSIN/ARMOR，A 侧已无法构造（`--help` 就 AttributeError），且它改写
+  # 全局 `CONFIGS[level]` 的换参方式已被 `ChessAI(config=...)` + `benchmark_match` 取代。
+  # 实验记录保留：`selfplay_ab_2026-10-31.json` 与 `..._conclusion.md`。
+  "benchmarks",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "W", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# desktop/app.py：① E402 —— 模块级常量（AI_WATCHDOG_GRACE_MS 等）按业务分组插在
+# import 块之间，是有意排版；挪动属于纯样式 churn。② E701/E702 —— 该文件与
+# dialogs.py 是"一行多语句"的紧凑手写风格，合计 650+ 处；机械拆行是大扫除且
+# 极易在搬运中引入笔误，留待桌面端专项重构（届时连 E501 一起清）。
+"src/xionghan_chess/desktop/app.py" = ["E402", "E701", "E702"]
+"src/xionghan_chess/desktop/ui/dialogs.py" = ["E701", "E702"]
+# board_widget.py：与 app.py 同源风格的紧凑 painter 代码（13 处一行多语句），同批豁免。
+"src/xionghan_chess/desktop/ui/board_widget.py" = ["E701", "E702"]
+# test_desktop_piece_render.py：像素级断言循环里的紧凑写法（3 处），同批豁免。
+"tests/test_desktop_piece_render.py" = ["E701", "E702"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
@@ -49,3 +85,40 @@ markers = [
   "slow: wall-clock performance regression guardrail (`-m 'not slow'` to skip)",
   "deploy: 线上版本核对（默认跳过，设 XIONGHAN_VERIFY_DEPLOY=1 才跑）",
 ]
+
+# ── mypy（S2-3 接入 CI lint job）────────────────────────────────────────────
+# 渐进式收编第一轮（2026-11-09）：core 包直接上 **strict 全量**。
+# 首轮实测：非 strict 下 18 处 Optional/类型不一致 + strict 下共 21 处
+# （缺参数标注 7、裸 dict 5、Returning Any 8、lambda join 成 unknown 2、
+# json.loads Any 1 —— 数字有交叠，见提交说明），已全部修复为 0。
+# desktop/training 依赖面大、错误密度未知，留给后续轮次逐包收编：
+# 收一个包就把它加进 files，不许回退。
+#
+# 第二轮（S3-A1，2026-11-10）：收编 **service 包**，仍是 strict 全量、无 per-module 豁免。
+# 收编前用全新缓存目录（`--cache-dir .mypy_cache_svc`）实测 32 处，分布：
+#   · app.py 28 处 —— 裸 `dict` 泛型 25（19 处端点 `-> dict` + 3 处
+#     `-> list[dict]` + 3 处 pydantic 字段 `document: dict`）、缺返回/参数标注 3
+#     （lifespan、_validation_as_400 的 request 与返回值）
+#   · accounts.py 2 处 —— sqlite3 `cursor.lastrowid` 标注是 `int | None`，
+#     直接塞给 `Account(id: int)` 与 `get_game(game_id: int)` 收不窄
+#   · rooms.py 2 处 —— `choose_taunt(scene: TauntScene)` 收到的是 `str`；
+#     `getattr(room, "fresh_tokens", set())` 推不出元素类型
+# 修法一律是**把真实类型写出来**（`dict[str, Any]`、`AsyncIterator[None]`、
+# 把 scene 的取值域标成 core 里已有的 `TauntScene`、用不变式 assert 收窄
+# lastrowid），没有一处 `# type: ignore`、没有放宽 strict、没有 per-module 降级。
+# 收编后 23 files（core 18 + service 5）rc=0。
+#
+# service 之所以该进 files：它是唯一对外暴露的进程（`xionghan-server` 入口
+# = service/app.py:run），协议层的 payload 是 `dict[str, Any]`，标注一松，
+# 形状错误就只能在运行时以 500 的形式出现。
+#
+# ⚠️ 收编纪律（S3-A4 补充）：往 files 里加一个包，必须同时把它的**类型信息依赖**
+# 加进 ci.yml lint job 的安装 step，否则 strict 会在跑 CI 时才红、而本机因为装了
+# 全量依赖是绿的（run #127 实证：service 进 files 后，CI 缺 fastapi →
+# `@app.get` 等装饰器变 Any → disallow_untyped_decorators 报 26 处）。
+# 现行清单：core → pydantic；service → fastapi（装法见 ci.yml，版本 pin 自 lock）。
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+strict = true
+files = ["src/xionghan_chess/core", "src/xionghan_chess/service"]

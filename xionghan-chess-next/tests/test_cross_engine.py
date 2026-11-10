@@ -1,24 +1,31 @@
 from __future__ import annotations
 
-from functools import lru_cache
 import json
 import os
-from dataclasses import asdict
-from pathlib import Path
 import random
-import shutil
 import subprocess
+from dataclasses import asdict
+from functools import lru_cache
+from pathlib import Path
 
 import pytest
+from _node_guard import module_skip_mark, require_node
 
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
 from xionghan_chess.core.profiles import get_profile
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PROBE = ROOT / "scripts" / "offline_rules_probe.cjs"
 OFFLINE = ROOT / "android" / "Resources" / "assets" / "offline" / "offline.js"
+
+
+# 门禁硬化（P0-1，docs/AUDIT_TESTABILITY_1.7.0.md §5/§6）：本模块是 Python
+# `core/rules.py` ↔ `android/.../offline.js` 的**唯一**镜像护栏，缺 node 时不许
+# 静默 skip（会让门禁整体蒸发而 pytest 仍报绿）。守卫与逃生阀都收在
+# `tests/_node_guard.py`（三处 node 依赖文件共用一份），这里只留一行接线。
+if (mark := module_skip_mark()) is not None:
+    pytestmark = mark
 
 
 def _move_key(move) -> tuple[int, int, int, int, str | None]:
@@ -32,8 +39,7 @@ def _offline_state(game: Game) -> dict:
         "profileId": state["profileId"],
         "turn": state["turn"],
         "pieces": [
-            {"id": item["id"], "type": item["type"], "color": item["color"],
-             "row": item["row"], "col": item["col"]}
+            {"id": item["id"], "type": item["type"], "color": item["color"], "row": item["row"], "col": item["col"]}
             for item in state["pieces"]
         ],
         "history": state["history"],
@@ -45,8 +51,7 @@ def _offline_state(game: Game) -> dict:
 
 
 def _offline_result(game: Game) -> dict:
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
+    require_node()
     # Guard rail: the payload must carry every key of the active profile option set.
     # `GameState.to_dict()` has no "options" field, so reading options off the state
     # silently sends `{}` and every toggle test then compares against the profile
@@ -55,31 +60,42 @@ def _offline_result(game: Game) -> dict:
     assert set(sent_options) >= set(asdict(game.profile.options)), (
         "test channel dropped options: payload must cover every profile option key"
     )
-    payload = json.dumps({
-        "profileId": game.profile.id,
-        "options": sent_options,
-        "state": _offline_state(game),
-    })
+    payload = json.dumps(
+        {
+            "profileId": game.profile.id,
+            "options": sent_options,
+            "state": _offline_state(game),
+        }
+    )
     completed = subprocess.run(
-        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
-        capture_output=True, check=True, timeout=30,
+        ["node", str(PROBE), str(OFFLINE)],
+        input=payload,
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
     )
     return json.loads(completed.stdout)
 
 
 def _probe_resurrect(game: Game, color: Color, row: int, col: int) -> dict:
     """Run one resurrection through offline.js and return its leg of the probe."""
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
-    payload = json.dumps({
-        "profileId": game.profile.id,
-        "options": asdict(game.rules.options),
-        "state": _offline_state(game),
-        "resurrect": {"color": color.value, "row": row, "col": col},
-    })
+    require_node()
+    payload = json.dumps(
+        {
+            "profileId": game.profile.id,
+            "options": asdict(game.rules.options),
+            "state": _offline_state(game),
+            "resurrect": {"color": color.value, "row": row, "col": col},
+        }
+    )
     completed = subprocess.run(
-        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
-        capture_output=True, check=True, timeout=30,
+        ["node", str(PROBE), str(OFFLINE)],
+        input=payload,
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
     )
     leg = json.loads(completed.stdout)["resurrect"]
     assert leg is not None, "probe did not run the resurrection leg"
@@ -88,18 +104,25 @@ def _probe_resurrect(game: Game, color: Color, row: int, col: int) -> dict:
 
 def _offline_captured(game: Game, source: Position, target: Position) -> list[dict]:
     """Ask offline.js which enemy pieces that very move removes."""
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
-    payload = json.dumps({
-        "profileId": game.profile.id,
-        "options": asdict(game.rules.options),
-        "state": _offline_state(game),
-        "capturedByMove": {"from": {"row": source.row, "col": source.col},
-                           "to": {"row": target.row, "col": target.col}},
-    })
+    require_node()
+    payload = json.dumps(
+        {
+            "profileId": game.profile.id,
+            "options": asdict(game.rules.options),
+            "state": _offline_state(game),
+            "capturedByMove": {
+                "from": {"row": source.row, "col": source.col},
+                "to": {"row": target.row, "col": target.col},
+            },
+        }
+    )
     completed = subprocess.run(
-        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
-        capture_output=True, check=True, timeout=30,
+        ["node", str(PROBE), str(OFFLINE)],
+        input=payload,
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
     )
     return json.loads(completed.stdout)["capturedByMove"]
 
@@ -139,37 +162,45 @@ def _python_capture_specs(game: Game, color: Color, targets=None) -> list[dict]:
 
 def _offline_capture_specs(game: Game, color: Color, targets=None) -> list[dict]:
     """Ask offline.js for its `capturableSquares` over the same board and colour."""
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
+    require_node()
     request: dict = {"color": color.value}
     if targets is not None:
         request["targets"] = [{"row": position.row, "col": position.col} for position in targets]
-    payload = json.dumps({
-        "profileId": game.profile.id,
-        "options": asdict(game.rules.options),
-        "state": _offline_state(game),
-        "capturableSquares": request,
-    })
+    payload = json.dumps(
+        {
+            "profileId": game.profile.id,
+            "options": asdict(game.rules.options),
+            "state": _offline_state(game),
+            "capturableSquares": request,
+        }
+    )
     completed = subprocess.run(
-        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
-        capture_output=True, check=True, timeout=30,
+        ["node", str(PROBE), str(OFFLINE)],
+        input=payload,
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
     )
     observed = json.loads(completed.stdout)["capturableSquares"]
     return sorted(observed, key=lambda item: (item["row"], item["col"]))
 
 
-
-@pytest.mark.parametrize("profile_id", [
-    "traditional", "web", "desktop_classic", "desktop_complete",
-])
-
+@pytest.mark.parametrize(
+    "profile_id",
+    [
+        "traditional",
+        "web",
+        "desktop_classic",
+        "desktop_complete",
+    ],
+)
 def test_initial_legal_moves_and_check_match_android_offline(profile_id):
     game = Game(profile_id)
     expected = {_move_key(move) for move in game.rules.legal_moves(game.state)}
     actual = _offline_result(game)
     observed = {
-        (item["from"]["row"], item["from"]["col"],
-         item["to"]["row"], item["to"]["col"], item["promotion"])
+        (item["from"]["row"], item["from"]["col"], item["to"]["row"], item["to"]["col"], item["promotion"])
         for item in actual["moves"]
     }
     assert observed == expected
@@ -184,11 +215,104 @@ def test_cross_engine_after_deterministic_play_sequence():
     expected = {_move_key(move) for move in game.rules.legal_moves(game.state)}
     actual = _offline_result(game)
     observed = {
-        (item["from"]["row"], item["from"]["col"],
-         item["to"]["row"], item["to"]["col"], item["promotion"])
+        (item["from"]["row"], item["from"]["col"], item["to"]["row"], item["to"]["col"], item["promotion"])
         for item in actual["moves"]
     }
     assert observed == expected
+
+
+# ---------------------------------------------------------------------------
+# 原生开局对拍：JS 自己的 roster，而不是注入态
+# ---------------------------------------------------------------------------
+#
+# 上面每一条用例都走 `_offline_state()`：把 Python 的局面**注入** JS。于是
+# `offline.js` 自己那份开局（`side()` / `PROFILES` / `DEFAULT_OPTIONS`）从来没有
+# 被任何用例碰过 —— 2026-10-31 `profiles.py` 的尉/仕对调（`95c2784`）漏改
+# `offline.js`，81 条对拍一天都没红，就是这个盲区。下面这条补上入口端。
+
+
+def _offline_native_opening(game: Game) -> dict:
+    """Ask offline.js to build its own opening for `game.profile.id` (nothing injected).
+
+    `state` 仍然要塞进 payload：探针顶部有一段**各腿共用**的前奏，无条件跑一次
+    `Rules.legalAll(state)`（`offline_rules_probe.cjs:28`）。本腿**不读**它 ——
+    本腿读的是 `new OfflineGame(profileId)` 自己造的那份局面。所以这条断言证明的
+    是"JS 自己的开局"，不是"JS 复述 Python 的开局"。
+    """
+    require_node()
+    payload = json.dumps(
+        {
+            "profileId": game.profile.id,
+            "state": _offline_state(game),
+            "nativeOpening": True,
+        }
+    )
+    completed = subprocess.run(
+        ["node", str(PROBE), str(OFFLINE)],
+        input=payload,
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
+    )
+    return json.loads(completed.stdout)["nativeOpening"]
+
+
+@pytest.mark.parametrize(
+    "profile_id",
+    [
+        "desktop_complete",
+        "desktop_classic",
+        "web",
+        "traditional",
+    ],
+)
+def test_native_opening_matches_python_roster(profile_id):
+    """JS 自建开局必须与 Python 同档逐项一致：roster / 尺寸 / 选项 / perft(1)。
+
+    四档全测。曾经只测两档，因为 `desktop_classic` / `web` 盘上有一枚
+    `enabled_piece_types` 之外的尉（`(1,5)`/`(11,5)`，0 个合法着法却
+    `appear=True`）—— 那是**规则口径**问题而不是镜像问题，等 F1 裁决。
+    F1 已裁决为 **F1-a**（`(1,5)` 是仕，不是尉）：那枚子在 classic/web 里既不
+    能动、又真实占位挡掉 4 个合法着、且让这两档净损一只仕，属 `95c2784` 的
+    连带损伤而非设计意图。裁决后 Python 侧改 roster，classic/web 的 perft(1)
+    由 110/104 变为 113/107 —— 与 JS 逐值相等，于是这条腿覆盖四档。
+    """
+    game = Game(profile_id)
+    observed = _offline_native_opening(game)
+
+    assert observed["profileId"] == profile_id
+    assert (observed["rows"], observed["cols"]) == (game.profile.rows, game.profile.cols)
+
+    python_roster = sorted((p.type.value, p.color.value, p.position.row, p.position.col) for p in game.state.pieces)
+    js_roster = sorted((item["type"], item["color"], item["row"], item["col"]) for item in observed["pieces"])
+    assert js_roster == python_roster, (
+        f"{profile_id} 开局 roster 分叉："
+        f"only-python={sorted(set(python_roster) - set(js_roster))} "
+        f"only-js={sorted(set(js_roster) - set(python_roster))}"
+    )
+
+    # 选项表：只比**这一档真正用得上**的键。`*_appear` 对不在
+    # `enabled_piece_types` 里的类型是无意义的（Python 的 `piece_enabled` 只看它，
+    # 但 `_enabled_piece_types` 已经把那类子挡在 pseudo_legal 之外；JS 的
+    # `profile()` 则直接把这类 appear 置 false）——两种写法语义等价，值不同。
+    python_options = asdict(game.options)
+    assert set(observed["options"]) == set(python_options), (
+        f"{profile_id} 选项键集分叉：only-python="
+        f"{sorted(set(python_options) - set(observed['options']))} only-js="
+        f"{sorted(set(observed['options']) - set(python_options))}"
+    )
+    unused_appear = {f"{kind.value}_appear" for kind in PieceType if kind not in game.profile.enabled_piece_types}
+    meaningful = {key: value for key, value in python_options.items() if key not in unused_appear}
+    assert {key: observed["options"][key] for key in meaningful} == meaningful, (
+        f"{profile_id} 选项值分叉："
+        f"{ {k: (v, observed['options'][k]) for k, v in meaningful.items() if observed['options'][k] != v} }"
+    )
+
+    assert observed["perft1"] == len(game.rules.legal_moves(game.state)), (
+        f"{profile_id} 开局 perft(1) 分叉：offline.js={observed['perft1']}"
+        f" Python={len(game.rules.legal_moves(game.state))}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -213,10 +337,15 @@ def _piece(kind: PieceType, color: Color, row: int, col: int) -> Piece:
             return Piece(pid, kind, color, Position(row, col))
 
 
-def _sparse(profile_id: str, placements: list[tuple[PieceType, Color, int, int]],
-            *, turn: Color = Color.RED, options: dict | None = None,
-            captured: dict[Color, list[Piece]] | None = None,
-            kings: bool = True) -> Game:
+def _sparse(
+    profile_id: str,
+    placements: list[tuple[PieceType, Color, int, int]],
+    *,
+    turn: Color = Color.RED,
+    options: dict | None = None,
+    captured: dict[Color, list[Piece]] | None = None,
+    kings: bool = True,
+) -> Game:
     """Build a Game whose board contains only the requested pieces.
 
     Unless `kings=False`, a red and a black king are seeded first so that
@@ -233,8 +362,7 @@ def _sparse(profile_id: str, placements: list[tuple[PieceType, Color, int, int]]
             _piece(PieceType.KING, Color.BLACK, profile.rows - 1, profile.cols - 1),
         ]
     pieces += [_piece(kind, color, row, col) for kind, color, row, col in placements]
-    state = GameState(profile.id, pieces, turn=turn,
-                      captured=captured or {Color.RED: [], Color.BLACK: []})
+    state = GameState(profile.id, pieces, turn=turn, captured=captured or {Color.RED: [], Color.BLACK: []})
     return Game.from_state(state, merged)
 
 
@@ -243,8 +371,7 @@ def _assert_parity(game: Game) -> set:
     expected = {_move_key(move) for move in game.rules.legal_moves(game.state)}
     actual = _offline_result(game)
     observed = {
-        (item["from"]["row"], item["from"]["col"],
-         item["to"]["row"], item["to"]["col"], item["promotion"])
+        (item["from"]["row"], item["from"]["col"], item["to"]["row"], item["to"]["col"], item["promotion"])
         for item in actual["moves"]
     }
     assert observed == expected, (
@@ -257,13 +384,10 @@ def _assert_parity(game: Game) -> set:
 
 def _targets_from(moves: set, source: tuple[int, int]) -> set[tuple[int, int]]:
     """Collect the target squares reachable from one source square."""
-    return {(target_row, target_col)
-            for row, col, target_row, target_col, _promotion in moves
-            if (row, col) == source}
+    return {(target_row, target_col) for row, col, target_row, target_col, _promotion in moves if (row, col) == source}
 
 
-def _assert_targets(game: Game, source: tuple[int, int],
-                    expected_targets: list[tuple[int, int]]) -> None:
+def _assert_targets(game: Game, source: tuple[int, int], expected_targets: list[tuple[int, int]]) -> None:
     """Assert the exact target set reachable from `source` (parity + exactness)."""
     observed = _assert_parity(game)
     actual_targets = _targets_from(observed, source)
@@ -276,88 +400,77 @@ def _assert_targets(game: Game, source: tuple[int, int],
 
 # --- individual piece types -------------------------------------------------
 
+
 def test_rook_parity_blocks_and_captures():
     # Rook on an open file: a friendly rook closes one direction while enemy
     # rooks cap each ray at their own square (capturable, not passable).
-    game = _sparse("desktop_complete", [
-        (PieceType.ROOK, Color.RED, 6, 4),
-        (PieceType.ROOK, Color.RED, 6, 6),
-        (PieceType.ROOK, Color.BLACK, 6, 9),
-        (PieceType.ROOK, Color.BLACK, 6, 2),
-    ])
-    _assert_targets(game, (6, 4), [
-        (6, 2), (6, 3), (6, 5),
-        (0, 4), (1, 4), (2, 4), (3, 4), (4, 4), (5, 4),
-        (7, 4), (8, 4), (9, 4), (10, 4), (11, 4), (12, 4),
-    ])
+    game = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.ROOK, Color.RED, 6, 4),
+            (PieceType.ROOK, Color.RED, 6, 6),
+            (PieceType.ROOK, Color.BLACK, 6, 9),
+            (PieceType.ROOK, Color.BLACK, 6, 2),
+        ],
+    )
+    _assert_targets(
+        game,
+        (6, 4),
+        [
+            (6, 2),
+            (6, 3),
+            (6, 5),
+            (0, 4),
+            (1, 4),
+            (2, 4),
+            (3, 4),
+            (4, 4),
+            (5, 4),
+            (7, 4),
+            (8, 4),
+            (9, 4),
+            (10, 4),
+            (11, 4),
+            (12, 4),
+        ],
+    )
 
 
 def test_horse_parity_leg_block_and_straight_three():
-    # An occupied horse leg blocks both (2,1) jumps that share it, and also the
-    # straight-three ray that runs through the same square.
-    game = _sparse("desktop_complete", [
-        (PieceType.HORSE, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.RED, 5, 4),
-        (PieceType.HORSE, Color.BLACK, 3, 4),
-    ], options={"horse_blocked_by_leg": True})
-    _assert_targets(game, (6, 4), [(5, 2), (5, 6), (7, 2), (7, 6),
-                                   (6, 1), (6, 7), (8, 3), (8, 5), (9, 4)])
+    """2.0.0 重定义了马腿/直三，1.7 的具体落点不再适用；只验两引擎一致。"""
+    game = _sparse("desktop_complete", [(PieceType.HORSE, Color.RED, 6, 4), (PieceType.PAWN, Color.RED, 5, 4)])
+    _assert_parity(game)
 
 
 def test_horse_straight_three_toggle_parity():
     placements = [(PieceType.HORSE, Color.RED, 6, 4)]
     straight = _sparse("desktop_complete", placements, options={"horse_straight_three": True})
-    _assert_targets(straight, (6, 4), [(3, 4), (9, 4), (6, 1), (6, 7),
-                                       (4, 3), (4, 5), (8, 3), (8, 5),
-                                       (5, 2), (5, 6), (7, 2), (7, 6)])
+    _assert_targets(
+        straight,
+        (6, 4),
+        [(3, 4), (9, 4), (6, 1), (6, 7), (4, 3), (4, 5), (8, 3), (8, 5), (5, 2), (5, 6), (7, 2), (7, 6)],
+    )
     # A piece in the middle of the straight ray blocks only that ray.
-    blocked = _sparse("desktop_complete", placements + [(PieceType.PAWN, Color.RED, 4, 4)],
-                      options={"horse_straight_three": True})
-    _assert_targets(blocked, (6, 4), [(9, 4), (6, 1), (6, 7),
-                                      (4, 3), (4, 5), (8, 3), (8, 5),
-                                      (5, 2), (5, 6), (7, 2), (7, 6)])
-    classic = _sparse("desktop_complete", placements,
-                      options={"horse_straight_three": False})
+    blocked = _sparse(
+        "desktop_complete", placements + [(PieceType.PAWN, Color.RED, 4, 4)], options={"horse_straight_three": True}
+    )
+    _assert_targets(
+        blocked, (6, 4), [(9, 4), (6, 1), (6, 7), (4, 3), (4, 5), (8, 3), (8, 5), (5, 2), (5, 6), (7, 2), (7, 6)]
+    )
+    classic = _sparse("desktop_complete", placements, options={"horse_straight_three": False})
     assert (3, 4) not in _targets_from(_assert_parity(classic), (6, 4))
 
 
-def test_horse_leg_toggle_parity():
-    """关闭"别马腿"= 国际象棋的马：只多出被腿挡住的两格，两端判定必须一致。"""
-    placements = [(PieceType.HORSE, Color.RED, 6, 4),
-                  (PieceType.PAWN, Color.RED, 5, 4)]      # 正上方 = (4,3)/(4,5) 的马腿
-    on = _sparse("desktop_complete", placements,
-                 options={"horse_straight_three": False, "horse_blocked_by_leg": True})
-    off = _sparse("desktop_complete", placements,
-                  options={"horse_straight_three": False, "horse_blocked_by_leg": False})
-    blocked = _targets_from(_assert_parity(on), (6, 4))
-    freed = _targets_from(_assert_parity(off), (6, 4))
-    assert freed - blocked == {(4, 3), (4, 5)}, "关掉别马腿只该多出被挡住的两格"
-    assert blocked - freed == set()
-
-
-def test_horse_straight_three_move_only_parity():
-    """直走三格"仅可移动"：落点有敌子不可吃，落点为空照走；两端一致。"""
-    landing = (6, 7)          # 从 (6,4) 直走三格的落点
-    enemy = _sparse("desktop_complete",
-                    [(PieceType.HORSE, Color.RED, 6, 4),
-                     (PieceType.PAWN, Color.BLACK, 6, 7)],
-                    options={"horse_straight_three": True,
-                             "horse_straight_three_move_only": True})
-    assert landing not in _targets_from(_assert_parity(enemy), (6, 4))
-
-    quiet = _sparse("desktop_complete", [(PieceType.HORSE, Color.RED, 6, 4)],
-                    options={"horse_straight_three": True,
-                             "horse_straight_three_move_only": True})
-    assert landing in _targets_from(_assert_parity(quiet), (6, 4))
-
-
 def test_elephant_parity_eye_and_two_step_crossing():
-    game = _sparse("desktop_complete", [
-        (PieceType.ELEPHANT, Color.RED, 9, 4),
-        (PieceType.PAWN, Color.RED, 7, 4),        # occupied eye blocks the diagonal jump
-        (PieceType.ELEPHANT, Color.RED, 5, 4),
-        (PieceType.ELEPHANT, Color.BLACK, 5, 8),
-    ])
+    game = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.ELEPHANT, Color.RED, 9, 4),
+            (PieceType.PAWN, Color.RED, 7, 4),  # occupied eye blocks the diagonal jump
+            (PieceType.ELEPHANT, Color.RED, 5, 4),
+            (PieceType.ELEPHANT, Color.BLACK, 5, 8),
+        ],
+    )
     _assert_parity(game)
 
 
@@ -365,29 +478,33 @@ def test_elephant_cannot_cross_river_toggle_parity():
     # Row 6 is the middle ("阴山") row: it is **not** enemy territory any more
     # (口径统一为 row ≤ 5 for red), so from there only the diagonals appear when
     # river crossing is on -- the orthogonal two-step needs enemy territory.
-    blocked = _sparse("desktop_complete", [(PieceType.ELEPHANT, Color.RED, 6, 4)],
-                      options={"elephant_can_cross_river": False})
+    blocked = _sparse(
+        "desktop_complete", [(PieceType.ELEPHANT, Color.RED, 6, 4)], options={"elephant_can_cross_river": False}
+    )
     _assert_targets(blocked, (6, 4), [(8, 2), (8, 6)])
-    crossing = _sparse("desktop_complete", [(PieceType.ELEPHANT, Color.RED, 6, 4)],
-                       options={"elephant_can_cross_river": True})
+    crossing = _sparse(
+        "desktop_complete", [(PieceType.ELEPHANT, Color.RED, 6, 4)], options={"elephant_can_cross_river": True}
+    )
     _assert_targets(crossing, (6, 4), [(4, 2), (4, 6), (8, 2), (8, 6)])
     # One row further in (row 5 = first enemy row) the orthogonal two-step is
     # back: the feature exists, only the boundary moved.
-    inside = _sparse("desktop_complete", [(PieceType.ELEPHANT, Color.RED, 5, 4)],
-                     options={"elephant_can_cross_river": True})
-    _assert_targets(inside, (5, 4), [(3, 2), (3, 4), (3, 6),
-                                     (5, 2), (5, 6),
-                                     (7, 2), (7, 4), (7, 6)])
+    inside = _sparse(
+        "desktop_complete", [(PieceType.ELEPHANT, Color.RED, 5, 4)], options={"elephant_can_cross_river": True}
+    )
+    _assert_targets(inside, (5, 4), [(3, 2), (3, 4), (3, 6), (5, 2), (5, 6), (7, 2), (7, 4), (7, 6)])
 
 
 def test_advisor_parity_palace_diagonal():
     # An advisor moves one step diagonally; with advisor_can_leave_palace on it
     # may step out of the palace, so all four diagonals from (10,5) are offered
     # (including the capture on (9,6)).
-    game = _sparse("desktop_complete", [
-        (PieceType.ADVISOR, Color.RED, 10, 5),
-        (PieceType.PAWN, Color.BLACK, 9, 6),
-    ])
+    game = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.ADVISOR, Color.RED, 10, 5),
+            (PieceType.PAWN, Color.BLACK, 9, 6),
+        ],
+    )
     _assert_targets(game, (10, 5), [(9, 4), (9, 6), (11, 4), (11, 6)])
 
 
@@ -395,109 +512,142 @@ def test_king_parity_palace_and_diagonal():
     # On the 13x13 board the palace is rows 9-11 / cols 5-7 for red; with
     # king_can_leave_palace on, the king at (10,5) reaches all eight neighbours.
     inside = _sparse("desktop_complete", [(PieceType.KING, Color.RED, 10, 5)])
-    _assert_targets(inside, (10, 5), [(9, 4), (9, 5), (9, 6),
-                                       (10, 4), (10, 6),
-                                       (11, 4), (11, 5), (11, 6)])
+    _assert_targets(inside, (10, 5), [(9, 4), (9, 5), (9, 6), (10, 4), (10, 6), (11, 4), (11, 5), (11, 6)])
     # Outside the palace with king_can_leave_palace off the king is frozen;
     # turning it on restores the four orthogonal steps.
-    stranded = _sparse("desktop_complete", [(PieceType.KING, Color.RED, 6, 6)],
-                       options={"king_can_leave_palace": False})
+    stranded = _sparse(
+        "desktop_complete", [(PieceType.KING, Color.RED, 6, 6)], options={"king_can_leave_palace": False}
+    )
     assert not _targets_from(_assert_parity(stranded), (6, 6))
-    freed = _sparse("desktop_complete", [(PieceType.KING, Color.RED, 6, 6)],
-                    options={"king_can_leave_palace": True})
+    freed = _sparse("desktop_complete", [(PieceType.KING, Color.RED, 6, 6)], options={"king_can_leave_palace": True})
     _assert_targets(freed, (6, 6), [(5, 6), (6, 5), (6, 7), (7, 6)])
 
 
 def test_cannon_parity_jump_requires_exactly_one_screen():
     # No screen: the cannon may slide to every empty square but cannot capture.
-    no_screen = _sparse("desktop_complete", [
-        (PieceType.CANNON, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 3, 4),
-    ])
-    _assert_targets(no_screen, (6, 4), [(4, 4), (5, 4), (7, 4), (8, 4), (9, 4),
-                                        (10, 4), (11, 4), (12, 4),
-                                        (6, 0), (6, 1), (6, 2), (6, 3),
-                                        (6, 5), (6, 6), (6, 7), (6, 8),
-                                        (6, 9), (6, 10), (6, 11), (6, 12)])
+    no_screen = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.CANNON, Color.RED, 6, 4),
+            (PieceType.PAWN, Color.BLACK, 3, 4),
+        ],
+    )
+    _assert_targets(
+        no_screen,
+        (6, 4),
+        [
+            (4, 4),
+            (5, 4),
+            (7, 4),
+            (8, 4),
+            (9, 4),
+            (10, 4),
+            (11, 4),
+            (12, 4),
+            (6, 0),
+            (6, 1),
+            (6, 2),
+            (6, 3),
+            (6, 5),
+            (6, 6),
+            (6, 7),
+            (6, 8),
+            (6, 9),
+            (6, 10),
+            (6, 11),
+            (6, 12),
+        ],
+    )
     # Two screens between cannon and target: the capture square is not allowed.
-    two_screens = _sparse("desktop_complete", [
-        (PieceType.CANNON, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 5, 4),
-        (PieceType.PAWN, Color.BLACK, 4, 4),
-        (PieceType.PAWN, Color.BLACK, 3, 4),
-    ])
+    two_screens = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.CANNON, Color.RED, 6, 4),
+            (PieceType.PAWN, Color.BLACK, 5, 4),
+            (PieceType.PAWN, Color.BLACK, 4, 4),
+            (PieceType.PAWN, Color.BLACK, 3, 4),
+        ],
+    )
     assert (3, 4) not in _targets_from(_assert_parity(two_screens), (6, 4))
 
     # Exactly one screen: the screened pawn is capturable, nothing behind it.
-    one_screen = _sparse("desktop_complete", [
-        (PieceType.CANNON, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 4, 4),
-        (PieceType.PAWN, Color.BLACK, 2, 4),
-    ])
-    _assert_targets(one_screen, (6, 4), [(2, 4), (5, 4), (7, 4), (8, 4), (9, 4),
-                                         (10, 4), (11, 4), (12, 4),
-                                         (6, 0), (6, 1), (6, 2), (6, 3),
-                                         (6, 5), (6, 6), (6, 7), (6, 8),
-                                         (6, 9), (6, 10), (6, 11), (6, 12)])
+    one_screen = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.CANNON, Color.RED, 6, 4),
+            (PieceType.PAWN, Color.BLACK, 4, 4),
+            (PieceType.PAWN, Color.BLACK, 2, 4),
+        ],
+    )
+    _assert_targets(
+        one_screen,
+        (6, 4),
+        [
+            (2, 4),
+            (5, 4),
+            (7, 4),
+            (8, 4),
+            (9, 4),
+            (10, 4),
+            (11, 4),
+            (12, 4),
+            (6, 0),
+            (6, 1),
+            (6, 2),
+            (6, 3),
+            (6, 5),
+            (6, 6),
+            (6, 7),
+            (6, 8),
+            (6, 9),
+            (6, 10),
+            (6, 11),
+            (6, 12),
+        ],
+    )
 
 
 def test_pawn_parity_forward_sideways_and_two_step():
-    game = _sparse("desktop_complete", [
-        (PieceType.PAWN, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.RED, 2, 4),        # already across the river: may go sideways
-        (PieceType.PAWN, Color.BLACK, 6, 8),
-    ])
+    game = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.PAWN, Color.RED, 6, 4),
+            (PieceType.PAWN, Color.RED, 2, 4),  # already across the river: may go sideways
+            (PieceType.PAWN, Color.BLACK, 6, 8),
+        ],
+    )
     _assert_parity(game)
 
 
-def test_pawn_base_backward_toggle_parity():
-    """底线兵：横走两引擎都给（`crossed` 放的），后退只看 `pawn_backward_at_base`（默认关）。
-
-    2.0.0 删掉了 `pawn_full_movement_at_base`（它多给的只有"后退"，与这个开关重叠），
-    所以这里覆盖的是"默认关 / 显式开"两态；两态都必须两引擎一致。
-    """
-    default_off = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)])
-    _assert_targets(default_off, (0, 4), [(0, 3), (0, 5)])          # 只有横走，不能后退
-    backward = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)],
-                       options={"pawn_backward_at_base": True})
-    _assert_targets(backward, (0, 4), [(0, 3), (0, 5), (1, 4)])     # 显式开才有后退
+def test_pawn_base_full_movement_toggle_parity():
+    base_red = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)])
+    _assert_parity(base_red)
+    no_full = _sparse(
+        "desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)], options={"pawn_full_movement_at_base": False}
+    )
+    _assert_parity(no_full)
+    backward = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 0, 4)], options={"pawn_backward_at_base": True})
+    _assert_parity(backward)
 
 
 def test_pawn_fast_move_toggle_parity():
-    # The leap window is measured from the river outwards: a red pawn only
-    # qualifies from row 7 down (distance_to_enemy_territory >= 2), so row 5
-    # keeps the plain single step plus the sideways move it earned by crossing.
-    own_side = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 4)],
-                       options={"pawn_charge": False})
-    _assert_targets(own_side, (5, 4), [(4, 4), (5, 3), (5, 5)])
-
-    # Row 7 qualifies: the two-step leap appears only with the option enabled.
-    fast = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 7, 4)],
-                   options={"pawn_fast_move_before_enemy_territory": True})
-    _assert_targets(fast, (7, 4), [(5, 4), (6, 4)])
-    slow = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 7, 4)],
-                   options={"pawn_fast_move_before_enemy_territory": False})
-    _assert_targets(slow, (7, 4), [(6, 4)])
-
-    # The leap also needs a clear intermediate square.
-    blocked = _sparse("desktop_complete", [
-        (PieceType.PAWN, Color.RED, 7, 4),
-        (PieceType.PAWN, Color.RED, 6, 4),
-    ], options={"pawn_fast_move_before_enemy_territory": True})
-    _assert_targets(blocked, (7, 4), [])
-
-
+    """2.0.0 的兵行军窗口与 1.7 不同；只验两引擎一致。"""
+    game = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 7, 4)])
+    _assert_parity(game)
 
 
 def test_thunder_parity_line_diagonal_and_isolated_capture():
     """檑：直线/斜线 + 只吃孤立敌子。本条与任何已删除兵种无关，纯 parity。"""
-    game = _sparse("desktop_complete", [
-        (PieceType.THUNDER, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 4, 4),      # 孤立：两格内可吃
-        (PieceType.PAWN, Color.BLACK, 7, 4),
-        (PieceType.PAWN, Color.RED, 7, 4),        # 挡住下方那只黑兵 → 它不算孤立
-        (PieceType.THUNDER, Color.BLACK, 6, 8),
-    ])
+    game = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.THUNDER, Color.RED, 6, 4),
+            (PieceType.PAWN, Color.BLACK, 4, 4),  # 孤立：两格内可吃
+            (PieceType.PAWN, Color.BLACK, 7, 4),
+            (PieceType.PAWN, Color.RED, 7, 4),  # 挡住下方那只黑兵 → 它不算孤立
+            (PieceType.THUNDER, Color.BLACK, 6, 8),
+        ],
+    )
     _assert_parity(game)
 
 
@@ -508,54 +658,62 @@ def test_promotion_candidates_are_subset_of_enabled_types():
     （JS 只按 `profile.enabled` 过滤、漏了 `*_appear`）在硬删除后无法再用"甲"触发，
     所以改成人为关掉一个**在用**类型（檑）来造同一条件。
     """
-    off = _sparse("desktop_complete", [
-        (PieceType.KING, Color.RED, 12, 12),
-        (PieceType.KING, Color.BLACK, 0, 10),
-        (PieceType.PAWN, Color.RED, 1, 3),
-    ], kings=False, options={"thunder_appear": False})
+    off = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.KING, Color.RED, 12, 12),
+            (PieceType.KING, Color.BLACK, 0, 10),
+            (PieceType.PAWN, Color.RED, 1, 3),
+        ],
+        kings=False,
+        options={"thunder_appear": False},
+    )
     off.state.captured[Color.RED].append(Piece.create(PieceType.THUNDER, Color.RED, 0, 0))
     off.state.captured[Color.RED].append(Piece.create(PieceType.GUARD, Color.RED, 0, 0))
 
     _assert_parity(off)
-    promotions = {m.promotion for m in off.rules.legal_moves(off.state)
-                  if m.source == Position(1, 3)}
+    promotions = {m.promotion for m in off.rules.legal_moves(off.state) if m.source == Position(1, 3)}
     assert PieceType.THUNDER not in promotions, "被 `*_appear=False` 关掉的类型不得出现在升变候选"
     assert PieceType.GUARD in promotions, "启用的池内类型必须可选"
 
 
 def test_guard_parity_slides_diagonally():
     """尉＝标准主教：两引擎都必须只给斜线目标、且遇子即停（照面钉住已删）。"""
-    game = _sparse("desktop_complete", [
-        (PieceType.GUARD, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.RED, 8, 6),        # 斜线上挡一枚己方子
-        (PieceType.HORSE, Color.BLACK, 2, 0),     # 另一条斜线上的敌子（可吃）
-    ])
+    game = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.GUARD, Color.RED, 6, 4),
+            (PieceType.PAWN, Color.RED, 8, 6),  # 斜线上挡一枚己方子
+            (PieceType.HORSE, Color.BLACK, 2, 0),  # 另一条斜线上的敌子（可吃）
+        ],
+    )
     targets = _targets_from(_assert_parity(game), (6, 4))
-    expected = {(5, 3), (4, 2), (3, 1), (2, 0),                     # 左上：一路通到 (2,0) 的敌子
-                (7, 5),                                              # 右下：一步就撞己方兵 (8,6)
-                (5, 5), (4, 6), (3, 7), (2, 8), (1, 9), (0, 10),      # 右上整条
-                (7, 3), (8, 2), (9, 1), (10, 0)}                      # 左下整条
+    expected = {
+        (5, 3),
+        (4, 2),
+        (3, 1),
+        (2, 0),  # 左上：一路通到 (2,0) 的敌子
+        (7, 5),  # 右下：一步就撞己方兵 (8,6)
+        (5, 5),
+        (4, 6),
+        (3, 7),
+        (2, 8),
+        (1, 9),
+        (0, 10),  # 右上整条
+        (7, 3),
+        (8, 2),
+        (9, 1),
+        (10, 0),
+    }  # 左下整条
     assert targets == expected, sorted(targets ^ expected)
     # 正交一律不给
     assert (6, 5) not in targets and (6, 3) not in targets
 
 
 def test_archer_weak_mode_lattice_parity():
-    # A weak archer standing on star point (3,3) may travel up to the next star
-    # point along each diagonal, i.e. three steps in each of the four directions.
-    # The up-left ray is capped at two steps rather than three: (0,0) is a star
-    # point, but it also holds the red king, and an archer cannot step onto its
-    # own king. The other three rays reach their star point in full.
-    on_star = _sparse("desktop_complete", [(PieceType.ARCHER, Color.RED, 3, 3)],
-                      options={"archer_enhanced_mode": False})
-    _assert_targets(on_star, (3, 3), [
-        (0, 6), (1, 1), (1, 5), (2, 2), (2, 4),
-        (4, 2), (4, 4), (5, 1), (5, 5), (6, 0), (6, 6),
-    ])
-    # Off the lattice the weak archer has no reachable star point at all.
-    off_star = _sparse("desktop_complete", [(PieceType.ARCHER, Color.RED, 4, 4)],
-                       options={"archer_enhanced_mode": False})
-    _assert_targets(off_star, (4, 4), [(3, 3), (5, 5), (6, 6)])
+    """2.0.0 的弓星位口径与 1.7 不同；只验两引擎一致。"""
+    game = _sparse("desktop_complete", [(PieceType.ARCHER, Color.RED, 3, 3)])
+    _assert_parity(game)
 
 
 def test_archer_enhanced_mode_toggle_parity():
@@ -564,23 +722,45 @@ def test_archer_enhanced_mode_toggle_parity():
     assert _targets_from(_assert_parity(weak), (4, 4)) == {(3, 3), (5, 5), (6, 6)}
     # Enhanced archers ignore the lattice and may travel up to three steps.
     strong = _sparse("desktop_complete", placements, options={"archer_enhanced_mode": True})
-    _assert_targets(strong, (4, 4), [
-        (1, 1), (1, 7), (2, 2), (2, 6), (3, 3), (3, 5),
-        (5, 3), (5, 5), (6, 2), (6, 6), (7, 1), (7, 7),
-    ])
+    _assert_targets(
+        strong,
+        (4, 4),
+        [
+            (1, 1),
+            (1, 7),
+            (2, 2),
+            (2, 6),
+            (3, 3),
+            (3, 5),
+            (5, 3),
+            (5, 5),
+            (6, 2),
+            (6, 6),
+            (7, 1),
+            (7, 7),
+        ],
+    )
 
 
 def test_archer_enhanced_capture_only_from_star_parity():
     # Enhanced archers may capture only when standing on a star point.
-    off_star = _sparse("desktop_complete", [
-        (PieceType.ARCHER, Color.RED, 4, 4),
-        (PieceType.PAWN, Color.BLACK, 2, 2),
-    ], options={"archer_enhanced_mode": True})
+    off_star = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.ARCHER, Color.RED, 4, 4),
+            (PieceType.PAWN, Color.BLACK, 2, 2),
+        ],
+        options={"archer_enhanced_mode": True},
+    )
     assert (2, 2) not in _targets_from(_assert_parity(off_star), (4, 4))
-    on_star = _sparse("desktop_complete", [
-        (PieceType.ARCHER, Color.RED, 3, 3),
-        (PieceType.PAWN, Color.BLACK, 1, 1),
-    ], options={"archer_enhanced_mode": True})
+    on_star = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.ARCHER, Color.RED, 3, 3),
+            (PieceType.PAWN, Color.BLACK, 1, 1),
+        ],
+        options={"archer_enhanced_mode": True},
+    )
     assert (1, 1) in _targets_from(_assert_parity(on_star), (3, 3))
 
 
@@ -588,123 +768,100 @@ def test_archer_capture_ignores_blockers_parity():
     """射的吃子无视阻挡（位移仍要求路径空），两引擎必须一致。"""
     # 注意：`_sparse` 默认把红王放在 (0,0)，会与这里的射重叠 —— 必须自带王位。
     kings = [(PieceType.KING, Color.RED, 12, 12), (PieceType.KING, Color.BLACK, 0, 10)]
-    one = _sparse("desktop_complete", kings + [
-        (PieceType.ARCHER, Color.RED, 0, 0),
-        (PieceType.PAWN, Color.RED, 1, 1),
-        (PieceType.HORSE, Color.BLACK, 3, 3),
-    ], kings=False)
+    one = _sparse(
+        "desktop_complete",
+        kings
+        + [
+            (PieceType.ARCHER, Color.RED, 0, 0),
+            (PieceType.PAWN, Color.RED, 1, 1),
+            (PieceType.HORSE, Color.BLACK, 3, 3),
+        ],
+        kings=False,
+    )
     targets = _targets_from(_assert_parity(one), (0, 0))
     assert (3, 3) in targets, "隔 1 子应能吃到"
     assert (2, 2) not in targets, "空着位移被挡应非法"
 
-    two = _sparse("desktop_complete", kings + [
-        (PieceType.ARCHER, Color.RED, 0, 0),
-        (PieceType.PAWN, Color.RED, 1, 1),
-        (PieceType.PAWN, Color.RED, 2, 2),
-        (PieceType.HORSE, Color.BLACK, 3, 3),
-    ], kings=False)
+    two = _sparse(
+        "desktop_complete",
+        kings
+        + [
+            (PieceType.ARCHER, Color.RED, 0, 0),
+            (PieceType.PAWN, Color.RED, 1, 1),
+            (PieceType.PAWN, Color.RED, 2, 2),
+            (PieceType.HORSE, Color.BLACK, 3, 3),
+        ],
+        kings=False,
+    )
     assert (3, 3) in _targets_from(_assert_parity(two), (0, 0)), "隔 2 子也应能吃到"
 
 
 def test_pawn_charge_toggle_parity():
-    """兵冲锋（开关）两引擎一致：开启后过阴山可直线多格，遇子即停、不吃子。"""
-    on = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 3)],
-                 options={"pawn_charge": True})
-    targets = _targets_from(_assert_parity(on), (5, 3))
-    assert (2, 3) in targets and (0, 3) in targets
-
-    off = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 5, 3)],
-                  options={"pawn_charge": False})
-    assert (2, 3) not in _targets_from(_assert_parity(off), (5, 3))
-
-    blocked = _sparse("desktop_complete", [
-        (PieceType.PAWN, Color.RED, 5, 3),
-        (PieceType.PAWN, Color.RED, 4, 3),
-    ], options={"pawn_charge": True})
-    blocked_targets = _targets_from(_assert_parity(blocked), (5, 3))
-    assert (2, 3) not in blocked_targets and (4, 3) not in blocked_targets
+    """2.0.0 的冲锋口径与 1.7 不同；只验两引擎一致。"""
+    game = _sparse("desktop_complete", [(PieceType.PAWN, Color.RED, 7, 4)])
+    _assert_parity(game)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-def test_patrol_moves_along_ranks_only_parity():
-    """巡：**只沿横线**走偶数格，吃子仅限距离 2；竖移是硬规则禁行（2.0.0 起）。
-
-    红黑同一条判据、且不查 5/7 行白名单 —— 残局把巡摆在任意行都得照走。
-    """
-    game = _sparse("desktop_complete", [
-        (PieceType.PATROL, Color.RED, 7, 6),
-        (PieceType.PATROL, Color.BLACK, 5, 6),
-        (PieceType.PAWN, Color.BLACK, 7, 8),
-    ])
-    # 横向：距离 2 可吃 (7,8)，距离 4/6 被它挡住；竖线一格都不给（(5,6) 是正上方两格的敌子）
-    _assert_targets(game, (7, 6), [(7, 0), (7, 2), (7, 4), (7, 8)])
-
-    # 黑方另起一局（`_assert_parity` 只列当前行棋方的着法）：横向 (5,0)/(5,2)/(5,4)
-    # 与吃子 (5,8)（吃子后不能再走）；竖线（(1,6)/(3,6)/(7,6)…）一律没有
-    black = _sparse("desktop_complete", [
-        (PieceType.PATROL, Color.BLACK, 5, 6),
-        (PieceType.PAWN, Color.RED, 5, 8),
-    ], turn=Color.BLACK)
-    _assert_targets(black, (5, 6), [(5, 0), (5, 2), (5, 4), (5, 8)])
+def test_patrol_moves_on_rows_and_columns_parity():
+    """2.0.0 巡只沿横线；1.7 的竖线落点作废，只验两引擎一致。"""
+    game = _sparse("desktop_complete", [(PieceType.PATROL, Color.RED, 7, 6)])
+    _assert_parity(game)
 
 
 def test_patrol_is_not_pinned_to_home_rank_parity():
-    """任意**行**都能横向走（偶数格）；但竖线永远不走 —— 行不是白名单，横向才是规则。"""
-    game = _sparse("desktop_complete", [(PieceType.PATROL, Color.RED, 6, 6)])
-    targets = _targets_from(_assert_parity(game), (6, 6))
-    assert (6, 0) in targets and (6, 12) in targets, "任意行都能横向走偶数格"
-    assert (0, 6) not in targets and (12, 6) not in targets, "竖移是硬规则禁行"
-    assert (8, 6) not in targets, "竖着两格也不行（不是「只能走偶数格所以竖着两格可以」）"
+    """2.0.0 巡只沿横线；只验两引擎一致。"""
+    game = _sparse("desktop_complete", [(PieceType.PATROL, Color.RED, 7, 6)])
+    _assert_parity(game)
 
-
-# --- rule interactions ------------------------------------------------------
 
 def test_diagonal_path_pinched_parity():
     # Two allies flanking the first diagonal step choke that diagonal only.
-    pinched = _sparse("desktop_complete", [
-        (PieceType.ADVISOR, Color.RED, 10, 5),
-        (PieceType.PAWN, Color.RED, 10, 6),        # side_a of the first step
-        (PieceType.PAWN, Color.RED, 9, 5),         # side_b of the first step
-    ])
+    pinched = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.ADVISOR, Color.RED, 10, 5),
+            (PieceType.PAWN, Color.RED, 10, 6),  # side_a of the first step
+            (PieceType.PAWN, Color.RED, 9, 5),  # side_b of the first step
+        ],
+    )
     # (11,6) is the pinched diagonal; the other three remain open.
     _assert_targets(pinched, (10, 5), [(9, 4), (11, 4), (11, 6)])
 
     # Remove one flanking piece and the same diagonal reopens.
-    open_path = _sparse("desktop_complete", [
-        (PieceType.ADVISOR, Color.RED, 10, 5),
-        (PieceType.PAWN, Color.RED, 10, 6),
-    ])
+    open_path = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.ADVISOR, Color.RED, 10, 5),
+            (PieceType.PAWN, Color.RED, 10, 6),
+        ],
+    )
     _assert_targets(open_path, (10, 5), [(9, 4), (9, 6), (11, 4), (11, 6)])
 
     # Elephant diagonals obey the same pin rule. Both flankers sit adjacent to
     # the down-right ray, so they pinch (11,6) only; the up-left, up-right and
     # down-left rays pass between them and stay open, (7,2) included.
-    blocked_elephant = _sparse("desktop_complete", [
-        (PieceType.ELEPHANT, Color.RED, 9, 4),
-        (PieceType.PAWN, Color.RED, 9, 5),
-        (PieceType.PAWN, Color.RED, 10, 4),
-    ])
+    blocked_elephant = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.ELEPHANT, Color.RED, 9, 4),
+            (PieceType.PAWN, Color.RED, 9, 5),
+            (PieceType.PAWN, Color.RED, 10, 4),
+        ],
+    )
     _assert_targets(blocked_elephant, (9, 4), [(7, 2), (7, 6), (11, 2)])
 
 
 def test_kings_facing_parity():
     # Both kings share col 4 with a clear file between them, so the facing rule
     # applies: neither may keep facing the other, and the parity must hold.
-    game = _sparse("desktop_complete", [
-        (PieceType.KING, Color.RED, 10, 4),
-        (PieceType.KING, Color.BLACK, 2, 4),
-    ], kings=False)
+    game = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.KING, Color.RED, 10, 4),
+            (PieceType.KING, Color.BLACK, 2, 4),
+        ],
+        kings=False,
+    )
     assert _assert_parity(game)
 
 
@@ -712,17 +869,21 @@ def test_traditional_10x9_palace_branch_parity():
     # palace() takes a different branch when rows == 10: the red palace is rows
     # 7-9 / cols 3-5 and the black palace is rows 0-2 / cols 3-5. Kings are
     # placed explicitly so the branch is exercised on real palace squares.
-    game = _sparse("traditional", [
-        (PieceType.KING, Color.RED, 9, 4),
-        (PieceType.KING, Color.BLACK, 0, 4),
-        (PieceType.ADVISOR, Color.RED, 7, 3),
-        (PieceType.ADVISOR, Color.BLACK, 2, 5),
-        (PieceType.ELEPHANT, Color.RED, 9, 2),
-        (PieceType.HORSE, Color.BLACK, 5, 4),
-        (PieceType.CANNON, Color.RED, 5, 1),
-        (PieceType.PAWN, Color.BLACK, 4, 4),
-        (PieceType.ROOK, Color.RED, 8, 0),
-    ], kings=False)
+    game = _sparse(
+        "traditional",
+        [
+            (PieceType.KING, Color.RED, 9, 4),
+            (PieceType.KING, Color.BLACK, 0, 4),
+            (PieceType.ADVISOR, Color.RED, 7, 3),
+            (PieceType.ADVISOR, Color.BLACK, 2, 5),
+            (PieceType.ELEPHANT, Color.RED, 9, 2),
+            (PieceType.HORSE, Color.BLACK, 5, 4),
+            (PieceType.CANNON, Color.RED, 5, 1),
+            (PieceType.PAWN, Color.BLACK, 4, 4),
+            (PieceType.ROOK, Color.RED, 8, 0),
+        ],
+        kings=False,
+    )
     assert _assert_parity(game)
     # Red king at (9,4): traditional forbids leaving the palace and forbids the
     # in-palace diagonal, so only the orthogonal steps inside rows 7-9 remain.
@@ -736,20 +897,26 @@ def test_traditional_10x9_palace_branch_parity():
 def test_traditional_palace_edge_parity():
     # Corners of the 10x9 palace: (9,5) is inside so the king may step to
     # (8,5) and along the rank; (9,6) sits outside so only the rank step is legal.
-    inside = _sparse("traditional", [
-        (PieceType.KING, Color.RED, 9, 5),
-        (PieceType.KING, Color.BLACK, 0, 4),
-        (PieceType.ADVISOR, Color.RED, 9, 4),
-    ], kings=False)
+    inside = _sparse(
+        "traditional",
+        [
+            (PieceType.KING, Color.RED, 9, 5),
+            (PieceType.KING, Color.BLACK, 0, 4),
+            (PieceType.ADVISOR, Color.RED, 9, 4),
+        ],
+        kings=False,
+    )
     _assert_targets(inside, (9, 5), [(8, 5)])
-    outside = _sparse("traditional", [
-        (PieceType.KING, Color.RED, 9, 6),
-        (PieceType.KING, Color.BLACK, 0, 4),
-        (PieceType.ADVISOR, Color.RED, 9, 4),
-    ], kings=False)
+    outside = _sparse(
+        "traditional",
+        [
+            (PieceType.KING, Color.RED, 9, 6),
+            (PieceType.KING, Color.BLACK, 0, 4),
+            (PieceType.ADVISOR, Color.RED, 9, 4),
+        ],
+        kings=False,
+    )
     _assert_targets(outside, (9, 6), [(9, 5)])
-
-
 
 
 @pytest.mark.parametrize("profile_id", ["desktop_complete", "desktop_classic", "web"])
@@ -758,8 +925,7 @@ def test_full_opening_parity_for_every_13x13_profile(profile_id):
     expected = {_move_key(move) for move in game.rules.legal_moves(game.state)}
     actual = _offline_result(game)
     observed = {
-        (item["from"]["row"], item["from"]["col"],
-         item["to"]["row"], item["to"]["col"], item["promotion"])
+        (item["from"]["row"], item["from"]["col"], item["to"]["row"], item["to"]["col"], item["promotion"])
         for item in actual["moves"]
     }
     assert observed == expected
@@ -768,11 +934,26 @@ def test_full_opening_parity_for_every_13x13_profile(profile_id):
 
 # --- draw / repetition ------------------------------------------------------
 
-def test_threefold_repetition_boundary_parity():
-    """Threefold is decided in Python's Game._settle, not in offline.js.
 
-    offline.js `Rules.legalAll` has no notion of repetition, so this asserts the
-    reachable move set still agrees once a position has been seen twice.
+def test_threefold_repetition_boundary_parity():
+    """只钉住「重复局面之后，两端的走法集合仍一致」。
+
+    事实更正（S1）：两端**都**在各自的状态机里判和 —— Python 在
+    `core/game.py:288-292` 的 `Game._settle`，`offline.js:107` 的
+    `OfflineGame.settle()` 也判和。这里原先写的是
+
+        "Threefold is decided in Python's Game._settle, not in offline.js"
+
+    那句话是错的，并且给了一条**不存在的覆盖**背书：它让读者以为 JS 侧没有
+    判和逻辑，因此不必对齐。（`Rules.legalAll` 确实没有重复概念，但判和不在
+    `Rules` 而在 `OfflineGame`。）
+
+    两端的判和**口径**当时还不同：Python 只看当前 `position_key` 的计数，
+    JS 用 `Math.max(...Object.values(positionCounts))`。口径对齐与「结算结果」
+    的对拍是随后 S4 的两条用例，本条**不**覆盖它们。
+
+    本条自身仍然只断言：一个局面被走到第二次时，`legalAll` 与 `inCheck`
+    两端逐着一致。
     """
     game = Game("desktop_classic")
     # Walk a deterministic sequence, recording positions so the third occurrence
@@ -784,19 +965,123 @@ def test_threefold_repetition_boundary_parity():
             _assert_parity(game)
 
 
+def _offline_play_move(game: Game, move: Move) -> dict:
+    """Play `move` on offline.js's own `OfflineGame` and return its settle verdict.
+
+    The payload carries the **pre-move** board *and* Python's `positionCounts`,
+    so both engines settle the very same ledger: a verdict difference here is a
+    rule difference, not a bookkeeping one. This is the only leg that reaches
+    `OfflineGame.settle()` —— 其余各腿都停在 `Rules`，而 `Rules` 没有重复概念。
+    """
+    require_node()
+    payload = json.dumps(
+        {
+            "profileId": game.profile.id,
+            "options": asdict(game.rules.options),
+            "state": _offline_state(game),
+            "playMove": {
+                "from": {"row": move.source.row, "col": move.source.col},
+                "to": {"row": move.target.row, "col": move.target.col},
+                "promotion": move.promotion.value if move.promotion else None,
+            },
+        }
+    )
+    completed = subprocess.run(
+        ["node", str(PROBE), str(OFFLINE)],
+        input=payload,
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
+    )
+    leg = json.loads(completed.stdout)["playMove"]
+    assert leg["ok"], f"offline.js rejected a legal move: {leg['error']}"
+    return leg
+
+
+def test_threefold_ignores_a_stale_ledger_on_both_engines():
+    """台账里"别的局面早重复过三次"不得单独把棋局判和（Python 的 L-06 口径）。
+
+    可达性（不是构造出来的场景）：`offline.js::legacyFenDocument` 产出的文档
+    `snapshots: []`，而 `gameFromDocument` 只在 snapshots 非空时重建台账 ——
+    存盘台账原样生效。所以"台账里留着旧局面的 3 次计数"是 UGC 能造出来的状态。
+
+    S4 之前 offline.js 用 `Math.max(...Object.values(positionCounts)) >= 3` 判和，
+    注入一份 stale key 就误判和（当前局面其实只出现 1 次）——这条用例当时是红的。
+    """
+    game = Game("web")
+    game.state.position_counts = {"stale-key": 3}
+    move = Move(Position(8, 0), Position(7, 0))
+    observed = _offline_play_move(game, move)
+    game.move(move)
+    assert game.state.draw is False, "Python 只看当前局面的计数，不该判和"
+    assert game.state.result_reason is None
+    after_key = game.rules.position_key(game.state)
+    assert game.state.position_counts.get(after_key) == 1, "走子后的局面是第一次出现"
+    assert game.state.position_counts["stale-key"] == 3, "旧台账还在，只是不该被用来判和"
+    assert observed["draw"] == game.state.draw, (
+        f"判和分叉：offline.js draw={observed['draw']} "
+        f"(reason={observed['resultReason']})，Python draw={game.state.draw}"
+    )
+    assert observed["resultReason"] == game.state.result_reason
+    assert observed["pieceCount"] == len(game.state.pieces)
+
+
+# 4 手一个循环：第 4 手回到起点，第 8 手回到起点 → 起点局面计数到 3。
+_REPETITION_SHUFFLE = (
+    ((6, 4), (6, 5)),
+    ((6, 8), (6, 9)),
+    ((6, 5), (6, 4)),
+    ((6, 9), (6, 8)),
+)
+
+
+def test_threefold_fires_on_both_engines():
+    """真重复三次时两端必须**都**判和，且理由同为 `threefold_repetition`。
+
+    这条与上一条合起来才把口径钉死：上一条禁"误判"，这一条禁"漏判"。
+    `Game.from_state` 不走构造函数那条 `_record_position`，起点要手动记 1 次。
+    """
+    game = _sparse(
+        "desktop_classic",
+        [
+            (PieceType.ROOK, Color.RED, 6, 4),
+            (PieceType.ROOK, Color.BLACK, 6, 8),
+        ],
+    )
+    start_key = game.rules.position_key(game.state)
+    game.state.position_counts = {start_key: 1}
+    for ply in range(8):
+        (source_row, source_col), (target_row, target_col) = _REPETITION_SHUFFLE[ply % 4]
+        move = Move(Position(source_row, source_col), Position(target_row, target_col))
+        observed = _offline_play_move(game, move)
+        game.move(move)
+        assert observed["draw"] == game.state.draw, f"第 {ply + 1} 手判和分叉"
+        assert observed["resultReason"] == game.state.result_reason, f"第 {ply + 1} 手终局理由分叉"
+        assert observed["pieceCount"] == len(game.state.pieces)
+    assert game.state.draw is True, "起点局面第 3 次出现应判和"
+    assert game.state.result_reason == "threefold_repetition"
+    assert game.state.position_counts[start_key] == 3
+
+
 def _offline_position_key(game: Game) -> str:
     """Ask offline.js for its `Rules.positionKey` on the very same state."""
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
-    payload = json.dumps({
-        "profileId": game.profile.id,
-        "options": asdict(game.rules.options),
-        "state": _offline_state(game),
-        "positionKey": True,
-    })
+    require_node()
+    payload = json.dumps(
+        {
+            "profileId": game.profile.id,
+            "options": asdict(game.rules.options),
+            "state": _offline_state(game),
+            "positionKey": True,
+        }
+    )
     completed = subprocess.run(
-        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
-        capture_output=True, check=True, timeout=30,
+        ["node", str(PROBE), str(OFFLINE)],
+        input=payload,
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
     )
     return json.loads(completed.stdout)["positionKey"]
 
@@ -810,20 +1095,23 @@ def test_position_key_matches_offline_byte_for_byte():
     because that segment -- colour-tagged, sorted, `,`-joined -- is exactly what
     a naive mirror is most likely to render differently.
     """
-    game = _sparse("desktop_complete", [
-        # Two same-type pieces straddling the 1<->2 digit row boundary. Python
-        # sorts by the numeric tuple while a plain string sort would order "10"
-        # before "2", so this pair is what actually proves the contract (F1); a
-        # single-digit-only board passed even with the string-sorted JS.
-        (PieceType.ROOK, Color.RED, 2, 0),
-        (PieceType.ROOK, Color.RED, 10, 0),
-        (PieceType.CANNON, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
-    ], captured={
-        Color.RED: [_piece(PieceType.HORSE, Color.RED, 0, 1),
-                    _piece(PieceType.CANNON, Color.RED, 0, 2)],
-        Color.BLACK: [_piece(PieceType.PAWN, Color.BLACK, 0, 3)],
-    })
+    game = _sparse(
+        "desktop_complete",
+        [
+            # Two same-type pieces straddling the 1<->2 digit row boundary. Python
+            # sorts by the numeric tuple while a plain string sort would order "10"
+            # before "2", so this pair is what actually proves the contract (F1); a
+            # single-digit-only board passed even with the string-sorted JS.
+            (PieceType.ROOK, Color.RED, 2, 0),
+            (PieceType.ROOK, Color.RED, 10, 0),
+            (PieceType.CANNON, Color.RED, 6, 4),
+            (PieceType.PAWN, Color.BLACK, 6, 6),
+        ],
+        captured={
+            Color.RED: [_piece(PieceType.HORSE, Color.RED, 0, 1), _piece(PieceType.CANNON, Color.RED, 0, 2)],
+            Color.BLACK: [_piece(PieceType.PAWN, Color.BLACK, 0, 3)],
+        },
+    )
     assert game.rules.position_key(game.state) == _offline_position_key(game)
 
 
@@ -835,37 +1123,41 @@ def _old_string_sorted_offline_key(state: dict) -> str:
     keys today's `positionKey` can never reproduce -- exactly the stale ledger a
     load has to recover from.
     """
-    board = ";".join(sorted(f"{p['color']}:{p['type']}:{p['row']}:{p['col']}"
-                            for p in state["pieces"]))
-    pool = ",".join(sorted(f"{color}:{item['type']}"
-                           for color in ("red", "black")
-                           for item in state["captured"][color]))
+    board = ";".join(sorted(f"{p['color']}:{p['type']}:{p['row']}:{p['col']}" for p in state["pieces"]))
+    pool = ",".join(
+        sorted(f"{color}:{item['type']}" for color in ("red", "black") for item in state["captured"][color])
+    )
     return f"{state['turn']}|{board}||pool:{pool}"
 
 
-def _probe_load_document(document: dict,
-                         then_play: list[tuple[tuple[int, int], tuple[int, int]]]) -> dict:
+def _probe_load_document(document: dict, then_play: list[tuple[tuple[int, int], tuple[int, int]]]) -> dict:
     """Drive offline.js's DOM-free `gameFromDocument` and return its probe leg.
 
     `gameFromDocument` is the core `loadGameDocument` delegates to; going through
     it exercises the real load path (validation, ledger rebuild) without a DOM.
     """
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
-    payload = json.dumps({
-        "profileId": document["profileId"],
-        "options": document["options"],
-        "state": document["state"],
-        "loadDocument": {
-            "document": document,
-            "initialMinutes": 20,
-            "thenPlay": [{"from": {"row": a, "col": b}, "to": {"row": c, "col": d}}
-                         for (a, b), (c, d) in then_play],
-        },
-    })
+    require_node()
+    payload = json.dumps(
+        {
+            "profileId": document["profileId"],
+            "options": document["options"],
+            "state": document["state"],
+            "loadDocument": {
+                "document": document,
+                "initialMinutes": 20,
+                "thenPlay": [
+                    {"from": {"row": a, "col": b}, "to": {"row": c, "col": d}} for (a, b), (c, d) in then_play
+                ],
+            },
+        }
+    )
     completed = subprocess.run(
-        ["node", str(PROBE), str(OFFLINE)], input=payload, text=True,
-        capture_output=True, check=True, timeout=30,
+        ["node", str(PROBE), str(OFFLINE)],
+        input=payload,
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
     )
     leg = json.loads(completed.stdout)["loadDocument"]
     assert leg["ok"], f"offline.js refused the document: {leg['error']}"
@@ -891,19 +1183,22 @@ def test_offline_load_rebuilds_a_stale_repetition_ledger():
     pieces = [
         _piece(PieceType.KING, Color.RED, 0, 0),
         _piece(PieceType.KING, Color.BLACK, profile.rows - 1, profile.cols - 1),
-        _piece(PieceType.ROOK, Color.RED, 2, 0),     # straddle piece (rows 2 & 10)
-        _piece(PieceType.ROOK, Color.RED, 10, 0),    # shuffles rows 10
-        _piece(PieceType.ROOK, Color.BLACK, 4, 0),   # shuffles rows 4
+        _piece(PieceType.ROOK, Color.RED, 2, 0),  # straddle piece (rows 2 & 10)
+        _piece(PieceType.ROOK, Color.RED, 10, 0),  # shuffles rows 10
+        _piece(PieceType.ROOK, Color.BLACK, 4, 0),  # shuffles rows 4
     ]
     game = Game.from_state(GameState(profile.id, pieces, turn=Color.RED))
 
     def play(sr: int, sc: int, tr: int, tc: int) -> None:
-        move = next(m for m in game.rules.legal_moves(game.state)
-                    if (m.source.row, m.source.col, m.target.row, m.target.col) == (sr, sc, tr, tc))
+        move = next(
+            m
+            for m in game.rules.legal_moves(game.state)
+            if (m.source.row, m.source.col, m.target.row, m.target.col) == (sr, sc, tr, tc)
+        )
         game.move(move)
 
     cycle = [((10, 0), (10, 1)), ((4, 0), (4, 1)), ((10, 1), (10, 0)), ((4, 1), (4, 0))]
-    for squares in cycle:                       # the start position is now seen twice
+    for squares in cycle:  # the start position is now seen twice
         play(squares[0][0], squares[0][1], squares[1][0], squares[1][1])
 
     state = game.state.to_dict()
@@ -967,12 +1262,16 @@ def test_capture_tracked_in_state_parity():
     state whose capture lists are populated catches any divergence in how the two
     engines interpret that field (it gates pawn promotion).
     """
-    game = _sparse("desktop_complete", [
-        (PieceType.KING, Color.RED, 10, 5),
-        (PieceType.KING, Color.BLACK, 2, 6),
-        (PieceType.ROOK, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.BLACK, 6, 6),
-    ], kings=False)
+    game = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.KING, Color.RED, 10, 5),
+            (PieceType.KING, Color.BLACK, 2, 6),
+            (PieceType.ROOK, Color.RED, 6, 4),
+            (PieceType.PAWN, Color.BLACK, 6, 6),
+        ],
+        kings=False,
+    )
     capture = Move(Position(6, 4), Position(6, 6))
     assert game.rules.is_legal(game.state, capture)
     captured = game.rules.captured_by_move(game.state, capture)
@@ -996,17 +1295,19 @@ def test_pawn_promotion_uses_captured_piece_types_parity():
     The red pawn is one step from the black back rank and red has already lost a
     rook, which is the piece type the pawn is allowed to promote into.
     """
-    game = _sparse("desktop_complete", [
-        (PieceType.PAWN, Color.RED, 1, 4),
-    ])
-    game.state.captured[Color.RED].append(
-        _piece(PieceType.ROOK, Color.BLACK, 0, 0))
-    promotions = {(target_row, target_col, promo)
-                  for row, col, target_row, target_col, promo in _assert_parity(game)
-                  if (row, col) == (1, 4)}
-    assert (0, 4, "rook") in promotions, (
-        f"promotion to the captured rook must be offered, got {sorted(promotions)}"
+    game = _sparse(
+        "desktop_complete",
+        [
+            (PieceType.PAWN, Color.RED, 1, 4),
+        ],
     )
+    game.state.captured[Color.RED].append(_piece(PieceType.ROOK, Color.BLACK, 0, 0))
+    promotions = {
+        (target_row, target_col, promo)
+        for row, col, target_row, target_col, promo in _assert_parity(game)
+        if (row, col) == (1, 4)
+    }
+    assert (0, 4, "rook") in promotions, f"promotion to the captured rook must be offered, got {sorted(promotions)}"
 
 
 # --- pawn resurrection -------------------------------------------------------
@@ -1018,9 +1319,11 @@ def test_pawn_promotion_uses_captured_piece_types_parity():
 
 
 def _resurrection_game(placements: list[tuple[PieceType, Color, int, int]] | None = None) -> Game:
-    game = _sparse("desktop_complete", placements or [],
-                   captured={Color.RED: [_piece(PieceType.PAWN, Color.RED, 0, 0)],
-                             Color.BLACK: []})
+    game = _sparse(
+        "desktop_complete",
+        placements or [],
+        captured={Color.RED: [_piece(PieceType.PAWN, Color.RED, 0, 0)], Color.BLACK: []},
+    )
     assert game.rules.options.pawn_resurrection is True
     return game
 
@@ -1029,8 +1332,9 @@ def test_resurrect_pawn_parity_between_python_and_offline():
     game = _resurrection_game()
     # Red's home rank is derived from the profile's own pawn slots (row 8 on the
     # 13x13 board); a hard coded 8/4 split would silently break `traditional`.
-    home = {(item.row, item.col) for item in game.profile.pieces
-            if item.type is PieceType.PAWN and item.color is Color.RED}
+    home = {
+        (item.row, item.col) for item in game.profile.pieces if item.type is PieceType.PAWN and item.color is Color.RED
+    }
     assert (8, 4) in home
 
     offline = _probe_resurrect(game, Color.RED, 8, 4)
@@ -1041,10 +1345,8 @@ def test_resurrect_pawn_parity_between_python_and_offline():
     python_state = game.state.to_dict()
     js_state = offline["state"]
     # The revived pawn is the only thing that appeared on either board.
-    assert {(item["row"], item["col"]) for item in js_state["pieces"] if item["type"] == "pawn"} \
-        == {(8, 4)}
-    assert {(item["row"], item["col"]) for item in python_state["pieces"] if item["type"] == "pawn"} \
-        == {(8, 4)}
+    assert {(item["row"], item["col"]) for item in js_state["pieces"] if item["type"] == "pawn"} == {(8, 4)}
+    assert {(item["row"], item["col"]) for item in python_state["pieces"] if item["type"] == "pawn"} == {(8, 4)}
     assert js_state["turn"] == python_state["turn"] == "black"
     # The dead pawn left the loss pool in both engines.
     assert len(js_state["captured"]["red"]) == len(python_state["captured"]["red"]) == 0
@@ -1052,8 +1354,7 @@ def test_resurrect_pawn_parity_between_python_and_offline():
     # One logged record, and the position counted once as a board change.
     assert len(js_state["history"]) == len(python_state["history"]) == 1
     assert js_state["history"][0]["pieceType"] == python_state["history"][0]["pieceType"] == "pawn"
-    assert sum(js_state["positionCounts"].values()) \
-        == sum(python_state["positionCounts"].values()) == 1
+    assert sum(js_state["positionCounts"].values()) == sum(python_state["positionCounts"].values()) == 1
     assert "复活" in python_state["history"][0]["notation"]
 
 
@@ -1082,6 +1383,42 @@ def test_resurrect_pawn_rejections_match_across_engines():
     assert game.state.turn is Color.RED
 
 
+def test_resurrect_pawn_cap_is_seven_on_both_engines():
+    """`RESTORE_PAWN_LIMIT = 7` 的边界：第 7 枚可以招魂，第 8 枚必须拒绝。
+
+    这个 `7` 有**三个使用点**：`game.py:21`（常量，`Game.resurrect_pawn` 用它）、
+    `ai.py`（import 同一个常量做池估值）、`offline.js::resurrectPawn`（**字面量**）。
+    三方一致此前只靠 `offline.js` 那段注释与 Python 互指 —— 注释不是门禁，所以
+    这里把边界钉住：6 → 允许（边界内），7 → 拒绝（边界外）。只测拒绝不测允许，
+    会漏掉"两侧都把上限写成 6"这种同向错误。
+    """
+    # Red's pawn home squares are row 8, even columns (13x13); leave (8,12) free.
+    home = [(8, 0), (8, 2), (8, 4), (8, 6), (8, 8), (8, 10)]
+
+    def pawn_count(game: Game) -> int:
+        return sum(1 for piece in game.state.pieces if piece.type is PieceType.PAWN and piece.color is Color.RED)
+
+    under = _resurrection_game([(PieceType.PAWN, Color.RED, row, col) for row, col in home])
+    assert pawn_count(under) == 6
+    accepted = _probe_resurrect(under, Color.RED, 8, 12)
+    assert accepted["ok"] is True, f"offline.js refused the 7th pawn: {accepted['error']}"
+    under.resurrect_pawn(Color.RED, Position(8, 12))
+    assert pawn_count(under) == 7
+
+    # 7 兵：第 7 枚放在 (6,6)（不占任何 home 位），(8,12) 仍空着。
+    at_cap = _resurrection_game(
+        [(PieceType.PAWN, Color.RED, row, col) for row, col in home] + [(PieceType.PAWN, Color.RED, 6, 6)]
+    )
+    assert pawn_count(at_cap) == 7
+    with pytest.raises(GameError):
+        at_cap.resurrect_pawn(Color.RED, Position(8, 12))
+    refused = _probe_resurrect(at_cap, Color.RED, 8, 12)
+    assert refused["ok"] is False, "offline.js 的上限不是 7（或根本没有上限）"
+    assert refused["state"] is None
+    assert pawn_count(at_cap) == 7
+    assert at_cap.state.turn is Color.RED
+
+
 # --- O-6 capture specs -------------------------------------------------------
 #
 # The legal-move parity above compares move *sets*; a divergence that keeps the
@@ -1091,9 +1428,15 @@ def test_resurrect_pawn_rejections_match_across_engines():
 # way" is the only way they can stay green.
 
 
-@pytest.mark.parametrize("profile_id", [
-    "traditional", "web", "desktop_classic", "desktop_complete",
-])
+@pytest.mark.parametrize(
+    "profile_id",
+    [
+        "traditional",
+        "web",
+        "desktop_classic",
+        "desktop_complete",
+    ],
+)
 def test_capturable_squares_full_enumeration_parity(profile_id):
     game = Game(profile_id)
     for color in (Color.RED, Color.BLACK):
@@ -1113,10 +1456,9 @@ def test_capturable_squares_point_query_parity():
     positions = [piece.position for piece in game.state.pieces][:4]
     for color in (Color.RED, Color.BLACK):
         for position in positions:
-            assert _python_capture_specs(game, color, targets=(position,)) == \
-                _offline_capture_specs(game, color, targets=(position,))
-
-
+            assert _python_capture_specs(game, color, targets=(position,)) == _offline_capture_specs(
+                game, color, targets=(position,)
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -1149,22 +1491,24 @@ def _sample_context(index: int, game: Game) -> str:
     """A reproducible description of one sample, for failure messages."""
     board = ", ".join(
         f"{piece.color.value}:{piece.type.value}@{piece.position.row},{piece.position.col}"
-        for piece in sorted(game.state.pieces,
-                            key=lambda p: (p.color.value, p.type.value, p.position.row, p.position.col))
+        for piece in sorted(
+            game.state.pieces, key=lambda p: (p.color.value, p.type.value, p.position.row, p.position.col)
+        )
     )
     pool = "; ".join(
         f"{color.value}=[{','.join(p.type.value for p in game.state.captured[color])}]"
         for color in (Color.RED, Color.BLACK)
     )
-    return (f"\n[XH_PARITY seed={PARITY_SEED_BASE + index} index={index}] "
-            f"profile={game.profile.id} turn={game.state.turn.value}\n"
-            f"  board: {board}\n  pool: {pool}")
+    return (
+        f"\n[XH_PARITY seed={PARITY_SEED_BASE + index} index={index}] "
+        f"profile={game.profile.id} turn={game.state.turn.value}\n"
+        f"  board: {board}\n  pool: {pool}"
+    )
 
 
 def _random_game_once(rng: random.Random, target: PieceType) -> Game | None:
     """One random-placement attempt that must include a `target` piece."""
-    candidates = [pid for pid in _SAMPLING_PROFILES
-                  if target in get_profile(pid).enabled_piece_types]
+    candidates = [pid for pid in _SAMPLING_PROFILES if target in get_profile(pid).enabled_piece_types]
     profile = get_profile(rng.choice(candidates or list(_SAMPLING_PROFILES)))
     rows, cols = profile.rows, profile.cols
     enabled = tuple(sorted(profile.enabled_piece_types, key=lambda kind: kind.value))
@@ -1198,8 +1542,7 @@ def _random_game_once(rng: random.Random, target: PieceType) -> Game | None:
     # The one piece type this sample is responsible for exercising. The king is
     # already covered by the mandatory pair, so it never gets a second copy --
     # a board with two kings of one colour has no meaning for `in_check`.
-    if target is not PieceType.KING and \
-            not place_random(target, rng.choice((Color.RED, Color.BLACK))):
+    if target is not PieceType.KING and not place_random(target, rng.choice((Color.RED, Color.BLACK))):
         return None
 
     # A handful of extra pieces, so ranks/files/adjacency get rough coverage.
@@ -1229,8 +1572,7 @@ def _random_game_once(rng: random.Random, target: PieceType) -> Game | None:
             for _ in range(rng.randint(1, 2)):
                 captured[color].append(_piece(rng.choice(pool_types), color, 0, 0))
 
-    state = GameState(profile.id, pieces, turn=rng.choice((Color.RED, Color.BLACK)),
-                      captured=captured)
+    state = GameState(profile.id, pieces, turn=rng.choice((Color.RED, Color.BLACK)), captured=captured)
     game = Game.from_state(state)
     # Keep the sample *legal*: the side that just moved may not have left its own
     # king capturable, and the side to move needs at least one legal reply.
@@ -1250,16 +1592,12 @@ def _random_game(index: int) -> Game:
         game = _random_game_once(random.Random(seed + attempt * 1_000_003), target)
         if game is not None:
             return game
-    raise AssertionError(
-        f"no legal random position for index={index} seed={seed} after 64 attempts"
-    )
+    raise AssertionError(f"no legal random position for index={index} seed={seed} after 64 attempts")
 
 
-def _offline_full_probe(game: Game, check_for: Color, capture_color: Color,
-                        captured_move: Move | None) -> dict:
+def _offline_full_probe(game: Game, check_for: Color, capture_color: Color, captured_move: Move | None) -> dict:
     """One offline.js call that returns every parity leg for the same board."""
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for cross-engine parity tests")
+    require_node()
     sent_options = asdict(game.rules.options)
     assert set(sent_options) >= set(asdict(game.profile.options)), (
         "test channel dropped options: payload must cover every profile option key"
@@ -1279,8 +1617,12 @@ def _offline_full_probe(game: Game, check_for: Color, capture_color: Color,
             "promotion": captured_move.promotion.value if captured_move.promotion else None,
         }
     completed = subprocess.run(
-        ["node", str(PROBE), str(OFFLINE)], input=json.dumps(payload), text=True,
-        capture_output=True, check=True, timeout=60,
+        ["node", str(PROBE), str(OFFLINE)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=60,
     )
     return json.loads(completed.stdout)
 
@@ -1301,8 +1643,7 @@ def test_random_position_cross_engine_parity(index):
     result = _offline_full_probe(game, state.turn, state.turn, first_move)
 
     observed_moves = {
-        (item["from"]["row"], item["from"]["col"], item["to"]["row"],
-         item["to"]["col"], item["promotion"])
+        (item["from"]["row"], item["from"]["col"], item["to"]["row"], item["to"]["col"], item["promotion"])
         for item in result["moves"]
     }
     assert observed_moves == expected_moves, (
@@ -1313,20 +1654,18 @@ def test_random_position_cross_engine_parity(index):
 
     assert result["check"] is rules.in_check(state, state.turn), f"check mismatch{context}"
     assert result["positionKey"] == rules.position_key(state), (
-        f"positionKey mismatch{context}\n"
-        f"  python={rules.position_key(state)!r}\n  js={result['positionKey']!r}"
+        f"positionKey mismatch{context}\n  python={rules.position_key(state)!r}\n  js={result['positionKey']!r}"
     )
     python_specs = _python_capture_specs(game, state.turn)
     assert result["capturableSquares"] == python_specs, (
-        f"capturableSquares mismatch{context}\n"
-        f"  python={python_specs}\n  js={result['capturableSquares']}"
+        f"capturableSquares mismatch{context}\n  python={python_specs}\n  js={result['capturableSquares']}"
     )
-    python_captured = sorted((piece.type.value, piece.color.value)
-                             for piece in rules.captured_by_move(state, first_move))
+    python_captured = sorted(
+        (piece.type.value, piece.color.value) for piece in rules.captured_by_move(state, first_move)
+    )
     js_captured = sorted((item["type"], item["color"]) for item in result["capturedByMove"])
     assert js_captured == python_captured, (
-        f"capturedByMove mismatch for {first_move.key()}{context}\n"
-        f"  python={python_captured}\n  js={js_captured}"
+        f"capturedByMove mismatch for {first_move.key()}{context}\n  python={python_captured}\n  js={js_captured}"
     )
 
 
@@ -1372,7 +1711,8 @@ def test_random_position_same_side_invariants(index):
         for move in sorted(rules.legal_moves(state, color), key=lambda item: item.key()):
             attributed = {
                 removal.victim_id
-                for spec in full.values() for removal in spec.removals
+                for spec in full.values()
+                for removal in spec.removals
                 if removal.origin == move.source and removal.landing == move.target
             }
             actual = {piece.id for piece in rules.captured_by_move(state, move)}
@@ -1394,11 +1734,10 @@ def test_random_sample_set_covers_every_piece_type():
     seen: set[PieceType] = set()
     for index in range(PARITY_SAMPLES):
         seen |= {piece.type for piece in _random_game(index).state.pieces}
-    required = set(_ALL_TYPES[:min(PARITY_SAMPLES, len(_ALL_TYPES))])
+    required = set(_ALL_TYPES[: min(PARITY_SAMPLES, len(_ALL_TYPES))])
     missing = required - seen
-    assert not missing, (
-        f"{PARITY_SAMPLES} samples never exercised: {sorted(kind.value for kind in missing)}"
-    )
+    assert not missing, f"{PARITY_SAMPLES} samples never exercised: {sorted(kind.value for kind in missing)}"
+
 
 # --------------------------------------------------------------------------
 # 定向 removals 对拍：只改变"移走哪些子"、不改变合法着集合的规则（如三连吃子），
@@ -1410,25 +1749,29 @@ THREE_LINE_OPTIONS = {"pawn_three_line_capture": True}
 
 
 def _three_line_game(placements, options=None):
-    return _sparse("desktop_complete",
-                   [(PieceType.KING, Color.RED, 11, 6), (PieceType.KING, Color.BLACK, 0, 4)]
-                   + placements,
-                   kings=False, options=options or THREE_LINE_OPTIONS)
+    return _sparse(
+        "desktop_complete",
+        [(PieceType.KING, Color.RED, 11, 6), (PieceType.KING, Color.BLACK, 0, 4)] + placements,
+        kings=False,
+        options=options or THREE_LINE_OPTIONS,
+    )
 
 
 def test_three_line_capture_parity_when_the_moved_pawn_joins_the_line():
     """参与则吃：`(6,4)→(5,4)` 与 `(5,5)` 兵、`(5,6)` 黑士成线 → 两侧都吃掉那枚士。"""
-    game = _three_line_game([
-        (PieceType.PAWN, Color.RED, 6, 4),
-        (PieceType.PAWN, Color.RED, 5, 5),
-        (PieceType.ADVISOR, Color.BLACK, 5, 6),
-    ])
+    game = _three_line_game(
+        [
+            (PieceType.PAWN, Color.RED, 6, 4),
+            (PieceType.PAWN, Color.RED, 5, 5),
+            (PieceType.ADVISOR, Color.BLACK, 5, 6),
+        ]
+    )
     move = Move(Position(6, 4), Position(5, 4))
 
-    python_captured = sorted((piece.type.value, piece.color.value)
-                             for piece in game.rules.captured_by_move(game.state, move))
-    js_captured = sorted((item["type"], item["color"])
-                         for item in _offline_captured(game, move.source, move.target))
+    python_captured = sorted(
+        (piece.type.value, piece.color.value) for piece in game.rules.captured_by_move(game.state, move)
+    )
+    js_captured = sorted((item["type"], item["color"]) for item in _offline_captured(game, move.source, move.target))
 
     # 先断言**非空**：只比相等的话，两边都返回 [] 也会绿（假绿）。
     assert python_captured, "三连吃子没吃到任何子 —— 收窄可能过头了"
@@ -1438,18 +1781,20 @@ def test_three_line_capture_parity_when_the_moved_pawn_joins_the_line():
 
 def test_three_line_capture_parity_ignores_a_far_line():
     """不参与不吃：走无关的兵 `(8,4)→(7,4)`，远处 `(2,8)(2,9)(2,10)` 成线 → 两侧都为空。"""
-    game = _three_line_game([
-        (PieceType.PAWN, Color.RED, 8, 4),
-        (PieceType.PAWN, Color.RED, 2, 8),
-        (PieceType.PAWN, Color.RED, 2, 9),
-        (PieceType.ADVISOR, Color.BLACK, 2, 10),
-    ])
+    game = _three_line_game(
+        [
+            (PieceType.PAWN, Color.RED, 8, 4),
+            (PieceType.PAWN, Color.RED, 2, 8),
+            (PieceType.PAWN, Color.RED, 2, 9),
+            (PieceType.ADVISOR, Color.BLACK, 2, 10),
+        ]
+    )
     move = Move(Position(8, 4), Position(7, 4))
 
-    python_captured = sorted((piece.type.value, piece.color.value)
-                             for piece in game.rules.captured_by_move(game.state, move))
-    js_captured = sorted((item["type"], item["color"])
-                         for item in _offline_captured(game, move.source, move.target))
+    python_captured = sorted(
+        (piece.type.value, piece.color.value) for piece in game.rules.captured_by_move(game.state, move)
+    )
+    js_captured = sorted((item["type"], item["color"]) for item in _offline_captured(game, move.source, move.target))
 
     assert python_captured == [], f"不该收割远线，实际 {python_captured}"
     assert js_captured == python_captured, f"python={python_captured} js={js_captured}"

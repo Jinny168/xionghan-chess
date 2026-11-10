@@ -10,11 +10,10 @@ report the side as being in check rather than ending the game silently.
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 from pathlib import Path
 
-import pytest
+from _node_guard import module_skip_mark, require_node
 
 from xionghan_chess.core.model import Color, GameState, Piece, PieceType
 from xionghan_chess.core.profiles import get_profile
@@ -24,12 +23,17 @@ ROOT = Path(__file__).resolve().parents[1]
 PROBE = ROOT / "scripts" / "offline_rules_probe.cjs"
 OFFLINE = ROOT / "android" / "Resources" / "assets" / "offline" / "offline.js"
 
+# 缺 node 时整模块显式失败（不许静默 skip），守卫与逃生阀见 tests/_node_guard.py。
+if (mark := module_skip_mark()) is not None:
+    pytestmark = mark
+
 
 def engine() -> RulesEngine:
     """软删甲/楯后，用选项把它们临时打开 —— 本文件测的是**保留下来的规则分支**，不是出场配置。"""
     profile = get_profile("desktop_complete")
-    return RulesEngine(profile, profile.options.merged(
-        {"armor_appear": True, "shield_appear": True, "assassin_appear": True}))
+    return RulesEngine(
+        profile, profile.options.merged({"armor_appear": True, "shield_appear": True, "assassin_appear": True})
+    )
 
 
 def board(*pieces, turn=Color.RED) -> GameState:
@@ -42,8 +46,7 @@ def _state_dict(state: GameState) -> dict:
         "profileId": data["profileId"],
         "turn": data["turn"],
         "pieces": [
-            {"id": item["id"], "type": item["type"], "color": item["color"],
-             "row": item["row"], "col": item["col"]}
+            {"id": item["id"], "type": item["type"], "color": item["color"], "row": item["row"], "col": item["col"]}
             for item in data["pieces"]
         ],
         "history": data["history"],
@@ -55,19 +58,21 @@ def _state_dict(state: GameState) -> dict:
 
 
 def _probe(payload: dict) -> dict:
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required for the offline engine check")
+    require_node()
     completed = subprocess.run(
         ["node", str(PROBE), str(OFFLINE)],
-        input=json.dumps(payload), text=True, capture_output=True, check=True, timeout=30,
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
     )
     return json.loads(completed.stdout)
 
 
 def _offline_check(state: GameState, color: Color) -> bool:
     """Ask offline.js for its verdict on the very same board and side."""
-    return _probe({"profileId": "desktop_complete", "state": _state_dict(state),
-                   "checkFor": color.value})["check"]
+    return _probe({"profileId": "desktop_complete", "state": _state_dict(state), "checkFor": color.value})["check"]
 
 
 # --------------------------------------------------------------------------
@@ -75,15 +80,9 @@ def _offline_check(state: GameState, color: Color) -> bool:
 # --------------------------------------------------------------------------
 
 
-
-
-
 # --------------------------------------------------------------------------
 # P0-R2: the assassin drags the king standing behind it into the exchange.
 # --------------------------------------------------------------------------
-
-
-
 
 
 # --------------------------------------------------------------------------
@@ -91,10 +90,10 @@ def _offline_check(state: GameState, color: Color) -> bool:
 # --------------------------------------------------------------------------
 
 
-
 # --------------------------------------------------------------------------
 # R-5: the probe has to expose more than legal moves and check.
 # --------------------------------------------------------------------------
+
 
 def test_probe_exposes_captured_by_move_and_terminal_legs():
     state = board(
@@ -104,13 +103,15 @@ def test_probe_exposes_captured_by_move_and_terminal_legs():
         Piece.create(PieceType.KING, Color.BLACK, 1, 5),
     )
     payload = _state_dict(state)
-    result = _probe({
-        "profileId": "desktop_complete",
-        "state": payload,
-        "capturedByMove": {"from": {"row": 5, "col": 0}, "to": {"row": 5, "col": 4}},
-        "checkmate": True,
-        "stalemate": True,
-    })
+    result = _probe(
+        {
+            "profileId": "desktop_complete",
+            "state": payload,
+            "capturedByMove": {"from": {"row": 5, "col": 0}, "to": {"row": 5, "col": 4}},
+            "checkmate": True,
+            "stalemate": True,
+        }
+    )
     assert [captured["type"] for captured in result["capturedByMove"]] == ["pawn"]
     # Neither side is stalemated or mated here; both engines must agree that.
     assert result["checkmate"] is _terminal_flag(state, Color.RED, "checkmate")

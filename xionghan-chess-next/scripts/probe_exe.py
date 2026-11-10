@@ -10,6 +10,7 @@
 用法（本脚本需要在仓库根目录运行）：
     python scripts/probe_exe.py release/s26-spec/s26-spec.exe
 """
+
 from __future__ import annotations
 
 import os
@@ -32,8 +33,7 @@ def probe(exe: Path, wait_seconds: float = 45.0) -> int:
     print(f"产物 {exe.name}  {exe.stat().st_size:,} B")
     print(f"临时 APPDATA: {sandbox}")
 
-    process = subprocess.Popen([str(exe)], env=env,
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    process = subprocess.Popen([str(exe)], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     target = sandbox / APP_DIR_NAME
     deadline = time.time() + wait_seconds
     created = False

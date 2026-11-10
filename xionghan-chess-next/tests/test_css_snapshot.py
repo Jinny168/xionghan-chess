@@ -45,8 +45,7 @@ def _snapshots() -> dict[str, bytes]:
 
 def _tables() -> dict[str, dict[str, str]]:
     """取三个作用域的变量表（与 `--write` 走同一条代码路径）。"""
-    spec = importlib.util.spec_from_file_location(
-        "css_snapshot_for_tests", ROOT / "scripts" / "css_snapshot.py")
+    spec = importlib.util.spec_from_file_location("css_snapshot_for_tests", ROOT / "scripts" / "css_snapshot.py")
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -65,9 +64,11 @@ def _first_mismatch(got: bytes, want: bytes) -> str:
     got_lines, want_lines = got.split(b"\n"), want.split(b"\n")
     for index, (a, b) in enumerate(zip(got_lines, want_lines), 1):
         if a != b:
-            return (f"首个差异在第 {index} 行\n"
-                    f"  基线：{b.decode('utf-8', 'replace')[:200]}\n"
-                    f"  现在：{a.decode('utf-8', 'replace')[:200]}")
+            return (
+                f"首个差异在第 {index} 行\n"
+                f"  基线：{b.decode('utf-8', 'replace')[:200]}\n"
+                f"  现在：{a.decode('utf-8', 'replace')[:200]}"
+            )
     if len(got_lines) != len(want_lines):
         return f"行数不同：基线 {len(want_lines)} 行 / 现在 {len(got_lines)} 行"
     return "内容完全相同（不该走到这条断言）"
@@ -80,7 +81,8 @@ def _assert_matches_baseline(name: str, label: str) -> None:
     want = expected.read_bytes()
     assert body == want, (
         f"{label}快照变了（视觉可能变了）：基线 {len(want)} 字节 / 现在 {len(body)} 字节\n"
-        + _first_mismatch(body, want))
+        + _first_mismatch(body, want)
+    )
 
 
 def test_light_snapshot_matches_baseline_bytes() -> None:
@@ -103,12 +105,13 @@ def test_board_dark_snapshot_is_its_own_scope() -> None:
 
     tables = _tables()
     expand = tables["_expand"]  # type: ignore[assignment]
-    assert expand("var(--board-bg)", tables["board-dark"]) == "#2c2c2c", \
+    assert expand("var(--board-bg)", tables["board-dark"]) == "#2c2c2c", (
         "棋盘对角色的覆写丢了（board-dark 的 --board-bg 应仍是 #2c2c2c）"
-    assert expand("var(--border-field)", tables["board-dark"]) == "#a38b66", \
+    )
+    assert expand("var(--border-field)", tables["board-dark"]) == "#a38b66", (
         "棋盘轴不该再覆写 --border-field（面板边框归界面轴管）"
-    assert expand("var(--border-panel-soft)", tables["board-dark"]) == "#b5935e", \
-        "棋盘轴不该再覆写 --border-panel-soft"
+    )
+    assert expand("var(--border-panel-soft)", tables["board-dark"]) == "#b5935e", "棋盘轴不该再覆写 --border-panel-soft"
 
 
 def test_board_theme_only_touches_the_board() -> None:
@@ -118,15 +121,17 @@ def test_board_theme_only_touches_the_board() -> None:
     直接扫 CSS 源码，比看截图可靠 —— 截图只能证明"这一套主题这一屏没问题"。
     """
     import re
+
     raw = (ROOT / "web" / "css" / "app.css").read_text(encoding="utf-8")
     # 先剥注释：否则捕获到的"选择器"会把前面的注释一起带进来，匹配必然失败
     css = re.sub(r"/\*.*?\*/", "", raw, flags=re.S)
     # 允许的形态：`body[data-board-theme="dark"]` 本身，或其后接棋盘容器
     allowed = re.compile(
         r'^body\[data-board-theme="dark"\]'
-        r'(?:\.board-shell|\.board-stage|canvas|\.board-|:before)?')
+        r"(?:\.board-shell|\.board-stage|canvas|\.board-|:before)?"
+    )
     offenders = []
-    for match in re.finditer(r'([^{}]+)\{', css):
+    for match in re.finditer(r"([^{}]+)\{", css):
         selector_text = match.group(1).strip()
         if 'data-board-theme="dark"' not in selector_text:
             continue
@@ -136,7 +141,7 @@ def test_board_theme_only_touches_the_board() -> None:
                 continue
             if not allowed.match(one):
                 offenders.append(one)
-    assert not offenders, ("棋盘暗色越界到非棋盘元素了：" + "；".join(offenders[:5]))
+    assert not offenders, "棋盘暗色越界到非棋盘元素了：" + "；".join(offenders[:5])
 
 
 def test_snapshot_is_stable_across_runs() -> None:

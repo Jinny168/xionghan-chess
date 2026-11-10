@@ -24,9 +24,10 @@ def client() -> TestClient:
 
 
 def _room(client: TestClient) -> tuple[str, str]:
-    created = client.post("/api/rooms", json={
-        "ruleVersion": RULE_VERSION,
-        "profileId": "traditional", "mode": "local", "playerName": "P1"}).json()
+    created = client.post(
+        "/api/rooms",
+        json={"ruleVersion": RULE_VERSION, "profileId": "traditional", "mode": "local", "playerName": "P1"},
+    ).json()
     return created["roomId"], created["token"]
 
 

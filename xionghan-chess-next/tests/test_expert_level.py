@@ -37,12 +37,9 @@ from pathlib import Path
 import pytest
 
 from xionghan_chess.core.ai import CONFIGS, ChessAI, Difficulty
-from xionghan_chess.core.game import Game
 
 ROOT = Path(__file__).resolve().parent.parent
-CORPUS = json.loads(
-    (ROOT / "benchmarks/baseline_2026-10-31-50p/base4_corpus16.json").read_text(encoding="utf-8")
-)
+CORPUS = json.loads((ROOT / "benchmarks/baseline_2026-10-31-50p/base4_corpus16.json").read_text(encoding="utf-8"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 
@@ -68,8 +65,7 @@ def test_expert_is_in_the_difficulty_dropdown() -> None:
     QApplication.instance() or QApplication([])
     from xionghan_chess.desktop.config import DEFAULTS
 
-    config = {**DEFAULTS, "profile": "desktop_complete", "language": "zh-CN",
-              "difficulty": "expert"}
+    config = {**DEFAULTS, "profile": "desktop_complete", "language": "zh-CN", "difficulty": "expert"}
     dialog = SettingsDialog(config)
     values = [dialog.difficulty.itemData(i) for i in range(dialog.difficulty.count())]
     assert values == ["beginner", "easy", "medium", "hard", "expert", "master"]
@@ -112,5 +108,5 @@ def test_expert_completes_depth_3_on_corpus(entry: dict, monkeypatch: pytest.Mon
     print(f"{entry['id'][:8]} d3 用时 {elapsed:.1f}s（180s 预算下）")
 
 
-def Difficulty_EXPERT_LIMIT() -> float:      # noqa: N802 - 仅作本文件内的上限取值
-    return CONFIGS[Difficulty.EXPERT].time_limit + 5.0      # 软上限：允许结算越过少量
+def Difficulty_EXPERT_LIMIT() -> float:  # noqa: N802 - 仅作本文件内的上限取值
+    return CONFIGS[Difficulty.EXPERT].time_limit + 5.0  # 软上限：允许结算越过少量

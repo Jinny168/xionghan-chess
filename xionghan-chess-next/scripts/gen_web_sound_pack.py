@@ -35,6 +35,7 @@
 **验收表若与代码不符，先质疑表。** 这一轮的教训不是"表算错了"，而是为了对上表去改声音 ——
 参数复刻的本义是"听起来一样"，不是"数字看着一样"。
 """
+
 from __future__ import annotations
 
 import math
@@ -47,8 +48,8 @@ RATE = 44100
 SEED = 20261031
 OUT = Path(__file__).resolve().parents[1] / "src/xionghan_chess/desktop/resources/sounds/web"
 
-ATTACK = 0.008          # 指数升包络时长
-FLOOR = 1e-4            # 衰减终点
+ATTACK = 0.008  # 指数升包络时长
+FLOOR = 1e-4  # 衰减终点
 
 
 def envelope(n: int, gain: float, duration: float) -> list[float]:
@@ -67,8 +68,7 @@ def envelope(n: int, gain: float, duration: float) -> list[float]:
     return out
 
 
-def tone(freq: float, duration: float, gain: float, wave_type: str = "sine",
-         slide: float = 0.0) -> list[float]:
+def tone(freq: float, duration: float, gain: float, wave_type: str = "sine", slide: float = 0.0) -> list[float]:
     n = int(duration * RATE)
     env = envelope(n, gain, duration)
     samples = []
@@ -139,24 +139,31 @@ def write_wav(name: str, samples: list[float]) -> None:
 
 
 def main() -> None:
-    rng = random.Random(SEED)          # 固定种子：重跑逐字节一致
+    rng = random.Random(SEED)  # 固定种子：重跑逐字节一致
     write_wav("select", tone(760, 0.07, 0.10))
-    write_wav("move", mix(
-        (0.0, tone(190, 0.11, 0.24, slide=-70)),
-        (0.0, noise(0.06, 0.10, 900, rng)),     # 与音同时起 → 重叠，总长 0.11s
-    ))
-    write_wav("capture", mix(
-        (0.0, tone(320, 0.09, 0.20, wave_type="triangle", slide=-180)),
-        (0.01, noise(0.12, 0.16, 1600, rng)),
-    ))
-    write_wav("check", mix(
-        (0.0, tone(620, 0.16, 0.18, wave_type="triangle")),
-        (0.09, tone(930, 0.14, 0.12, wave_type="triangle")),
-    ))
-    write_wav("win", mix(*[(0.1 * i, tone(f, 0.24, 0.16)) for i, f in
-                           enumerate((523, 659, 784, 1046))]))
-    write_wav("lose", mix(*[(0.13 * i, tone(f, 0.30, 0.16)) for i, f in
-                            enumerate((392, 330, 262))]))
+    write_wav(
+        "move",
+        mix(
+            (0.0, tone(190, 0.11, 0.24, slide=-70)),
+            (0.0, noise(0.06, 0.10, 900, rng)),  # 与音同时起 → 重叠，总长 0.11s
+        ),
+    )
+    write_wav(
+        "capture",
+        mix(
+            (0.0, tone(320, 0.09, 0.20, wave_type="triangle", slide=-180)),
+            (0.01, noise(0.12, 0.16, 1600, rng)),
+        ),
+    )
+    write_wav(
+        "check",
+        mix(
+            (0.0, tone(620, 0.16, 0.18, wave_type="triangle")),
+            (0.09, tone(930, 0.14, 0.12, wave_type="triangle")),
+        ),
+    )
+    write_wav("win", mix(*[(0.1 * i, tone(f, 0.24, 0.16)) for i, f in enumerate((523, 659, 784, 1046))]))
+    write_wav("lose", mix(*[(0.13 * i, tone(f, 0.30, 0.16)) for i, f in enumerate((392, 330, 262))]))
     write_wav("click", tone(520, 0.035, 0.06, wave_type="square"))
     write_wav("undo", tone(300, 0.12, 0.14, slide=120))
 

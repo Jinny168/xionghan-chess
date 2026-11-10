@@ -51,7 +51,7 @@ def render(*, locked: bool, paused: bool = False) -> tuple[QImage, BoardWidget]:
     board.interactive = False
     board.animation_source = Position(6, 6)
     board.animation_target = Position(7, 7)
-    board.animation_frame = 0      # progress=0 → 环是纯色，便于取样
+    board.animation_frame = 0  # progress=0 → 环是纯色，便于取样
     board.animation_capture = False
     board.game.state.paused = paused
     board.locked = locked
@@ -80,8 +80,7 @@ def test_animation_is_drawn_above_the_thinking_mask(qt_app: QApplication) -> Non
     locked_image, board = render(locked=True)
     unlocked_image, _ = render(locked=False)
     assert ring_pixel(locked_image, board) == RING_COLOR, "动画被「思考中」遮罩压住了"
-    assert ring_pixel(locked_image, board) == ring_pixel(unlocked_image, board), \
-        "锁盘与不锁盘的动画像素应当一致"
+    assert ring_pixel(locked_image, board) == ring_pixel(unlocked_image, board), "锁盘与不锁盘的动画像素应当一致"
 
 
 def test_thinking_mask_still_dims_the_board(qt_app: QApplication) -> None:
@@ -109,7 +108,10 @@ def test_animation_duration_is_about_450ms(qt_app: QApplication) -> None:
     取这一档而不是 550ms/16ms，是因为实测 900×900 单帧 max 14.3ms（超 12ms 掉帧线）、
     1470px p95 已 16.2ms —— 20ms 定时器下两个尺寸都在预算内。
     """
-    from xionghan_chess.desktop.ui.board_widget import ANIMATION_FRAMES, ANIMATION_TIMER_MS
+    from xionghan_chess.desktop.ui.board_widget import (
+        ANIMATION_FRAMES,
+        ANIMATION_TIMER_MS,
+    )
 
     assert ANIMATION_TIMER_MS == 20
     duration = ANIMATION_FRAMES * ANIMATION_TIMER_MS
@@ -120,7 +122,11 @@ def test_animation_duration_is_about_450ms(qt_app: QApplication) -> None:
 def test_animation_stops_after_the_last_frame(qt_app: QApplication) -> None:
     """跑满帧数后必须清掉动画状态；脉冲走完后定时器必须停（不得常驻）。"""
     from xionghan_chess.desktop.ui.board_widget import (
-        ANIMATION_FRAMES, CHECK_PULSE_FRAMES, BoardWidget as Widget,
+        ANIMATION_FRAMES,
+        CHECK_PULSE_FRAMES,
+    )
+    from xionghan_chess.desktop.ui.board_widget import (
+        BoardWidget as Widget,
     )
 
     game = Game("web")

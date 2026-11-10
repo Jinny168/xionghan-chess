@@ -25,6 +25,7 @@ S1 的声明会被按"根值 / S2 值"展开 —— 记下的是**名义值而�
     python scripts/css_snapshot.py             # 打到 stdout（亮色段）
     python scripts/css_snapshot.py --write     # 写三份基线
 """
+
 from __future__ import annotations
 
 import re
@@ -60,7 +61,7 @@ def split_rules(text: str) -> list[tuple[str, str]]:
         elif char == "}":
             depth -= 1
             if depth == 0 and body_start >= 0:
-                rules.append((text[selector_start:body_start - 1].strip(), text[body_start:index]))
+                rules.append((text[selector_start : body_start - 1].strip(), text[body_start:index]))
                 selector_start = index + 1
     return rules
 

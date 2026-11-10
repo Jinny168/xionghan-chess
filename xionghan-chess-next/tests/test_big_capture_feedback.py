@@ -20,8 +20,7 @@ def test_threshold_is_the_agreed_value() -> None:
 
 def test_threshold_splits_the_piece_table_as_expected() -> None:
     # 王不在比较范围内：吃到王意味着对局结束，走的是 finished 分支，轮不到"大子反馈"。
-    big = {kind for kind, value in PIECE_VALUES.items()
-           if value >= BIG_CAPTURE_VALUE and kind != "king"}
+    big = {kind for kind, value in PIECE_VALUES.items() if value >= BIG_CAPTURE_VALUE and kind != "king"}
     assert big == {"rook", "cannon", "horse", "archer", "thunder", "guard", "patrol"}
 
 
@@ -29,7 +28,7 @@ def test_big_and_small_captures() -> None:
     assert is_big_capture(["rook"])
     assert is_big_capture(["pawn", "horse"]), "吃到多子时任意一个大子就算"
     assert not is_big_capture(["pawn"])
-    assert not is_big_capture(["advisor", "elephant"])   # 士/相被吃太常见，不喊
+    assert not is_big_capture(["advisor", "elephant"])  # 士/相被吃太常见，不喊
     assert not is_big_capture([])
 
 
@@ -38,8 +37,7 @@ def test_web_list_matches_python() -> None:
     match = re.search(r"BIG_CAPTURE_TYPES=\[([^\]]*)\]", js)
     assert match, "网页端找不到 BIG_CAPTURE_TYPES"
     web = {item.strip().strip("'\"") for item in match.group(1).split(",") if item.strip()}
-    py = {kind for kind, value in PIECE_VALUES.items()
-          if value >= BIG_CAPTURE_VALUE and kind != "king"}
+    py = {kind for kind, value in PIECE_VALUES.items() if value >= BIG_CAPTURE_VALUE and kind != "king"}
     assert web == py, f"两端的大子清单不一致：网页 {web} / Python {py}"
 
 

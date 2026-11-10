@@ -26,16 +26,20 @@ def test_desktop_shows_a_banner_once_and_marks_itself() -> None:
 
     body = src.split("def maybe_show_onboarding")[1].split("def ")[0]
     assert 'if self.config.get("onboarded")' in body, "缺少只显示一次的判断"
-    assert "self.statusBar().showMessage(text,15000)" in body, "引导没有可见出口"
-    assert 'self.config["onboarded"]=True' in body and "save_config(self.config)" in body, \
-        "标记没落盘，重启会再显示"
+    assert "self.statusBar().showMessage(text, 15000)" in body, "引导没有可见出口"
+    assert 'self.config["onboarded"] = True' in body and "save_config(self.config)" in body, "标记没落盘，重启会再显示"
     assert "QMessageBox" not in body, "别改回弹窗：子窗口会抢键盘，顶掉其它用例"
 
 
 def test_web_has_the_dialog_and_the_flag() -> None:
     html = (ROOT / "web/index.html").read_text(encoding="utf-8")
-    for element in ('id="onboardDialog"', 'id="onboardLine1"', 'id="onboardLine2"',
-                    'id="onboardLine3"', 'id="onboardStartButton"'):
+    for element in (
+        'id="onboardDialog"',
+        'id="onboardLine1"',
+        'id="onboardLine2"',
+        'id="onboardLine3"',
+        'id="onboardStartButton"',
+    ):
         assert element in html, f"弹窗缺少 {element}"
 
     js = (ROOT / "web/js/app.js").read_text(encoding="utf-8")

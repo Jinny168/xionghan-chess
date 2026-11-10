@@ -54,8 +54,7 @@ TIER_QUOTA = [("beginner", 9), ("advanced", 7), ("master", 6)]
 def _top_move_at_depth(game, depth: int):
     """把引擎固定在 `depth` 层，返回它认为最好的第一手。"""
     original = ai_module.CONFIGS[PROBE_BASE]
-    ai_module.CONFIGS[PROBE_BASE] = replace(
-        original, depth=depth, time_limit=PROBE_TIME_LIMIT, randomness=0.0)
+    ai_module.CONFIGS[PROBE_BASE] = replace(original, depth=depth, time_limit=PROBE_TIME_LIMIT, randomness=0.0)
     try:
         ai = ChessAI(PROBE_BASE, seed=7)
         return ai.choose_move(game)
@@ -84,8 +83,7 @@ def main() -> int:
     started = time.monotonic()
     for index, puzzle in enumerate(puzzles, 1):
         obvious = obvious_first_move(puzzle)
-        measured.append({"id": puzzle.id, "plies": len(puzzle.solution),
-                         "was": puzzle.difficulty, "obvious": obvious})
+        measured.append({"id": puzzle.id, "plies": len(puzzle.solution), "was": puzzle.difficulty, "obvious": obvious})
         if index % 5 == 0 or index == len(puzzles):
             print(f"  已探 {index}/{len(puzzles)}")
 
@@ -94,11 +92,11 @@ def main() -> int:
     rows = []
     cursor = 0
     for level, quota in TIER_QUOTA:
-        for row in measured[cursor:cursor + quota]:
+        for row in measured[cursor : cursor + quota]:
             row["calibrated"] = level
             rows.append(row)
         cursor += quota
-    for row in measured[cursor:]:          # 超出配额的部分并入最高档
+    for row in measured[cursor:]:  # 超出配额的部分并入最高档
         row["calibrated"] = TIER_QUOTA[-1][0]
         rows.append(row)
 
@@ -106,9 +104,11 @@ def main() -> int:
     rows.sort(key=lambda row: order[row["id"]])
     for index, row in enumerate(rows, 1):
         flag = "" if row["calibrated"] == row["was"] else "  ← 改判"
-        print(f"[{index:2d}/{len(rows)}] {row['id']:10s} {row['plies']} ply  "
-              f"原={row['was']:9s} 标定={row['calibrated']:9s} "
-              f"一眼可见={row['obvious']!s:5s}{flag}")
+        print(
+            f"[{index:2d}/{len(rows)}] {row['id']:10s} {row['plies']} ply  "
+            f"原={row['was']:9s} 标定={row['calibrated']:9s} "
+            f"一眼可见={row['obvious']!s:5s}{flag}"
+        )
 
     elapsed = time.monotonic() - started
     dist = Counter(row["calibrated"] for row in rows)
@@ -127,8 +127,7 @@ def main() -> int:
             if item["id"] in by_id:
                 item["difficulty"] = by_id[item["id"]]
                 item["tags"] = sorted({*item.get("tags", []), "calibrated"})
-        DATA.write_text(json.dumps(items, ensure_ascii=False, indent=2) + "\n",
-                        encoding="utf-8", newline="\n")
+        DATA.write_text(json.dumps(items, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
         print("已写回题库（记得重生成离线包）")
     return 0
 

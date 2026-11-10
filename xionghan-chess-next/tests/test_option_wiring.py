@@ -90,17 +90,22 @@ EXEMPT: dict[str, str] = {
 # 这是**当前定稿**的指纹，用来抓"三端一起漏掉某组"这种连一致性检查都过不了的情形
 # （例如三端同时把兵的 7 个开关删了，键集合仍三端一致，但用户丢了功能）。
 EXPECTED_GROUP_KEYS: dict[str, frozenset[str]] = {
-    "king": frozenset({"king_can_leave_palace", "king_diagonal_in_palace",
-                       "king_lose_diagonal_outside_palace", "invasion_victory"}),
-    "horse": frozenset({"horse_blocked_by_leg", "horse_straight_three",
-                        "horse_straight_three_move_only"}),
-    "elephant": frozenset({"elephant_can_cross_river",
-                           "elephant_gain_jump_two_enemy_territory"}),
-    "advisor": frozenset({"advisor_can_leave_palace",
-                          "advisor_gain_straight_outside_palace"}),
-    "pawn": frozenset({"pawn_fast_move_before_enemy_territory", "pawn_charge",
-                       "pawn_three_line_capture", "pawn_backward_at_base",
-                       "pawn_resurrection", "pawn_promotion"}),
+    "king": frozenset(
+        {"king_can_leave_palace", "king_diagonal_in_palace", "king_lose_diagonal_outside_palace", "invasion_victory"}
+    ),
+    "horse": frozenset({"horse_blocked_by_leg", "horse_straight_three", "horse_straight_three_move_only"}),
+    "elephant": frozenset({"elephant_can_cross_river", "elephant_gain_jump_two_enemy_territory"}),
+    "advisor": frozenset({"advisor_can_leave_palace", "advisor_gain_straight_outside_palace"}),
+    "pawn": frozenset(
+        {
+            "pawn_fast_move_before_enemy_territory",
+            "pawn_charge",
+            "pawn_three_line_capture",
+            "pawn_backward_at_base",
+            "pawn_resurrection",
+            "pawn_promotion",
+        }
+    ),
     "archer": frozenset({"archer_enhanced_mode"}),
 }
 
@@ -127,11 +132,12 @@ def _eval_dict_node(node: ast.AST):
         return tuple(_eval_dict_node(elt) for elt in node.elts)
     if isinstance(node, ast.Constant):
         return node.value
-    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) \
-            and node.value.id == "PieceType":
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "PieceType":
         return getattr(PieceType, node.attr)
-    raise AssertionError(f"`piece_definitions` 里出现了守卫不认识的写法：{ast.dump(node)[:120]}"
-                         "（若确实需要，请扩展 _eval_dict_node 而不是把副本抄进测试）")
+    raise AssertionError(
+        f"`piece_definitions` 里出现了守卫不认识的写法：{ast.dump(node)[:120]}"
+        "（若确实需要，请扩展 _eval_dict_node 而不是把副本抄进测试）"
+    )
 
 
 def _find_named_literal(tree: ast.AST, name: str) -> ast.AST | None:
@@ -180,7 +186,7 @@ def _js_object_body(source: str, name: str) -> str:
             depth -= 1
         index += 1
     assert depth == 0, f"app.js 里 `{name}` 的花括号没有配平"
-    return source[match.end(): index - 1]
+    return source[match.end() : index - 1]
 
 
 def web_groups() -> dict[str, frozenset[str]]:
@@ -247,7 +253,7 @@ def test_all_exemptions_are_accounted_for_by_known_categories() -> None:
     global_rules = {"enforce_self_check", "threefold_draw", "no_progress_draw_plies"}
     appear_keys = {f"{kind.value}_appear" for kind in PieceType}
     assert set(EXEMPT) == global_rules | appear_keys, (
-        "豁免表出现了未知类别：" f"{sorted(set(EXEMPT) - global_rules - appear_keys)}"
+        f"豁免表出现了未知类别：{sorted(set(EXEMPT) - global_rules - appear_keys)}"
     )
 
 
@@ -256,8 +262,9 @@ def test_three_ends_have_identical_grouping() -> None:
     atlas = desktop_atlas_groups()
     dialog = desktop_dialog_groups()
     web = web_groups()
-    assert atlas == dialog, f"桌面两处分组不一致：仅 atlas {atlas.keys() - dialog.keys()} / " \
-                            f"仅 dialog {dialog.keys() - atlas.keys()}"
+    assert atlas == dialog, (
+        f"桌面两处分组不一致：仅 atlas {atlas.keys() - dialog.keys()} / 仅 dialog {dialog.keys() - atlas.keys()}"
+    )
     assert atlas == web, f"桌面与网页分组不一致：仅桌面 {set(atlas) - set(web)} / 仅网页 {set(web) - set(atlas)}"
 
 
@@ -265,8 +272,7 @@ def test_grouping_matches_the_frozen_fingerprint() -> None:
     """三端一致还不够：三端一起漏掉某组也能过一致性检查，所以留一份定稿指纹。"""
     atlas = {kind: keys for kind, keys in desktop_atlas_groups().items()}
     assert atlas == EXPECTED_GROUP_KEYS, (
-        "三端棋子分组与定稿指纹不符（若是有意的产品变更，请同步更新 EXPECTED_GROUP_KEYS"
-        "并说明用户侧的变化）"
+        "三端棋子分组与定稿指纹不符（若是有意的产品变更，请同步更新 EXPECTED_GROUP_KEYS并说明用户侧的变化）"
     )
     total = sum(len(keys) for keys in atlas.values())
     assert len(atlas) == 6 and total == 18, f"定稿形状应为 6 组 / 18 键，实际 {len(atlas)} 组 / {total} 键"
@@ -284,6 +290,7 @@ def test_grouped_keys_are_real_rule_fields() -> None:
 
 
 # --- 文案覆盖 ------------------------------------------------------------
+
 
 def _rule_section(language: str) -> dict[str, str]:
     data = json.loads((LOCALES / f"{language}.json").read_text(encoding="utf-8"))
@@ -316,6 +323,7 @@ def test_both_locales_cover_every_grouped_key_in_long_and_short_form() -> None:
 # 但三端过去都只把它 `disabled`、从不隐藏 —— 玩家面对一个永远点不动的按钮。
 # 这里守两件事：core 这张表本身对，且三端真的读了它（而不是各写一份硬编码）。
 
+
 def test_action_requirements_mirror_the_engine_guard() -> None:
     from xionghan_chess.core.profiles import UI_ACTION_REQUIRES, action_visible
 
@@ -334,7 +342,8 @@ def test_three_fronts_read_the_shared_action_table() -> None:
     """
     desktop = (ROOT / "src" / "xionghan_chess" / "desktop" / "app.py").read_text(encoding="utf-8")
     assert "action_visible(" in desktop and "UI_ACTION_REQUIRES" in (
-        ROOT / "src" / "xionghan_chess" / "core" / "profiles.py").read_text(encoding="utf-8")
+        ROOT / "src" / "xionghan_chess" / "core" / "profiles.py"
+    ).read_text(encoding="utf-8")
     assert "setVisible(visible)" in desktop, "桌面侧没有把复活按钮/菜单项真的隐藏"
 
     web = APP_JS.read_text(encoding="utf-8")

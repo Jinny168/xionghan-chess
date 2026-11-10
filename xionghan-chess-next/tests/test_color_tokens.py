@@ -37,7 +37,7 @@ def _channel(value: float) -> float:
 
 def _luminance(hex_color: str) -> float:
     text = hex_color.lstrip("#")
-    r, g, b = (int(text[i:i + 2], 16) for i in (0, 2, 4))
+    r, g, b = (int(text[i : i + 2], 16) for i in (0, 2, 4))
     return 0.2126 * _channel(r) + 0.7152 * _channel(g) + 0.0722 * _channel(b)
 
 

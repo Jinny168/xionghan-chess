@@ -53,17 +53,18 @@ def test_watchdog_ignores_stale_generation(window) -> None:
 
 
 def test_start_ai_schedules_a_watchdog(window, qt_app, monkeypatch) -> None:
-    """`start_ai` 必须真的排一个 `limit + 宽限` 的定时器。"""
+    """`start_ai` 必须真的排一个 `WATCHDOG_SECONDS` 的定时器。"""
     from xionghan_chess.desktop import app as app_module
 
     delays: list[int] = []
-    monkeypatch.setattr(app_module.QTimer, "singleShot",
-                        staticmethod(lambda ms, fn: delays.append(ms)), raising=False)
+    monkeypatch.setattr(app_module.QTimer, "singleShot", staticmethod(lambda ms, fn: delays.append(ms)), raising=False)
     monkeypatch.setattr(window.pool, "start", lambda worker: None, raising=False)
 
     window.board.locked = False
     window.start_ai()
 
+    from xionghan_chess.core.ai import WATCHDOG_SECONDS
+
     assert delays, "start_ai 没有排看门狗"
-    assert delays[0] > 0
+    assert delays[0] == int(WATCHDOG_SECONDS[window._configured_difficulty()] * 1000)
     window.board.locked = False

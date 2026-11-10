@@ -11,6 +11,7 @@ Widget** —— 因此可以被无显示环境（CI offscreen）安全导入与�
 它们都通过 `signals.finished/failed` 把结果送回 GUI 线程（跨线程发射 +
 AutoConnection，Qt 官方语义）。
 """
+
 from __future__ import annotations
 
 import threading
@@ -52,8 +53,7 @@ class AIWorker(QRunnable):
             self.signals.failed.emit((str(exc), self.cancel))
 
 
-def http_json_blocking(url: str, payload: dict | None = None,
-                       method: str = "GET", token: str = "") -> object:
+def http_json_blocking(url: str, payload: dict | None = None, method: str = "GET", token: str = "") -> object:
     """阻塞版 HTTP JSON 请求。**只允许在 worker 线程里调用。**
 
     抽出原因：原先是 `MainWindow.request_json` / `http_json` 两个静态方法，在 GUI
@@ -68,17 +68,14 @@ def http_json_blocking(url: str, payload: dict | None = None,
 class HttpWorker(QRunnable):
     """把阻塞 HTTP 请求移到线程池（S0-C：建连/云同步不再冻结 GUI）。"""
 
-    def __init__(self, url: str, payload: dict | None = None,
-                 method: str = "GET", token: str = "") -> None:
+    def __init__(self, url: str, payload: dict | None = None, method: str = "GET", token: str = "") -> None:
         super().__init__()
         self.url, self.payload, self.method, self.token = url, payload, method, token
         self.signals = WorkerSignals()
 
     def run(self) -> None:
         try:
-            self.signals.finished.emit(
-                http_json_blocking(self.url, self.payload, self.method, self.token)
-            )
+            self.signals.finished.emit(http_json_blocking(self.url, self.payload, self.method, self.token))
         except Exception as exc:  # noqa: BLE001
             self.signals.failed.emit(str(exc))
 

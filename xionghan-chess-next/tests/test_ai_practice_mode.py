@@ -12,13 +12,9 @@
 
 from __future__ import annotations
 
-import random
-
-import pytest
-
 from xionghan_chess.core.ai import CONFIGS, VALUES, ChessAI
 from xionghan_chess.core.game import Game
-from xionghan_chess.core.model import Color, Move, PieceType, Position
+from xionghan_chess.core.model import Color, Move, PieceType
 
 
 def _ai(difficulty: str = "beginner") -> ChessAI:
@@ -63,14 +59,12 @@ def test_sampling_respects_the_margin() -> None:
     cfg = CONFIGS[ai.difficulty]
     near = moves[1]
     far = moves[2]
-    ai.root_scores = [(0, moves[0], False), (-50, near, False),
-                      (-(cfg.sample_margin + 50), far, False)]
+    ai.root_scores = [(0, moves[0], False), (-50, near, False), (-(cfg.sample_margin + 50), far, False)]
     ai.completed_depth = 2
 
     for _ in range(50):
         picked = ai._sample_weaker(game, cfg)
-        assert picked is None or picked.key() != far.key(), \
-            f"分差超过 {cfg.sample_margin} 的着法被取样了"
+        assert picked is None or picked.key() != far.key(), f"分差超过 {cfg.sample_margin} 的着法被取样了"
 
 
 def test_gate_blocks_sampling_when_search_unfinished() -> None:
@@ -122,8 +116,7 @@ def test_gate_blocks_sampling_when_best_is_a_clean_capture() -> None:
     assert capture is not None, "局面构造失败：没有任何吃子着法"
     others = [m for m in moves if m.key() != capture.key()]
     _rig(ai, [0, -10, -20], [capture, *others[:2]])
-    assert ai._sample_weaker(game, CONFIGS[ai.difficulty]) is None, \
-        "最佳着是净正吃却仍在取样 —— 会出现'有子不吃'"
+    assert ai._sample_weaker(game, CONFIGS[ai.difficulty]) is None, "最佳着是净正吃却仍在取样 —— 会出现'有子不吃'"
 
 
 def test_practice_difficulty_parameters_are_the_agreed_ones() -> None:

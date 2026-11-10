@@ -31,14 +31,13 @@ import argparse
 import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RELEASE_DIR = ROOT / "release"
 APP_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "Programs" / "XionghanChess"
 EXE_NAME = "XionghanChess.exe"
-PRODUCT_NAME = "匈漢象棋"          # 桌面入口显示名（文件名由文件系统存 UTF-16，安全）
+PRODUCT_NAME = "匈漢象棋"  # 桌面入口显示名（文件名由文件系统存 UTF-16，安全）
 # 历史上桌面还出现过简体名的 `.lnk`（"匈汉象棋.lnk"）。清理要**两个名字都查**，
 # 否则坏图标会一直留在桌面上（本次用户遇到的就是这个）。
 LEGACY_LNK_NAMES = ("匈漢象棋.lnk", "匈汉象棋.lnk")
@@ -84,12 +83,18 @@ def running_instances() -> list[str]:
     try:
         completed = subprocess.run(
             ["tasklist", "/FI", f"IMAGENAME eq {EXE_NAME}", "/NH"],
-            capture_output=True, text=True, errors="ignore", timeout=30,
+            capture_output=True,
+            text=True,
+            errors="ignore",
+            timeout=30,
         )
     except (OSError, subprocess.SubprocessError):
         return []
-    return [line.split()[1] for line in completed.stdout.splitlines()
-            if line.strip().lower().startswith(EXE_NAME.lower()) and len(line.split()) > 1]
+    return [
+        line.split()[1]
+        for line in completed.stdout.splitlines()
+        if line.strip().lower().startswith(EXE_NAME.lower()) and len(line.split()) > 1
+    ]
 
 
 def deploy(dry_run: bool = False) -> int:
@@ -116,8 +121,9 @@ def deploy(dry_run: bool = False) -> int:
     try:
         import winreg
 
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                            r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders") as key:
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
+        ) as key:
             value, _ = winreg.QueryValueEx(key, "Desktop")
         desktop = Path(os.path.expandvars(value))
     except OSError:

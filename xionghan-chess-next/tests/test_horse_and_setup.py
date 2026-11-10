@@ -15,7 +15,6 @@ from xionghan_chess.core.model import Color, Piece, PieceType
 from xionghan_chess.core.profiles import (
     OPTION_DEPENDS_ON,
     RuleOptions,
-    get_profile,
     option_dependencies,
     option_enabled_by,
 )
@@ -23,17 +22,24 @@ from xionghan_chess.core.profiles import (
 
 def _horse_targets(extra: tuple[Piece, ...] = (), **overrides: object) -> set[tuple[int, int]]:
     """王放对角，避免两王同列“照面”把着法全挡掉（踩过一次的坑）。"""
-    pieces = [Piece.create(PieceType.KING, Color.RED, 12, 0),
-              Piece.create(PieceType.KING, Color.BLACK, 0, 12),
-              Piece.create(PieceType.HORSE, Color.RED, 6, 6), *extra]
-    game = Game.from_state(GameState("desktop_complete", list(pieces), turn=Color.RED),
-                           option_overrides=dict(overrides))
-    return {(m.target.row, m.target.col)
-            for m in game.rules.legal_moves(game.state)
-            if (m.source.row, m.source.col) == (6, 6)}
+    pieces = [
+        Piece.create(PieceType.KING, Color.RED, 12, 0),
+        Piece.create(PieceType.KING, Color.BLACK, 0, 12),
+        Piece.create(PieceType.HORSE, Color.RED, 6, 6),
+        *extra,
+    ]
+    game = Game.from_state(
+        GameState("desktop_complete", list(pieces), turn=Color.RED), option_overrides=dict(overrides)
+    )
+    return {
+        (m.target.row, m.target.col)
+        for m in game.rules.legal_moves(game.state)
+        if (m.source.row, m.source.col) == (6, 6)
+    }
 
 
 # --- 别马腿 ---------------------------------------------------------------
+
 
 def test_horse_leg_blocking_blocks_when_enabled() -> None:
     """开启别马腿：右腿被己兵堵住时 (5,8)/(7,8) 不可走，其余 6 处仍可走。
@@ -62,6 +68,7 @@ def test_turning_leg_off_restores_chess_knight_moves() -> None:
 
 # --- 直走三格：可吃 / 仅移动 ------------------------------------------------
 
+
 def test_straight_three_can_capture_by_default() -> None:
     enemy = (Piece.create(PieceType.PAWN, Color.BLACK, 6, 9),)
     targets = _horse_targets(enemy, horse_straight_three=True)
@@ -70,8 +77,7 @@ def test_straight_three_can_capture_by_default() -> None:
 
 def test_move_only_blocks_capture_but_not_quiet_moves() -> None:
     enemy = (Piece.create(PieceType.PAWN, Color.BLACK, 6, 9),)
-    with_enemy = _horse_targets(enemy, horse_straight_three=True,
-                                horse_straight_three_move_only=True)
+    with_enemy = _horse_targets(enemy, horse_straight_three=True, horse_straight_three_move_only=True)
     assert (6, 9) not in with_enemy, "仅可移动时不该吃子"
 
     quiet = _horse_targets(horse_straight_three=True, horse_straight_three_move_only=True)
@@ -86,6 +92,7 @@ def test_move_only_is_inert_without_straight_three() -> None:
 
 
 # --- 开局布局 -------------------------------------------------------------
+
 
 def test_layout_guard_sits_behind_king_with_two_advisors() -> None:
     game = Game("desktop_complete")
@@ -104,8 +111,11 @@ def test_layout_guard_sits_behind_king_with_two_advisors() -> None:
 @pytest.mark.parametrize("profile_id", ["desktop_classic", "web"])
 def test_non_complete_profiles_also_field_two_advisors(profile_id: str) -> None:
     game = Game(profile_id)
-    advisors = [(p.position.row, p.position.col) for p in game.state.pieces
-                if p.color is Color.RED and p.type is PieceType.ADVISOR]
+    advisors = [
+        (p.position.row, p.position.col)
+        for p in game.state.pieces
+        if p.color is Color.RED and p.type is PieceType.ADVISOR
+    ]
     assert sorted(advisors) == [(11, 5), (11, 7)]
 
 
@@ -115,12 +125,16 @@ def test_guard_has_no_opening_moves_by_design() -> None:
     这是限制，不是缺陷。若哪天有人把尉的首着"优化"成 4，这条会红。
     """
     game = Game("desktop_complete")
-    guard_moves = [(m.source.row, m.source.col) for m in game.rules.legal_moves(game.state)
-                   if (m.source.row, m.source.col) == (12, 6)]
+    guard_moves = [
+        (m.source.row, m.source.col)
+        for m in game.rules.legal_moves(game.state)
+        if (m.source.row, m.source.col) == (12, 6)
+    ]
     assert guard_moves == [], "尉开局不该有子可动（强子的平衡约束）"
 
 
 # --- 依赖关系 -------------------------------------------------------------
+
 
 def test_dependency_map_points_at_real_options() -> None:
     """依赖表里的每个键（含父键）都必须是 `RuleOptions` 的真实字段。"""

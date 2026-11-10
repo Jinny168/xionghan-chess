@@ -1,0 +1,76 @@
+{
+  "levels": {
+    "a": "hard",
+    "b": "medium"
+  },
+  "games": 2,
+  "targetGames": 2,
+  "wins": 1,
+  "losses": 0,
+  "draws": 1,
+  "score": 1.5,
+  "winRate": 0.75,
+  "wilson95": [
+    0.1979,
+    0.9733
+  ],
+  "elo": 190.8,
+  "thresholdWins": null,
+  "winRatePass": false,
+  "moveTimes": {
+    "a": {
+      "n": 40,
+      "median": 15.468729200000325,
+      "p95": 31.79379280000012,
+      "max": 40.537711500000114
+    },
+    "b": {
+      "n": 40,
+      "median": 3.534411000000091,
+      "p95": 12.19176140000036,
+      "max": 12.49191300000075
+    }
+  },
+  "boundReasons": {
+    "a": {
+      "wall": 0,
+      "nodes": 0,
+      "cancel": 0
+    },
+    "b": {
+      "wall": 0,
+      "nodes": 0,
+      "cancel": 0
+    }
+  },
+  "zeroDepthReasons": {
+    "a": {
+      "wall": 0,
+      "nodes": 0,
+      "cancel": 0
+    },
+    "b": {
+      "wall": 0,
+      "nodes": 0,
+      "cancel": 0
+    }
+  },
+  "moves": {
+    "a": 40,
+    "b": 40
+  },
+  "gates": {
+    "enoughGames": true,
+    "wallClean": true,
+    "noZeroDepth": true,
+    "nodesRatioAtMost2Percent": true
+  },
+  "pass": false,
+  "book": {
+    "size": 64,
+    "used": [
+      "desktop_complete#700@6",
+      "desktop_complete#700@6"
+    ]
+  }
+}

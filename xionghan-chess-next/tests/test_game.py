@@ -1,7 +1,15 @@
 import pytest
 
 from xionghan_chess.core.game import Game, GameError
-from xionghan_chess.core.model import Color, GameState, Move, MoveRecord, Piece, PieceType, Position
+from xionghan_chess.core.model import (
+    Color,
+    GameState,
+    Move,
+    MoveRecord,
+    Piece,
+    PieceType,
+    Position,
+)
 from xionghan_chess.core.storage import game_document, game_from_document
 
 
@@ -43,6 +51,7 @@ def test_pause_freezes_clock_and_survives_document_round_trip(monkeypatch):
 # threefold draw would drag in whatever earlier level happens to fire first.
 # --------------------------------------------------------------------------
 
+
 def piece(kind, color, row, col):
     return Piece.create(kind, color, row, col)
 
@@ -56,24 +65,39 @@ def _game(pieces, **overrides) -> Game:
 
 def _mate_board(**overrides) -> Game:
     """Black is in check from (5,0) with (5,1) covering both flight squares."""
-    return _game([piece(PieceType.KING, Color.RED, 11, 6),
-                  piece(PieceType.KING, Color.BLACK, 0, 0),
-                  piece(PieceType.ROOK, Color.RED, 5, 0),
-                  piece(PieceType.ROOK, Color.RED, 5, 1)], **overrides)
+    return _game(
+        [
+            piece(PieceType.KING, Color.RED, 11, 6),
+            piece(PieceType.KING, Color.BLACK, 0, 0),
+            piece(PieceType.ROOK, Color.RED, 5, 0),
+            piece(PieceType.ROOK, Color.RED, 5, 1),
+        ],
+        **overrides,
+    )
 
 
 def _stalemate_board(**overrides) -> Game:
     """Black has no legal move but is not in check."""
-    return _game([piece(PieceType.KING, Color.RED, 11, 6),
-                  piece(PieceType.KING, Color.BLACK, 0, 0),
-                  piece(PieceType.ROOK, Color.RED, 1, 1)], **overrides)
+    return _game(
+        [
+            piece(PieceType.KING, Color.RED, 11, 6),
+            piece(PieceType.KING, Color.BLACK, 0, 0),
+            piece(PieceType.ROOK, Color.RED, 1, 1),
+        ],
+        **overrides,
+    )
 
 
 def _open_board(**overrides) -> Game:
     """Black still has moves, so no earlier level of the chain can fire."""
-    return _game([piece(PieceType.KING, Color.RED, 11, 6),
-                  piece(PieceType.KING, Color.BLACK, 0, 0),
-                  piece(PieceType.ROOK, Color.RED, 9, 9)], **overrides)
+    return _game(
+        [
+            piece(PieceType.KING, Color.RED, 11, 6),
+            piece(PieceType.KING, Color.BLACK, 0, 0),
+            piece(PieceType.ROOK, Color.RED, 9, 9),
+        ],
+        **overrides,
+    )
 
 
 def _settle(game: Game, moved=None):
@@ -81,8 +105,12 @@ def _settle(game: Game, moved=None):
     return game.state
 
 
-CYCLE = [(Position(9, 9), Position(9, 10)), (Position(0, 4), Position(0, 5)),
-         (Position(9, 10), Position(9, 9)), (Position(0, 5), Position(0, 4))]
+CYCLE = [
+    (Position(9, 9), Position(9, 10)),
+    (Position(0, 4), Position(0, 5)),
+    (Position(9, 10), Position(9, 9)),
+    (Position(0, 5), Position(0, 4)),
+]
 """4 拍一轮、回到同一局面的真实循环（红车来回 + 黑王在宫内来回）。
 
 黑王必须在 `(0,4)↔(0,5)`：走到 `(0,6)` 会与红王 `(11,6)` 同列**照面**，直接非法走棋 ——
@@ -92,9 +120,14 @@ CYCLE = [(Position(9, 9), Position(9, 10)), (Position(0, 4), Position(0, 5)),
 
 def _cycle_board(**overrides) -> Game:
     """专门用来制造重复局面的小局面：红王 + 黑王 + 红车。"""
-    return _game([piece(PieceType.KING, Color.RED, 11, 6),
-                  piece(PieceType.KING, Color.BLACK, 0, 4),
-                  piece(PieceType.ROOK, Color.RED, 9, 9)], **overrides)
+    return _game(
+        [
+            piece(PieceType.KING, Color.RED, 11, 6),
+            piece(PieceType.KING, Color.BLACK, 0, 4),
+            piece(PieceType.ROOK, Color.RED, 9, 9),
+        ],
+        **overrides,
+    )
 
 
 def _play_cycles(game: Game, times: int) -> None:
@@ -107,9 +140,16 @@ def _play_cycles(game: Game, times: int) -> None:
 
 
 def _history(plies: int, *, captured=()) -> list[MoveRecord]:
-    return [MoveRecord(move=Move(Position(0, 0), Position(0, 1)), color=Color.RED,
-                       piece_type=PieceType.ROOK, captured=captured, notation="")
-            for _ in range(plies)]
+    return [
+        MoveRecord(
+            move=Move(Position(0, 0), Position(0, 1)),
+            color=Color.RED,
+            piece_type=PieceType.ROOK,
+            captured=captured,
+            notation="",
+        )
+        for _ in range(plies)
+    ]
 
 
 def test_settle_reports_king_captured_when_the_enemy_king_is_gone():

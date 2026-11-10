@@ -50,16 +50,19 @@ def test_only_the_three_nerf_keys_are_inverted() -> None:
 
 # --- 桌面设置对话框 -------------------------------------------------------
 
+
 @pytest.fixture(scope="module")
 def qt_app():
     pytest.importorskip("PySide6", reason="桌面端依赖 PySide6")
     from PySide6.QtWidgets import QApplication
+
     return QApplication.instance() or QApplication([])
 
 
 def _dialog(profile: str):
     from xionghan_chess.desktop.config import load_config
     from xionghan_chess.desktop.ui.dialogs import SettingsDialog
+
     config = load_config()
     config["profile"] = profile
     return SettingsDialog(config)
@@ -94,6 +97,7 @@ def test_positive_options_keep_their_direction(qt_app) -> None:
 
 # --- 关于文档与 API 版本 --------------------------------------------------
 
+
 def test_about_doc_has_no_hardcoded_version() -> None:
     text = ABOUT.read_text(encoding="utf-8")
     assert "{{VERSION}}" in text, "关于文档应使用占位符，由运行时注入当前版本"
@@ -109,6 +113,7 @@ def test_api_version_tracks_package_version() -> None:
 
 def test_profiles_endpoint_reports_negated_options() -> None:
     from fastapi.testclient import TestClient
+
     from xionghan_chess.service.app import app
 
     with TestClient(app) as client:

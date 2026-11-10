@@ -26,10 +26,9 @@ def test_every_default_reads_the_same_constant() -> None:
         "Game.__init__": inspect.signature(Game.__init__).parameters["initial_minutes"].default,
         "桌面 DEFAULTS": DEFAULTS["initial_minutes"],
         "API CreateRoomRequest": CreateRoomRequest.model_fields["initial_minutes"].default,
-        "RoomManager.create": inspect.signature(RoomManager.create)
-        .parameters["initial_minutes"].default,
+        "RoomManager.create": inspect.signature(RoomManager.create).parameters["initial_minutes"].default,
     }
     for name, value in sources.items():
         assert value == DEFAULT_INITIAL_MINUTES, (
-            f"{name} 的默认时长是 {value}，与常量 {DEFAULT_INITIAL_MINUTES} 不一致 —— "
-            "漏传时长的调用点会拿到另一个数")
+            f"{name} 的默认时长是 {value}，与常量 {DEFAULT_INITIAL_MINUTES} 不一致 —— 漏传时长的调用点会拿到另一个数"
+        )

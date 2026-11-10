@@ -1,12 +1,20 @@
 from __future__ import annotations
 
-from datetime import datetime
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from xionghan_chess.core.game import Game
-from xionghan_chess.core.storage import game_document, game_from_content, game_from_document
+from xionghan_chess.core.storage import (
+    game_document,
+    game_from_content,
+)
+from xionghan_chess.core.storage import (
+    # game_from_document 是**有意再导出**（tests/test_desktop_storage.py 从这里
+    # import）；「显式 as 再导出」是 ruff F401 认可的唯一写法（S2-3）。
+    game_from_document as game_from_document,
+)
 
 from .config import data_dir, games_dir
 
@@ -34,8 +42,13 @@ def statistics_path() -> Path:
 
 def _statistics_defaults() -> dict[str, Any]:
     return {
-        "games": 0, "wins": 0, "losses": 0, "draws": 0, "moves": 0,
-        "totalTimeMs": 0, "fastestWinMs": 0,
+        "games": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "moves": 0,
+        "totalTimeMs": 0,
+        "fastestWinMs": 0,
         "winStreak": {"current": 0, "max": 0},
         "perColor": {
             "red": {"games": 0, "wins": 0},
@@ -50,9 +63,10 @@ def load_statistics() -> dict[str, Any]:
         data = json.loads(statistics_path().read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             return defaults
-        result = defaults | {key: int(data.get(key, defaults[key])) for key in (
-            "games", "wins", "losses", "draws", "moves", "totalTimeMs", "fastestWinMs"
-        )}
+        result = defaults | {
+            key: int(data.get(key, defaults[key]))
+            for key in ("games", "wins", "losses", "draws", "moves", "totalTimeMs", "fastestWinMs")
+        }
         streak = data.get("winStreak", {})
         if isinstance(streak, dict):
             result["winStreak"] = {

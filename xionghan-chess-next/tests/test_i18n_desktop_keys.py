@@ -7,6 +7,7 @@ zh/en **键成对**，不保证「代码实际用到的 key 存在」—— 两�
 
 它是**纯文本扫描**（不 import PySide6），所以能在 CI 的 pytest job 里跑。
 """
+
 from __future__ import annotations
 
 import json
@@ -48,9 +49,7 @@ def test_desktop_t_keys_all_exist_in_locale():
     used = _used_keys()
     assert used, "没扫到任何 t() 调用 —— 正则或路径可能坏了，这条断言会变成空转"
     missing = sorted(key for key in used if key not in zh_keys)
-    assert not missing, (
-        f"桌面端用了 locale 里不存在的 key（用户会看到裸 key 或回退文本）：{missing}"
-    )
+    assert not missing, f"桌面端用了 locale 里不存在的 key（用户会看到裸 key 或回退文本）：{missing}"
 
 
 def test_desktop_scan_is_not_vacuous():

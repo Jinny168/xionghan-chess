@@ -22,7 +22,19 @@
   7. 关闭不抛异常
 
 退出码：0 = 通过；1 = 有检查项失败（每条都会打印）。
+
+CI 取证（run #121/#122 教训）：冒烟是「先收集 checks 最后统一打印」结构，Qt C++
+层一旦崩死（无 Python traceback）日志尾部只剩 Qt 原生警告，无法定位崩点。因此：
+  - **增量探针**：每个关键步骤执行前先 `▶ <步骤>` 打到 stdout（flush），CI 下一跑
+    尾部最后一个 ▶ 就是崩点，远程即可二分，不必再猜。
+  - **回放降级**：runner 无音频设备，QSoundEffect.play() 走到音频后端只会得到
+    "playback of this format is not supported"（#122 出现 6 次）且在其后的某个
+    C++ 调用里崩死；Windows 同代码零警告完整跑完。装配断言（QSoundEffect /
+    QAudioOutput / QMediaPlayer 真实构造）**保留**——那是桌面端最易静默崩的装配链；
+    仅把**回放**降级为「不崩即过」：无设备环境下回放效果本就不可断言，理由见
+    main() 内注释。
 """
+
 from __future__ import annotations
 
 import inspect
@@ -42,6 +54,7 @@ from xionghan_chess.core.profiles import PROFILES  # noqa: E402
 from xionghan_chess.core.puzzles import load_puzzles  # noqa: E402
 from xionghan_chess.core.storage import game_from_document  # noqa: E402
 from xionghan_chess.desktop.config import config_path, load_config  # noqa: E402
+from xionghan_chess.desktop.ui import workers as ui_workers  # noqa: E402
 from xionghan_chess.desktop.ui.dialogs import (  # noqa: E402
     DocumentDialog,
     GameLibraryDialog,
@@ -50,6 +63,11 @@ from xionghan_chess.desktop.ui.dialogs import (  # noqa: E402
     SettingsDialog,
     TrainingDialog,
 )
+
+
+def _probe(label: str) -> None:
+    """增量探针：步骤执行前打点（flush），CI 崩死时日志尾部最后一个 ▶ 即崩点。"""
+    print(f"  ▶ {label}", flush=True)
 
 
 def _play_one_move(window) -> int:
@@ -66,13 +84,29 @@ def main() -> int:
     # 异常退出，用户真实配置就被留在了测试值上 —— 有人的默认主题变成暗黑就是这么来的。
     # 放到临时目录后，测试怎么折腾都碰不到用户的 settings.json。
     os.environ["APPDATA"] = tempfile.mkdtemp(prefix="xionghan-smoke-")
+
+    # CI 无音频设备下的回放降级（详见模块 docstring「CI 取证」节）：DesktopAudio
+    # 的**装配**保持真实（MainWindow 构造仍会 new 出 QSoundEffect ×7 /
+    # QAudioOutput / QMediaPlayer 并 setSource——装配崩依旧红），仅把类方法
+    # `play` 换成记录型空操作，让走子路径不再真把音频推向无设备的后端。
+    # 理由：#122 实测 6 次 "playback of this format is not supported" 后在 C++
+    # 层崩死且无 traceback，同代码 Windows 零警告完整跑完——崩面取决于 CI 镜像
+    # 的音频后端而非对局逻辑，不应由走子冒烟背；无设备下回放效果本就不可断言。
+    def _no_play(self, name: str) -> None:  # noqa: ARG001
+        _probe(f"音频回放降级命中（{name}）")
+
+    app.DesktopAudio.play = _no_play  # type: ignore[method-assign]
+    _probe("QApplication 创建")
     qt = QApplication(sys.argv[:1])
+    _probe("MainWindow() 构造（全装配链，含 DesktopAudio/QSoundEffect）")
     window = app.MainWindow()
 
+    _probe("读取 resign/draw/check_updates 源码")
     resign_source = inspect.getsource(app.MainWindow.resign_game)
     draw_source = inspect.getsource(app.MainWindow.draw_game)
     update_source = inspect.getsource(app.MainWindow.check_updates)
     # 菜单项要真的挂在菜单栏上，不能只在源码里出现过 —— 逐个子菜单收标题。
+    _probe("扫描菜单树")
     menu_titles: set[str] = set()
     for top_action in window.menuBar().actions():
         submenu = top_action.menu()
@@ -86,13 +120,15 @@ def main() -> int:
         "线程池就绪": getattr(window, "pool", None) is not None,
         "异步 HTTP 助手 _request_json_async": hasattr(window, "_request_json_async"),
         "HttpWorker 存在（建连异步化 S0-C）": hasattr(app, "HttpWorker"),
-        "AnalysisWorker 存在（分析异步化 S0-C）": hasattr(app, "AnalysisWorker"),
+        # AnalysisWorker 的归宿是 ui/workers.py（S0-C 搬入）；60d6602 的 ruff
+        # 清理删掉了 app.py 里对它的未用再导出（app.py 从未使用它），冒烟从此
+        # 改查真实模块，而不是绑在一个随时可被 lint 清理的再导出上。
+        "AnalysisWorker 存在（分析异步化 S0-C）": hasattr(ui_workers, "AnalysisWorker"),
         "认输有二次确认（S0-D 防回归）": "QMessageBox.question" in resign_source,
         "提和仍有确认（S0-D 对照组）": "QMessageBox.question" in draw_source,
         # S2-3：更新检查必须**只查不装**。真自更新需要代码签名与回滚（S2-1），
         # 在那之前出现「自动下载/替换 exe」的代码就是越界，这里守一道。
-        "更新检查在位（S2-3）": hasattr(window, "check_updates")
-        and "检查更新" in menu_titles,
+        "更新检查在位（S2-3）": hasattr(window, "check_updates") and "检查更新" in menu_titles,
         "更新只开下载页、不自更新（S2-3）": callable(getattr(window, "check_updates", None))
         and "QDesktopServices.openUrl" in update_source
         and "QProcess" not in update_source,
@@ -102,6 +138,7 @@ def main() -> int:
     # Qt 会吞掉事件处理器里的异常（只打印不抛），所以 offscreen 下 `show()` 并不能
     # 证明 paintEvent 是好的。这里直接拿一个真 QPainter 调它 —— 异常才会真的冒出来。
     # 这是 BoardWidget 从 app.py 搬到 ui/board_widget.py 后最容易断的地方。
+    _probe("S1-2 paintEvent 直调（QPainter on QPixmap）")
     canvas = QPixmap(window.board.size())
     canvas.fill()
     painter = QPainter(canvas)
@@ -128,6 +165,7 @@ def main() -> int:
         "GameLibraryDialog": lambda: GameLibraryDialog(Path(tempfile.mkdtemp()), cfg, None),
     }
     for name, build in dialog_builders.items():
+        _probe(f"S1-2 构造对话框 {name}")
         try:
             dialog = build()
             dialog.deleteLater()
@@ -137,14 +175,18 @@ def main() -> int:
             print(f"  {name} 构造异常: {exc!r}")
 
     # ---- S1-9：设置不应无条件丢对局 ----
+    _probe("S1-9 走一步（真实 move + 音频 play 降级路径）")
     played = _play_one_move(window)
     checks["S1-9 走了一步（前置）"] = played > 0
 
+    _probe("S1-9 _reattach_game（UI 重建）")
     window._reattach_game(window.game, (True, True, False))
     checks["S1-9 重建后对局保留"] = len(window.game.state.history) == played
     checks["S1-9 记账/存档哨兵保留"] = (window._stats_recorded, window._autosaved) == (True, True)
     checks["S1-9 规则类设置清单正确"] = set(app.MainWindow._GAME_BREAKING_KEYS) == {
-        "profile", "rule_options", "initial_minutes"
+        "profile",
+        "rule_options",
+        "initial_minutes",
     }
 
     # 真实行为：只改主题 -> 保留对局；改盘面 -> 重开（并在结束后还原用户配置）
@@ -153,11 +195,13 @@ def main() -> int:
     try:
         theme_cfg = dict(window.config)
         theme_cfg["theme"] = "dark" if window.config.get("theme") != "dark" else "classic"
+        _probe("S1-9 改主题 _apply_settings（含试听 play 降级）")
         window._apply_settings(theme_cfg)
         checks["S1-9 只改主题保留对局"] = len(window.game.state.history) == played
 
         profile_cfg = dict(window.config)
         profile_cfg["profile"] = "traditional" if window.config.get("profile") != "traditional" else "desktop_complete"
+        _probe("S1-9 改盘面 _apply_settings（重开对局）")
         window._apply_settings(profile_cfg)
         checks["S1-9 改盘面重开对局"] = len(window.game.state.history) == 0
     finally:
@@ -188,17 +232,21 @@ def main() -> int:
         try:
             # P1-L：训练题自带 profile，绝不能写进用户的全局配置。
             profile_before = window.config.get("profile")
+            _probe("S2-7 show_training（进题）")
             window.show_training()
             checks["P1-L 训练不改全局 profile"] = window.config.get("profile") == profile_before
             prefix = len(window.game.state.history)
             wrong = next(
-                move for move in window.game.rules.legal_moves(window.game.state)
+                move
+                for move in window.game.rules.legal_moves(window.game.state)
                 if (move.source.row, move.source.col, move.target.row, move.target.col)
                 != (solution.source.row, solution.source.col, solution.target.row, solution.target.col)
             )
+            _probe("S2-7 答错 human_move")
             window.human_move(wrong)
             checks["S2-7 答错会退回题面"] = len(window.game.state.history) == prefix
             checks["S2-7 答错不计入进度"] = window.puzzle_session is not None and window.puzzle_session.cursor == 0
+            _probe("S2-7 答对 human_move")
             window.human_move(solution)
             checks["S2-7 答对即过关"] = window.puzzle_session is None
         finally:
@@ -207,10 +255,12 @@ def main() -> int:
         checks["S2-7 训练判定端到端"] = False
         print(f"  训练判定异常: {exc!r}")
 
+    _probe("关闭 + deleteLater + processEvents（teardown）")
     window.close()
     window.deleteLater()
     qt.processEvents()
 
+    _probe("汇总打印")
     failed = [name for name, ok in checks.items() if not ok]
     for name, ok in checks.items():
         print(f"  {'OK  ' if ok else 'FAIL'} {name}")

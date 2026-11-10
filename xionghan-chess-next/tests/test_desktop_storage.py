@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 from xionghan_chess.core.game import Game
@@ -60,8 +58,7 @@ def _downgrade_to_pre_pool_key(data: dict) -> dict:
     """
     data.pop("positionKeyVersion", None)
     counts = data["state"]["positionCounts"]
-    data["state"]["positionCounts"] = {key.split("||pool:")[0]: count
-                                       for key, count in counts.items()}
+    data["state"]["positionCounts"] = {key.split("||pool:")[0]: count for key, count in counts.items()}
     return data
 
 
@@ -88,6 +85,7 @@ def test_legacy_document_rebuilds_the_ledger_in_the_current_key_format():
 def test_legacy_document_still_reaches_threefold_after_the_upgrade():
     """The pool-aware rebuild must not cost a repetition: a game that saw a
     position twice before 方案A still draws when it appears a third time."""
+
     def sparse() -> Game:
         profile = get_profile("desktop_complete")
         pieces = [
@@ -99,19 +97,22 @@ def test_legacy_document_still_reaches_threefold_after_the_upgrade():
         return Game.from_state(GameState(profile.id, pieces, turn=Color.RED))
 
     def play(game: Game, sr: int, sc: int, tr: int, tc: int) -> None:
-        move = next(m for m in game.rules.legal_moves(game.state)
-                    if (m.source.row, m.source.col, m.target.row, m.target.col) == (sr, sc, tr, tc))
+        move = next(
+            m
+            for m in game.rules.legal_moves(game.state)
+            if (m.source.row, m.source.col, m.target.row, m.target.col) == (sr, sc, tr, tc)
+        )
         game.move(move)
 
     cycle = [(6, 4, 6, 5), (3, 4, 3, 5), (6, 5, 6, 4), (3, 5, 3, 4)]
     game = sparse()
-    for squares in cycle:                       # one full cycle: start position now seen twice
+    for squares in cycle:  # one full cycle: start position now seen twice
         play(game, *squares)
 
     restored = game_from_document(_downgrade_to_pre_pool_key(game_document(game)))
     assert restored.state.draw is False
 
-    for squares in cycle:                       # return to it a third time
+    for squares in cycle:  # return to it a third time
         play(restored, *squares)
     assert restored.state.draw is True
     assert restored.state.result_reason == "threefold_repetition"

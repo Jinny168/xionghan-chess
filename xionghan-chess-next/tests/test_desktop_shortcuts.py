@@ -18,7 +18,6 @@ from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from xionghan_chess.core.model import Move, Position  # noqa: E402
 from xionghan_chess.desktop import config as settings  # noqa: E402
 from xionghan_chess.desktop.app import MainWindow  # noqa: E402
 
@@ -58,8 +57,9 @@ def test_shortcuts_are_unique(window) -> None:
 
 def test_no_plain_letter_shortcuts(window) -> None:
     """单字母快捷键会吃掉正常打字（侧栏有聊天输入框）。"""
-    plain = [action.shortcut().toString() for _menu, action in _actions(window)
-             if len(action.shortcut().toString()) == 1]
+    plain = [
+        action.shortcut().toString() for _menu, action in _actions(window) if len(action.shortcut().toString()) == 1
+    ]
     assert not plain, f"存在单字母快捷键，会和文字输入冲突：{plain}"
 
 
@@ -109,17 +109,8 @@ def test_ctrl_z_in_the_chat_box_does_not_move_the_board(window) -> None:
     QTest.keyClick(window.chat_input, Qt.Key.Key_Z, Qt.KeyboardModifier.ControlModifier)
     QApplication.instance().processEvents()
     assert len(window.game.state.history) == history_before, (
-        "在聊天框里按 Ctrl+Z 把棋盘悔了 —— 窗口级快捷键抢走了文本框的撤销")
-
-
-def test_side_buttons_are_icon_only_with_tooltips(window) -> None:
-    """侧栏七个操作必须是纯图标：文字退到 tooltip，否则单列会占满整条侧栏。"""
-    for name in ("undo", "pause", "resign", "draw", "resurrect", "flip", "again"):
-        button = getattr(window, name)
-        assert button.text() == "", f"{name} 还在显示文字，图标化没生效"
-        assert not button.icon().isNull(), f"{name} 没有图标"
-        assert button.toolTip(), f"{name} 缺少悬浮说明"
-        assert button.accessibleName(), f"{name} 缺少无障碍名（读屏会读成空按钮）"
+        "在聊天框里按 Ctrl+Z 把棋盘悔了 —— 窗口级快捷键抢走了文本框的撤销"
+    )
 
 
 def test_side_buttons_are_icon_only_with_tooltips(window) -> None:

@@ -6,14 +6,13 @@ import sys
 from collections.abc import Callable, Mapping
 from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 from ..core.game import DEFAULT_INITIAL_MINUTES
 from ..core.profiles import RuleOptions
-from typing import Any
 
 
-def config_root(platform: str | None = None,
-                environ: Mapping[str, str] | None = None) -> Path:
+def config_root(platform: str | None = None, environ: Mapping[str, str] | None = None) -> Path:
     """各平台的用户配置目录（P1-F）。
 
     此前只有 Windows 的 `%APPDATA%` 约定，macOS/Linux 会退化成
@@ -213,8 +212,7 @@ def _migrate_v0(data: dict[str, Any]) -> dict[str, Any]:
     「对应选项已被产品删除」和「当年默认值被写进配置」两类键，不是用户的数据。）
     """
     result = dict(data)
-    result["initial_minutes"] = _as_int(result.get("initial_minutes"),
-                                        DEFAULTS["initial_minutes"], 1, 180)
+    result["initial_minutes"] = _as_int(result.get("initial_minutes"), DEFAULTS["initial_minutes"], 1, 180)
     result["sound_volume"] = _as_int(result.get("sound_volume"), 70, 0, 100)
     result["music_volume"] = _as_int(result.get("music_volume"), 40, 0, 100)
     result["countdown_seconds"] = _as_int(result.get("countdown_seconds"), 30, 0, 600)

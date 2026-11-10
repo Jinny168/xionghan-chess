@@ -1,4 +1,4 @@
-"""发布链路：把「打包 → 装到 D 盘 → 回读线上」收成一条命令。
+r"""发布链路：把「打包 → 装到 D 盘 → 回读线上」收成一条命令。
 
 ## 为什么要有它
 
@@ -106,8 +106,10 @@ def build(dry_run: bool = False) -> bool:
         str(ROOT / ".venv" / "Scripts" / "pyinstaller.exe"),
         "packaging/build_windows.spec",
         "--noconfirm",
-        "--distpath", str(DIST),
-        "--workpath", str(ROOT / "build" / __version__),
+        "--distpath",
+        str(DIST),
+        "--workpath",
+        str(ROOT / "build" / __version__),
     ]
     environment = dict(os.environ, XIONGHAN_EXE_NAME=exe_path().stem)
     _say("RUN", f"打包 {exe_path().name}")
@@ -152,7 +154,7 @@ def install(dest: Path = DEFAULT_DEST, dry_run: bool = False) -> bool:
 
     dest.mkdir(parents=True, exist_ok=True)
 
-    shutil.copy2(source, versioned)          # 版本副本不会被占用，先放
+    shutil.copy2(source, versioned)  # 版本副本不会被占用，先放
     try:
         shutil.copy2(source, target)
     except OSError:
@@ -170,8 +172,7 @@ def install(dest: Path = DEFAULT_DEST, dry_run: bool = False) -> bool:
 
 
 def _verify_module():
-    spec = importlib.util.spec_from_file_location("verify_deploy_for_release",
-                                                  ROOT / "scripts" / "verify_deploy.py")
+    spec = importlib.util.spec_from_file_location("verify_deploy_for_release", ROOT / "scripts" / "verify_deploy.py")
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

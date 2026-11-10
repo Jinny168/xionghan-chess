@@ -153,7 +153,6 @@ def test_load_bundled_fonts_does_not_crash_the_process_without_qapplication() ->
         "theme.load_bundled_fonts()\n"
         "print('NOOP_OK')\n"
     )
-    proc = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True,
-                          text=True, timeout=120)
+    proc = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True, timeout=120)
     assert proc.returncode == 0, f"退出码 {proc.returncode}\nstdout={proc.stdout}\nstderr={proc.stderr}"
     assert "NOOP_OK" in proc.stdout

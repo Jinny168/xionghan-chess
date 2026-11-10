@@ -56,7 +56,11 @@ def test_install_adds_puzzle_and_persists(tmp_path: Path, store: Path) -> None:
 
 def test_installed_puzzle_is_playable(store: Path) -> None:
     """导入的题必须能被判定器认作「解法首着正确」，否则导入等于没导入。"""
-    from xionghan_chess.desktop.training import VERDICT_CORRECT, VERDICT_SOLVED, PuzzleSession
+    from xionghan_chess.desktop.training import (
+        VERDICT_CORRECT,
+        VERDICT_SOLVED,
+        PuzzleSession,
+    )
 
     puzzle_store.install_puzzles(_write(Path(store).parent / "a.json", [_entry()]), path=store)
     loaded, _ = puzzle_store.load_user_puzzles(store)
@@ -90,8 +94,7 @@ def test_merges_with_existing_user_puzzles(tmp_path: Path, store: Path) -> None:
 
 
 @pytest.mark.parametrize("payload", ["not a list", {}, [{"id": "x"}]])
-def test_invalid_source_raises_and_leaves_store_untouched(
-        payload: object, tmp_path: Path, store: Path) -> None:
+def test_invalid_source_raises_and_leaves_store_untouched(payload: object, tmp_path: Path, store: Path) -> None:
     source = tmp_path / "bad.json"
     source.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     with pytest.raises((ValueError, KeyError)):
@@ -139,14 +142,14 @@ def test_training_dialog_lists_imported_puzzle(monkeypatch: pytest.MonkeyPatch, 
 
     from xionghan_chess.desktop.ui.dialogs import TrainingDialog
 
-    monkeypatch.setenv("APPDATA", str(tmp_path))        # 用户数据目录挪到临时目录
+    monkeypatch.setenv("APPDATA", str(tmp_path))  # 用户数据目录挪到临时目录
     target = config.puzzles_file()
     puzzle_store.install_puzzles(_write(tmp_path / "incoming.json", [_entry()]), path=target)
 
     QApplication.instance() or QApplication([])
     dialog = TrainingDialog(None)
     try:
-        dialog.level.setCurrentIndex(0)                 # beginner（导入题用的就是这档）
+        dialog.level.setCurrentIndex(0)  # beginner（导入题用的就是这档）
         ids = {puzzle.id for puzzle in dialog.puzzles}
         assert "imported-1" in ids
     finally:

@@ -31,7 +31,6 @@
 from __future__ import annotations
 
 import argparse
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -205,7 +204,10 @@ def build(source_dir: Path, *, keep_full: bool = False) -> None:
 
         result = subprocess.run(
             [
-                sys.executable, "-m", "fontTools.subset", str(source),
+                sys.executable,
+                "-m",
+                "fontTools.subset",
+                str(source),
                 f"--text-file={text_file}",
                 f"--output-file={target}",
                 "--layout-features=*",
@@ -236,8 +238,10 @@ def build(source_dir: Path, *, keep_full: bool = False) -> None:
         print(f"  {source_name} -> {target.name}  {size / 1e6:.2f} MB")
 
     (FONT_DIR / "OFL.txt").write_text(OFL_TEXT, encoding="utf-8")
-    print(f"\n合计：{total_before / 1e6:.1f} MB -> {total_after / 1e6:.1f} MB"
-          f"（省 {(total_before - total_after) / 1e6:.1f} MB）")
+    print(
+        f"\n合计：{total_before / 1e6:.1f} MB -> {total_after / 1e6:.1f} MB"
+        f"（省 {(total_before - total_after) / 1e6:.1f} MB）"
+    )
     print("许可：SIL OFL 1.1（已写 OFL.txt）")
 
     if keep_full:
@@ -247,7 +251,9 @@ def build(source_dir: Path, *, keep_full: bool = False) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="生成随包开源字体子集（S2-4）")
     parser.add_argument(
-        "--source-dir", type=Path, default=Path("C:/Windows/Fonts"),
+        "--source-dir",
+        type=Path,
+        default=Path("C:/Windows/Fonts"),
         help="NotoSansSC-VF.ttf / NotoSerifSC-VF.ttf 所在目录",
     )
     parser.add_argument("--keep-full", action="store_true", help="同时保留完整字体用于对照")

@@ -7,7 +7,6 @@ from xionghan_chess.i18n import t
 
 from .model import Color, Piece, PieceType
 
-
 # The 13x13 "Xion Xiangqi" board. Red is the mirror image of Black, so Red's
 # back rank 0 corresponds to Black's back rank 12.
 XIONGHAN_ROWS = 13
@@ -40,7 +39,7 @@ class RuleOptions:
     elephant_can_cross_river: bool = True
     elephant_gain_jump_two_enemy_territory: bool = True
     horse_straight_three: bool = True
-    horse_blocked_by_leg: bool = True          # 别马腿；关闭后日字走法同国际象棋
+    horse_blocked_by_leg: bool = True  # 别马腿；关闭后日字走法同国际象棋
     horse_straight_three_move_only: bool = False  # 直走三格仅可移动、不可吃子（依赖 horse_straight_three）
     archer_enhanced_mode: bool = False
     pawn_fast_move_before_enemy_territory: bool = True
@@ -54,8 +53,8 @@ class RuleOptions:
     pawn_backward_at_base: bool = False
     pawn_resurrection: bool = True
     pawn_promotion: bool = True
-    pawn_charge: bool = False                 # 敌阵冲锋（过阴山后直线多格，不吃子）
-    pawn_three_line_capture: bool = False     # 兵参与"三连吃子"（与甲同构）
+    pawn_charge: bool = False  # 敌阵冲锋（过阴山后直线多格，不吃子）
+    pawn_three_line_capture: bool = False  # 兵参与"三连吃子"（与甲同构）
     enforce_self_check: bool = True
     threefold_draw: bool = True
     no_progress_draw_plies: int = 120
@@ -94,14 +93,21 @@ class RuleOptions:
             "pawn_backward_at_base_enabled": "pawn_backward_at_base",
             "pawn_charge_enabled": "pawn_charge",
             "pawn_three_line_capture_enabled": "pawn_three_line_capture",
-            "ju_appear": "rook_appear", "ma_appear": "horse_appear",
-            "xiang_appear": "elephant_appear", "shi_appear": "advisor_appear",
-            "pao_appear": "cannon_appear", "wei_appear": "guard_appear",
-            "she_appear": "archer_appear", "lei_appear": "thunder_appear",
+            "ju_appear": "rook_appear",
+            "ma_appear": "horse_appear",
+            "xiang_appear": "elephant_appear",
+            "shi_appear": "advisor_appear",
+            "pao_appear": "cannon_appear",
+            "wei_appear": "guard_appear",
+            "she_appear": "archer_appear",
+            "lei_appear": "thunder_appear",
             "xun_appear": "patrol_appear",
         }
-        normalized = {aliases.get(key, key): value for key, value in values.items()
-                      if key not in {"archer_weak_mode", "sheWeakMode", "she_weak_mode"}}
+        normalized = {
+            aliases.get(key, key): value
+            for key, value in values.items()
+            if key not in {"archer_weak_mode", "sheWeakMode", "she_weak_mode"}
+        }
         if "archer_enhanced_mode" not in normalized:
             for legacy_key in ("archer_weak_mode", "sheWeakMode", "she_weak_mode"):
                 if legacy_key in values:
@@ -161,8 +167,7 @@ UI_ACTION_REQUIRES: dict[str, tuple[str, ...]] = {
 
 def action_visible(options: "RuleOptions", action: str) -> bool:
     """该动作在当前规则下是否存在；没有登记的动作恒为 True（常驻按钮）。"""
-    return all(bool(getattr(options, parent, False))
-               for parent in UI_ACTION_REQUIRES.get(action, ()))
+    return all(bool(getattr(options, parent, False)) for parent in UI_ACTION_REQUIRES.get(action, ()))
 
 
 def action_requirements() -> dict[str, list[str]]:
@@ -176,11 +181,13 @@ def action_requirements() -> dict[str, list[str]]:
 #   出宫后**失去**斜走 / 马**受**别腿限制 / 直走三格**不可**吃子。
 # 其余键（能出宫、能过河、能复活……）True 本身就是增强，不需要转。
 # 只改呈现，不改存储：老配置、存档、AI 参数、对拍全部按原键原值走。
-NEGATED_OPTIONS: frozenset[str] = frozenset({
-    "king_lose_diagonal_outside_palace",
-    "horse_blocked_by_leg",
-    "horse_straight_three_move_only",
-})
+NEGATED_OPTIONS: frozenset[str] = frozenset(
+    {
+        "king_lose_diagonal_outside_palace",
+        "horse_blocked_by_leg",
+        "horse_straight_three_move_only",
+    }
+)
 
 
 def display_value(key: str, stored: object) -> bool:
@@ -217,8 +224,7 @@ class RuleProfile:
 
     def initial_pieces(self, options: RuleOptions | None = None) -> list[Piece]:
         active = options or self.options
-        return [Piece.create(p.type, p.color, p.row, p.col)
-                for p in self.pieces if active.piece_enabled(p.type)]
+        return [Piece.create(p.type, p.color, p.row, p.col) for p in self.pieces if active.piece_enabled(p.type)]
 
     def name_of(self, piece: Piece) -> str:
         names = self.red_names if piece.color is Color.RED else self.black_names
@@ -231,16 +237,30 @@ class RuleProfile:
 
 
 RED_NAMES = {
-    PieceType.KING: "漢", PieceType.ROOK: "俥", PieceType.HORSE: "傌",
-    PieceType.ELEPHANT: "相", PieceType.ADVISOR: "仕", PieceType.CANNON: "炮",
-    PieceType.PAWN: "兵", PieceType.GUARD: "尉", PieceType.ARCHER: "射",
-    PieceType.THUNDER: "檑", PieceType.PATROL: "巡",
+    PieceType.KING: "漢",
+    PieceType.ROOK: "俥",
+    PieceType.HORSE: "傌",
+    PieceType.ELEPHANT: "相",
+    PieceType.ADVISOR: "仕",
+    PieceType.CANNON: "炮",
+    PieceType.PAWN: "兵",
+    PieceType.GUARD: "尉",
+    PieceType.ARCHER: "射",
+    PieceType.THUNDER: "檑",
+    PieceType.PATROL: "巡",
 }
 BLACK_NAMES = {
-    PieceType.KING: "汗", PieceType.ROOK: "車", PieceType.HORSE: "馬",
-    PieceType.ELEPHANT: "象", PieceType.ADVISOR: "士", PieceType.CANNON: "砲",
-    PieceType.PAWN: "卒", PieceType.GUARD: "衛", PieceType.ARCHER: "䠶",
-    PieceType.THUNDER: "礌", PieceType.PATROL: "廵",
+    PieceType.KING: "汗",
+    PieceType.ROOK: "車",
+    PieceType.HORSE: "馬",
+    PieceType.ELEPHANT: "象",
+    PieceType.ADVISOR: "士",
+    PieceType.CANNON: "砲",
+    PieceType.PAWN: "卒",
+    PieceType.GUARD: "衛",
+    PieceType.ARCHER: "䠶",
+    PieceType.THUNDER: "礌",
+    PieceType.PATROL: "廵",
 }
 
 
@@ -249,7 +269,9 @@ def specs(color: Color, items: Iterable[tuple[PieceType, int, int]]) -> list[Pie
 
 
 def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[PieceSpec]:
-    flip = (lambda row: XIONGHAN_ROWS - 1 - row) if color is Color.RED else (lambda row: row)
+    def flip(row: int) -> int:
+        return XIONGHAN_ROWS - 1 - row if color is Color.RED else row
+
     items: list[tuple[PieceType, int, int]] = []
     if complete:
         # 软删甲/楯/刺：后排只保留射、尉、檑。
@@ -257,51 +279,77 @@ def xionghan_side(color: Color, complete: bool, web: bool = False) -> list[Piece
         # → 首着 0）。这是刻意的平衡约束：尉是最强子，开局不许它自己先动，
         # 必须先腾士位才能出动。别再"顺手优化"成首着 4，那会把这个限制抹掉。
         items += [
-            (PieceType.ARCHER, 0, 0), (PieceType.THUNDER, 0, 4),
-            (PieceType.GUARD, 0, 6), (PieceType.THUNDER, 0, 8),
+            (PieceType.ARCHER, 0, 0),
+            (PieceType.THUNDER, 0, 4),
+            (PieceType.GUARD, 0, 6),
+            (PieceType.THUNDER, 0, 8),
             (PieceType.ARCHER, 0, 12),
         ]
     elif web:
         items += [
-            (PieceType.ARCHER, 0, 0), (PieceType.THUNDER, 0, 4),
-            (PieceType.THUNDER, 0, 8), (PieceType.ARCHER, 0, 12),
+            (PieceType.ARCHER, 0, 0),
+            (PieceType.THUNDER, 0, 4),
+            (PieceType.THUNDER, 0, 8),
+            (PieceType.ARCHER, 0, 12),
         ]
     else:
         items += [
-            (PieceType.ARCHER, 0, 0), (PieceType.THUNDER, 0, 4),
-            (PieceType.THUNDER, 0, 8), (PieceType.ARCHER, 0, 12),
+            (PieceType.ARCHER, 0, 0),
+            (PieceType.THUNDER, 0, 4),
+            (PieceType.THUNDER, 0, 8),
+            (PieceType.ARCHER, 0, 12),
         ]
     # 士按传统象棋对称布在将/帅两侧（红 (11,5)/(11,7)、黑 (1,5)/(1,7)），共 2 枚。
     items += [
-        (PieceType.ROOK, 1, 2), (PieceType.HORSE, 1, 3),
-        (PieceType.ELEPHANT, 1, 4), (PieceType.ADVISOR, 1, 5),
-        (PieceType.KING, 1, 6), (PieceType.ADVISOR, 1, 7),
-        (PieceType.ELEPHANT, 1, 8), (PieceType.HORSE, 1, 9),
-        (PieceType.ROOK, 1, 10), (PieceType.CANNON, 3, 1),
+        (PieceType.ROOK, 1, 2),
+        (PieceType.HORSE, 1, 3),
+        (PieceType.ELEPHANT, 1, 4),
+        (PieceType.ADVISOR, 1, 5),
+        (PieceType.KING, 1, 6),
+        (PieceType.ADVISOR, 1, 7),
+        (PieceType.ELEPHANT, 1, 8),
+        (PieceType.HORSE, 1, 9),
+        (PieceType.ROOK, 1, 10),
+        (PieceType.CANNON, 3, 1),
         (PieceType.CANNON, 3, 11),
     ]
     items += [(PieceType.PAWN, 4, col) for col in range(0, 13, 2)]
     if complete or not web:
-        items += [(PieceType.PATROL, PATROL_HOME_ROW, 0),
-                  (PieceType.PATROL, PATROL_HOME_ROW, XIONGHAN_COLS - 1)]
+        items += [(PieceType.PATROL, PATROL_HOME_ROW, 0), (PieceType.PATROL, PATROL_HOME_ROW, XIONGHAN_COLS - 1)]
     return specs(color, [(kind, flip(row), col) for kind, row, col in items])
 
 
 def traditional_side(color: Color) -> list[PieceSpec]:
-    flip = (lambda row: 9 - row) if color is Color.RED else (lambda row: row)
+    def flip(row: int) -> int:
+        return 9 - row if color is Color.RED else row
+
     base = [
-        (PieceType.ROOK, 0, 0), (PieceType.HORSE, 0, 1),
-        (PieceType.ELEPHANT, 0, 2), (PieceType.ADVISOR, 0, 3),
-        (PieceType.KING, 0, 4), (PieceType.ADVISOR, 0, 5),
-        (PieceType.ELEPHANT, 0, 6), (PieceType.HORSE, 0, 7),
-        (PieceType.ROOK, 0, 8), (PieceType.CANNON, 2, 1),
+        (PieceType.ROOK, 0, 0),
+        (PieceType.HORSE, 0, 1),
+        (PieceType.ELEPHANT, 0, 2),
+        (PieceType.ADVISOR, 0, 3),
+        (PieceType.KING, 0, 4),
+        (PieceType.ADVISOR, 0, 5),
+        (PieceType.ELEPHANT, 0, 6),
+        (PieceType.HORSE, 0, 7),
+        (PieceType.ROOK, 0, 8),
+        (PieceType.CANNON, 2, 1),
         (PieceType.CANNON, 2, 7),
     ] + [(PieceType.PAWN, 3, col) for col in range(0, 9, 2)]
     return specs(color, [(kind, flip(row), col) for kind, row, col in base])
 
 
-STANDARD = frozenset({PieceType.KING, PieceType.ROOK, PieceType.HORSE, PieceType.ELEPHANT,
-                      PieceType.ADVISOR, PieceType.CANNON, PieceType.PAWN})
+STANDARD = frozenset(
+    {
+        PieceType.KING,
+        PieceType.ROOK,
+        PieceType.HORSE,
+        PieceType.ELEPHANT,
+        PieceType.ADVISOR,
+        PieceType.CANNON,
+        PieceType.PAWN,
+    }
+)
 ALL = frozenset(PieceType)
 WEB = STANDARD | {PieceType.ARCHER, PieceType.THUNDER}
 CLASSIC = WEB | {PieceType.PATROL}
@@ -319,10 +367,10 @@ CLASSIC = WEB | {PieceType.PATROL}
 # 完整模式：所有自定义规则开启、所有棋子加强。
 # 显式写出与默认值不同的四项 —— 只看这一处就知道"加强"加了什么。
 COMPLETE_OPTIONS = RuleOptions(
-    horse_blocked_by_leg=False,        # 加强：不别马腿（日字走法同国际象棋）
-    archer_enhanced_mode=True,         # 加强：射/䠶 自由斜走三格
-    pawn_charge=True,                  # 敌阵冲锋：过阴山后沿直线多格（不吃子）
-    pawn_three_line_capture=True,      # 兵参与三连吃子
+    horse_blocked_by_leg=False,  # 加强：不别马腿（日字走法同国际象棋）
+    archer_enhanced_mode=True,  # 加强：射/䠶 自由斜走三格
+    pawn_charge=True,  # 敌阵冲锋：过阴山后沿直线多格（不吃子）
+    pawn_three_line_capture=True,  # 兵参与三连吃子
     # 其余项默认已是加强值：出宫/宫内斜走、仕出宫直走、相过河+敌境跳两格、
     # 马直走三格、兵快速行军/复活/升变。
     # **兵底线不再后退**（2.0.0）：`pawn_backward_at_base` 默认关，故不在此列。
@@ -337,7 +385,7 @@ CLASSIC_OPTIONS = RuleOptions(
     advisor_gain_straight_outside_palace=False,
     elephant_can_cross_river=False,
     elephant_gain_jump_two_enemy_territory=False,
-    horse_blocked_by_leg=True,          # 经典：必别马腿
+    horse_blocked_by_leg=True,  # 经典：必别马腿
     horse_straight_three=False,
     horse_straight_three_move_only=False,
     archer_enhanced_mode=False,
@@ -356,31 +404,62 @@ WEB_OPTIONS = COMPLETE_OPTIONS
 
 PROFILES: dict[str, RuleProfile] = {
     "desktop_complete": RuleProfile(
-        "desktop_complete", "完整模式", 13, 13,
-        tuple(xionghan_side(Color.BLACK, True) + xionghan_side(Color.RED, True)), ALL,
-        COMPLETE_OPTIONS, RED_NAMES, BLACK_NAMES,
+        "desktop_complete",
+        "完整模式",
+        13,
+        13,
+        tuple(xionghan_side(Color.BLACK, True) + xionghan_side(Color.RED, True)),
+        ALL,
+        COMPLETE_OPTIONS,
+        RED_NAMES,
+        BLACK_NAMES,
     ),
     "desktop_classic": RuleProfile(
-        "desktop_classic", "经典模式", 13, 13,
+        "desktop_classic",
+        "经典模式",
+        13,
+        13,
         # 与完整模式同一套布局、同一批兵种，只有规则不同
-        tuple(xionghan_side(Color.BLACK, True) + xionghan_side(Color.RED, True)), ALL,
-        CLASSIC_OPTIONS, RED_NAMES, BLACK_NAMES,
+        tuple(xionghan_side(Color.BLACK, True) + xionghan_side(Color.RED, True)),
+        ALL,
+        CLASSIC_OPTIONS,
+        RED_NAMES,
+        BLACK_NAMES,
     ),
     "web": RuleProfile(
-        "web", "精简模式", 13, 13,
-        tuple(xionghan_side(Color.BLACK, False, True) + xionghan_side(Color.RED, False, True)), WEB,
-        WEB_OPTIONS, RED_NAMES, BLACK_NAMES,
+        "web",
+        "精简模式",
+        13,
+        13,
+        tuple(xionghan_side(Color.BLACK, False, True) + xionghan_side(Color.RED, False, True)),
+        WEB,
+        WEB_OPTIONS,
+        RED_NAMES,
+        BLACK_NAMES,
     ),
     "traditional": RuleProfile(
-        "traditional", "传统象棋", 10, 9,
-        tuple(traditional_side(Color.BLACK) + traditional_side(Color.RED)), STANDARD,
-        RuleOptions(king_can_leave_palace=False, king_diagonal_in_palace=False,
-                    king_lose_diagonal_outside_palace=True, invasion_victory=False,
-                    advisor_can_leave_palace=False, advisor_gain_straight_outside_palace=False,
-                    elephant_can_cross_river=False, elephant_gain_jump_two_enemy_territory=False,
-                    horse_straight_three=False,
-                    pawn_fast_move_before_enemy_territory=False,
-                    pawn_resurrection=False, pawn_promotion=False), RED_NAMES, BLACK_NAMES,
+        "traditional",
+        "传统象棋",
+        10,
+        9,
+        tuple(traditional_side(Color.BLACK) + traditional_side(Color.RED)),
+        STANDARD,
+        RuleOptions(
+            king_can_leave_palace=False,
+            king_diagonal_in_palace=False,
+            king_lose_diagonal_outside_palace=True,
+            invasion_victory=False,
+            advisor_can_leave_palace=False,
+            advisor_gain_straight_outside_palace=False,
+            elephant_can_cross_river=False,
+            elephant_gain_jump_two_enemy_territory=False,
+            horse_straight_three=False,
+            pawn_fast_move_before_enemy_territory=False,
+            pawn_resurrection=False,
+            pawn_promotion=False,
+        ),
+        RED_NAMES,
+        BLACK_NAMES,
     ),
 }
 

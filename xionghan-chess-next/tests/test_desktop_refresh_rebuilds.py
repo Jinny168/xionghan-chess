@@ -20,7 +20,6 @@ pytest.importorskip("PySide6", reason="MainWindow 依赖 PySide6")
 
 from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
 
-from xionghan_chess.core.model import Color  # noqa: E402
 from xionghan_chess.desktop import app as appmod  # noqa: E402
 from xionghan_chess.desktop.ui import theme  # noqa: E402
 
@@ -90,8 +89,7 @@ def silent_dialogs(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
     # 结果弹窗改为自定义按钮框后，静默点转移到 `show_result_dialog`（否则会真模态挂住）
     monkeypatch.setattr(appmod, "show_result_dialog", staticmethod(lambda *a, **k: False))
-    monkeypatch.setattr(QMessageBox, "question",
-                        staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
 
 
 @pytest.fixture()
@@ -101,9 +99,9 @@ def window(monkeypatch: pytest.MonkeyPatch, tmp_path, qt_app: QApplication):
     win = appmod.MainWindow()
     win.config["language"] = "zh-CN"
     # 三个替身装好之后再清快照，保证「第一次 refresh」是真正的重建
-    win.history = ListSpy()          # type: ignore[assignment]
-    win.captured = LabelSpy()        # type: ignore[assignment]
-    win.board = BoardSpy()           # type: ignore[assignment]
+    win.history = ListSpy()  # type: ignore[assignment]
+    win.captured = LabelSpy()  # type: ignore[assignment]
+    win.board = BoardSpy()  # type: ignore[assignment]
     win._reset_ui_cache()
     yield win
     win.timer.stop()
@@ -132,9 +130,9 @@ def test_move_rebuilds_history_and_board_but_not_captured(window) -> None:
 
 def test_undo_rebuilds_history(window) -> None:
     window.game.move(window.game.rules.legal_moves(window.game.state)[0])
-    window.refresh()          # 第 1 次重建：列表里有一手
+    window.refresh()  # 第 1 次重建：列表里有一手
     window.game.undo(1)
-    window.refresh()          # 第 2 次重建：列表回到空
+    window.refresh()  # 第 2 次重建：列表回到空
     assert window.history.add_calls == 2, "悔棋后列表要回到上一手的状态"
     assert window.history.items == []
 

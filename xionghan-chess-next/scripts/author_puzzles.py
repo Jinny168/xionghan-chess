@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from xionghan_chess.core.game import Game, GameError  # noqa: E402
-from xionghan_chess.core.model import Color, Move, Piece, PieceType, Position  # noqa: E402
+from xionghan_chess.core.model import Color, Move, Piece, PieceType  # noqa: E402
 from xionghan_chess.core.storage import game_document  # noqa: E402
 
 # 出题只用红方作为解方（题面固定"轮到你走"），黑方是被杀的一方
@@ -79,9 +79,9 @@ def _forced_line(game: Game, player_moves: int, budget: list[int]) -> list[Move]
         try:
             replies = _legal(game)
             if not replies:
-                return [move]                       # 一步杀
+                return [move]  # 一步杀
             if len(replies) != 1:
-                continue                            # 对手有选择 → 这条线不唯一
+                continue  # 对手有选择 → 这条线不唯一
             reply = replies[0]
             game.move(reply)
             try:
@@ -131,7 +131,7 @@ def _valid_start(game: Game) -> bool:
     if game.state.finished:
         return False
     if game.rules.in_check(game.state, game.state.turn.opponent):
-        return False          # 不该轮到非走子方还被将军
+        return False  # 不该轮到非走子方还被将军
     if not _legal(game):
         return False
     return True
@@ -144,11 +144,18 @@ def _random_position(rng: random.Random, attackers: int):
     red_king = (rng.randint(10, 12), rng.randint(3, 6))
     _place_kings(game, black_king, red_king)
 
-    kinds = [PieceType.ROOK, PieceType.CANNON, PieceType.HORSE,
-             PieceType.GUARD, PieceType.ARCHER, PieceType.THUNDER, PieceType.PATROL]
+    kinds = [
+        PieceType.ROOK,
+        PieceType.CANNON,
+        PieceType.HORSE,
+        PieceType.GUARD,
+        PieceType.ARCHER,
+        PieceType.THUNDER,
+        PieceType.PATROL,
+    ]
     for _ in range(attackers):
         kind = rng.choice(kinds)
-        for _ in range(12):                     # 最多试 12 个落点
+        for _ in range(12):  # 最多试 12 个落点
             row = rng.randint(0, 5)
             col = rng.randint(0, 12)
             if any(p.position.row == row and p.position.col == col for p in game.state.pieces):
@@ -166,7 +173,7 @@ def _title(kind: str, plies: int, index: int) -> str:
 def collect(*, plies: int, limit: int, seed: int) -> list[dict]:
     rng = random.Random(seed)
     found: dict[str, dict] = {}
-    deadline = time.monotonic() + 240        # 单次运行的时间上限
+    deadline = time.monotonic() + 240  # 单次运行的时间上限
     for attempt in range(limit):
         if time.monotonic() > deadline:
             break
@@ -175,7 +182,7 @@ def collect(*, plies: int, limit: int, seed: int) -> list[dict]:
             continue
         budget = [4000]
         lines = _all_lines(game, (plies + 1) // 2, budget)
-        if len(lines) != 1:                  # 必须**恰好一条**强制线
+        if len(lines) != 1:  # 必须**恰好一条**强制线
             continue
         line = lines[0]
         if len(line) != plies:
@@ -186,7 +193,8 @@ def collect(*, plies: int, limit: int, seed: int) -> list[dict]:
         document.pop("snapshots", None)
         document.get("state", {}).pop("positionCounts", None)
         key = document["state"].get("positionKey") or json.dumps(
-            [(p.type.value, p.color.value, p.position.row, p.position.col) for p in game.state.pieces], sort_keys=True)
+            [(p.type.value, p.color.value, p.position.row, p.position.col) for p in game.state.pieces], sort_keys=True
+        )
         if key in found:
             continue
         found[key] = {
@@ -195,8 +203,10 @@ def collect(*, plies: int, limit: int, seed: int) -> list[dict]:
             "difficulty": "beginner" if plies == 3 else "advanced",
             "description": "找出唯一能连续将军的那条路。",
             "document": document,
-            "solution": [{"from": {"row": m.source.row, "col": m.source.col},
-                          "to": {"row": m.target.row, "col": m.target.col}} for m in line],
+            "solution": [
+                {"from": {"row": m.source.row, "col": m.source.col}, "to": {"row": m.target.row, "col": m.target.col}}
+                for m in line
+            ],
             "hints": [f"第 {i + 1} 手：先想将军" for i in range((plies + 1) // 2)],
             "tags": ["generated"],
         }
@@ -217,8 +227,7 @@ def main() -> int:
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(items, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"{args.plies} ply：尝试 {args.limit} 个局面，得到 {len(items)} 条，"
-          f"耗时 {elapsed:.1f}s -> {out}")
+    print(f"{args.plies} ply：尝试 {args.limit} 个局面，得到 {len(items)} 条，耗时 {elapsed:.1f}s -> {out}")
     return 0 if items else 1
 
 

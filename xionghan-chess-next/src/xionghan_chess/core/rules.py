@@ -10,14 +10,16 @@ from .profiles import RULE_VERSION, RuleOptions, RuleProfile
 
 class CaptureKind(StrEnum):
     """How a move takes an enemy piece off the board."""
-    DIRECT = "direct"                        # the landing square is the victim's square
-    THREE_LINE = "three_line"                # 己方两子夹一敌子成线（兵，开关控制）
+
+    DIRECT = "direct"  # the landing square is the victim's square
+    THREE_LINE = "three_line"  # 己方两子夹一敌子成线（兵，开关控制）
     PROMOTION_CONSUME = "promotion_consume"  # reserved; never emitted by capturable_squares
 
 
 @dataclass(frozen=True, slots=True)
 class Removal:
     """A single enemy piece removed by a move, attributed to the move's squares."""
+
     kind: CaptureKind
     victim_id: str
     victim_type: PieceType
@@ -30,13 +32,13 @@ class Removal:
 @dataclass(frozen=True, slots=True)
 class CaptureSpec:
     """Every way the piece standing on `position` can be captured."""
+
     position: Position
     removals: tuple[Removal, ...]
 
 
 def _removal_order(removal: Removal) -> tuple[str, int, int, int, int]:
-    return (removal.kind.value, removal.origin.row, removal.origin.col,
-            removal.landing.row, removal.landing.col)
+    return (removal.kind.value, removal.origin.row, removal.origin.col, removal.landing.row, removal.landing.col)
 
 
 def archer_star_points(profile: RuleProfile) -> frozenset[Position]:
@@ -91,8 +93,7 @@ def pool_signature(state: GameState) -> str:
     pool is a first-class part of the repetition key -- not an AI-only cache
     extra.
     """
-    return ",".join(sorted(f"{color.value}:{piece.type.value}"
-                           for color in Color for piece in state.captured[color]))
+    return ",".join(sorted(f"{color.value}:{piece.type.value}" for color in Color for piece in state.captured[color]))
 
 
 class RulesEngine:
@@ -105,8 +106,8 @@ class RulesEngine:
         # 每次重建 frozenset 要付 14 次 `piece_enabled` 的 getattr，累计 1.09s。
         # 安全性：`options` 只在构造时赋值，全仓没有原地修改（改规则会新建引擎）。
         self._enabled_piece_types = frozenset(
-            kind for kind in self.profile.enabled_piece_types
-            if self.options.piece_enabled(kind))
+            kind for kind in self.profile.enabled_piece_types if self.options.piece_enabled(kind)
+        )
 
     @property
     def enabled_piece_types(self) -> frozenset[PieceType]:
@@ -154,8 +155,11 @@ class RulesEngine:
                 return False
             if not any(p.type is move.promotion for p in state.captured[piece.color]):
                 return False
-        elif piece.type is PieceType.PAWN and self.options.pawn_promotion and \
-                move.target.row == (0 if piece.color is Color.RED else self.profile.rows - 1):
+        elif (
+            piece.type is PieceType.PAWN
+            and self.options.pawn_promotion
+            and move.target.row == (0 if piece.color is Color.RED else self.profile.rows - 1)
+        ):
             # Only non-emptiness is needed here, so ask the set directly -- this
             # gate is the one promotion branch that runs on the pseudo_legal hot
             # path, and `promotable_types` skips `promotion_types`' sort.
@@ -166,11 +170,16 @@ class RulesEngine:
         # stays homogeneous; a validator that does not need `piece` (rook, horse,
         # cannon, guard, archer, thunder, patrol) simply ignores it.
         validators: dict[PieceType, Callable[[GameState, Piece, Move], bool]] = {
-            PieceType.ROOK: self._rook, PieceType.HORSE: self._horse,
-            PieceType.ELEPHANT: self._elephant, PieceType.ADVISOR: self._advisor,
-            PieceType.KING: self._king, PieceType.CANNON: self._cannon,
-            PieceType.PAWN: self._pawn, PieceType.GUARD: self._guard,
-            PieceType.ARCHER: self._archer, PieceType.THUNDER: self._thunder,
+            PieceType.ROOK: self._rook,
+            PieceType.HORSE: self._horse,
+            PieceType.ELEPHANT: self._elephant,
+            PieceType.ADVISOR: self._advisor,
+            PieceType.KING: self._king,
+            PieceType.CANNON: self._cannon,
+            PieceType.PAWN: self._pawn,
+            PieceType.GUARD: self._guard,
+            PieceType.ARCHER: self._archer,
+            PieceType.THUNDER: self._thunder,
             PieceType.PATROL: self._patrol,
         }
         return validators[piece.type](state, piece, move)
@@ -192,9 +201,14 @@ class RulesEngine:
                 for col in range(self.profile.cols):
                     target = Position(row, col)
                     promotions: list[PieceType | None] = [None]
-                    if (piece.type is PieceType.PAWN and self.options.pawn_promotion
-                            and row == (0 if color is Color.RED else self.profile.rows - 1)):
-                        promotions = self.promotion_types(probe, color) or [None]
+                    if (
+                        piece.type is PieceType.PAWN
+                        and self.options.pawn_promotion
+                        and row == (0 if color is Color.RED else self.profile.rows - 1)
+                    ):
+                        promotions = list(self.promotion_types(probe, color))
+                        if not promotions:
+                            promotions.append(None)
                     for promotion in promotions:
                         move = Move(piece.position, target, promotion)
                         if self.is_legal(probe, move):
@@ -222,8 +236,7 @@ class RulesEngine:
         moving = self.get(state, move.source)
         if moving is None:
             return ()
-        return tuple(piece for piece in self.board_removals(state, move)
-                     if piece.color is not moving.color)
+        return tuple(piece for piece in self.board_removals(state, move) if piece.color is not moving.color)
 
     def board_removals(self, state: GameState, move: Move) -> tuple[Piece, ...]:
         """Every piece a move takes off the board, of either colour.
@@ -258,21 +271,33 @@ class RulesEngine:
         """
         clone = state.clone()
         piece = clone.piece_at(move.source)
+        assert piece is not None, "apply_move called with a move whose source is empty"
         removals: list[Removal] = []
         target = clone.piece_at(move.target)
         if target:
             clone.pieces.remove(target)
-            removals.append(Removal(CaptureKind.DIRECT, target.id, target.type,
-                                    target.color, target.position, move.source, move.target))
+            removals.append(
+                Removal(
+                    CaptureKind.DIRECT, target.id, target.type, target.color, target.position, move.source, move.target
+                )
+            )
         clone.pieces[clone.pieces.index(piece)] = piece.at(move.target)
 
         if self._three_line_mover(piece):
             for captured in self._three_line_removals(clone, piece.color, move.target):
                 if captured in clone.pieces:
                     clone.pieces.remove(captured)
-                    removals.append(Removal(CaptureKind.THREE_LINE, captured.id, captured.type,
-                                            captured.color, captured.position,
-                                            move.source, move.target))
+                    removals.append(
+                        Removal(
+                            CaptureKind.THREE_LINE,
+                            captured.id,
+                            captured.type,
+                            captured.color,
+                            captured.position,
+                            move.source,
+                            move.target,
+                        )
+                    )
 
         if move.promotion and piece.type is PieceType.PAWN and self.options.pawn_promotion:
             promoted = clone.piece_at(move.target)
@@ -290,8 +315,9 @@ class RulesEngine:
         threatened = self.capturable_squares(state, color.opponent, targets=(king.position,))
         return bool(threatened) or self._kings_facing(state)
 
-    def capturable_squares(self, state: GameState, color: Color,
-                           targets: Iterable[Position] | None = None) -> dict[Position, CaptureSpec]:
+    def capturable_squares(
+        self, state: GameState, color: Color, targets: Iterable[Position] | None = None
+    ) -> dict[Position, CaptureSpec]:
         """Map every square `color` can capture to the removals that do it.
 
         The key is the victim's square: a direct capture is filed under the
@@ -340,9 +366,9 @@ class RulesEngine:
         may hand-roll the set again.
         """
         return {
-            captured.type for captured in state.captured[color]
-            if captured.type not in {PieceType.PAWN, PieceType.KING}
-            and captured.type in self.enabled_piece_types
+            captured.type
+            for captured in state.captured[color]
+            if captured.type not in {PieceType.PAWN, PieceType.KING} and captured.type in self.enabled_piece_types
         }
 
     def promotion_types(self, state: GameState, color: Color) -> list[PieceType]:
@@ -360,8 +386,11 @@ class RulesEngine:
         is the shared constructor behind `_capture_removals` and `ai_see`'s
         recapture scan; neither may hand-roll the variant list again.
         """
-        if (piece.type is PieceType.PAWN and self.options.pawn_promotion
-                and target.row == (0 if piece.color is Color.RED else self.profile.rows - 1)):
+        if (
+            piece.type is PieceType.PAWN
+            and self.options.pawn_promotion
+            and target.row == (0 if piece.color is Color.RED else self.profile.rows - 1)
+        ):
             promotions = self.promotion_types(state, piece.color)
             if promotions:
                 return [Move(piece.position, target, promotion) for promotion in promotions]
@@ -384,18 +413,26 @@ class RulesEngine:
         for piece in state.pieces:
             if piece.color is not color:
                 continue
-            if any(self.pseudo_legal(state, move)
-                   for move in self.moves_to_target(state, piece, victim.position)):
-                removals.append(Removal(CaptureKind.DIRECT, victim.id, victim.type,
-                                        victim.color, victim.position,
-                                        piece.position, victim.position))
+            if any(self.pseudo_legal(state, move) for move in self.moves_to_target(state, piece, victim.position)):
+                removals.append(
+                    Removal(
+                        CaptureKind.DIRECT,
+                        victim.id,
+                        victim.type,
+                        victim.color,
+                        victim.position,
+                        piece.position,
+                        victim.position,
+                    )
+                )
             if self._three_line_mover(piece):
                 landings = []
                 for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
                     for step in (1, 2):
                         for sign in (1, -1):
-                            square = Position(victim.position.row + sign * step * dr,
-                                              victim.position.col + sign * step * dc)
+                            square = Position(
+                                victim.position.row + sign * step * dr, victim.position.col + sign * step * dc
+                            )
                             if self.inside(square):
                                 landings.append(square)
             else:
@@ -408,24 +445,32 @@ class RulesEngine:
                     continue
                 after = self.apply_unchecked(state, move, switch_turn=False)
                 if victim.id not in {p.id for p in after.pieces}:
-                    removals.append(Removal(CaptureKind.THREE_LINE, victim.id, victim.type,
-                                            victim.color, victim.position,
-                                            piece.position, landing))
+                    removals.append(
+                        Removal(
+                            CaptureKind.THREE_LINE,
+                            victim.id,
+                            victim.type,
+                            victim.color,
+                            victim.position,
+                            piece.position,
+                            landing,
+                        )
+                    )
         return removals
 
     def _assert_capture_specs(self, found: dict[Position, CaptureSpec], color: Color) -> None:
         """Contract checks that hold for every capture spec (`python -O` skips)."""
         for key, spec in found.items():
             assert spec.position == key, "a spec is keyed by its victim's square"
-            assert spec.removals == tuple(sorted(spec.removals, key=_removal_order)), \
+            assert spec.removals == tuple(sorted(spec.removals, key=_removal_order)), (
                 "removals must be sorted by the deterministic order"
+            )
             for removal in spec.removals:
-                assert removal.kind is not CaptureKind.PROMOTION_CONSUME, \
+                assert removal.kind is not CaptureKind.PROMOTION_CONSUME, (
                     "capturable_squares never reports a pool-consuming promotion"
-                assert removal.victim_color is color.opponent, \
-                    "every removal hits the opposing side"
-                assert removal.victim_position == key, \
-                    "a removal's victim square is the spec's key"
+                )
+                assert removal.victim_color is color.opponent, "every removal hits the opposing side"
+                assert removal.victim_position == key, "a removal's victim square is the spec's key"
 
     def checkmate(self, state: GameState, color: Color) -> bool:
         return self.in_check(state, color) and not self.has_any_legal_move(state, color)
@@ -454,8 +499,7 @@ class RulesEngine:
         """
         pieces = sorted((p.color.value, p.type.value, p.position.row, p.position.col) for p in state.pieces)
         board = ";".join(f"{color}:{kind}:{row}:{col}" for color, kind, row, col in pieces)
-        return (f"{state.turn.value}|{board}||pool:{pool_signature(state)}"
-                f"||opt:{self._option_digest()}")
+        return f"{state.turn.value}|{board}||pool:{pool_signature(state)}||opt:{self._option_digest()}"
 
     def _option_digest(self) -> str:
         """影响合法着法/吃子的选项摘要。
@@ -468,10 +512,12 @@ class RulesEngine:
         不是另起一个常量：**走法语义一变就必须换账本**，让它跟语义版本同源，
         下次改规则的人就不可能只改一处、忘了这里。
         """
-        return (f"rs{RULE_VERSION}-"
-                f"p3l{int(self.options.pawn_three_line_capture)}"
-                f"-promo{int(self.options.pawn_promotion)}"
-                f"-self{int(self.options.enforce_self_check)}")
+        return (
+            f"rs{RULE_VERSION}-"
+            f"p3l{int(self.options.pawn_three_line_capture)}"
+            f"-promo{int(self.options.pawn_promotion)}"
+            f"-self{int(self.options.enforce_self_check)}"
+        )
 
     def _clear(self, state: GameState, source: Position, target: Position) -> bool:
         dr = (target.row > source.row) - (target.row < source.row)
@@ -517,8 +563,7 @@ class RulesEngine:
         # 别马腿只管日字这一路；直走三格没有"马腿"概念，不受这个开关影响。
         if not self.options.horse_blocked_by_leg:
             return True
-        leg = Position(move.source.row + (dr // 2 if ar == 2 else 0),
-                       move.source.col + (dc // 2 if ac == 2 else 0))
+        leg = Position(move.source.row + (dr // 2 if ar == 2 else 0), move.source.col + (dc // 2 if ac == 2 else 0))
         return self.get(state, leg) is None
 
     def _elephant(self, state: GameState, piece: Piece, move: Move) -> bool:
@@ -541,10 +586,14 @@ class RulesEngine:
                 return False
             return True
         # 与兵/快速行军同一口径：阴山行本身不算敌境（红 row ≤ 5、黑 row ≥ 7）。
-        in_enemy_territory = (piece.color is Color.RED and move.source.row < middle) or \
-                             (piece.color is Color.BLACK and move.source.row > middle)
-        return self.options.elephant_can_cross_river and \
-            self.options.elephant_gain_jump_two_enemy_territory and in_enemy_territory
+        in_enemy_territory = (piece.color is Color.RED and move.source.row < middle) or (
+            piece.color is Color.BLACK and move.source.row > middle
+        )
+        return (
+            self.options.elephant_can_cross_river
+            and self.options.elephant_gain_jump_two_enemy_territory
+            and in_enemy_territory
+        )
 
     def _advisor(self, state: GameState, piece: Piece, move: Move) -> bool:
         dr, dc = abs(move.target.row - move.source.row), abs(move.target.col - move.source.col)
@@ -552,14 +601,18 @@ class RulesEngine:
         source_in_palace = self.palace(piece.color, move.source)
         target_in_palace = self.palace(piece.color, move.target)
         if source_in_palace:
-            return diagonal and (target_in_palace or self.options.advisor_can_leave_palace) and \
-                not self._diagonal_path_pinched(state, move)
+            return (
+                diagonal
+                and (target_in_palace or self.options.advisor_can_leave_palace)
+                and not self._diagonal_path_pinched(state, move)
+            )
         if not self.options.advisor_can_leave_palace and not target_in_palace:
             return False
         if diagonal and self._diagonal_path_pinched(state, move):
             return False
-        return diagonal or (straight and self.options.advisor_can_leave_palace and
-                            self.options.advisor_gain_straight_outside_palace)
+        return diagonal or (
+            straight and self.options.advisor_can_leave_palace and self.options.advisor_gain_straight_outside_palace
+        )
 
     def _king(self, state: GameState, piece: Piece, move: Move) -> bool:
         dr, dc = abs(move.target.row - move.source.row), abs(move.target.col - move.source.col)
@@ -597,11 +650,14 @@ class RulesEngine:
         # 谁关谁开都说不清，底线兵到底能不能退在旧配置下根本推不出来。
         distance = abs(dr)
         distance_to_enemy_territory = (
-            move.source.row - middle + 1 if piece.color is Color.RED
-            else middle - move.source.row + 1
+            move.source.row - middle + 1 if piece.color is Color.RED else middle - move.source.row + 1
         )
-        if self.options.pawn_fast_move_before_enemy_territory and dc == 0 and \
-                dr == forward * distance and 1 < distance <= distance_to_enemy_territory:
+        if (
+            self.options.pawn_fast_move_before_enemy_territory
+            and dc == 0
+            and dr == forward * distance
+            and 1 < distance <= distance_to_enemy_territory
+        ):
             if self.get(state, move.target):
                 return False
             return all(
@@ -661,9 +717,7 @@ class RulesEngine:
             if target and move.source not in self.archer_star_points:
                 return False
         else:
-            star_distance = self._nearest_archer_star_distance(
-                move.source, step_row, step_col
-            )
+            star_distance = self._nearest_archer_star_distance(move.source, step_row, step_col)
             if star_distance == 0 or distance > star_distance:
                 return False
 
@@ -672,20 +726,17 @@ class RulesEngine:
         # 位移仍要求路径无子；**吃子无视阻挡**（射程/星点/夹逼三项不变）。
         if target is None:
             for step in range(1, distance):
-                position = Position(move.source.row + step * step_row,
-                                    move.source.col + step * step_col)
+                position = Position(move.source.row + step * step_row, move.source.col + step * step_col)
                 if self.get(state, position):
                     return False
         return True
 
-    def _nearest_archer_star_distance(self, source: Position,
-                                      step_row: int, step_col: int) -> int:
+    def _nearest_archer_star_distance(self, source: Position, step_row: int, step_col: int) -> int:
         # A diagonal needs at most max(rows, cols) - 1 steps to leave the board,
         # so this exclusive bound always covers the whole ray.
         search_steps = max(self.profile.rows, self.profile.cols)
         for distance in range(1, search_steps):
-            position = Position(source.row + distance * step_row,
-                                source.col + distance * step_col)
+            position = Position(source.row + distance * step_row, source.col + distance * step_col)
             if not self.inside(position):
                 return 0
             if position in self.archer_star_points:
@@ -694,16 +745,21 @@ class RulesEngine:
 
     @staticmethod
     def _position_on_segment(position: Position, start: Position, end: Position) -> bool:
-        return min(start.row, end.row) <= position.row <= max(start.row, end.row) and \
-            min(start.col, end.col) <= position.col <= max(start.col, end.col) and \
-            abs(position.row - start.row) == abs(position.col - start.col)
+        return (
+            min(start.row, end.row) <= position.row <= max(start.row, end.row)
+            and min(start.col, end.col) <= position.col <= max(start.col, end.col)
+            and abs(position.row - start.row) == abs(position.col - start.col)
+        )
 
-    def _diagonal_pinched(self, state: GameState, position: Position,
-                          step_row: int, step_col: int) -> bool:
+    def _diagonal_pinched(self, state: GameState, position: Position, step_row: int, step_col: int) -> bool:
         side_a = Position(position.row, position.col + step_col)
         side_b = Position(position.row + step_row, position.col)
-        return self.inside(side_a) and self.inside(side_b) and \
-            self.get(state, side_a) is not None and self.get(state, side_b) is not None
+        return (
+            self.inside(side_a)
+            and self.inside(side_b)
+            and self.get(state, side_a) is not None
+            and self.get(state, side_b) is not None
+        )
 
     def _diagonal_path_pinched(self, state: GameState, move: Move) -> bool:
         if not self._diagonal(move):
@@ -714,8 +770,7 @@ class RulesEngine:
         return any(
             self._diagonal_pinched(
                 state,
-                Position(move.source.row + step * step_row,
-                         move.source.col + step * step_col),
+                Position(move.source.row + step * step_row, move.source.col + step * step_col),
                 step_row,
                 step_col,
             )
@@ -727,11 +782,14 @@ class RulesEngine:
             return False
         target = self.get(state, move.target)
         if target:
-            return max(abs(move.target.row - move.source.row), abs(move.target.col - move.source.col)) == 1 and \
-                self._isolated(state, target) and \
-                (not self._diagonal(move) or not self._diagonal_path_pinched(state, move))
-        return self._clear(state, move.source, move.target) and \
-            (not self._diagonal(move) or not self._diagonal_path_pinched(state, move))
+            return (
+                max(abs(move.target.row - move.source.row), abs(move.target.col - move.source.col)) == 1
+                and self._isolated(state, target)
+                and (not self._diagonal(move) or not self._diagonal_path_pinched(state, move))
+            )
+        return self._clear(state, move.source, move.target) and (
+            not self._diagonal(move) or not self._diagonal_path_pinched(state, move)
+        )
 
     def _patrol(self, state: GameState, piece: Piece, move: Move) -> bool:
         """巡：**只沿横线**走偶数格；吃子仅限距离 2。
@@ -759,8 +817,7 @@ class RulesEngine:
         """这枚子移动后是否结算"三连吃子"：只有兵，且需 `pawn_three_line_capture` 开关（默认关）。"""
         return piece.type is PieceType.PAWN and self.options.pawn_three_line_capture
 
-    def _three_line_removals(self, state: GameState, color: Color,
-                             landing: Position) -> list[Piece]:
+    def _three_line_removals(self, state: GameState, color: Color, landing: Position) -> list[Piece]:
         """三连吃子：**只结算落点所在的线**。
 
         口径（规则作者定稿）：
@@ -778,13 +835,15 @@ class RulesEngine:
         for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
             # 落点可能落在窗口的第 1/2/3 格 → 3 个偏移；4 向共 12 个窗口
             for offset in (-2, -1, 0):
-                group = [self.get(state, Position(landing.row + (offset + i) * dr,
-                                                  landing.col + (offset + i) * dc))
-                         for i in range(3)]
-                if any(p is None for p in group):
+                group = [
+                    self.get(state, Position(landing.row + (offset + i) * dr, landing.col + (offset + i) * dc))
+                    for i in range(3)
+                ]
+                present = [p for p in group if p is not None]
+                if len(present) != 3:
                     continue
-                allies = [p for p in group if p.color is color]
-                enemies = [p for p in group if p.color is not color]
+                allies = [p for p in present if p.color is color]
+                enemies = [p for p in present if p.color is not color]
                 if len(allies) != 2 or len(enemies) != 1:
                     continue
                 if not any(p.type is PieceType.PAWN for p in allies):
@@ -799,6 +858,5 @@ class RulesEngine:
         kings = [p for p in state.pieces if p.type is PieceType.KING]
         if len(kings) != 2:
             return False
-        same_line = (kings[0].position.col == kings[1].position.col
-                     or kings[0].position.row == kings[1].position.row)
+        same_line = kings[0].position.col == kings[1].position.col or kings[0].position.row == kings[1].position.row
         return same_line and self._clear(state, kings[0].position, kings[1].position)

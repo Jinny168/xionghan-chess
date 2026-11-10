@@ -30,9 +30,11 @@ def test_version_single_source() -> None:
 
 def test_piece_rules_copies_are_identical() -> None:
     """`docs/` 与 `resources/docs/` 的副本必须逐字节一致。"""
-    pairs = [("PIECE_RULES.md", ROOT / "docs" / "PIECE_RULES.md", RESOURCES / "PIECE_RULES.md"),
-             ("ABOUT.md", ROOT / "docs" / "ABOUT.md", RESOURCES / "ABOUT.md"),
-             ("HELP.md", ROOT / "docs" / "HELP.md", RESOURCES / "HELP.md")]
+    pairs = [
+        ("PIECE_RULES.md", ROOT / "docs" / "PIECE_RULES.md", RESOURCES / "PIECE_RULES.md"),
+        ("ABOUT.md", ROOT / "docs" / "ABOUT.md", RESOURCES / "ABOUT.md"),
+        ("HELP.md", ROOT / "docs" / "HELP.md", RESOURCES / "HELP.md"),
+    ]
     checked = 0
     for name, public, bundled in pairs:
         if not public.is_file() or not bundled.is_file():
@@ -42,7 +44,8 @@ def test_piece_rules_copies_are_identical() -> None:
         b = hashlib.sha256(bundled.read_bytes()).hexdigest()
         assert a == b, (
             f"{name} 两份不一致（{a[:12]} vs {b[:12]}）。"
-            "注意：改 docs/ 那份对用户无效，请同步 resources/docs/ 那份（进包的是它）")
+            "注意：改 docs/ 那份对用户无效，请同步 resources/docs/ 那份（进包的是它）"
+        )
     assert checked >= 1, "一份双份文档都没检查到，路径是不是变了？"
 
 

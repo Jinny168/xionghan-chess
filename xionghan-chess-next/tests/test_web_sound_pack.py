@@ -20,8 +20,14 @@ WEB = SOUNDS / "web"
 
 # 目标时长（秒）与 ±5% 容差
 EXPECTED = {
-    "select": 0.07, "move": 0.11, "capture": 0.13, "check": 0.23,
-    "win": 0.54, "lose": 0.56, "click": 0.035, "undo": 0.12,
+    "select": 0.07,
+    "move": 0.11,
+    "capture": 0.13,
+    "check": 0.23,
+    "win": 0.54,
+    "lose": 0.56,
+    "click": 0.035,
+    "undo": 0.12,
 }
 
 
@@ -39,15 +45,13 @@ def test_eight_files_exist_with_expected_duration() -> None:
         path = WEB / f"{name}.wav"
         assert path.is_file(), f"缺少 {path.name}"
         actual = duration(path)
-        assert abs(actual - target) <= target * 0.05, (
-            f"{name}: {actual:.3f}s 与目标 {target}s 差超过 5%")
+        assert abs(actual - target) <= target * 0.05, f"{name}: {actual:.3f}s 与目标 {target}s 差超过 5%"
 
 
 def test_regenerating_is_byte_identical() -> None:
     """固定种子：重跑必须逐字节一致，否则每次构建都会把仓库改脏。"""
     before = {name: sha(WEB / f"{name}.wav") for name in EXPECTED}
-    subprocess.run([sys.executable, str(ROOT / "scripts" / "gen_web_sound_pack.py")],
-                   check=True, capture_output=True)
+    subprocess.run([sys.executable, str(ROOT / "scripts" / "gen_web_sound_pack.py")], check=True, capture_output=True)
     after = {name: sha(WEB / f"{name}.wav") for name in EXPECTED}
     assert before == after, "重跑后 sha256 变了 —— 随机种子没固定住"
 
@@ -76,7 +80,7 @@ def test_legacy_config_without_pack_falls_back_to_classic(qt_app) -> None:
 
     audio = DesktopAudio()
     audio.set_sound_pack("web", audition=False)
-    audio.configure({})                       # 老配置：没有 sound_pack 键
+    audio.configure({})  # 老配置：没有 sound_pack 键
     assert audio.sound_pack == "classic"
 
 
@@ -84,5 +88,6 @@ def test_legacy_config_without_pack_falls_back_to_classic(qt_app) -> None:
 def qt_app():
     pytest.importorskip("PySide6", reason="音效需要 Qt")
     from PySide6.QtWidgets import QApplication
+
     app = QApplication.instance() or QApplication([])
     return app

@@ -40,7 +40,12 @@ class InstallResult:
         if self.added == 0:
             return dlf("没有新增题目（{skipped} 条 id 已存在）。", skipped=self.skipped)
         suffix = dlf("，{skipped} 条已存在跳过", skipped=self.skipped) if self.skipped else ""
-        return dlf("已导入 {added} 条题目{suffix}。当前自定义题库共 {total} 条。", added=self.added, suffix=suffix, total=self.total)
+        return dlf(
+            "已导入 {added} 条题目{suffix}。当前自定义题库共 {total} 条。",
+            added=self.added,
+            suffix=suffix,
+            total=self.total,
+        )
 
 
 def _entry(puzzle: Puzzle) -> dict[str, object]:
@@ -92,7 +97,7 @@ def install_puzzles(source: Path, path: Path | None = None) -> InstallResult:
     `KeyError`，由界面转成一句可读的提示 —— 不会出现「导入一半写坏存储」。
     """
     target = path or puzzles_file()
-    incoming = load_puzzles(source)          # 非法题库在此抛错
+    incoming = load_puzzles(source)  # 非法题库在此抛错
     if not incoming:
         raise ValueError(dl("题库文件里没有任何题目"))
 
@@ -112,6 +117,5 @@ def install_puzzles(source: Path, path: Path | None = None) -> InstallResult:
     if added:
         target.parent.mkdir(parents=True, exist_ok=True)
         payload = [_entry(puzzle) for puzzle in [*current, *added]]
-        target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-                          encoding="utf-8", newline="\n")
+        target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     return InstallResult(added=len(added), skipped=skipped, total=len(current) + len(added))

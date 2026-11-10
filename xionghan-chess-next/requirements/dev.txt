@@ -3,4 +3,11 @@
 pytest>=8.3,<9
 httpx>=0.28,<1
 pyinstaller>=6.14,<7
+# 测试用：test_desktop_theme_resources 用 fontTools 校验内嵌字体覆盖全部棋子字形。
+# 缺它时该用例报 ModuleNotFoundError，新环境必红（2026-11-08 审计实测）。
+fonttools>=4.50,<5
+# 测试用：test_desktop_pieces_assets 用 Pillow 校验棋子裁剪框与美术一致。
+# 缺它时 4 条用例走 importorskip 静默跳过（=空绿），版本区间与 pyproject 的
+# build extra 一致（2026-11-08 CI 实测 Pillow 12.3.0 下 17 passed）。
+pillow>=11,<13
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 
-
 BUILTIN_AVATARS = tuple(f"avatar-{index:02d}" for index in range(1, 10))
 _BUILTIN_PATTERN = re.compile(r"^builtin:(avatar-\d{2})$")
 

@@ -17,7 +17,6 @@ import pytest
 
 from xionghan_chess.desktop import net
 
-
 # --------------------------------------------------------------------------- #
 # ws_url
 # --------------------------------------------------------------------------- #
@@ -206,8 +205,8 @@ def test_http_error_detail_is_surfaced_instead_of_the_status_line(monkeypatch) -
     def raise_http_error(payload: dict):
         def fake_urlopen(_request, timeout=0):
             body = json.dumps(payload).encode("utf-8")
-            raise urllib.error.HTTPError(
-                "http://h/api/rooms", 409, "Conflict", {}, io.BytesIO(body))
+            raise urllib.error.HTTPError("http://h/api/rooms", 409, "Conflict", {}, io.BytesIO(body))
+
         monkeypatch.setattr(net_module.urllib.request, "urlopen", fake_urlopen)
 
     raise_http_error({"detail": {"code": "rule_version_mismatch", "message": "版本不一致"}})

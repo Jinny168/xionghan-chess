@@ -5,12 +5,12 @@ from collections.abc import Callable, Mapping
 from .game import Game
 from .model import Move, Piece, PieceType, Position
 
-
 Guard = Callable[[], None]
 
 
-def static_exchange_score(game: Game, move: Move, values: Mapping[PieceType, int],
-                          guard: Guard | None = None, max_depth: int = 10) -> int:
+def static_exchange_score(
+    game: Game, move: Move, values: Mapping[PieceType, int], guard: Guard | None = None, max_depth: int = 10
+) -> int:
     """Evaluate the forced capture sequence on a move's destination square.
 
     The exchange is played on cloned authoritative states, so screens, pins,
@@ -28,8 +28,9 @@ def static_exchange_score(game: Game, move: Move, values: Mapping[PieceType, int
     return immediate - _best_recapture(child, move.target, values, guard, max_depth)
 
 
-def _best_recapture(game: Game, target: Position, values: Mapping[PieceType, int],
-                    guard: Guard | None, remaining: int) -> int:
+def _best_recapture(
+    game: Game, target: Position, values: Mapping[PieceType, int], guard: Guard | None, remaining: int
+) -> int:
     if remaining <= 0 or game.state.piece_at(target) is None:
         return 0
     best = 0
@@ -65,8 +66,7 @@ def _captures_to(game: Game, target: Position, guard: Guard | None) -> list[Move
         for move in game.rules.moves_to_target(game.state, piece, target):
             if not game.rules.is_legal(game.state, move):
                 continue
-            if any(captured.id == victim.id
-                   for captured in game.rules.captured_by_move(game.state, move)):
+            if any(captured.id == victim.id for captured in game.rules.captured_by_move(game.state, move)):
                 moves.append(move)
     return moves
 

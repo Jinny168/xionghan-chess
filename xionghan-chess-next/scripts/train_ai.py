@@ -19,10 +19,14 @@ def main() -> None:
     args = parser.parse_args()
     total = 0
     for game_index in range(args.games):
-        total += append_jsonl(args.data, collect_game(
-            simulations=args.simulations, max_plies=args.max_plies,
-            seed=args.seed + game_index,
-        ))
+        total += append_jsonl(
+            args.data,
+            collect_game(
+                simulations=args.simulations,
+                max_plies=args.max_plies,
+                seed=args.seed + game_index,
+            ),
+        )
     network = NumpyPolicyValueNet(seed=args.seed)
     metrics = network.train_jsonl(args.data, epochs=args.epochs)
     network.save(args.model)

@@ -18,6 +18,7 @@ Baselines below were measured on the authoring box (Windows, CPython 3.13,
 13x13 ``desktop_complete`` board) and are only a reference point for future
 comparison -- do not tighten them to "make the number nicer".
 """
+
 from __future__ import annotations
 
 import time
@@ -29,7 +30,6 @@ from xionghan_chess.core.benchmark import benchmark_master_vs_hard
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, Piece, PieceType
 from xionghan_chess.core.profiles import get_profile
-
 
 pytestmark = pytest.mark.slow
 
@@ -64,8 +64,7 @@ def _game_with_pool(pool: list[Piece]) -> Game:
         Piece.create(PieceType.GUARD, Color.RED, 10, 1),
         Piece.create(PieceType.PATROL, Color.BLACK, 2, 11),
     ]
-    state = GameState(profile.id, pieces, turn=Color.RED,
-                      captured={Color.RED: list(pool), Color.BLACK: []})
+    state = GameState(profile.id, pieces, turn=Color.RED, captured={Color.RED: list(pool), Color.BLACK: []})
     return Game.from_state(state)
 
 
@@ -74,10 +73,10 @@ def _game_with_pool(pool: list[Piece]) -> Game:
 # --------------------------------------------------------------------------- #
 
 
-
 # --------------------------------------------------------------------------- #
 # 2. evaluate -- P0-F added the pool term to `_evaluate` (hot path).
 # --------------------------------------------------------------------------- #
+
 
 def test_evaluate_single_call_within_loose_budget():
     # Measured: ~9 ms per call on the full 13x13 board. The 50 ms ceiling is a
@@ -98,6 +97,7 @@ def test_evaluate_single_call_within_loose_budget():
 # 3. capturable_squares -- point query vs full enumeration (O-6's whole point).
 # --------------------------------------------------------------------------- #
 
+
 def test_point_query_is_far_cheaper_than_full_enumeration():
     # The most valuable case here: `targets=` was added *because* `in_check` is
     # a hot path, so if the point query ever costs as much as a full sweep, the
@@ -113,14 +113,14 @@ def test_point_query_is_far_cheaper_than_full_enumeration():
         number=30,
     )
     assert point <= full / 10, (
-        f"point query {point * 1e6:.1f} us vs full {full * 1e6:.1f} us "
-        f"(ratio {full / point:.1f}x, expected >= 10x)"
+        f"point query {point * 1e6:.1f} us vs full {full * 1e6:.1f} us (ratio {full / point:.1f}x, expected >= 10x)"
     )
 
 
 # --------------------------------------------------------------------------- #
 # 4. legal_moves -- full rule-engine generation.
 # --------------------------------------------------------------------------- #
+
 
 def test_legal_moves_full_generation_within_loose_budget():
     # Measured: ~270 ms for the full 13x13 board. 2 s is a ~7x guardrail.
@@ -133,6 +133,7 @@ def test_legal_moves_full_generation_within_loose_budget():
 # 5. benchmark.acceptance -- the shipped acceptance gate must stay consumable.
 # --------------------------------------------------------------------------- #
 
+
 def test_benchmark_acceptance_schema_is_consumable_at_small_scale():
     """`core/benchmark.py` ships an `acceptance` verdict nobody tested.
 
@@ -142,13 +143,19 @@ def test_benchmark_acceptance_schema_is_consumable_at_small_scale():
     per-move budget can actually be checked. It does not assert chess strength.
     """
     report = benchmark_master_vs_hard(
-        games=2, profile="traditional", max_plies=2, seed=7,
-        master_simulations=1, hard_time_scale=0.1,
+        games=2,
+        profile="traditional",
+        max_plies=2,
+        seed=7,
+        master_simulations=1,
+        hard_time_scale=0.1,
     )
     acceptance = report["acceptance"]
     assert set(acceptance) == {
-        "enoughGames", "enoughCompletedGames",
-        "winRateAtLeast55Percent", "masterMoveAtMost12Seconds",
+        "enoughGames",
+        "enoughCompletedGames",
+        "winRateAtLeast55Percent",
+        "masterMoveAtMost12Seconds",
     }
     assert all(isinstance(value, bool) for value in acceptance.values()), acceptance
     # A 2-game match is far below the 50-game gate -- the volume gates must say
@@ -159,11 +166,15 @@ def test_benchmark_acceptance_schema_is_consumable_at_small_scale():
     # single MCTS simulation it trivially holds.
     assert acceptance["masterMoveAtMost12Seconds"] is True
 
+
 def test_position_key_pool_segment_stays_cheap():
     """池段排序的开销必须远小于全盘排序（原基线：空池 ~7.3us / 满池 ~8.1us）。"""
-    stocked_pool = [Piece.create(kind, Color.RED, 0, index) for index, kind in enumerate(
-        (PieceType.ROOK, PieceType.HORSE, PieceType.CANNON, PieceType.GUARD,
-         PieceType.ARCHER, PieceType.THUNDER))]
+    stocked_pool = [
+        Piece.create(kind, Color.RED, 0, index)
+        for index, kind in enumerate(
+            (PieceType.ROOK, PieceType.HORSE, PieceType.CANNON, PieceType.GUARD, PieceType.ARCHER, PieceType.THUNDER)
+        )
+    ]
 
     empty = _game_with_pool([])
     stocked = _game_with_pool(stocked_pool)
@@ -172,5 +183,3 @@ def test_position_key_pool_segment_stays_cheap():
 
     assert empty_key < 1e-3, f"position_key (empty pool) took {empty_key * 1e6:.1f} us"
     assert stocked_key < 1e-3, f"position_key (stocked pool) took {stocked_key * 1e6:.1f} us"
-
-

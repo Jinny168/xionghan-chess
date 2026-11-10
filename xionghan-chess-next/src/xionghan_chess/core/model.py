@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import time
+import uuid
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Any
-import time
-import uuid
 
 
 class Color(StrEnum):
@@ -23,9 +23,17 @@ class Color(StrEnum):
 BIG_CAPTURE_VALUE = 420
 
 PIECE_VALUES: dict[str, int] = {
-    "king": 50_000, "rook": 900, "cannon": 500, "horse": 450,
-    "archer": 480, "thunder": 490, "guard": 420, "patrol": 420,
-    "elephant": 260, "advisor": 240, "pawn": 120,
+    "king": 50_000,
+    "rook": 900,
+    "cannon": 500,
+    "horse": 450,
+    "archer": 480,
+    "thunder": 490,
+    "guard": 420,
+    "patrol": 420,
+    "elephant": 260,
+    "advisor": 240,
+    "pawn": 120,
 }
 
 
@@ -42,10 +50,10 @@ class PieceType(StrEnum):
     ADVISOR = "advisor"
     CANNON = "cannon"
     PAWN = "pawn"
-    GUARD = "guard"       # 尉/衛
-    ARCHER = "archer"     # 射/䠶
-    THUNDER = "thunder"   # 檑/礌
-    PATROL = "patrol"     # 巡/廵
+    GUARD = "guard"  # 尉/衛
+    ARCHER = "archer"  # 射/䠶
+    THUNDER = "thunder"  # 檑/礌
+    PATROL = "patrol"  # 巡/廵
 
 
 @dataclass(frozen=True, slots=True, order=True)
@@ -107,9 +115,7 @@ class GameState:
     pieces: list[Piece]
     turn: Color = Color.RED
     history: list[MoveRecord] = field(default_factory=list)
-    captured: dict[Color, list[Piece]] = field(
-        default_factory=lambda: {Color.RED: [], Color.BLACK: []}
-    )
+    captured: dict[Color, list[Piece]] = field(default_factory=lambda: {Color.RED: [], Color.BLACK: []})
     winner: Color | None = None
     result_reason: str | None = None
     draw: bool = False
@@ -118,9 +124,7 @@ class GameState:
     pending_restart_offer: Color | None = None
     paused: bool = False
     paused_by: Color | None = None
-    clocks_ms: dict[Color, int] = field(
-        default_factory=lambda: {Color.RED: 20 * 60_000, Color.BLACK: 20 * 60_000}
-    )
+    clocks_ms: dict[Color, int] = field(default_factory=lambda: {Color.RED: 20 * 60_000, Color.BLACK: 20 * 60_000})
     turn_started_at: float = field(default_factory=time.monotonic)
     position_counts: dict[str, int] = field(default_factory=dict)
 
@@ -146,16 +150,23 @@ class GameState:
             "profileId": self.profile_id,
             "turn": self.turn.value,
             "pieces": [
-                {"id": p.id, "type": p.type.value, "color": p.color.value,
-                 "row": p.position.row, "col": p.position.col}
+                {"id": p.id, "type": p.type.value, "color": p.color.value, "row": p.position.row, "col": p.position.col}
                 for p in self.pieces
             ],
             "history": [
-                {"move": {"from": vars_position(r.move.source), "to": vars_position(r.move.target),
-                          "promotion": r.move.promotion.value if r.move.promotion else None},
-                 "color": r.color.value, "pieceType": r.piece_type.value,
-                 "captured": [piece_to_dict(p) for p in r.captured],
-                 "notation": r.notation, "timestamp": r.timestamp, "elapsedMs": r.elapsed_ms}
+                {
+                    "move": {
+                        "from": vars_position(r.move.source),
+                        "to": vars_position(r.move.target),
+                        "promotion": r.move.promotion.value if r.move.promotion else None,
+                    },
+                    "color": r.color.value,
+                    "pieceType": r.piece_type.value,
+                    "captured": [piece_to_dict(p) for p in r.captured],
+                    "notation": r.notation,
+                    "timestamp": r.timestamp,
+                    "elapsedMs": r.elapsed_ms,
+                }
                 for r in self.history
             ],
             "captured": {c.value: [piece_to_dict(p) for p in items] for c, items in self.captured.items()},
@@ -185,8 +196,8 @@ class GameState:
             pending_restart_offer=Color(data["pendingRestartOffer"]) if data.get("pendingRestartOffer") else None,
             paused=bool(data.get("paused", False)),
             paused_by=Color(data["pausedBy"]) if data.get("pausedBy") else None,
-            clocks_ms={Color(k): int(v) for k, v in data.get("clocksMs", {}).items()} or
-                      {Color.RED: 20 * 60_000, Color.BLACK: 20 * 60_000},
+            clocks_ms={Color(k): int(v) for k, v in data.get("clocksMs", {}).items()}
+            or {Color.RED: 20 * 60_000, Color.BLACK: 20 * 60_000},
             position_counts=dict(data.get("positionCounts", {})),
         )
         state.captured = {
@@ -195,13 +206,21 @@ class GameState:
         }
         for item in data.get("history", []):
             raw = item["move"]
-            state.history.append(MoveRecord(
-                Move(Position(**raw["from"]), Position(**raw["to"]),
-                     PieceType(raw["promotion"]) if raw.get("promotion") else None),
-                Color(item["color"]), PieceType(item["pieceType"]),
-                tuple(piece_from_dict(p) for p in item.get("captured", [])), item["notation"],
-                float(item.get("timestamp", time.time())), int(item.get("elapsedMs", 0)),
-            ))
+            state.history.append(
+                MoveRecord(
+                    Move(
+                        Position(**raw["from"]),
+                        Position(**raw["to"]),
+                        PieceType(raw["promotion"]) if raw.get("promotion") else None,
+                    ),
+                    Color(item["color"]),
+                    PieceType(item["pieceType"]),
+                    tuple(piece_from_dict(p) for p in item.get("captured", [])),
+                    item["notation"],
+                    float(item.get("timestamp", time.time())),
+                    int(item.get("elapsedMs", 0)),
+                )
+            )
         return state
 
 
@@ -210,8 +229,13 @@ def vars_position(pos: Position) -> dict[str, int]:
 
 
 def piece_to_dict(piece: Piece) -> dict[str, Any]:
-    return {"id": piece.id, "type": piece.type.value, "color": piece.color.value,
-            "row": piece.position.row, "col": piece.position.col}
+    return {
+        "id": piece.id,
+        "type": piece.type.value,
+        "color": piece.color.value,
+        "row": piece.position.row,
+        "col": piece.position.col,
+    }
 
 
 class UnsupportedSaveError(ValueError):
@@ -231,7 +255,5 @@ def piece_from_dict(data: dict[str, Any]) -> Piece:
         kind = PieceType(raw)
     except ValueError as exc:
         name = REMOVED_PIECE_NAMES.get(str(raw), str(raw))
-        raise UnsupportedSaveError(
-            f"存档包含已移除的兵种：{name}；请用 1.7.4 或更早版本打开") from exc
-    return Piece(data["id"], kind, Color(data["color"]),
-                 Position(int(data["row"]), int(data["col"])))
+        raise UnsupportedSaveError(f"存档包含已移除的兵种：{name}；请用 1.7.4 或更早版本打开") from exc
+    return Piece(data["id"], kind, Color(data["color"]), Position(int(data["row"]), int(data["col"])))

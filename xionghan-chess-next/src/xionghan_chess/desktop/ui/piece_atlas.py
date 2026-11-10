@@ -26,6 +26,7 @@
 设置页那条「重建菜单 + deleteLater 中央控件 + `_build()`」的路径在这里是错的：
 它会把侧栏文本、按钮可用性、棋谱列表全部重来。
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -33,47 +34,80 @@ from collections.abc import Callable
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPixmap
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QMessageBox,
-    QButtonGroup, QDialog, QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
-    QPushButton, QScrollArea, QSizePolicy, QTextBrowser, QVBoxLayout, QWidget,
+    QButtonGroup,
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
 )
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, Piece, PieceType, Position
-from xionghan_chess.core.profiles import (OPTION_DEPENDS_ON, PROFILES, display_value,
-                                          profile_rule_values, stored_value)
+from xionghan_chess.core.profiles import OPTION_DEPENDS_ON, PROFILES, display_value, profile_rule_values, stored_value
 from xionghan_chess.core.rules import RulesEngine
 from xionghan_chess.i18n import normalize_language, t
 
 from ..config import save_config
 from ..texts import dl
 from . import piece_assets, theme
-from .board_widget import (GLYPH_MODE, IMAGE_MODE, BoardWidget, draw_fallback_piece,
-                           draw_piece_glyph)
+from .board_widget import (
+    GLYPH_MODE,
+    IMAGE_MODE,
+    BoardWidget,
+    draw_fallback_piece,
+    draw_piece_glyph,
+)
 from .dialogs import GLYPH_STYLE_DATA, DocumentDialog
 
 # 左侧清单的顺序：先「常规 7 型」（任何档案都有），再「特色 7 型」。
 REGULAR_KINDS: tuple[PieceType, ...] = (
-    PieceType.KING, PieceType.ROOK, PieceType.HORSE, PieceType.ELEPHANT,
-    PieceType.ADVISOR, PieceType.CANNON, PieceType.PAWN,
+    PieceType.KING,
+    PieceType.ROOK,
+    PieceType.HORSE,
+    PieceType.ELEPHANT,
+    PieceType.ADVISOR,
+    PieceType.CANNON,
+    PieceType.PAWN,
 )
 SPECIAL_KINDS: tuple[PieceType, ...] = (
-    PieceType.GUARD, PieceType.ARCHER, PieceType.THUNDER, PieceType.PATROL,
+    PieceType.GUARD,
+    PieceType.ARCHER,
+    PieceType.THUNDER,
+    PieceType.PATROL,
 )
 
 # 每型在该档案下会影响它的规则开关（与 `SettingsDialog` 的棋子分组成员一致）。
 PIECE_OPTION_KEYS: dict[PieceType, tuple[str, ...]] = {
-    PieceType.KING: ("king_can_leave_palace", "king_diagonal_in_palace",
-                     "king_lose_diagonal_outside_palace", "invasion_victory"),
+    PieceType.KING: (
+        "king_can_leave_palace",
+        "king_diagonal_in_palace",
+        "king_lose_diagonal_outside_palace",
+        "invasion_victory",
+    ),
     PieceType.ROOK: (),
-    PieceType.HORSE: ("horse_blocked_by_leg", "horse_straight_three",
-                      "horse_straight_three_move_only"),
+    PieceType.HORSE: ("horse_blocked_by_leg", "horse_straight_three", "horse_straight_three_move_only"),
     PieceType.ELEPHANT: ("elephant_can_cross_river", "elephant_gain_jump_two_enemy_territory"),
     PieceType.ADVISOR: ("advisor_can_leave_palace", "advisor_gain_straight_outside_palace"),
     PieceType.CANNON: (),
-    PieceType.PAWN: ("pawn_fast_move_before_enemy_territory", "pawn_charge",
-                     "pawn_three_line_capture", "pawn_backward_at_base",
-                     "pawn_resurrection", "pawn_promotion"),
+    PieceType.PAWN: (
+        "pawn_fast_move_before_enemy_territory",
+        "pawn_charge",
+        "pawn_three_line_capture",
+        "pawn_backward_at_base",
+        "pawn_resurrection",
+        "pawn_promotion",
+    ),
     PieceType.GUARD: (),
     PieceType.ARCHER: ("archer_enhanced_mode",),
     PieceType.THUNDER: (),
@@ -104,10 +138,15 @@ DEMO_PRESETS: tuple[str, ...] = ("free", "clamp", "three", "facing")
 # 「夹逼」只作用于**斜走**形成的"段"。这些棋型才有斜线走法：
 # 士/象/尉/射/檑 恒有；将/帅要看当前规则（宫内斜走、出宫后是否保留斜走）。
 # 车、炮、马、兵、巡没有斜线段 —— 给它们看夹逼演示等于演示一个不存在的走法。
-PINCH_KINDS: frozenset[PieceType] = frozenset({
-    PieceType.ADVISOR, PieceType.ELEPHANT, PieceType.GUARD,
-    PieceType.ARCHER, PieceType.THUNDER,
-})
+PINCH_KINDS: frozenset[PieceType] = frozenset(
+    {
+        PieceType.ADVISOR,
+        PieceType.ELEPHANT,
+        PieceType.GUARD,
+        PieceType.ARCHER,
+        PieceType.THUNDER,
+    }
+)
 
 
 def pinch_applies(kind: PieceType, options) -> bool:
@@ -136,9 +175,13 @@ def demo_presets_for(kind: PieceType, options) -> tuple[str, ...]:
 
 
 class PieceAtlasDialog(QDialog):
-    def __init__(self, config: dict, parent: QWidget | None = None,
-                 apply_style: Callable[[str], None] | None = None,
-                 restart_game: Callable[[], None] | None = None) -> None:
+    def __init__(
+        self,
+        config: dict,
+        parent: QWidget | None = None,
+        apply_style: Callable[[str], None] | None = None,
+        restart_game: Callable[[], None] | None = None,
+    ) -> None:
         super().__init__(parent)
         self.config = config
         self.language = normalize_language(config.get("language"))
@@ -233,8 +276,7 @@ class PieceAtlasDialog(QDialog):
             for kind in kinds:
                 enabled = kind in self.rules.enabled_piece_types
                 # 红黑字形对照：漢/汗 这种一眼看出双方的写法差异
-                glyphs = (f"{theme.NAMES[Color.RED].get(kind, '·')}"
-                          f"/{theme.NAMES[Color.BLACK].get(kind, '·')}")
+                glyphs = f"{theme.NAMES[Color.RED].get(kind, '·')}/{theme.NAMES[Color.BLACK].get(kind, '·')}"
                 name = t(f"piece_name.{kind.value}", self.language)
                 text = f"{glyphs}　{name}"
                 if not enabled:
@@ -255,7 +297,7 @@ class PieceAtlasDialog(QDialog):
     def _demo_area(self) -> QWidget:
         """中栏：走法演示盘（第 2 块填内容，这里先立骨架与预设下拉的挂点）。"""
         frame = QFrame()
-        frame.setMinimumWidth(320)      # 窄窗按宽度等比缩，不再硬撑 sizeHint 438
+        frame.setMinimumWidth(320)  # 窄窗按宽度等比缩，不再硬撑 sizeHint 438
         self._demo_frame = frame
         frame.setFrameShape(QFrame.Shape.StyledPanel)
         layout = QVBoxLayout(frame)
@@ -278,8 +320,7 @@ class PieceAtlasDialog(QDialog):
 
         self._demo_note = QLabel("", frame)
         self._demo_note.setWordWrap(True)
-        self._demo_note.setStyleSheet(
-            f"color:{theme.secondary(str(self.config.get('theme', 'classic')))}")
+        self._demo_note.setStyleSheet(f"color:{theme.secondary(str(self.config.get('theme', 'classic')))}")
         layout.addWidget(self._demo_note)
         return frame
 
@@ -305,6 +346,7 @@ class PieceAtlasDialog(QDialog):
         **空盘演示不出任何规则** —— 夹逼、三连、照面都必须靠摆好的局面才看得见，
         所以这里给的是固定 mini 局，不是让用户自己摆。
         """
+
         def pc(kind, color, row, col):
             return Piece.create(kind, color, row, col)
 
@@ -317,31 +359,31 @@ class PieceAtlasDialog(QDialog):
         if preset == "clamp":
             # 夹逼演示**必须用当前选中的那枚子当主角**（原来硬编码成射，等于给所有子演射）。
             # 士在"不可出宫"的规则下只能待在九宫，摆到 (6,6) 会一格都走不了 → 换九宫内的摆法。
-            confined_advisor = (subject is PieceType.ADVISOR
-                                and not self.rules.options.advisor_can_leave_palace)
+            confined_advisor = subject is PieceType.ADVISOR and not self.rules.options.advisor_can_leave_palace
             if confined_advisor:
                 return backdrop + [
                     pc(subject, Color.RED, 10, 6),
-                    pc(PieceType.PAWN, Color.RED, 11, 6),     # 夹逼一侧
-                    pc(PieceType.PAWN, Color.RED, 10, 7),     # 夹逼另一侧
+                    pc(PieceType.PAWN, Color.RED, 11, 6),  # 夹逼一侧
+                    pc(PieceType.PAWN, Color.RED, 10, 7),  # 夹逼另一侧
                     pc(PieceType.HORSE, Color.BLACK, 11, 7),  # 本应可吃，被夹逼挡住
                 ], {"kind": subject, "options": {}}
             return backdrop + [
                 pc(subject, Color.RED, 6, 6),
-                pc(PieceType.PAWN, Color.RED, 7, 6),      # 起点夹逼的一侧
-                pc(PieceType.PAWN, Color.RED, 6, 7),      # 起点夹逼的另一侧 → 该斜段无效
-                pc(PieceType.HORSE, Color.BLACK, 9, 9),   # 沿同一条斜线更远处（本应可吃，被夹逼挡住）
+                pc(PieceType.PAWN, Color.RED, 7, 6),  # 起点夹逼的一侧
+                pc(PieceType.PAWN, Color.RED, 6, 7),  # 起点夹逼的另一侧 → 该斜段无效
+                pc(PieceType.HORSE, Color.BLACK, 9, 9),  # 沿同一条斜线更远处（本应可吃，被夹逼挡住）
             ], {"kind": subject, "options": {}}
         if preset == "three":
             return backdrop + [
                 pc(PieceType.PAWN, Color.RED, 7, 2),
                 pc(PieceType.PAWN, Color.RED, 6, 3),
                 pc(PieceType.HORSE, Color.BLACK, 6, 4),
-            ], {"kind": PieceType.PAWN,
-                "options": {"pawn_three_line_capture": True}}
+            ], {"kind": PieceType.PAWN, "options": {"pawn_three_line_capture": True}}
         if preset == "facing":
-            return [pc(PieceType.KING, Color.RED, 6, 3), pc(PieceType.KING, Color.BLACK, 6, 9)], \
-                {"kind": PieceType.KING, "options": {}}
+            return [pc(PieceType.KING, Color.RED, 6, 3), pc(PieceType.KING, Color.BLACK, 6, 9)], {
+                "kind": PieceType.KING,
+                "options": {},
+            }
         # free：按左侧选中的棋型摆一个"这个子 + 两个陪练"
         return backdrop + [
             pc(subject, Color.RED, 6, 6),
@@ -356,13 +398,11 @@ class PieceAtlasDialog(QDialog):
         game = Game.from_state(state, meta["options"], None)
         self._demo_game = game
         self._demo_board.set_game(game, Color.RED, control_both=True)
-        self._demo_board.set_assists(selection=True, legal_targets=True,
-                                     capture_hints=True, animations=False)
+        self._demo_board.set_assists(selection=True, legal_targets=True, capture_hints=True, animations=False)
         # 优先选 (6,6) 那枚"主角"：free 局里王也在盘上，按类型找会先撞到王
         demo_piece = game.state.piece_at(Position(6, 6))
         if demo_piece is None or demo_piece.type is not meta["kind"]:
-            demo_piece = next((p for p in game.state.pieces
-                               if p.type is meta["kind"] and p.color is Color.RED), None)
+            demo_piece = next((p for p in game.state.pieces if p.type is meta["kind"] and p.color is Color.RED), None)
         if demo_piece is not None:
             self._demo_board._select(demo_piece.position)
         self._demo_note.setText(t(f"desktop.atlas_preset_{preset}_note", self.language))
@@ -379,8 +419,7 @@ class PieceAtlasDialog(QDialog):
             return
         self._demo_board.selected, self._demo_board.legal, self._demo_board.capturable = None, [], set()
         self._demo_board.set_game(game, Color.RED, control_both=True)
-        self._demo_board.set_assists(selection=True, legal_targets=True,
-                                     capture_hints=True, animations=False)
+        self._demo_board.set_assists(selection=True, legal_targets=True, capture_hints=True, animations=False)
         self._demo_board._select(move.target)
         self._demo_board.update()
 
@@ -423,7 +462,7 @@ class PieceAtlasDialog(QDialog):
             return
         self.kind = PieceType(value)
         self._rebuild_detail()
-        self._rebuild_presets()   # 预设随棋型变化：车/炮/马/兵/巡 不提供夹逼，兵才提供三连
+        self._rebuild_presets()  # 预设随棋型变化：车/炮/马/兵/巡 不提供夹逼，兵才提供三连
         self._load_demo()
 
     def _preview_style(self, style: str) -> None:
@@ -452,8 +491,7 @@ class PieceAtlasDialog(QDialog):
             self._apply_style_cb(choice)
         else:
             save_config(self.config)
-        name = (t("desktop.atlas_glyph_mode", self.language) if glyph
-                else t(f"option.piece_{choice}", self.language))
+        name = t("desktop.atlas_glyph_mode", self.language) if glyph else t(f"option.piece_{choice}", self.language)
         self.status.setText(t("desktop.atlas_switched", self.language, style=name))
         button = self._style_buttons.get(self.style)
         if button is not None and not glyph:
@@ -501,8 +539,7 @@ class PieceAtlasDialog(QDialog):
         layout.addWidget(self._heading(t("desktop.atlas_switch_title", self.language)))
 
         options = self.rules.options
-        keys = [key for key in PIECE_OPTION_KEYS.get(self.kind, ())
-                if hasattr(options, key)]
+        keys = [key for key in PIECE_OPTION_KEYS.get(self.kind, ()) if hasattr(options, key)]
         if not keys:
             hint = QLabel(t("desktop.atlas_switch_none", self.language))
             hint.setWordWrap(True)
@@ -528,17 +565,15 @@ class PieceAtlasDialog(QDialog):
         box = QMessageBox(self)
         box.setWindowTitle(t("desktop.atlas_rule_changed", self.language))
         box.setText(t("desktop.atlas_rule_changed", self.language))
-        now = box.addButton(t("desktop.atlas_restart_now", self.language),
-                            QMessageBox.ButtonRole.AcceptRole)
-        box.addButton(t("desktop.atlas_restart_later", self.language),
-                      QMessageBox.ButtonRole.RejectRole)
+        now = box.addButton(t("desktop.atlas_restart_now", self.language), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(t("desktop.atlas_restart_later", self.language), QMessageBox.ButtonRole.RejectRole)
         box.exec()
         return box.clickedButton() is now
 
     def set_option(self, key: str, enabled: bool) -> None:
         """写一个单子开关：落到 `config["rule_options"]`、落盘、再问是否重开。"""
         overrides = dict(self.config.get("rule_options") or {})
-        overrides[key] = stored_value(key, enabled)   # 界面"增强" → 存储语义
+        overrides[key] = stored_value(key, enabled)  # 界面"增强" → 存储语义
         self.config["rule_options"] = overrides
         save_config(self.config)
         self.rules = RulesEngine(self.profile, self.profile.options.merged(overrides))
@@ -579,8 +614,9 @@ class PieceAtlasDialog(QDialog):
             canvas.fill(Qt.GlobalColor.transparent)
             painter = QPainter(canvas)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            draw_piece_glyph(painter, QPointF(edge / 2, edge / 2), edge / 2,
-                             Piece.create(self.kind, color, 0, 0), self.style)
+            draw_piece_glyph(
+                painter, QPointF(edge / 2, edge / 2), edge / 2, Piece.create(self.kind, color, 0, 0), self.style
+            )
             painter.end()
             return canvas
         artwork = piece_assets.pixmap(choice, color, self.kind, round(edge * self.devicePixelRatioF()))
@@ -590,8 +626,7 @@ class PieceAtlasDialog(QDialog):
         canvas.fill(Qt.GlobalColor.transparent)
         painter = QPainter(canvas)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        draw_fallback_piece(painter, QPointF(edge / 2, edge / 2), edge / 2,
-                            color, self.kind, choice)
+        draw_fallback_piece(painter, QPointF(edge / 2, edge / 2), edge / 2, color, self.kind, choice)
         _draw_glyph_badge(painter, edge, dl("字"))
         painter.end()
         return canvas
@@ -701,8 +736,7 @@ class PieceAtlasDialog(QDialog):
             # 一旦读失败英文界面就会漏出中文。这里只用既有的 `piece_rule.*_long`。
             body.setPlainText(t(f"piece_rule.{self.kind.value}_long", self.language))
         else:
-            body.setMarkdown(self._rules_section() or
-                             t(f"piece_rule.{self.kind.value}_long", self.language))
+            body.setMarkdown(self._rules_section() or t(f"piece_rule.{self.kind.value}_long", self.language))
         body.setStyleSheet("background:transparent;")
         layout.addWidget(body)
         full = QPushButton(t("desktop.atlas_full_rules", self.language))
@@ -717,8 +751,7 @@ class PieceAtlasDialog(QDialog):
         layout.addWidget(self._heading(t("desktop.atlas_rule_state", self.language)))
         values = profile_rule_values(self.profile.id, self.config.get("rule_options"))
         rows = [(t("settings.piece_appear", self.language), f"{self.kind.value}_appear")]
-        rows += [(t(f"rule.{key}_short", self.language), key)
-                 for key in PIECE_OPTION_KEYS.get(self.kind, ())]
+        rows += [(t(f"rule.{key}_short", self.language), key) for key in PIECE_OPTION_KEYS.get(self.kind, ())]
         for label, key in rows:
             line = QHBoxLayout()
             line.addWidget(QLabel(label))
@@ -764,11 +797,11 @@ class PieceAtlasDialog(QDialog):
             return
         # 没有主窗口（单测/独立构造）时按 show_rules() 的同一分派给出全文。
         if self.language == "en":
-            DocumentDialog(t("dialog.rules_title", self.language),
-                           t("docs.rules", self.language), self).exec()
+            DocumentDialog(t("dialog.rules_title", self.language), t("docs.rules", self.language), self).exec()
             return
-        DocumentDialog(t("dialog.rules_title", self.language),
-                       theme.read_docs("PIECE_RULES.md", dl("规则文档")), self).exec()
+        DocumentDialog(
+            t("dialog.rules_title", self.language), theme.read_docs("PIECE_RULES.md", dl("规则文档")), self
+        ).exec()
 
     def _open_rule_settings(self) -> None:
         parent = self.parent()
@@ -780,4 +813,5 @@ class PieceAtlasDialog(QDialog):
             return
         # 独立构造时只展示，不回写配置 —— 没有主窗口就没有「当前对局」可对齐。
         from .dialogs import SettingsDialog
+
         SettingsDialog(self.config, parent, initial_tab=PIECE_RULES_TAB).exec()

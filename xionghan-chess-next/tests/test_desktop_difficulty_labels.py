@@ -25,9 +25,7 @@ LOCALES = {"zh-CN": ROOT / "locales" / "zh-CN.json", "en": ROOT / "locales" / "e
 NUMBER = re.compile(r"\d+(?:\.\d+)?")
 # 深度档（如 expert）的墙钟是**上限**而不是固定预算：文案写「上限 35 秒」时，
 # 取这个 35 与 `time_limit` 比对，而不是取句子里的第一个数字（那会是"3 层"）。
-CAP_SECONDS = re.compile(
-    r"(?:上限\s*(\d+(?:\.\d+)?))|((\d+(?:\.\d+)?)\s*s?\s*cap)"
-)
+CAP_SECONDS = re.compile(r"(?:上限\s*(\d+(?:\.\d+)?))|((\d+(?:\.\d+)?)\s*s?\s*cap)")
 # 明确禁止的措辞：两档同深度、同选点，写"更强/更深"是与实测冲突的假承诺。
 FORBIDDEN = ("更强", "更深", "更慢", "stronger", "deeper")
 
@@ -49,8 +47,8 @@ def test_label_seconds_match_config(locale: str, difficulty: Difficulty) -> None
     # **严格对齐，不放宽**：文案对应的是**配置值**，不是实测值 —— "约 12 秒"与实测 12.2s
     # 并不冲突（差 1.7%），但"配置 6 秒、文案 5 秒"这种错配必须红。
     assert listed == pytest.approx(actual), (
-        f"{locale}/{difficulty.value} 文案写 {listed} 秒，"
-        f"CONFIGS 实际 {actual} 秒 —— 改预算时忘了改文案？")
+        f"{locale}/{difficulty.value} 文案写 {listed} 秒，CONFIGS 实际 {actual} 秒 —— 改预算时忘了改文案？"
+    )
 
 
 @pytest.mark.parametrize("locale", list(LOCALES))
@@ -63,8 +61,9 @@ def test_labels_do_not_claim_more_strength(locale: str) -> None:
 
 def test_master_and_hard_share_the_budget_at_config_level() -> None:
     """配置层：大师与高级预算相同（大师换的是 MCTS，不是预算）。"""
-    assert (CONFIGS[Difficulty.MASTER].time_limit
-            == CONFIGS[Difficulty.HARD].time_limit), "预算一旦分叉，这条与文案都要改"
+    assert CONFIGS[Difficulty.MASTER].time_limit == CONFIGS[Difficulty.HARD].time_limit, (
+        "预算一旦分叉，这条与文案都要改"
+    )
 
 
 @pytest.mark.parametrize("locale", list(LOCALES))

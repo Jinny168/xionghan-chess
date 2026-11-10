@@ -14,12 +14,11 @@
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-import pytest
+from _node_guard import module_skip_mark, require_node
 
 from xionghan_chess.core.puzzles import load_puzzles
 
@@ -28,15 +27,20 @@ SCRIPT = ROOT / "scripts" / "build_offline_puzzles.py"
 PROBE = ROOT / "scripts" / "offline_puzzle_probe.cjs"
 OFFLINE_DIR = ROOT / "android" / "Resources" / "assets" / "offline"
 ENGINE = OFFLINE_DIR / "offline.js"
+
+# 缺 node 时整模块显式失败（不许静默 skip），守卫与逃生阀见 tests/_node_guard.py。
+if (mark := module_skip_mark()) is not None:
+    pytestmark = mark
 DATA = OFFLINE_DIR / "offline-puzzles.js"
 
 
 def _probe() -> list[dict]:
-    if not shutil.which("node"):
-        pytest.skip("Node.js is required to run the offline engine")
+    require_node()
     completed = subprocess.run(
         ["node", str(PROBE), str(ENGINE), str(DATA)],
-        capture_output=True, text=True, timeout=180,
+        capture_output=True,
+        text=True,
+        timeout=180,
     )
     assert completed.returncode == 0, completed.stderr
     return json.loads(completed.stdout)
@@ -44,16 +48,16 @@ def _probe() -> list[dict]:
 
 def test_generated_data_is_up_to_date() -> None:
     """改了 `puzzles.json` 却没重新生成离线数据 —— 两端就会悄悄不一致。"""
-    completed = subprocess.run([sys.executable, str(SCRIPT), "--check"],
-                               capture_output=True, text=True, timeout=180)
+    completed = subprocess.run([sys.executable, str(SCRIPT), "--check"], capture_output=True, text=True, timeout=180)
     assert completed.returncode == 0, (completed.stdout + completed.stderr).strip()
 
 
 def test_index_html_loads_puzzle_data_before_the_engine() -> None:
     html = (OFFLINE_DIR / "index.html").read_text(encoding="utf-8")
     assert "offline-puzzles.js" in html, "离线页没有加载题库数据"
-    assert html.index("offline-puzzles.js") < html.index('src="offline.js"'), \
+    assert html.index("offline-puzzles.js") < html.index('src="offline.js"'), (
         "数据必须在引擎之前加载，否则 OFFLINE_PUZZLES 会是空的"
+    )
 
 
 def test_offline_engine_accepts_every_puzzle() -> None:

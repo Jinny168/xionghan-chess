@@ -20,8 +20,7 @@ PRESETS = {item["id"]: item for item in json.loads(SNAPSHOT.read_text(encoding="
 def test_snapshot_matches_generator() -> None:
     """快照必须与生成脚本一致（改了脚本忘了重跑 → 红）。"""
     before = SNAPSHOT.read_text(encoding="utf-8")
-    subprocess.run([sys.executable, str(ROOT / "scripts" / "gen_atlas_presets.py")],
-                   check=True, capture_output=True)
+    subprocess.run([sys.executable, str(ROOT / "scripts" / "gen_atlas_presets.py")], check=True, capture_output=True)
     assert SNAPSHOT.read_text(encoding="utf-8") == before, "快照过期，请重跑 scripts/gen_atlas_presets.py"
 
 

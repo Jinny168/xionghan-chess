@@ -33,7 +33,9 @@ def _minimal_document() -> dict:
                 {"id": "k1", "type": "king", "color": "red", "row": 12, "col": 12},
                 {"id": "k2", "type": "king", "color": "black", "row": 0, "col": 10},
             ],
-            "turn": "red", "captured": {"red": [], "black": []}, "history": [],
+            "turn": "red",
+            "captured": {"red": [], "black": []},
+            "history": [],
         },
     }
 
@@ -88,22 +90,24 @@ def test_invalid_json_goes_through_the_normal_disconnect_path() -> None:
     以前 `json.JSONDecodeError` 会穿透 `receive_envelope`：既不回错误帧，
     也不进 `except WebSocketDisconnect` 的清理，结果"连接断了但座位仍在线"。
     """
-    from xionghan_chess.service.app import manager
     from starlette.websockets import WebSocketDisconnect
 
+    from xionghan_chess.service.app import manager
+
     client = TestClient(app)
-    created = client.post("/api/rooms", json={
-        "ruleVersion": RULE_VERSION,
-        "profileId": "desktop_complete", "mode": "local", "playerName": "P1"}).json()
+    created = client.post(
+        "/api/rooms",
+        json={"ruleVersion": RULE_VERSION, "profileId": "desktop_complete", "mode": "local", "playerName": "P1"},
+    ).json()
     room_id, token = created["roomId"], created["token"]
 
     received: list[dict] = []
     with client.websocket_connect(f"/ws/{room_id}") as socket:
         socket.send_json({"type": "auth", "token": token})
-        received.append(socket.receive_json())        # 首帧 STATE
+        received.append(socket.receive_json())  # 首帧 STATE
         socket.send_text("这不是 JSON")
         try:
-            received.append(socket.receive_json())    # 协议错误帧
+            received.append(socket.receive_json())  # 协议错误帧
         except WebSocketDisconnect:
             pass
 
@@ -121,33 +125,17 @@ def test_player_name_length_is_capped(client: TestClient) -> None:
     1MB 的名字曾让一次快照从 13 KB 涨到 1.01 MB，而快照是每 5 秒广播的。
     """
     for name in ("A" * 1024, "A" * 1_000_000):
-        response = client.post("/api/rooms", json={
-            "ruleVersion": RULE_VERSION,
-            "profileId": "traditional", "mode": "local", "playerName": name})
+        response = client.post(
+            "/api/rooms",
+            json={"ruleVersion": RULE_VERSION, "profileId": "traditional", "mode": "local", "playerName": name},
+        )
         assert response.status_code == 400, response.status_code
         assert "playerName" in response.json()["detail"]
 
-    ok = client.post("/api/rooms", json={
-        "ruleVersion": RULE_VERSION,
-        "profileId": "traditional", "mode": "local", "playerName": "名" * 24})
-    assert ok.status_code == 200, ok.text
-
-
-def test_player_name_length_is_capped(client: TestClient) -> None:
-    """S4：玩家名按**码点**限 24；超长回 400 并点名字段，不静默截断。
-
-    1MB 的名字曾让一次快照从 13 KB 涨到 1.01 MB，而快照是每 5 秒广播的。
-    """
-    for name in ("A" * 1024, "A" * 1_000_000):
-        response = client.post("/api/rooms", json={
-            "ruleVersion": RULE_VERSION,
-            "profileId": "traditional", "mode": "local", "playerName": name})
-        assert response.status_code == 400, response.status_code
-        assert "playerName" in response.json()["detail"]
-
-    ok = client.post("/api/rooms", json={
-        "ruleVersion": RULE_VERSION,
-        "profileId": "traditional", "mode": "local", "playerName": "名" * 24})
+    ok = client.post(
+        "/api/rooms",
+        json={"ruleVersion": RULE_VERSION, "profileId": "traditional", "mode": "local", "playerName": "名" * 24},
+    )
     assert ok.status_code == 200, ok.text
 
 

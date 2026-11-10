@@ -24,8 +24,9 @@ def test_every_generated_puzzle_can_be_played_to_the_end() -> None:
         for index, move in enumerate(puzzle.solution):
             if index % 2 == 0:
                 verdict = session.submit(move)
-                assert verdict in (training.VERDICT_CORRECT, training.VERDICT_SOLVED), \
+                assert verdict in (training.VERDICT_CORRECT, training.VERDICT_SOLVED), (
                     f"{puzzle.id} 第 {index + 1} 手被判错"
+                )
                 game.move(move)
             else:
                 # 对手应着：必须由 `auto_reply` 自动给出，玩家不该提交它
@@ -41,6 +42,7 @@ def test_generated_puzzle_mix_matches_the_plan() -> None:
     """22 条的难度与 ply 配比是设计定稿值：beginner 9 / advanced 7 / master 6；
     ply 必须是奇数，且覆盖 3/5/7 三档。"""
     from collections import Counter
+
     levels = Counter(item.difficulty for item in GENERATED)
     plies = Counter(len(item.solution) for item in GENERATED)
     assert levels == {"beginner": 9, "advanced": 7, "master": 6}, levels

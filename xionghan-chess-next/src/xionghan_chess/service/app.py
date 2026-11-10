@@ -1,42 +1,52 @@
 from __future__ import annotations
 
-from contextlib import asynccontextmanager, suppress
 import asyncio
 import json
-from dataclasses import asdict
 import logging
 import os
+from contextlib import asynccontextmanager, suppress
+from dataclasses import asdict
+from datetime import date as _date
 from pathlib import Path
+from typing import Any, AsyncIterator
 
-from fastapi.responses import JSONResponse
-from fastapi import FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    FastAPI,
+    Header,
+    HTTPException,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
 from xionghan_chess import __version__
+from xionghan_chess.core import daily as daily_quiz
 from xionghan_chess.core.ai import Difficulty
 from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.avatars import normalize_avatar
 from xionghan_chess.core.game import DEFAULT_INITIAL_MINUTES, GameError
 from xionghan_chess.core.model import Color, PieceType, Position
-from xionghan_chess.core.profiles import (NEGATED_OPTIONS, PROFILES, RULE_VERSION,
-                                          action_requirements,
-                                          option_dependencies)
+from xionghan_chess.core.profiles import (
+    NEGATED_OPTIONS,
+    PROFILES,
+    RULE_VERSION,
+    action_requirements,
+    option_dependencies,
+)
 from xionghan_chess.core.protocol import Envelope, MessageType
-from .rooms import (CLIENT_RULE_VERSION_ABSENT, Room, RoomManager,
-                    RuleVersionMismatch)
-from xionghan_chess.core.rules import archer_star_points
-from xionghan_chess.core.storage import game_from_content, game_from_document
-from xionghan_chess.core.storage import game_document
 from xionghan_chess.core.puzzles import load_puzzles, puzzle_by_id
-from xionghan_chess.core import daily as daily_quiz
-from datetime import date as _date
+from xionghan_chess.core.rules import archer_star_points
 from xionghan_chess.core.setup import FirstMove, profile_slots
-from xionghan_chess.i18n import normalize_language, t
-from .accounts import Account, AccountError, AccountStore
+from xionghan_chess.core.storage import game_from_content, game_from_document
+from xionghan_chess.i18n import normalize_language
 
+from .accounts import Account, AccountError, AccountStore
+from .ratelimit import LIMITER, RateLimitMiddleware
+from .rooms import CLIENT_RULE_VERSION_ABSENT, Room, RoomManager, RuleVersionMismatch
 
 manager = RoomManager()
 accounts = AccountStore()
@@ -77,7 +87,7 @@ async def maintenance() -> None:
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     task = asyncio.create_task(maintenance())
     yield
     task.cancel()
@@ -87,9 +97,17 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="匈汉象棋 API", version=__version__, lifespan=lifespan)
 
+# P0-1：按 IP 的滑动窗口限流（`XH_RATE_LIMIT_PER_MINUTE`，**默认 0 = 关闭**）。
+# 这条曾存在于 1.6.0（台账 `AUDIT_v1.6.0_reaudit.md:156`），在 1.7.x 重构中被整段
+# 删除，于是 `/api/auth/*` 与 `/api/rooms` 又变成可无限刷的匿名写端点。
+# 必须挂在**应用构建期**（import 时）——`add_middleware` 在中间件栈建好之后再调用会抛
+# `RuntimeError`，而栈在首个请求/启动时就固化了。
+# 语义、取舍与已知风险见 `service/ratelimit.py` 顶部说明。
+app.add_middleware(RateLimitMiddleware, limiter=LIMITER)
+
 
 @app.exception_handler(RequestValidationError)
-async def _validation_as_400(request, exc: RequestValidationError):
+async def _validation_as_400(request: Request, exc: RequestValidationError) -> JSONResponse:
     """请求体校验失败统一回 **400**（而不是 FastAPI 默认的 422），并给一句人话。
 
     为什么改：422 是个协议细节，客户端只看到"unprocessable"；而这里最常见的失败是
@@ -100,8 +118,7 @@ async def _validation_as_400(request, exc: RequestValidationError):
     for item in exc.errors():
         field = ".".join(str(part) for part in item.get("loc", ()) if part != "body")
         details.append(f"{field or '请求体'}：{item.get('msg', '无效')}")
-    return JSONResponse(status_code=400,
-                        content={"detail": "；".join(details) or "请求参数无效"})
+    return JSONResponse(status_code=400, content={"detail": "；".join(details) or "请求参数无效"})
 
 
 # 玩家名上限（**按码点**，pydantic 的 max_length 就是字符数）：
@@ -111,6 +128,7 @@ MAX_PLAYER_NAME = 24
 
 # 单帧上限（B-05）：正常消息都在 1 KB 量级，64 KB 留两个数量级余量。
 MAX_FRAME_BYTES = 64 * 1024
+
 
 class CreateRoomRequest(BaseModel):
     profile_id: str = Field("web", alias="profileId")
@@ -142,7 +160,7 @@ class JoinRoomRequest(BaseModel):
 
 
 class ImportGameRequest(BaseModel):
-    document: dict
+    document: dict[str, Any]
     mode: str = "local"
     player_name: str = Field("玩家", alias="playerName", max_length=MAX_PLAYER_NAME)
     player_color: Color = Field(Color.RED, alias="playerColor")
@@ -169,7 +187,7 @@ class ProfileRequest(BaseModel):
 
 
 class CloudGameRequest(BaseModel):
-    document: dict
+    document: dict[str, Any]
     title: str = ""
     game_id: int | None = Field(None, alias="gameId")
     model_config = {"populate_by_name": True}
@@ -185,7 +203,7 @@ class SpectateRequest(BaseModel):
 
 
 class AnalyzeRequest(BaseModel):
-    document: dict
+    document: dict[str, Any]
     difficulty: Difficulty = Difficulty.BEGINNER
 
 
@@ -204,36 +222,43 @@ def current_account(authorization: str | None) -> tuple[Account, str]:
 
 
 @app.get("/api/health")
-async def health() -> dict:
+async def health() -> dict[str, Any]:
     return {"status": "ok", "rooms": len(manager.rooms), "version": app.version}
 
 
 @app.get("/api/profiles")
-async def profiles() -> list[dict]:
-    return [{"id": p.id, "title": p.title, "rows": p.rows, "cols": p.cols,
-             "pieceTypes": sorted(t.value for t in p.enabled_piece_types),
-             "pieceSlots": profile_slots(p, p.options),
-             "archerStarPoints": [{"row": point.row, "col": point.col}
-                                  for point in sorted(archer_star_points(p),
-                                                      key=lambda item: (item.row, item.col))],
-             # Mirrors Game.resurrect_pawn, which reads its home squares off
-             # `profile.pieces` instead of a hard coded rank.
-             "pawnHomeSquares": [{"row": spec.row, "col": spec.col}
-                                 for spec in p.pieces if spec.type is PieceType.PAWN],
-             "options": asdict(p.options),
-             # 规则依赖：子键要成立必须先开启的上游键。三端 UI 用它把"上游关掉后
-             # 必然无意义"的开关置灰，避免用户以为设了有用（引擎侧本来就有 and 守卫）。
-             "optionDependencies": option_dependencies(),
-             # 反向呈现的开关（存储 True = 削弱）：前端勾选状态要取反，
-             # 保证"勾选 = 增强"这条约定在三端一致。
-             "negatedOptions": sorted(NEGATED_OPTIONS),
-             # 按钮**可达性**表（动作 → 必须开启的选项键）。与 optionDependencies
-             # 同构但用途不同：那张管开关置灰，这张管按钮显隐（规则里没有就不出现）。
-             "actionRequirements": action_requirements(),
-             # 走法语义版本：前端建房/加入时**回传**同一个数，服务端不一致即拒
-             # （见 rooms.py::_check_rule_version）。前端没有第二份常量可写错。
-             "ruleVersion": RULE_VERSION} for p in PROFILES.values()]
-
+async def profiles() -> list[dict[str, Any]]:
+    return [
+        {
+            "id": p.id,
+            "title": p.title,
+            "rows": p.rows,
+            "cols": p.cols,
+            "pieceTypes": sorted(t.value for t in p.enabled_piece_types),
+            "pieceSlots": profile_slots(p, p.options),
+            "archerStarPoints": [
+                {"row": point.row, "col": point.col}
+                for point in sorted(archer_star_points(p), key=lambda item: (item.row, item.col))
+            ],
+            # Mirrors Game.resurrect_pawn, which reads its home squares off
+            # `profile.pieces` instead of a hard coded rank.
+            "pawnHomeSquares": [{"row": spec.row, "col": spec.col} for spec in p.pieces if spec.type is PieceType.PAWN],
+            "options": asdict(p.options),
+            # 规则依赖：子键要成立必须先开启的上游键。三端 UI 用它把"上游关掉后
+            # 必然无意义"的开关置灰，避免用户以为设了有用（引擎侧本来就有 and 守卫）。
+            "optionDependencies": option_dependencies(),
+            # 反向呈现的开关（存储 True = 削弱）：前端勾选状态要取反，
+            # 保证"勾选 = 增强"这条约定在三端一致。
+            "negatedOptions": sorted(NEGATED_OPTIONS),
+            # 按钮**可达性**表（动作 → 必须开启的选项键）。与 optionDependencies
+            # 同构但用途不同：那张管开关置灰，这张管按钮显隐（规则里没有就不出现）。
+            "actionRequirements": action_requirements(),
+            # 走法语义版本：前端建房/加入时**回传**同一个数，服务端不一致即拒
+            # （见 rooms.py::_check_rule_version）。前端没有第二份常量可写错。
+            "ruleVersion": RULE_VERSION,
+        }
+        for p in PROFILES.values()
+    ]
 
 
 def validate_rule_options(values: dict[str, object]) -> dict[str, object]:
@@ -265,69 +290,99 @@ def validate_rule_options(values: dict[str, object]) -> dict[str, object]:
 
 
 @app.post("/api/rooms")
-async def create_room(request: CreateRoomRequest) -> dict:
+async def create_room(request: CreateRoomRequest) -> dict[str, Any]:
     if request.mode not in {"online", "ai", "local"}:
         raise HTTPException(400, "mode must be online, ai or local")
     try:
         language = normalize_language(request.language)
         avatar_url = normalize_avatar(request.avatar_url)
-        room, seat = await manager.create(request.profile_id, request.mode, request.player_name,
-                                          request.player_color, request.difficulty,
-                                          validate_rule_options(request.options),
-                                          request.initial_minutes, language, {
-                                              "firstMove": request.first_move.value,
-                                              "redSlots": request.red_slots,
-                                              "blackSlots": request.black_slots,
-                                          }, avatar_url, request.taunts_enabled,
-                                          rule_version=request.rule_version)
+        room, seat = await manager.create(
+            request.profile_id,
+            request.mode,
+            request.player_name,
+            request.player_color,
+            request.difficulty,
+            validate_rule_options(request.options),
+            request.initial_minutes,
+            language,
+            {
+                "firstMove": request.first_move.value,
+                "redSlots": request.red_slots,
+                "blackSlots": request.black_slots,
+            },
+            avatar_url,
+            request.taunts_enabled,
+            rule_version=request.rule_version,
+        )
         if request.mode == "ai" and room.game.state.turn is not seat.color:
             await manager._play_ai(room)
-        return {"roomId": room.id, "token": seat.token, "color": seat.color.value,
-                "ruleVersion": RULE_VERSION,
-                "snapshot": room.snapshot(seat.token)}
+        return {
+            "roomId": room.id,
+            "token": seat.token,
+            "color": seat.color.value,
+            "ruleVersion": RULE_VERSION,
+            "snapshot": room.snapshot(seat.token),
+        }
     except RuleVersionMismatch as exc:
         # 专用错误码：409（冲突）+ 明确的 `code`，让前端能把"版本不一致"
         # 和"参数写错了"分开处理（后者是 400）。
-        raise HTTPException(409, {"code": "rule_version_mismatch", "message": str(exc),
-                                  "serverRuleVersion": RULE_VERSION}) from exc
+        raise HTTPException(
+            409, {"code": "rule_version_mismatch", "message": str(exc), "serverRuleVersion": RULE_VERSION}
+        ) from exc
     except (GameError, ValueError) as exc:
         raise HTTPException(400, str(exc)) from exc
 
 
 @app.post("/api/rooms/import")
-async def import_room(request: ImportGameRequest) -> dict:
+async def import_room(request: ImportGameRequest) -> dict[str, Any]:
     if request.mode not in {"ai", "local"}:
         raise HTTPException(400, "imported games support ai or local mode")
     try:
         language = normalize_language(request.language)
         game = game_from_content(request.document)
         room, seat = await manager.create_from_game(
-            game, request.mode, request.player_name, request.player_color,
-            request.difficulty, language,
+            game,
+            request.mode,
+            request.player_name,
+            request.player_color,
+            request.difficulty,
+            language,
         )
         if request.mode == "ai" and not room.game.state.finished and room.game.state.turn is not seat.color:
             await manager._play_ai(room)
-        return {"roomId": room.id, "token": seat.token, "color": seat.color.value,
-                "snapshot": room.snapshot(seat.token)}
+        return {
+            "roomId": room.id,
+            "token": seat.token,
+            "color": seat.color.value,
+            "snapshot": room.snapshot(seat.token),
+        }
     except (GameError, ValueError, KeyError, TypeError) as exc:
         raise HTTPException(400, str(exc)) from exc
 
 
 @app.post("/api/rooms/{room_id}/join")
-async def join_room(room_id: str, request: JoinRoomRequest) -> dict:
+async def join_room(room_id: str, request: JoinRoomRequest) -> dict[str, Any]:
     try:
-        room, seat = await manager.join(room_id.upper(), request.player_name,
-                                        normalize_avatar(request.avatar_url),
-                                        rule_version=request.rule_version)
+        room, seat = await manager.join(
+            room_id.upper(),
+            request.player_name,
+            normalize_avatar(request.avatar_url),
+            rule_version=request.rule_version,
+        )
         async with room.lock:
             room.language = normalize_language(request.language)
             room.game.language = room.language
         await manager.broadcast(room)
-        return {"roomId": room.id, "token": seat.token, "color": seat.color.value,
-                "snapshot": room.snapshot(seat.token)}
+        return {
+            "roomId": room.id,
+            "token": seat.token,
+            "color": seat.color.value,
+            "snapshot": room.snapshot(seat.token),
+        }
     except RuleVersionMismatch as exc:
-        raise HTTPException(409, {"code": "rule_version_mismatch", "message": str(exc),
-                                  "serverRuleVersion": RULE_VERSION}) from exc
+        raise HTTPException(
+            409, {"code": "rule_version_mismatch", "message": str(exc), "serverRuleVersion": RULE_VERSION}
+        ) from exc
     except GameError as exc:
         raise HTTPException(400, str(exc)) from exc
 
@@ -342,8 +397,9 @@ def _reject_query_token(request: Request) -> None:
 
 
 @app.get("/api/rooms/{room_id}")
-async def room_state(room_id: str, request: Request,
-                     token: str | None = Header(None, alias="X-Room-Token")) -> dict:
+async def room_state(
+    room_id: str, request: Request, token: str | None = Header(None, alias="X-Room-Token")
+) -> dict[str, Any]:
     _reject_query_token(request)
     try:
         return manager.require(room_id).snapshot(token)
@@ -352,18 +408,18 @@ async def room_state(room_id: str, request: Request,
 
 
 @app.post("/api/rooms/{room_id}/spectate")
-async def spectate_room(room_id: str, request: SpectateRequest) -> dict:
+async def spectate_room(room_id: str, request: SpectateRequest) -> dict[str, Any]:
     try:
         room, spectator = await manager.add_spectator(room_id.upper(), request.display_name)
-        return {"roomId": room.id, "token": spectator.token,
-                "snapshot": room.snapshot(spectator.token)}
+        return {"roomId": room.id, "token": spectator.token, "snapshot": room.snapshot(spectator.token)}
     except GameError as exc:
         raise HTTPException(404, str(exc)) from exc
 
 
 @app.get("/api/rooms/{room_id}/legal")
-async def legal_moves(room_id: str, request: Request, row: int, col: int,
-                      token: str = Header(..., alias="X-Room-Token")) -> dict:
+async def legal_moves(
+    room_id: str, request: Request, row: int, col: int, token: str = Header(..., alias="X-Room-Token")
+) -> dict[str, Any]:
     _reject_query_token(request)
     try:
         room = manager.require(room_id)
@@ -371,19 +427,22 @@ async def legal_moves(room_id: str, request: Request, row: int, col: int,
         source = Position(row, col)
         piece = room.game.state.piece_at(source)
         controlled_color = room.game.state.turn if room.mode == "local" else seat.color
-        if (room.game.state.paused or not piece or piece.color is not controlled_color
-                or room.game.state.turn is not controlled_color):
+        if (
+            room.game.state.paused
+            or not piece
+            or piece.color is not controlled_color
+            or room.game.state.turn is not controlled_color
+        ):
             return {"revision": room.revision, "moves": []}
         moves = [m for m in room.game.rules.legal_moves(room.game.state) if m.source == source]
         captures = {
-            captured.position
-            for move in moves
-            for captured in room.game.rules.captured_by_move(room.game.state, move)
+            captured.position for move in moves for captured in room.game.rules.captured_by_move(room.game.state, move)
         }
-        return {"revision": room.revision,
-                "moves": [{"row": m.target.row, "col": m.target.col} for m in moves],
-                "captures": [{"row": pos.row, "col": pos.col}
-                             for pos in sorted(captures)]}
+        return {
+            "revision": room.revision,
+            "moves": [{"row": m.target.row, "col": m.target.col} for m in moves],
+            "captures": [{"row": pos.row, "col": pos.col} for pos in sorted(captures)],
+        }
     except GameError as exc:
         raise HTTPException(403, str(exc)) from exc
 
@@ -406,7 +465,7 @@ async def _await_auth_token(websocket: WebSocket) -> str:
     except asyncio.TimeoutError:
         await websocket.close(code=4401, reason="认证超时：首帧必须是 {type:auth, token:...}")
         raise WebSocketDisconnect(code=4401)
-    except Exception:                      # noqa: BLE001 - 对端直接断开
+    except Exception:  # noqa: BLE001 - 对端直接断开
         raise WebSocketDisconnect(code=1006) from None
     try:
         message = json.loads(raw)
@@ -437,10 +496,14 @@ async def websocket_room(websocket: WebSocket, room_id: str) -> None:
             try:
                 await manager.handle(room, seat, envelope)
             except (GameError, KeyError, TypeError, ValueError) as exc:
-                await websocket.send_json(Envelope(type=MessageType.ERROR,
-                                                   requestId=envelope.request_id,
-                                                   revision=room.revision,
-                                                   payload={"message": str(exc), "state": room.snapshot(token)}).wire())
+                await websocket.send_json(
+                    Envelope(
+                        type=MessageType.ERROR,
+                        requestId=envelope.request_id,
+                        revision=room.revision,
+                        payload={"message": str(exc), "state": room.snapshot(token)},
+                    ).wire()
+                )
     except WebSocketDisconnect:
         if "room" in locals() and token:
             await manager.disconnect(room, token, websocket)
@@ -462,18 +525,21 @@ async def websocket_spectator(websocket: WebSocket, room_id: str) -> None:
         while True:
             envelope = await receive_envelope(websocket)
             if envelope.type is not MessageType.CHAT:
-                await websocket.send_json(Envelope(type=MessageType.ERROR,
-                                                   requestId=envelope.request_id,
-                                                   revision=room.revision,
-                                                   payload={"message": "观战通道仅允许聊天"}).wire())
+                await websocket.send_json(
+                    Envelope(
+                        type=MessageType.ERROR,
+                        requestId=envelope.request_id,
+                        revision=room.revision,
+                        payload={"message": "观战通道仅允许聊天"},
+                    ).wire()
+                )
                 continue
             try:
-                await manager.spectator_chat(room, spectator,
-                                             str(envelope.payload.get("text", "")))
+                await manager.spectator_chat(room, spectator, str(envelope.payload.get("text", "")))
             except GameError as exc:
-                await websocket.send_json(Envelope(type=MessageType.ERROR,
-                                                   revision=room.revision,
-                                                   payload={"message": str(exc)}).wire())
+                await websocket.send_json(
+                    Envelope(type=MessageType.ERROR, revision=room.revision, payload={"message": str(exc)}).wire()
+                )
     except WebSocketDisconnect:
         if "room" in locals() and token:
             await manager.disconnect_spectator(room, token, websocket)
@@ -488,9 +554,8 @@ async def _reject_protocol(websocket: WebSocket, reason: str) -> None:
     发不出错误帧就跳过**（那正是审计里"连接断了但座位不清理"的成因）。
     """
     try:
-        await websocket.send_json(Envelope(type=MessageType.ERROR,
-                                           payload={"message": reason}).wire())
-    except Exception:      # noqa: BLE001 - 对端已断属正常分支
+        await websocket.send_json(Envelope(type=MessageType.ERROR, payload={"message": reason}).wire())
+    except Exception:  # noqa: BLE001 - 对端已断属正常分支
         pass
     await websocket.close(code=1002, reason="Unsupported or invalid protocol message")
 
@@ -505,7 +570,7 @@ async def receive_envelope(websocket: WebSocket) -> Envelope:
     # 这不是可调业务参数，调大只会放大风险。
     try:
         text = await websocket.receive_text()
-    except Exception:                     # noqa: BLE001 - 对端直接断开
+    except Exception:  # noqa: BLE001 - 对端直接断开
         raise WebSocketDisconnect(code=1002) from None
     if len(text.encode("utf-8")) > MAX_FRAME_BYTES:
         await _reject_protocol(websocket, f"消息过大（上限 {MAX_FRAME_BYTES // 1024} KB）")
@@ -523,80 +588,74 @@ async def receive_envelope(websocket: WebSocket) -> Envelope:
 
 
 @app.post("/api/auth/register")
-async def register(request: CredentialsRequest) -> dict:
+async def register(request: CredentialsRequest) -> dict[str, Any]:
     try:
         account, token = await asyncio.to_thread(
-            accounts.register, request.username, request.password, request.display_name)
-        return {"account": account.public(), "token": token,
-                "preferences": accounts.preferences(account.id)}
+            accounts.register, request.username, request.password, request.display_name
+        )
+        return {"account": account.public(), "token": token, "preferences": accounts.preferences(account.id)}
     except AccountError as exc:
         raise HTTPException(400, str(exc)) from exc
 
 
 @app.post("/api/auth/login")
-async def login(request: CredentialsRequest) -> dict:
+async def login(request: CredentialsRequest) -> dict[str, Any]:
     try:
         account, token = await asyncio.to_thread(accounts.login, request.username, request.password)
-        return {"account": account.public(), "token": token,
-                "preferences": accounts.preferences(account.id)}
+        return {"account": account.public(), "token": token, "preferences": accounts.preferences(account.id)}
     except AccountError as exc:
         raise HTTPException(401, str(exc)) from exc
 
 
 @app.post("/api/auth/logout")
-async def logout(authorization: str | None = Header(None)) -> dict:
+async def logout(authorization: str | None = Header(None)) -> dict[str, Any]:
     _, token = current_account(authorization)
     await asyncio.to_thread(accounts.logout, token)
     return {"ok": True}
 
 
 @app.get("/api/me")
-async def me(authorization: str | None = Header(None)) -> dict:
+async def me(authorization: str | None = Header(None)) -> dict[str, Any]:
     account, _ = current_account(authorization)
     return {"account": account.public(), "preferences": accounts.preferences(account.id)}
 
 
 @app.put("/api/me/preferences")
-async def save_cloud_preferences(request: PreferencesRequest,
-                                 authorization: str | None = Header(None)) -> dict:
+async def save_cloud_preferences(
+    request: PreferencesRequest, authorization: str | None = Header(None)
+) -> dict[str, Any]:
     account, _ = current_account(authorization)
-    return {"preferences": await asyncio.to_thread(
-        accounts.save_preferences, account.id, request.preferences)}
+    return {"preferences": await asyncio.to_thread(accounts.save_preferences, account.id, request.preferences)}
 
 
 @app.put("/api/me/profile")
-async def save_profile(request: ProfileRequest,
-                       authorization: str | None = Header(None)) -> dict:
+async def save_profile(request: ProfileRequest, authorization: str | None = Header(None)) -> dict[str, Any]:
     account, _ = current_account(authorization)
     try:
-        updated = await asyncio.to_thread(accounts.update_profile, account.id,
-                                          request.display_name, request.avatar_url)
+        updated = await asyncio.to_thread(accounts.update_profile, account.id, request.display_name, request.avatar_url)
         return {"account": updated.public()}
     except AccountError as exc:
         raise HTTPException(400, str(exc)) from exc
 
 
 @app.get("/api/me/games")
-async def cloud_games(favorite: bool | None = None,
-                      authorization: str | None = Header(None)) -> list[dict]:
+async def cloud_games(favorite: bool | None = None, authorization: str | None = Header(None)) -> list[dict[str, Any]]:
     account, _ = current_account(authorization)
     return await asyncio.to_thread(accounts.list_games, account.id, favorite)
 
 
 @app.post("/api/me/games")
-async def save_cloud_game(request: CloudGameRequest,
-                          authorization: str | None = Header(None)) -> dict:
+async def save_cloud_game(request: CloudGameRequest, authorization: str | None = Header(None)) -> dict[str, Any]:
     account, _ = current_account(authorization)
     try:
         game_from_document(request.document)
-        return await asyncio.to_thread(accounts.save_game, account.id, request.document,
-                                       request.title, request.game_id)
+        return await asyncio.to_thread(accounts.save_game, account.id, request.document, request.title, request.game_id)
     except (AccountError, ValueError, KeyError, TypeError) as exc:
         raise HTTPException(400, str(exc)) from exc
 
 
 @app.get("/api/me/games/{game_id}")
-async def cloud_game(game_id: int, authorization: str | None = Header(None)) -> dict:
+async def cloud_game(game_id: int, authorization: str | None = Header(None)) -> dict[str, Any]:
     account, _ = current_account(authorization)
     try:
         return await asyncio.to_thread(accounts.get_game, account.id, game_id)
@@ -605,8 +664,9 @@ async def cloud_game(game_id: int, authorization: str | None = Header(None)) -> 
 
 
 @app.put("/api/me/games/{game_id}/favorite")
-async def favorite_cloud_game(game_id: int, request: FavoriteRequest,
-                              authorization: str | None = Header(None)) -> dict:
+async def favorite_cloud_game(
+    game_id: int, request: FavoriteRequest, authorization: str | None = Header(None)
+) -> dict[str, Any]:
     account, _ = current_account(authorization)
     try:
         return await asyncio.to_thread(accounts.favorite_game, account.id, game_id, request.favorite)
@@ -615,14 +675,14 @@ async def favorite_cloud_game(game_id: int, request: FavoriteRequest,
 
 
 @app.delete("/api/me/games/{game_id}")
-async def delete_cloud_game(game_id: int, authorization: str | None = Header(None)) -> dict:
+async def delete_cloud_game(game_id: int, authorization: str | None = Header(None)) -> dict[str, Any]:
     account, _ = current_account(authorization)
     await asyncio.to_thread(accounts.delete_game, account.id, game_id)
     return {"ok": True}
 
 
 @app.post("/api/analysis")
-async def analysis(request: AnalyzeRequest) -> dict:
+async def analysis(request: AnalyzeRequest) -> dict[str, Any]:
     try:
         game = game_from_document(request.document)
         return await asyncio.to_thread(analyze_game, game, request.difficulty)
@@ -631,7 +691,7 @@ async def analysis(request: AnalyzeRequest) -> dict:
 
 
 @app.get("/api/daily")
-async def daily_puzzle(day: str | None = None) -> dict:
+async def daily_puzzle(day: str | None = None) -> dict[str, Any]:
     """每日一题：**选题在服务端算**，前端只负责记"今天做没做"。
 
     为什么不在前端算：星期配方、基准日、桶内指针三件事必须与桌面端逐字一致，
@@ -648,13 +708,13 @@ async def daily_puzzle(day: str | None = None) -> dict:
 
 
 @app.get("/api/version")
-async def version() -> dict:
+async def version() -> dict[str, Any]:
     """版本号给前端显示用 —— 页面里不再写死，免得升版本时只改了一半。"""
     return {"version": __version__}
 
 
 @app.get("/api/puzzles")
-async def puzzles(difficulty: str | None = None) -> list[dict]:
+async def puzzles(difficulty: str | None = None) -> list[dict[str, Any]]:
     items = load_puzzles()
     if difficulty:
         items = [item for item in items if item.difficulty == difficulty]
@@ -662,7 +722,7 @@ async def puzzles(difficulty: str | None = None) -> list[dict]:
 
 
 @app.get("/api/puzzles/{puzzle_id}")
-async def puzzle(puzzle_id: str, reveal: bool = False) -> dict:
+async def puzzle(puzzle_id: str, reveal: bool = False) -> dict[str, Any]:
     try:
         return puzzle_by_id(puzzle_id).payload(reveal)
     except KeyError as exc:
@@ -683,8 +743,8 @@ if WEB_DIR.exists():
 
 def run() -> None:
     import uvicorn
-    uvicorn.run("xionghan_chess.service.app:app", host="0.0.0.0",
-                port=int(os.getenv("PORT", "8000")), reload=False)
+
+    uvicorn.run("xionghan_chess.service.app:app", host="0.0.0.0", port=int(os.getenv("PORT", "8000")), reload=False)
 
 
 if __name__ == "__main__":

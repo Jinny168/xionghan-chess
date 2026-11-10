@@ -51,12 +51,6 @@ def test_special_pieces_are_covered() -> None:
         assert pieces.get(kind.value, 0) >= 1, f"题库没有任何一道题真的用到 {kind.value}"
 
 
-
-
-
-
-
-
 def test_special_capture_kinds_are_covered() -> None:
     """成线吃与拖拽吃是甲的/刺的核心机制，光「能走」不算掌握。"""
     _, kinds = _coverage()

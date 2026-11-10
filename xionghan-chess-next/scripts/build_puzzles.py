@@ -28,13 +28,12 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from xionghan_chess.core.game import Game  # noqa: E402
 from xionghan_chess.core.model import (  # noqa: E402
-    Color,
     Move,
     PieceType,
     Position,
 )
-from xionghan_chess.core.rules import CaptureKind  # noqa: E402
 from xionghan_chess.core.puzzles import Puzzle  # noqa: E402
+from xionghan_chess.core.rules import CaptureKind  # noqa: E402
 from xionghan_chess.core.storage import game_document, game_from_document  # noqa: E402
 
 DATA = ROOT / "src" / "xionghan_chess" / "core" / "data" / "puzzles.json"
@@ -42,8 +41,7 @@ DATA = ROOT / "src" / "xionghan_chess" / "core" / "data" / "puzzles.json"
 
 def m(source: tuple[int, int], target: tuple[int, int]) -> dict[str, int]:
     """(row, col) -> {"row": .., "col": ..}，只为让下面的题面可读。"""
-    return {"from": {"row": source[0], "col": source[1]},
-            "to": {"row": target[0], "col": target[1]}}
+    return {"from": {"row": source[0], "col": source[1]}, "to": {"row": target[0], "col": target[1]}}
 
 
 def move_of(raw: dict) -> Move:
@@ -86,7 +84,9 @@ def check_puzzle(item: dict) -> list[str]:
         return problems
     first = move_of(solution[0])
     if not game.rules.is_legal(game.state, first):
-        problems.append(f"{pid}: 解法首着不合法 {m((first.source.row, first.source.col), (first.target.row, first.target.col))}")
+        problems.append(
+            f"{pid}: 解法首着不合法 {m((first.source.row, first.source.col), (first.target.row, first.target.col))}"
+        )
 
     # 首着必须真的有战术意义 —— 否则「残局训练」退化成随便走一步。
     # 走 `capturable_squares` 这个公开查询而不是 `_apply_move`：前者是 HUD 与
@@ -181,8 +181,7 @@ def inline_documents() -> None:
         item["document"] = document_for(item)
         del item["positionMoves"]
         changed += 1
-    DATA.write_text(json.dumps(items, ensure_ascii=False, indent=2) + "\n",
-                    encoding="utf-8", newline="\n")
+    DATA.write_text(json.dumps(items, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(f"已内联 {changed} 条题目的局面文档 -> {DATA.relative_to(ROOT)}")
 
 
@@ -195,11 +194,13 @@ def coverage_of(item: dict) -> tuple[set[str], set[str]]:
     题面同样走 `position_game`：内联过的条目只有 `document`，用 `document_for`
     会拿到**初始棋阵**，覆盖度会整体算错（内联后曾因此把甲/刺/楯全算丢）。
     """
-    document = (item["document"] if isinstance(item.get("document"), dict)
-                else document_for(item))
+    document = item["document"] if isinstance(item.get("document"), dict) else document_for(item)
     puzzle = Puzzle(
-        str(item["id"]), str(item["title"]), str(item["difficulty"]),
-        str(item.get("description", "")), document,
+        str(item["id"]),
+        str(item["title"]),
+        str(item["difficulty"]),
+        str(item.get("description", "")),
+        document,
         tuple(move_of(raw) for raw in item["solution"]),
         tuple(str(hint) for hint in item.get("hints", [])),
         tuple(str(tag) for tag in item.get("tags", [])),
@@ -222,11 +223,11 @@ def strip_position_counts() -> None:
         document = item.get("document")
         if isinstance(document, dict) and _drop_position_counts(document):
             changed += 1
-    DATA.write_text(json.dumps(items, ensure_ascii=False, indent=2) + "\n",
-                    encoding="utf-8", newline="\n")
+    DATA.write_text(json.dumps(items, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     after = DATA.stat().st_size
-    print(f"已清理 {changed} 条题目的重复记账 -> {DATA.relative_to(ROOT)}"
-          f"（{before} → {after} 字节，省 {before - after}）")
+    print(
+        f"已清理 {changed} 条题目的重复记账 -> {DATA.relative_to(ROOT)}（{before} → {after} 字节，省 {before - after}）"
+    )
 
 
 def report() -> None:
@@ -257,13 +258,11 @@ def report() -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--report", action="store_true",
-                        help="校验全部题目并打印覆盖度矩阵（默认行为）")
-    parser.add_argument("--inline", action="store_true",
-                        help="把 positionMoves 前缀就地换成内联 document（幂等）")
-    parser.add_argument("--strip-counts", action="store_true",
-                        dest="strip_counts",
-                        help="清掉已内联 document 里的三次重复记账（幂等）")
+    parser.add_argument("--report", action="store_true", help="校验全部题目并打印覆盖度矩阵（默认行为）")
+    parser.add_argument("--inline", action="store_true", help="把 positionMoves 前缀就地换成内联 document（幂等）")
+    parser.add_argument(
+        "--strip-counts", action="store_true", dest="strip_counts", help="清掉已内联 document 里的三次重复记账（幂等）"
+    )
     args = parser.parse_args()
     if args.inline:
         inline_documents()

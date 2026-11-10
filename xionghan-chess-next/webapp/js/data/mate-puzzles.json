@@ -1,0 +1,737 @@
+[
+ {
+  "id": "mate-rook-1",
+  "title": "俥压九宫",
+  "level": "tactics",
+  "desc": "用车一步将死。",
+  "profileId": "desktop_complete",
+  "type": "mate",
+  "turn": "black",
+  "pieces": [
+   {
+    "type": "king",
+    "color": "red",
+    "row": 9,
+    "col": 8
+   },
+   {
+    "type": "king",
+    "color": "black",
+    "row": 4,
+    "col": 4
+   },
+   {
+    "type": "rook",
+    "color": "black",
+    "row": 9,
+    "col": 7
+   },
+   {
+    "type": "horse",
+    "color": "black",
+    "row": 7,
+    "col": 11
+   },
+   {
+    "type": "advisor",
+    "color": "red",
+    "row": 11,
+    "col": 8
+   }
+  ],
+  "solution": [
+   {
+    "from": {
+     "row": 9,
+     "col": 7
+    },
+    "to": {
+     "row": 9,
+     "col": 8
+    },
+    "promotion": null
+   },
+   {
+    "from": {
+     "row": 7,
+     "col": 11
+    },
+    "to": {
+     "row": 9,
+     "col": 10
+    },
+    "promotion": null
+   }
+  ],
+  "hint": "注意rook的杀法，目标是把对方主帅困死。"
+ },
+ {
+  "id": "mate-rook-2",
+  "title": "俥压九宫",
+  "level": "tactics",
+  "desc": "用车一步将死。",
+  "profileId": "desktop_complete",
+  "type": "mate",
+  "turn": "black",
+  "pieces": [
+   {
+    "type": "king",
+    "color": "red",
+    "row": 8,
+    "col": 9
+   },
+   {
+    "type": "king",
+    "color": "black",
+    "row": 1,
+    "col": 8
+   },
+   {
+    "type": "horse",
+    "color": "black",
+    "row": 10,
+    "col": 4
+   },
+   {
+    "type": "rook",
+    "color": "black",
+    "row": 12,
+    "col": 9
+   },
+   {
+    "type": "armor",
+    "color": "black",
+    "row": 10,
+    "col": 10
+   }
+  ],
+  "solution": [
+   {
+    "from": {
+     "row": 12,
+     "col": 9
+    },
+    "to": {
+     "row": 8,
+     "col": 9
+    },
+    "promotion": null
+   }
+  ],
+  "hint": "注意rook的杀法，目标是把对方主帅困死。"
+ },
+ {
+  "id": "mate-cannon-3",
+  "title": "重炮锁宫",
+  "level": "tactics",
+  "desc": "用炮一步将死。",
+  "profileId": "desktop_complete",
+  "type": "mate",
+  "turn": "black",
+  "pieces": [
+   {
+    "type": "king",
+    "color": "red",
+    "row": 11,
+    "col": 4
+   },
+   {
+    "type": "king",
+    "color": "black",
+    "row": 2,
+    "col": 6
+   },
+   {
+    "type": "cannon",
+    "color": "black",
+    "row": 11,
+    "col": 8
+   },
+   {
+    "type": "guard",
+    "color": "black",
+    "row": 11,
+    "col": 6
+   },
+   {
+    "type": "armor",
+    "color": "red",
+    "row": 8,
+    "col": 9
+   },
+   {
+    "type": "shield",
+    "color": "red",
+    "row": 7,
+    "col": 4
+   }
+  ],
+  "solution": [
+   {
+    "from": {
+     "row": 11,
+     "col": 8
+    },
+    "to": {
+     "row": 11,
+     "col": 4
+    },
+    "promotion": null
+   }
+  ],
+  "hint": "注意cannon的杀法，目标是把对方主帅困死。"
+ },
+ {
+  "id": "mate-pawn-4",
+  "title": "兵临城下",
+  "level": "tactics",
+  "desc": "用兵一步将死。",
+  "profileId": "desktop_complete",
+  "type": "mate",
+  "turn": "black",
+  "pieces": [
+   {
+    "type": "king",
+    "color": "red",
+    "row": 10,
+    "col": 8
+   },
+   {
+    "type": "king",
+    "color": "black",
+    "row": 4,
+    "col": 9
+   },
+   {
+    "type": "pawn",
+    "color": "black",
+    "row": 10,
+    "col": 9
+   },
+   {
+    "type": "assassin",
+    "color": "black",
+    "row": 8,
+    "col": 1
+   },
+   {
+    "type": "guard",
+    "color": "red",
+    "row": 8,
+    "col": 2
+   }
+  ],
+  "solution": [
+   {
+    "from": {
+     "row": 10,
+     "col": 9
+    },
+    "to": {
+     "row": 10,
+     "col": 8
+    },
+    "promotion": null
+   }
+  ],
+  "hint": "注意pawn的杀法，目标是把对方主帅困死。"
+ },
+ {
+  "id": "mate-horse-5",
+  "title": "卧槽绝杀",
+  "level": "tactics",
+  "desc": "用马一步将死。",
+  "profileId": "desktop_complete",
+  "type": "mate",
+  "turn": "black",
+  "pieces": [
+   {
+    "type": "king",
+    "color": "red",
+    "row": 11,
+    "col": 6
+   },
+   {
+    "type": "king",
+    "color": "black",
+    "row": 1,
+    "col": 6
+   },
+   {
+    "type": "horse",
+    "color": "black",
+    "row": 10,
+    "col": 8
+   },
+   {
+    "type": "armor",
+    "color": "black",
+    "row": 9,
+    "col": 12
+   },
+   {
+    "type": "rook",
+    "color": "black",
+    "row": 9,
+    "col": 11
+   },
+   {
+    "type": "pawn",
+    "color": "red",
+    "row": 7,
+    "col": 6
+   }
+  ],
+  "solution": [
+   {
+    "from": {
+     "row": 10,
+     "col": 8
+    },
+    "to": {
+     "row": 11,
+     "col": 6
+    },
+    "promotion": null
+   }
+  ],
+  "hint": "注意horse的杀法，目标是把对方主帅困死。"
+ },
+ {
+  "id": "mate-thunder-6",
+  "title": "檑震中军",
+  "level": "tactics",
+  "desc": "用檑一步将死。",
+  "profileId": "desktop_complete",
+  "type": "mate",
+  "turn": "black",
+  "pieces": [
+   {
+    "type": "king",
+    "color": "red",
+    "row": 10,
+    "col": 5
+   },
+   {
+    "type": "king",
+    "color": "black",
+    "row": 1,
+    "col": 7
+   },
+   {
+    "type": "thunder",
+    "color": "black",
+    "row": 11,
+    "col": 4
+   },
+   {
+    "type": "rook",
+    "color": "black",
+    "row": 10,
+    "col": 2
+   },
+   {
+    "type": "guard",
+    "color": "black",
+    "row": 9,
+    "col": 5
+   },
+   {
+    "type": "advisor",
+    "color": "black",
+    "row": 10,
+    "col": 10
+   },
+   {
+    "type": "pawn",
+    "color": "red",
+    "row": 12,
+    "col": 8
+   }
+  ],
+  "solution": [
+   {
+    "from": {
+     "row": 11,
+     "col": 4
+    },
+    "to": {
+     "row": 10,
+     "col": 5
+    },
+    "promotion": null
+   },
+   {
+    "from": {
+     "row": 10,
+     "col": 2
+    },
+    "to": {
+     "row": 10,
+     "col": 5
+    },
+    "promotion": null
+   }
+  ],
+  "hint": "注意thunder的杀法，目标是把对方主帅困死。"
+ },
+ {
+  "id": "mate-advisor-7",
+  "title": "仕角抽将",
+  "level": "tactics",
+  "desc": "用仕一步将死。",
+  "profileId": "desktop_complete",
+  "type": "mate",
+  "turn": "red",
+  "pieces": [
+   {
+    "type": "king",
+    "color": "black",
+    "row": 0,
+    "col": 6
+   },
+   {
+    "type": "king",
+    "color": "red",
+    "row": 10,
+    "col": 3
+   },
+   {
+    "type": "advisor",
+    "color": "red",
+    "row": 1,
+    "col": 5
+   },
+   {
+    "type": "cannon",
+    "color": "red",
+    "row": 6,
+    "col": 11
+   }
+  ],
+  "solution": [
+   {
+    "from": {
+     "row": 1,
+     "col": 5
+    },
+    "to": {
+     "row": 0,
+     "col": 6
+    },
+    "promotion": null
+   }
+  ],
+  "hint": "注意advisor的杀法，目标是把对方主帅困死。"
+ },
+ {
+  "id": "mate-armor-8",
+  "title": "甲胄合击",
+  "level": "tactics",
+  "desc": "用甲一步将死。",
+  "profileId": "desktop_complete",
+  "type": "mate",
+  "turn": "black",
+  "pieces": [
+   {
+    "type": "king",
+    "color": "red",
+    "row": 10,
+    "col": 8
+   },
+   {
+    "type": "king",
+    "color": "black",
+    "row": 1,
+    "col": 4
+   },
+   {
+    "type": "advisor",
+    "color": "black",
+    "row": 12,
+    "col": 8
+   },
+   {
+    "type": "armor",
+    "color": "black",
+    "row": 11,
+    "col": 12
+   },
+   {
+    "type": "cannon",
+    "color": "black",
+    "row": 8,
+    "col": 7
+   },
+   {
+    "type": "elephant",
+    "color": "black",
+    "row": 10,
+    "col": 12
+   },
+   {
+    "type": "advisor",
+    "color": "red",
+    "row": 12,
+    "col": 5
+   }
+  ],
+  "solution": [
+   {
+    "from": {
+     "row": 11,
+     "col": 12
+    },
+    "to": {
+     "row": 11,
+     "col": 8
+    },
+    "promotion": null
+   }
+  ],
+  "hint": "注意armor的杀法，目标是把对方主帅困死。"
+ },
+ {
+  "id": "mate-archer-9",
+  "title": "星轨封喉",
+  "level": "tactics",
+  "desc": "用射一步将死。",
+  "profileId": "desktop_complete",
+  "type": "mate",
+  "turn": "red",
+  "pieces": [
+   {
+    "type": "king",
+    "color": "black",
+    "row": 1,
+    "col": 7
+   },
+   {
+    "type": "king",
+    "color": "red",
+    "row": 11,
+    "col": 9
+   },
+   {
+    "type": "horse",
+    "color": "red",
+    "row": 6,
+    "col": 10
+   },
+   {
+    "type": "archer",
+    "color": "red",
+    "row": 2,
+    "col": 8
+   },
+   {
+    "type": "pawn",
+    "color": "red",
+    "row": 1,
+    "col": 2
+   },
+   {
+    "type": "rook",
+    "color": "red",
+    "row": 6,
+    "col": 1
+   }
+  ],
+  "solution": [
+   {
+    "from": {
+     "row": 2,
+     "col": 8
+    },
+    "to": {
+     "row": 1,
+     "col": 7
+    },
+    "promotion": null
+   }
+  ],
+  "hint": "注意archer的杀法，目标是把对方主帅困死。"
+ },
+ {
+  "id": "mate-armor-10",
+  "title": "甲胄合击",
+  "level": "tactics",
+  "desc": "用甲一步将死。",
+  "profileId": "desktop_complete",
+  "type": "mate",
+  "turn": "black",
+  "pieces": [
+   {
+    "type": "king",
+    "color": "red",
+    "row": 10,
+    "col": 3
+   },
+   {
+    "type": "king",
+    "color": "black",
+    "row": 1,
+    "col": 8
+   },
+   {
+    "type": "cannon",
+    "color": "black",
+    "row": 11,
+    "col": 3
+   },
+   {
+    "type": "advisor",
+    "color": "black",
+    "row": 11,
+    "col": 9
+   },
+   {
+    "type": "armor",
+    "color": "black",
+    "row": 9,
+    "col": 7
+   },
+   {
+    "type": "horse",
+    "color": "black",
+    "row": 11,
+    "col": 1
+   }
+  ],
+  "solution": [
+   {
+    "from": {
+     "row": 9,
+     "col": 7
+    },
+    "to": {
+     "row": 9,
+     "col": 3
+    },
+    "promotion": null
+   },
+   {
+    "from": {
+     "row": 11,
+     "col": 1
+    },
+    "to": {
+     "row": 10,
+     "col": 3
+    },
+    "promotion": null
+   }
+  ],
+  "hint": "注意armor的杀法，目标是把对方主帅困死。"
+ },
+ {
+  "id": "mate-horse-11",
+  "title": "卧槽绝杀",
+  "level": "tactics",
+  "desc": "用马一步将死。",
+  "profileId": "desktop_complete",
+  "type": "mate",
+  "turn": "red",
+  "pieces": [
+   {
+    "type": "king",
+    "color": "black",
+    "row": 4,
+    "col": 4
+   },
+   {
+    "type": "king",
+    "color": "red",
+    "row": 12,
+    "col": 3
+   },
+   {
+    "type": "horse",
+    "color": "red",
+    "row": 3,
+    "col": 6
+   },
+   {
+    "type": "rook",
+    "color": "red",
+    "row": 6,
+    "col": 5
+   },
+   {
+    "type": "archer",
+    "color": "red",
+    "row": 0,
+    "col": 5
+   },
+   {
+    "type": "guard",
+    "color": "black",
+    "row": 2,
+    "col": 4
+   }
+  ],
+  "solution": [
+   {
+    "from": {
+     "row": 3,
+     "col": 6
+    },
+    "to": {
+     "row": 4,
+     "col": 4
+    },
+    "promotion": null
+   }
+  ],
+  "hint": "注意horse的杀法，目标是把对方主帅困死。"
+ },
+ {
+  "id": "mate-assassin-12",
+  "title": "刺客同归",
+  "level": "tactics",
+  "desc": "用刺一步将死。",
+  "profileId": "desktop_complete",
+  "type": "mate",
+  "turn": "black",
+  "pieces": [
+   {
+    "type": "king",
+    "color": "red",
+    "row": 8,
+    "col": 7
+   },
+   {
+    "type": "king",
+    "color": "black",
+    "row": 0,
+    "col": 4
+   },
+   {
+    "type": "assassin",
+    "color": "black",
+    "row": 8,
+    "col": 9
+   },
+   {
+    "type": "horse",
+    "color": "black",
+    "row": 10,
+    "col": 12
+   }
+  ],
+  "solution": [
+   {
+    "from": {
+     "row": 8,
+     "col": 9
+    },
+    "to": {
+     "row": 8,
+     "col": 11
+    },
+    "promotion": null
+   }
+  ],
+  "hint": "注意assassin的杀法，目标是把对方主帅困死。"
+ }
+]

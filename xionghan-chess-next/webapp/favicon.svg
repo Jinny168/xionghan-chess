@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="30" fill="#9c2b22"/>
+  <circle cx="32" cy="32" r="25.5" fill="none" stroke="#f6e7c8" stroke-width="1.6" opacity=".7"/>
+  <text x="32" y="43" text-anchor="middle" font-family="KaiTi,STKaiti,serif" font-size="34" fill="#fdf3e4">漢</text>
+</svg>

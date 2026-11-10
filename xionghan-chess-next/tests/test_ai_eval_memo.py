@@ -53,7 +53,8 @@ def test_memoized_evaluation_matches_direct_evaluation() -> None:
         game = Game.from_state(state, None, None)
         for color in (Color.RED, Color.BLACK):
             assert memoized._evaluate(game, color) == direct._evaluate(game, color), (
-                f"第 {index} 个局面 / {color} 的评估值被记忆化改变了")
+                f"第 {index} 个局面 / {color} 的评估值被记忆化改变了"
+            )
 
 
 def test_memo_is_shared_between_the_two_colours() -> None:

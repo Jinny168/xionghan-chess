@@ -45,8 +45,7 @@ def test_piece_style_has_four_options_including_glyph() -> None:
 
 def test_legacy_page_background_none_maps_to_1() -> None:
     """老配置 `pageBackground:"none"` 必须读成 `"1"`（与桌面同口径）。"""
-    assert "pageBackground==='none')app.preferences.pageBackground='1'" in APP_JS, \
-        "app.js 里缺少 none → 1 的兼容映射"
+    assert "pageBackground==='none')app.preferences.pageBackground='1'" in APP_JS, "app.js 里缺少 none → 1 的兼容映射"
 
 
 def test_play_again_is_always_clickable_and_confirms_mid_game() -> None:
@@ -92,7 +91,8 @@ def test_initial_minutes_defaults_to_ten_on_both_ends() -> None:
     assert minutes_block, "index.html 里找不到 #initialMinutesSelect"
     chosen = re.findall(r'<option value="(\d+)"( selected)?>', minutes_block.group(1))
     assert [value for value, flag in chosen if flag] == ["10"], (
-        f"网页时限默认项应为 10 分钟，实际 {[v for v, f in chosen if f]}")
+        f"网页时限默认项应为 10 分钟，实际 {[v for v, f in chosen if f]}"
+    )
     assert selected, "整份 index.html 里应当存在显式 selected 的选项"
 
     assert "initialMinutes:10," in APP_JS, "app.js 的偏好初始值应为 10"

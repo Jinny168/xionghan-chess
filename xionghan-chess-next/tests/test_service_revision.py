@@ -22,9 +22,10 @@ def client() -> TestClient:
 
 
 def _open_local(client: TestClient):
-    created = client.post("/api/rooms", json={
-        "ruleVersion": RULE_VERSION,
-        "profileId": "traditional", "mode": "local", "playerName": "P1"}).json()
+    created = client.post(
+        "/api/rooms",
+        json={"ruleVersion": RULE_VERSION, "profileId": "traditional", "mode": "local", "playerName": "P1"},
+    ).json()
     return created["roomId"], created["token"]
 
 
@@ -42,9 +43,17 @@ def test_local_move_without_revision_is_rejected(client: TestClient) -> None:
     with client.websocket_connect(f"/ws/{room_id}") as socket:
         socket.send_json({"type": "auth", "token": token})
         snapshot = socket.receive_json()["payload"]
-        socket.send_json({"type": "move", "roomId": room_id, "protocolVersion": 1,
-                          "payload": {"from": {"row": move.source.row, "col": move.source.col},
-                                      "to": {"row": move.target.row, "col": move.target.col}}})
+        socket.send_json(
+            {
+                "type": "move",
+                "roomId": room_id,
+                "protocolVersion": 1,
+                "payload": {
+                    "from": {"row": move.source.row, "col": move.source.col},
+                    "to": {"row": move.target.row, "col": move.target.col},
+                },
+            }
+        )
         reply = socket.receive_json()
     assert reply["type"] == "error", reply
     assert "revision" in reply["payload"]["message"]
@@ -57,10 +66,18 @@ def test_local_move_with_stale_revision_is_rejected(client: TestClient) -> None:
     with client.websocket_connect(f"/ws/{room_id}") as socket:
         socket.send_json({"type": "auth", "token": token})
         snapshot = socket.receive_json()["payload"]
-        socket.send_json({"type": "move", "roomId": room_id,
-                          "revision": snapshot["revision"] - 1, "protocolVersion": 1,
-                          "payload": {"from": {"row": move.source.row, "col": move.source.col},
-                                      "to": {"row": move.target.row, "col": move.target.col}}})
+        socket.send_json(
+            {
+                "type": "move",
+                "roomId": room_id,
+                "revision": snapshot["revision"] - 1,
+                "protocolVersion": 1,
+                "payload": {
+                    "from": {"row": move.source.row, "col": move.source.col},
+                    "to": {"row": move.target.row, "col": move.target.col},
+                },
+            }
+        )
         reply = socket.receive_json()
     assert reply["type"] == "error", reply
 
@@ -71,10 +88,18 @@ def test_local_move_with_correct_revision_is_accepted(client: TestClient) -> Non
     with client.websocket_connect(f"/ws/{room_id}") as socket:
         socket.send_json({"type": "auth", "token": token})
         snapshot = socket.receive_json()["payload"]
-        socket.send_json({"type": "move", "roomId": room_id,
-                          "revision": snapshot["revision"], "protocolVersion": 1,
-                          "payload": {"from": {"row": move.source.row, "col": move.source.col},
-                                      "to": {"row": move.target.row, "col": move.target.col}}})
+        socket.send_json(
+            {
+                "type": "move",
+                "roomId": room_id,
+                "revision": snapshot["revision"],
+                "protocolVersion": 1,
+                "payload": {
+                    "from": {"row": move.source.row, "col": move.source.col},
+                    "to": {"row": move.target.row, "col": move.target.col},
+                },
+            }
+        )
         reply = socket.receive_json()
     assert reply["type"] == "state", reply
     assert len(reply["payload"]["game"]["history"]) == 1

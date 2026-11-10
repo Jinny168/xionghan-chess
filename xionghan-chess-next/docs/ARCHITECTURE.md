@@ -6,6 +6,7 @@
 - `core/game.py` 是唯一状态转换入口，负责历史、悔棋、复活、升变和结果结算。
 - `core/ai.py` 只调用规则引擎生成合法着法。
 - 联网时 FastAPI 服务端持有权威 `Game`，客户端只提交走棋意图。
+- Web/Android 离线端的规则引擎是 JS 镜像；**v2.0 前不引入 WASM/Pyodide**（瓶颈在 movegen，且安卓 `file://` 换 origin 会丢 localStorage），结论与重开条件见 [`WASM_DECISION.md`](WASM_DECISION.md)。离线数据区（`TYPES`/`DEFAULT_OPTIONS`/`PROFILES`）由 `scripts/gen_offline_data.py` 从 `core/profiles.py` 生成，`--check` 已入门禁；`Rules` 实现仍为手写。
 
 | 档案 | 棋盘 | 默认棋子 |
 | --- | --- | --- |
@@ -29,7 +30,7 @@
 - 兵卒进入敌境前快速行军、复活和使用阵亡棋子的升变。
 - 点击与拖拽、选中高亮、可行点、吃子目标和将军提示。
 - 13×13 原版“长城 / 阴山”中央分界、短交叉点位和兵炮初始位角标。
-- 六档 AI（beginner / easy / medium / hard / expert / master）、先后手切换和 AI 思考锁。
+- 三档对外 AI（beginner / medium / hard）+ 三个内部档（easy / expert / master，仅旧配置兼容与 benchmark；master 不对玩家提供）；先后手切换和 AI 思考锁。
 - 自建房间、Web/桌面跨端联机和版本校验。
 - 统一联机聊天协议与“挑衅”等快捷短语，不干扰棋局状态版本。
 - PySide6 配置持久化、PyInstaller 和 Docker 部署。

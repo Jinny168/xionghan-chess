@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import secrets
 from dataclasses import dataclass
 from enum import StrEnum
-import secrets
 from typing import Any, Iterable
 
 from .model import Color, Piece, PieceType
@@ -53,10 +53,14 @@ class GameSetup:
     black_slots: tuple[str, ...] = ()
 
     @classmethod
-    def build(cls, profile: RuleProfile, options: RuleOptions,
-              first_move: FirstMove | str = FirstMove.RED,
-              red_slots: Iterable[str] | None = None,
-              black_slots: Iterable[str] | None = None) -> "GameSetup":
+    def build(
+        cls,
+        profile: RuleProfile,
+        options: RuleOptions,
+        first_move: FirstMove | str = FirstMove.RED,
+        red_slots: Iterable[str] | None = None,
+        black_slots: Iterable[str] | None = None,
+    ) -> "GameSetup":
         requested = FirstMove(first_move)
         available = {
             color: tuple(
@@ -76,10 +80,9 @@ class GameSetup:
             # 2) 该档案根本没启用的兵种（如精简模式没有尉）直接丢弃，而不是报"非法槽位"
             enabled = set(available[color])
             selected[color] = tuple(
-                item for item in remapped
-                if item in enabled
-                or (kind := _piece_type_of(item)) is None
-                or options.piece_enabled(kind)
+                item
+                for item in remapped
+                if item in enabled or (kind := _piece_type_of(item)) is None or options.piece_enabled(kind)
             )
         for color in Color:
             if len(selected[color]) != len(set(selected[color])):
@@ -92,22 +95,27 @@ class GameSetup:
                 raise ValueError(f"{color.value} king must appear")
         if len(selected[Color.RED]) != len(selected[Color.BLACK]):
             raise ValueError("red and black must field the same number of pieces")
-        resolved = (secrets.choice(tuple(Color)) if requested is FirstMove.RANDOM
-                    else Color(requested.value))
+        resolved = secrets.choice(tuple(Color)) if requested is FirstMove.RANDOM else Color(requested.value)
         return cls(requested, resolved, selected[Color.RED], selected[Color.BLACK])
 
     @classmethod
-    def from_dict(cls, profile: RuleProfile, options: RuleOptions,
-                  data: dict[str, Any] | None) -> "GameSetup":
+    def from_dict(cls, profile: RuleProfile, options: RuleOptions, data: dict[str, Any] | None) -> "GameSetup":
         if not data:
             return cls.build(profile, options)
         setup = cls.build(
-            profile, options, data.get("firstMove", FirstMove.RED),
-            data.get("redSlots"), data.get("blackSlots"),
+            profile,
+            options,
+            data.get("firstMove", FirstMove.RED),
+            data.get("redSlots"),
+            data.get("blackSlots"),
         )
         resolved = data.get("resolvedFirstMove")
-        return cls(setup.first_move, Color(resolved) if resolved else setup.resolved_first_move,
-                   setup.red_slots, setup.black_slots)
+        return cls(
+            setup.first_move,
+            Color(resolved) if resolved else setup.resolved_first_move,
+            setup.red_slots,
+            setup.black_slots,
+        )
 
     def initial_pieces(self, profile: RuleProfile) -> list[Piece]:
         selected = set(self.red_slots) | set(self.black_slots)

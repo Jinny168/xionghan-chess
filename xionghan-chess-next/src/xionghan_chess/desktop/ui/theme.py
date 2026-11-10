@@ -10,6 +10,7 @@
 —— 那会在 import 时就绑死旧值，`load_bundled_fonts()` 之后读到的仍是默认字体。
 （`NAMES` / `THEMES` / `FONT_CHOICES` 是字典，原地修改，直接 import 是安全的。）
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -49,8 +50,32 @@ def read_docs(name: str, fallback_label: str = "文档") -> str:
 
 # 棋盘上的棋子字形。**必须保持中文**（切英文界面也不翻译）：这是象棋子的视觉本体。
 NAMES = {
-    Color.RED: {PieceType.KING:"漢",PieceType.ROOK:"俥",PieceType.HORSE:"傌",PieceType.ELEPHANT:"相",PieceType.ADVISOR:"仕",PieceType.CANNON:"炮",PieceType.PAWN:"兵",PieceType.GUARD:"尉",PieceType.ARCHER:"射",PieceType.THUNDER:"檑",PieceType.PATROL:"巡"},
-    Color.BLACK: {PieceType.KING:"汗",PieceType.ROOK:"車",PieceType.HORSE:"馬",PieceType.ELEPHANT:"象",PieceType.ADVISOR:"士",PieceType.CANNON:"砲",PieceType.PAWN:"卒",PieceType.GUARD:"衛",PieceType.ARCHER:"䠶",PieceType.THUNDER:"礌",PieceType.PATROL:"廵"},
+    Color.RED: {
+        PieceType.KING: "漢",
+        PieceType.ROOK: "俥",
+        PieceType.HORSE: "傌",
+        PieceType.ELEPHANT: "相",
+        PieceType.ADVISOR: "仕",
+        PieceType.CANNON: "炮",
+        PieceType.PAWN: "兵",
+        PieceType.GUARD: "尉",
+        PieceType.ARCHER: "射",
+        PieceType.THUNDER: "檑",
+        PieceType.PATROL: "巡",
+    },
+    Color.BLACK: {
+        PieceType.KING: "汗",
+        PieceType.ROOK: "車",
+        PieceType.HORSE: "馬",
+        PieceType.ELEPHANT: "象",
+        PieceType.ADVISOR: "士",
+        PieceType.CANNON: "砲",
+        PieceType.PAWN: "卒",
+        PieceType.GUARD: "衛",
+        PieceType.ARCHER: "䠶",
+        PieceType.THUNDER: "礌",
+        PieceType.PATROL: "廵",
+    },
 }
 
 # 默认字体名（`load_bundled_fonts()` 会用随包字体覆盖成真实 family 名）。
@@ -82,11 +107,51 @@ PIECE_FONT = "Noto Serif SC Subset"
 # 目标不是"数值一样"，是**五套看起来一样重**——所以浅盘系数集中在 0.58–0.60，
 # 深盘给满 1.0（深底上黑影几乎不显，必须给足）。
 THEMES = {
-    "classic": {"board": "#e7c88d", "line": "#684726", "frame": "#5a3b20", "panel": "#fff9ed", "window": "#d9c8a6", "accent": "#315c48", "shadow_gain": 0.60},
-    "green": {"board": "#dfeeda", "line": "#315c36", "frame": "#365a3e", "panel": "#f6fbf2", "window": "#c8d8c1", "accent": "#315c48", "shadow_gain": 0.58},
-    "blue": {"board": "#dcebf1", "line": "#285c73", "frame": "#31586a", "panel": "#f3f8fa", "window": "#c4d4da", "accent": "#315f76", "shadow_gain": 0.58},
-    "purple": {"board": "#eee1f2", "line": "#724585", "frame": "#5c386d", "panel": "#fbf6fc", "window": "#d8c7dc", "accent": "#6d3e79", "shadow_gain": 0.58},
-    "dark": {"board": "#34302b", "line": "#c9b58e", "frame": "#171513", "panel": "#29241f", "window": "#1d1a17", "accent": "#8e3b32", "shadow_gain": 1.00},
+    "classic": {
+        "board": "#e7c88d",
+        "line": "#684726",
+        "frame": "#5a3b20",
+        "panel": "#fff9ed",
+        "window": "#d9c8a6",
+        "accent": "#315c48",
+        "shadow_gain": 0.60,
+    },
+    "green": {
+        "board": "#dfeeda",
+        "line": "#315c36",
+        "frame": "#365a3e",
+        "panel": "#f6fbf2",
+        "window": "#c8d8c1",
+        "accent": "#315c48",
+        "shadow_gain": 0.58,
+    },
+    "blue": {
+        "board": "#dcebf1",
+        "line": "#285c73",
+        "frame": "#31586a",
+        "panel": "#f3f8fa",
+        "window": "#c4d4da",
+        "accent": "#315f76",
+        "shadow_gain": 0.58,
+    },
+    "purple": {
+        "board": "#eee1f2",
+        "line": "#724585",
+        "frame": "#5c386d",
+        "panel": "#fbf6fc",
+        "window": "#d8c7dc",
+        "accent": "#6d3e79",
+        "shadow_gain": 0.58,
+    },
+    "dark": {
+        "board": "#34302b",
+        "line": "#c9b58e",
+        "frame": "#171513",
+        "panel": "#29241f",
+        "window": "#1d1a17",
+        "accent": "#8e3b32",
+        "shadow_gain": 1.00,
+    },
 }
 
 # 主题没声明 `shadow_gain` 时的兜底（新增主题不该因为它没写而丢掉投影）。

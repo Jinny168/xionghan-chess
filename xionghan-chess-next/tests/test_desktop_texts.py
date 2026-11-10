@@ -35,8 +35,12 @@ def _docstring_ids(tree: ast.AST) -> set[int]:
     for node in ast.walk(tree):
         if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             body = getattr(node, "body", [])
-            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) \
-                    and isinstance(body[0].value.value, str):
+            if (
+                body
+                and isinstance(body[0], ast.Expr)
+                and isinstance(body[0].value, ast.Constant)
+                and isinstance(body[0].value.value, str)
+            ):
                 out.add(id(body[0].value))
     return out
 
@@ -54,8 +58,12 @@ def _scan() -> tuple[list[tuple[str, int, str]], list[tuple[str, int, str]]]:
         bilingual: set[int] = set()
         fstring_parts: set[int] = set()
         for node in ast.walk(tree):
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
-                    and node.func.id in ("dl", "dlf") and node.args:
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in ("dl", "dlf")
+                and node.args
+            ):
                 wrapped.add(id(node.args[0]))
                 arg = node.args[0]
                 if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
@@ -80,8 +88,12 @@ def _scan() -> tuple[list[tuple[str, int, str]], list[tuple[str, int, str]]]:
                 bare = any(isinstance(v, ast.Constant) and HAN.search(str(v.value)) for v in node.values)
                 if _has_han(node) and id(node) not in bilingual and bare:
                     untranslated.append((path.name, node.lineno, ast.unparse(node)[:60]))
-            elif isinstance(node, ast.Constant) and _has_han(node) and id(node) not in wrapped \
-                    and id(node) not in bilingual:
+            elif (
+                isinstance(node, ast.Constant)
+                and _has_han(node)
+                and id(node) not in wrapped
+                and id(node) not in bilingual
+            ):
                 untranslated.append((path.name, node.lineno, repr(node.value)[:60]))
     return untranslated, missing_keys
 

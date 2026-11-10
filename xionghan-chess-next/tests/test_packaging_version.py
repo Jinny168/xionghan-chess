@@ -24,8 +24,7 @@ def test_version_info_matches_the_package_version() -> None:
     match = re.search(r"filevers=\((\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)", text)
     assert match, "version_info.txt 缺少 filevers"
     packed = ".".join(match.group(1, 2, 3))
-    assert packed == __version__, (
-        f"version_info 写的是 {packed}，代码是 {__version__} —— 升版本时漏改打包资源")
+    assert packed == __version__, f"version_info 写的是 {packed}，代码是 {__version__} —— 升版本时漏改打包资源"
 
 
 def test_product_strings_carry_the_version() -> None:
@@ -36,5 +35,4 @@ def test_product_strings_carry_the_version() -> None:
 
 def test_spec_uses_the_version_file() -> None:
     spec = SPEC.read_text(encoding="utf-8")
-    assert 'version=os.path.join(SPECPATH, "version_info.txt")' in spec, \
-        "spec 没挂版本资源，打出来的 EXE 又会是空的"
+    assert 'version=os.path.join(SPECPATH, "version_info.txt")' in spec, "spec 没挂版本资源，打出来的 EXE 又会是空的"

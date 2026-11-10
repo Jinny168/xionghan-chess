@@ -14,6 +14,7 @@ B 阶段每收编一批颜色就重跑一次，条目数应当**单调下降**�
     python scripts/gen_color_allowlist.py          # 打到 stdout
     python scripts/gen_color_allowlist.py --write  # 覆盖 allowlist 文件
 """
+
 from __future__ import annotations
 
 import re
@@ -68,9 +69,9 @@ def scan() -> tuple[Counter, Counter, Counter]:
         # 其余 hex 都算裸值
         for match in HEX_RE.finditer(masked):
             span_start = max(masked.rfind(";", 0, match.start()), masked.rfind("{", 0, match.start()))
-            prefix = masked[span_start + 1:match.start()]
+            prefix = masked[span_start + 1 : match.start()]
             if re.match(r"\s*--[A-Za-z0-9_-]+\s*:\s*$", prefix):
-                continue          # 已在令牌统计里
+                continue  # 已在令牌统计里
             raw[f"{rel}:{match.group(0).lower()}"] += 1
     return raw, tokens, comments
 

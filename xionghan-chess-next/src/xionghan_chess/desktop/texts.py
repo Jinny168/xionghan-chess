@@ -86,9 +86,6 @@ EN: dict[str, str] = {
     "音效风格": "Sound pack",
     "经典": "Classic",
     "网页合成": "Web synth",
-    "音效风格": "Sound pack",
-    "经典": "Classic",
-    "网页合成": "Web synth",
     "输入聊天内容": "Type a message",
     "发送": "Send",
     "房间号": "Room code",
@@ -199,8 +196,7 @@ TEMPLATES: dict[str, str] = {
     "文件：{path}": "File: {path}",
     "棋谱目录：{path}": "Game folder: {path}",
     "自定义题库读取失败（已忽略）：{exc}": "Could not read the custom puzzle bank (ignored): {exc}",
-    "已导入 {added} 条题目{suffix}。当前自定义题库共 {total} 条。":
-        "Imported {added} puzzle(s){suffix}. Custom bank now has {total}.",
+    "已导入 {added} 条题目{suffix}。当前自定义题库共 {total} 条。": "Imported {added} puzzle(s){suffix}. Custom bank now has {total}.",
     "没有新增题目（{skipped} 条 id 已存在）。": "Nothing new added ({skipped} id(s) already exist).",
     "，{skipped} 条已存在跳过": ", {skipped} skipped as duplicates",
     "自动重连失败，请重新加入房间": "Reconnect failed, please rejoin the room",
@@ -210,6 +206,9 @@ TEMPLATES: dict[str, str] = {
     "第 {step} / {total} 步 · {notation}": "Move {step} / {total} · {notation}",
     "背景 {index}": "Background {index}",
     "未知档位「{name}」，已回落到默认": "Unknown level “{name}” — reverted to the default",
+    "旧档位「初级」已并入中级": "The old “Easy” tier now uses Medium",
+    "旧档位「专家」已并入高级": "The old “Expert” tier now uses Hard",
+    "旧档位「大师」已并入高级": "The old “Master” tier now uses Hard",
     "{exc}\n\n文件：{path}": "{exc}\n\nFile: {path}",
     "对局结束": "Game over",
 }
@@ -223,6 +222,21 @@ def set_language(language: str) -> None:
 
 def current_language() -> str:
     return _LANGUAGE
+
+
+# 旧档位并入提示。放在这里而不是 dialogs：`test_desktop_texts` 禁止 UI 模块出现
+# 未包 `dl()` 的中文字面量，而这个映射需要**运行时**按当前语言翻译。
+_DIFFICULTY_ALIAS_HINTS = {
+    "easy": "旧档位「初级」已并入中级",
+    "expert": "旧档位「专家」已并入高级",
+    "master": "旧档位「大师」已并入高级",
+}
+
+
+def difficulty_alias_hint(value: str) -> str | None:
+    """旧档位 → 提示文案（已按当前语言翻译）；非旧档返回 None。"""
+    text = _DIFFICULTY_ALIAS_HINTS.get(value)
+    return dl(text) if text else None
 
 
 def dl(text: str) -> str:

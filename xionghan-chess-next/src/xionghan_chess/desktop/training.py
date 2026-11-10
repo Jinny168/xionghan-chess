@@ -49,7 +49,8 @@ class PuzzleSession:
             raise ValueError(
                 "solution length must be odd (even indices are the player's moves, "
                 "odd ones are forced replies): "
-                f"{len(self.puzzle.solution)} plies would end on the opponent's move")
+                f"{len(self.puzzle.solution)} plies would end on the opponent's move"
+            )
 
     @property
     def total(self) -> int:
@@ -98,8 +99,12 @@ class PuzzleSession:
         target = self.expected
         if target is None:
             return False
-        return ((move.source.row, move.source.col, move.target.row, move.target.col)
-                == (target.source.row, target.source.col, target.target.row, target.target.col))
+        return (move.source.row, move.source.col, move.target.row, move.target.col) == (
+            target.source.row,
+            target.source.col,
+            target.target.row,
+            target.target.col,
+        )
 
     def submit(self, move: Move) -> str:
         """判定一手棋。返回 `correct` / `solved` / `wrong`（都是字符串常量）。"""

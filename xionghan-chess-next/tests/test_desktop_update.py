@@ -43,13 +43,13 @@ def test_parse_version(text: str, expected: tuple[int, ...]) -> None:
     [
         ("1.7.1", "1.7.0", True),
         ("1.7.0", "1.7.0", False),
-        ("1.7", "1.7.0", False),          # 补零后相等
-        ("1.7.0", "1.7", False),          # 同上，对称
-        ("1.10.0", "1.9.9", True),        # 数字比较而非字典序
+        ("1.7", "1.7.0", False),  # 补零后相等
+        ("1.7.0", "1.7", False),  # 同上，对称
+        ("1.10.0", "1.9.9", True),  # 数字比较而非字典序
         ("2.0.0", "1.99.99", True),
         ("1.6.9", "1.7.0", False),
         ("v1.7.1", "1.7.0", True),
-        ("abc", "1.7.0", False),          # 无法解析时不声称有新版
+        ("abc", "1.7.0", False),  # 无法解析时不声称有新版
         ("1.7.1", "abc", False),
     ],
 )
@@ -97,10 +97,12 @@ def test_parse_release_skips_draft_and_prerelease() -> None:
 
 def test_parse_release_rejects_api_url() -> None:
     """GitHub API 的 `url` 指向 api.github.com —— 给用户点开是 JSON，必须回落下载页。"""
-    info = update.parse_release({
-        "tag_name": "v1.7.1",
-        "url": "https://api.github.com/repos/Jinny168/xionghan-chess/releases/1",
-    })
+    info = update.parse_release(
+        {
+            "tag_name": "v1.7.1",
+            "url": "https://api.github.com/repos/Jinny168/xionghan-chess/releases/1",
+        }
+    )
     assert info is not None
     assert info.url == update.DOWNLOAD_PAGE
 
@@ -115,6 +117,7 @@ def _transport(payload: object, calls: list[tuple[str, object, str]] | None = No
         if calls is not None:
             calls.append((url, body, method))
         return payload
+
     return inner
 
 
@@ -131,6 +134,7 @@ def test_check_for_update_reports_latest() -> None:
 
 def test_check_for_update_swallows_network_error() -> None:
     """离线是常态：必须折成 error，不能把异常抛进 GUI 事件链。"""
+
     def boom(url: str, body: object, headers: object, method: str) -> object:
         raise OSError("network unreachable")
 
@@ -142,8 +146,9 @@ def test_check_for_update_swallows_network_error() -> None:
 
 def test_check_for_update_uses_configured_url() -> None:
     calls: list[tuple[str, object, str]] = []
-    update.check_for_update("1.7.0", transport=_transport({"tag_name": "v1.7.1"}, calls),
-                            url="https://example.com/manifest.json")
+    update.check_for_update(
+        "1.7.0", transport=_transport({"tag_name": "v1.7.1"}, calls), url="https://example.com/manifest.json"
+    )
     assert calls and calls[0][0] == "https://example.com/manifest.json"
     assert calls[0][2] == "GET"
 

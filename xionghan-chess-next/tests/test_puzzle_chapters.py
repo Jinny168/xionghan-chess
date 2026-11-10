@@ -24,8 +24,7 @@ def qt_app() -> QApplication:
 
 
 def test_every_generated_puzzle_has_a_known_chapter() -> None:
-    missing = [p.id for p in load_puzzles()
-               if p.id.startswith("gen-") and p.chapter not in CHAPTERS]
+    missing = [p.id for p in load_puzzles() if p.id.startswith("gen-") and p.chapter not in CHAPTERS]
     assert not missing, f"这些题没有分到已知章节：{missing}"
 
 
@@ -42,7 +41,7 @@ def test_chapter_order_puts_unknown_last() -> None:
 
 
 def test_list_is_grouped_by_chapter(qt_app: QApplication) -> None:
-    parent = QWidget()          # 父对象必须存活，否则对话框被回收
+    parent = QWidget()  # 父对象必须存活，否则对话框被回收
     parent.config = {}
     dialog = TrainingDialog(parent)
 
@@ -58,7 +57,8 @@ def test_list_is_grouped_by_chapter(qt_app: QApplication) -> None:
     assert puzzles, "列表里没有可选题目"
     for item in puzzles:
         assert item.data(Qt.ItemDataRole.UserRole), (
-            f"题目项没写 id：{item.text()!r} —— 分组后行号不再等于下标，current() 会取错")
+            f"题目项没写 id：{item.text()!r} —— 分组后行号不再等于下标，current() 会取错"
+        )
 
     # 选中第一条题目，`current()` 必须按 id 取回它
     first = puzzles[0]

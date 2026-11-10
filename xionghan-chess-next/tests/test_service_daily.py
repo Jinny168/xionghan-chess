@@ -33,7 +33,7 @@ def test_daily_matches_core_selection() -> None:
 
 
 def test_daily_accepts_an_explicit_day() -> None:
-    day = date(2026, 11, 2)          # 周一 → beginner
+    day = date(2026, 11, 2)  # 周一 → beginner
     data = client.get("/api/daily", params={"day": day.isoformat()}).json()
     assert data["day"] == day.isoformat()
     assert data["puzzle"]["difficulty"] == daily.level_for(day) == "beginner"

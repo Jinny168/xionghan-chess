@@ -20,15 +20,22 @@ from xionghan_chess.core.model import Color, Piece, PieceType
 
 RED, BLACK = Color.RED, Color.BLACK
 K, R, H, E, A, C, P, G, S, T, X = (
-    PieceType.KING, PieceType.ROOK, PieceType.HORSE, PieceType.ELEPHANT,
-    PieceType.ADVISOR, PieceType.CANNON, PieceType.PAWN, PieceType.GUARD,
-    PieceType.ARCHER, PieceType.THUNDER, PieceType.PATROL,
+    PieceType.KING,
+    PieceType.ROOK,
+    PieceType.HORSE,
+    PieceType.ELEPHANT,
+    PieceType.ADVISOR,
+    PieceType.CANNON,
+    PieceType.PAWN,
+    PieceType.GUARD,
+    PieceType.ARCHER,
+    PieceType.THUNDER,
+    PieceType.PATROL,
 )
 MODES = ("desktop_complete", "desktop_classic", "web")
 
 
-def _game(mode: str, placements=(), *, turn: Color = RED,
-          kings=((12, 0), (0, 12)), **options) -> Game:
+def _game(mode: str, placements=(), *, turn: Color = RED, kings=((12, 0), (0, 12)), **options) -> Game:
     pieces = [Piece.create(K, RED, *kings[0]), Piece.create(K, BLACK, *kings[1])]
     pieces += [Piece.create(kind, color, row, col) for kind, color, row, col in placements]
     state = GameState(mode, pieces, turn=turn)
@@ -36,23 +43,26 @@ def _game(mode: str, placements=(), *, turn: Color = RED,
 
 
 def _targets(game: Game, source: tuple[int, int]) -> set[tuple[int, int]]:
-    return {(m.target.row, m.target.col) for m in game.rules.legal_moves(game.state)
-            if (m.source.row, m.source.col) == source}
+    return {
+        (m.target.row, m.target.col)
+        for m in game.rules.legal_moves(game.state)
+        if (m.source.row, m.source.col) == source
+    }
 
 
 def _pseudo(game: Game, source: tuple[int, int], target: tuple[int, int]) -> bool:
     from xionghan_chess.core.model import Move, Position
+
     return game.rules.pseudo_legal(game.state, Move(Position(*source), Position(*target)))
 
 
 # --- 汉 / 汗（KING）-------------------------------------------------------
 
-@pytest.mark.parametrize("mode,expected", [
-    ("desktop_complete", 8), ("desktop_classic", 4), ("web", 8)])
+
+@pytest.mark.parametrize("mode,expected", [("desktop_complete", 8), ("desktop_classic", 4), ("web", 8)])
 def test_king_inside_palace(mode: str, expected: int) -> None:
     """九宫中心：加强档可斜走（8 向），经典档只有正交 4 向。"""
-    assert _targets(_game(mode, [(K, RED, 10, 6)], kings=((12, 0), (0, 12))),
-                    (10, 6)) == _palace_ring(expected, 10, 6)
+    assert _targets(_game(mode, [(K, RED, 10, 6)], kings=((12, 0), (0, 12))), (10, 6)) == _palace_ring(expected, 10, 6)
 
 
 def _palace_ring(count: int, row: int, col: int) -> set[tuple[int, int]]:
@@ -61,8 +71,7 @@ def _palace_ring(count: int, row: int, col: int) -> set[tuple[int, int]]:
     return orthogonal | diagonal if count == 8 else orthogonal
 
 
-@pytest.mark.parametrize("mode,expect_moves", [
-    ("desktop_complete", True), ("desktop_classic", False), ("web", True)])
+@pytest.mark.parametrize("mode,expect_moves", [("desktop_complete", True), ("desktop_classic", False), ("web", True)])
 def test_king_may_not_leave_palace_in_classic(mode: str, expect_moves: bool) -> None:
     """宫外的王：加强档仍可走，经典档被"不许出宫"钉死（0 着）。"""
     game = _game(mode, [(K, RED, 6, 6)], kings=((6, 6), (0, 12)))
@@ -71,18 +80,17 @@ def test_king_may_not_leave_palace_in_classic(mode: str, expect_moves: bool) -> 
 
 def test_kings_facing_counts_as_check() -> None:
     """同列无遮挡 = 照面，计入被将（这条与模式无关）。"""
-    from xionghan_chess.core.model import Position
     pieces = [Piece.create(K, RED, 5, 6), Piece.create(K, BLACK, 1, 6)]
     state = GameState("desktop_complete", pieces, turn=RED)
     game = Game.from_state(state)
     assert game.rules.in_check(state, RED) is True
     # 中间插一子即解除
-    blocked = GameState("desktop_complete",
-                        pieces + [Piece.create(P, RED, 3, 6)], turn=RED)
+    blocked = GameState("desktop_complete", pieces + [Piece.create(P, RED, 3, 6)], turn=RED)
     assert Game.from_state(blocked).rules.in_check(blocked, RED) is False
 
 
 # --- 车（ROOK）------------------------------------------------------------
+
 
 @pytest.mark.parametrize("mode", MODES)
 def test_rook_lines_blocking_and_capture(mode: str) -> None:
@@ -98,16 +106,15 @@ def test_rook_lines_blocking_and_capture(mode: str) -> None:
 
 # --- 马（HORSE）-----------------------------------------------------------
 
-@pytest.mark.parametrize("mode,expected", [
-    ("desktop_complete", 8), ("desktop_classic", 6), ("web", 8)])
+
+@pytest.mark.parametrize("mode,expected", [("desktop_complete", 8), ("desktop_classic", 6), ("web", 8)])
 def test_horse_leg_blocking_by_mode(mode: str, expected: int) -> None:
     """右腿被堵：加强档（不别腿）8 着，经典档挡掉两格剩 6 着。"""
     game = _game(mode, [(H, RED, 6, 6), (P, RED, 6, 7)], horse_straight_three=False)
     assert len(_targets(game, (6, 6))) == expected
 
 
-@pytest.mark.parametrize("mode,allowed", [
-    ("desktop_complete", True), ("desktop_classic", False), ("web", True)])
+@pytest.mark.parametrize("mode,allowed", [("desktop_complete", True), ("desktop_classic", False), ("web", True)])
 def test_horse_straight_three_by_mode(mode: str, allowed: bool) -> None:
     game = _game(mode, [(H, RED, 6, 6)])
     targets = _targets(game, (6, 6))
@@ -133,21 +140,20 @@ def test_horse_move_only_is_explicit_and_blocks_capture() -> None:
 
 # --- 相 / 象（ELEPHANT）---------------------------------------------------
 
+
 @pytest.mark.parametrize("mode", MODES)
 def test_elephant_eye_blocks_in_every_mode(mode: str) -> None:
     game = _game(mode, [(E, RED, 8, 4), (P, RED, 7, 3)])
     assert (6, 2) not in _targets(game, (8, 4)), "塞象眼必须无效"
 
 
-@pytest.mark.parametrize("mode,can_cross", [
-    ("desktop_complete", True), ("desktop_classic", False), ("web", True)])
+@pytest.mark.parametrize("mode,can_cross", [("desktop_complete", True), ("desktop_classic", False), ("web", True)])
 def test_elephant_river_by_mode(mode: str, can_cross: bool) -> None:
     game = _game(mode, [(E, RED, 7, 5)])
     assert ((5, 3) in _targets(game, (7, 5))) is can_cross
 
 
-@pytest.mark.parametrize("mode,can_jump", [
-    ("desktop_complete", True), ("desktop_classic", False), ("web", True)])
+@pytest.mark.parametrize("mode,can_jump", [("desktop_complete", True), ("desktop_classic", False), ("web", True)])
 def test_elephant_two_step_in_enemy_territory_by_mode(mode: str, can_jump: bool) -> None:
     game = _game(mode, [(E, RED, 5, 5)])
     assert ((5, 7) in _targets(game, (5, 5))) is can_jump
@@ -155,13 +161,17 @@ def test_elephant_two_step_in_enemy_territory_by_mode(mode: str, can_jump: bool)
 
 def test_elephant_jump_two_needs_cross_river() -> None:
     """依赖：过河关掉后，"敌境横竖两格"必须是死开关。"""
-    game = _game("desktop_complete", [(E, RED, 5, 5)],
-                 elephant_can_cross_river=False,
-                 elephant_gain_jump_two_enemy_territory=True)
+    game = _game(
+        "desktop_complete",
+        [(E, RED, 5, 5)],
+        elephant_can_cross_river=False,
+        elephant_gain_jump_two_enemy_territory=True,
+    )
     assert (5, 7) not in _targets(game, (5, 5))
 
 
 # --- 仕 / 士（ADVISOR）----------------------------------------------------
+
 
 @pytest.mark.parametrize("mode", MODES)
 def test_advisor_inside_palace_is_diagonal_only(mode: str) -> None:
@@ -171,15 +181,15 @@ def test_advisor_inside_palace_is_diagonal_only(mode: str) -> None:
     assert (10, 5) not in targets, "九宫内不能直走"
 
 
-@pytest.mark.parametrize("mode,can_exit", [
-    ("desktop_complete", True), ("desktop_classic", False), ("web", True)])
+@pytest.mark.parametrize("mode,can_exit", [("desktop_complete", True), ("desktop_classic", False), ("web", True)])
 def test_advisor_palace_exit_by_mode(mode: str, can_exit: bool) -> None:
     game = _game(mode, [(A, RED, 10, 5)])
     assert ((9, 4) in _targets(game, (10, 5))) is can_exit
 
 
-@pytest.mark.parametrize("mode,can_straight_outside", [
-    ("desktop_complete", True), ("desktop_classic", False), ("web", True)])
+@pytest.mark.parametrize(
+    "mode,can_straight_outside", [("desktop_complete", True), ("desktop_classic", False), ("web", True)]
+)
 def test_advisor_straight_outside_palace_by_mode(mode: str, can_straight_outside: bool) -> None:
     game = _game(mode, [(A, RED, 7, 7)])
     assert ((7, 8) in _targets(game, (7, 7))) is can_straight_outside
@@ -187,13 +197,14 @@ def test_advisor_straight_outside_palace_by_mode(mode: str, can_straight_outside
 
 def test_advisor_straight_needs_palace_exit() -> None:
     """依赖：不能出宫时，"出宫后可直走"必须是死开关。"""
-    game = _game("desktop_complete", [(A, RED, 7, 7)],
-                 advisor_can_leave_palace=False,
-                 advisor_gain_straight_outside_palace=True)
+    game = _game(
+        "desktop_complete", [(A, RED, 7, 7)], advisor_can_leave_palace=False, advisor_gain_straight_outside_palace=True
+    )
     assert (7, 8) not in _targets(game, (7, 7))
 
 
 # --- 炮（CANNON）----------------------------------------------------------
+
 
 @pytest.mark.parametrize("mode", MODES)
 def test_cannon_move_and_capture(mode: str) -> None:
@@ -214,8 +225,8 @@ def test_cannon_without_screen_cannot_capture(mode: str) -> None:
 
 # --- 兵 / 卒（PAWN）-------------------------------------------------------
 
-@pytest.mark.parametrize("mode,can_leap", [
-    ("desktop_complete", True), ("desktop_classic", False), ("web", True)])
+
+@pytest.mark.parametrize("mode,can_leap", [("desktop_complete", True), ("desktop_classic", False), ("web", True)])
 def test_pawn_fast_move_by_mode(mode: str, can_leap: bool) -> None:
     game = _game(mode, [(P, RED, 7, 4)])
     assert ((5, 4) in _targets(game, (7, 4))) is can_leap
@@ -256,6 +267,7 @@ def test_pawn_charge_stops_before_piece(mode: str) -> None:
 def test_pawn_three_line_capture_is_on_in_complete_off_in_classic() -> None:
     """三连吃子：完整模式默认生效，经典模式默认不生效。"""
     from xionghan_chess.core.model import Move, Position
+
     placements = [(P, RED, 7, 2), (P, RED, 6, 3), (H, BLACK, 6, 4)]
     move = Move(Position(7, 2), Position(6, 2))
     for mode, should_capture in (("desktop_complete", True), ("desktop_classic", False)):
@@ -287,6 +299,7 @@ def test_pawn_at_enemy_base_cannot_step_back_by_default(mode: str) -> None:
 
 # --- 尉 / 卫（GUARD）------------------------------------------------------
 
+
 @pytest.mark.parametrize("mode", ("desktop_complete", "desktop_classic"))
 def test_guard_diagonal_any_distance_but_never_straight(mode: str) -> None:
     game = _game(mode, [(G, RED, 6, 6)])
@@ -304,8 +317,8 @@ def test_guard_stops_at_first_piece() -> None:
 
 # --- 射 / 䠶（ARCHER）-----------------------------------------------------
 
-@pytest.mark.parametrize("mode,free_four", [
-    ("desktop_complete", True), ("desktop_classic", False), ("web", True)])
+
+@pytest.mark.parametrize("mode,free_four", [("desktop_complete", True), ("desktop_classic", False), ("web", True)])
 def test_archer_reach_by_mode(mode: str, free_four: bool) -> None:
     """加强档可自由斜走三格；基础档限于同一条星位线段。"""
     game = _game(mode, [(S, RED, 1, 1)])
@@ -315,6 +328,7 @@ def test_archer_reach_by_mode(mode: str, free_four: bool) -> None:
 
 
 # --- 檑 / 礌（THUNDER）----------------------------------------------------
+
 
 @pytest.mark.parametrize("mode", MODES)
 def test_thunder_captures_only_adjacent(mode: str) -> None:
@@ -331,6 +345,7 @@ def test_thunder_cannot_capture_protected_piece(mode: str) -> None:
 
 
 # --- 巡 / 廵（PATROL）-----------------------------------------------------
+
 
 @pytest.mark.parametrize("mode", ("desktop_complete", "desktop_classic"))
 def test_patrol_even_steps_only(mode: str) -> None:
@@ -351,9 +366,17 @@ def test_patrol_capture_only_at_distance_two(mode: str) -> None:
 
 # --- 模式间关系（结构不变量）----------------------------------------------
 
-@pytest.mark.parametrize("piece,spot", [
-    (K, (10, 6)), (A, (10, 5)), (E, (7, 5)), (H, (6, 6)), (P, (7, 4)),
-])
+
+@pytest.mark.parametrize(
+    "piece,spot",
+    [
+        (K, (10, 6)),
+        (A, (10, 5)),
+        (E, (7, 5)),
+        (H, (6, 6)),
+        (P, (7, 4)),
+    ],
+)
 def test_classic_targets_are_subset_of_complete(piece, spot) -> None:
     """经典模式对传统棋子只会更严：可走集合必须是完整模式的子集。"""
     complete = _targets(_game("desktop_complete", [(piece, RED, *spot)]), spot)
@@ -362,6 +385,7 @@ def test_classic_targets_are_subset_of_complete(piece, spot) -> None:
 
 
 # --- 模式结构不变量（整局级） ---------------------------------------------
+
 
 def test_no_two_pieces_share_a_square_in_any_mode() -> None:
     for mode in MODES:
@@ -375,8 +399,9 @@ def test_every_piece_is_inside_the_board() -> None:
         game = Game(mode)
         rows, cols = game.profile.rows, game.profile.cols
         for piece in game.state.pieces:
-            assert 0 <= piece.position.row < rows and 0 <= piece.position.col < cols, \
+            assert 0 <= piece.position.row < rows and 0 <= piece.position.col < cols, (
                 f"{mode} 的 {piece.type.value} 越界：{piece.position}"
+            )
 
 
 def test_opening_position_has_no_side_in_check() -> None:

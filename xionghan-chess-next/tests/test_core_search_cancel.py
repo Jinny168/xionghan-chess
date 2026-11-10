@@ -15,12 +15,10 @@ from __future__ import annotations
 import threading
 import time
 
-import pytest
-
-from xionghan_chess.core.game import Game
-from xionghan_chess.core.mcts import SEE_CANDIDATE_LIMIT, MCTS
-from xionghan_chess.core.model import Color, Piece, PieceType
 from xionghan_chess.core.analysis import analyze_game
+from xionghan_chess.core.game import Game
+from xionghan_chess.core.mcts import MCTS, SEE_CANDIDATE_LIMIT
+from xionghan_chess.core.model import Color, Piece, PieceType
 
 
 def _capture_rich_position() -> Game:
@@ -43,23 +41,22 @@ def _capture_rich_position() -> Game:
 def test_see_preprocessing_is_bounded_by_the_time_box() -> None:
     """SEE 每次 20ms、吃子几十个：总耗时必须被时间盒 + 候选上限夹住。"""
     game = _capture_rich_position()
-    captures = [m for m in game.rules.legal_moves(game.state)
-                if game.rules.captured_by_move(game.state, m)]
+    captures = [m for m in game.rules.legal_moves(game.state) if game.rules.captured_by_move(game.state, m)]
     assert len(captures) > SEE_CANDIDATE_LIMIT + 8, f"局面吃子不够多（{len(captures)}）"
 
     calls: list[int] = []
 
     def slow_root_score(_game, _move) -> int:
         calls.append(1)
-        time.sleep(0.02)          # 模拟一次昂贵 SEE
-        return 1                  # 全部"安全"，确保预处理会跑满上限
+        time.sleep(0.02)  # 模拟一次昂贵 SEE
+        return 1  # 全部"安全"，确保预处理会跑满上限
 
     engine = MCTS(time_limit=0.1, seed=7, root_score=slow_root_score)
     started = time.perf_counter()
     engine.choose_move(game)
     elapsed = time.perf_counter() - started
 
-    bound = SEE_CANDIDATE_LIMIT * 0.02 + 0.1 + 0.2   # 上限 + 预算 + 余量
+    bound = SEE_CANDIDATE_LIMIT * 0.02 + 0.1 + 0.2  # 上限 + 预算 + 余量
     assert elapsed <= max(0.5, bound), f"SEE 预处理没被夹住：{elapsed:.2f}s"
     # 这条才是"时间盒在 SEE 之前"的硬判据：0.1s 预算 / 每次 20ms，最多只该调 5 次左右。
     # 改前（deadline 建在 SEE 之后）会把 captures 全部估算完（这里是 26 次）。
@@ -97,8 +94,7 @@ def test_cancel_during_see_returns_immediately() -> None:
     result = engine.choose_move(game, cancel)
     elapsed = time.perf_counter() - started
 
-    assert after_cancel["n"] == 0, (
-        f"取消置位后仍调用了 root_score {after_cancel['n']} 次 —— 取消没有被识别")
+    assert after_cancel["n"] == 0, f"取消置位后仍调用了 root_score {after_cancel['n']} 次 —— 取消没有被识别"
     assert elapsed <= 2.0, f"取消后仍然跑了 {elapsed:.2f}s（数量级异常，像是忽略了 cancel）"
     assert result is None or result in game.rules.legal_moves(game.state)
 
@@ -112,7 +108,7 @@ def test_analysis_stops_within_one_ply_after_cancel() -> None:
             break
         game.move(legal[0])
     cancel = threading.Event()
-    cancel.set()                       # 一开始就取消：应当立刻返回空分析而不是抛异常
+    cancel.set()  # 一开始就取消：应当立刻返回空分析而不是抛异常
     result = analyze_game(game, DifficultyEasy(), 40, cancel)
     assert result["analyzedPlies"] == 0
     assert result["moves"] == []

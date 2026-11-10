@@ -19,24 +19,22 @@ from xionghan_chess.core.rules import CaptureKind, CaptureSpec, Removal, RulesEn
 def engine() -> RulesEngine:
     """软删的甲/楯/刺用选项临时打开 —— 本文件测的是**保留下来的规则分支**，不是出场配置。"""
     profile = get_profile("desktop_complete")
-    return RulesEngine(profile, profile.options.merged(
-        {"armor_appear": True, "shield_appear": True, "assassin_appear": True}))
+    return RulesEngine(
+        profile, profile.options.merged({"armor_appear": True, "shield_appear": True, "assassin_appear": True})
+    )
 
 
 def piece(kind: PieceType, color: Color, row: int, col: int) -> Piece:
     return Piece.create(kind, color, row, col)
 
 
-def board(*pieces: Piece, turn: Color = Color.RED,
-          captured: dict[Color, list[Piece]] | None = None) -> GameState:
-    return GameState("desktop_complete", list(pieces), turn=turn,
-                     captured=captured or {Color.RED: [], Color.BLACK: []})
+def board(*pieces: Piece, turn: Color = Color.RED, captured: dict[Color, list[Piece]] | None = None) -> GameState:
+    return GameState("desktop_complete", list(pieces), turn=turn, captured=captured or {Color.RED: [], Color.BLACK: []})
 
 
 def _far_kings() -> tuple[Piece, Piece]:
     """Kings parked in opposite corners so they neither block nor face each other."""
-    return (piece(PieceType.KING, Color.RED, 12, 0),
-            piece(PieceType.KING, Color.BLACK, 0, 12))
+    return (piece(PieceType.KING, Color.RED, 12, 0), piece(PieceType.KING, Color.BLACK, 0, 12))
 
 
 def test_g1_direct_capture_is_filed_under_the_landing_square():
@@ -48,13 +46,12 @@ def test_g1_direct_capture_is_filed_under_the_landing_square():
     assert list(specs) == [pawn.position]
     assert specs[pawn.position] == CaptureSpec(
         pawn.position,
-        (Removal(CaptureKind.DIRECT, pawn.id, PieceType.PAWN, Color.BLACK,
-                 pawn.position, Position(5, 0), Position(5, 4)),),
+        (
+            Removal(
+                CaptureKind.DIRECT, pawn.id, PieceType.PAWN, Color.BLACK, pawn.position, Position(5, 0), Position(5, 4)
+            ),
+        ),
     )
-
-
-
-
 
 
 def test_g4_capturable_squares_never_emits_a_pool_consume():
@@ -62,8 +59,7 @@ def test_g4_capturable_squares_never_emits_a_pool_consume():
     rook = piece(PieceType.ROOK, Color.RED, 5, 0)
     pawn = piece(PieceType.PAWN, Color.BLACK, 5, 4)
     dead = piece(PieceType.ROOK, Color.RED, 0, 0)
-    state = board(red_king, black_king, rook, pawn,
-                  captured={Color.RED: [dead], Color.BLACK: []})
+    state = board(red_king, black_king, rook, pawn, captured={Color.RED: [dead], Color.BLACK: []})
     specs = engine().capturable_squares(state, Color.RED)
     removals = [removal for spec in specs.values() for removal in spec.removals]
     assert removals, "the fixture must capture at least one piece"
@@ -135,16 +131,12 @@ def _mixed_capture_board() -> GameState:
     return board(
         piece(PieceType.KING, Color.RED, 12, 12),
         piece(PieceType.KING, Color.BLACK, 0, 0),
-        piece(PieceType.ROOK, Color.RED, 3, 0),      # direct: takes the horse on row 3
+        piece(PieceType.ROOK, Color.RED, 3, 0),  # direct: takes the horse on row 3
         piece(PieceType.HORSE, Color.BLACK, 3, 5),
-        piece(PieceType.PAWN, Color.RED, 6, 3),      # three_line: 两兵夹一敌子
+        piece(PieceType.PAWN, Color.RED, 6, 3),  # three_line: 两兵夹一敌子
         piece(PieceType.PAWN, Color.RED, 6, 5),
         piece(PieceType.PAWN, Color.BLACK, 6, 6),
     )
-
-
-
-
 
 
 def test_g9_capturable_squares_is_pure_and_idempotent():
@@ -155,10 +147,6 @@ def test_g9_capturable_squares_is_pure_and_idempotent():
     second = rules.capturable_squares(state, Color.RED)
     assert first == second
     assert state.to_dict() == snapshot.to_dict()
-
-
-
-
 
 
 def test_g12_promotion_rank_check_is_not_hidden_by_a_stocked_pool():
@@ -178,15 +166,14 @@ def test_g12_promotion_rank_check_is_not_hidden_by_a_stocked_pool():
     pawn = piece(PieceType.PAWN, Color.RED, 1, 6)
     empty = board(red_king, black_king, pawn)
     dead = piece(PieceType.ROOK, Color.RED, 0, 1)
-    stocked = board(red_king, black_king, pawn,
-                    captured={Color.RED: [dead], Color.BLACK: []})
+    stocked = board(red_king, black_king, pawn, captured={Color.RED: [dead], Color.BLACK: []})
     rules = engine()
 
     # Root cause, pinned: the bare step's legality flips with the pool.
     bare = Move(Position(1, 6), Position(0, 6))
     assert rules.pseudo_legal(empty, bare) is True
-    assert rules.pseudo_legal(stocked, bare) is False     # forced promotion
+    assert rules.pseudo_legal(stocked, bare) is False  # forced promotion
 
     # The reader must not inherit that flip: the king is in check either way.
     assert rules.in_check(empty, Color.BLACK) is True
-    assert rules.in_check(stocked, Color.BLACK) is True   # was False before the fix
+    assert rules.in_check(stocked, Color.BLACK) is True  # was False before the fix

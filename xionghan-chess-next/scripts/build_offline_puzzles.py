@@ -67,17 +67,18 @@ def build_payload() -> list[dict]:
     for puzzle in load_puzzles():
         # `savedAt` 是加载时现写的当前时间，留着会让每次生成的产物都不同，
         # `--check` 就永远失败。题目是固定题面，这个字段本就没有意义。
-        document = _stable_ids({key: value for key, value in puzzle.document.items()
-                               if key != "savedAt"})
-        payload.append({
-            "id": puzzle.id,
-            "title": puzzle.title,
-            "difficulty": puzzle.difficulty,
-            "description": puzzle.description,
-            "hints": list(puzzle.hints),
-            "solution": [move_to_dict(move) for move in puzzle.solution],
-            "document": document,
-        })
+        document = _stable_ids({key: value for key, value in puzzle.document.items() if key != "savedAt"})
+        payload.append(
+            {
+                "id": puzzle.id,
+                "title": puzzle.title,
+                "difficulty": puzzle.difficulty,
+                "description": puzzle.description,
+                "hints": list(puzzle.hints),
+                "solution": [move_to_dict(move) for move in puzzle.solution],
+                "document": document,
+            }
+        )
     return payload
 
 

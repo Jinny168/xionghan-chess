@@ -14,6 +14,7 @@
    时文件是 ~130 B 的指针文本，QPixmap 解码失败 → 全部回退字形。这里验证解码失败
    会走「缺图」路径（只记一次、不抛）。
 """
+
 from __future__ import annotations
 
 import re
@@ -79,8 +80,9 @@ def test_suffix_mapping_matches_web_js() -> None:
     assert match, "web/js/app.js 里找不到 pieceAssetTypes 定义"
     web = dict(re.findall(r"(\w+):'(\w+)'", match.group(1)))
     desktop = {kind.value: suffix for kind, suffix in piece_assets.SUFFIX.items()}
-    assert desktop == web, f"桌面与网页的棋子命名分叉：仅桌面 {desktop.keys() - web.keys()}，" \
-                           f"仅网页 {web.keys() - desktop.keys()}"
+    assert desktop == web, (
+        f"桌面与网页的棋子命名分叉：仅桌面 {desktop.keys() - web.keys()}，仅网页 {web.keys() - desktop.keys()}"
+    )
 
 
 def test_all_11_art_types_resolve_in_all_styles() -> None:
@@ -93,8 +95,6 @@ def test_all_11_art_types_resolve_in_all_styles() -> None:
                 assert path.is_file()
                 paths.add(path)
     assert len(paths) == len(STYLES) * 2 * len(piece_assets.SUFFIX) == 66
-
-
 
 
 def test_unknown_style_falls_back_to_traditional() -> None:
@@ -157,21 +157,17 @@ def test_device_edge_is_disk_diameter_in_device_pixels() -> None:
     assert piece_assets.device_edge(60.97, 1.0) == 48
 
 
-
-
 def test_broken_image_is_treated_as_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """LFS 指针 / 损坏文件：解码失败要落到「缺图」，不抛异常。"""
     piece_assets.clear_cache()
     pointer = tmp_path / "honghan.png"
-    pointer.write_text("version https://git-lfs.github.com/spec/v1\noid sha256:abc\nsize 123\n",
-                       encoding="utf-8")
+    pointer.write_text("version https://git-lfs.github.com/spec/v1\noid sha256:abc\nsize 123\n", encoding="utf-8")
     monkeypatch.setattr(piece_assets, "resolve", lambda *args, **kwargs: pointer)
     assert piece_assets.pixmap("traditional", Color.RED, PieceType.KING, 60) is None
     assert piece_assets.is_missing("traditional", Color.RED, PieceType.KING)
 
 
-def test_bundled_and_source_paths_resolve_to_the_same_bytes(
-        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bundled_and_source_paths_resolve_to_the_same_bytes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """源码态与打包态取到的是**同一批文件**。
 
     仓库里棋子图只有一份真源（`web/assets/pieces`），打包时由 spec 映射进随包目录。
@@ -186,8 +182,7 @@ def test_bundled_and_source_paths_resolve_to_the_same_bytes(
     assert source.read_bytes() == bundled.read_bytes()
 
 
-def test_bundled_path_wins_when_it_exists(
-        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bundled_path_wins_when_it_exists(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """打包态优先：随包路径存在时**不得**再去读仓库真源。"""
     bundled_dir = tmp_path / "pieces" / "traditional"
     bundled_dir.mkdir(parents=True)
@@ -195,12 +190,9 @@ def test_bundled_path_wins_when_it_exists(
     assert real is not None
     target = bundled_dir / "hongche.png"
     target.write_bytes(real.read_bytes())
-    monkeypatch.setattr(theme, "resource",
-                        lambda *parts: tmp_path.joinpath(*parts))
+    monkeypatch.setattr(theme, "resource", lambda *parts: tmp_path.joinpath(*parts))
     resolved = piece_assets.resolve("traditional", Color.RED, PieceType.ROOK)
     assert resolved == target
-
-
 
 
 def test_missing_art_still_falls_back_and_caches(monkeypatch: pytest.MonkeyPatch) -> None:

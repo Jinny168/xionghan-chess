@@ -1,124 +1,550 @@
 name: CI
 
-# NOTE ON LOCATION: GitHub Actions only reads workflows from the repository
-# root's `.github/workflows/`. The migration-era legacy tree (`desktop/`, `web/`,
-# `docker/`, `docs/`, `handoff.md`, `DEPLOYMENT.md`) was **removed on 2026-10-30**;
-# the live project is the `xionghan-chess-next/` subtree, so every step still runs
-# with `working-directory: xionghan-chess-next`.
+# ─────────────────────────────────────────────────────────────────────────────
+# 位置（**不要**搬到 xionghan-chess-next/.github/ 下）
+#   GitHub Actions 只读「仓库根」的 .github/workflows/。本仓库的根是
+#   `xionghan-chess/`，活体工程是子树 `xionghan-chess-next/`，所以每个 job 都用
+#   `defaults.run.working-directory: xionghan-chess-next`。
+#   `ls xionghan-chess-next/.github` 为空是**正常的**，不代表没有 CI。
+#
+# 门禁口径（唯一来源是 pyproject.toml 的 [tool.pytest.ini_options]，本文件不重新定义）
+#   主门禁 = `pytest tests/ -m "not slow"`  → job `test`，阻断合并
+#   全量   = `pytest tests/ -m slow`        → job `slow`，手动/每周，不阻塞 PR
+#   `--strict-markers` 与 `pythonpath=["src"]` 由 pyproject 提供，命令里不重复。
+#
+# 触发 × job 矩阵
+#   push / PR          → lint + test          （slow 不跑，故不阻塞合并）
+#   workflow_dispatch  → lint + test + slow   （手动全套）
+#   schedule（每周）    → slow only            （只跑墙钟级回归）
+#
+# 依赖安装源（唯一口径，S3-A1 起）
+#   test 与 slow **必须装同一份** `requirements/lock/py312-dev.txt`，且两个 job 的
+#   `cache-dependency-path` 逐字相同。理由：两个 job 装到不同依赖版本时，
+#   「slow 红 / test 绿」（或反过来）无法归因 —— 慢用例（专家档 d3、bench_roots
+#   200 手）恰恰对版本漂移最敏感。同一份 lock 之下，slow 红才等于代码/预算问题。
+# ─────────────────────────────────────────────────────────────────────────────
 
 on:
   push:
     branches: [master]
   pull_request:
     branches: [master]
+  workflow_dispatch:
+  schedule:
+    # 每周三 18:00 UTC（北京时间周四 02:00）。比每日便宜：slow 的 20 条里，
+    # 14 条专家档是「固定 d3 能不能跑完」的能力判定，不是易漂移的量。
+    - cron: "0 18 * * 3"
+
+# 同分支新推送取消旧跑：单机开发时最常见的浪费是连推 5 次跑 5 遍。
+# group 带 event_name，避免手动触发的 slow 被一次 push 顺手取消。
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 defaults:
   run:
     working-directory: xionghan-chess-next
 
+env:
+  # 中文报错/断言消息在 runner 上必须以 UTF-8 输出，否则日志是一串 \uXXXX。
+  PYTHONUTF8: "1"
+  PYTHONUNBUFFERED: "1"
+
 jobs:
-  test:
-    name: test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      # Both platforms must report; a Windows-only failure must not hide the
-      # Ubuntu result (and vice versa).
-      fail-fast: false
-      matrix:
-        # Windows + Ubuntu on purpose: the cross-engine gate spawns `node`
-        # subprocesses and reads Android asset paths whose case/section
-        # comparison differs per platform (Windows is case-insensitive, Ubuntu
-        # is case-sensitive; line-ending and path-separator handling differ
-        # too). Running both surfaces those differences instead of hiding them.
-        os: [ubuntu-latest, windows-latest]
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 1) lint —— 语法层，不装业务依赖，30 秒级
+  # ═══════════════════════════════════════════════════════════════════════════
+  lint:
+    name: lint (py syntax + js syntax)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          # Binary assets (wav/png/webp/ico/pdf/apk…) are stored in Git LFS;
-          # the test job needs only source + node, so skip the LFS pull.
+          # 纯文本检查，不拉 164 个 LFS 对象（约 100 MB+），省一整分钟。
           lfs: false
-
-      # Core of this gate. `tests/test_cross_engine.py` is the ONLY guard
-      # against the Python (`core/rules.py`) and offline (`offline.js`) rule
-      # engines drifting apart, and it skips itself when `node` is missing.
-      # Assert node BEFORE anything else so a missing binary fails the run
-      # loudly instead of letting the whole gate skip to a green line.
-      # (`tests/conftest.py` fails the parity suite by default for the same
-      # reason; this step is the second, earlier line of defence.)
-      - name: Assert node is present (cross-engine parity gate)
-        run: node --version
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install (test extra)
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[test]"
+      - uses: actions/setup-node@v4
+        with:
+          # **必须 >= 22.7，不能用 package.json engines 的 ">=20"**。
+          # `web/js/app.js:1` 是 `import { ... } from './i18n.js?v=1.7.5'`（ESM），
+          # 而 `.js` 在 node 20 及更早默认按 CommonJS 解析 → `node --check` 直接
+          # SyntaxError。node 22.7+ 默认开启 ESM 自动探测，同一份源码就能过。
+          # 实测（node 22.22.2）：把 app.js 复制成 .cjs 后 `node --check` 退出码 1，
+          # 报 "Cannot use import statement outside a module" —— 这就是 node 20 的画面。
+          node-version: "22"
 
-      # `node --check` on the CommonJS-safe assets (no ESM `import`, so the
-      # result is identical across node versions). The web front-end files are
-      # ES modules and are checked by the project's own `npm run check`, whose
-      # ESM `--check` behaviour depends on the runner's node version.
-      - name: Node syntax check (JS assets)
+      - name: 环境信息（node 版本必须出现在日志里）
+        run: |
+          node --version
+          python -VV
+
+      - name: JS 语法检查（= package.json 的 `npm run check` 口径）
+        run: |
+          node --check web/js/state.js
+          node --check web/js/app.js
+          node --check web/js/i18n.js
+          node --test web/js/state.test.cjs
+
+      - name: JS 语法检查（对拍探针，CommonJS）
+        # 跨引擎对拍靠 node 直接跑这几个文件；它们语法坏了，test job 会以
+        # 「node 子进程非零退出」的形式红，报错点离根因很远。在这里先拦一道。
         run: |
           node --check android/Resources/assets/offline/offline.js
           node --check android/Resources/assets/offline/offline-locales.js
           node --check scripts/offline_rules_probe.cjs
 
-      - name: pytest
-        run: pytest tests/ -m "not slow" -q
+      - name: Python 语法检查
+        run: python -m compileall -q src
 
-  # Desktop has ZERO automated coverage today: `tests/` greps 0 hits on desktop
-  # symbols and the `test` extra does not even install PySide6, so a broken
-  # desktop shell could only ever be discovered by a human running the app.
-  # This job is the first net. Windows-only on purpose: PySide6 on Ubuntu needs
-  # system GL libs (libEGL et al.) that are not worth the CI weight, and the
-  # desktop build script (`packaging/build_windows.ps1`) is Windows-only anyway.
-  desktop-smoke:
-    name: desktop smoke (windows)
-    runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: xionghan-chess-next
+      # 下面两条来自被替换掉的旧 ci.yml 的 desktop-smoke job。它们是纯 AST 检查
+      # （check_undefined_names 只 import ast/builtins；check_annotations 只 import ast），
+      # **不需要 PySide6**，所以放在不装业务依赖的 lint job 里最便宜。
+      - name: 静态检查（desktop 包未定义名）
+        # 抓「只在罕见分支用到、静态分析才看得见」的名字错误 —— 拆 BoardWidget 时它抓到 2 个真 bug。
+        run: python scripts/check_undefined_names.py
+
+      - name: 静态检查（类型标注覆盖率 ≥85%）
+        # 现状 100%；没有这道门禁，覆盖率会在下一次重构里悄悄退回去（app.py 曾 6.2%）。
+        run: python scripts/check_annotations.py
+
+      - name: 安装 ruff + mypy + 类型信息依赖（版本全部钉死）
+        # S2-3：ruff/mypy 不进 requirements/dev.txt —— 它们是门禁工具不是业务依赖，
+        # 钉死版本是为了让"本机绿 = CI 绿"成立：ruff 升一个 minor 就可能多出规则
+        # 把 CI 打红。升级时须本机重跑两条命令后再改这里的版本号。
+        #
+        # 除工具本身外，还要装**被检查代码的类型信息依赖**（mypy strict 的硬前提）。
+        # 这条清单必须与 pyproject 的 `[tool.mypy].files` 同步维护：收编一个包 →
+        # 把它的类型信息依赖列进来。忘了列，就是"本机绿、CI 红"（见下 fastapi）。
+        #
+        # · pydantic —— core/protocol.py 继承 BaseModel。不装它 BaseModel 就是 Any，
+        #   strict 的 disallow_subclassing_any 必红（run #122 实证 3 errors）。
+        # · fastapi —— S3-A1 把 service 收进 files 之后才需要（run #127 实证）：
+        #   不装它 `@app.get/@app.post/@app.websocket/@app.exception_handler` 全是 Any，
+        #   strict 的 disallow_untyped_decorators 直接报错。**不许为此关掉该检查**，
+        #   也不许给端点加 `# type: ignore` —— 那道检查抓的正是"装饰器把函数变成
+        #   untyped"这类会静默漏掉参数/返回值错误的问题。
+        # 两者版本都 pin 自 requirements/lock/py312-dev.txt（pydantic 2.14.3 /
+        # fastapi 0.162.2），升级时 lock 与本行必须一起改。
+        run: |
+          pip install "ruff==0.17.4" "mypy==2.4.1" "pydantic==2.14.3"
+          # `--no-deps` 是有意的：这一步要的是 fastapi 的 **py.typed 类型信息**，
+          # 不是能跑起来的运行时。带依赖装会把 starlette/anyio/idna 一并拉进来，而
+          # 它们的版本不在 pin 表里 → 给"本机绿=CI绿"新开一个漂移面。
+          # scratch venv 实测（ruff 0.17.4 / mypy 2.4.1 / pydantic 2.14.3 与上面逐字一致）：
+          #   无 fastapi            → Found 26 errors in 1 file（全 untyped-decorator），rc=1
+          #   +fastapi 0.162.2(--no-deps，**无 starlette**）→ Success: 23 source files，rc=0
+          # 即 starlette 缺失对类型检查无影响（ignore_missing_imports 下它是 Any），
+          # 决定项是 fastapi 自己的装饰器签名。
+          pip install --no-deps "fastapi==0.162.2"
+
+      - name: ruff check（全仓，配置在 pyproject [tool.ruff]）
+        # 口径「小而真」：E4/E7/E9/F + W + I（见 pyproject 注释），豁免集中在
+        # per-file-ignores 并逐条注明原因。基线干净是 2026-11-09 本机 rc=0 实测的，
+        # 新问题（含被豁免文件之外的新风格漂移）一律红。
+        run: ruff check .
+
+      - name: mypy（core + service 包 strict 全量，配置在 pyproject [tool.mypy]）
+        # core 是三个引擎实现共用的规则/局面模型，类型错了下游全错，所以第一轮
+        # 就上 strict（21 处已修到 0，见 pyproject 注释）。
+        # S3-A1 收编 service（第二步）：它是唯一对外进程（`xionghan-server` 入口
+        # = service/app.py:run），协议 payload 全是 dict[str, Any]，标注一松，
+        # 形状错误只会在运行时以 500 出现。收编前实测 32 处（明细见 pyproject 注释），
+        # 已全部修到 0；此后这里红就是真红。
+        # 仍是 desktop/training 未收编：逐包推进，收一个包就加进 files，不许回退。
+        run: |
+          mypy > mypy.out 2>&1 || {
+            grep -E "error:" mypy.out | head -30 | sed 's/^/::error::/'
+            tail -3 mypy.out | sed 's/^/::error::/'
+            exit 1
+          }
+          rm -f mypy.out
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 2) test —— 主门禁，阻断合并
+  # ═══════════════════════════════════════════════════════════════════════════
+  test:
+    name: test (ubuntu · py3.12 · pytest -m "not slow")
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # 桌面测试（40+ 文件）会构造 QApplication / QPixmap / 走真实绘制链。
+      # 没有 X server 时 Qt 直接 abort（"could not connect to display"），
+      # offscreen 平台插件让它无显示也能创建窗口并完成 render()。
+      QT_QPA_PLATFORM: offscreen
+      # 桌面用例用 `monkeypatch.setenv("APPDATA", tmp_path)` 隔离用户配置目录 ——
+      # 但 config_root() 按 **sys.platform** 分支（desktop/config.py:26-34）：
+      # Windows 读 %APPDATA%，Linux 读 $XDG_CONFIG_HOME/~/.config。
+      # 在 ubuntu 上 setenv("APPDATA") 是**无效**的，用例会写进真实的 HOME。
+      # 这里把 XDG 根挪到 runner 临时目录，至少保证不污染 runner、不跨 run 残留。
+      # XDG_CONFIG_HOME 由下方「导出 XDG_CONFIG_HOME」step 写入 GITHUB_ENV：
+      # job 级 env **不支持 runner 上下文** —— `${{ runner.temp }}` 写在这里
+      # 会被 GitHub 表达式校验直接拒绝整个 workflow 文件
+      # （"Unrecognized named-value: 'runner'"，run #115-#117 三连红、
+      # 一个 job 都没起就失败的根因），step 级与 GITHUB_ENV 不受此限。
+      # **刻意不设 `AI_TIME_SCALE`。** 它是个全局时间倍率（core/ai.py:192），
+      # 一设就等于把所有 AI 用例的墙钟预算一起改掉 —— 那会同时掩盖真实缺陷
+      # （`test_ai.py::test_truncated_root_moves_never_become_best` 现在就是靠预算
+      # 不足变红的，见报告 R1）并改变 `test_benchmark_acceptance` 的判据含义。
+      # 需要放大预算的用例，应由用例自己 monkeypatch 设置（`test_expert_level.py:101`
+      # 就是这么做的），不能由 CI 全局兜底。
+      #
+      # **也不要在这里注入 `XH_RATE_LIMIT_PER_MINUTE`。** 限流的设计口径是
+      # "默认 0 = 关闭"（service/ratelimit.py:12），且该 env 是**每请求读取**而非
+      # import 期缓存 —— 一旦在 CI 全局设成任何非 0 值，`test_service.py` /
+      # `test_token_transport.py` 里那些高频 `client.post("/api/rooms")` 建房用例
+      # 会开始 429，红在离根因很远的地方。限流用例自己 `monkeypatch.setenv` +
+      # autouse `LIMITER.reset()`，CI 不需要设任何东西。
+      # 现状核对（2026-11-08 实测）：本 workflow 的 env 只有 3 处 ——
+      # lint 无 env、test 只有 QT_QPA_PLATFORM + XDG_CONFIG_HOME、slow 只有
+      # QT_QPA_PLATFORM，加上顶层 PYTHONUTF8/PYTHONUNBUFFERED，**没有**这个变量。
+
     steps:
       - uses: actions/checkout@v4
         with:
-          # Desktop resources (fonts / sounds / icon) live in Git LFS; without
-          # the pull they would be pointer files and the assembly chain would
-          # silently fall back to defaults instead of failing loudly.
+          # **必须 true**。web/assets/pieces/**（3 风格 × 22 张 PNG）、
+          # desktop/resources/sounds/**（26 个 wav）、avatars、backgrounds 都是 LFS。
+          # 不取对象时它们是 ~130 字节的指针文本 → QPixmap/Pillow/wave 全部解不开，
+          # `test_desktop_pieces_assets` 与 `test_web_sound_pack` 会红，
+          # 而 `test_desktop_pieces_assets` 的注释恰好就写了这个失败模式。
           lfs: true
+
+      - name: 导出 XDG_CONFIG_HOME（runner 临时目录）
+        # 见上方 job 级 env 注释：runner 上下文在 job 级 env 不合法，
+        # 用 GITHUB_ENV 导出，对后续所有 step（桌面冒烟、主 pytest、对拍断言）生效。
+        run: echo "XDG_CONFIG_HOME=$RUNNER_TEMP/xdg-config" >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          # 缓存键必须指向**实际被安装**的文件；S2-3 起安装源是 lock 文件，
+          # 同时保留 dev.txt——dev.txt 变了 lock 就该重新生成，键里带上它
+          # 可以在"忘了重新生成"时至少让缓存失效、装到新东西而非旧缓存。
+          cache-dependency-path: |
+            xionghan-chess-next/requirements/lock/py312-dev.txt
+            xionghan-chess-next/requirements/dev.txt
 
-      - name: Install (desktop extra)
+      - uses: actions/setup-node@v4
+        with:
+          # 理由同 lint job：>= 22.7 才能 `node --check` ESM。
+          node-version: "22"
+
+      - name: node 版本（对拍门禁的前置条件，缺 node 必须红）
+        # 四道防线里的第一道：缺 node 时这一步就 `command not found` → job 红。
+        # 第二道在 tests/test_cross_engine.py 内部：`_require_node()` 硬失败，不用 conftest
+        #   （`--noconftest` 也照样红）。
+        # 第三道是 tests/conftest.py：会话钩子同样把 81 条对拍按 fail 处理。
+        # 第四道是**下面那条「对拍门禁汇总行断言」step** —— 前三条都在 pytest 进程内，
+        #   只有那一步在 pytest 之外读「收集 81 条 | 通过 81 | 跳过 0」这行计数，
+        #   断言「通过 == 收集 且 跳过 == 0」。没有它，pytest rc=0 而 81 条全 skip 的
+        #   "空绿"可以原样穿过 CI（R-4：注释不得给不存在的断言背书）。
+        run: node --version
+
+      - name: 安装 Qt 运行期系统库
+        # PySide6 的 wheel 自带 Qt 二进制，但 **offscreen 平台插件**要链系统的
+        # libEGL/libGL/libxkbcommon/libfontconfig/libdbus。缺了就是那条经典报错
+        # "qt.qpa.plugin: could not load the Qt platform plugin offscreen"
+        # —— 40+ 个桌面测试文件会以同一条消息集体红掉，看起来像代码问题。
+        # 已经装过的包在这里是 no-op（约 5–10s）；用这条换掉"猜 runner 镜像里有什么"。
+        run: |
+          sudo apt-get update -qq
+          # 音频库：desktop_smoke 与 40+ 桌面用例的 import 链经 app.py:34 → audio.py:6
+          # 无条件拉 PySide6.QtMultimedia，其 Linux 后端链接 ALSA/Pulse 系统库，
+          # 缺失时 import 即崩（run #118 实证：smoke step 1 秒内 exit 1，pytest 未跑）。
+          # runner 镜像（20261101.360.1）不带这两者，须显式装（noble 包名带 t64 后缀的只有 alsa）。
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libglib2.0-0 libfontconfig1 libxkbcommon0 libdbus-1-3 \
+            libasound2t64 libpulse-mainloop-glib0
+
+      - name: 安装测试依赖（lock：requirements/lock/py312-dev.txt）
+        # S2-3 起从 lock 安装而不是裸 dev.txt：锁版本 + 锁内容（全量 hash），
+        # 排除"上游发新版把 CI 装挂/装变"这种与代码无关的翻车。lock 的生成口径
+        # （源文件、命令、py3.12 目标版本）写在 lock 文件头注释里；dev.txt 改了
+        # 必须重新 `uv pip compile` 并一起提交，否则装的就是过期锁定。
+        # dev.txt = server + desktop + pytest/httpx/pyinstaller/fonttools/pillow，
+        # 其中 desktop 是**必须**的：40+ 个桌面测试文件在模块顶层
+        # `pytest.importorskip("PySide6")`，少装就静默跳过（不是红）。
+        # fonttools 同理：test_desktop_theme_resources 缺它就是 ModuleNotFoundError。
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[desktop]"
+          pip install -r requirements/lock/py312-dev.txt
 
-      # Static gate for the thing runtime smoke CANNOT catch: a name that is only
-      # used on a rarely-taken branch (e.g. `math` inside an animation branch, or
-      # a resource path that silently resolves to a missing directory). Writing it
-      # caught two real bugs when BoardWidget moved out of app.py.
-      - name: Static check (undefined names in desktop package)
-        run: python scripts/check_undefined_names.py
+      # 旧这里有一条「补装 Pillow」step：dev.txt 当时没声明 pillow，导致
+      # test_desktop_pieces_assets 里 4 条 Pillow 用例 importorskip 静默跳过。
+      # 2026-11-09 已把 pillow 声明进 dev.txt 并锁进 py312-dev.txt（与 fonttools
+      # 同先例：依赖声明缺陷修在源头，而不是在 CI 打补丁），故该 step 删除；
+      # 预检 step 的 `import PIL` 仍然兜底。
 
-      # Stage-1 S1-4 gate: every parameter and return value in the desktop
-      # package must be annotated (>=85%; currently 100%). Without a gate the
-      # coverage silently regresses on the next refactor — app.py started at
-      # 6.2% and the classes moved out to ui/ were left at 30-45%.
-      - name: Static check (type annotation coverage)
-        run: python scripts/check_annotations.py
+      - name: 预检（LFS 资产已实体化 + Pillow 可导入）
+        # 卡点而不是靠下游测试报错：LFS 没取到时，测试会以"图片尺寸不对"
+        # "wav 不是 RIFF"这类离根因很远的消息红掉，误导下一个看日志的人。
+        run: |
+          set -uo pipefail
+          fail=0
+          for f in \
+            web/assets/pieces/traditional/heibing.png \
+            src/xionghan_chess/desktop/resources/sounds/web/move.wav \
+            web/assets/avatars/avatar-01.webp ; do
+            if [ ! -f "$f" ]; then
+              echo "::error::缺少资产 $f（路径改了？）"; fail=1; continue
+            fi
+            if head -c 200 "$f" | grep -q "git-lfs.github.com/spec"; then
+              echo "::error::$f 仍是 Git LFS 指针 —— checkout 没取到 LFS 对象"; fail=1
+            fi
+          done
+          python -c "import PIL; print('Pillow', PIL.__version__)" || fail=1
+          exit $fail
 
-      # `QT_QPA_PLATFORM=offscreen` lets Qt create a QApplication without a real
-      # display. `scripts/desktop_smoke.py` asserts the whole assembly chain
-      # (import -> QApplication -> MainWindow() -> close) plus the stage-0 guards
-      # (async HttpWorker/AnalysisWorker, resign confirmation) and exits non-zero
-      # on any failed check, so a broken shell cannot pass silently.
-      - name: Desktop offscreen smoke
-        run: python scripts/desktop_smoke.py
-        env:
-          QT_QPA_PLATFORM: offscreen
+      - name: 桌面壳体离屏冒烟
+        # 来自旧 ci.yml 的 desktop-smoke job（原来只在 windows 跑）。它断言整条装配链
+        # import → QApplication → MainWindow() → close，以及 stage-0 守卫，任何一项失败非零退出。
+        # 放在 pytest **之前**：壳体装配失败时，40+ 个桌面用例会逐个报错，这条能先给出根因。
+        # 失败时把输出尾部转为 ::error:: 注解：日志 API 对非 admin 403（run #120/#121
+        # 取证时实测），注解是匿名可读的唯一通道，根因必须能看到才能修。
+        run: |
+          python scripts/desktop_smoke.py > "$RUNNER_TEMP/smoke.out" 2>&1 || {
+            tail -40 "$RUNNER_TEMP/smoke.out" | sed 's/^/::error::/'
+            exit 1
+          }
+          tail -1 "$RUNNER_TEMP/smoke.out"
+
+      - name: 门禁自检（对拍「缺 node 必红」这条断言本身）
+        # R-2：主门禁虽然已经包含这个文件，但独立一行有两个不可替代的作用：
+        #   ① 「门禁自检确实跑了」在日志里自证，不用去 465s 的输出里翻；
+        #   ② 将来有人给主 pytest 加 `-k` 白名单 / `--ignore` 时，不会顺带把
+        #      「门禁本身会不会红」这件事裁掉。
+        # 放在主 pytest 之前：它 20s，主 pytest 465s —— 自检不过就没必要跑后面那一大坨。
+        run: pytest tests/test_gate_integrity.py -q
+
+      - name: pytest（主门禁）
+        # 与 pyproject.toml 注释里写的口径**逐字一致**：不加 `-m` 的默认值、不加 plugins。
+        # `--durations=15`：首次运行时用它核对耗时预估，不用再另跑一遍。
+        # `tee` 把输出落盘给下一条断言 step 读；**必须显式 `set -o pipefail`**：
+        # Actions 默认 shell 是 `bash -e`（不含 pipefail），此时 `pytest | tee` 的退出码
+        # 取的是 tee 的 0 —— pytest 红、job 绿。实测：`false | tee x` 无 pipefail → rc=0，
+        # 有 pipefail → rc=1。
+        #
+        # `-rfEP`（S3-A1）：`P` = 把「通过且有 stdout 输出」的用例的捕获输出一并打印。
+        # 这是 `[density]` 取证能在**绿跑**被读到的前提 —— pytest 默认按 fd 捕获 stdout，
+        # 通过用例里的 `print(..., flush=True)` 不进日志。本机实测同一文件：
+        #   `-q`        → 16 passed，输出里 0 条 [density]
+        #   `-q -rfEP`  → 3 条 [density]（traditional / modern / cartoon）
+        #
+        # **`f` 与 `E` 必须一起写上**：`-r <chars>` 是**替换**默认的 summary 字符集，
+        # 不是追加。只写 `-rP` 时 FAILED/ERROR 行会从 short summary 里消失，下面那条
+        # 「把 FAILED 行转 ::error::」的 grep 就永远空转 —— 本机实测 `-rP` 红跑只剩
+        # 「::error::3 failed, 899 passed…」一行、没有任何失败用例名（根因不可见）。
+        # 加上 fE 之后实测恢复：`::error::FAILED tests/…::test_x` + 汇总行 + density 行。
+        #
+        # 不选 `A`（all）：整跑 895 条里绝大多数没有 stdout，本机实测 `-q` 约 30 行、
+        # `-q -rfEP` 243 行；-rA 会把每条 PASSED 都打一遍，对取证没有增益。
+        # 这一项只增加日志丰富度，不改变任何判定。
+        run: |
+          set -o pipefail
+          rc=0
+          pytest tests/ -m "not slow" -q --durations=15 -rfEP | tee "$RUNNER_TEMP/pytest.log" || rc=$?
+          # 失败时才把 FAILED/ERROR 与汇总行转 ::error::（原有行为）。两条 grep 各加
+          # `|| true`：匹配不到时不该提前把脚本掐掉、连汇总行注解都吞了。
+          if [ "$rc" -ne 0 ]; then
+            grep -E "^(FAILED|ERROR) " "$RUNNER_TEMP/pytest.log" | head -40 | sed 's/^/::error::/' || true
+            grep -E "^[0-9]+ (passed|failed)" "$RUNNER_TEMP/pytest.log" | tail -3 | sed 's/^/::error::/' || true
+          fi
+          # ── density 值取证（红绿都发；**不参与判定**，rc 只由上面的 pytest 决定）──
+          # 用途：`test_desktop_piece_render.py` 的密度基线仍有暂记档（(linux,offscreen)
+          # 的 traditional），下一跑要拿**被门禁实际跑出来的**数去标定。注解是匿名可读的
+          # 唯一日志通道（logs API 对非 admin 403，run #120/#121 实测），故必须转 ::notice::。
+          #
+          # ⚠️ 必须取**同一次 pytest 进程**的数，不能另起一次重跑：密度依赖进程级上下文
+          # ——具体是"最终加载了哪个 Qt 平台插件"。实测同一台 win32、同一 commit、同一条
+          # 命令，只改一个环境变量就翻脸：windows 插件 ratio 1.14/1.45/1.00，
+          # offscreen 插件 ratio 0.77/0.91/0.78（差约 30%，远超 ±0.12）。
+          # 而插件由环境 + import 顺序共同决定（`tests/test_desktop_dialog_lifetime.py`
+          # 在 import 期 `setdefault("QT_QPA_PLATFORM","offscreen")`），重跑拿到的可能是
+          # 另一个量，拿它标定就是把基线带偏。
+          # 自 S3-A3 起基线按 (sys.platform, platformName) 二维登记，打印行也带上插件名：
+          #   [density] linux/offscreen/traditional: fallback=… artwork=… ratio=… baseline=…
+          # 于是下面 grep 到的每一行都能直接对号入座，不需要猜是哪个渲染上下文。
+          grep -E "^\[density\]" "$RUNNER_TEMP/pytest.log" | sed 's/^/::notice::/' || true
+          exit "$rc"
+
+      - name: 对拍门禁汇总行断言（区分「绿」与「空绿」）
+        # 为什么必须有这一步：`tests/conftest.py` 的汇总是**输出**，不是**断言**。
+        # 81 条对拍全 skip 时 pytest rc=0，CI 一样绿 —— 那只是把「空绿」从 pytest 层
+        # 搬到了 CI 层。这一步消费那行计数，把"看得见"变成"拦得住"。
+        #
+        # 三个判据（都实测过，见提交说明）：
+        #   · 跳过 ≠ 0        → 门禁被放宽/退化（例如有人设了 XH_ALLOW_NO_NODE）
+        #   · 通过 < 收集      → 收集了但没全跑（例如将来给对拍加了 -k 白名单）
+        #   · 收集 < 81       → 对拍用例被删（只许增不许减，floor 见下）
+        #
+        # **为什么用 `通过 >= 收集` 而不是 `==`**（2026-11-08 实测发现）：
+        # `tests/conftest.py` 的 `_count()` 按 **nodeid 子串**匹配 `test_cross_engine.py`，
+        # 而 `pytest_collection_modifyitems` 里的 `_is_parity()` 按 **item.path** 匹配。
+        # `tests/test_gate_integrity.py:114/129/155` 三条 parametrize 的 id 字面就是
+        # `test_cross_engine.py`，于是它们的 nodeid 形如
+        # `...test_gate_integrity.py::test_x[test_cross_engine.py]` —— 子串命中，
+        # 真实整跑里出现过 **收集 81 | 通过 84**。用 `==` 会在 CI 上**假红**。
+        # 这条不对称是 conftest 的计数缺陷（建议改为按 path 匹配），但它落地前
+        # 这边不能靠它：`>=` 既能挡住"少跑"（80 < 81），又不会被多算的 3 条误伤。
+        run: |
+          set -uo pipefail
+          log="$RUNNER_TEMP/pytest.log"
+          line=$(grep -E "^= 跨引擎对拍门禁：" "$log" || true)
+          echo "捕获到的汇总行: ${line:-<空>}"
+          [ -n "$line" ] || { echo "::error::找不到对拍门禁汇总行（conftest 钩子被破坏？）"; exit 1; }
+          collected=$(sed -E 's/.*收集 ([0-9]+) 条.*/\1/' <<<"$line")
+          passed=$(sed -E 's/.*通过 ([0-9]+) \|.*/\1/' <<<"$line")
+          skipped=$(sed -E 's/.*跳过 ([0-9]+) \|.*/\1/' <<<"$line")
+          echo "解析结果: 收集=$collected 通过=$passed 跳过=$skipped"
+          [ "$skipped" = "0" ] || { echo "::error::对拍被跳过 $skipped 条（门禁未执行 = 空绿）"; exit 1; }
+          [ "$passed" -ge "$collected" ] || { echo "::error::通过 $passed < 收集 $collected（对拍未全部执行）"; exit 1; }
+          # floor：1.7.5 实收 81 条。允许增加，不允许悄悄减少 —— 删对拍用例是最安静的一种假绿。
+          [ "$collected" -ge 81 ] || { echo "::error::对拍用例从 81 掉到 $collected（有人删了对拍用例？）"; exit 1; }
+          echo "OK: 对拍门禁名副其实（通过 $passed / 收集 $collected，0 跳过）"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 3) gate-negative —— 负向自检：证明「缺 node 会红」在 runner 上也成立
+  # ═══════════════════════════════════════════════════════════════════════════
+  gate-negative:
+    name: gate negative self-check (node 摘掉 → 必须非零退出)
+    # 每周 + 手动。不进 PR：它验的是"门禁的报警器会不会响"，不是代码变更。
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 只跑 test_cross_engine.py（core + node），不读任何资产。
+          lfs: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            xionghan-chess-next/requirements/core.txt
+            xionghan-chess-next/pyproject.toml
+
+      - name: 只装对拍所需的依赖（不装 PySide6）
+        # 本 job 只收集 `tests/test_cross_engine.py`：它只 import core，且只会加载
+        # `tests/conftest.py`（不 import pytest-qt 之类）。装 dev.txt 会让这个"负向"
+        # job 多背一个 100MB 的 PySide6 失败面，与它要验的事无关。
+        # 版本区间与 requirements/dev.txt 里声明的一致。
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/core.txt "pytest>=8.3,<9"
+
+      - name: 摘掉 node 后，对拍子集必须非零退出（负向自检）
+        # **本 job 不装 setup-node，且绝不设 XH_ALLOW_NO_NODE。**
+        # 摘 PATH 与跑 pytest 放在**同一步**，是有意的：跨 step 传 PATH 要走
+        # `$GITHUB_ENV`，而 runner 在每步开始时会重新拼一次 PATH（toolcache 前置），
+        # 依赖它容易变成"看起来摘了其实没摘"。同一步内做完，就没有传导问题。
+        #
+        # 为什么不能只"不装 node"：ubuntu-latest 镜像可能预装 node（常在 /usr/local/bin），
+        # 所以必须逐目录检查是否存在可执行 node 并剔除，然后**自验**确实不可见。
+        #
+        # 「正常跑法」：不 `--noconftest`、不 `-m`、不设逃生阀 —— 验的是开发者真的会
+        # 遇到的路径。红了还必须核对**红的原因**，否则"依赖没装好/路径写错"也会
+        # 被当成验过（那就是给门禁发假合格证）。
+        run: |
+          set -uo pipefail
+          clean=""
+          IFS=':' read -r -a dirs <<<"$PATH"
+          for d in "${dirs[@]}"; do
+            [ -n "$d" ] || continue
+            if [ -x "$d/node" ] || [ -x "$d/node.exe" ]; then
+              echo "剔除含 node 的目录: $d"
+              continue
+            fi
+            clean="${clean:+$clean:}$d"
+          done
+          export PATH="$clean"
+          if command -v node >/dev/null 2>&1; then
+            echo "::error::node 仍在 PATH 中（$(command -v node)）—— 这条自检会变成空转，先修它"
+            exit 1
+          fi
+          echo "自验通过：node 已不可见（剩余 PATH 条目: $(tr ':' '\n' <<<"$PATH" | wc -l)）"
+
+          set +e
+          pytest tests/test_cross_engine.py -q > "$RUNNER_TEMP/neg.log" 2>&1
+          rc=$?
+          set -e
+          tail -25 "$RUNNER_TEMP/neg.log"
+          echo "缺 node 时 pytest rc=$rc（期望非零）"
+          [ "$rc" -ne 0 ] || { echo "::error::缺 node 时门禁仍然绿 —— 空绿（这正是 P0-1）"; exit 1; }
+          grep -q "跨引擎对拍" "$RUNNER_TEMP/neg.log" \
+            || { echo "::error::红了，但失败原因不是对拍门禁 —— 不能算验过"; exit 1; }
+          grep -q "XH_ALLOW_NO_NODE=1" "$RUNNER_TEMP/neg.log" \
+            || { echo "::error::失败信息没写明逃生阀用法（下一个人会不知道怎么绕）"; exit 1; }
+          echo "OK: 缺 node 时门禁按失败处理，且给出了逃生阀说明（rc=$rc）"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 4) slow —— 墙钟级，手动 / 每周；不进 PR 路径，所以天然不阻塞合并
+  # ═══════════════════════════════════════════════════════════════════════════
+  slow:
+    name: slow (expert d3 + perf guardrails, 20 tests)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    # 20 条里最大的一块是 expert 14 条（本机 10–28s/条）+ bench_roots 200 手（约 70s）。
+    # 共享 runner 慢 2–3 倍，45 分钟是宽松上限，不是预期值。
+    timeout-minutes: 45
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 带 slow 标记的三个文件（test_performance / test_expert_level /
+          # test_bench_roots）只 import core，不读任何图片/音频，所以不拉 LFS。
+          lfs: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          # **与 test job 的 cache-dependency-path 逐字相同**（S3-A1 起）。
+          # 两个作用：
+          #   ① 缓存键由「实际被安装的文件」决定 —— S3-A1 起 slow 也从 lock 装，
+          #      所以键必须包含 lock；同时保留 dev.txt，dev.txt 变了 lock 就该重新
+          #      生成，键里带上它至少能让"忘了重新生成"时缓存失效。
+          #   ② setup-python 的键 = 这些文件的 hash + OS + python 版本。两个 job 列
+          #      同一组文件 → 同一个键 → slow 直接复用 test 已暖好的 pip 缓存，
+          #      不额外占一份缓存配额。以前 slow 多列了 core/server/desktop/
+          #      pyproject.toml，键与 test 不同，等于白存一份。
+          cache-dependency-path: |
+            xionghan-chess-next/requirements/lock/py312-dev.txt
+            xionghan-chess-next/requirements/dev.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          # slow 用例本身不解析 JS，但 tests/conftest.py 在结束时总会打印对拍计数行；
+          # 没有 node 时那行会写成「按**失败**处理」，在一条全绿的 slow 日志里极易被误读。
+          # 装上 node 只是让汇总行如实（约 5s），不是在 slow 里跑对拍。
+          node-version: "22"
+
+      - name: 安装测试依赖（lock：requirements/lock/py312-dev.txt）
+        # S3-A1：从裸 `requirements/dev.txt` 切到 lock。**slow 与 test 必须装同一
+        # 份 lock** —— 否则「slow 绿 / test 红」（或反过来）根本无法归因：两个 job
+        # 可能只是装到了不同的依赖版本，而慢用例（专家档 d3、bench_roots 200 手）
+        # 恰恰是对搜索预算/墙钟最敏感的那批，版本漂移首先在这里显形。
+        # 把安装源统一成 lock 之后，"同一份 lock 下 slow 红"才等于"代码/预算问题"。
+        # lock 的生成口径（源文件、uv 命令、py3.12 目标）写在 lock 文件头注释里；
+        # dev.txt（及其 -r 链上的 server/desktop/core）改了必须重新生成并一起提交。
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/lock/py312-dev.txt
+
+      - name: pytest（全量墙钟级）
+        # 专家档用例内部已用 AI_TIME_SCALE 把预算抬到 180s 并只断言 completed_depth==3
+        # （见 test_expert_level.py 顶部注释），所以这里**不**再叠一个 AI_TIME_SCALE，
+        # 否则会与用例自己算的预算相乘，掩盖"到底有没有跑完 d3"这个判定。
+        run: pytest tests/ -m slow -q --durations=20

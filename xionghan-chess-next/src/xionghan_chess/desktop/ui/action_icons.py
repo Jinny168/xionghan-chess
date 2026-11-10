@@ -16,7 +16,7 @@ from PySide6.QtGui import QBrush, QColor, QIcon, QPainter, QPainterPath, QPen, Q
 
 CANVAS = 24.0
 STROKE = 1.8
-SCALE = 3          # 渲染倍数：24px 的图标按 72px 画再缩，边缘才不毛
+SCALE = 3  # 渲染倍数：24px 的图标按 72px 画再缩，边缘才不毛
 
 
 def _pen(color: QColor) -> QPen:
@@ -33,10 +33,8 @@ def _arrow_head(painter: QPainter, tip: QPointF, angle_deg: float, size: float =
 
     rad = math.radians(angle_deg)
     back = QPointF(tip.x() - math.cos(rad) * size, tip.y() - math.sin(rad) * size)
-    left = QPointF(back.x() - math.sin(rad) * size * 0.55,
-                   back.y() + math.cos(rad) * size * 0.55)
-    right = QPointF(back.x() + math.sin(rad) * size * 0.55,
-                    back.y() - math.cos(rad) * size * 0.55)
+    left = QPointF(back.x() - math.sin(rad) * size * 0.55, back.y() + math.cos(rad) * size * 0.55)
+    right = QPointF(back.x() + math.sin(rad) * size * 0.55, back.y() - math.cos(rad) * size * 0.55)
     painter.drawLine(tip, left)
     painter.drawLine(tip, right)
 
@@ -86,6 +84,7 @@ def _balance(painter: QPainter) -> None:
     painter.setBrush(QBrush(painter.pen().color()))
     painter.drawPath(half)
     painter.setBrush(Qt.BrushStyle.NoBrush)
+
 
 def _revive(painter: QPainter) -> None:
     painter.drawEllipse(QRectF(5.5, 5.5, 13.0, 13.0))

@@ -1,41 +1,65 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+import datetime
 import os
 import sys
-import datetime
 import threading
 from collections.abc import Callable
+from dataclasses import asdict
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QSize, QThreadPool, QTimer, Signal, QUrl
-from PySide6.QtGui import (QAction, QDesktopServices, QFont, QIcon, QKeySequence,
-                         QPalette)
+from PySide6.QtCore import QSize, Qt, QThreadPool, QTimer, QUrl
+from PySide6.QtGui import QAction, QDesktopServices, QFont, QIcon, QKeySequence, QPalette
 from PySide6.QtWebSockets import QWebSocket
 from PySide6.QtWidgets import (
-    QApplication, QComboBox, QFileDialog, QFrame, QGridLayout, QGroupBox, QHBoxLayout, QScrollArea,
-    QInputDialog, QLabel, QLineEdit, QListWidget, QMainWindow, QMessageBox, QPushButton, QStyle,
-    QSizePolicy, QSpinBox, QSplitter, QTabWidget, QVBoxLayout, QWidget,
+    QApplication,
+    QComboBox,
+    QFileDialog,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSplitter,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
 
 from xionghan_chess import __version__
+from xionghan_chess.core.ai import (
+    EXPECTED_MOVE_SECONDS,
+    WATCHDOG_SECONDS,
+    ChessAI,
+    Difficulty,
+    normalize_difficulty,
+    should_accept_draw,
+)
 from xionghan_chess.core.avatars import BUILTIN_AVATARS, avatar_asset_name
-from xionghan_chess.core.ai import CONFIGS, Difficulty
-
-# AI 看门狗：思考预算耗尽后再等这么久，仍无信号就判定 worker 不会回来了（毫秒）。
-AI_WATCHDOG_GRACE_MS = 5000
+from xionghan_chess.desktop.snapshot_guard import should_accept_snapshot
 
 # 聊天区上限：长局只追加不清空会让内存线性涨（审计 2-1）。
 CHAT_HISTORY_LIMIT = 200
 from xionghan_chess.core.game import Game, GameError
-from xionghan_chess.core.model import (Color, GameState, Move, PieceType, Position,
-                                   is_big_capture)
-from xionghan_chess.core.profiles import (PROFILES, RULE_VERSION, action_visible,
-                                          profile_rule_values)
+from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position, is_big_capture
+from xionghan_chess.core.profiles import RULE_VERSION, action_visible
 from xionghan_chess.core.storage import game_document
-from xionghan_chess.core.taunts import choose_taunt, taunts
+from xionghan_chess.core.taunts import select_taunt, swing_scene, taunt_allowed, taunts
 from xionghan_chess.i18n import t
+
+from ..core import daily as daily_quiz
+from . import net
+from . import training as puzzle_judge
+from . import update as version_check
 from .audio import DesktopAudio
+
 # `settings` 别名而非 `config`：本类实例上有一个 `self.config`（用户配置字典），
 # 若把模块导入成 `config`，方法体里的 `games_dir()` 会先命中**模块**
 # 而 `self.config` 是属性 —— 两者同名极易读错，故模块一律走 `settings.`。
@@ -46,24 +70,34 @@ from .config import (
     save_config,
     settings_differ_in_game_breaking_keys,
 )
-from . import net
+from .storage import (
+    autosave_game,
+    load_game,
+    load_statistics,
+    record_result,
+    reset_statistics,
+    save_game,
+)
 from .texts import dl, dlf, set_language
-from . import training as puzzle_judge
-from ..core import daily as daily_quiz
-from . import update as version_check
-from .storage import autosave_game, load_game, load_statistics, record_result, reset_statistics, save_game
-from .ui.dialogs import DocumentDialog, GameLibraryDialog, GLYPH_STYLE_DATA, HandicapDialog, ReplayDialog, SettingsDialog, TrainingDialog
-from .ui.board_widget import THINKING_TICK_MS, BoardWidget
-from .ui.action_icons import action_icon
-from .ui.piece_atlas import PieceAtlasDialog
-from .ui.workers import AIWorker, AnalysisWorker, HttpWorker
 from .ui import theme
+from .ui.action_icons import action_icon
+from .ui.board_widget import THINKING_TICK_MS, BoardWidget
+from .ui.dialogs import (
+    GLYPH_STYLE_DATA,
+    DocumentDialog,
+    GameLibraryDialog,
+    HandicapDialog,
+    ReplayDialog,
+    SettingsDialog,
+    TrainingDialog,
+)
+from .ui.piece_atlas import PieceAtlasDialog
+from .ui.workers import AIWorker, HttpWorker
 
 
-
-
-def build_result_dialog(parent: QWidget, title: str, text: str, lang: str,
-                        *, allow_again: bool) -> tuple[QMessageBox, QPushButton | None]:
+def build_result_dialog(
+    parent: QWidget, title: str, text: str, lang: str, *, allow_again: bool
+) -> tuple[QMessageBox, QPushButton | None]:
     """构建「对局结束」对话框，返回 `(对话框, 再来一局按钮)`。
 
     单独抽出来有两个原因：
@@ -83,8 +117,7 @@ def build_result_dialog(parent: QWidget, title: str, text: str, lang: str,
     return box, again
 
 
-def show_result_dialog(parent: QWidget, title: str, text: str, lang: str,
-                       *, allow_again: bool) -> bool:
+def show_result_dialog(parent: QWidget, title: str, text: str, lang: str, *, allow_again: bool) -> bool:
     """展示结果对话框，返回用户是否点了「再来一局」。
 
     ⚠️ 这是**模态**调用：测试必须 patch 这个函数（或 `build_result_dialog`），
@@ -109,16 +142,38 @@ class _SquareHost(QWidget):
         child.setParent(self)
         self.setMinimumSize(320, 320)
 
-    def resizeEvent(self, event) -> None:      # noqa: N802 - Qt 命名
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt 命名
         side = min(self.width(), self.height())
-        self._child.setGeometry((self.width() - side) // 2,
-                               (self.height() - side) // 2, side, side)
+        self._child.setGeometry((self.width() - side) // 2, (self.height() - side) // 2, side, side)
         super().resizeEvent(event)
 
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
-        super().__init__();theme.load_bundled_fonts();self.config=load_config();set_language(self.config.get("language","zh-CN"));self.game=None;self.cancel=threading.Event();self.pool=QThreadPool.globalInstance();self.network=None;self.network_base=None;self.room_id=None;self.token=None;self.revision=0;self.spectator=False;self.network_reconnect_attempts=0;self.network_closing=False;self._handled_draw_offer=None;self._handled_undo_offer=None;self.audio=DesktopAudio();self._stats_recorded=False;self._autosaved=False;self._shown_result=False;self._play_again_pending=False
+        super().__init__()
+        theme.load_bundled_fonts()
+        self.config = load_config()
+        self.session_color = Color(self.config["human_color"])
+        set_language(self.config.get("language", "zh-CN"))
+        self.game = None
+        self.cancel = threading.Event()
+        self.pool = QThreadPool.globalInstance()
+        self.network = None
+        self.network_base = None
+        self.room_id = None
+        self.token = None
+        self.revision = 0
+        self.spectator = False
+        self.network_reconnect_attempts = 0
+        self.network_closing = False
+        self._handled_draw_offer = None
+        self._handled_undo_offer = None
+        self.audio = DesktopAudio()
+        self._stats_recorded = False
+        self._autosaved = False
+        self._shown_result = False
+        self._play_again_pending = False
+        self._reset_taunt_ledger()
         # P1-B：界面刷新快照（棋盘/棋谱/阵亡/将军），换局时必须清空
         self._reset_ui_cache()
         # 思考态读条：100ms 只负责让棋盘重绘，**start_ai 起、finish_ai 止**，不常驻。
@@ -126,12 +181,12 @@ class MainWindow(QMainWindow):
         self.thinking_timer.setInterval(THINKING_TICK_MS)
         self.thinking_timer.timeout.connect(self._tick_thinking)
         # S2-7 配套：非 None 时表示正处在「残局题」里，`human_move` 要判对错。
-        self.puzzle_session=None
+        self.puzzle_session = None
         # 这道题是不是「每日一题」——只有它是，过关才更新连续天数（见 `_judge_puzzle`）。
-        self.puzzle_is_daily=False
+        self.puzzle_is_daily = False
         # C2：题目模式下状态栏右下角给一个「提示」按钮。桌面原先只有选题列表里那个
         # 提示按钮（开局前），进了棋局就没有任何求助入口 —— 这是它和网页端最大的体验差。
-        self.hint_button=QPushButton(dl("提示"))
+        self.hint_button = QPushButton(dl("提示"))
         self.hint_button.setToolTip(dl("先指子，再指招"))
         self.hint_button.clicked.connect(self.show_puzzle_hint)
         self.hint_button.hide()
@@ -141,144 +196,319 @@ class MainWindow(QMainWindow):
         icon_path = theme.resource("icon.ico")
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
-        self.resize(1260,850);self.setMinimumSize(900,680);self._build();self.new_game()
+        self.resize(1260, 850)
+        self.setMinimumSize(900, 680)
+        self._build()
+        self.new_game()
         # P1-S：先挂回调再 configure —— 否则 configure 期间（切 BGM/设音量）暴露的
         # 加载失败会被漏掉，玩家只看到「没声音」。
-        self.audio.on_failure=self._report_audio_failure;self.audio.configure(self.config);self.apply_appearance()
-        self.timer=QTimer(self);self.timer.timeout.connect(self.refresh);self.timer.start(250)
+        self.audio.on_failure = self._report_audio_failure
+        self.audio.configure(self.config)
+        self.apply_appearance()
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.refresh)
+        self.timer.start(250)
 
     def _build(self) -> None:
-        lang=self.config.get("language","zh-CN")
+        lang = self.config.get("language", "zh-CN")
         file_menu = self.menuBar().addMenu(t("menu.file", lang))
-        for title, callback, shortcut in ((t("menu.import_game", lang),self.import_game,"Ctrl+O"),(t("menu.export_game", lang),self.export_game,"Ctrl+S")):
-            action=QAction(title,self);action.triggered.connect(callback)
-            if shortcut:action.setShortcut(QKeySequence(shortcut))
+        for title, callback, shortcut in (
+            (t("menu.import_game", lang), self.import_game, "Ctrl+O"),
+            (t("menu.export_game", lang), self.export_game, "Ctrl+S"),
+        ):
+            action = QAction(title, self)
+            action.triggered.connect(callback)
+            if shortcut:
+                action.setShortcut(QKeySequence(shortcut))
             file_menu.addAction(action)
-        file_menu.addSeparator();library=QAction(t("panel.local_replay_library", lang),self);library.triggered.connect(self.show_game_library);file_menu.addAction(library);autosaves=QAction("打开自动保存目录" if lang!="en" else "Open autosave folder",self);autosaves.triggered.connect(self.open_autosave_folder);file_menu.addAction(autosaves)
+        file_menu.addSeparator()
+        library = QAction(t("panel.local_replay_library", lang), self)
+        library.triggered.connect(self.show_game_library)
+        file_menu.addAction(library)
+        autosaves = QAction("打开自动保存目录" if lang != "en" else "Open autosave folder", self)
+        autosaves.triggered.connect(self.open_autosave_folder)
+        file_menu.addAction(autosaves)
         game_menu = self.menuBar().addMenu(t("menu.game", lang))
-        ai_game=QAction(t("mode.ai", lang),self);ai_game.triggered.connect(lambda:self.start_mode("ai"));game_menu.addAction(ai_game)
-        local_game=QAction(t("mode.local_full", lang),self);local_game.triggered.connect(lambda:self.start_mode("local"));game_menu.addAction(local_game);game_menu.addSeparator()
-        for title, callback, shortcut in ((t("menu.new", lang),self.new_game,"Ctrl+N"),(t("menu.undo", lang),self.undo_move,"Ctrl+Z"),(t("menu.pause_resume", lang),self.toggle_pause,"Ctrl+P")):
-            action=QAction(title,self);action.triggered.connect(callback);action.setShortcut(QKeySequence(shortcut));game_menu.addAction(action)
+        ai_game = QAction(t("mode.ai", lang), self)
+        ai_game.triggered.connect(lambda: self.start_mode("ai"))
+        game_menu.addAction(ai_game)
+        local_game = QAction(t("mode.local_full", lang), self)
+        local_game.triggered.connect(lambda: self.start_mode("local"))
+        game_menu.addAction(local_game)
+        game_menu.addSeparator()
+        for title, callback, shortcut in (
+            (t("menu.new", lang), self.new_game, "Ctrl+N"),
+            (t("menu.undo", lang), self.undo_move, "Ctrl+Z"),
+            (t("menu.pause_resume", lang), self.toggle_pause, "Ctrl+P"),
+        ):
+            action = QAction(title, self)
+            action.triggered.connect(callback)
+            action.setShortcut(QKeySequence(shortcut))
+            game_menu.addAction(action)
         game_menu.addSeparator()
         # 第四列 `attr` 给需要留引用的项：菜单项与侧栏按钮共用同一条显隐判据
         # （`UI_ACTION_REQUIRES`）—— 只藏按钮却留下菜单项，等于把"点了会报错"的
         # 入口明晃晃摆在菜单里（`Ctrl+Shift+P` 也会照样把光标留在那儿）。
         for title, callback, shortcut, attr in (
-                (t("action.resign", lang), self.resign_game, "Ctrl+Shift+R", None),
-                (t("action.draw", lang), self.draw_game, "Ctrl+Shift+D", None),
-                (t("action.resurrect", lang), self.resurrect_pawn, "Ctrl+Shift+P", "resurrect_action")):
-            action=QAction(title,self);action.triggered.connect(callback)
-            action.setShortcut(QKeySequence(shortcut));game_menu.addAction(action)
-            if attr: setattr(self, attr, action)
+            (t("action.resign", lang), self.resign_game, "Ctrl+Shift+R", None),
+            (t("action.draw", lang), self.draw_game, "Ctrl+Shift+D", None),
+            (t("action.resurrect", lang), self.resurrect_pawn, "Ctrl+Shift+P", "resurrect_action"),
+        ):
+            action = QAction(title, self)
+            action.triggered.connect(callback)
+            action.setShortcut(QKeySequence(shortcut))
+            game_menu.addAction(action)
+            if attr:
+                setattr(self, attr, action)
         game_menu.addSeparator()
-        for title, callback in ((dl("登场棋子配置"),self.configure_handicap),(dl("创建局域网房间"), self.create_online), (dl("加入局域网房间"), self.join_online),(dl("观战局域网房间"),self.spectate_online)):
-            action = QAction(title, self); action.triggered.connect(callback); game_menu.addAction(action)
-        replay_menu=self.menuBar().addMenu(t("menu.replay", lang))
-        replay=QAction(t("menu.enter_replay", lang),self);replay.setShortcut(QKeySequence("Ctrl+R"));replay.triggered.connect(self.replay_game);replay_menu.addAction(replay)
-        library_replay=QAction(t("panel.local_replay_library", lang),self);library_replay.triggered.connect(self.show_game_library);replay_menu.addAction(library_replay)
-        training=QAction(dl("残局与排局训练"),self);training.triggered.connect(self.show_training);replay_menu.addAction(training)
-        view_menu=self.menuBar().addMenu(t("menu.view", lang))
-        fullscreen=QAction(t("menu.fullscreen", lang),self);fullscreen.setShortcut(QKeySequence("F11"));fullscreen.triggered.connect(self.toggle_fullscreen);view_menu.addAction(fullscreen)
-        panels=QAction(t("menu.toggle_panels", lang),self);panels.triggered.connect(self.toggle_panels);view_menu.addAction(panels)
-        flip=QAction(dl("翻转棋盘"),self);flip.setShortcut(QKeySequence("Ctrl+F"));flip.triggered.connect(self.flip_board);view_menu.addAction(flip)
+        for title, callback in (
+            (dl("登场棋子配置"), self.configure_handicap),
+            (dl("创建局域网房间"), self.create_online),
+            (dl("加入局域网房间"), self.join_online),
+            (dl("观战局域网房间"), self.spectate_online),
+        ):
+            action = QAction(title, self)
+            action.triggered.connect(callback)
+            game_menu.addAction(action)
+        replay_menu = self.menuBar().addMenu(t("menu.replay", lang))
+        replay = QAction(t("menu.enter_replay", lang), self)
+        replay.setShortcut(QKeySequence("Ctrl+R"))
+        replay.triggered.connect(self.replay_game)
+        replay_menu.addAction(replay)
+        library_replay = QAction(t("panel.local_replay_library", lang), self)
+        library_replay.triggered.connect(self.show_game_library)
+        replay_menu.addAction(library_replay)
+        training = QAction(dl("残局与排局训练"), self)
+        training.triggered.connect(self.show_training)
+        replay_menu.addAction(training)
+        view_menu = self.menuBar().addMenu(t("menu.view", lang))
+        fullscreen = QAction(t("menu.fullscreen", lang), self)
+        fullscreen.setShortcut(QKeySequence("F11"))
+        fullscreen.triggered.connect(self.toggle_fullscreen)
+        view_menu.addAction(fullscreen)
+        panels = QAction(t("menu.toggle_panels", lang), self)
+        panels.triggered.connect(self.toggle_panels)
+        view_menu.addAction(panels)
+        flip = QAction(dl("翻转棋盘"), self)
+        flip.setShortcut(QKeySequence("Ctrl+F"))
+        flip.triggered.connect(self.flip_board)
+        view_menu.addAction(flip)
         settings_menu = self.menuBar().addMenu(t("menu.settings", lang))
         # 设置按业务拆成四个独立窗口，菜单里各给一个入口（原来是一个窗口三个标签，
         # 想改声音得先开总设置再翻标签）。顺序与 `SettingsDialog` 的 tab 顺序一致：
         # 对局设置 → 棋子规则 → 界面 → 声音。
-        for index,label,shortcut in ((0,t("settings.game_tab", lang),"Ctrl+,"),
-                                     (1,t("settings.piece_rules_tab", lang),""),
-                                     (2,t("settings.appearance_tab", lang),""),
-                                     (3,t("settings.sound_tab", lang),"")):
-            action=QAction(label,self)
+        for index, label, shortcut in (
+            (0, t("settings.game_tab", lang), "Ctrl+,"),
+            (1, t("settings.piece_rules_tab", lang), ""),
+            (2, t("settings.appearance_tab", lang), ""),
+            (3, t("settings.sound_tab", lang), ""),
+        ):
+            action = QAction(label, self)
             action.triggered.connect(lambda _checked=False, tab=index: self.settings(tab, standalone=True))
             if shortcut:
                 action.setShortcut(QKeySequence(shortcut))
             settings_menu.addAction(action)
         settings_menu.addSeparator()
-        stats=QAction("对局统计" if lang!="en" else "Statistics",self);stats.triggered.connect(self.show_statistics);settings_menu.addAction(stats)
-        account=QAction(dl("账号与云同步"),self);account.triggered.connect(self.account_sync);settings_menu.addAction(account)
-        help_menu=self.menuBar().addMenu(t("menu.help", lang))
-        guide=QAction(t("menu.guide", lang),self);guide.setShortcut(QKeySequence("F1"));guide.triggered.connect(self.show_help);help_menu.addAction(guide)
+        stats = QAction("对局统计" if lang != "en" else "Statistics", self)
+        stats.triggered.connect(self.show_statistics)
+        settings_menu.addAction(stats)
+        account = QAction(dl("账号与云同步"), self)
+        account.triggered.connect(self.account_sync)
+        settings_menu.addAction(account)
+        help_menu = self.menuBar().addMenu(t("menu.help", lang))
+        guide = QAction(t("menu.guide", lang), self)
+        guide.setShortcut(QKeySequence("F1"))
+        guide.triggered.connect(self.show_help)
+        help_menu.addAction(guide)
         # 规则已并入图谱：这里只留一个入口，「完整规则文档」在图谱里点。
         # `menu.piece_rules` 键保留但改作提示语 —— 不再有第二个"规则"菜单项。
-        atlas=QAction(t("desktop.piece_atlas", lang),self);atlas.triggered.connect(self.show_piece_atlas)
+        atlas = QAction(t("desktop.piece_atlas", lang), self)
+        atlas.triggered.connect(self.show_piece_atlas)
         atlas.setToolTip(t("menu.piece_rules", lang))
         help_menu.addAction(atlas)
-        check_update=QAction("检查更新" if lang!="en" else "Check for updates",self);check_update.triggered.connect(self.check_updates);help_menu.addAction(check_update)
+        check_update = QAction("检查更新" if lang != "en" else "Check for updates", self)
+        check_update.triggered.connect(self.check_updates)
+        help_menu.addAction(check_update)
         help_menu.addSeparator()
-        about=QAction(t("menu.about", lang),self);about.triggered.connect(self.show_about);help_menu.addAction(about)
-        root=QWidget();root.setObjectName("root");self.setCentralWidget(root);layout=QVBoxLayout(root);self.banner=QLabel();self.banner.setAlignment(Qt.AlignmentFlag.AlignCenter);self.banner.setObjectName("banner");layout.addWidget(self.banner)
-        split=QSplitter();layout.addWidget(split,1);self.board=BoardWidget();self.board.move_requested.connect(self.human_move);self.board.piece_selected.connect(lambda:self.audio.play("select"));self._board_host=_SquareHost(self.board);split.addWidget(self._board_host)
-        side_inner=QWidget();right=QVBoxLayout(side_inner);self.side=QScrollArea();self.side.setWidgetResizable(True);self.side.setFrameShape(QFrame.Shape.NoFrame);self.side.setMaximumWidth(330);self.side.setMinimumWidth(330);self.side.setWidget(side_inner);self.black=QLabel();self.red=QLabel();self.history=QListWidget();self.history.setMinimumHeight(120);self.captured=QLabel();self.captured.setWordWrap(True)
-        right.addWidget(self.black);right.addWidget(self.red)
-        side_tabs=QTabWidget();record_page=QWidget();record_layout=QVBoxLayout(record_page);record_layout.addWidget(self.history)
-        chat_page=QWidget();chat_layout=QVBoxLayout(chat_page);self.chat_messages=QListWidget();chat_layout.addWidget(self.chat_messages,1)
-        self.chat_quick=QComboBox();[(self.chat_quick.addItem(text,text)) for text in taunts("random")]
-        quick_send=QPushButton(dl("发送快捷短语"));quick_send.clicked.connect(lambda:self.send_chat(True));chat_layout.addWidget(self.chat_quick);chat_layout.addWidget(quick_send)
-        chat_row=QHBoxLayout();self.chat_input=QLineEdit();self.chat_input.setMaxLength(80);self.chat_input.setPlaceholderText(dl("输入聊天内容"))
-        self.chat_input.returnPressed.connect(self.send_chat);chat_send=QPushButton(dl("发送"));chat_send.clicked.connect(self.send_chat);chat_row.addWidget(self.chat_input,1);chat_row.addWidget(chat_send);chat_layout.addLayout(chat_row)
-        side_tabs.addTab(record_page,t("panel.moves", lang));side_tabs.addTab(chat_page,t("panel.chat", lang));right.addWidget(side_tabs,1);right.addWidget(QLabel("阵亡子力" if lang!="en" else "Captured pieces"));right.addWidget(self.captured)
+        about = QAction(t("menu.about", lang), self)
+        about.triggered.connect(self.show_about)
+        help_menu.addAction(about)
+        root = QWidget()
+        root.setObjectName("root")
+        self.setCentralWidget(root)
+        layout = QVBoxLayout(root)
+        self.banner = QLabel()
+        self.banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.banner.setObjectName("banner")
+        layout.addWidget(self.banner)
+        split = QSplitter()
+        layout.addWidget(split, 1)
+        self.board = BoardWidget()
+        self.board.move_requested.connect(self.human_move)
+        self.board.piece_selected.connect(lambda: self.audio.play("select"))
+        self._board_host = _SquareHost(self.board)
+        split.addWidget(self._board_host)
+        side_inner = QWidget()
+        right = QVBoxLayout(side_inner)
+        self.side = QScrollArea()
+        self.side.setWidgetResizable(True)
+        self.side.setFrameShape(QFrame.Shape.NoFrame)
+        self.side.setMaximumWidth(330)
+        self.side.setMinimumWidth(330)
+        self.side.setWidget(side_inner)
+        self.black = QLabel()
+        self.red = QLabel()
+        self.history = QListWidget()
+        self.history.setMinimumHeight(120)
+        self.captured = QLabel()
+        self.captured.setWordWrap(True)
+        right.addWidget(self.black)
+        right.addWidget(self.red)
+        side_tabs = QTabWidget()
+        record_page = QWidget()
+        record_layout = QVBoxLayout(record_page)
+        record_layout.addWidget(self.history)
+        chat_page = QWidget()
+        chat_layout = QVBoxLayout(chat_page)
+        self.chat_messages = QListWidget()
+        chat_layout.addWidget(self.chat_messages, 1)
+        self.chat_quick = QComboBox()
+        [(self.chat_quick.addItem(text, text)) for text in taunts("random")]
+        quick_send = QPushButton(dl("发送快捷短语"))
+        quick_send.clicked.connect(lambda: self.send_chat(True))
+        chat_layout.addWidget(self.chat_quick)
+        chat_layout.addWidget(quick_send)
+        chat_row = QHBoxLayout()
+        self.chat_input = QLineEdit()
+        self.chat_input.setMaxLength(80)
+        self.chat_input.setPlaceholderText(dl("输入聊天内容"))
+        self.chat_input.returnPressed.connect(self.send_chat)
+        chat_send = QPushButton(dl("发送"))
+        chat_send.clicked.connect(self.send_chat)
+        chat_row.addWidget(self.chat_input, 1)
+        chat_row.addWidget(chat_send)
+        chat_layout.addLayout(chat_row)
+        side_tabs.addTab(record_page, t("panel.moves", lang))
+        side_tabs.addTab(chat_page, t("panel.chat", lang))
+        right.addWidget(side_tabs, 1)
+        right.addWidget(QLabel("阵亡子力" if lang != "en" else "Captured pieces"))
+        right.addWidget(self.captured)
         # 七个操作改成**纯图标 + 悬浮提示**：原来单列文字按钮每行 182×40，
         # 七行就顶到侧栏底部、非滚动不可。图标 32px 一行放四个，两行结束，
         # 说明文字退到 tooltip / accessibleName（读屏与自检都还能拿到）。
         # 七个操作：**四列等宽 + 12px 间距**。两行各自等分虽然贴边，但两行按钮宽度
         # 会变成 66 / 91 两种，看着像拼错了；四列固定等宽更整齐，第二行空一格是
         # 自然的栅格收尾（且宽度一致、间距拉大后不再显得挤）。
-        actions=QGridLayout();actions.setSpacing(12);actions.setContentsMargins(2,2,2,2)
-        self._action_buttons=[]
-        specs=(
-            ("undo",t("action.undo",lang),self.undo_move),
-            ("pause",t("action.pause",lang),self.toggle_pause),
-            ("resign",t("action.resign",lang),self.resign_game),
-            ("draw",t("action.draw",lang),self.draw_game),
-            ("resurrect",t("action.resurrect",lang),self.resurrect_pawn),
-            ("flip",dl("翻转"),self.flip_board),
-            ("again",t("action.play_again",lang),self.trigger_play_again),
+        actions = QGridLayout()
+        actions.setSpacing(12)
+        actions.setContentsMargins(2, 2, 2, 2)
+        self._action_buttons = []
+        specs = (
+            ("undo", t("action.undo", lang), self.undo_move),
+            ("pause", t("action.pause", lang), self.toggle_pause),
+            ("resign", t("action.resign", lang), self.resign_game),
+            ("draw", t("action.draw", lang), self.draw_game),
+            ("resurrect", t("action.resurrect", lang), self.resurrect_pawn),
+            ("flip", dl("翻转"), self.flip_board),
+            ("again", t("action.play_again", lang), self.trigger_play_again),
         )
-        for index,(kind,label,callback) in enumerate(specs):
-            button=self._side_button(kind,label)
+        for index, (kind, label, callback) in enumerate(specs):
+            button = self._side_button(kind, label)
             button.clicked.connect(callback)
-            setattr(self,kind,button)
-            self._action_buttons.append((button,kind))
-            actions.addWidget(button,index//4,index%4)
+            setattr(self, kind, button)
+            self._action_buttons.append((button, kind))
+            actions.addWidget(button, index // 4, index % 4)
         for column in range(4):
-            actions.setColumnStretch(column,1)
+            actions.setColumnStretch(column, 1)
         self._refresh_action_icons()
-        right.addLayout(actions);split.addWidget(self.side);split.setSizes([850,300])
+        right.addLayout(actions)
+        split.addWidget(self.side)
+        split.setSizes([850, 300])
         self.apply_appearance()
 
     def new_game(self) -> None:
-        self.puzzle_session=None;self.puzzle_is_daily=False
-        self.chat_messages.clear()      # 换局清空（悔棋不清，聊天是历史）
-        self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=Game(self.config["profile"],self.config.get("rule_options"),self.config["initial_minutes"],self.config.get("language","zh-CN"),self.current_setup());human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local";self._reset_ui_cache();self.board.set_game(self.game,human,local);self.configure_board();self.board.locked=False;self._stats_recorded=False;self._autosaved=False;self.refresh();
-        if not local and self.game.state.turn is not human:self.start_ai()
+        self.puzzle_session = None
+        self.puzzle_is_daily = False
+        self.chat_messages.clear()  # 换局清空（悔棋不清，聊天是历史）
+        self.close_network()
+        self.cancel.set()
+        self.cancel = threading.Event()
+        self.game = Game(
+            self.config["profile"],
+            self.config.get("rule_options"),
+            self.config["initial_minutes"],
+            self.config.get("language", "zh-CN"),
+            self.current_setup(),
+        )
+        human = Color(self.config["human_color"])
+        self.session_color = human
+        local = self.config.get("game_mode", "ai") == "local"
+        self._reset_ui_cache()
+        self.board.set_game(self.game, human, local)
+        self.configure_board()
+        self.board.locked = False
+        self._stats_recorded = False
+        self._autosaved = False
+        self.refresh()
+        self._reset_taunt_ledger()
+        if not local and self.game.state.turn is not human:
+            self.start_ai()
 
     def start_mode(self, mode: str) -> None:
-        self.config["game_mode"]=mode;save_config(self.config);self.new_game()
+        self.config["game_mode"] = mode
+        save_config(self.config)
+        self.new_game()
 
     def human_move(self, move: Move) -> None:
         try:
-            piece=self.game.state.piece_at(move.source)
-            if piece and piece.type is PieceType.PAWN and self.game.options.pawn_promotion and move.target.row in {0,self.game.profile.rows-1}:
+            piece = self.game.state.piece_at(move.source)
+            if (
+                piece
+                and piece.type is PieceType.PAWN
+                and self.game.options.pawn_promotion
+                and move.target.row in {0, self.game.profile.rows - 1}
+            ):
                 # 阶段1 S1-3：原为内联复制 core 谓词（这是 rules.promotable_types 的第 4 份
                 # 拷贝，前 3 份已在 bfea053 收敛）。改为调用单一来源，避免再次漂移。
-                choices=set(self.game.rules.promotable_types(self.game.state,piece.color))
+                choices = set(self.game.rules.promotable_types(self.game.state, piece.color))
                 if choices:
-                    options=[(theme.NAMES[piece.color][kind],kind) for kind in sorted(choices,key=lambda item:item.value)]
-                    label,ok=QInputDialog.getItem(self,dl("兵卒升变"),dl("选择升变棋子"),[item[0] for item in options],0,False)
-                    if not ok:return
-                    move=Move(move.source,move.target,next(kind for text,kind in options if text==label))
+                    options = [
+                        (theme.NAMES[piece.color][kind], kind) for kind in sorted(choices, key=lambda item: item.value)
+                    ]
+                    label, ok = QInputDialog.getItem(
+                        self, dl("兵卒升变"), dl("选择升变棋子"), [item[0] for item in options], 0, False
+                    )
+                    if not ok:
+                        return
+                    move = Move(move.source, move.target, next(kind for text, kind in options if text == label))
             if self.network:
-                self.send_network("move",{"from":{"row":move.source.row,"col":move.source.col},"to":{"row":move.target.row,"col":move.target.col},"promotion":move.promotion.value if move.promotion else None});return
-            record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound()
+                self.send_network(
+                    "move",
+                    {
+                        "from": {"row": move.source.row, "col": move.source.col},
+                        "to": {"row": move.target.row, "col": move.target.col},
+                        "promotion": move.promotion.value if move.promotion else None,
+                    },
+                )
+                return
+            record = self.game.move(move)
+            self.board.animate_move(move.target, bool(record.captured), move.source)
+            self.play_sound()
             # S2-7 配套：题目模式下先判对错。答错时 `_judge_puzzle` 已经把棋退回去并
             # 自己刷新过了，这里直接返回，避免再走进 AI / 终局提示分支。
-            if not self._judge_puzzle(move):return
-            self.refresh();
-            if self.game.state.finished:self.add_ai_taunt("defeat")
-            if not self.game.state.finished and self.config.get("game_mode","ai")=="ai":self.start_ai()
-        except GameError as exc:QMessageBox.warning(self,dl("非法走棋"),str(exc))
+            if not self._judge_puzzle(move):
+                return
+            self.refresh()
+            if self.game.state.finished:
+                self.add_ai_taunt("defeat")
+            elif self.config.get("game_mode", "ai") == "ai":
+                scene = self._swing_scene()
+                if scene:
+                    self.add_ai_taunt(scene)
+            if not self.game.state.finished and self.config.get("game_mode", "ai") == "ai":
+                self.start_ai()
+        except GameError as exc:
+            QMessageBox.warning(self, dl("非法走棋"), str(exc))
 
     def maybe_show_onboarding(self) -> None:
         """首跑引导：状态栏显示三步说明，只显示一次。
@@ -288,13 +518,15 @@ class MainWindow(QMainWindow):
         """
         if self.config.get("onboarded"):
             return
-        text="  ·  ".join([
-            dl("① 选对手：右侧面板有人机 / 双人 / 联机"),
-            dl("② 走一步：点自己的棋子，再点落点"),
-            dl("③ 卡住了：训练里有每日一题，做题时状态栏有提示"),
-        ])
-        self.statusBar().showMessage(text,15000)
-        self.config["onboarded"]=True
+        text = "  ·  ".join(
+            [
+                dl("① 选对手：右侧面板有人机 / 双人 / 联机"),
+                dl("② 走一步：点自己的棋子，再点落点"),
+                dl("③ 卡住了：训练里有每日一题，做题时状态栏有提示"),
+            ]
+        )
+        self.statusBar().showMessage(text, 15000)
+        self.config["onboarded"] = True
         save_config(self.config)
 
     def show_puzzle_hint(self) -> None:
@@ -303,35 +535,41 @@ class MainWindow(QMainWindow):
         走法提示直接落状态栏而不是弹框：解题过程中弹框会打断思路，
         而且玩家往往只想瞄一眼。
         """
-        session=self.puzzle_session
-        if session is None:return
-        hint=session.staged_hint()
-        if hint is None:return
-        kind,text=hint
-        english=self.config.get("language","zh-CN")=="en"
-        if kind=="piece":
-            name=t(f"piece_name.{text}",self.config.get("language","zh-CN")) if text else ""
-            message=(dlf("先看这一枚：{name}", name=name) if not english else f"Look at this piece: {name}")
+        session = self.puzzle_session
+        if session is None:
+            return
+        hint = session.staged_hint()
+        if hint is None:
+            return
+        kind, text = hint
+        english = self.config.get("language", "zh-CN") == "en"
+        if kind == "piece":
+            name = t(f"piece_name.{text}", self.config.get("language", "zh-CN")) if text else ""
+            message = dlf("先看这一枚：{name}", name=name) if not english else f"Look at this piece: {name}"
             self.hint_button.setText(dl("再看落点") if not english else "Where to")
         else:
-            message=(text or (dl("没有更多提示") if not english else "No more hints"))
+            message = text or (dl("没有更多提示") if not english else "No more hints")
             self.hint_button.setText(dl("提示") if not english else "Hint")
-        self.statusBar().showMessage(message,10000)
+        self.statusBar().showMessage(message, 10000)
 
     def _record_daily_start(self) -> None:
         """打开每日题时惰性归零：昨天没做完就断在这里，不写定时任务。"""
-        if self.puzzle_session is None:return
-        record=daily_quiz.DailyRecord.from_dict(self.config.get("daily"))
-        updated=daily_quiz.start_today(record,datetime.date.today(),self.puzzle_session.puzzle)
-        self.config["daily"]=updated.to_dict();save_config(self.config)
+        if self.puzzle_session is None:
+            return
+        record = daily_quiz.DailyRecord.from_dict(self.config.get("daily"))
+        updated = daily_quiz.start_today(record, datetime.date.today(), self.puzzle_session.puzzle)
+        self.config["daily"] = updated.to_dict()
+        save_config(self.config)
 
     def _record_daily_solve(self, puzzle) -> None:
         """过关才涨连续天数；同一天重解不涨（`solve_today` 里已按 `done` 判过）。"""
-        record=daily_quiz.DailyRecord.from_dict(self.config.get("daily"))
-        updated=daily_quiz.solve_today(record,datetime.date.today(),puzzle)
-        self.config["daily"]=updated.to_dict();save_config(self.config)
+        record = daily_quiz.DailyRecord.from_dict(self.config.get("daily"))
+        updated = daily_quiz.solve_today(record, datetime.date.today(), puzzle)
+        self.config["daily"] = updated.to_dict()
+        save_config(self.config)
         self.statusBar().showMessage(
-            t("desktop.daily_streak",self.config.get("language","zh-CN"),count=updated.streak),8000)
+            t("desktop.daily_streak", self.config.get("language", "zh-CN"), count=updated.streak), 8000
+        )
 
     def _judge_puzzle(self, move: Move) -> bool:
         """判定训练题的一手棋。返回 False 表示答错且已回退（调用方不要再刷新）。
@@ -339,54 +577,87 @@ class MainWindow(QMainWindow):
         判定本身在 `desktop/training.py`（纯逻辑、有单测）；这里只负责三件界面的事：
         答错时把棋退回去、按尝试次数给更强的提示、过关时收尾。
         """
-        session=self.puzzle_session
-        if session is None:return True
-        lang=self.config.get("language","zh-CN");english=lang=="en"
-        verdict=session.submit(move)
-        if verdict==puzzle_judge.VERDICT_WRONG:
+        session = self.puzzle_session
+        if session is None:
+            return True
+        lang = self.config.get("language", "zh-CN")
+        english = lang == "en"
+        verdict = session.submit(move)
+        if verdict == puzzle_judge.VERDICT_WRONG:
             # `Game.move` 在落子前压栈，所以 undo(1) 正好回到题面；多步题也只退一手，
             # 已解出的前几手保留。
-            try:self.game.undo(1)
-            except GameError:pass
-            self.board.set_game(self.game,self.game.state.turn,True);self.board.locked=False
-            hint=session.next_hint()
-            detail=((dl("提示：")+hint) if hint else "") if not english else (("Hint: "+hint) if hint else "")
-            QMessageBox.information(self,"再想想" if not english else "Not quite",
-                                    ("这不是正解，棋已退回。\n" if not english else "That is not the solution; the move was taken back.\n")+detail)
+            try:
+                self.game.undo(1)
+            except GameError:
+                pass
+            self.board.set_game(self.game, self.game.state.turn, True)
+            self.board.locked = False
+            hint = session.next_hint()
+            detail = ((dl("提示：") + hint) if hint else "") if not english else (("Hint: " + hint) if hint else "")
+            QMessageBox.information(
+                self,
+                "再想想" if not english else "Not quite",
+                ("这不是正解，棋已退回。\n" if not english else "That is not the solution; the move was taken back.\n")
+                + detail,
+            )
             self.refresh()
             return False
-        if verdict==puzzle_judge.VERDICT_SOLVED:
-            title=session.puzzle.title
-            stars=session.stars
-            rating="★"*stars+"☆"*(3-stars)
-            if self.puzzle_is_daily:self._record_daily_solve(session.puzzle)
-            self.puzzle_session=None;self.puzzle_is_daily=False;self.hint_button.hide()
-            QMessageBox.information(self,"过关" if not english else "Solved",
-                                    (f"正解！《{title}》已解出。\n\n{rating}  "
-                                     f"（错 {session.attempts} 次 · 用提示 {session._hints_shown} 次）"
-                                     if not english else
-                                     f"Correct — “{title}” solved.\n\n{rating}  "
-                                     f"({session.attempts} misses · {session._hints_shown} hints)"))
-            self.statusBar().showMessage("训练完成，可继续自由对弈" if not english else "Training complete; free play resumed",8000)
+        if verdict == puzzle_judge.VERDICT_SOLVED:
+            title = session.puzzle.title
+            stars = session.stars
+            rating = "★" * stars + "☆" * (3 - stars)
+            if self.puzzle_is_daily:
+                self._record_daily_solve(session.puzzle)
+            self.puzzle_session = None
+            self.puzzle_is_daily = False
+            self.hint_button.hide()
+            QMessageBox.information(
+                self,
+                "过关" if not english else "Solved",
+                (
+                    f"正解！《{title}》已解出。\n\n{rating}  "
+                    f"（错 {session.attempts} 次 · 用提示 {session._hints_shown} 次）"
+                    if not english
+                    else f"Correct — “{title}” solved.\n\n{rating}  "
+                    f"({session.attempts} misses · {session._hints_shown} hints)"
+                ),
+            )
+            self.statusBar().showMessage(
+                "训练完成，可继续自由对弈" if not english else "Training complete; free play resumed", 8000
+            )
             return True
         # 交替序列：玩家走对之后，对手的被迫应着由程序**自动落**（不判分、不提示）。
         # 多步题的强度来自"对手最优抵抗"，所以 `solution` 是交替的：偶数下标归玩家，
         # 奇数下标归对手。少了这一步，多步题会在第二步就把对手的应着当成玩家的答案。
-        reply=session.auto_reply
+        reply = session.auto_reply
         if reply is not None:
-            try:self.game.move(reply)
-            except GameError:pass
+            try:
+                self.game.move(reply)
+            except GameError:
+                pass
             session.advance_auto()
-            self.board.set_game(self.game,self.game.state.turn,True);self.board.locked=False
+            self.board.set_game(self.game, self.game.state.turn, True)
+            self.board.locked = False
         self.statusBar().showMessage(
-            (f"正解，继续第 {session.player_index}/{session.player_total} 手" if not english
-             else f"Correct — move {session.player_index}/{session.player_total}"),5000)
+            (
+                f"正解，继续第 {session.player_index}/{session.player_total} 手"
+                if not english
+                else f"Correct — move {session.player_index}/{session.player_total}"
+            ),
+            5000,
+        )
         return True
 
+    def _configured_difficulty(self) -> Difficulty:
+        """配置里的档位字符串 → 枚举；旧档先归一，非法值防御性回落中级。"""
+        try:
+            return Difficulty(normalize_difficulty(str(self.config.get("difficulty", "medium"))))
+        except ValueError:
+            return Difficulty.MEDIUM
+
     def _begin_thinking(self) -> None:
-        """起表：预算**只**从 `CONFIGS` 读，前端不写第二份时长。"""
-        difficulty = Difficulty(self.config.get("difficulty", "medium"))
-        self.board.begin_thinking(CONFIGS[difficulty].time_limit)
+        """起表：读条分母来自 `EXPECTED_MOVE_SECONDS`（中位耗时），不是 cap。"""
+        self.board.begin_thinking(EXPECTED_MOVE_SECONDS[self._configured_difficulty()])
         self.thinking_timer.start()
 
     def _end_thinking(self) -> None:
@@ -397,16 +668,21 @@ class MainWindow(QMainWindow):
         self.board.update()
 
     def start_ai(self) -> None:
-        if self.board.locked or self.game.state.finished or self.game.state.paused:return
-        self.board.locked=True;self._begin_thinking()
+        if self.board.locked or self.game.state.finished or self.game.state.paused:
+            return
+        self.board.locked = True
+        self._begin_thinking()
         # 看门狗：worker 万一**不发任何信号**（崩溃、卡死在原生代码），棋盘会永久锁死。
         # 用一个单次定时器兜底，到点走**与正常结束同一条**收尾路径。
         # 世代号防止"上一次的看门狗"误伤新一局。
         self._ai_generation = getattr(self, "_ai_generation", 0) + 1
         generation = self._ai_generation
-        limit_ms = int(CONFIGS[Difficulty(self.config.get("difficulty", "medium"))].time_limit * 1000)
-        QTimer.singleShot(limit_ms + AI_WATCHDOG_GRACE_MS, lambda: self._ai_watchdog(generation))
-        worker=AIWorker(self.game,self.config["difficulty"],self.cancel);worker.signals.finished.connect(self.finish_ai);worker.signals.failed.connect(self.ai_failed);self.pool.start(worker)
+        limit_ms = int(WATCHDOG_SECONDS[self._configured_difficulty()] * 1000)
+        QTimer.singleShot(limit_ms, lambda: self._ai_watchdog(generation))
+        worker = AIWorker(self.game, self.config["difficulty"], self.cancel)
+        worker.signals.finished.connect(self.finish_ai)
+        worker.signals.failed.connect(self.ai_failed)
+        self.pool.start(worker)
 
     def _release_ai(self) -> None:
         """AI 收尾的**唯一**出口：停读条、解锁、重绘。
@@ -420,17 +696,18 @@ class MainWindow(QMainWindow):
 
     def _ai_watchdog(self, generation: int) -> None:
         if getattr(self, "_ai_generation", 0) != generation:
-            return                     # 这一局已经正常结束了
+            return  # 这一局已经正常结束了
         if not self.board.locked:
             return
         # 先置取消位：迟到的 worker 结果会在 `finish_ai` 里被丢弃，不会在超时后又走一步。
         self.cancel.set()
         self._release_ai()
         self.statusBar().showMessage(
-            "AI 思考超时，已解除锁定" if self.config.get("language") != "en" else "AI timed out, board unlocked", 6000)
+            "AI 思考超时，已解除锁定" if self.config.get("language") != "en" else "AI timed out, board unlocked", 6000
+        )
 
     def finish_ai(self, result: tuple[Move | None, threading.Event]) -> None:
-        move,cancel=result
+        move, cancel = result
         # 读条必须在**每个出口**停掉并归零：成功 / move is None / 取消都一样，
         # 否则取消后条会一直往前爬（预算耗尽了也不会自己归零）。
         # 读条必须在**每个出口**停掉：取消路径甚至不进入下面的解锁分支，
@@ -440,8 +717,22 @@ class MainWindow(QMainWindow):
             return
         try:
             if move:
-                record=self.game.move(move);self.board.animate_move(move.target,bool(record.captured),move.source);self.play_sound();scene="victory" if self.game.state.finished else ("check" if self.game.rules.in_check(self.game.state,self.game.state.turn) else ("opening" if len(self.game.state.history)<=2 else None));self.add_ai_taunt(scene)
-        except GameError as exc:self.ai_failed(str(exc));return
+                record = self.game.move(move)
+                self.board.animate_move(move.target, bool(record.captured), move.source)
+                self.play_sound()
+                if self.game.state.finished:
+                    scene = "victory"
+                else:
+                    # 优先级：局势波动 > 将军 > 开局寒暄（终局已在上面单列）。
+                    scene = self._swing_scene() or (
+                        "check"
+                        if self.game.rules.in_check(self.game.state, self.game.state.turn)
+                        else ("opening" if len(self.game.state.history) <= 2 else None)
+                    )
+                self.add_ai_taunt(scene)
+        except GameError as exc:
+            self.ai_failed(str(exc))
+            return
         self._release_ai()
 
     def _append_chat(self, text: str) -> None:
@@ -455,27 +746,76 @@ class MainWindow(QMainWindow):
             self.chat_messages.takeItem(0)
         self.chat_messages.scrollToBottom()
 
+    def _reset_taunt_ledger(self) -> None:
+        """每局重置台词账本与 AI 评估基线（与 `core.taunts` 的"每局"口径对齐）。"""
+        self._taunt_total = 0
+        self._taunt_by_scene = {}
+        self._taunt_last_ply = None
+        self._taunt_last_text = ""
+        self._last_ai_eval = 0.0
+        game = getattr(self, "game", None)
+        if game is not None and self.config.get("game_mode", "ai") == "ai":
+            self._last_ai_eval = self._ai_eval(game)
+
+    def _ai_eval(self, game: Game) -> float:
+        return ChessAI(Difficulty.BEGINNER)._evaluate(game, Color(self.config["human_color"]).opponent)
+
+    def _swing_scene(self) -> str | None:
+        """本步 AI 视角评估变化 ≥2 兵 → check（变好）/ defeat（变差）；并更新基线。"""
+        if self.config.get("game_mode", "ai") != "ai":
+            return None
+        current = self._ai_eval(self.game)
+        scene = swing_scene(self._last_ai_eval, current)
+        self._last_ai_eval = current
+        return scene
+
+    def _resync_ai_eval(self) -> None:
+        """悔棋/复活会改变局面但不属于"一手"：只重同步基线，不触发台词。"""
+        if self.game and self.config.get("game_mode", "ai") == "ai":
+            self._last_ai_eval = self._ai_eval(self.game)
+
     def add_ai_taunt(self, scene: str | None) -> None:
-        if not scene or not self.config.get("taunts",True):return
-        sender="Xionghan AI" if self.config.get("language")=="en" else "匈汉棋灵"
-        self._append_chat(f"{sender}：{choose_taunt(scene)}")
+        if not scene or not self.config.get("taunts", True):
+            return
+        if not self.game:
+            return
+        lang = self.config.get("language", "zh-CN")
+        plies = len(self.game.state.history)
+        text = select_taunt(
+            scene,
+            lang,
+            f"{self.game.profile.id}:{plies}:{scene}:{self._taunt_total}",
+            [self._taunt_last_text] if self._taunt_last_text else [],
+        )
+        allowed, _reason = taunt_allowed(
+            scene, plies, self._taunt_total, self._taunt_by_scene, self._taunt_last_ply, self._taunt_last_text, text
+        )
+        if not allowed or text is None:
+            return
+        self._taunt_total += 1
+        self._taunt_by_scene[scene] = self._taunt_by_scene.get(scene, 0) + 1
+        self._taunt_last_ply = plies
+        self._taunt_last_text = text
+        sender = "Xionghan AI" if lang.startswith("en") else "匈汉棋灵"
+        self._append_chat(f"{sender}：{text}")
 
     def ai_failed(self, result: object) -> None:
-        message,cancel=result if isinstance(result,tuple) else (str(result),self.cancel)
+        message, cancel = result if isinstance(result, tuple) else (str(result), self.cancel)
         self._end_thinking()
         self._end_thinking()
         if cancel.is_set():
             return
         self._release_ai()
-        QMessageBox.warning(self,dl("AI 异常"),message)
+        QMessageBox.warning(self, dl("AI 异常"), message)
+
     def _side_button(self, kind: str, text: str) -> QPushButton:
         """图标按钮：不显示文字，说明放 tooltip 与无障碍名，宽度跟随栅格拉伸。"""
-        button=QPushButton()
+        button = QPushButton()
         button.setText("")
         button.setFixedHeight(40)
         button.setMinimumWidth(0)
         button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        button.setIconSize(QSize(22,22))
+        button.setIconSize(QSize(22, 22))
         button.setToolTip(text)
         button.setAccessibleName(text)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -483,76 +823,148 @@ class MainWindow(QMainWindow):
 
     def _refresh_action_icons(self) -> None:
         """按当前调色板重画图标 —— 换主题后不能留深色底上的深色线条。"""
-        buttons=getattr(self,"_action_buttons",[])
+        buttons = getattr(self, "_action_buttons", [])
         if not buttons:
             return
-        color=self.palette().color(QPalette.ColorRole.WindowText)
-        paused=getattr(getattr(self,"game",None),"state",None)
-        paused=bool(paused.paused) if paused is not None else False
-        for button,kind in buttons:
+        color = self.palette().color(QPalette.ColorRole.WindowText)
+        paused = getattr(getattr(self, "game", None), "state", None)
+        paused = bool(paused.paused) if paused is not None else False
+        for button, kind in buttons:
             actual = ("resume" if paused else "pause") if kind == "pause" else kind
-            button.setIcon(action_icon(actual,color))
+            button.setIcon(action_icon(actual, color))
             if kind == "pause":
-                label=t("action.resume" if paused else "action.pause",self.config.get("language","zh-CN"))
+                label = t("action.resume" if paused else "action.pause", self.config.get("language", "zh-CN"))
                 button.setToolTip(label)
                 button.setAccessibleName(label)
+
     def play_sound(self) -> None:
-        if not self.game or not self.game.state.history:return
-        record=self.game.state.history[-1]
-        if self.game.state.finished:self.audio.play("win" if self.game.state.winner is Color(self.config["human_color"]) else "lose")
-        elif self.game.rules.in_check(self.game.state,self.game.state.turn):self.audio.play("check")
+        if not self.game or not self.game.state.history:
+            return
+        record = self.game.state.history[-1]
+        if self.game.state.finished:
+            self.audio.play("win" if self.game.state.winner is Color(self.config["human_color"]) else "lose")
+        elif self.game.rules.in_check(self.game.state, self.game.state.turn):
+            self.audio.play("check")
         else:
             self.audio.play("capture" if record.captured else "move")
             # D3：吃大子额外喊一声。普通吃子（兵/士/相）保持安静 ——
             # 每次都喊等于没喊，只在大子被吃时才值得打断注意力。
             if record.captured and is_big_capture([piece.type.value for piece in record.captured]):
-                names="、".join(t(f"piece_name.{piece.type.value}",self.config.get("language","zh-CN")) for piece in record.captured)
-                self.statusBar().showMessage(dlf("吃掉{names}！",names=names),3000)
+                names = "、".join(
+                    t(f"piece_name.{piece.type.value}", self.config.get("language", "zh-CN"))
+                    for piece in record.captured
+                )
+                self.statusBar().showMessage(dlf("吃掉{names}！", names=names), 3000)
+
     def undo_move(self) -> None:
-        if self.network:self.send_network("undo_request");return
+        if self.network:
+            self.send_network("undo_request")
+            return
         # S2-7 配套：题目模式下悔棋＝重做这道题，进度一律归零。
         # 必须先重置再悔棋 —— 答错的棋已经被退回过，此时 `undo` 会因无可退而抛错，
         # 若把重置放在后面就会被提前 return 跳过（实测 attempts 会停在 2）。
         # 多步题也适用：退一手后 cursor 必须回到 0，否则之后每一手都判错。
-        if self.puzzle_session is not None:self.puzzle_session.reset()
-        try:self.cancel.set();plies=1 if self.config.get("game_mode")=="local" else (2 if len(self.game.state.history)>=2 else 1);self.game.undo(plies);self.cancel=threading.Event();self.board.locked=False
-        except GameError as exc:QMessageBox.information(self,dl("悔棋"),str(exc));self.refresh();return
-        self.refresh()
-    def toggle_pause(self) -> None:
-        if not self.game or self.game.state.finished:return
-        if self.network:self.send_network("pause",{"paused":not self.game.state.paused});return
+        if self.puzzle_session is not None:
+            self.puzzle_session.reset()
         try:
-            pausing=not self.game.state.paused
-            if pausing:self.cancel.set();self.board.locked=False
-            self.game.set_paused(pausing,Color(self.config["human_color"]));self.cancel=threading.Event();self.refresh()
-            if not pausing and self.config.get("game_mode")=="ai" and self.game.state.turn is not Color(self.config["human_color"]):self.start_ai()
-        except GameError as exc:QMessageBox.information(self,dl("暂停"),str(exc))
+            self.cancel.set()
+            plies = 1 if self.config.get("game_mode") == "local" else (2 if len(self.game.state.history) >= 2 else 1)
+            self.game.undo(plies)
+            self.cancel = threading.Event()
+            self.board.locked = False
+        except GameError as exc:
+            QMessageBox.information(self, dl("悔棋"), str(exc))
+            self.refresh()
+            return
+        self.refresh()
+        self._resync_ai_eval()
+
+    def toggle_pause(self) -> None:
+        if not self.game or self.game.state.finished:
+            return
+        if self.network:
+            self.send_network("pause", {"paused": not self.game.state.paused})
+            return
+        try:
+            pausing = not self.game.state.paused
+            if pausing:
+                self.cancel.set()
+                self.board.locked = False
+            self.game.set_paused(pausing, Color(self.config["human_color"]))
+            self.cancel = threading.Event()
+            self.refresh()
+            if (
+                not pausing
+                and self.config.get("game_mode") == "ai"
+                and self.game.state.turn is not Color(self.config["human_color"])
+            ):
+                self.start_ai()
+        except GameError as exc:
+            QMessageBox.information(self, dl("暂停"), str(exc))
+
     def resign_game(self) -> None:
-        if self.network:self.send_network("resign");return
+        if self.network:
+            self.send_network("resign")
+            return
         # 阶段0 S0-D：认输是「不可逆的破坏性操作」，与同文件 draw_game（提和）保持对称，
         # 也修正与 Web 端已交付「认输二次确认」的行为不一致。误点一下不再毁掉一局。
-        if QMessageBox.question(self,dl("认输"),dl("确认认输并结束当前对局？"))!=QMessageBox.StandardButton.Yes:return
-        color=self.game.state.turn if self.config.get("game_mode")=="local" else Color(self.config["human_color"]);self.game.resign(color);self.refresh()
+        if QMessageBox.question(self, dl("认输"), dl("确认认输并结束当前对局？")) != QMessageBox.StandardButton.Yes:
+            return
+        color = self.game.state.turn if self.config.get("game_mode") == "local" else Color(self.config["human_color"])
+        self.game.resign(color)
+        self.refresh()
+
     def draw_game(self) -> None:
-        if self.network:self.send_network("draw_offer");return
-        if QMessageBox.question(self,dl("提和"),dl("确认以和棋结束当前对局？"))==QMessageBox.StandardButton.Yes:self.game.state.draw=True;self.game.state.result_reason="draw_agreement";self.refresh()
+        if self.network:
+            self.send_network("draw_offer")
+            return
+        if self.config.get("game_mode") != "ai":
+            # 本地双人：没有协商对象，保留"确认即和"的旧语义。
+            if QMessageBox.question(self, dl("提和"), dl("确认以和棋结束当前对局？")) == QMessageBox.StandardButton.Yes:
+                self.game.state.draw = True
+                self.game.state.result_reason = "draw_agreement"
+                self.refresh()
+            return
+        # AI 模式：此前是"点一下立刻和棋"——玩家在任何回合都能单方面终局，且 AI 没有表态。
+        # 现在与 Web 端一致：只能在自己回合提和，由 AI 用 core 的唯一判定决定接不接受。
+        human = Color(self.config["human_color"])
+        try:
+            self.game.offer_draw(human)
+        except GameError as exc:
+            QMessageBox.information(self, dl("提和"), str(exc))
+            return
+        ai_color = human.opponent
+        accept = should_accept_draw(self.game, ai_color)
+        self.game.respond_draw(ai_color, accept)
+        self.refresh()
+        if not accept:
+            self.add_ai_taunt("draw_declined")
 
     def replay_game(self) -> None:
         if not self.game or not self.game.state.history:
             QMessageBox.information(self, dl("复盘"), dl("当前棋局还没有棋谱"))
             return
-        ReplayDialog(self.game,self.config,self).exec()
+        ReplayDialog(self.game, self.config, self).exec()
+
     def resurrect_pawn(self) -> None:
-        color=self.game.state.turn if self.config.get("game_mode")=="local" else Color(self.config["human_color"])
+        color = self.game.state.turn if self.config.get("game_mode") == "local" else Color(self.config["human_color"])
         # Read the rank off the profile's own pawn slots instead of hard coding
         # 8/4; `traditional` (10x9) keeps its pawns on row 6.
-        row=next((spec.row for spec in self.game.profile.pieces if spec.type is PieceType.PAWN and spec.color is color),8 if color is Color.RED else 4)
-        for col in range(0,self.game.profile.cols,2):
-            try:self.game.resurrect_pawn(color,Position(row,col));self.refresh();
-            except GameError:continue
-            if self.config.get("game_mode","ai")=="ai":self.start_ai()
+        row = next(
+            (spec.row for spec in self.game.profile.pieces if spec.type is PieceType.PAWN and spec.color is color),
+            8 if color is Color.RED else 4,
+        )
+        for col in range(0, self.game.profile.cols, 2):
+            try:
+                self.game.resurrect_pawn(color, Position(row, col))
+                self.refresh()
+                self._resync_ai_eval()
+            except GameError:
+                continue
+            if self.config.get("game_mode", "ai") == "ai":
+                self.start_ai()
             return
-        QMessageBox.information(self,dl("复活"),dl("当前没有可用的兵卒复活位置"))
+        QMessageBox.information(self, dl("复活"), dl("当前没有可用的兵卒复活位置"))
 
     # S1-9：这些设置会改变「规则/对局结构」—— 改了必然要重开一局。
     # 其余设置（主题/字体/语言/音量/翻转/辅助提示…）只是界面差异，应当保留当前对局。
@@ -562,13 +974,14 @@ class MainWindow(QMainWindow):
 
     def settings(self, tab: int = 0, standalone: bool = False) -> None:
         """打开设置。`standalone=True` 时只显示该页（菜单三个入口走这条）。"""
-        dialog=SettingsDialog(self.config,self,initial_tab=int(tab),standalone=standalone)
-        if not dialog.exec():return
+        dialog = SettingsDialog(self.config, self, initial_tab=int(tab), standalone=standalone)
+        if not dialog.exec():
+            return
         self._apply_settings(dialog.value())
 
     def show_piece_atlas(self) -> None:
         """帮助 → 棋子图谱（与设置里「预览三风格」同一个窗口）。"""
-        PieceAtlasDialog(self.config,self,self.apply_piece_style,self.new_game).exec()
+        PieceAtlasDialog(self.config, self, self.apply_piece_style, self.new_game).exec()
 
     def apply_piece_style(self, style: str) -> None:
         """棋子美术风格**即时生效**：不重开对局、不重建界面。
@@ -582,15 +995,17 @@ class MainWindow(QMainWindow):
         """
         glyph = style == GLYPH_STYLE_DATA
         if glyph:
-            self.config["piece_style"]="glyph"
-            self.config["piece_render"]="glyph"
+            self.config["piece_style"] = "glyph"
+            self.config["piece_render"] = "glyph"
         else:
-            self.config["piece_style"]=style
-            self.config["piece_render"]="image"
-        save_config(self.config);self.configure_board();self.board.update()
-        lang=self.config.get("language","zh-CN")
-        name=t("desktop.atlas_glyph_mode", lang) if glyph else t(f"option.piece_{style}", lang)
-        self.statusBar().showMessage(t("desktop.atlas_switched", lang, style=name),5000)
+            self.config["piece_style"] = style
+            self.config["piece_render"] = "image"
+        save_config(self.config)
+        self.configure_board()
+        self.board.update()
+        lang = self.config.get("language", "zh-CN")
+        name = t("desktop.atlas_glyph_mode", lang) if glyph else t(f"option.piece_{style}", lang)
+        self.statusBar().showMessage(t("desktop.atlas_switched", lang, style=name), 5000)
 
     def _apply_settings(self, new_config: dict[str, object]) -> None:
         """应用新配置（S1-9）：只在「规则会变」时重开对局，否则保留当前对局。
@@ -598,44 +1013,58 @@ class MainWindow(QMainWindow):
         从 settings() 拆出来，便于**不弹对话框**地验证（桌面端此前没这个能力）。
         原实现无条件 `_build() + new_game()`，改个主题或音量都会丢掉整局。
         """
-        previous=self.config
-        self.config=new_config;save_config(self.config);self.audio.configure(self.config);self.audio.set_sound_pack(str(self.config.get("sound_pack","classic")), audition=True)
-        self.setWindowTitle(t("app.name", self.config.get("language","zh-CN")))
-        breaking=settings_differ_in_game_breaking_keys(previous,self.config)
-        preserved=None if breaking else getattr(self,"game",None)
+        previous = self.config
+        self.config = new_config
+        save_config(self.config)
+        self.audio.configure(self.config)
+        self.audio.set_sound_pack(str(self.config.get("sound_pack", "classic")), audition=True)
+        self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
+        breaking = settings_differ_in_game_breaking_keys(previous, self.config)
+        preserved = None if breaking else getattr(self, "game", None)
         # 记账/存档/结果弹窗的哨兵必须原样带回，否则 refresh() 会重复记账、重弹结果
-        sentinels=(getattr(self,"_stats_recorded",False),getattr(self,"_autosaved",False),getattr(self,"_shown_result",False))
+        sentinels = (
+            getattr(self, "_stats_recorded", False),
+            getattr(self, "_autosaved", False),
+            getattr(self, "_shown_result", False),
+        )
         self.menuBar().clear()
-        old=self.centralWidget()
-        if old:old.deleteLater()
+        old = self.centralWidget()
+        if old:
+            old.deleteLater()
         self._build()
         if preserved is None or preserved.state is None:
-            self.new_game()          # 规则变了（或本来就没有对局）→ 必须新开
+            self.new_game()  # 规则变了（或本来就没有对局）→ 必须新开
         else:
-            self._reattach_game(preserved,sentinels)
+            self._reattach_game(preserved, sentinels)
 
     def _reattach_game(self, game: Game, sentinels: tuple[bool, bool, bool]) -> None:
         """S1-9：UI 重建后把进行中的对局接回新控件 —— 不重开、不重复记账、不重弹结果。"""
-        self.game=game
-        human=Color(self.config["human_color"]);local=self.config.get("game_mode","ai")=="local"
+        self.game = game
+        human = Color(self.config["human_color"])
+        local = self.config.get("game_mode", "ai") == "local"
         self._reset_ui_cache()
-        self.board.set_game(game,human,local)
+        self.board.set_game(game, human, local)
         self.configure_board()
         # 联机时棋盘由服务器快照驱动，重建后不应变成可交互
-        self.board.locked=bool(self.network)
-        self._stats_recorded,self._autosaved,self._shown_result=sentinels
+        self.board.locked = bool(self.network)
+        self._stats_recorded, self._autosaved, self._shown_result = sentinels
         self.refresh()
 
     def apply_appearance(self) -> None:
-        if not hasattr(self,"board"):return
+        if not hasattr(self, "board"):
+            return
         # P1-J：语言在这里落地 —— 设置变更后 `_apply_settings()` 会重建界面，
         # 重建期间所有 dl()/dlf() 都读这个状态。
-        set_language(self.config.get("language","zh-CN"))
-        palette=theme.THEMES.get(self.config.get("theme","classic"),theme.THEMES["classic"]);font=theme.FONT_CHOICES.get(self.config.get("font","system"),theme.UI_FONT)
-        QApplication.instance().setFont(QFont(font,10));self.configure_board()
-        text="#f3ead7" if self.config.get("theme")=="dark" else "#211b17"
-        hover="#4a433b" if self.config.get("theme")=="dark" else "#f1dfbf"
-        self.setStyleSheet(f"""QMainWindow,#root{{background:{palette['window']};color:{text}}}QMenuBar,QMenu,QToolBar{{background:{palette['panel']};color:{text};border-bottom:1px solid {palette['line']};padding:5px}}#banner{{background:{palette['banner_bg']};color:{palette['banner_fg']};padding:8px;font-weight:bold;font-size:15px}}QListWidget,QLabel,QFrame,QGroupBox,QComboBox,QSpinBox,QLineEdit{{background:{palette['panel']};color:{text};border:1px solid {palette['line']};padding:7px}}QPushButton{{min-height:35px;background:{palette['panel']};color:{text};border:1px solid {palette['line']}}}QPushButton:disabled{{color:{palette['disabled_fg']};background:{palette['disabled_bg']};border:1px solid {palette['line']}}}QPushButton:hover{{background:{hover}}}QPushButton:focus{{border:2px solid {palette['banner_bg']}}}QListWidget:focus,QLineEdit:focus,QComboBox:focus{{border:2px solid {palette['banner_bg']}}}""")
+        set_language(self.config.get("language", "zh-CN"))
+        palette = theme.THEMES.get(self.config.get("theme", "classic"), theme.THEMES["classic"])
+        font = theme.FONT_CHOICES.get(self.config.get("font", "system"), theme.UI_FONT)
+        QApplication.instance().setFont(QFont(font, 10))
+        self.configure_board()
+        text = "#f3ead7" if self.config.get("theme") == "dark" else "#211b17"
+        hover = "#4a433b" if self.config.get("theme") == "dark" else "#f1dfbf"
+        self.setStyleSheet(
+            f"""QMainWindow,#root{{background:{palette["window"]};color:{text}}}QMenuBar,QMenu,QToolBar{{background:{palette["panel"]};color:{text};border-bottom:1px solid {palette["line"]};padding:5px}}#banner{{background:{palette["banner_bg"]};color:{palette["banner_fg"]};padding:8px;font-weight:bold;font-size:15px}}QListWidget,QLabel,QFrame,QGroupBox,QComboBox,QSpinBox,QLineEdit{{background:{palette["panel"]};color:{text};border:1px solid {palette["line"]};padding:7px}}QPushButton{{min-height:35px;background:{palette["panel"]};color:{text};border:1px solid {palette["line"]}}}QPushButton:disabled{{color:{palette["disabled_fg"]};background:{palette["disabled_bg"]};border:1px solid {palette["line"]}}}QPushButton:hover{{background:{hover}}}QPushButton:focus{{border:2px solid {palette["banner_bg"]}}}QListWidget:focus,QLineEdit:focus,QComboBox:focus{{border:2px solid {palette["banner_bg"]}}}"""
+        )
 
     def _report_audio_failure(self, message: str) -> None:
         """P1-S：音效加载/播放失败时在状态栏说一句。
@@ -646,40 +1075,67 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(prefix + message, 10000)
 
     def configure_board(self) -> None:
-        self.board.language=self.config.get("language","zh-CN")
-        self.board.set_appearance(self.config.get("theme","classic"),str(self.config.get("background","none")),self.config.get("piece_style","traditional"),self.config.get("piece_render","glyph"))
-        self.board.set_assists(selection=self.config.get("selection_highlight",True),legal_targets=self.config.get("legal_targets",True),capture_hints=self.config.get("capture_hints",True),animations=self.config.get("animations",True))
-        self.board.set_flipped(self.config.get("flipped",False))
+        self.board.language = self.config.get("language", "zh-CN")
+        self.board.set_appearance(
+            self.config.get("theme", "classic"),
+            str(self.config.get("background", "none")),
+            self.config.get("piece_style", "traditional"),
+            self.config.get("piece_render", "glyph"),
+        )
+        self.board.set_assists(
+            selection=self.config.get("selection_highlight", True),
+            legal_targets=self.config.get("legal_targets", True),
+            capture_hints=self.config.get("capture_hints", True),
+            animations=self.config.get("animations", True),
+        )
+        self.board.set_flipped(self.config.get("flipped", False))
 
     def current_setup(self) -> dict[str, object]:
-        selected=self.config.get("setup_slots",{}).get(self.config["profile"],{})
-        return {"firstMove":self.config.get("first_move","red"),"redSlots":selected.get("red"),"blackSlots":selected.get("black")}
+        selected = self.config.get("setup_slots", {}).get(self.config["profile"], {})
+        return {
+            "firstMove": self.config.get("first_move", "red"),
+            "redSlots": selected.get("red"),
+            "blackSlots": selected.get("black"),
+        }
 
     def configure_handicap(self) -> None:
-        selected=self.config.get("setup_slots",{}).get(self.config["profile"])
-        dialog=HandicapDialog(self.config["profile"],self.config.get("rule_options",{}),selected,self)
-        if dialog.exec():self.config.setdefault("setup_slots",{})[self.config["profile"]]=dialog.value();save_config(self.config);self.new_game()
+        selected = self.config.get("setup_slots", {}).get(self.config["profile"])
+        dialog = HandicapDialog(self.config["profile"], self.config.get("rule_options", {}), selected, self)
+        if dialog.exec():
+            self.config.setdefault("setup_slots", {})[self.config["profile"]] = dialog.value()
+            save_config(self.config)
+            self.new_game()
 
     def flip_board(self) -> None:
-        self.config["flipped"]=not self.config.get("flipped",False);save_config(self.config);self.board.set_flipped(self.config["flipped"])
+        self.config["flipped"] = not self.config.get("flipped", False)
+        save_config(self.config)
+        self.board.set_flipped(self.config["flipped"])
 
     def show_training(self) -> None:
-        dialog=TrainingDialog(self)
+        dialog = TrainingDialog(self)
         if dialog.exec() and dialog.selected_game:
             # P1-L：**不要**写 `self.config["profile"]`。训练题自带 profile（可能是
             # traditional 的 10×9），一旦写进全局配置，玩家做完一道题再开新局就会
             # 静默变成那道题的盘型；联机建房、让子设置也会跟着串。
             # 题目的盘型由 `self.game.profile` 承担，与用户自己的偏好配置无关。
-            self.close_network();self.game=dialog.selected_game;self.config["game_mode"]="local";self._reset_ui_cache();self.board.set_game(self.game,Color.RED,True);self.configure_board()
+            self.close_network()
+            self.game = dialog.selected_game
+            self.config["game_mode"] = "local"
+            self._reset_ui_cache()
+            self.board.set_game(self.game, Color.RED, True)
+            self.configure_board()
             # S2-7 配套：带上题目本身，之后每一手都要对答案。
-            self.puzzle_session=puzzle_judge.session_for(dialog.selected_puzzle)
+            self.puzzle_session = puzzle_judge.session_for(dialog.selected_puzzle)
             # 只有走「每日一题」入口才更新连续天数；从列表里挑同一道题不算。
-            self.puzzle_is_daily=getattr(dialog,"started_daily",False)
-            if self.puzzle_is_daily:self._record_daily_start()
-            self.hint_button.setText(dl("提示"));self.hint_button.show()
+            self.puzzle_is_daily = getattr(dialog, "started_daily", False)
+            if self.puzzle_is_daily:
+                self._record_daily_start()
+            self.hint_button.setText(dl("提示"))
+            self.hint_button.show()
             # 训练棋不是正式对局：既不进战绩，也不往棋谱库塞一条两步的「棋谱」。
             # 这两个标志是 refresh() 里「终局才记账/才自动存」的开关，置 True 即抑制。
-            self._stats_recorded=True;self._autosaved=True
+            self._stats_recorded = True
+            self._autosaved = True
             self.refresh()
 
     def toggle_fullscreen(self) -> None:
@@ -689,60 +1145,110 @@ class MainWindow(QMainWindow):
         self.side.setVisible(not self.side.isVisible())
 
     def export_game(self) -> None:
-        if not self.game:return
-        path,_=QFileDialog.getSaveFileName(self,dl("导出棋局"),str(games_dir() / dl("当前棋局.xhgame")),dl("匈汉棋谱 (*.xhgame);;JSON (*.json)"))
-        if not path:return
-        if not Path(path).suffix:path += ".xhgame"
-        try:save_game(self.game,path);self.statusBar().showMessage(dlf("棋局已保存：{path}", path=path),5000)
-        except Exception as exc:QMessageBox.warning(self,dl("导出失败"),str(exc))
+        if not self.game:
+            return
+        path, _ = QFileDialog.getSaveFileName(
+            self, dl("导出棋局"), str(games_dir() / dl("当前棋局.xhgame")), dl("匈汉棋谱 (*.xhgame);;JSON (*.json)")
+        )
+        if not path:
+            return
+        if not Path(path).suffix:
+            path += ".xhgame"
+        try:
+            save_game(self.game, path)
+            self.statusBar().showMessage(dlf("棋局已保存：{path}", path=path), 5000)
+        except Exception as exc:
+            QMessageBox.warning(self, dl("导出失败"), str(exc))
 
     def import_game(self) -> None:
         # load_game accepts current documents and legacy .fen content.
-        path,_=QFileDialog.getOpenFileName(self,dl("导入棋局"),str(games_dir()),dl("匈汉棋谱 (*.xhgame *.fen *.json)"))
-        if not path:return
+        path, _ = QFileDialog.getOpenFileName(
+            self, dl("导入棋局"), str(games_dir()), dl("匈汉棋谱 (*.xhgame *.fen *.json)")
+        )
+        if not path:
+            return
         self.load_game_path(Path(path))
 
     def load_game_path(self, path: Path) -> None:
         try:
-            game=load_game(path);self.close_network();self.cancel.set();self.cancel=threading.Event();self.game=game;self.puzzle_session=None;self.puzzle_is_daily=False;self._reset_ui_cache();self.config["profile"]=game.profile.id;self.config["rule_options"]=asdict(game.options);save_config(self.config);self.board.set_game(game,Color(self.config["human_color"]),self.config.get("game_mode","ai")=="local");self.configure_board();self._stats_recorded=game.state.finished;self._autosaved=game.state.finished;self.refresh();self.statusBar().showMessage(dlf("已载入：{path}", path=path),5000)
-        except Exception as exc:QMessageBox.warning(self,dl("导入失败"),str(exc))
+            game = load_game(path)
+            self.close_network()
+            self.cancel.set()
+            self.cancel = threading.Event()
+            self.game = game
+            self.puzzle_session = None
+            self.puzzle_is_daily = False
+            self._reset_ui_cache()
+            self.config["profile"] = game.profile.id
+            self.config["rule_options"] = asdict(game.options)
+            save_config(self.config)
+            self.board.set_game(game, Color(self.config["human_color"]), self.config.get("game_mode", "ai") == "local")
+            self.configure_board()
+            self._stats_recorded = game.state.finished
+            self._autosaved = game.state.finished
+            self.refresh()
+            self.statusBar().showMessage(dlf("已载入：{path}", path=path), 5000)
+        except Exception as exc:
+            QMessageBox.warning(self, dl("导入失败"), str(exc))
 
     def show_game_library(self) -> None:
-        dialog=GameLibraryDialog(games_dir(),self.config,self)
-        if dialog.exec() and dialog.selected_path:self.load_game_path(dialog.selected_path)
+        dialog = GameLibraryDialog(games_dir(), self.config, self)
+        if dialog.exec() and dialog.selected_path:
+            self.load_game_path(dialog.selected_path)
 
     def open_autosave_folder(self) -> None:
-        folder=games_dir()
-        try:os.startfile(folder)
-        except OSError as exc:QMessageBox.warning(self,dl("打开目录失败"),str(exc))
+        folder = games_dir()
+        try:
+            os.startfile(folder)
+        except OSError as exc:
+            QMessageBox.warning(self, dl("打开目录失败"), str(exc))
 
     def show_statistics(self) -> None:
-        lang=self.config.get("language","zh-CN")
-        stats=load_statistics();rate=(stats["wins"]*100/stats["games"]) if stats["games"] else 0
-        total_seconds=stats["totalTimeMs"]//1000;fastest_seconds=stats["fastestWinMs"]//1000
-        details=f"\n{t('statistics.total_time', lang)}：{total_seconds//60}:{total_seconds%60:02d}\n{t('statistics.fastest_win', lang)}：{fastest_seconds//60}:{fastest_seconds%60:02d}\n{t('statistics.max_streak', lang)}：{stats['winStreak']['max']}"
-        box=QMessageBox(self);box.setWindowTitle("对局统计" if lang!="en" else "Statistics");box.setText(f"{t('statistics.total_games', lang)}：{stats['games']}\n{t('statistics.wins', lang)}：{stats['wins']}  {t('statistics.losses', lang)}：{stats['losses']}  {t('statistics.draws', lang)}：{stats['draws']}\n{t('statistics.moves', lang)}：{stats['moves']}\n{t('statistics.win_rate', lang)}：{rate:.1f}%{details}");reset=box.addButton(t("action.reset_statistics", lang),QMessageBox.ButtonRole.DestructiveRole);box.addButton(QMessageBox.StandardButton.Close);box.exec()
-        if box.clickedButton() is reset and QMessageBox.question(self,"确认" if lang!="en" else "Confirm",t("dialog.confirm_reset_stats", lang))==QMessageBox.StandardButton.Yes:reset_statistics()
+        lang = self.config.get("language", "zh-CN")
+        stats = load_statistics()
+        rate = (stats["wins"] * 100 / stats["games"]) if stats["games"] else 0
+        total_seconds = stats["totalTimeMs"] // 1000
+        fastest_seconds = stats["fastestWinMs"] // 1000
+        details = f"\n{t('statistics.total_time', lang)}：{total_seconds // 60}:{total_seconds % 60:02d}\n{t('statistics.fastest_win', lang)}：{fastest_seconds // 60}:{fastest_seconds % 60:02d}\n{t('statistics.max_streak', lang)}：{stats['winStreak']['max']}"
+        box = QMessageBox(self)
+        box.setWindowTitle("对局统计" if lang != "en" else "Statistics")
+        box.setText(
+            f"{t('statistics.total_games', lang)}：{stats['games']}\n{t('statistics.wins', lang)}：{stats['wins']}  {t('statistics.losses', lang)}：{stats['losses']}  {t('statistics.draws', lang)}：{stats['draws']}\n{t('statistics.moves', lang)}：{stats['moves']}\n{t('statistics.win_rate', lang)}：{rate:.1f}%{details}"
+        )
+        reset = box.addButton(t("action.reset_statistics", lang), QMessageBox.ButtonRole.DestructiveRole)
+        box.addButton(QMessageBox.StandardButton.Close)
+        box.exec()
+        if (
+            box.clickedButton() is reset
+            and QMessageBox.question(self, "确认" if lang != "en" else "Confirm", t("dialog.confirm_reset_stats", lang))
+            == QMessageBox.StandardButton.Yes
+        ):
+            reset_statistics()
 
     def show_rules(self) -> None:
-        lang=self.config.get("language","zh-CN")
-        if lang=="en":
-            DocumentDialog(t("dialog.rules_title", lang),t("docs.rules", lang),self).exec();return
-        DocumentDialog(t("dialog.rules_title", lang),theme.read_docs("PIECE_RULES.md",dl("规则文档")),self).exec()
+        lang = self.config.get("language", "zh-CN")
+        if lang == "en":
+            DocumentDialog(t("dialog.rules_title", lang), t("docs.rules", lang), self).exec()
+            return
+        DocumentDialog(t("dialog.rules_title", lang), theme.read_docs("PIECE_RULES.md", dl("规则文档")), self).exec()
 
     def show_help(self) -> None:
-        lang=self.config.get("language","zh-CN")
-        if lang=="en":
-            DocumentDialog(t("dialog.help_title", lang),t("docs.help", lang),self).exec();return
-        DocumentDialog(t("dialog.help_title", lang),theme.read_docs("HELP.md",dl("帮助文档")),self).exec()
+        lang = self.config.get("language", "zh-CN")
+        if lang == "en":
+            DocumentDialog(t("dialog.help_title", lang), t("docs.help", lang), self).exec()
+            return
+        DocumentDialog(t("dialog.help_title", lang), theme.read_docs("HELP.md", dl("帮助文档")), self).exec()
 
     def show_about(self) -> None:
-        lang=self.config.get("language","zh-CN")
-        if lang=="en":
-            DocumentDialog(t("dialog.about_title", lang),t("docs.about", lang),self).exec();return
-        DocumentDialog(t("dialog.about_title", lang),
-                       theme.read_docs("ABOUT.md",dl("关于文档")).replace("{{VERSION}}", __version__),
-                       self).exec()
+        lang = self.config.get("language", "zh-CN")
+        if lang == "en":
+            DocumentDialog(t("dialog.about_title", lang), t("docs.about", lang), self).exec()
+            return
+        DocumentDialog(
+            t("dialog.about_title", lang),
+            theme.read_docs("ABOUT.md", dl("关于文档")).replace("{{VERSION}}", __version__),
+            self,
+        ).exec()
 
     def check_updates(self) -> None:
         """帮助 → 检查更新（S2-3）：只查版本、只开下载页，**不做静默自更新**。
@@ -760,79 +1266,206 @@ class MainWindow(QMainWindow):
         def present(payload: object) -> None:
             result = version_check.evaluate(payload, __version__)
             if result.status == version_check.STATUS_ERROR:
-                QMessageBox.warning(self, "检查更新失败" if not english else "Update check failed",
-                                    ("更新信息无法解析，请稍后再试。" if not english
-                                     else "Could not read the update manifest."))
+                QMessageBox.warning(
+                    self,
+                    "检查更新失败" if not english else "Update check failed",
+                    ("更新信息无法解析，请稍后再试。" if not english else "Could not read the update manifest."),
+                )
                 return
             info = result.info
             if result.status == version_check.STATUS_UPDATE and info is not None:
                 box = QMessageBox(self)
                 box.setWindowTitle("发现新版本" if not english else "Update available")
-                box.setText((f"当前版本 {__version__}，最新版本 {info.label}"
-                             if not english else f"Current {__version__}, latest {info.label}"))
+                box.setText(
+                    (
+                        f"当前版本 {__version__}，最新版本 {info.label}"
+                        if not english
+                        else f"Current {__version__}, latest {info.label}"
+                    )
+                )
                 if info.notes:
                     box.setInformativeText(info.notes[:500])
-                open_button = box.addButton("打开下载页" if not english else "Open download page",
-                                            QMessageBox.ButtonRole.AcceptRole)
+                open_button = box.addButton(
+                    "打开下载页" if not english else "Open download page", QMessageBox.ButtonRole.AcceptRole
+                )
                 box.addButton("以后再说" if not english else "Later", QMessageBox.ButtonRole.RejectRole)
                 box.exec()
                 if box.clickedButton() is open_button:
                     QDesktopServices.openUrl(QUrl(info.url or version_check.DOWNLOAD_PAGE))
                 return
-            QMessageBox.information(self, "已是最新版本" if not english else "Up to date",
-                                    (f"当前版本 {__version__} 已是最新。" if not english
-                                     else f"You are on the latest version ({__version__})."))
+            QMessageBox.information(
+                self,
+                "已是最新版本" if not english else "Up to date",
+                (
+                    f"当前版本 {__version__} 已是最新。"
+                    if not english
+                    else f"You are on the latest version ({__version__})."
+                ),
+            )
 
         def failed(message: str) -> None:
-            QMessageBox.warning(self, "检查更新失败" if not english else "Update check failed",
-                                ("没能连上更新服务器：\n" if not english
-                                 else "Could not reach the update server:\n") + str(message))
+            QMessageBox.warning(
+                self,
+                "检查更新失败" if not english else "Update check failed",
+                ("没能连上更新服务器：\n" if not english else "Could not reach the update server:\n") + str(message),
+            )
 
         self._request_json_async(version_check.RELEASES_URL, on_done=present, on_error=failed)
 
     def account_sync(self) -> None:
-        base=self.config.get("server_url","http://127.0.0.1:8000").rstrip("/");token=self.config.get("account_token","")
+        base = self.config.get("server_url", "http://127.0.0.1:8000").rstrip("/")
+        token = self.config.get("account_token", "")
         try:
             if not token:
-                mode,ok=QInputDialog.getItem(self,dl("账号"),dl("选择操作"),[dl("登录"),dl("注册")],0,False)
-                if not ok:return
-                username,ok=QInputDialog.getText(self,dl("账号"),dl("用户名"))
-                if not ok:return
-                password,ok=QInputDialog.getText(self,dl("账号"),dl("密码"),QLineEdit.EchoMode.Password)
-                if not ok:return
-                display=username
-                if mode==dl("注册"):display,_=QInputDialog.getText(self,dl("账号"),dl("显示名称"),QLineEdit.EchoMode.Normal,username)
-                data=self.request_json(base+("/api/auth/register" if mode==dl("注册") else "/api/auth/login"),{"username":username,"password":password,"displayName":display},"POST")
-                cloud_to_desktop={"boardTheme":"theme","pageBackground":"background","pieceStyle":"piece_style","font":"font","language":"language","flipped":"flipped","musicStyle":"music_style","volume":"sound_volume","animation":"animations","selection":"selection_highlight","legalTargets":"legal_targets","captureHints":"capture_hints","autosave":"autosave","initialMinutes":"initial_minutes","countdownSeconds":"countdown_seconds"}
-                self.config["account_token"]=data["token"];self.config["account_display_name"]=data["account"]["displayName"];self.config["account_avatar_url"]=data["account"].get("avatarUrl","")
-                for cloud_key,value in data.get("preferences",{}).items():
-                    local_key=cloud_to_desktop.get(cloud_key,cloud_key)
-                    if local_key in self.config:self.config[local_key]=value
-                save_config(self.config);QMessageBox.information(self,dl("账号"),dlf("已登录：{name}", name=data['account']['displayName']));return
-            action,ok=QInputDialog.getItem(self,dl("云同步"),dl("选择操作"),[dl("修改资料与头像"),dl("上传当前棋局"),dl("同步外观偏好"),dl("查看云端棋谱"),dl("退出登录")],0,False)
-            if not ok:return
-            if action==dl("退出登录"):self.request_json(base+"/api/auth/logout",{},"POST",token);self.config["account_token"]="";save_config(self.config);return
-            if action==dl("修改资料与头像"):
-                current=self.request_json(base+"/api/me",None,"GET",token)["account"]
-                display,ok=QInputDialog.getText(self,dl("账号资料"),dl("显示名称"),QLineEdit.EchoMode.Normal,current["displayName"])
-                if not ok or not display.strip():return
-                choices=[dl("默认头像"),*[dlf("内置头像 {index}", index=index+1) for index in range(len(BUILTIN_AVATARS))],dl("外部 URL")]
-                choice,ok=QInputDialog.getItem(self,dl("账号头像"),dl("选择头像"),choices,0,False)
-                if not ok:return
-                if choice==dl("外部 URL"):avatar,_=QInputDialog.getText(self,dl("账号头像"),dl("头像 URL"),QLineEdit.EchoMode.Normal,current.get("avatarUrl","") if current.get("avatarUrl","").startswith("http") else "")
-                elif choice==dl("默认头像"):avatar=""
-                else:avatar=f"builtin:{BUILTIN_AVATARS[choices.index(choice)-1]}"
-                updated=self.request_json(base+"/api/me/profile",{"displayName":display.strip(),"avatarUrl":avatar.strip()},"PUT",token)["account"]
-                self.config["account_display_name"]=updated["displayName"];self.config["account_avatar_url"]=updated.get("avatarUrl","");save_config(self.config);self.refresh();return
-            if action==dl("上传当前棋局"):
-                if not self.game:return
-                self.request_json(base+"/api/me/games",{"document":game_document(self.game),"title":dlf("{profile} · {plies} 手", profile=self.game.profile.title, plies=len(self.game.state.history))},"POST",token);QMessageBox.information(self,dl("云同步"),dl("当前棋局已上传"))
-            elif action==dl("同步外观偏好"):
-                mapping={"boardTheme":"theme","pageBackground":"background","pieceStyle":"piece_style","font":"font","language":"language","flipped":"flipped","musicStyle":"music_style","volume":"sound_volume","animation":"animations","selection":"selection_highlight","legalTargets":"legal_targets","captureHints":"capture_hints","autosave":"autosave","initialMinutes":"initial_minutes","countdownSeconds":"countdown_seconds"}
-                preferences={cloud:self.config.get(local) for cloud,local in mapping.items()};self.request_json(base+"/api/me/preferences",{"preferences":preferences},"PUT",token);QMessageBox.information(self,dl("云同步"),dl("偏好设置已同步"))
+                mode, ok = QInputDialog.getItem(self, dl("账号"), dl("选择操作"), [dl("登录"), dl("注册")], 0, False)
+                if not ok:
+                    return
+                username, ok = QInputDialog.getText(self, dl("账号"), dl("用户名"))
+                if not ok:
+                    return
+                password, ok = QInputDialog.getText(self, dl("账号"), dl("密码"), QLineEdit.EchoMode.Password)
+                if not ok:
+                    return
+                display = username
+                if mode == dl("注册"):
+                    display, _ = QInputDialog.getText(
+                        self, dl("账号"), dl("显示名称"), QLineEdit.EchoMode.Normal, username
+                    )
+                data = self.request_json(
+                    base + ("/api/auth/register" if mode == dl("注册") else "/api/auth/login"),
+                    {"username": username, "password": password, "displayName": display},
+                    "POST",
+                )
+                cloud_to_desktop = {
+                    "boardTheme": "theme",
+                    "pageBackground": "background",
+                    "pieceStyle": "piece_style",
+                    "font": "font",
+                    "language": "language",
+                    "flipped": "flipped",
+                    "musicStyle": "music_style",
+                    "volume": "sound_volume",
+                    "animation": "animations",
+                    "selection": "selection_highlight",
+                    "legalTargets": "legal_targets",
+                    "captureHints": "capture_hints",
+                    "autosave": "autosave",
+                    "initialMinutes": "initial_minutes",
+                    "countdownSeconds": "countdown_seconds",
+                }
+                self.config["account_token"] = data["token"]
+                self.config["account_display_name"] = data["account"]["displayName"]
+                self.config["account_avatar_url"] = data["account"].get("avatarUrl", "")
+                for cloud_key, value in data.get("preferences", {}).items():
+                    local_key = cloud_to_desktop.get(cloud_key, cloud_key)
+                    if local_key in self.config:
+                        self.config[local_key] = value
+                save_config(self.config)
+                QMessageBox.information(self, dl("账号"), dlf("已登录：{name}", name=data["account"]["displayName"]))
+                return
+            action, ok = QInputDialog.getItem(
+                self,
+                dl("云同步"),
+                dl("选择操作"),
+                [dl("修改资料与头像"), dl("上传当前棋局"), dl("同步外观偏好"), dl("查看云端棋谱"), dl("退出登录")],
+                0,
+                False,
+            )
+            if not ok:
+                return
+            if action == dl("退出登录"):
+                self.request_json(base + "/api/auth/logout", {}, "POST", token)
+                self.config["account_token"] = ""
+                save_config(self.config)
+                return
+            if action == dl("修改资料与头像"):
+                current = self.request_json(base + "/api/me", None, "GET", token)["account"]
+                display, ok = QInputDialog.getText(
+                    self, dl("账号资料"), dl("显示名称"), QLineEdit.EchoMode.Normal, current["displayName"]
+                )
+                if not ok or not display.strip():
+                    return
+                choices = [
+                    dl("默认头像"),
+                    *[dlf("内置头像 {index}", index=index + 1) for index in range(len(BUILTIN_AVATARS))],
+                    dl("外部 URL"),
+                ]
+                choice, ok = QInputDialog.getItem(self, dl("账号头像"), dl("选择头像"), choices, 0, False)
+                if not ok:
+                    return
+                if choice == dl("外部 URL"):
+                    avatar, _ = QInputDialog.getText(
+                        self,
+                        dl("账号头像"),
+                        dl("头像 URL"),
+                        QLineEdit.EchoMode.Normal,
+                        current.get("avatarUrl", "") if current.get("avatarUrl", "").startswith("http") else "",
+                    )
+                elif choice == dl("默认头像"):
+                    avatar = ""
+                else:
+                    avatar = f"builtin:{BUILTIN_AVATARS[choices.index(choice) - 1]}"
+                updated = self.request_json(
+                    base + "/api/me/profile",
+                    {"displayName": display.strip(), "avatarUrl": avatar.strip()},
+                    "PUT",
+                    token,
+                )["account"]
+                self.config["account_display_name"] = updated["displayName"]
+                self.config["account_avatar_url"] = updated.get("avatarUrl", "")
+                save_config(self.config)
+                self.refresh()
+                return
+            if action == dl("上传当前棋局"):
+                if not self.game:
+                    return
+                self.request_json(
+                    base + "/api/me/games",
+                    {
+                        "document": game_document(self.game),
+                        "title": dlf(
+                            "{profile} · {plies} 手",
+                            profile=self.game.profile.title,
+                            plies=len(self.game.state.history),
+                        ),
+                    },
+                    "POST",
+                    token,
+                )
+                QMessageBox.information(self, dl("云同步"), dl("当前棋局已上传"))
+            elif action == dl("同步外观偏好"):
+                mapping = {
+                    "boardTheme": "theme",
+                    "pageBackground": "background",
+                    "pieceStyle": "piece_style",
+                    "font": "font",
+                    "language": "language",
+                    "flipped": "flipped",
+                    "musicStyle": "music_style",
+                    "volume": "sound_volume",
+                    "animation": "animations",
+                    "selection": "selection_highlight",
+                    "legalTargets": "legal_targets",
+                    "captureHints": "capture_hints",
+                    "autosave": "autosave",
+                    "initialMinutes": "initial_minutes",
+                    "countdownSeconds": "countdown_seconds",
+                }
+                preferences = {cloud: self.config.get(local) for cloud, local in mapping.items()}
+                self.request_json(base + "/api/me/preferences", {"preferences": preferences}, "PUT", token)
+                QMessageBox.information(self, dl("云同步"), dl("偏好设置已同步"))
             else:
-                games=self.request_json(base+"/api/me/games",None,"GET",token);DocumentDialog(dl("云端棋谱"),"\n".join(f"{item['title']} · {dl('已收藏') if item['favorite'] else dl('未收藏')}" for item in games) or dl("暂无云端棋谱"),self).exec()
-        except Exception as exc:QMessageBox.warning(self,dl("云同步失败"),str(exc))
+                games = self.request_json(base + "/api/me/games", None, "GET", token)
+                DocumentDialog(
+                    dl("云端棋谱"),
+                    "\n".join(
+                        f"{item['title']} · {dl('已收藏') if item['favorite'] else dl('未收藏')}" for item in games
+                    )
+                    or dl("暂无云端棋谱"),
+                    self,
+                ).exec()
+        except Exception as exc:
+            QMessageBox.warning(self, dl("云同步失败"), str(exc))
 
     @staticmethod
     def request_json(url: str, payload: object = None, method: str = "GET", token: str = "") -> object:
@@ -846,124 +1479,294 @@ class MainWindow(QMainWindow):
         return net.request_json(url, payload, method, token)
 
     def server_base(self) -> str | None:
-        lang=self.config.get("language","zh-CN")
-        value,ok=QInputDialog.getText(self,"服务器地址" if lang!="en" else "Server URL","FastAPI 服务地址" if lang!="en" else "FastAPI server URL",QLineEdit.EchoMode.Normal,self.config.get("server_url","http://127.0.0.1:8000"))
-        if not ok:return None
-        self.config["server_url"]=value.rstrip("/");save_config(self.config);return self.config["server_url"]
+        lang = self.config.get("language", "zh-CN")
+        value, ok = QInputDialog.getText(
+            self,
+            "服务器地址" if lang != "en" else "Server URL",
+            "FastAPI 服务地址" if lang != "en" else "FastAPI server URL",
+            QLineEdit.EchoMode.Normal,
+            self.config.get("server_url", "http://127.0.0.1:8000"),
+        )
+        if not ok:
+            return None
+        self.config["server_url"] = value.rstrip("/")
+        save_config(self.config)
+        return self.config["server_url"]
 
-    def _request_json_async(self, url: str, payload: object = None, method: str = "GET",
-                            token: str = "", on_done: Callable[[object], None] | None = None,
-                            on_error: Callable[[str], None] | None = None) -> None:
+    def _request_json_async(
+        self,
+        url: str,
+        payload: object = None,
+        method: str = "GET",
+        token: str = "",
+        on_done: Callable[[object], None] | None = None,
+        on_error: Callable[[str], None] | None = None,
+    ) -> None:
         """阶段0 S0-C：把阻塞 HTTP 请求移到 QThreadPool，避免 GUI 冻结（urlopen timeout 15s）。
 
         on_done(data) / on_error(message) 都经 Signal 回到 **GUI 线程**执行
         （跨线程发射 + AutoConnection，Qt 官方语义）。用法与 start_ai 同一模式。
         """
-        worker=HttpWorker(url,payload,method,token)
-        if on_done is not None:worker.signals.finished.connect(on_done)
-        if on_error is not None:worker.signals.failed.connect(on_error)
-        else:worker.signals.failed.connect(lambda message:QMessageBox.warning(self,dl("网络请求失败"),str(message)))
+        worker = HttpWorker(url, payload, method, token)
+        if on_done is not None:
+            worker.signals.finished.connect(on_done)
+        if on_error is not None:
+            worker.signals.failed.connect(on_error)
+        else:
+            worker.signals.failed.connect(lambda message: QMessageBox.warning(self, dl("网络请求失败"), str(message)))
         self.pool.start(worker)
 
     def create_online(self) -> None:
-        base=self.server_base()
-        if not base:return
-        setup=self.current_setup();lang=self.config.get("language","zh-CN")
-        name=self.config.get("account_display_name") or ("桌面玩家" if lang!="en" else "Desktop Player")
-        payload={"profileId":self.config["profile"],"mode":"online","playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"playerColor":self.config["human_color"],"options":self.config.get("rule_options",{}),"initialMinutes":self.config["initial_minutes"],"language":lang,"firstMove":setup["firstMove"],"redSlots":setup["redSlots"],"blackSlots":setup["blackSlots"],"tauntsEnabled":self.config.get("taunts",True),"ruleVersion":RULE_VERSION}
+        base = self.server_base()
+        if not base:
+            return
+        setup = self.current_setup()
+        lang = self.config.get("language", "zh-CN")
+        name = self.config.get("account_display_name") or ("桌面玩家" if lang != "en" else "Desktop Player")
+        payload = {
+            "profileId": self.config["profile"],
+            "mode": "online",
+            "playerName": name,
+            "avatarUrl": self.config.get("account_avatar_url", ""),
+            "playerColor": self.config["human_color"],
+            "options": self.config.get("rule_options", {}),
+            "initialMinutes": self.config["initial_minutes"],
+            "language": lang,
+            "firstMove": setup["firstMove"],
+            "redSlots": setup["redSlots"],
+            "blackSlots": setup["blackSlots"],
+            "tauntsEnabled": self.config.get("taunts", True),
+            "ruleVersion": RULE_VERSION,
+        }
+
         def _created(data: dict[str, object]) -> None:
-            self.open_network(base,data)
-            QMessageBox.information(self,"房间已创建" if lang!="en" else "Room created",f"{'房间号' if lang!='en' else 'Room code'}：{data['roomId']}")
+            self.open_network(base, data)
+            QMessageBox.information(
+                self,
+                "房间已创建" if lang != "en" else "Room created",
+                f"{'房间号' if lang != 'en' else 'Room code'}：{data['roomId']}",
+            )
+
         # 阶段0 S0-C：建连请求移到线程池 —— 服务不可达时窗口不再冻结最长 15s
-        self._request_json_async(base+"/api/rooms",payload,"POST",on_done=_created,
-            on_error=lambda message:QMessageBox.warning(self,"创建失败" if lang!="en" else "Create failed",str(message)))
+        self._request_json_async(
+            base + "/api/rooms",
+            payload,
+            "POST",
+            on_done=_created,
+            on_error=lambda message: QMessageBox.warning(
+                self, "创建失败" if lang != "en" else "Create failed", str(message)
+            ),
+        )
 
     def join_online(self) -> None:
-        base=self.server_base()
-        if not base:return
-        lang=self.config.get("language","zh-CN")
-        room,ok=QInputDialog.getText(self,"加入房间" if lang!="en" else "Join room","房间号" if lang!="en" else "Room code")
-        if not ok or not room:return
-        name=self.config.get("account_display_name") or ("桌面玩家" if lang!="en" else "Desktop Player")
-        def _joined(data: dict[str, object]) -> None:self.open_network(base,data)
+        base = self.server_base()
+        if not base:
+            return
+        lang = self.config.get("language", "zh-CN")
+        room, ok = QInputDialog.getText(
+            self, "加入房间" if lang != "en" else "Join room", "房间号" if lang != "en" else "Room code"
+        )
+        if not ok or not room:
+            return
+        name = self.config.get("account_display_name") or ("桌面玩家" if lang != "en" else "Desktop Player")
+
+        def _joined(data: dict[str, object]) -> None:
+            self.open_network(base, data)
+
         # 阶段0 S0-C：建连请求移到线程池 —— 服务不可达时窗口不再冻结最长 8s
-        self._request_json_async(f"{base}/api/rooms/{room.strip().upper()}/join",{"playerName":name,"avatarUrl":self.config.get("account_avatar_url",""),"language":lang,"ruleVersion":RULE_VERSION},"POST",on_done=_joined,
-            on_error=lambda message:QMessageBox.warning(self,"加入失败" if lang!="en" else "Join failed",str(message)))
+        self._request_json_async(
+            f"{base}/api/rooms/{room.strip().upper()}/join",
+            {
+                "playerName": name,
+                "avatarUrl": self.config.get("account_avatar_url", ""),
+                "language": lang,
+                "ruleVersion": RULE_VERSION,
+            },
+            "POST",
+            on_done=_joined,
+            on_error=lambda message: QMessageBox.warning(
+                self, "加入失败" if lang != "en" else "Join failed", str(message)
+            ),
+        )
 
     def spectate_online(self) -> None:
-        base=self.server_base()
-        if not base:return
-        room,ok=QInputDialog.getText(self,dl("观战房间"),dl("房间号"))
-        if not ok or not room:return
-        def _spectating(data: dict[str, object]) -> None:self.open_network(base,data,True)
+        base = self.server_base()
+        if not base:
+            return
+        room, ok = QInputDialog.getText(self, dl("观战房间"), dl("房间号"))
+        if not ok or not room:
+            return
+
+        def _spectating(data: dict[str, object]) -> None:
+            self.open_network(base, data, True)
+
         # 阶段0 S0-C：建连请求移到线程池
-        self._request_json_async(f"{base}/api/rooms/{room.strip().upper()}/spectate",{"displayName":dl("桌面观众")},"POST",on_done=_spectating,
-            on_error=lambda message:QMessageBox.warning(self,dl("观战失败"),str(message)))
+        self._request_json_async(
+            f"{base}/api/rooms/{room.strip().upper()}/spectate",
+            {"displayName": dl("桌面观众")},
+            "POST",
+            on_done=_spectating,
+            on_error=lambda message: QMessageBox.warning(self, dl("观战失败"), str(message)),
+        )
 
     def open_network(self, base: str, data: dict[str, object], spectator: bool = False) -> None:
-        self.cancel.set();self.network_base=base;self.room_id=data["roomId"];self.token=data["token"];self.spectator=spectator;self.revision=data["snapshot"]["revision"];self.network_reconnect_attempts=0;self.network_closing=False;self.apply_network_state(data["snapshot"]);self._connect_network()
+        self.cancel.set()
+        self.network_base = base
+        self.room_id = data["roomId"]
+        self.token = data["token"]
+        self.spectator = spectator
+        self.revision = data["snapshot"]["revision"]
+        self.network_reconnect_attempts = 0
+        self.network_closing = False
+        self.apply_network_state(data["snapshot"])
+        self._connect_network()
 
     def _connect_network(self) -> None:
-        if not self.room_id or not self.token or not self.network_base:return
-        lang=self.config.get("language","zh-CN");ws=net.ws_url(self.network_base,self.room_id,self.spectator)
-        socket=QWebSocket();self.network=socket;socket.textMessageReceived.connect(self.network_message);socket.connected.connect(lambda:self._network_connected(socket));socket.disconnected.connect(lambda:self._network_disconnected(socket));socket.open(QUrl(ws));self.statusBar().showMessage(f"{'房间' if lang!='en' else 'Room'} {self.room_id} · {'正在连接' if lang!='en' else 'Connecting'}")
+        if not self.room_id or not self.token or not self.network_base:
+            return
+        lang = self.config.get("language", "zh-CN")
+        ws = net.ws_url(self.network_base, self.room_id, self.spectator)
+        socket = QWebSocket()
+        self.network = socket
+        socket.textMessageReceived.connect(self.network_message)
+        socket.connected.connect(lambda: self._network_connected(socket))
+        socket.disconnected.connect(lambda: self._network_disconnected(socket))
+        socket.open(QUrl(ws))
+        self.statusBar().showMessage(
+            f"{'房间' if lang != 'en' else 'Room'} {self.room_id} · {'正在连接' if lang != 'en' else 'Connecting'}"
+        )
 
     def _network_connected(self, socket: QWebSocket) -> None:
-        if socket is not self.network:return
+        if socket is not self.network:
+            return
         # 首帧必须是 auth（token 不再放 URL）。
         socket.sendTextMessage(net.encode_auth(self.token))
-        self.network_reconnect_attempts=0;lang=self.config.get("language","zh-CN");self.statusBar().showMessage("网络已恢复" if lang!="en" else "Network restored",5000)
+        self.network_reconnect_attempts = 0
+        lang = self.config.get("language", "zh-CN")
+        self.statusBar().showMessage("网络已恢复" if lang != "en" else "Network restored", 5000)
 
     def _network_disconnected(self, socket: QWebSocket) -> None:
-        if socket is not self.network:return
-        code=int(socket.closeCode());socket.deleteLater();self.network=None;lang=self.config.get("language","zh-CN")
+        if socket is not self.network:
+            return
+        code = int(socket.closeCode())
+        socket.deleteLater()
+        self.network = None
+        lang = self.config.get("language", "zh-CN")
         # S1-1：终止条件判定下沉到 net.should_reconnect（纯函数，已被单测覆盖三种终止码）
-        if not net.should_reconnect(code,self.network_closing,self.room_id):
-            self.statusBar().showMessage("网络已断开" if lang!="en" else "Network disconnected");return
-        if self.network_reconnect_attempts>=net.MAX_RECONNECT_ATTEMPTS:
-            self.statusBar().showMessage("自动重连失败，请重新加入房间" if lang!="en" else "Reconnect failed; join the room again");return
-        delay=net.reconnect_delay(self.network_reconnect_attempts);self.network_reconnect_attempts+=1;self.statusBar().showMessage(f"{'网络中断，正在重连' if lang!='en' else 'Disconnected, reconnecting'} ({self.network_reconnect_attempts}/{net.MAX_RECONNECT_ATTEMPTS})");QTimer.singleShot(delay,self._connect_network)
+        if not net.should_reconnect(code, self.network_closing, self.room_id):
+            self.statusBar().showMessage("网络已断开" if lang != "en" else "Network disconnected")
+            return
+        if self.network_reconnect_attempts >= net.MAX_RECONNECT_ATTEMPTS:
+            self.statusBar().showMessage(
+                "自动重连失败，请重新加入房间" if lang != "en" else "Reconnect failed; join the room again"
+            )
+            return
+        delay = net.reconnect_delay(self.network_reconnect_attempts)
+        self.network_reconnect_attempts += 1
+        self.statusBar().showMessage(
+            f"{'网络中断，正在重连' if lang != 'en' else 'Disconnected, reconnecting'} ({self.network_reconnect_attempts}/{net.MAX_RECONNECT_ATTEMPTS})"
+        )
+        QTimer.singleShot(delay, self._connect_network)
 
     def network_message(self, text: str) -> None:
-        message=net.decode_message(text)
-        lang=self.config.get("language","zh-CN")
-        if message["type"]=="error":QMessageBox.warning(self,"服务器拒绝" if lang!="en" else "Server rejected",message["payload"]["message"]);self.apply_network_state(message["payload"].get("state",{}))
-        elif message["type"]=="chat":
-            payload=message["payload"]
-            if payload.get("automated") and not self.config.get("taunts",True):return
-            self._append_chat(f"{payload.get('sender',dl('玩家'))}：{payload.get('text','')}")
-        elif message["type"]=="state":
-            snapshot=message["payload"];game_data=snapshot["game"]
+        message = net.decode_message(text)
+        lang = self.config.get("language", "zh-CN")
+        if message["type"] == "error":
+            QMessageBox.warning(
+                self, "服务器拒绝" if lang != "en" else "Server rejected", message["payload"]["message"]
+            )
+            self.apply_network_state(message["payload"].get("state", {}))
+        elif message["type"] == "chat":
+            payload = message["payload"]
+            if payload.get("automated") and not self.config.get("taunts", True):
+                return
+            self._append_chat(f"{payload.get('sender', dl('玩家'))}：{payload.get('text', '')}")
+        elif message["type"] == "state":
+            snapshot = message["payload"]
+            game_data = snapshot["game"]
             self.apply_network_state(snapshot)
-            draw_key=(game_data.get("pendingDrawOffer"),len(game_data.get("history",[])))
-            if draw_key[0] and draw_key[0]!=self.config["human_color"] and draw_key!=self._handled_draw_offer:self._handled_draw_offer=draw_key;self.send_network("draw_response",{"accept":QMessageBox.question(self,t("action.draw", lang),t("dialog.pending_draw", lang))==QMessageBox.StandardButton.Yes})
-            undo_key=(game_data.get("pendingUndoOffer"),len(game_data.get("history",[])))
-            if undo_key[0] and undo_key[0]!=self.config["human_color"] and undo_key!=self._handled_undo_offer:self._handled_undo_offer=undo_key;self.send_network("undo_response",{"accept":QMessageBox.question(self,t("action.undo", lang),t("dialog.pending_undo", lang))==QMessageBox.StandardButton.Yes})
+            draw_key = (game_data.get("pendingDrawOffer"), len(game_data.get("history", [])))
+            if draw_key[0] and draw_key[0] != self.session_color.value and draw_key != self._handled_draw_offer:
+                self._handled_draw_offer = draw_key
+                self.send_network(
+                    "draw_response",
+                    {
+                        "accept": QMessageBox.question(self, t("action.draw", lang), t("dialog.pending_draw", lang))
+                        == QMessageBox.StandardButton.Yes
+                    },
+                )
+            undo_key = (game_data.get("pendingUndoOffer"), len(game_data.get("history", [])))
+            if undo_key[0] and undo_key[0] != self.session_color.value and undo_key != self._handled_undo_offer:
+                self._handled_undo_offer = undo_key
+                self.send_network(
+                    "undo_response",
+                    {
+                        "accept": QMessageBox.question(self, t("action.undo", lang), t("dialog.pending_undo", lang))
+                        == QMessageBox.StandardButton.Yes
+                    },
+                )
 
     def apply_network_state(self, snapshot: dict[str, object] | None) -> None:
-        if not snapshot:return
-        game_data=snapshot["game"];self.revision=snapshot["revision"];self.config["human_color"]=snapshot.get("youAre") or self.config["human_color"];self.network_players={item["color"]:item for item in snapshot.get("players",[])};self.puzzle_session=None;self.puzzle_is_daily=False;self.game=Game.from_state(GameState.from_dict(game_data),game_data["profile"]["options"],game_data.get("setup"));self._reset_ui_cache();replay=game_data.get("replay",[]);self.game._snapshots=[item for item in replay[:-1] if isinstance(item,dict)];self.board.set_game(self.game,Color(self.config["human_color"]),False);self.board.interactive=not self.spectator;self.configure_board();self.board.locked=False
-        if not self.game.state.history:self._stats_recorded=False;self._autosaved=False
-        lang=self.config.get("language","zh-CN")
-        self.statusBar().showMessage(f"{'房间' if lang!='en' else 'Room'} {snapshot['roomId']} · {'状态版本' if lang!='en' else 'revision'} {self.revision}");self.refresh()
+        if not snapshot:
+            return
+        if not should_accept_snapshot(self.room_id, self.revision, snapshot.get("roomId"), snapshot["revision"]):
+            return
+        game_data = snapshot["game"]
+        self.revision = snapshot["revision"]
+        self.config["human_color"] = snapshot.get("youAre") or self.config["human_color"]
+        self.network_players = {item["color"]: item for item in snapshot.get("players", [])}
+        self.puzzle_session = None
+        self.puzzle_is_daily = False
+        self.game = Game.from_state(
+            GameState.from_dict(game_data), game_data["profile"]["options"], game_data.get("setup")
+        )
+        self._reset_ui_cache()
+        replay = game_data.get("replay", [])
+        self.game._snapshots = [item for item in replay[:-1] if isinstance(item, dict)]
+        self.board.set_game(self.game, Color(self.config["human_color"]), False)
+        self.board.interactive = not self.spectator
+        self.configure_board()
+        self.board.locked = False
+        if not self.game.state.history:
+            self._stats_recorded = False
+            self._autosaved = False
+        lang = self.config.get("language", "zh-CN")
+        self.statusBar().showMessage(
+            f"{'房间' if lang != 'en' else 'Room'} {snapshot['roomId']} · {'状态版本' if lang != 'en' else 'revision'} {self.revision}"
+        )
+        self.refresh()
 
     def send_network(self, type_: str, payload: object = None) -> None:
-        if not self.network or not self.network.isValid():QMessageBox.information(self,dl("网络"),dl("连接尚未建立"));return
-        self.network.sendTextMessage(net.encode_message(type_,self.room_id,self.revision,payload))
+        if not self.network or not self.network.isValid():
+            QMessageBox.information(self, dl("网络"), dl("连接尚未建立"))
+            return
+        self.network.sendTextMessage(net.encode_message(type_, self.room_id, self.revision, payload))
 
     def send_chat(self, quick: bool = False) -> None:
         if not self.network:
-            QMessageBox.information(self,dl("聊天"),dl("聊天仅在联机房间中可用"))
+            QMessageBox.information(self, dl("聊天"), dl("聊天仅在联机房间中可用"))
             return
-        text=self.chat_quick.currentData() if quick else self.chat_input.text().strip()
-        if not text:return
-        self.send_network("chat",{"text":text,"quick":bool(quick)})
-        if not quick:self.chat_input.clear()
+        text = self.chat_quick.currentData() if quick else self.chat_input.text().strip()
+        if not text:
+            return
+        self.send_network("chat", {"text": text, "quick": bool(quick)})
+        if not quick:
+            self.chat_input.clear()
 
     def close_network(self) -> None:
-        self.network_closing=True;socket=self.network;self.network=None;self.room_id=None;self.token=None;self.network_base=None;self.spectator=False;self.network_reconnect_attempts=0
-        if socket:socket.close();socket.deleteLater()
-        if hasattr(self,"board"):self.board.interactive=True
+        self.network_closing = True
+        socket = self.network
+        self.network = None
+        self.room_id = None
+        self.token = None
+        self.network_base = None
+        self.spectator = False
+        self.network_reconnect_attempts = 0
+        if socket:
+            socket.close()
+            socket.deleteLater()
+        if hasattr(self, "board"):
+            self.board.interactive = True
 
     def refresh(self) -> None:
         """按需刷新界面（250ms 定时器回调）。
@@ -999,8 +1802,7 @@ class MainWindow(QMainWindow):
         elif state.paused:
             text = t("status.paused", lang)
         else:
-            text = t("status.turn", lang,
-                     color=t("common.red" if state.turn is Color.RED else "common.black", lang))
+            text = t("status.turn", lang, color=t("common.red" if state.turn is Color.RED else "common.black", lang))
             # 将军提到横幅：盘内那两个字在九宫附近常被棋子盖住，横幅是最稳的位置。
             # 用现成的 `status.check` + `status.turn` 拼接（两词条中英都已存在）。
             if self._check_state(state):
@@ -1010,8 +1812,11 @@ class MainWindow(QMainWindow):
         session = getattr(self, "puzzle_session", None)
         if session is not None:
             step = min(session.cursor + 1, session.total)
-            text += (f"　·　训练《{session.puzzle.title}》第 {step}/{session.total} 手" if lang != "en"
-                     else f"　·　Puzzle “{session.puzzle.title}” step {step}/{session.total}")
+            text += (
+                f"　·　训练《{session.puzzle.title}》第 {step}/{session.total} 手"
+                if lang != "en"
+                else f"　·　Puzzle “{session.puzzle.title}” step {step}/{session.total}"
+            )
         if self.banner.text() != text:
             self.banner.setText(text)
         # 将军时横幅**加粗 + 换警示色**（与棋盘外框脉冲、王格红圈同一时刻出现）。
@@ -1022,9 +1827,10 @@ class MainWindow(QMainWindow):
         # （浅色白字 10.02:1 / 暗色 #410002 10.03:1）。
         # 用 `.get("banner_fg")` 再兜底到 classic 的同一个键：不写字面量颜色，
         # 否则裸色禁令会给它记一条新账（进度条只该往下走）。
-        banner_fg = (theme.THEMES.get(self.config.get("theme", "classic"),
-                                      theme.THEMES["classic"]).get("banner_fg")
-                     or theme.THEMES["classic"]["banner_fg"])
+        banner_fg = (
+            theme.THEMES.get(self.config.get("theme", "classic"), theme.THEMES["classic"]).get("banner_fg")
+            or theme.THEMES["classic"]["banner_fg"]
+        )
         style = f"font-weight:700; color:{banner_fg};" if checking else ""
         if self.banner.styleSheet() != style:
             self.banner.setStyleSheet(style)
@@ -1042,8 +1848,7 @@ class MainWindow(QMainWindow):
         signature = (self.game.rules.position_key(state), state.paused, state.finished)
         if signature != self._last_check_signature:
             self._last_check_signature = signature
-            self._last_check_value = (not state.finished
-                                      and self.game.rules.in_check(state, state.turn))
+            self._last_check_value = not state.finished and self.game.rules.in_check(state, state.turn)
             # 只在「新局面上第一次判定为将军」时闪一次，同一局面反复 refresh 不重复触发。
             if self._last_check_value:
                 self.board.pulse_check()
@@ -1058,8 +1863,9 @@ class MainWindow(QMainWindow):
             player = getattr(self, "network_players", {}).get(color.value, {}) if self.network else {}
             name = player.get("name") or t("common.red" if color is Color.RED else "common.black", lang)
             asset = avatar_asset_name(player.get("avatarUrl", "") if player else "")
-            prefix = (f'<img src="{theme.resource("avatars", asset).as_posix()}" '
-                      f'width="34" height="34"> ') if asset else ""
+            prefix = (
+                (f'<img src="{theme.resource("avatars", asset).as_posix()}" width="34" height="34"> ') if asset else ""
+            )
             text = f"{prefix}{name}  {self._clock(state.clocks_ms[color])}"
             # 时钟每 250ms 被读一次，但只有「秒数变了」才会真的不同 —— 不比对的话
             # 每秒要做 4 次富文本 setText（会触发重新布局）。
@@ -1068,14 +1874,15 @@ class MainWindow(QMainWindow):
 
     def _update_clock_warning(self, state: GameState) -> None:
         threshold = max(0, int(self.config.get("countdown_seconds", 30))) * 1000
-        danger_fg = (theme.THEMES.get(self.config.get("theme", "classic"),
-                                      theme.THEMES["classic"]).get("danger")
-                     or theme.THEMES["classic"]["danger"])
+        danger_fg = (
+            theme.THEMES.get(self.config.get("theme", "classic"), theme.THEMES["classic"]).get("danger")
+            or theme.THEMES["classic"]["danger"]
+        )
         for color, label in ((Color.RED, self.red), (Color.BLACK, self.black)):
             warn = bool(threshold) and state.clocks_ms[color] <= threshold and not state.paused
             # 时钟告警压在**面板底**上，用 danger（浅底深红 / 深底浅红）：
             # 原来写死 `#b21f1f`，在 dark 主题的面板底上只有 2.28:1。
-            style = (f"color:{danger_fg};font-weight:bold" if warn else "")
+            style = f"color:{danger_fg};font-weight:bold" if warn else ""
             if label.styleSheet() != style:
                 label.setStyleSheet(style)
 
@@ -1098,8 +1905,9 @@ class MainWindow(QMainWindow):
         if key == self._last_captured_key:
             return
         self._last_captured_key = key
-        self.captured.setText(f"{t('common.red', lang)}：" + " ".join(red)
-                              + f"\n{t('common.black', lang)}：" + " ".join(black))
+        self.captured.setText(
+            f"{t('common.red', lang)}：" + " ".join(red) + f"\n{t('common.black', lang)}：" + " ".join(black)
+        )
 
     def _update_board_if_needed(self, state: GameState, history_key: tuple[str, ...]) -> None:
         """棋盘只在「画面可能不同」时重绘。
@@ -1107,8 +1915,7 @@ class MainWindow(QMainWindow):
         走子动画有自己的 25ms 定时器并自行 `update()`，不需要这里代劳；
         这里负责的是落子、吃子、暂停/锁定遮罩、终局这类由状态驱动的整盘重绘。
         """
-        key = (history_key, len(state.pieces), state.turn.value,
-               state.paused, self.board.locked, state.finished)
+        key = (history_key, len(state.pieces), state.turn.value, state.paused, self.board.locked, state.finished)
         if key == self._last_board_key:
             return
         self._last_board_key = key
@@ -1161,11 +1968,16 @@ class MainWindow(QMainWindow):
         """未终局时重开的二次确认（单独成方法，便于测试 patch）。"""
         lang = self.config.get("language", "zh-CN")
         title = "确认" if lang != "en" else "Confirm"
-        return QMessageBox.question(
-            self, title, t("dialog.confirm_restart", lang),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        ) == QMessageBox.StandardButton.Yes
+        return (
+            QMessageBox.question(
+                self,
+                title,
+                t("dialog.confirm_restart", lang),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            == QMessageBox.StandardButton.Yes
+        )
 
     def trigger_play_again(self) -> None:
         """「再来一局」的唯一入口：右键、结果弹窗、Enter 都走这里。
@@ -1193,9 +2005,12 @@ class MainWindow(QMainWindow):
         为什么不是 Ctrl+R：那是「复盘」的快捷键；Ctrl+N 仍是菜单的「新建」。
         """
         key = getattr(event, "key", lambda: None)()
-        if (key in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
-                and self.game is not None and self.game.state.finished
-                and QApplication.activeModalWidget() is None):
+        if (
+            key in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
+            and self.game is not None
+            and self.game.state.finished
+            and QApplication.activeModalWidget() is None
+        ):
             self.trigger_play_again()
             event.accept()
             return
@@ -1212,24 +2027,31 @@ class MainWindow(QMainWindow):
             self._shown_result = False
             return
         if not self._stats_recorded:
-            record_result(self.game, self.config["human_color"])
+            record_result(self.game, self.session_color.value)
             self._stats_recorded = True
         if self.config.get("autosave", True) and not self._autosaved:
             try:
                 path = autosave_game(self.game)
                 self.statusBar().showMessage(
-                    ("棋谱已自动保存：" if lang != "en" else "Replay auto-saved: ") + f"{path}", 8000)
+                    ("棋谱已自动保存：" if lang != "en" else "Replay auto-saved: ") + f"{path}", 8000
+                )
             except OSError as exc:
                 self.statusBar().showMessage(
-                    ("自动保存失败：" if lang != "en" else "Auto-save failed: ") + f"{exc}", 8000)
+                    ("自动保存失败：" if lang != "en" else "Auto-save failed: ") + f"{exc}", 8000
+                )
             self._autosaved = True
         if not self._shown_result:
             self._shown_result = True
-            winner = (t("result.draw", lang) if state.draw else
-                      t("result.victory", lang,
-                        color=t("common.red" if state.winner is Color.RED else "common.black", lang)))
-            if show_result_dialog(self, t("dialog.result_title", lang), winner, lang,
-                                  allow_again=self.can_play_again()):
+            winner = (
+                t("result.draw", lang)
+                if state.draw
+                else t(
+                    "result.victory", lang, color=t("common.red" if state.winner is Color.RED else "common.black", lang)
+                )
+            )
+            if show_result_dialog(
+                self, t("dialog.result_title", lang), winner, lang, allow_again=self.can_play_again()
+            ):
                 # 延迟一帧再开新局：本函数在 refresh 链上，直接调会重入
                 QTimer.singleShot(0, self.trigger_play_again)
 
@@ -1247,16 +2069,29 @@ class MainWindow(QMainWindow):
         self._last_board_key = None
 
     @staticmethod
-    def _clock(ms: int) -> str:seconds=max(0,ms//1000);return f"{seconds//60:02d}:{seconds%60:02d}"
+    def _clock(ms: int) -> str:
+        seconds = max(0, ms // 1000)
+        return f"{seconds // 60:02d}:{seconds % 60:02d}"
 
-    def closeEvent(self, event: object) -> None:self.cancel.set();self.close_network();self.audio.stop();save_config(self.config);super().closeEvent(event)
+    def closeEvent(self, event: object) -> None:
+        self.cancel.set()
+        self.close_network()
+        self.audio.stop()
+        save_config(self.config)
+        super().closeEvent(event)
 
 
 def run() -> None:
-    app=QApplication(sys.argv);app.setApplicationName(t("app.name"))
-    icon_path=theme.resource("icon.ico")
-    if icon_path.exists():app.setWindowIcon(QIcon(str(icon_path)))
-    theme.load_bundled_fonts();window=MainWindow();window.show();sys.exit(app.exec())
+    app = QApplication(sys.argv)
+    app.setApplicationName(t("app.name"))
+    icon_path = theme.resource("icon.ico")
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
+    theme.load_bundled_fonts()
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
 
 
-if __name__ == "__main__":run()
+if __name__ == "__main__":
+    run()

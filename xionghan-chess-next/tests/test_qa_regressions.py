@@ -1,19 +1,19 @@
 import asyncio
 import json
-from pathlib import Path
 import re
 import tomllib
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pytest
 
 import xionghan_chess
+import xionghan_chess.service.rooms as rooms_module
 from xionghan_chess.core.game import GameError
 from xionghan_chess.core.model import Color
 from xionghan_chess.core.protocol import Envelope, MessageType
 from xionghan_chess.service.accounts import AccountStore
 from xionghan_chess.service.rooms import RoomManager
-import xionghan_chess.service.rooms as rooms_module
 
 
 class FakeWebSocket:
@@ -180,7 +180,7 @@ def test_android_selection_sound_and_puzzle_i18n_guards_are_present():
 def test_android_offline_no_progress_draw_matches_core_contract():
     root = Path(__file__).resolve().parents[1]
     offline = (root / "android/Resources/assets/offline/offline.js").read_text(encoding="utf-8")
-    assert "no_progress_draw_plies:120" in offline
+    assert re.search(r'no_progress_draw_plies["\']?\s*:\s*120', offline)
     assert "noProgressPlies()>=this.options.no_progress_draw_plies" in offline
     assert "record.captured?.length||record.pieceType==='pawn'" in offline
     assert "this.state.resultReason='no_progress'" in offline
@@ -237,6 +237,5 @@ def test_release_version_sources_agree():
 
     mismatched = {name: value for name, value in sources.items() if value != base}
     assert not mismatched, (
-        f"version sources disagree: base={base!r} (package.json); "
-        f"mismatched={mismatched}; all={sources}"
+        f"version sources disagree: base={base!r} (package.json); mismatched={mismatched}; all={sources}"
     )

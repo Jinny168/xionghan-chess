@@ -5,22 +5,30 @@ from collections.abc import Callable
 from PySide6.QtCore import QUrl
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer, QSoundEffect
 
-from .ui import theme
 from .texts import dl
-
+from .ui import theme
 
 # 音效包：classic = 原有 7 个事件；web = 复刻投稿版 WebAudio 合成（8 个事件，多一个 undo）。
 # `undo` 只有 web 包有 —— classic 下静默，不拿 warn.wav 冒充。
 SOUND_PACKS: dict[str, dict[str, str]] = {
     "classic": {
-        "select": "choose.wav", "move": "drop.wav", "capture": "eat.wav",
-        "check": "warn.wav", "win": "fc_victory_sound.wav",
-        "lose": "fc_defeat_sound.wav", "button": "button.wav",
+        "select": "choose.wav",
+        "move": "drop.wav",
+        "capture": "eat.wav",
+        "check": "warn.wav",
+        "win": "fc_victory_sound.wav",
+        "lose": "fc_defeat_sound.wav",
+        "button": "button.wav",
     },
     "web": {
-        "select": "web/select.wav", "move": "web/move.wav", "capture": "web/capture.wav",
-        "check": "web/check.wav", "win": "web/win.wav", "lose": "web/lose.wav",
-        "click": "web/click.wav", "undo": "web/undo.wav",
+        "select": "web/select.wav",
+        "move": "web/move.wav",
+        "capture": "web/capture.wav",
+        "check": "web/check.wav",
+        "win": "web/win.wav",
+        "lose": "web/lose.wav",
+        "click": "web/click.wav",
+        "undo": "web/undo.wav",
     },
 }
 DEFAULT_SOUND_PACK = "classic"

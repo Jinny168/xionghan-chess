@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
 import threading
+from dataclasses import dataclass
 from typing import Any
 
 from .ai import ChessAI, Difficulty
@@ -42,9 +42,12 @@ def move_dict(move: Move | None) -> dict[str, Any] | None:
     }
 
 
-def analyze_game(game: Game, difficulty: Difficulty | str = Difficulty.BEGINNER,
-                 max_plies: int = 200,
-                 cancel: threading.Event | None = None) -> dict[str, Any]:
+def analyze_game(
+    game: Game,
+    difficulty: Difficulty | str = Difficulty.BEGINNER,
+    max_plies: int = 200,
+    cancel: threading.Event | None = None,
+) -> dict[str, Any]:
     """逐手复盘。`cancel` 被置位时**在下一手开始前**退出，返回已完成的部分。
 
     原来 `choose_move(position)` 不传 cancel —— 复盘窗口一关，"暂停/关闭"要等
@@ -62,17 +65,24 @@ def analyze_game(game: Game, difficulty: Difficulty | str = Difficulty.BEGINNER,
         engine = ChessAI(difficulty, seed=0)
         best = engine.choose_move(position, cancel)
         if cancel is not None and cancel.is_set():
-            break   # 这一手算到一半被取消：不把残缺结果计入复盘
+            break  # 这一手算到一半被取消：不把残缺结果计入复盘
         scores = {move.key(): int(round(score)) for score, move, _truncated in engine.root_scores}
         best_score = max(scores.values(), default=0)
         actual_score = scores.get(record.move.key(), best_score if best == record.move else best_score - 400)
         loss = max(0, best_score - actual_score)
         quality = quality_for_loss(loss, best == record.move)
         perspective_score = actual_score if record.color.value == "red" else -actual_score
-        analyses.append(MoveAnalysis(
-            index + 1, record.notation, quality, loss, perspective_score,
-            round(100 / (1 + math.exp(-perspective_score / 500)), 1), best,
-        ))
+        analyses.append(
+            MoveAnalysis(
+                index + 1,
+                record.notation,
+                quality,
+                loss,
+                perspective_score,
+                round(100 / (1 + math.exp(-perspective_score / 500)), 1),
+                best,
+            )
+        )
     return {
         "engine": "xionghan-builtin",
         "difficulty": Difficulty(difficulty).value,

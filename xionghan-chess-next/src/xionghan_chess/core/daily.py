@@ -25,7 +25,13 @@ BASE_MONDAY = date(2026, 1, 5)
 # 周一到周日：新手 / 进阶 / 新手 / 进阶 / 新手 / 大师 / 大师
 # 新手占三天是为了让"每天都来"的人不至于连续两天撞难题；周末两道大师题给周期性的期待。
 WEEKDAY_LEVELS: tuple[str, ...] = (
-    "beginner", "advanced", "beginner", "advanced", "beginner", "master", "master",
+    "beginner",
+    "advanced",
+    "beginner",
+    "advanced",
+    "beginner",
+    "master",
+    "master",
 )
 
 # 每周各难度出现几次 —— 由 WEEKDAY_LEVELS 数出来，不重复维护
@@ -41,24 +47,25 @@ DAILY_KEY = "xh-daily"
 class DailyRecord:
     """一天一条记录（单键覆盖，不按天堆键 —— 那会无限增长且两端清理策略不一致）。"""
 
-    day: str = ""          # "YYYY-MM-DD"，本条记录对应的本地日期
-    id: str = ""           # 当日题 id（题库换版后用来判断"今天还是不是那道题"）
-    done: bool = False     # 当日是否已解出
-    streak: int = 0        # 当前连续天数
-    best: int = 0          # 历史最长连续
+    day: str = ""  # "YYYY-MM-DD"，本条记录对应的本地日期
+    id: str = ""  # 当日题 id（题库换版后用来判断"今天还是不是那道题"）
+    done: bool = False  # 当日是否已解出
+    streak: int = 0  # 当前连续天数
+    best: int = 0  # 历史最长连续
 
-    def to_dict(self) -> dict:
-        return {"day": self.day, "id": self.id, "done": self.done,
-                "streak": self.streak, "best": self.best}
+    def to_dict(self) -> dict[str, object]:
+        return {"day": self.day, "id": self.id, "done": self.done, "streak": self.streak, "best": self.best}
 
     @classmethod
     def from_dict(cls, data: object) -> "DailyRecord":
         """坏数据一律当空记录：宁可重置一次连续，也不要在本地炸掉整个设置文件。"""
         if not isinstance(data, dict):
             return cls()
+
         def _int(key: str) -> int:
             value = data.get(key, 0)
             return value if isinstance(value, int) and value >= 0 else 0
+
         return cls(
             day=str(data.get("day") or ""),
             id=str(data.get("id") or ""),
@@ -98,9 +105,7 @@ def bucket_of(puzzles: Iterable[Puzzle], level: str) -> list[Puzzle]:
     它们留在题库里供随时练手，但**不参与每日一题** —— 每日一题承诺的是"一道题"，
     给一道"随便走都行"的练习会砸掉这个承诺。
     """
-    return sorted((p for p in puzzles
-                   if p.difficulty == level and "drill" not in p.tags),
-                  key=lambda p: p.id)
+    return sorted((p for p in puzzles if p.difficulty == level and "drill" not in p.tags), key=lambda p: p.id)
 
 
 def pick_daily(puzzles: Iterable[Puzzle], day: date) -> Puzzle | None:
@@ -147,9 +152,9 @@ def _lazy_streak(record: DailyRecord, day: date) -> int:
         return 0
     gap = (day - last).days
     if gap > 1:
-        return 0                      # 断了两天以上
+        return 0  # 断了两天以上
     if gap == 1 and not record.done:
-        return 0                      # 昨天开了没做
+        return 0  # 昨天开了没做
     return record.streak
 
 
@@ -166,5 +171,4 @@ def solve_today(record: DailyRecord, day: date, puzzle: Puzzle) -> DailyRecord:
             last = None
         if last is not None and (day - last).days == 1 and record.done:
             streak = record.streak + 1
-    return DailyRecord(day=today, id=puzzle.id, done=True,
-                       streak=streak, best=max(streak, record.best))
+    return DailyRecord(day=today, id=puzzle.id, done=True, streak=streak, best=max(streak, record.best))

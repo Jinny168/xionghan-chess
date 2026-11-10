@@ -18,6 +18,7 @@ except-as / with-as / global），再加上内置名与 `__file__` 等模块级�
 
 退出码：0 = 干净；1 = 有未定义引用。
 """
+
 from __future__ import annotations
 
 import ast
@@ -25,8 +26,18 @@ import builtins
 import sys
 from pathlib import Path
 
-MAGIC = {"__file__", "__name__", "__doc__", "__package__", "__spec__", "__loader__",
-         "__builtins__", "__annotations__", "self", "cls"}
+MAGIC = {
+    "__file__",
+    "__name__",
+    "__doc__",
+    "__package__",
+    "__spec__",
+    "__loader__",
+    "__builtins__",
+    "__annotations__",
+    "self",
+    "cls",
+}
 BUILTINS = set(dir(builtins)) | MAGIC
 
 

@@ -27,8 +27,19 @@ from xionghan_chess.desktop import config as desktop_config
 
 @pytest.fixture()
 def isolated_appdata(tmp_path, monkeypatch):
-    """把 APPDATA 指到临时目录，隔离真实用户配置。"""
-    monkeypatch.setenv("APPDATA", str(tmp_path))
+    """把**全部平台的配置根**都指进临时目录，隔离真实用户配置。
+
+    只改 APPDATA 不够：`config_root()` 在 Linux 读 `XDG_CONFIG_HOME`、macOS 读
+    `HOME`。CI 上 desktop smoke 先于 pytest 跑，且 ci.yml 给两个 step 共用同一个
+    `XDG_CONFIG_HOME`（$RUNNER_TEMP/xdg-config）——smoke 的 load_config /
+    _apply_settings 会在那里留下 settings.json，「file absent」前提被 **step 顺序**
+    打破（#123 实证：本用例读到 smoke 留下的 profile=traditional；Windows 本机
+    永远复现不了，因为 smoke 不在 pytest 前跑）。三个 env 全指进 tmp_path 后，
+    用例与 CI step 顺序解耦。
+    """
+    monkeypatch.setenv("APPDATA", str(tmp_path / "appdata"))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
     return tmp_path
 
 
@@ -62,8 +73,9 @@ def test_existing_initial_minutes_is_not_overwritten(isolated_appdata) -> None:
     """
     path = desktop_config.config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"schema_version": desktop_config.CONFIG_VERSION,
-                                "initial_minutes": 20}), encoding="utf-8")
+    path.write_text(
+        json.dumps({"schema_version": desktop_config.CONFIG_VERSION, "initial_minutes": 20}), encoding="utf-8"
+    )
     assert desktop_config.load_config()["initial_minutes"] == 20
 
 
@@ -259,8 +271,7 @@ def test_migration_repairs_unknown_language(isolated_appdata) -> None:
 
 def test_migration_keeps_unknown_keys(isolated_appdata) -> None:
     """未知键可能是新版本写入的，迁移不能把它丢掉。"""
-    desktop_config.config_path().write_text(
-        json.dumps({"theme": "dark", "future_feature": {"a": 1}}), encoding="utf-8")
+    desktop_config.config_path().write_text(json.dumps({"theme": "dark", "future_feature": {"a": 1}}), encoding="utf-8")
     loaded = desktop_config.load_config()
     assert loaded["future_feature"] == {"a": 1}
 
@@ -268,8 +279,7 @@ def test_migration_keeps_unknown_keys(isolated_appdata) -> None:
 def test_newer_schema_version_is_left_alone(isolated_appdata) -> None:
     """文件来自更新版本：不认识的配置按原样用，不回写、不改值。"""
     path = desktop_config.config_path()
-    original = {"schema_version": desktop_config.CONFIG_VERSION + 99,
-                "initial_minutes": 999, "future_feature": True}
+    original = {"schema_version": desktop_config.CONFIG_VERSION + 99, "initial_minutes": 999, "future_feature": True}
     path.write_text(json.dumps(original), encoding="utf-8")
     loaded = desktop_config.load_config()
     assert loaded["initial_minutes"] == 999, "更高版本的值不该被旧版本擅自夹紧"
@@ -308,8 +318,7 @@ def test_config_root_macos_uses_application_support() -> None:
 
 
 def test_config_root_linux_uses_xdg_config_home() -> None:
-    root = desktop_config.config_root("linux", {"HOME": "/home/me",
-                                                "XDG_CONFIG_HOME": "/home/me/.config-custom"})
+    root = desktop_config.config_root("linux", {"HOME": "/home/me", "XDG_CONFIG_HOME": "/home/me/.config-custom"})
     assert root == Path("/home/me/.config-custom/xionghan-chess")
 
 
@@ -346,14 +355,17 @@ def test_migration_drops_deleted_option_and_stale_backward_key(isolated_appdata)
     这是本轮最容易白干的地方，所以断言要看**实际行为**，不是只看默认值。
     """
     path = desktop_config.config_path()
-    _write_config(path, {
-        "schema_version": 1,
-        "rule_options": {
-            "pawn_backward_at_base": True,
-            "pawn_full_movement_at_base": True,       # 2.0.0 已删除的选项
-            "pawn_charge": True,                      # 用户真的改过的项，必须保留
+    _write_config(
+        path,
+        {
+            "schema_version": 1,
+            "rule_options": {
+                "pawn_backward_at_base": True,
+                "pawn_full_movement_at_base": True,  # 2.0.0 已删除的选项
+                "pawn_charge": True,  # 用户真的改过的项，必须保留
+            },
         },
-    })
+    )
     loaded = desktop_config.load_config()
     options = loaded["rule_options"]
     assert "pawn_backward_at_base" not in options, "存量键必须被清掉，否则新默认值被覆盖"
@@ -368,13 +380,15 @@ def test_migration_drops_deleted_option_and_stale_backward_key(isolated_appdata)
     profile = get_profile("desktop_complete")
     # 关掉升变才看得到"能不能后退"：开升变时底线落子必须带 promotion，着法会被展开
     rules = RulesEngine(profile, profile.options.merged({**options, "pawn_promotion": False}))
-    board = GameState("desktop_complete", [
-        Piece.create(PieceType.KING, Color.RED, 12, 0),
-        Piece.create(PieceType.KING, Color.BLACK, 2, 9),
-        Piece.create(PieceType.PAWN, Color.RED, 0, 4),
-    ])
-    targets = {(m.target.row, m.target.col) for m in rules.legal_moves(board)
-               if (m.source.row, m.source.col) == (0, 4)}
+    board = GameState(
+        "desktop_complete",
+        [
+            Piece.create(PieceType.KING, Color.RED, 12, 0),
+            Piece.create(PieceType.KING, Color.BLACK, 2, 9),
+            Piece.create(PieceType.PAWN, Color.RED, 0, 4),
+        ],
+    )
+    targets = {(m.target.row, m.target.col) for m in rules.legal_moves(board) if (m.source.row, m.source.col) == (0, 4)}
     assert (1, 4) not in targets, "迁移后底线兵仍能后退 —— 存量键没清干净"
     assert (0, 3) in targets, "横走应当还在（由 crossed 放行，与这个开关无关）"
 
@@ -385,18 +399,15 @@ def test_migration_does_not_trigger_a_restart_on_first_settings_save() -> None:
     老用户升级后第一次点「确定」就丢掉正在下的一局，是本轮最贵的潜在事故。
     """
     old = dict(desktop_config.DEFAULTS)
-    old["rule_options"] = {"pawn_charge": True}                       # 迁移后的存量（缺键）
+    old["rule_options"] = {"pawn_charge": True}  # 迁移后的存量（缺键）
     new = dict(old)
-    new["rule_options"] = dict(old["rule_options"],
-                               pawn_backward_at_base=False)           # 设置窗口写回全量
+    new["rule_options"] = dict(old["rule_options"], pawn_backward_at_base=False)  # 设置窗口写回全量
     assert desktop_config.settings_differ_in_game_breaking_keys(old, new) is False
 
 
 def test_migration_is_idempotent() -> None:
     """连跑两次：第二次 `changed=False`，不产生无谓写盘。"""
-    raw = {"schema_version": 1,
-           "rule_options": {"pawn_backward_at_base": True,
-                            "pawn_full_movement_at_base": True}}
+    raw = {"schema_version": 1, "rule_options": {"pawn_backward_at_base": True, "pawn_full_movement_at_base": True}}
     once, changed_once = desktop_config.migrate(raw)
     assert changed_once is True
     twice, changed_twice = desktop_config.migrate(once)

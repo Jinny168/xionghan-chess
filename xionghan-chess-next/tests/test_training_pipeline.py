@@ -9,7 +9,12 @@ import pytest
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Move, Position
-from xionghan_chess.training.encoding import ACTION_SIZE, FEATURE_SIZE, action_index, encode_state
+from xionghan_chess.training.encoding import (
+    ACTION_SIZE,
+    FEATURE_SIZE,
+    action_index,
+    encode_state,
+)
 from xionghan_chess.training.selfplay import append_jsonl, collect_game
 
 
@@ -49,7 +54,10 @@ def test_numpy_policy_value_training_smoke() -> None:
     script = Path(__file__).with_name("_smoke_training_impl.py")
     completed = subprocess.run(
         [sys.executable, str(script)],
-        capture_output=True, text=True, timeout=300, cwd=str(script.parent.parent),
+        capture_output=True,
+        text=True,
+        timeout=300,
+        cwd=str(script.parent.parent),
     )
     output = (completed.stdout or "") + (completed.stderr or "")
     if completed.returncode != 0 or "TRAINING_SMOKE_OK" not in output:

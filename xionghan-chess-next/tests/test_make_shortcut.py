@@ -25,10 +25,13 @@ pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="快捷方式是
 
 def test_make_shortcut_writes_target_and_does_not_crash(tmp_path: Path) -> None:
     lnk = tmp_path / "测试 快捷方式.lnk"
-    target = Path(sys.executable)            # 一定存在的 exe，且路径带空格/中文时也能验
+    target = Path(sys.executable)  # 一定存在的 exe，且路径带空格/中文时也能验
     result = subprocess.run(
         [sys.executable, str(SCRIPT), str(lnk), str(target)],
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     assert result.returncode == 0, f"脚本崩了：\nstdout={result.stdout}\nstderr={result.stderr}"
     assert "created:" in result.stdout
@@ -36,5 +39,4 @@ def test_make_shortcut_writes_target_and_does_not_crash(tmp_path: Path) -> None:
     assert lnk.stat().st_size > 200, f"lnk 只有 {lnk.stat().st_size} 字节，像是半截文件"
 
     blob = lnk.read_bytes()
-    assert str(target).encode("utf-16-le") in blob, (
-        "lnk 里找不到目标路径 —— SetPath 没写进去，这个快捷方式是坏的")
+    assert str(target).encode("utf-16-le") in blob, "lnk 里找不到目标路径 —— SetPath 没写进去，这个快捷方式是坏的"

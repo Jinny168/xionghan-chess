@@ -3,17 +3,16 @@ import uuid
 import pytest
 from fastapi.testclient import TestClient
 
-from xionghan_chess.core.profiles import RULE_VERSION
 from xionghan_chess.core.analysis import analyze_game, quality_for_loss
 from xionghan_chess.core.avatars import avatar_asset_name, normalize_avatar
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color
+from xionghan_chess.core.profiles import RULE_VERSION, get_profile
 from xionghan_chess.core.puzzles import load_puzzles
-from xionghan_chess.core.profiles import get_profile
 from xionghan_chess.core.setup import GameSetup, profile_slots
 from xionghan_chess.core.storage import game_from_document
-from xionghan_chess.service.accounts import AccountStore
 from xionghan_chess.service import app as service_app
+from xionghan_chess.service.accounts import AccountStore
 
 
 def test_custom_setup_requires_equal_counts_and_supports_black_first():
@@ -57,32 +56,46 @@ def test_auth_api_and_preferences_use_bearer_token(tmp_path, monkeypatch):
     monkeypatch.setattr(service_app, "accounts", AccountStore(tmp_path / "api.db"))
     username = f"user_{uuid.uuid4().hex[:8]}"
     with TestClient(service_app.app) as client:
-        registered = client.post("/api/auth/register", json={
-            "username": username, "password": "password123", "displayName": "云棋手",
-        })
+        registered = client.post(
+            "/api/auth/register",
+            json={
+                "username": username,
+                "password": "password123",
+                "displayName": "云棋手",
+            },
+        )
         assert registered.status_code == 200
         token = registered.json()["token"]
         headers = {"Authorization": f"Bearer {token}"}
-        saved = client.put("/api/me/preferences", headers=headers,
-                           json={"preferences": {"pieceStyle": "modern"}})
+        saved = client.put("/api/me/preferences", headers=headers, json={"preferences": {"pieceStyle": "modern"}})
         assert saved.json()["preferences"]["pieceStyle"] == "modern"
         assert client.get("/api/me", headers=headers).json()["account"]["username"] == username
-        profile = client.put("/api/me/profile", headers=headers,
-                             json={"displayName": "云端棋手", "avatarUrl": "https://example.com/a.png"})
+        profile = client.put(
+            "/api/me/profile",
+            headers=headers,
+            json={"displayName": "云端棋手", "avatarUrl": "https://example.com/a.png"},
+        )
         assert profile.status_code == 200
         assert profile.json()["account"]["avatarUrl"].endswith("a.png")
-        invalid = client.put("/api/me/profile", headers=headers,
-                             json={"displayName": "云端棋手", "avatarUrl": "builtin:avatar-99"})
+        invalid = client.put(
+            "/api/me/profile", headers=headers, json={"displayName": "云端棋手", "avatarUrl": "builtin:avatar-99"}
+        )
         assert invalid.status_code == 400
 
 
 def test_room_snapshot_carries_avatar_and_taunt_setting():
     with TestClient(service_app.app) as client:
-        created = client.post("/api/rooms", json={
-            "ruleVersion": RULE_VERSION,
-            "profileId": "web", "mode": "ai", "playerName": "头像棋手",
-            "avatarUrl": "https://example.com/player.png", "tauntsEnabled": False,
-        })
+        created = client.post(
+            "/api/rooms",
+            json={
+                "ruleVersion": RULE_VERSION,
+                "profileId": "web",
+                "mode": "ai",
+                "playerName": "头像棋手",
+                "avatarUrl": "https://example.com/player.png",
+                "tauntsEnabled": False,
+            },
+        )
         assert created.status_code == 200
         player = next(item for item in created.json()["snapshot"]["players"] if item["color"] == "red")
         assert player["avatarUrl"].endswith("player.png")
@@ -91,14 +104,17 @@ def test_room_snapshot_carries_avatar_and_taunt_setting():
 
 def test_spectator_channel_is_read_only():
     with TestClient(service_app.app) as client:
-        room = client.post("/api/rooms", json={
-            "ruleVersion": RULE_VERSION,
-            "profileId": "web", "mode": "online", "playerName": "red",
-        }).json()
-        spectator = client.post(f"/api/rooms/{room['roomId']}/spectate",
-                                json={"displayName": "viewer"}).json()
-        with client.websocket_connect(
-                f"/ws/{room['roomId']}/spectate") as socket:
+        room = client.post(
+            "/api/rooms",
+            json={
+                "ruleVersion": RULE_VERSION,
+                "profileId": "web",
+                "mode": "online",
+                "playerName": "red",
+            },
+        ).json()
+        spectator = client.post(f"/api/rooms/{room['roomId']}/spectate", json={"displayName": "viewer"}).json()
+        with client.websocket_connect(f"/ws/{room['roomId']}/spectate") as socket:
             socket.send_json({"type": "auth", "token": spectator["token"]})
             state = socket.receive_json()
             assert state["type"] == "state"
@@ -124,6 +140,10 @@ def test_analysis_scores_played_move(monkeypatch):
     result = analyze_game(game, "beginner")
     assert result["analyzedPlies"] == 1
     assert result["moves"][0]["quality"] in {
-        "best", "good", "inaccuracy", "mistake", "blunder",
+        "best",
+        "good",
+        "inaccuracy",
+        "mistake",
+        "blunder",
     }
     assert quality_for_loss(500) == "blunder"

@@ -12,6 +12,7 @@
 
 噪声底：见运行输出（同主题两次渲染的差异像素数）。**若不为 0**，`--check` 的判据应放宽到该值。
 """
+
 from __future__ import annotations
 
 import os
@@ -73,11 +74,16 @@ def _check_game():
     def pc(kind, color, row, col):
         return Piece.create(kind, color, row, col)
 
-    state = GameState("desktop_complete",
-                      [pc(PieceType.KING, Color.RED, 11, 6),
-                       pc(PieceType.KING, Color.BLACK, 0, 4),
-                       pc(PieceType.ROOK, Color.RED, 0, 10)],
-                      turn=Color.BLACK, captured={Color.RED: [], Color.BLACK: []})
+    state = GameState(
+        "desktop_complete",
+        [
+            pc(PieceType.KING, Color.RED, 11, 6),
+            pc(PieceType.KING, Color.BLACK, 0, 4),
+            pc(PieceType.ROOK, Color.RED, 0, 10),
+        ],
+        turn=Color.BLACK,
+        captured={Color.RED: [], Color.BLACK: []},
+    )
     return Game.from_state(state, {}, None)
 
 
@@ -116,8 +122,7 @@ def _rect_of(widget, window) -> tuple[int, int, int, int]:
     from PySide6.QtCore import QPoint
 
     top_left = widget.mapTo(window, QPoint(0, 0))
-    return (top_left.x(), top_left.y(),
-            top_left.x() + widget.width(), top_left.y() + widget.height())
+    return (top_left.x(), top_left.y(), top_left.x() + widget.width(), top_left.y() + widget.height())
 
 
 def _regions(window) -> dict[str, tuple[int, int, int, int]]:

@@ -1,1 +1,2 @@
 benchmarks/*.txt -text
+benchmarks/openings/*.json -text

@@ -28,6 +28,8 @@ from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import GameState
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "positions"
+
+
 def _is_retired(path: Path) -> bool:
     """`retired: true` 的快照只作历史对照（例如软删兵种后已不可复现的旧布局），不参与校验。"""
     try:
@@ -36,8 +38,7 @@ def _is_retired(path: Path) -> bool:
         return False
 
 
-SNAPSHOTS = ([path for path in sorted(FIXTURES.glob("*.json")) if not _is_retired(path)]
-             if FIXTURES.is_dir() else [])
+SNAPSHOTS = [path for path in sorted(FIXTURES.glob("*.json")) if not _is_retired(path)] if FIXTURES.is_dir() else []
 
 
 def _load(path: Path) -> tuple[Game, dict]:
@@ -53,8 +54,9 @@ def _load(path: Path) -> tuple[Game, dict]:
 def test_snapshot_loads_and_matches_fingerprint(path: Path) -> None:
     game, fingerprint = _load(path)
     assert len(game.state.pieces) == fingerprint["pieces"], (
-        f"{path.name} 的 pieces 与指纹不符：文件声明 {fingerprint['pieces']}，"
-        f"实际 {len(game.state.pieces)}")
+        f"{path.name} 的 pieces 与指纹不符：文件声明 {fingerprint['pieces']}，实际 {len(game.state.pieces)}"
+    )
     assert len(game.rules.legal_moves(game.state)) == fingerprint["legal"], (
         f"{path.name} 的 legal 与指纹不符：文件声明 {fingerprint['legal']}，"
-        f"实际 {len(game.rules.legal_moves(game.state))}")
+        f"实际 {len(game.rules.legal_moves(game.state))}"
+    )

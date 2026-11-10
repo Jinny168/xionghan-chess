@@ -1,19 +1,20 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
-from enum import StrEnum
 import math
 import os
 import random
 import threading
 import time
+from dataclasses import dataclass, replace
+from enum import StrEnum
 
+from .ai_see import static_exchange_score
 from .game import RESTORE_PAWN_LIMIT, Game
-from .model import Color, GameState, Move, PieceType, Position
+from .model import Color, GameState, Move, Piece, PieceType, Position
+
 # `pool_signature` is re-exported here (rules.py owns the format) because the
 # pool-blindness guardrail test imports it alongside `evaluation_key`.
-from .rules import RulesEngine, pool_signature
-from .ai_see import static_exchange_score
+from .rules import RulesEngine, pool_signature  # noqa: F401
 
 
 class Difficulty(StrEnum):
@@ -23,6 +24,30 @@ class Difficulty(StrEnum):
     HARD = "hard"
     EXPERT = "expert"
     MASTER = "master"
+
+
+# 2.0.0 的档位兼容层。
+#
+# **为什么不采用 1.7.x 的 `easy→medium / expert→hard / master→hard`**：main 线上
+# 这六档是**六个独立档位**（各自的深度/预算/取样参数都不同，master 还走 MCTS）。
+# 把 expert/master 并回 hard 会把 2.0.0 的档位设计直接回退掉。
+#
+# 这里保留旧外部名 → **同名档位** 的映射：外部配置/旧 URL 里写的是哪一档，仍进哪一档；
+# 兼容层只做大小写/空白归一，未知值原样返回，交给 `Difficulty(...)` 报错。
+LEGACY_DIFFICULTY_ALIASES: dict[str, str] = {
+    "beginner": "beginner",
+    "easy": "easy",
+    "medium": "medium",
+    "hard": "hard",
+    "expert": "expert",
+    "master": "master",
+}
+
+
+def normalize_difficulty(value: str) -> str:
+    """旧外部档位名 → main 的 Difficulty 值（仅大小写/空白归一）。"""
+    key = value.strip().lower()
+    return LEGACY_DIFFICULTY_ALIASES.get(key, key)
 
 
 # 静态搜索（quiescence）单个**根着法**内的节点上限。
@@ -63,6 +88,21 @@ class SearchConfig:
     # 取样窗口的分差上限（厘兵）。只对走"从名次 2..N 里抽样"的弱档有意义：
     # 90cp 在 13×13 上不足一个兵（120），窗口实际只剩 2–3 手，等于没弱化。
     sample_margin: int = 90
+    # 主搜索节点上限（`_search` 调用次数；**不含** qnodes）。`None` = 不启用。
+    # 到点抛 `SearchTimeout`，理由记 `"nodes"`；墙钟到点记 `"wall"`。
+    # 2.0.0 暂不启用（中局节点数无可靠测量），字段与工具保留。
+    max_nodes: int | None = None
+
+
+def resolve_time_scale(instance: float | None, env: str | None) -> float:
+    """时间缩放解析：实例参数 → 环境变量 `AI_TIME_SCALE` → 1.0。
+
+    环境变量保留历史上限 `max(0.1, ...)`（0.05 实际按 0.1 跑，`bench_roots` 的
+    provenance 依赖这条）；**实例参数按原值使用** —— 它是显式 API。
+    """
+    if instance is not None:
+        return instance
+    return max(0.1, float(env)) if env is not None else 1.0
 
 
 CONFIGS = {
@@ -102,10 +142,26 @@ CONFIGS = {
     Difficulty.MASTER: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 32),
 }
 
+# 读条分母 / 看门狗：2.0.0 主线原先把 `CONFIGS[d].time_limit` 直接当读条分母，
+# 语义上"读条 = 预算"；这里保持同一行为（六档全覆盖），只把常量名字对齐 master 线。
+# 未来若改成"中位耗时"分母，必须连 `test_desktop_thinking_progress.py` 一起改。
+EXPECTED_MOVE_SECONDS: dict[Difficulty, float] = {
+    difficulty: CONFIGS[difficulty].time_limit for difficulty in Difficulty
+}
+WATCHDOG_SECONDS: dict[Difficulty, float] = {
+    difficulty: round(CONFIGS[difficulty].time_limit * 1.15, 3) for difficulty in Difficulty
+}
+
 VALUES = {
-    PieceType.KING: 50_000, PieceType.ROOK: 900, PieceType.CANNON: 500,
-    PieceType.HORSE: 450, PieceType.ELEPHANT: 260, PieceType.ADVISOR: 240,
-    PieceType.PAWN: 120, PieceType.GUARD: 420, PieceType.ARCHER: 480,
+    PieceType.KING: 50_000,
+    PieceType.ROOK: 900,
+    PieceType.CANNON: 500,
+    PieceType.HORSE: 450,
+    PieceType.ELEPHANT: 260,
+    PieceType.ADVISOR: 240,
+    PieceType.PAWN: 120,
+    PieceType.GUARD: 420,
+    PieceType.ARCHER: 480,
     PieceType.THUNDER: 490,
     # 巡从 420 降到 300：`_patrol` 禁掉竖移后，它的可达格数腰斩（只剩横向 6 个空点），
     # 420 会让 AI 拿它当"半个车"去换，评估与走法彻底脱节。
@@ -115,15 +171,27 @@ VALUES = {
 }
 
 MOBILE_PIECES = {
-    PieceType.ROOK, PieceType.HORSE, PieceType.CANNON, PieceType.GUARD,
-    PieceType.ARCHER, PieceType.THUNDER, PieceType.PATROL,
+    PieceType.ROOK,
+    PieceType.HORSE,
+    PieceType.CANNON,
+    PieceType.GUARD,
+    PieceType.ARCHER,
+    PieceType.THUNDER,
+    PieceType.PATROL,
 }
 
 CENTRAL_WEIGHTS = {
-    PieceType.KING: -1.0, PieceType.ROOK: 1.4, PieceType.CANNON: 1.8,
-    PieceType.HORSE: 2.8, PieceType.ELEPHANT: .8, PieceType.ADVISOR: .5,
-    PieceType.PAWN: 1.4, PieceType.GUARD: 1.7, PieceType.ARCHER: 1.8,
-    PieceType.THUNDER: 2.4, PieceType.PATROL: 1.2,
+    PieceType.KING: -1.0,
+    PieceType.ROOK: 1.4,
+    PieceType.CANNON: 1.8,
+    PieceType.HORSE: 2.8,
+    PieceType.ELEPHANT: 0.8,
+    PieceType.ADVISOR: 0.5,
+    PieceType.PAWN: 1.4,
+    PieceType.GUARD: 1.7,
+    PieceType.ARCHER: 1.8,
+    PieceType.THUNDER: 2.4,
+    PieceType.PATROL: 1.2,
 }
 
 # A pool ("captured") piece is not lost material: it parks in its owner's pool,
@@ -169,8 +237,21 @@ class TTEntry:
 
 
 class ChessAI:
-    def __init__(self, difficulty: Difficulty | str = Difficulty.MEDIUM, seed: int | None = None):
-        self.difficulty = Difficulty(difficulty)
+    def __init__(
+        self,
+        difficulty: Difficulty | str = Difficulty.MEDIUM,
+        seed: int | None = None,
+        config: SearchConfig | None = None,
+        time_scale: float | None = None,
+    ):
+        # `config` 是实例级搜索参数（标定/A-B 用），构造时解析一次；`time_scale` 是
+        # 预算缩放（与搜索参数正交）。`self._config` 是唯一读取点 —— 任何一处回头读
+        # `CONFIGS` 都会让注入半失效。
+        self.difficulty = (
+            difficulty if isinstance(difficulty, Difficulty) else Difficulty(normalize_difficulty(difficulty))
+        )
+        self._config: SearchConfig = config if config is not None else CONFIGS[self.difficulty]
+        self.time_scale = time_scale
         self.random = random.Random(seed)
         self.transposition: dict[str, TTEntry] = {}
         self.history: dict[tuple[PieceType, int, int], int] = {}
@@ -194,23 +275,35 @@ class ChessAI:
         self.lmr_researches = 0
         self._active_deadline = math.inf
         self._active_cancel: threading.Event | None = None
-        self.quiescence_depth = CONFIGS[self.difficulty].quiescence_depth
+        self.quiescence_depth = self._config.quiescence_depth
         # 被 QUIESCENCE_NODE_LIMIT 截断的次数（诊断/测试用，不进 UI）
         self.quiescence_truncations = 0
         self.no_candidate_fallbacks = 0
+        # 截断归因：`bound_reason`（本手被截断，不论 depth）/ `zero_depth_reason`
+        # （一手都没搜完）。benchmark 用它们分账"这批数据能不能引用"。
+        self.bound_reason: str | None = None
+        self.zero_depth_reason: str | None = None
+        self._timeout_reason: str | None = None
+        self.zero_depth_moves = 0
         self._qnode_base = 0
         self._qnode_truncated = False
 
     def choose_move(self, game: Game, cancel: threading.Event | None = None) -> Move | None:
-        cfg = CONFIGS[self.difficulty]
-        time_scale = max(0.1, float(os.getenv("AI_TIME_SCALE", "1.0")))
+        cfg = self._config
+        time_scale = resolve_time_scale(self.time_scale, os.getenv("AI_TIME_SCALE"))
+        self.bound_reason = None
+        self.zero_depth_reason = None
+        self._timeout_reason = None
+        # 计数是**每次调用**的口径（benchmark 汇总时才累加），不能实例累计。
+        self.zero_depth_moves = 0
         if self.difficulty is Difficulty.MASTER:
             # Import lazily to keep the conventional search engine independent
             # and to avoid loading MCTS for the four established difficulty tiers.
             from .mcts import MCTS
-            return MCTS(time_limit=cfg.time_limit * time_scale,
-                        seed=self.random.randrange(2**32),
-                        root_score=self._see_score).choose_move(game, cancel)
+
+            return MCTS(
+                time_limit=cfg.time_limit * time_scale, seed=self.random.randrange(2**32), root_score=self._see_score
+            ).choose_move(game, cancel)
         deadline = time.monotonic() + cfg.time_limit * time_scale
         self._active_deadline = deadline
         self._active_cancel = cancel
@@ -236,16 +329,14 @@ class ChessAI:
             initial_order = self._order(game, legal)
             initial_order = sorted(initial_order, key=lambda move: self._root_bias(game, move) < -100)
             best = initial_order[0]
-            search_moves = initial_order[:cfg.root_limit]
+            search_moves = initial_order[: cfg.root_limit]
             for depth in range(1, cfg.depth + 1):
                 if previous_score is None:
                     score, candidate = self._root(game, search_moves, depth, deadline, cancel)
                 else:
                     window = 70 + depth * 10
                     low, high = previous_score - window, previous_score + window
-                    score, candidate = self._root(
-                        game, search_moves, depth, deadline, cancel, low, high
-                    )
+                    score, candidate = self._root(game, search_moves, depth, deadline, cancel, low, high)
                     if score <= low or score >= high:
                         score, candidate = self._root(game, search_moves, depth, deadline, cancel)
                 if candidate is not None:
@@ -257,11 +348,15 @@ class ChessAI:
                     # 预算被吃 → 深度更低 → 更多残缺分（正反馈）。
                     complete = [item[0] for item in self.root_scores if not item[2]]
                     previous_score = max(complete) if complete else None
-                    search_moves = [item[1] for item in self.root_scores[:cfg.root_limit]]
+                    search_moves = [item[1] for item in self.root_scores[: cfg.root_limit]]
                 if abs(score) >= VALUES[PieceType.KING]:
                     break
         except SearchTimeout:
-            pass
+            # 理由在抛点写入（`_guard` → wall/cancel、节点预算 → nodes）。
+            self.bound_reason = self._timeout_reason or "wall"
+        if self.completed_depth == 0:
+            self.zero_depth_moves += 1
+            self.zero_depth_reason = self.bound_reason
         self._active_deadline = math.inf
         self._active_cancel = None
         weaker = self._sample_weaker(game, cfg)
@@ -308,11 +403,13 @@ class ChessAI:
             return None
         best_score = self.root_scores[0][0]
         pool: list[tuple[float, Move]] = []
-        for score, move, truncated in self.root_scores[1:cfg.candidate_count]:
+        for score, move, truncated in self.root_scores[1 : cfg.candidate_count]:
             if truncated or best_score - score > cfg.sample_margin:
                 continue
-            if (game.state.piece_at(move.target) is not None
-                    and static_exchange_score(game, move, VALUES) < -VALUES[PieceType.PAWN]):
+            if (
+                game.state.piece_at(move.target) is not None
+                and static_exchange_score(game, move, VALUES) < -VALUES[PieceType.PAWN]
+            ):
                 continue
             pool.append((score, move))
         if not pool:
@@ -324,9 +421,16 @@ class ChessAI:
         floor = max(1, len(pool) // 2)
         return self.random.choice([move for _, move in pool[:floor]])
 
-    def _root(self, game: Game, moves: list[Move], depth: int, deadline: float,
-              cancel: threading.Event | None, alpha: float = -math.inf,
-              beta: float = math.inf) -> tuple[float, Move | None]:
+    def _root(
+        self,
+        game: Game,
+        moves: list[Move],
+        depth: int,
+        deadline: float,
+        cancel: threading.Event | None,
+        alpha: float = -math.inf,
+        beta: float = math.inf,
+    ) -> tuple[float, Move | None]:
         ordered = self._order(game, moves, self.principal_move)
         ordered = sorted(ordered, key=lambda move: self._root_bias(game, move) < -100)
         best_score, best_move = -math.inf, None
@@ -360,10 +464,23 @@ class ChessAI:
             return self.root_scores[0][0] if self.root_scores else -math.inf, ordered[0]
         return best_score, best_move
 
-    def _search(self, game: Game, depth: int, alpha: float, beta: float, deadline: float,
-                cancel: threading.Event | None, ply: int, allow_null: bool = True) -> float:
+    def _search(
+        self,
+        game: Game,
+        depth: int,
+        alpha: float,
+        beta: float,
+        deadline: float,
+        cancel: threading.Event | None,
+        ply: int,
+        allow_null: bool = True,
+    ) -> float:
         self._guard(deadline, cancel)
         self.nodes += 1
+        # `max_nodes=N` 允许 N 个节点跑完；第 N+1 个进入时才截断。
+        if self._config.max_nodes is not None and self.nodes > self._config.max_nodes:
+            self._timeout_reason = "nodes"
+            raise SearchTimeout
         key = evaluation_key(game.rules, game.state)
         original_alpha = alpha
         original_beta = beta
@@ -383,17 +500,16 @@ class ChessAI:
             # 不是该根着法整棵深度树的累计 —— 后者会随"尝试更深的深度"线性上涨，
             # 根本不能当"吃子链跑飞"的信号（medium 明明 depth=1 也会报 trunc=12 就是这个）。
             self._qnode_base = self.qnodes
-            return self._quiescence(game, alpha, beta, deadline, cancel, ply,
-                                    self.quiescence_depth)
+            return self._quiescence(game, alpha, beta, deadline, cancel, ply, self.quiescence_depth)
         in_check = game.rules.in_check(game.state, game.state.turn)
-        if (allow_null and depth >= 4 and not in_check and math.isfinite(beta)
-                and self._can_null_move(game)):
+        if allow_null and depth >= 4 and not in_check and math.isfinite(beta) and self._can_null_move(game):
             null_state = game.state.clone()
             null_state.turn = null_state.turn.opponent
             null_game = Game.from_state(null_state, game.options, game.setup)
             reduction = 2 + depth // 4
-            score = -self._search(null_game, max(0, depth - 1 - reduction),
-                                  -beta, -beta + 1, deadline, cancel, ply + 1, False)
+            score = -self._search(
+                null_game, max(0, depth - 1 - reduction), -beta, -beta + 1, deadline, cancel, ply + 1, False
+            )
             if score >= beta:
                 self.null_prunes += 1
                 return beta
@@ -405,27 +521,31 @@ class ChessAI:
         best_move = None
         ordered = self._order(game, moves, entry.best_move if entry else None, ply)
         if not in_check:
-            base_limit = CONFIGS[self.difficulty].branch_limit
-            ordered = ordered[:base_limit + max(0, 4 - depth) * 2]
+            base_limit = self._config.branch_limit
+            ordered = ordered[: base_limit + max(0, 4 - depth) * 2]
         for index, move in enumerate(ordered):
             self._guard(deadline, cancel)
             child = Game.from_state(game.rules.apply_unchecked(game.state, move), game.options, game.setup)
             capture = self._capture_value(game, move)
             gives_check = game.rules.in_check(child.state, child.state.turn)
             reduction = 0
-            if (index >= 4 and depth >= 3 and not in_check and not capture
-                    and move.promotion is None and not gives_check and math.isfinite(alpha)):
+            if (
+                index >= 4
+                and depth >= 3
+                and not in_check
+                and not capture
+                and move.promotion is None
+                and not gives_check
+                and math.isfinite(alpha)
+            ):
                 reduction = min(depth - 2, 1 + (index - 4) // 8)
             if reduction:
-                score = -self._search(child, depth - 1 - reduction, -alpha - 1, -alpha,
-                                      deadline, cancel, ply + 1)
+                score = -self._search(child, depth - 1 - reduction, -alpha - 1, -alpha, deadline, cancel, ply + 1)
                 if score > alpha:
                     self.lmr_researches += 1
-                    score = -self._search(child, depth - 1, -beta, -alpha,
-                                          deadline, cancel, ply + 1)
+                    score = -self._search(child, depth - 1, -beta, -alpha, deadline, cancel, ply + 1)
             else:
-                score = -self._search(child, depth - 1, -beta, -alpha,
-                                      deadline, cancel, ply + 1)
+                score = -self._search(child, depth - 1, -beta, -alpha, deadline, cancel, ply + 1)
             if score > value:
                 value, best_move = score, move
             alpha = max(alpha, value)
@@ -450,9 +570,17 @@ class ChessAI:
             self.transposition[key] = TTEntry(depth, value, bound, best_move)
         return value
 
-    def _quiescence(self, game: Game, alpha: float, beta: float, deadline: float,
-                    cancel: threading.Event | None, ply: int, remaining: int,
-                    legal: list[Move] | None = None) -> float:
+    def _quiescence(
+        self,
+        game: Game,
+        alpha: float,
+        beta: float,
+        deadline: float,
+        cancel: threading.Event | None,
+        ply: int,
+        remaining: int,
+        legal: list[Move] | None = None,
+    ) -> float:
         self._guard(deadline, cancel)
         self.qnodes += 1
         in_check = game.rules.in_check(game.state, game.state.turn)
@@ -471,32 +599,36 @@ class ChessAI:
                 return beta
             alpha = max(alpha, stand_pat)
 
-        moves = legal if legal is not None else (
-            game.rules.legal_moves(game.state) if in_check else self._tactical_moves(game, deadline, cancel)
+        moves = (
+            legal
+            if legal is not None
+            else (game.rules.legal_moves(game.state) if in_check else self._tactical_moves(game, deadline, cancel))
         )
         if in_check and not moves:
             return -VALUES[PieceType.KING] + ply
-        tactical = moves if in_check else [
-            move for move in moves
-            if move.promotion is not None or (
-                self._capture_value(game, move) > 0 and self._see_score(game, move) >= 0
-            )
-        ]
+        tactical = (
+            moves
+            if in_check
+            else [
+                move
+                for move in moves
+                if move.promotion is not None
+                or (self._capture_value(game, move) > 0 and self._see_score(game, move) >= 0)
+            ]
+        )
         ordered = self._order(game, tactical, ply=ply)
         if not in_check:
-            ordered = ordered[:max(6, CONFIGS[self.difficulty].branch_limit)]
+            ordered = ordered[: max(6, self._config.branch_limit)]
         for move in ordered:
             self._guard(deadline, cancel)
             child = Game.from_state(game.rules.apply_unchecked(game.state, move), game.options, game.setup)
-            score = -self._quiescence(child, -beta, -alpha, deadline, cancel,
-                                      ply + 1, remaining - 1)
+            score = -self._quiescence(child, -beta, -alpha, deadline, cancel, ply + 1, remaining - 1)
             if score >= beta:
                 return beta
             alpha = max(alpha, score)
         return alpha
 
-    def _tactical_moves(self, game: Game, deadline: float,
-                        cancel: threading.Event | None) -> list[Move]:
+    def _tactical_moves(self, game: Game, deadline: float, cancel: threading.Event | None) -> list[Move]:
         state = game.state
         enemies = [piece for piece in state.pieces if piece.color is state.turn.opponent]
         tactical: list[Move] = []
@@ -539,12 +671,17 @@ class ChessAI:
         center_r, center_c = (game.profile.rows - 1) / 2, (game.profile.cols - 1) / 2
         for piece in game.state.pieces:
             sign = 1 if piece.color is color else -1
-            central = max(0, min(game.profile.rows, game.profile.cols) / 2 -
-                          abs(piece.position.row - center_r) - abs(piece.position.col - center_c))
+            central = max(
+                0,
+                min(game.profile.rows, game.profile.cols) / 2
+                - abs(piece.position.row - center_r)
+                - abs(piece.position.col - center_c),
+            )
             positional = central * CENTRAL_WEIGHTS[piece.type] * (0.75 + phase * 0.25)
             if piece.type is PieceType.PAWN:
-                advance = (piece.position.row if piece.color is Color.BLACK
-                           else game.profile.rows - 1 - piece.position.row)
+                advance = (
+                    piece.position.row if piece.color is Color.BLACK else game.profile.rows - 1 - piece.position.row
+                )
                 positional += advance * (5 + (1 - phase) * 3)
                 if advance > (game.profile.rows - 1) / 2:
                     positional += 22 + (1 - phase) * 18
@@ -567,9 +704,8 @@ class ChessAI:
         own_attacks, own_pressure = self._activity_score(game, color)
         enemy_attacks, enemy_pressure = self._activity_score(game, color.opponent)
         score += (own_attacks - enemy_attacks) * 5
-        score += (own_pressure - enemy_pressure) * .18
-        score += (self._mobility_score(game, color) -
-                  self._mobility_score(game, color.opponent)) * (0.8 + phase * 0.5)
+        score += (own_pressure - enemy_pressure) * 0.18
+        score += (self._mobility_score(game, color) - self._mobility_score(game, color.opponent)) * (0.8 + phase * 0.5)
         score += self._king_safety(game, color, phase)
         score -= self._king_safety(game, color.opponent, phase)
         evaluation = cache_key[0]
@@ -609,30 +745,37 @@ class ChessAI:
             # Same filter as rules.py:96-104: promotion targets exclude PAWN/KING
             # and must be enabled by the profile. (A captured KING can sit in the
             # pool; counting it would blow the score up by VALUES[KING].)
-            total += sum(VALUES[piece.type] for piece in pool
-                         if piece.type in POOL_PROMOTION_TYPES and piece.type in enabled)
+            total += sum(
+                VALUES[piece.type] for piece in pool if piece.type in POOL_PROMOTION_TYPES and piece.type in enabled
+            )
         if game.options.pawn_resurrection:
             # Only pawns can be revived (game.py:167-169), never above the 7-pawn
             # cap, so the dead pawns beyond that cap are worth nothing.
             dead_pawns = sum(1 for piece in pool if piece.type is PieceType.PAWN)
-            fielded = sum(1 for piece in game.state.pieces
-                          if piece.type is PieceType.PAWN and piece.color is color)
+            fielded = sum(1 for piece in game.state.pieces if piece.type is PieceType.PAWN and piece.color is color)
             total += min(dead_pawns, max(0, RESTORE_PAWN_LIMIT - fielded)) * VALUES[PieceType.PAWN]
         return total
 
     def _game_phase(self, game: Game) -> float:
-        current = sum(VALUES[piece.type] for piece in game.state.pieces
-                      if piece.type not in {PieceType.KING, PieceType.PAWN})
-        initial = sum(VALUES[spec.type] for spec in game.profile.pieces
-                      if spec.type not in {PieceType.KING, PieceType.PAWN}
-                      and game.options.piece_enabled(spec.type))
+        current = sum(
+            VALUES[piece.type] for piece in game.state.pieces if piece.type not in {PieceType.KING, PieceType.PAWN}
+        )
+        initial = sum(
+            VALUES[spec.type]
+            for spec in game.profile.pieces
+            if spec.type not in {PieceType.KING, PieceType.PAWN} and game.options.piece_enabled(spec.type)
+        )
         return min(1.0, current / max(1, initial))
 
     def _mobility_score(self, game: Game, color: Color) -> int:
         score = 0
         weights = {
-            PieceType.ROOK: 2, PieceType.CANNON: 2, PieceType.HORSE: 3,
-            PieceType.ARCHER: 2, PieceType.THUNDER: 2, PieceType.PAWN: 1,
+            PieceType.ROOK: 2,
+            PieceType.CANNON: 2,
+            PieceType.HORSE: 3,
+            PieceType.ARCHER: 2,
+            PieceType.THUNDER: 2,
+            PieceType.PAWN: 1,
         }
         for piece in game.state.pieces:
             if piece.color is not color:
@@ -646,71 +789,104 @@ class ChessAI:
         return score
 
     @staticmethod
-    def _mobility_targets(game: Game, piece) -> list[Position]:
+    def _mobility_targets(game: Game, piece: Piece) -> list[Position]:
         row, col = piece.position.row, piece.position.col
         candidates: set[Position] = set()
         if piece.type in {PieceType.ROOK, PieceType.CANNON, PieceType.THUNDER}:
             for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 for delta in range(1, max(game.profile.rows, game.profile.cols)):
                     target = Position(row + dr * delta, col + dc * delta)
-                    if not (0 <= target.row < game.profile.rows and
-                            0 <= target.col < game.profile.cols):
+                    if not (0 <= target.row < game.profile.rows and 0 <= target.col < game.profile.cols):
                         break
                     candidates.add(target)
                     if game.state.piece_at(target):
                         break
         if piece.type in {PieceType.ARCHER, PieceType.THUNDER}:
-            max_distance = 3 if (piece.type is PieceType.ARCHER and
-                                 game.options.archer_enhanced_mode) else max(
-                                     game.profile.rows, game.profile.cols
-                                 )
+            max_distance = (
+                3
+                if (piece.type is PieceType.ARCHER and game.options.archer_enhanced_mode)
+                else max(game.profile.rows, game.profile.cols)
+            )
             for dr, dc in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
                 for delta in range(1, max_distance + 1):
                     target = Position(row + dr * delta, col + dc * delta)
-                    if not (0 <= target.row < game.profile.rows and
-                            0 <= target.col < game.profile.cols):
+                    if not (0 <= target.row < game.profile.rows and 0 <= target.col < game.profile.cols):
                         break
                     candidates.add(target)
                     if game.state.piece_at(target):
                         break
         offsets = {
-            PieceType.HORSE: ((2, 1), (2, -1), (-2, 1), (-2, -1),
-                              (1, 2), (1, -2), (-1, 2), (-1, -2),
-                              (3, 0), (-3, 0), (0, 3), (0, -3)),
-            PieceType.ELEPHANT: ((2, 2), (2, -2), (-2, 2), (-2, -2),
-                                 (2, 0), (-2, 0), (0, 2), (0, -2)),
-            PieceType.ADVISOR: ((1, 1), (1, -1), (-1, 1), (-1, -1),
-                                (1, 0), (-1, 0), (0, 1), (0, -1)),
-            PieceType.KING: ((1, 1), (1, -1), (-1, 1), (-1, -1),
-                             (1, 0), (-1, 0), (0, 1), (0, -1)),
-            PieceType.PAWN: ((1, 0), (-1, 0), (0, 1), (0, -1),
-                             (2, 0), (-2, 0), (3, 0), (-3, 0)),
-            PieceType.GUARD: ((2, 0), (-2, 0), (0, 2), (0, -2),
-                              (2, 2), (2, -2), (-2, 2), (-2, -2),
-                              (3, 0), (-3, 0), (0, 3), (0, -3),
-                              (3, 3), (3, -3), (-3, 3), (-3, -3)),
-            PieceType.PATROL: ((0, 2), (0, -2), (0, 4), (0, -4),
-                               (0, 6), (0, -6), (0, 8), (0, -8),
-                               (0, 10), (0, -10), (0, 12), (0, -12)),
+            PieceType.HORSE: (
+                (2, 1),
+                (2, -1),
+                (-2, 1),
+                (-2, -1),
+                (1, 2),
+                (1, -2),
+                (-1, 2),
+                (-1, -2),
+                (3, 0),
+                (-3, 0),
+                (0, 3),
+                (0, -3),
+            ),
+            PieceType.ELEPHANT: ((2, 2), (2, -2), (-2, 2), (-2, -2), (2, 0), (-2, 0), (0, 2), (0, -2)),
+            PieceType.ADVISOR: ((1, 1), (1, -1), (-1, 1), (-1, -1), (1, 0), (-1, 0), (0, 1), (0, -1)),
+            PieceType.KING: ((1, 1), (1, -1), (-1, 1), (-1, -1), (1, 0), (-1, 0), (0, 1), (0, -1)),
+            PieceType.PAWN: ((1, 0), (-1, 0), (0, 1), (0, -1), (2, 0), (-2, 0), (3, 0), (-3, 0)),
+            PieceType.GUARD: (
+                (2, 0),
+                (-2, 0),
+                (0, 2),
+                (0, -2),
+                (2, 2),
+                (2, -2),
+                (-2, 2),
+                (-2, -2),
+                (3, 0),
+                (-3, 0),
+                (0, 3),
+                (0, -3),
+                (3, 3),
+                (3, -3),
+                (-3, 3),
+                (-3, -3),
+            ),
+            PieceType.PATROL: (
+                (0, 2),
+                (0, -2),
+                (0, 4),
+                (0, -4),
+                (0, 6),
+                (0, -6),
+                (0, 8),
+                (0, -8),
+                (0, 10),
+                (0, -10),
+                (0, 12),
+                (0, -12),
+            ),
         }
-        candidates.update(Position(row + dr, col + dc)
-                          for dr, dc in offsets.get(piece.type, ()))
-        return [target for target in candidates
-                if 0 <= target.row < game.profile.rows and 0 <= target.col < game.profile.cols]
+        candidates.update(Position(row + dr, col + dc) for dr, dc in offsets.get(piece.type, ()))
+        return [
+            target
+            for target in candidates
+            if 0 <= target.row < game.profile.rows and 0 <= target.col < game.profile.cols
+        ]
 
     def _king_safety(self, game: Game, color: Color, phase: float) -> float:
-        king = next((piece for piece in game.state.pieces
-                     if piece.color is color and piece.type is PieceType.KING), None)
+        king = next(
+            (piece for piece in game.state.pieces if piece.color is color and piece.type is PieceType.KING), None
+        )
         if king is None:
             return -VALUES[PieceType.KING]
-        score = self._king_cover(game, color) * (12 if phase >= 0.45 else 5)
+        score: float = self._king_cover(game, color) * (12 if phase >= 0.45 else 5)
         if game.rules.palace(color, king.position):
             score += 25 * phase
         for enemy in game.state.pieces:
             if enemy.color is color:
                 continue
-            distance = max(abs(enemy.position.row - king.position.row),
-                           abs(enemy.position.col - king.position.col))
+            distance = max(abs(enemy.position.row - king.position.row), abs(enemy.position.col - king.position.col))
             if distance <= 3:
                 score -= (4 - distance) * min(40, VALUES[enemy.type] / 20)
         return score
@@ -718,8 +894,9 @@ class ChessAI:
     def _can_null_move(self, game: Game) -> bool:
         if game.options.pawn_resurrection or self._game_phase(game) < 0.35:
             return False
-        return sum(piece.color is game.state.turn and piece.type is not PieceType.KING
-                   for piece in game.state.pieces) >= 4
+        return (
+            sum(piece.color is game.state.turn and piece.type is not PieceType.KING for piece in game.state.pieces) >= 4
+        )
 
     def _activity_score(self, game: Game, color: Color) -> tuple[int, float]:
         probe = game.state if game.state.turn is color else replace(game.state, turn=color)
@@ -736,11 +913,11 @@ class ChessAI:
                 attacks += 1
                 capture = VALUES[target.type]
                 attacker = VALUES[moving.type]
-                pressure += capture + max(0, capture - attacker) * .35
+                pressure += capture + max(0, capture - attacker) * 0.35
         return attacks, pressure
 
     @staticmethod
-    def _attack_geometry(moving, target) -> bool:
+    def _attack_geometry(moving: Piece, target: Piece) -> bool:
         dr = abs(target.position.row - moving.position.row)
         dc = abs(target.position.col - moving.position.col)
         if moving.type in {PieceType.ROOK, PieceType.CANNON}:
@@ -763,21 +940,27 @@ class ChessAI:
             return dr == 0 or dc == 0 or dr == dc
         return False
 
-    def _is_developed(self, game: Game, piece) -> bool:
-        return not any(spec.color is piece.color and spec.type is piece.type and
-                       spec.row == piece.position.row and spec.col == piece.position.col
-                       for spec in game.profile.pieces)
+    def _is_developed(self, game: Game, piece: Piece) -> bool:
+        return not any(
+            spec.color is piece.color
+            and spec.type is piece.type
+            and spec.row == piece.position.row
+            and spec.col == piece.position.col
+            for spec in game.profile.pieces
+        )
 
     @staticmethod
     def _king_cover(game: Game, color: Color) -> int:
-        king = next((piece for piece in game.state.pieces
-                     if piece.color is color and piece.type is PieceType.KING), None)
+        king = next(
+            (piece for piece in game.state.pieces if piece.color is color and piece.type is PieceType.KING), None
+        )
         if king is None:
             return 0
         return sum(
-            piece.color is color and piece is not king and
-            abs(piece.position.row - king.position.row) <= 1 and
-            abs(piece.position.col - king.position.col) <= 1
+            piece.color is color
+            and piece is not king
+            and abs(piece.position.row - king.position.row) <= 1
+            and abs(piece.position.col - king.position.col) <= 1
             for piece in game.state.pieces
         )
 
@@ -786,20 +969,22 @@ class ChessAI:
         moving = game.state.piece_at(move.source)
         if moving is None:
             return bias
-        previous = next((record for record in reversed(game.state.history)
-                         if record.color is moving.color), None)
+        previous = next((record for record in reversed(game.state.history) if record.color is moving.color), None)
         if previous and previous.move.source == move.target and previous.move.target == move.source:
             bias -= 150
             if not self._capture_value(game, move):
                 bias -= 45
         if self._is_developed(game, moving):
-            initial_target = any(spec.color is moving.color and spec.type is moving.type and
-                                 spec.row == move.target.row and spec.col == move.target.col
-                                 for spec in game.profile.pieces)
+            initial_target = any(
+                spec.color is moving.color
+                and spec.type is moving.type
+                and spec.row == move.target.row
+                and spec.col == move.target.col
+                for spec in game.profile.pieces
+            )
             if initial_target:
                 bias -= 28
-        if (self._capture_value(game, move) or
-                VALUES[moving.type] >= VALUES[PieceType.PATROL]):
+        if self._capture_value(game, move) or VALUES[moving.type] >= VALUES[PieceType.PATROL]:
             exchange = self._see_score(game, move)
             if exchange < 0:
                 bias += exchange * 2 - 600
@@ -816,15 +1001,17 @@ class ChessAI:
         self.see_calls += 1
         guard = None
         if math.isfinite(self._active_deadline):
-            guard = lambda: self._guard(self._active_deadline, self._active_cancel)
+
+            def guard() -> None:
+                return self._guard(self._active_deadline, self._active_cancel)
+
         score = static_exchange_score(game, move, VALUES, guard)
         if len(self.see_cache) >= 30_000:
             self.see_cache.clear()
         self.see_cache[key] = score
         return score
 
-    def _order(self, game: Game, moves: list[Move], preferred: Move | None = None,
-               ply: int = 0) -> list[Move]:
+    def _order(self, game: Game, moves: list[Move], preferred: Move | None = None, ply: int = 0) -> list[Move]:
         def score(move: Move) -> int:
             if preferred == move:
                 return 10_000_000
@@ -849,8 +1036,10 @@ class ChessAI:
                     value += (move.target.row - move.source.row) * forward * 32
                 if not self._is_developed(game, moving):
                     leaves_initial = not any(
-                        spec.color is moving.color and spec.type is moving.type and
-                        spec.row == move.target.row and spec.col == move.target.col
+                        spec.color is moving.color
+                        and spec.type is moving.type
+                        and spec.row == move.target.row
+                        and spec.col == move.target.col
                         for spec in game.profile.pieces
                     )
                     if leaves_initial and moving.type in MOBILE_PIECES:
@@ -871,14 +1060,23 @@ class ChessAI:
 
     # 车/炮/檑/射/尉/巡 走的是直线或对角线：只要目标格与敌王不在同一条线上，
     # 落子后就**不可能**攻击到王（这些兵种没有"跳过去打"的走法）。
-    _LINE_PIECES = frozenset({
-        PieceType.ROOK, PieceType.CANNON, PieceType.THUNDER,
-        PieceType.ARCHER, PieceType.GUARD, PieceType.PATROL,
-    })
+    _LINE_PIECES = frozenset(
+        {
+            PieceType.ROOK,
+            PieceType.CANNON,
+            PieceType.THUNDER,
+            PieceType.ARCHER,
+            PieceType.GUARD,
+            PieceType.PATROL,
+        }
+    )
     # 近战兵种的最大切比雪夫距离：王/仕/兵 1 格，相 2 格（田），马 2 格（日）。
     _LOCAL_REACH = {
-        PieceType.KING: 1, PieceType.ADVISOR: 1, PieceType.PAWN: 1,
-        PieceType.ELEPHANT: 2, PieceType.HORSE: 2,
+        PieceType.KING: 1,
+        PieceType.ADVISOR: 1,
+        PieceType.PAWN: 1,
+        PieceType.ELEPHANT: 2,
+        PieceType.HORSE: 2,
     }
 
     @staticmethod
@@ -900,8 +1098,14 @@ class ChessAI:
 
         判据错只会多算（慢一点），不会漏算（改变排序正确性）。
         """
-        king = next((piece for piece in game.state.pieces
-                     if piece.type is PieceType.KING and piece.color is game.state.turn.opponent), None)
+        king = next(
+            (
+                piece
+                for piece in game.state.pieces
+                if piece.type is PieceType.KING and piece.color is game.state.turn.opponent
+            ),
+            None,
+        )
         if king is None:
             return True
         mover = game.state.piece_at(move.source)
@@ -914,10 +1118,25 @@ class ChessAI:
         reach = self._LOCAL_REACH.get(mover.type)
         if reach is None:
             return True
-        return (abs(move.target.row - king.position.row) <= reach
-                and abs(move.target.col - king.position.col) <= reach)
+        return abs(move.target.row - king.position.row) <= reach and abs(move.target.col - king.position.col) <= reach
 
-    @staticmethod
-    def _guard(deadline: float, cancel: threading.Event | None) -> None:
-        if time.monotonic() >= deadline or (cancel and cancel.is_set()):
+    def _guard(self, deadline: float, cancel: threading.Event | None) -> None:
+        # 记理由再抛：`choose_move` 用它把本手归到 wall / cancel / nodes。
+        if cancel is not None and cancel.is_set():
+            self._timeout_reason = "cancel"
             raise SearchTimeout
+        if time.monotonic() >= deadline:
+            self._timeout_reason = "wall"
+            raise SearchTimeout
+
+
+# ── 提和判定（来自 master 线；纯新增，不参与搜索）────────────────────────────
+# `service/rooms.py` 的 AI 房提和会调用它；阈值单位是 `VALUES`（兵=120），
+# `-150` ≈ 落后 1.25 个兵才接受和棋。
+DRAW_ACCEPT_THRESHOLD = -150.0
+
+
+def should_accept_draw(game: Game, color: Color) -> bool:
+    """`color` 一方是否应当接受和棋：自评 ≤ 阈值（闭区间）才接受。"""
+    score = ChessAI(Difficulty.BEGINNER)._evaluate(game, color)
+    return score <= DRAW_ACCEPT_THRESHOLD

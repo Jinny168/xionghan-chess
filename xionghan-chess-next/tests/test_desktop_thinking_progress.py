@@ -74,30 +74,28 @@ def render(board: bw.BoardWidget) -> QImage:
 # ---------------------------------------------------------------------------
 # 1) 封顶 0.9 + 单调增
 # ---------------------------------------------------------------------------
-def test_ratio_is_monotonic_and_capped(qt_app: QApplication,
-                                      monkeypatch: pytest.MonkeyPatch) -> None:
+def test_ratio_is_monotonic_and_capped(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
     clock = _Clock()
     monkeypatch.setattr(bw.time, "monotonic", clock)
     board = make_board()
-    board.begin_thinking(CONFIGS[Difficulty.BEGINNER].time_limit)   # 0.5s
+    board.begin_thinking(CONFIGS[Difficulty.BEGINNER].time_limit)  # 0.5s
 
     ratios = []
     for step in range(1, 4):
-        clock.now += 0.1          # 0.1 / 0.2 / 0.3 秒
+        clock.now += 0.1  # 0.1 / 0.2 / 0.3 秒
         ratios.append(board.thinking_ratio())
     assert ratios == sorted(ratios), f"ratio 必须单调不减：{ratios}"
     assert all(ratio <= 0.9 for ratio in ratios), ratios
 
-    clock.now += 10.0             # 远超预算
+    clock.now += 10.0  # 远超预算
     assert board.thinking_ratio() == pytest.approx(0.9), "预算耗尽也必须封顶 0.9，不得归满"
 
 
-def test_hard_ratio_is_small_at_one_second(qt_app: QApplication,
-                                           monkeypatch: pytest.MonkeyPatch) -> None:
+def test_hard_ratio_is_small_at_one_second(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
     clock = _Clock()
     monkeypatch.setattr(bw.time, "monotonic", clock)
     board = make_board()
-    board.begin_thinking(CONFIGS[Difficulty.HARD].time_limit)       # 12s
+    board.begin_thinking(CONFIGS[Difficulty.HARD].time_limit)  # 12s
     clock.now += 1.0
     assert board.thinking_ratio() <= 0.1
 
@@ -105,8 +103,7 @@ def test_hard_ratio_is_small_at_one_second(qt_app: QApplication,
 # ---------------------------------------------------------------------------
 # 2) 归零时机：只在 end_thinking（= 真正落子/失败/取消）
 # ---------------------------------------------------------------------------
-def test_progress_clears_only_after_end_thinking(qt_app: QApplication,
-                                                 monkeypatch: pytest.MonkeyPatch) -> None:
+def test_progress_clears_only_after_end_thinking(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
     clock = _Clock()
     monkeypatch.setattr(bw.time, "monotonic", clock)
     board = make_board()
@@ -140,8 +137,7 @@ def window(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch, tmp_path):
     # 结果弹窗改为自定义按钮框后，静默点转移到 `show_result_dialog`（否则会真模态挂住）
     monkeypatch.setattr(appmod, "show_result_dialog", staticmethod(lambda *a, **k: False))
     monkeypatch.setattr(QMessageBox, "warning", staticmethod(lambda *a, **k: None))
-    monkeypatch.setattr(QMessageBox, "question",
-                        staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
 
     class _Signal:
         def connect(self, *_args, **_kwargs) -> None:
@@ -171,7 +167,7 @@ def test_thinking_timer_does_not_stay_running(window) -> None:
         window.start_ai()
         assert window.thinking_timer.isActive(), "start_ai 之后读条定时器应当在跑"
         assert window.board.thinking_started is not None
-        window.finish_ai((None, threading.Event()))       # `move is None` 出口
+        window.finish_ai((None, threading.Event()))  # `move is None` 出口
         assert not window.thinking_timer.isActive(), "finish_ai 之后定时器必须停"
         assert window.board.thinking_started is None
 

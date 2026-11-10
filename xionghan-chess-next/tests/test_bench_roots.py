@@ -21,7 +21,12 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from bench_roots import REPETITION_LIMIT, _is_reverse, build_position, position_fingerprint  # noqa: E402
+from bench_roots import (  # noqa: E402
+    REPETITION_LIMIT,
+    _is_reverse,
+    build_position,
+    position_fingerprint,
+)
 
 from xionghan_chess.core.game import Game  # noqa: E402
 
@@ -55,7 +60,8 @@ def _assert_no_loop(game, plies: int, *, allow_early_finish: bool = False) -> No
     history = [record.move for record in game.state.history]
     if allow_early_finish:
         assert len(history) == plies or game.state.finished, (
-            f"只走了 {len(history)} 手就停了，且局面未终局（生成器打了死结）")
+            f"只走了 {len(history)} 手就停了，且局面未终局（生成器打了死结）"
+        )
     else:
         assert len(history) == plies, f"只走了 {len(history)} 手就停了"
 
@@ -69,7 +75,8 @@ def _assert_no_loop(game, plies: int, *, allow_early_finish: bool = False) -> No
         state = rules.apply_unchecked(state, move)
         counter[rules.position_key(state)] += 1
     assert max(counter.values()) <= REPETITION_LIMIT, (
-        f"同一局面出现 {max(counter.values())} 次，超过上限 {REPETITION_LIMIT}")
+        f"同一局面出现 {max(counter.values())} 次，超过上限 {REPETITION_LIMIT}"
+    )
 
 
 def test_short_run_has_no_immediate_reversal() -> None:

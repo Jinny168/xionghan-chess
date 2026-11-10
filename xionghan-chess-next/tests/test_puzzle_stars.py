@@ -48,12 +48,12 @@ def test_clean_solve_scores_three() -> None:
 
 def test_one_miss_or_one_hint_drops_to_two() -> None:
     missed = training.PuzzleSession(_puzzle(STEPS))
-    missed.submit(_mv(0, 0, 1, 0))          # 错一手
+    missed.submit(_mv(0, 0, 1, 0))  # 错一手
     _solve_cleanly(missed)
     assert missed.stars == 2
 
     hinted = training.PuzzleSession(_puzzle(STEPS))
-    hinted.next_hint()                       # 看一次提示
+    hinted.next_hint()  # 看一次提示
     _solve_cleanly(hinted)
     assert hinted.stars == 2
 

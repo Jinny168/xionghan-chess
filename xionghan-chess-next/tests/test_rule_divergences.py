@@ -13,8 +13,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, Move, Piece, PieceType, Position
 from xionghan_chess.core.profiles import get_profile
@@ -39,8 +37,7 @@ def _rules() -> RulesEngine:
 def _kings_off_column() -> tuple[Piece, Piece]:
     """两王**不同列**。同列且中间无子时照面被算作被将，`legal_moves` 会被整盘过滤为空
     —— 那样任何「某子能不能走」的断言都会假阴性。这是造局面时最容易踩的坑。"""
-    return (_piece(PieceType.KING, Color.RED, 12, 5),
-            _piece(PieceType.KING, Color.BLACK, 0, 6))
+    return (_piece(PieceType.KING, Color.RED, 12, 5), _piece(PieceType.KING, Color.BLACK, 0, 6))
 
 
 def _moves_from(state: GameState, source: Position, color: Color = Color.RED) -> list[Move]:
@@ -58,28 +55,22 @@ def test_pawn_sideways_boundary_is_row5() -> None:
       * `rules.py` 的 `crossed` 改为 `row < middle`；
       * 与 `distance_to_enemy_territory`（最远落行 5）、象的 `target.row < middle` 三处一致。
     """
-    rules = _rules()
+    _engine = _rules()
     on_middle = _state(_piece(PieceType.PAWN, Color.RED, 6, 3), *_kings_off_column())
-    middle_targets = {(m.target.row, m.target.col)
-                      for m in _moves_from(on_middle, Position(6, 3))}
+    middle_targets = {(m.target.row, m.target.col) for m in _moves_from(on_middle, Position(6, 3))}
     assert (6, 4) not in middle_targets, "阴山行不该能横走"
     assert (6, 2) not in middle_targets
     assert (5, 3) in middle_targets, "前进一格仍正常"
 
     inside = _state(_piece(PieceType.PAWN, Color.RED, 5, 3), *_kings_off_column())
-    inside_targets = {(m.target.row, m.target.col)
-                      for m in _moves_from(inside, Position(5, 3))}
+    inside_targets = {(m.target.row, m.target.col) for m in _moves_from(inside, Position(5, 3))}
     assert (5, 4) in inside_targets and (5, 2) in inside_targets, "敌境首行必须能横走"
 
     # 黑方镜像：row 7 起可横走，row 6 不行
-    black_middle = _state(_piece(PieceType.PAWN, Color.BLACK, 6, 3), *_kings_off_column(),
-                          turn=Color.BLACK)
-    assert (6, 4) not in {(m.target.row, m.target.col)
-                          for m in _moves_from(black_middle, Position(6, 3), Color.BLACK)}
-    black_inside = _state(_piece(PieceType.PAWN, Color.BLACK, 7, 3), *_kings_off_column(),
-                          turn=Color.BLACK)
-    assert (7, 4) in {(m.target.row, m.target.col)
-                      for m in _moves_from(black_inside, Position(7, 3), Color.BLACK)}
+    black_middle = _state(_piece(PieceType.PAWN, Color.BLACK, 6, 3), *_kings_off_column(), turn=Color.BLACK)
+    assert (6, 4) not in {(m.target.row, m.target.col) for m in _moves_from(black_middle, Position(6, 3), Color.BLACK)}
+    black_inside = _state(_piece(PieceType.PAWN, Color.BLACK, 7, 3), *_kings_off_column(), turn=Color.BLACK)
+    assert (7, 4) in {(m.target.row, m.target.col) for m in _moves_from(black_inside, Position(7, 3), Color.BLACK)}
 
 
 # ---------------------------------------------------------------------------
@@ -92,14 +83,13 @@ def test_behavior_lock_pawn_promotion_is_forced() -> None:
     疑点：`rules.py:155-161` 在池非空时直接判裸着法非法 —— 强制；
           `rules.py:298-304` 执行时从 `state.captured` 移除同类型阵亡子。
     """
-    rules = _rules()
+    _engine = _rules()
     state = _state(_piece(PieceType.PAWN, Color.RED, 1, 3), *_kings_off_column())
     state.captured[Color.RED].append(_piece(PieceType.ROOK, Color.RED, 9, 9))
 
     moves = _moves_from(state, Position(1, 3))
     promotion_moves = [m for m in moves if m.promotion is not None]
-    bare_to_rank = [m for m in moves
-                    if m.promotion is None and m.target == Position(0, 3)]
+    bare_to_rank = [m for m in moves if m.promotion is None and m.target == Position(0, 3)]
 
     assert [m.promotion for m in promotion_moves] == [PieceType.ROOK]
     assert bare_to_rank == [], "「到升变行却不升变」若变成合法，说明强制语义被放开"
@@ -123,18 +113,18 @@ def test_kings_facing_detects_row_and_column() -> None:
     """
     rules = _rules()
 
-    same_row = _state(_piece(PieceType.KING, Color.RED, 6, 2),
-                      _piece(PieceType.KING, Color.BLACK, 6, 9))
-    same_col = _state(_piece(PieceType.KING, Color.RED, 2, 6),
-                      _piece(PieceType.KING, Color.BLACK, 9, 6))
+    same_row = _state(_piece(PieceType.KING, Color.RED, 6, 2), _piece(PieceType.KING, Color.BLACK, 6, 9))
+    same_col = _state(_piece(PieceType.KING, Color.RED, 2, 6), _piece(PieceType.KING, Color.BLACK, 9, 6))
 
     assert rules.in_check(same_row, Color.RED) is True, "同行无遮挡必须算被将"
     assert rules.in_check(same_col, Color.RED) is True, "同列无遮挡必须算被将"
 
     # 中间隔子即不照面
-    blocked_row = _state(_piece(PieceType.KING, Color.RED, 6, 2),
-                         _piece(PieceType.KING, Color.BLACK, 6, 9),
-                         _piece(PieceType.ROOK, Color.RED, 6, 5))
+    blocked_row = _state(
+        _piece(PieceType.KING, Color.RED, 6, 2),
+        _piece(PieceType.KING, Color.BLACK, 6, 9),
+        _piece(PieceType.ROOK, Color.RED, 6, 5),
+    )
     assert rules._kings_facing(blocked_row) is False
 
 
@@ -152,6 +142,5 @@ def test_enemy_territory_definition_is_consistent() -> None:
         "fast_move (rules.py)": MIDDLE_ROW - 1,
         "elephant (rules.py)": MIDDLE_ROW - 1,
     }
-    assert len(set(boundaries.values())) == 1, (
-        "三处「敌境起始行」必须一致，当前为：" + repr(boundaries))
+    assert len(set(boundaries.values())) == 1, "三处「敌境起始行」必须一致，当前为：" + repr(boundaries)
     assert MIDDLE_ROW - 1 == 5

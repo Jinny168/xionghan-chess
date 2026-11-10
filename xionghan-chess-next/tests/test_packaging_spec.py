@@ -20,8 +20,8 @@ def drop_list() -> set[str]:
     tree = ast.parse(SPEC.read_text(encoding="utf-8"))
     for node in tree.body:
         if isinstance(node, ast.Assign) and any(
-                isinstance(target, ast.Name) and target.id == "DROP_BINARIES"
-                for target in node.targets):
+            isinstance(target, ast.Name) and target.id == "DROP_BINARIES" for target in node.targets
+        ):
             return {element.value for element in node.value.elts}
     raise AssertionError("spec 里找不到 DROP_BINARIES 定义")
 
@@ -37,8 +37,12 @@ def test_runtime_loaded_qt_binaries_are_never_dropped() -> None:
     """实测装配链只加载 6 个 Qt 子模块 —— 它们的二进制必须留着。"""
     dropped = drop_list()
     critical = {
-        "Qt6Core.dll", "Qt6Gui.dll", "Qt6Widgets.dll",
-        "QtCore.pyd", "QtGui.pyd", "QtWidgets.pyd",
+        "Qt6Core.dll",
+        "Qt6Gui.dll",
+        "Qt6Widgets.dll",
+        "QtCore.pyd",
+        "QtGui.pyd",
+        "QtWidgets.pyd",
     }
     assert critical & dropped == set()
 
@@ -49,9 +53,17 @@ def test_audio_and_network_dependencies_are_never_dropped() -> None:
     这两组都是「删了不报错、只在用到时崩」的典型，单独守一道。
     """
     dropped = drop_list()
-    for name in ("avcodec-63.dll", "avformat-63.dll", "avutil-61.dll", "swscale-10.dll",
-                 "Qt6Multimedia.dll", "Qt6Network.dll", "Qt6WebSockets.dll",
-                 "libcrypto-3-x64.dll", "libssl-3-x64.dll"):
+    for name in (
+        "avcodec-63.dll",
+        "avformat-63.dll",
+        "avutil-61.dll",
+        "swscale-10.dll",
+        "Qt6Multimedia.dll",
+        "Qt6Network.dll",
+        "Qt6WebSockets.dll",
+        "libcrypto-3-x64.dll",
+        "libssl-3-x64.dll",
+    ):
         assert name not in dropped, f"{name} 被误删，运行期会崩"
 
 

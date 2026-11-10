@@ -40,7 +40,11 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from xionghan_chess.core.game import Game  # noqa: E402
 from xionghan_chess.core.model import (  # noqa: E402
-    Color, Move, MoveRecord, PieceType, Position,
+    Color,
+    Move,
+    MoveRecord,
+    PieceType,
+    Position,
 )
 from xionghan_chess.desktop.ui import board_widget, theme  # noqa: E402
 
@@ -49,13 +53,13 @@ APP_JS = ROOT / "web" / "js" / "app.js"
 
 SIZE = 700
 BOARD = SIZE * SIZE
-SOURCE = Position(3, 4)      # 空位（完整布局里这格没有棋子）
-TARGET = Position(4, 4)      # 兵位 —— 落子后该格必有棋子，用来验"四角仍可见"
+SOURCE = Position(3, 4)  # 空位（完整布局里这格没有棋子）
+TARGET = Position(4, 4)  # 兵位 —— 落子后该格必有棋子，用来验"四角仍可见"
 OFFSET = 0.25
 PERCEPTIBLE_DELTA = 6
 THEMES = ("classic", "green", "blue", "purple", "dark")
-MIN_COVERAGE = 0.005         # 下界：不能白画
-MAX_COVERAGE = 0.0096        # 上界：两个 0.9 格方框的算术天花板（169 格棋盘）
+MIN_COVERAGE = 0.005  # 下界：不能白画
+MAX_COVERAGE = 0.0096  # 上界：两个 0.9 格方框的算术天花板（169 格棋盘）
 
 
 @pytest.fixture(scope="module")
@@ -65,12 +69,12 @@ def qt_app() -> QApplication:
     return app
 
 
-def render(*, with_history: bool, theme_name: str = "classic",
-           selected: Position | None = None) -> tuple[QImage, board_widget.BoardWidget]:
+def render(
+    *, with_history: bool, theme_name: str = "classic", selected: Position | None = None
+) -> tuple[QImage, board_widget.BoardWidget]:
     game = Game("web")
     if with_history:
-        game.state.history.append(MoveRecord(
-            Move(SOURCE, TARGET), Color.RED, PieceType.PAWN, (), "兵四进一"))
+        game.state.history.append(MoveRecord(Move(SOURCE, TARGET), Color.RED, PieceType.PAWN, (), "兵四进一"))
     board = board_widget.BoardWidget()
     board.resize(SIZE, SIZE)
     board.set_game(game, Color.RED, True)
@@ -89,23 +93,23 @@ def _raw(image: QImage) -> bytes:
 
 def _delta(a: QImage, x: int, y: int, other: QImage) -> int:
     ca, cb = a.pixelColor(x, y), other.pixelColor(x, y)
-    return max(abs(ca.red() - cb.red()), abs(ca.green() - cb.green()),
-               abs(ca.blue() - cb.blue()))
+    return max(abs(ca.red() - cb.red()), abs(ca.green() - cb.green()), abs(ca.blue() - cb.blue()))
 
 
 def perceptible_delta(a: QImage, b: QImage) -> int:
     pa, pb = _raw(a), _raw(b)
     count = 0
     for i in range(0, len(pa), 4):
-        if (abs(pa[i] - pb[i]) >= PERCEPTIBLE_DELTA
-                or abs(pa[i + 1] - pb[i + 1]) >= PERCEPTIBLE_DELTA
-                or abs(pa[i + 2] - pb[i + 2]) >= PERCEPTIBLE_DELTA):
+        if (
+            abs(pa[i] - pb[i]) >= PERCEPTIBLE_DELTA
+            or abs(pa[i + 1] - pb[i + 1]) >= PERCEPTIBLE_DELTA
+            or abs(pa[i + 2] - pb[i + 2]) >= PERCEPTIBLE_DELTA
+        ):
             count += 1
     return count
 
 
-def sample(image: QImage, board: board_widget.BoardWidget,
-           pos: Position) -> tuple[int, int, int]:
+def sample(image: QImage, board: board_widget.BoardWidget, pos: Position) -> tuple[int, int, int]:
     _, left, top, cw, ch = board._geometry()
     x = int(left + (pos.col + OFFSET) * cw)
     y = int(top + (pos.row + OFFSET) * ch)
@@ -120,8 +124,7 @@ def brightness(rgb: tuple[int, int, int]) -> int:
 def test_no_history_draws_nothing(qt_app: QApplication) -> None:
     """开局（`history` 为空）时不得有任何标记 —— 复盘到第 0 手也走这条路径。"""
     plain, board = render(with_history=False)
-    assert sample(plain, board, SOURCE) == sample(plain, board, Position(2, 3)), \
-        "没有 history 却画出了标记"
+    assert sample(plain, board, SOURCE) == sample(plain, board, Position(2, 3)), "没有 history 却画出了标记"
 
 
 def test_last_move_marks_the_source_square(qt_app: QApplication) -> None:
@@ -132,12 +135,12 @@ def test_last_move_marks_the_source_square(qt_app: QApplication) -> None:
     after = sample(marked, board, SOURCE)
     assert after != before, "history 有末手，起点格却没有标注"
     assert brightness(after) < brightness(before), (
-        f"浅色盘上标注应比底色**更暗**（取棋盘线色混出来）：{before} → {after}")
+        f"浅色盘上标注应比底色**更暗**（取棋盘线色混出来）：{before} → {after}"
+    )
 
 
 @pytest.mark.parametrize("theme_name", THEMES)
-def test_target_square_corners_stay_visible_under_a_piece(
-        qt_app: QApplication, theme_name: str) -> None:
+def test_target_square_corners_stay_visible_under_a_piece(qt_app: QApplication, theme_name: str) -> None:
     """**D1 的核心验收**：终点格有棋子时，方框的四个角仍必须可感知（五套主题全测）。
 
     第一版圆盘在这里得 0（环太细），这条会直接拦下它。
@@ -151,16 +154,15 @@ def test_target_square_corners_stay_visible_under_a_piece(
     _, left, top, cw, ch = board._geometry()
 
     misses = []
-    for tag, (dx, dy) in {"左上": (-1, -1), "右上": (1, -1),
-                          "左下": (-1, 1), "右下": (1, 1)}.items():
+    for tag, (dx, dy) in {"左上": (-1, -1), "右上": (1, -1), "左下": (-1, 1), "右下": (1, 1)}.items():
         # 在角区里取多点最大值，而不是只打一个点：
         # 圆角 16% 会把最外侧的角抹掉，单点落在 ±0.40 处只剩 Δ≈7（对阈值 6 余量仅 +1），
         # 换 DPI / Qt 版本极易假红。内缩 0.06/0.12 格后同一角 Δ 达 30–33，
         # 判据仍是"这一角读不读得出来"，只是不再赌单点恰好踩在抗锯齿边缘。
         delta = 0
         for inset in (0.0, 0.06, 0.12):
-            x = int(left + TARGET.col * cw + dx * (.40 - inset) * cw)
-            y = int(top + TARGET.row * ch + dy * (.40 - inset) * ch)
+            x = int(left + TARGET.col * cw + dx * (0.40 - inset) * cw)
+            y = int(top + TARGET.row * ch + dy * (0.40 - inset) * ch)
             delta = max(delta, _delta(marked, x, y, plain))
         if delta < PERCEPTIBLE_DELTA:
             misses.append(f"{tag}(Δ={delta})")
@@ -169,8 +171,9 @@ def test_target_square_corners_stay_visible_under_a_piece(
     # 层级契约：棋子正中心（棋子盖住的地方）像素不变
     centre_x = int(left + TARGET.col * cw)
     centre_y = int(top + TARGET.row * ch)
-    assert _delta(marked, centre_x, centre_y, plain) == 0, \
+    assert _delta(marked, centre_x, centre_y, plain) == 0, (
         "棋子中心像素变了 —— 标记被画到棋子之后了（应保持在 _draw_marks 内）"
+    )
 
 
 def test_mark_coverage_is_within_the_arithmetic_ceiling(qt_app: QApplication) -> None:
@@ -180,7 +183,8 @@ def test_mark_coverage_is_within_the_arithmetic_ceiling(qt_app: QApplication) ->
     ratio = perceptible_delta(marked, plain) / BOARD
     assert MIN_COVERAGE <= ratio <= MAX_COVERAGE, (
         f"可感知面积 {ratio:.2%} 不在 [{MIN_COVERAGE:.1%}, {MAX_COVERAGE:.2%}] 内"
-        "（上限是两个 0.9 格方框在 169 格棋盘上的算术天花板，超过说明标记不止两格）")
+        "（上限是两个 0.9 格方框在 169 格棋盘上的算术天花板，超过说明标记不止两格）"
+    )
 
 
 def test_selection_wins_over_last_move(qt_app: QApplication) -> None:
@@ -193,9 +197,11 @@ def test_selection_wins_over_last_move(qt_app: QApplication) -> None:
     both, _ = render(with_history=True, selected=SOURCE)
     plain_last = sample(marked, board, SOURCE)
     plain_both = sample(both, board, SOURCE)
-    spread = lambda rgb: rgb[0] - rgb[2]
-    assert spread(plain_both) > spread(plain_last), (
-        f"选择态没有盖在上一步标记之上：{plain_last} → {plain_both}")
+
+    def spread(rgb):
+        return rgb[0] - rgb[2]
+
+    assert spread(plain_both) > spread(plain_last), f"选择态没有盖在上一步标记之上：{plain_last} → {plain_both}"
 
 
 def test_mark_follows_board_line_colour_across_themes(qt_app: QApplication) -> None:
@@ -209,7 +215,8 @@ def test_mark_follows_board_line_colour_across_themes(qt_app: QApplication) -> N
     after = sample(marked_dark, board_dark, SOURCE)
     assert after != before, "深色主题下没有标注"
     assert brightness(after) > brightness(before), (
-        f"深色盘上标注应比底色**更亮**（棋盘线色 #c9b58e 混出来）：{before} → {after}")
+        f"深色盘上标注应比底色**更亮**（棋盘线色 #c9b58e 混出来）：{before} → {after}"
+    )
 
 
 def test_mark_alpha_ladder_is_locked() -> None:
@@ -222,17 +229,20 @@ def test_mark_alpha_ladder_is_locked() -> None:
     （违背计划开头那条对标结论"棋盘即主角"）。
     谁想"调明显一点"，会先撞到这条。
     """
-    assert board_widget.LAST_MOVE_ALPHA < board_widget.CAPTURE_MARK_ALPHA \
-        < board_widget.SELECTION_MARK_ALPHA, (
-            "标注强弱顺序被打乱：上一步 {} / 吃子提示 {} / 选择态 {}".format(
-                board_widget.LAST_MOVE_ALPHA, board_widget.CAPTURE_MARK_ALPHA,
-                board_widget.SELECTION_MARK_ALPHA))
-    assert (board_widget.LAST_MOVE_ALPHA, board_widget.CAPTURE_MARK_ALPHA,
-            board_widget.SELECTION_MARK_ALPHA) == (64, 90, 145), (
-            "三档 alpha 的定稿值是 64 / 90 / 145；改动请同时更新本条与 UI 审计文档")
+    assert board_widget.LAST_MOVE_ALPHA < board_widget.CAPTURE_MARK_ALPHA < board_widget.SELECTION_MARK_ALPHA, (
+        "标注强弱顺序被打乱：上一步 {} / 吃子提示 {} / 选择态 {}".format(
+            board_widget.LAST_MOVE_ALPHA, board_widget.CAPTURE_MARK_ALPHA, board_widget.SELECTION_MARK_ALPHA
+        )
+    )
+    assert (board_widget.LAST_MOVE_ALPHA, board_widget.CAPTURE_MARK_ALPHA, board_widget.SELECTION_MARK_ALPHA) == (
+        64,
+        90,
+        145,
+    ), "三档 alpha 的定稿值是 64 / 90 / 145；改动请同时更新本条与 UI 审计文档"
 
 
 # --- 网页端同步 -----------------------------------------------------------
+
 
 def test_web_highlight_shares_desktop_geometry_and_skips_replay() -> None:
     """网页那份必须与桌面同几何（方框 + 内缩 5% + 圆角 16% + alpha .25），且回放跳过。"""
@@ -243,18 +253,17 @@ def test_web_highlight_shares_desktop_geometry_and_skips_replay() -> None:
 
     # 几何必须用方框（cellFrame），不是圆盘（ring）
     assert "function cellFrame(" in source, "网页端上一步高亮应使用格内方框"
-    assert re.search(r"cellFrame\(g,last\.move\.(from|to),ink\)", source), \
-        "网页端上一步高亮没有对起讫两格都画方框"
+    assert re.search(r"cellFrame\(g,last\.move\.(from|to),ink\)", source), "网页端上一步高亮没有对起讫两格都画方框"
     assert "g.cw*.05" in source and "g.ch*.05" in source, "网页端方框内缩应为 5% 格"
     assert "Math.min(g.cw,g.ch)*.16" in source, "网页端方框圆角应为 16% 格"
 
     # 回放必须跳过：网页的 history 是实时对局的，不随回放索引切换
-    assert "app.replayIndex===null?app.state.history?.at(-1):null" in source, \
+    assert "app.replayIndex===null?app.state.history?.at(-1):null" in source, (
         "网页端在上一步高亮里没有排除回放态（会与所显示的局面错位）"
+    )
 
 
 def test_web_cell_frame_falls_back_when_round_rect_is_missing() -> None:
     """老浏览器没有 `ctx.roundRect` 时要退化成直角矩形，而不是整块不画。"""
     source = APP_JS.read_text(encoding="utf-8")
-    assert "ctx.roundRect?ctx.roundRect(x,y,w,h,r):ctx.rect(x,y,w,h)" in source, \
-        "cellFrame 缺少 roundRect 的降级分支"
+    assert "ctx.roundRect?ctx.roundRect(x,y,w,h,r):ctx.rect(x,y,w,h)" in source, "cellFrame 缺少 roundRect 的降级分支"

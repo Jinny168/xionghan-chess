@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-from dataclasses import dataclass
 import hashlib
 import hmac
 import json
 import os
-from pathlib import Path
 import secrets
 import sqlite3
 import threading
 import time
+from contextlib import contextmanager
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Iterator
 
 from xionghan_chess.core.avatars import normalize_avatar
@@ -29,9 +29,13 @@ class Account:
     created_at: int
 
     def public(self) -> dict[str, Any]:
-        return {"id": self.id, "username": self.username, "displayName": self.display_name,
-                "avatarUrl": self.avatar_url,
-                "createdAt": self.created_at}
+        return {
+            "id": self.id,
+            "username": self.username,
+            "displayName": self.display_name,
+            "avatarUrl": self.avatar_url,
+            "createdAt": self.created_at,
+        }
 
 
 class AccountStore:
@@ -101,7 +105,12 @@ class AccountStore:
                     "INSERT INTO users(username,display_name,password_hash,salt,created_at) VALUES(?,?,?,?,?)",
                     (username, display_name.strip() or username, password_hash, salt, now),
                 )
-                account = Account(cursor.lastrowid, username, display_name.strip() or username, "", now)
+                # 不变式：sqlite3 的 `lastrowid` 标注是 `int | None`（对非 INSERT 语句
+                # 才可能是 None），这条 INSERT 成功返回时必有自增主键。用 assert 表达，
+                # 而不是 `or 0` —— 真的拿到 None 时应当立刻炸，不该静默写出 id=0 的账号。
+                row_id = cursor.lastrowid
+                assert row_id is not None, "INSERT users 未返回自增主键"
+                account = Account(int(row_id), username, display_name.strip() or username, "", now)
         except sqlite3.IntegrityError as exc:
             raise AccountError("用户名已存在") from exc
         return account, self._create_session(account.id)
@@ -109,8 +118,7 @@ class AccountStore:
     def login(self, username: str, password: str) -> tuple[Account, str]:
         with self.connect() as db:
             row = db.execute("SELECT * FROM users WHERE username=?", (username.strip(),)).fetchone()
-        if row is None or not hmac.compare_digest(row["password_hash"],
-                                                   self._password_hash(password, row["salt"])):
+        if row is None or not hmac.compare_digest(row["password_hash"], self._password_hash(password, row["salt"])):
             raise AccountError("用户名或密码错误")
         account = self._account(row)
         return account, self._create_session(account.id)
@@ -119,8 +127,8 @@ class AccountStore:
         digest = hashlib.sha256(token.encode()).hexdigest()
         with self.connect() as db:
             row = db.execute(
-                "SELECT u.* FROM sessions s JOIN users u ON u.id=s.user_id "
-                "WHERE s.token_hash=? AND s.expires_at>?", (digest, int(time.time())),
+                "SELECT u.* FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?",
+                (digest, int(time.time())),
             ).fetchone()
         if row is None:
             raise AccountError("登录已过期，请重新登录")
@@ -128,8 +136,7 @@ class AccountStore:
 
     def logout(self, token: str) -> None:
         with self._lock, self.connect() as db:
-            db.execute("DELETE FROM sessions WHERE token_hash=?",
-                       (hashlib.sha256(token.encode()).hexdigest(),))
+            db.execute("DELETE FROM sessions WHERE token_hash=?", (hashlib.sha256(token.encode()).hexdigest(),))
 
     def preferences(self, user_id: int) -> dict[str, Any]:
         with self.connect() as db:
@@ -142,8 +149,7 @@ class AccountStore:
             row = db.execute("SELECT preferences FROM users WHERE id=?", (user_id,)).fetchone()
             current = json.loads(row[0]) if row and row[0] else {}
             current.update(clean)
-            db.execute("UPDATE users SET preferences=? WHERE id=?",
-                       (json.dumps(current, ensure_ascii=False), user_id))
+            db.execute("UPDATE users SET preferences=? WHERE id=?", (json.dumps(current, ensure_ascii=False), user_id))
         return current
 
     def update_profile(self, user_id: int, display_name: str, avatar_url: str) -> Account:
@@ -155,8 +161,7 @@ class AccountStore:
         if not (1 <= len(display_name) <= 32):
             raise AccountError("显示名称须为 1-32 个字符")
         with self._lock, self.connect() as db:
-            db.execute("UPDATE users SET display_name=?,avatar_url=? WHERE id=?",
-                       (display_name, avatar_url, user_id))
+            db.execute("UPDATE users SET display_name=?,avatar_url=? WHERE id=?", (display_name, avatar_url, user_id))
             row = db.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
         if row is None:
             raise AccountError("账号不存在")
@@ -173,17 +178,24 @@ class AccountStore:
             rows = db.execute(query, params).fetchall()
         return [self._game_summary(row) for row in rows]
 
-    def save_game(self, user_id: int, document: dict[str, Any], title: str = "",
-                  game_id: int | None = None) -> dict[str, Any]:
+    def save_game(
+        self, user_id: int, document: dict[str, Any], title: str = "", game_id: int | None = None
+    ) -> dict[str, Any]:
         encoded = json.dumps(document, ensure_ascii=False)
         now = int(time.time())
+        # 落库后的 id 单独用一个已确定非 None 的局部量承接：形参 `game_id` 是
+        # `int | None`（None = 新建），而 `cursor.lastrowid` 的标注同样是
+        # `int | None`，两者混用会让下面的 `get_game(user_id, ...)` 收不窄。
+        saved_id: int
         with self._lock, self.connect() as db:
             if game_id is None:
                 cursor = db.execute(
                     "INSERT INTO cloud_games(user_id,title,document,created_at,updated_at) VALUES(?,?,?,?,?)",
                     (user_id, title.strip() or "匈汉棋局", encoded, now, now),
                 )
-                game_id = cursor.lastrowid
+                row_id = cursor.lastrowid
+                assert row_id is not None, "INSERT cloud_games 未返回自增主键"
+                saved_id = int(row_id)
             else:
                 cursor = db.execute(
                     "UPDATE cloud_games SET title=?,document=?,updated_at=? WHERE id=? AND user_id=?",
@@ -191,20 +203,22 @@ class AccountStore:
                 )
                 if not cursor.rowcount:
                     raise AccountError("云端棋局不存在")
-        return self.get_game(user_id, game_id)
+                saved_id = game_id
+        return self.get_game(user_id, saved_id)
 
     def get_game(self, user_id: int, game_id: int) -> dict[str, Any]:
         with self.connect() as db:
-            row = db.execute("SELECT * FROM cloud_games WHERE id=? AND user_id=?",
-                             (game_id, user_id)).fetchone()
+            row = db.execute("SELECT * FROM cloud_games WHERE id=? AND user_id=?", (game_id, user_id)).fetchone()
         if row is None:
             raise AccountError("云端棋局不存在")
         return self._game_summary(row) | {"document": json.loads(row["document"])}
 
     def favorite_game(self, user_id: int, game_id: int, favorite: bool) -> dict[str, Any]:
         with self._lock, self.connect() as db:
-            cursor = db.execute("UPDATE cloud_games SET favorite=?,updated_at=? WHERE id=? AND user_id=?",
-                                (int(favorite), int(time.time()), game_id, user_id))
+            cursor = db.execute(
+                "UPDATE cloud_games SET favorite=?,updated_at=? WHERE id=? AND user_id=?",
+                (int(favorite), int(time.time()), game_id, user_id),
+            )
             if not cursor.rowcount:
                 raise AccountError("云端棋局不存在")
         return self.get_game(user_id, game_id)
@@ -218,8 +232,10 @@ class AccountStore:
         digest = hashlib.sha256(token.encode()).hexdigest()
         with self._lock, self.connect() as db:
             db.execute("DELETE FROM sessions WHERE expires_at<=?", (int(time.time()),))
-            db.execute("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)",
-                       (digest, user_id, int(time.time()) + 30 * 24 * 3600))
+            db.execute(
+                "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)",
+                (digest, user_id, int(time.time()) + 30 * 24 * 3600),
+            )
         return token
 
     @staticmethod
@@ -228,12 +244,20 @@ class AccountStore:
 
     @staticmethod
     def _account(row: sqlite3.Row) -> Account:
-        return Account(int(row["id"]), str(row["username"]), str(row["display_name"]),
-                       str(row["avatar_url"] or ""),
-                       int(row["created_at"]))
+        return Account(
+            int(row["id"]),
+            str(row["username"]),
+            str(row["display_name"]),
+            str(row["avatar_url"] or ""),
+            int(row["created_at"]),
+        )
 
     @staticmethod
     def _game_summary(row: sqlite3.Row) -> dict[str, Any]:
-        return {"id": int(row["id"]), "title": str(row["title"]),
-                "favorite": bool(row["favorite"]), "createdAt": int(row["created_at"]),
-                "updatedAt": int(row["updated_at"])}
+        return {
+            "id": int(row["id"]),
+            "title": str(row["title"]),
+            "favorite": bool(row["favorite"]),
+            "createdAt": int(row["created_at"]),
+            "updatedAt": int(row["updated_at"]),
+        }

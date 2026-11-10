@@ -1,0 +1,14 @@
+{
+  "name": "匈汉象棋 · 十三路",
+  "short_name": "匈汉象棋",
+  "description": "十三路棋盘上的中国象棋变体，完整规则内核在浏览器中运行。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f1e4",
+  "theme_color": "#9c2b22",
+  "icons": [
+    { "src": "./favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

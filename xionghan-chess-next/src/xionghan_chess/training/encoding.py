@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from ..core.model import Color, GameState, Move, PieceType
 
-
 BOARD_SIZE = 13
 SQUARES = BOARD_SIZE * BOARD_SIZE
 PIECE_TYPES = tuple(PieceType)
@@ -28,5 +27,5 @@ def encode_state(state: GameState) -> list[float]:
         values[channel * SQUARES + item.position.row * BOARD_SIZE + item.position.col] = 1.0
     turn_offset = (CHANNELS - 1) * SQUARES
     turn_value = 1.0 if state.turn is Color.RED else -1.0
-    values[turn_offset:turn_offset + SQUARES] = [turn_value] * SQUARES
+    values[turn_offset : turn_offset + SQUARES] = [turn_value] * SQUARES
     return values

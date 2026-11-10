@@ -27,8 +27,17 @@ ALLOWED = {Path("xionghan_chess/core/model.py")}
 def test_piece_type_has_no_removed_members() -> None:
     values = {item.value for item in PieceType}
     assert values == {
-        "king", "rook", "horse", "elephant", "advisor", "cannon", "pawn",
-        "guard", "archer", "thunder", "patrol",
+        "king",
+        "rook",
+        "horse",
+        "elephant",
+        "advisor",
+        "cannon",
+        "pawn",
+        "guard",
+        "archer",
+        "thunder",
+        "patrol",
     }, f"枚举成员应为 11 型，实际 {sorted(values)}"
 
 
@@ -46,7 +55,6 @@ def test_removed_piece_names_are_the_only_reference() -> None:
 
 def test_old_save_with_removed_piece_raises_a_readable_error() -> None:
     with pytest.raises(UnsupportedSaveError) as excinfo:
-        piece_from_dict({"id": "p1", "type": "armor", "color": "red",
-                         "row": 6, "col": 3})
+        piece_from_dict({"id": "p1", "type": "armor", "color": "red", "row": 6, "col": 3})
     message = str(excinfo.value)
     assert "甲" in message and "1.7.4" in message, message

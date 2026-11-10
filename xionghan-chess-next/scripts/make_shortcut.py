@@ -11,11 +11,11 @@ from __future__ import annotations
 
 import ctypes
 import sys
-from pathlib import Path
 from ctypes import POINTER, Structure, byref, c_ulong, c_ushort, c_void_p, c_wchar_p
+from pathlib import Path
 
 ole32 = ctypes.oledll.ole32
-shell32 = ctypes.oledll.shell32                 # oledll：HRESULT 失败自动抛 OSError
+shell32 = ctypes.oledll.shell32  # oledll：HRESULT 失败自动抛 OSError
 ole32.CoInitializeEx.argtypes = [c_void_p, c_ulong]
 ole32.CoInitializeEx.restype = ctypes.HRESULT
 ole32.CoCreateInstance.argtypes = [c_void_p, c_void_p, c_ulong, c_void_p, c_void_p]
@@ -26,8 +26,7 @@ COINIT_APARTMENTTHREADED = 2
 
 
 class GUID(Structure):
-    _fields_ = [("Data1", c_ulong), ("Data2", c_ushort),
-                ("Data3", c_ushort), ("Data4", ctypes.c_ubyte * 8)]
+    _fields_ = [("Data1", c_ulong), ("Data2", c_ushort), ("Data3", c_ushort), ("Data4", ctypes.c_ubyte * 8)]
 
     def __init__(self, text: str) -> None:
         super().__init__()
@@ -67,9 +66,13 @@ def make_shortcut(lnk: str, target: str, workdir: str, icon: str, description: s
     iid_persist = GUID(IID_IPERSIST_FILE)
 
     link = c_void_p()
-    ole32.CoCreateInstance(ctypes.cast(byref(clsid), c_void_p), None, CLSCTX_INPROC_SERVER,
-                           ctypes.cast(byref(iid_link), c_void_p),
-                           ctypes.cast(byref(link), c_void_p))
+    ole32.CoCreateInstance(
+        ctypes.cast(byref(clsid), c_void_p),
+        None,
+        CLSCTX_INPROC_SERVER,
+        ctypes.cast(byref(iid_link), c_void_p),
+        ctypes.cast(byref(link), c_void_p),
+    )
     if not link.value:
         raise OSError("CoCreateInstance 返回空指针")
 
@@ -87,15 +90,13 @@ def make_shortcut(lnk: str, target: str, workdir: str, icon: str, description: s
     # SetPath 仍然产出可用快捷方式（实测 373 B，target/icon 两项读回正确）。
     pidl = c_void_p()
     attributes = c_ulong(0)
-    shell32.SHParseDisplayName.argtypes = [c_wchar_p, c_void_p, POINTER(c_void_p), c_ulong,
-                                           POINTER(c_ulong)]
+    shell32.SHParseDisplayName.argtypes = [c_wchar_p, c_void_p, POINTER(c_void_p), c_ulong, POINTER(c_ulong)]
     shell32.SHParseDisplayName.restype = ctypes.HRESULT
     try:
         shell32.SHParseDisplayName(target, None, byref(pidl), 0, byref(attributes))
     except OSError as exc:
         pidl = c_void_p()
-        print(f"note: 跳过 LinkTargetIDList（SHParseDisplayName: {exc}）；"
-              "SetPath 已足够生成可用快捷方式")
+        print(f"note: 跳过 LinkTargetIDList（SHParseDisplayName: {exc}）；SetPath 已足够生成可用快捷方式")
     if pidl.value:
         _call(link.value, SET_ID_LIST, pidl)
         ole32.CoTaskMemFree(pidl)
@@ -107,7 +108,7 @@ def make_shortcut(lnk: str, target: str, workdir: str, icon: str, description: s
 
     persist = c_void_p()
     _call(link.value, QI, byref(iid_persist), byref(persist))
-    _call(persist.value, PERSIST_SAVE, lnk, 1)      # TRUE = 立即写盘
+    _call(persist.value, PERSIST_SAVE, lnk, 1)  # TRUE = 立即写盘
     _call(persist.value, RELEASE)
     _call(link.value, RELEASE)
     ole32.CoUninitialize()

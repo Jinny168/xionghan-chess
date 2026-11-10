@@ -27,8 +27,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from xionghan_chess.core.game import Game, GameError  # noqa: E402
 from xionghan_chess.core.model import Color, Position  # noqa: E402
-from xionghan_chess.core.profiles import (UI_ACTION_REQUIRES,  # noqa: E402
-                                          RuleOptions)
+from xionghan_chess.core.profiles import UI_ACTION_REQUIRES, RuleOptions  # noqa: E402
 from xionghan_chess.desktop import config as settings  # noqa: E402
 from xionghan_chess.desktop.app import MainWindow  # noqa: E402
 
@@ -79,13 +78,12 @@ def test_resurrection_on_keeps_all_seven_buttons(window) -> None:
 
 
 def test_resurrection_off_leaves_six_buttons_and_no_seventh_in_the_a11y_tree(window) -> None:
-    window.config["profile"] = "desktop_classic"      # 经典模式：pawn_resurrection=False
+    window.config["profile"] = "desktop_classic"  # 经典模式：pawn_resurrection=False
     window.new_game()
     window.refresh()
     assert window.game.options.pawn_resurrection is False
 
-    assert _visible_buttons(window) == [k for k in SIDEBAR_BUTTONS if k != "resurrect"], \
-        "关掉复活后侧栏应只剩 6 个按钮"
+    assert _visible_buttons(window) == [k for k in SIDEBAR_BUTTONS if k != "resurrect"], "关掉复活后侧栏应只剩 6 个按钮"
     # 无障碍树：Qt 不会把 isVisibleTo() 为假的控件交给辅助技术。
     # 只 `setEnabled(False)` 的话这里会是 True —— 那正是本条要拦的写法。
     assert not window.resurrect.isVisibleTo(window), "复活按钮仍在无障碍树里（只是被置灰/藏起来？）"
@@ -94,8 +92,7 @@ def test_resurrection_off_leaves_six_buttons_and_no_seventh_in_the_a11y_tree(win
 
 def _probe_resurrect(options: RuleOptions) -> None:
     """`resurrect` 动作在 core 的入口：开关关掉时必须抛错。"""
-    game = Game("desktop_complete",
-                option_overrides={"pawn_resurrection": options.pawn_resurrection})
+    game = Game("desktop_complete", option_overrides={"pawn_resurrection": options.pawn_resurrection})
     game.resurrect_pawn(Color.RED, Position(8, 0))
 
 
@@ -105,8 +102,9 @@ ACTION_PROBES = {"resurrect": _probe_resurrect}
 
 
 def test_every_declared_action_is_really_blocked_by_core() -> None:
-    assert set(UI_ACTION_REQUIRES) <= set(ACTION_PROBES), \
+    assert set(UI_ACTION_REQUIRES) <= set(ACTION_PROBES), (
         f"这些动作没有登记 core 探针：{sorted(set(UI_ACTION_REQUIRES) - set(ACTION_PROBES))}"
+    )
     for action, parents in UI_ACTION_REQUIRES.items():
         off = RuleOptions(**{parent: False for parent in parents})
         with pytest.raises(GameError):

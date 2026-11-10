@@ -50,8 +50,7 @@ def _t_calls() -> list[tuple[str, ast.Call]]:
             if not isinstance(node, ast.Call) or not node.args:
                 continue
             func = node.func
-            name = (func.id if isinstance(func, ast.Name)
-                    else func.attr if isinstance(func, ast.Attribute) else "")
+            name = func.id if isinstance(func, ast.Name) else func.attr if isinstance(func, ast.Attribute) else ""
             if name == "t":
                 calls.append((path.name, node))
     return calls

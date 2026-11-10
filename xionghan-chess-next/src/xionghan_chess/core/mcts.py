@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import math
 import random
 import threading
 import time
 from collections.abc import Callable
+from dataclasses import dataclass, field
 
 from .game import Game
-from .model import Move
-
+from .model import Color, Move
 
 # SEE 预处理的候选上限：吃子再多也只估算前 N 个，其余直接进候选。
 # 理由：MCTS 的时间盒是 12s，而一次 SEE 约毫秒级；captures 上百个时预处理
@@ -30,9 +29,14 @@ class _Node:
 class MCTS:
     """Dependency-free UCB1 Monte Carlo search over the shared Game rules."""
 
-    def __init__(self, time_limit: float = 0.35, simulations: int | None = None,
-                 exploration: float = math.sqrt(2.0), seed: int | None = None,
-                 root_score: Callable[[Game, Move], float] | None = None):
+    def __init__(
+        self,
+        time_limit: float = 0.35,
+        simulations: int | None = None,
+        exploration: float = math.sqrt(2.0),
+        seed: int | None = None,
+        root_score: Callable[[Game, Move], float] | None = None,
+    ):
         self.time_limit = max(0.01, float(time_limit))
         self.simulations = simulations
         self.exploration = max(0.0, float(exploration))
@@ -70,7 +74,8 @@ class MCTS:
         root = _Node(unexpanded=list(candidates))
         self.completed_simulations = 0
         while (self.simulations is None and time.monotonic() < deadline) or (
-                self.simulations is not None and self.completed_simulations < self.simulations):
+            self.simulations is not None and self.completed_simulations < self.simulations
+        ):
             if cancel and cancel.is_set():
                 break
             node = root
@@ -82,8 +87,10 @@ class MCTS:
                 # same UCB exploration pressure.  This mirrors the alternating
                 # sign back-propagation used by the legacy pure-MCTS engine.
                 maximizing = state_game.state.turn is game.state.turn
-                node = max(node.children,
-                           key=lambda child: self._ucb(child, node.visits, maximizing))
+                node = max(node.children, key=lambda child: self._ucb(child, node.visits, maximizing))
+                # 不变式：children 里的节点除根外必有 move（建子节点时已带上），
+                # 根节点不会进这个循环（root.unexpanded 非空）。收窄给 mypy（S2-3）。
+                assert node.move is not None
                 state_game = self._apply(state_game, node.move)
                 path.append(node)
             if node.unexpanded:
@@ -112,7 +119,7 @@ class MCTS:
     def _apply(game: Game, move: Move) -> Game:
         return Game.from_state(game.rules.apply_unchecked(game.state, move), game.options, game.setup)
 
-    def _rollout(self, game: Game, root_color, deadline: float, cancel: threading.Event | None) -> float:
+    def _rollout(self, game: Game, root_color: Color, deadline: float, cancel: threading.Event | None) -> float:
         for _ in range(32):
             if cancel and cancel.is_set():
                 break

@@ -30,8 +30,8 @@ def test_tiers_are_ordered_by_ply() -> None:
     for lower, higher in zip(LEVELS, LEVELS[1:]):
         assert by_level[lower], f"{lower} 档是空的"
         assert max(by_level[lower]) <= min(by_level[higher]), (
-            f"{lower} 有 {max(by_level[lower])} ply，却比 {higher} 的 "
-            f"{min(by_level[higher])} ply 还长")
+            f"{lower} 有 {max(by_level[lower])} ply，却比 {higher} 的 {min(by_level[higher])} ply 还长"
+        )
 
 
 def test_beginner_tier_is_all_two_move_mates() -> None:

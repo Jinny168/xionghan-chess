@@ -89,12 +89,10 @@ def test_join_checks_the_rule_version_too() -> None:
     with TestClient(app) as client:
         created = _create(client, ruleVersion=RULE_VERSION).json()
         room_id = created["roomId"]
-        stale = client.post(f"/api/rooms/{room_id}/join",
-                            json={"playerName": "black", "ruleVersion": RULE_VERSION - 1})
+        stale = client.post(f"/api/rooms/{room_id}/join", json={"playerName": "black", "ruleVersion": RULE_VERSION - 1})
         assert stale.status_code == 409, stale.text
         assert stale.json()["detail"]["code"] == "rule_version_mismatch"
-        ok = client.post(f"/api/rooms/{room_id}/join",
-                         json={"playerName": "black", "ruleVersion": RULE_VERSION})
+        ok = client.post(f"/api/rooms/{room_id}/join", json={"playerName": "black", "ruleVersion": RULE_VERSION})
         assert ok.status_code == 200, ok.text
 
 
@@ -109,10 +107,10 @@ def test_protocol_version_has_a_single_definition() -> None:
 
     assert net.PROTOCOL_VERSION == protocol.PROTOCOL_VERSION
     with open(net.__file__, encoding="utf-8") as handle:
-        code_lines = [line for line in handle.read().splitlines()
-                      if not line.lstrip().startswith("#")]
-    assert not any(re.match(r"\s*PROTOCOL_VERSION\s*=", line) for line in code_lines), \
+        code_lines = [line for line in handle.read().splitlines() if not line.lstrip().startswith("#")]
+    assert not any(re.match(r"\s*PROTOCOL_VERSION\s*=", line) for line in code_lines), (
         "net.py 又写死了一份协议版本（注释里提到可以，赋值不行）"
+    )
 
 
 def test_position_key_version_is_4_and_the_digest_names_the_rule_set() -> None:
@@ -139,7 +137,7 @@ def test_upgrade_rebuilds_the_old_ledger_instead_of_reusing_it() -> None:
     """
     game = Game("web")
     document = game_document(game)
-    document["positionKeyVersion"] = 3                    # 旧键格式（无 rs 前缀）
+    document["positionKeyVersion"] = 3  # 旧键格式（无 rs 前缀）
     document["state"]["positionCounts"] = {"stale|old-format||opt:p3l0-promo1-self1": 2}
 
     loaded = game_from_document(document)

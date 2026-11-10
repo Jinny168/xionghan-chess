@@ -28,14 +28,13 @@ def test_board_shell_before_keeps_its_box() -> None:
     assert drawing, "`:before` 没有 background-image，底纹画不出来"
     body = drawing[0]
     for required in ('content:""', "position:absolute", "inset:0"):
-        assert required in body, (
-            f"`:before` 缺少 {required} —— 清理死代码时把伪元素本身拆掉了")
+        assert required in body, f"`:before` 缺少 {required} —— 清理死代码时把伪元素本身拆掉了"
 
 
 def test_seal_does_not_come_back() -> None:
     """`.seal` 已被品牌图标取代（`<img class="brand-icon">`），没有元素再用它。"""
-    used = 'class="seal' in HTML or "'seal'" in HTML or "class=\\\"seal" in HTML
+    used = 'class="seal' in HTML or "'seal'" in HTML or 'class=\\"seal' in HTML
     styled = ".seal" in CSS
     assert not (styled and not used), (
-        "`.seal` 样式回来了但页面里没有对应元素 —— 这是死代码，删掉它；"
-        "若确实要用，请先在 index.html 里加元素")
+        "`.seal` 样式回来了但页面里没有对应元素 —— 这是死代码，删掉它；若确实要用，请先在 index.html 里加元素"
+    )

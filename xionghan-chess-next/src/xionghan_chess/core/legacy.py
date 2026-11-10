@@ -1,20 +1,26 @@
 from __future__ import annotations
 
+import json
 from dataclasses import asdict
 from datetime import datetime
-import json
 from typing import Any
 
 from .model import Color, GameState, Piece, PieceType
 from .profiles import get_profile
 from .setup import GameSetup
 
-
 FEN_PIECES = {
-    "k": PieceType.KING, "r": PieceType.ROOK, "n": PieceType.HORSE,
-    "b": PieceType.ELEPHANT, "a": PieceType.ADVISOR, "c": PieceType.CANNON,
-    "p": PieceType.PAWN, "w": PieceType.GUARD, "s": PieceType.ARCHER,
-    "l": PieceType.THUNDER, "x": PieceType.PATROL,
+    "k": PieceType.KING,
+    "r": PieceType.ROOK,
+    "n": PieceType.HORSE,
+    "b": PieceType.ELEPHANT,
+    "a": PieceType.ADVISOR,
+    "c": PieceType.CANNON,
+    "p": PieceType.PAWN,
+    "w": PieceType.GUARD,
+    "s": PieceType.ARCHER,
+    "l": PieceType.THUNDER,
+    "x": PieceType.PATROL,
 }
 
 
@@ -25,7 +31,9 @@ def migrate_legacy_game(value: str | dict[str, Any]) -> dict[str, Any]:
         if not text:
             raise ValueError("legacy game file is empty")
         try:
-            parsed = json.loads(text)
+            # 显式 dict[str, Any]：json.loads 返回 Any，不标注则函数尾部的
+            # `return parsed` 变成 Returning Any（mypy strict，S2-3）。
+            parsed: dict[str, Any] = json.loads(text)
         except json.JSONDecodeError:
             parsed = {"position": text}
     elif isinstance(value, dict):
@@ -46,9 +54,7 @@ def migrate_legacy_game(value: str | dict[str, Any]) -> dict[str, Any]:
     state.draw = bool(parsed.get("draw", False))
     if bool(parsed.get("game_over")) and not state.winner and not state.draw:
         state.draw = True
-    state.result_reason = parsed.get("result_reason") or (
-        "legacy_import" if state.finished else None
-    )
+    state.result_reason = parsed.get("result_reason") or ("legacy_import" if state.finished else None)
 
     profile = get_profile(state.profile_id)
     options = profile.options

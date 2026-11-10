@@ -11,8 +11,6 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-import pytest
-
 from xionghan_chess.core import daily
 from xionghan_chess.core.puzzles import Puzzle, load_puzzles
 
@@ -23,9 +21,11 @@ def _fake(pid: str, level: str) -> Puzzle:
 
 
 def _pool() -> list[Puzzle]:
-    return ([_fake(f"b{i:02d}", "beginner") for i in range(1, 6)]
-            + [_fake(f"a{i:02d}", "advanced") for i in range(1, 6)]
-            + [_fake(f"m{i:02d}", "master") for i in range(1, 4)])
+    return (
+        [_fake(f"b{i:02d}", "beginner") for i in range(1, 6)]
+        + [_fake(f"a{i:02d}", "advanced") for i in range(1, 6)]
+        + [_fake(f"m{i:02d}", "master") for i in range(1, 4)]
+    )
 
 
 def test_same_day_always_picks_the_same_puzzle() -> None:
@@ -37,10 +37,9 @@ def test_same_day_always_picks_the_same_puzzle() -> None:
 
 def test_weekday_rotation_is_fixed() -> None:
     """周一到周日：新/进/新/进/新/大/大。"""
-    monday = date(2026, 11, 2)          # 2026-11-02 是周一
+    monday = date(2026, 11, 2)  # 2026-11-02 是周一
     levels = [daily.level_for(monday + timedelta(days=i)) for i in range(7)]
-    assert levels == ["beginner", "advanced", "beginner", "advanced",
-                      "beginner", "master", "master"]
+    assert levels == ["beginner", "advanced", "beginner", "advanced", "beginner", "master", "master"]
 
 
 def test_bucket_does_not_repeat_until_exhausted() -> None:
@@ -84,7 +83,7 @@ def test_daily_never_picks_a_drill() -> None:
     drills = {item.id for item in pool if "drill" in item.tags}
     assert drills, "题库里应当还有 drill 练习（保留策略），否则这条测试失去意义"
     day = date(2026, 11, 2)
-    for offset in range(28):                 # 连数四周，覆盖三档难度
+    for offset in range(28):  # 连数四周，覆盖三档难度
         picked = daily.pick_daily(pool, day + timedelta(days=offset))
         assert picked is not None
         assert "drill" not in picked.tags, f"{picked.id} 是练习，不该出现在每日一题里"
@@ -96,6 +95,7 @@ def test_day_index_survives_dates_before_base() -> None:
 
 
 # --- 连续天数 -------------------------------------------------------------
+
 
 def test_first_solve_starts_the_streak() -> None:
     day = date(2026, 11, 2)

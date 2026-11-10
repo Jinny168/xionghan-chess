@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import asdict, replace
 import time
+from dataclasses import asdict
+from typing import Any
 
 from xionghan_chess.i18n import normalize_language, t
 
 from .model import Color, GameState, Move, MoveRecord, Piece, PieceType, Position
 from .profiles import RuleOptions, RuleProfile, get_profile
 from .rules import RulesEngine
-from .setup import FirstMove, GameSetup
+from .setup import GameSetup
 
 
 class GameError(ValueError):
@@ -27,26 +28,34 @@ DEFAULT_INITIAL_MINUTES = 10
 
 class Game:
     MAX_SNAPSHOTS = 512
-    def __init__(self, profile: RuleProfile | str = "desktop_complete",
-                 option_overrides: dict[str, object] | None = None,
-                 initial_minutes: int = DEFAULT_INITIAL_MINUTES,
-                 language: str = "zh-CN",
-                 setup: GameSetup | dict | None = None):
+
+    def __init__(
+        self,
+        profile: RuleProfile | str = "desktop_complete",
+        option_overrides: dict[str, object] | None = None,
+        initial_minutes: int = DEFAULT_INITIAL_MINUTES,
+        language: str = "zh-CN",
+        setup: GameSetup | dict[str, Any] | None = None,
+    ):
         self.language = normalize_language(language)
         self.profile = get_profile(profile) if isinstance(profile, str) else profile
         self.options = self.profile.options.merged(option_overrides)
         self.rules = RulesEngine(self.profile, self.options)
-        self.setup = (setup if isinstance(setup, GameSetup)
-                      else GameSetup.from_dict(self.profile, self.options, setup))
-        self.state = GameState(self.profile.id, self.setup.initial_pieces(self.profile),
-                               turn=self.setup.resolved_first_move)
+        self.setup = setup if isinstance(setup, GameSetup) else GameSetup.from_dict(self.profile, self.options, setup)
+        self.state = GameState(
+            self.profile.id, self.setup.initial_pieces(self.profile), turn=self.setup.resolved_first_move
+        )
         self.state.clocks_ms = {Color.RED: initial_minutes * 60_000, Color.BLACK: initial_minutes * 60_000}
-        self._snapshots: list[dict] = []
+        self._snapshots: list[dict[str, Any]] = []
         self._record_position()
 
     @classmethod
-    def from_state(cls, state: GameState, option_overrides: dict[str, object] | RuleOptions | None = None,
-                   setup: GameSetup | dict | None = None) -> "Game":
+    def from_state(
+        cls,
+        state: GameState,
+        option_overrides: dict[str, object] | RuleOptions | None = None,
+        setup: GameSetup | dict[str, Any] | None = None,
+    ) -> "Game":
         if isinstance(option_overrides, RuleOptions):
             option_overrides = asdict(option_overrides)
         game = cls(state.profile_id, option_overrides, setup=setup)
@@ -71,7 +80,7 @@ class Game:
             raise GameError(self._t("error.illegal_move"))
         self._snapshots.append(self.state.to_dict())
         if len(self._snapshots) > self.MAX_SNAPSHOTS:
-            del self._snapshots[:-self.MAX_SNAPSHOTS]
+            del self._snapshots[: -self.MAX_SNAPSHOTS]
         moving = self.state.piece_at(move.source)
         assert moving is not None
         elapsed = int((time.monotonic() - started_at) * 1000)
@@ -79,7 +88,9 @@ class Game:
         next_state = self.rules.apply_unchecked(self.state, move)
         for item in captured:
             next_state.captured[item.color].append(item)
-        record = MoveRecord(move, moving.color, moving.type, captured, self.notation(moving, move, captured), elapsed_ms=elapsed)
+        record = MoveRecord(
+            move, moving.color, moving.type, captured, self.notation(moving, move, captured), elapsed_ms=elapsed
+        )
         next_state.history.append(record)
         next_state.turn_started_at = time.monotonic()
         next_state.pending_draw_offer = None
@@ -130,8 +141,19 @@ class Game:
         self.state.result_reason = "resignation"
 
     def offer_draw(self, color: Color) -> None:
+        # S3-C：三条状态前置条件，与 resign / resurrect_pawn / offer_restart 对齐。
+        #   ① finished —— 终局后提和会把一局已判和/已分胜负的棋盘重新挂上协商状态；
+        #      此前这里没有守卫，local 房实测能在 finished=True 之后继续提和并涨 revision。
+        #   ② turn —— 只在轮到自己的时候能提和（原有语义，未变）。
+        #   ③ 已有 pending —— 此前只校验回合，同一方连提两次都"成功"：状态值不变，
+        #      revision 照涨，并且每次都整帧重播 STATE，客户端会被同一个 pending 连弹两次框。
+        #      `offer_restart` 早就有这条守卫，draw 漏了属于同类消息策略分裂。
+        if self.state.finished:
+            raise GameError(self._t("error.game_finished"))
         if color is not self.state.turn:
             raise GameError(self._t("error.draw_own_turn"))
+        if self.state.pending_draw_offer is not None:
+            raise GameError(self._t("error.draw_already_pending"))
         self.state.pending_draw_offer = color
 
     def respond_draw(self, color: Color, accept: bool) -> None:
@@ -174,8 +196,11 @@ class Game:
         places them on local row 3, mirrored to 6 for red. Hard coding 8/4 made
         resurrection land on the wrong rank for any other board size.
         """
-        return {Position(spec.row, spec.col) for spec in self.profile.pieces
-                if spec.type is PieceType.PAWN and spec.color is color}
+        return {
+            Position(spec.row, spec.col)
+            for spec in self.profile.pieces
+            if spec.type is PieceType.PAWN and spec.color is color
+        }
 
     def resurrect_pawn(self, color: Color, position: Position) -> None:
         if self.state.finished:
@@ -187,12 +212,14 @@ class Game:
         if position not in self._pawn_home_squares(color) or self.state.piece_at(position):
             raise GameError(self._t("error.invalid_resurrect_position"))
         dead = next((p for p in self.state.captured[color] if p.type is PieceType.PAWN), None)
-        if dead is None or sum(p.type is PieceType.PAWN and p.color is color
-                               for p in self.state.pieces) >= RESTORE_PAWN_LIMIT:
+        if (
+            dead is None
+            or sum(p.type is PieceType.PAWN and p.color is color for p in self.state.pieces) >= RESTORE_PAWN_LIMIT
+        ):
             raise GameError(self._t("error.no_resurrect_pawn"))
         self._snapshots.append(self.state.to_dict())
         if len(self._snapshots) > self.MAX_SNAPSHOTS:
-            del self._snapshots[:-self.MAX_SNAPSHOTS]
+            del self._snapshots[: -self.MAX_SNAPSHOTS]
         self.state.captured[color].remove(dead)
         revived = Piece.create(PieceType.PAWN, color, position.row, position.col)
         self.state.pieces.append(revived)
@@ -207,7 +234,10 @@ class Game:
         # leave the opponent with nothing left.
         arrival = Move(position, position)
         record = MoveRecord(
-            arrival, color, PieceType.PAWN, (),
+            arrival,
+            color,
+            PieceType.PAWN,
+            (),
             self.notation(revived, arrival, (), action=self._t("action.resurrect")),
         )
         self.state.history.append(record)
@@ -226,38 +256,42 @@ class Game:
             self.state.clocks_ms[self.state.turn] -= elapsed
             self.state.turn_started_at = time.monotonic()
 
-    def notation(self, piece: Piece, move: Move, captured: tuple[Piece, ...],
-                 action: str | None = None) -> str:
+    def notation(self, piece: Piece, move: Move, captured: tuple[Piece, ...], action: str | None = None) -> str:
         name = self.profile.display_name_of(piece, self.language)
         if action is None:
             action = self._t("notation.capture") if captured else self._t("notation.move")
-        return f"{name} {move.source.row + 1},{move.source.col + 1} {action} {move.target.row + 1},{move.target.col + 1}"
+        return (
+            f"{name} {move.source.row + 1},{move.source.col + 1} {action} {move.target.row + 1},{move.target.col + 1}"
+        )
 
-    def public_state(self, include_replay: bool = True) -> dict:
+    def public_state(self, include_replay: bool = True) -> dict[str, Any]:
         """局面快照。`include_replay=False` 用于**常规广播**。
 
         `replay` 是每一步的完整局面历史，随步数线性膨胀（60 手约 2.29 MB），
         而广播每 5 秒一次、每个 socket 单独序列化 —— 放进广播等于每 5 秒传一次全量历史。
         """
         data = self.state.to_dict()
-        data["profile"] = {"id": self.profile.id, "title": self.profile.title,
-                           "rows": self.profile.rows, "cols": self.profile.cols,
-                           "options": asdict(self.options),
-                           "archerStarPoints": [
-                               {"row": point.row, "col": point.col}
-                               for point in sorted(self.rules.archer_star_points,
-                                                   key=lambda item: (item.row, item.col))
-                           ],
-                           # Same source `resurrect_pawn` reads, so a client that
-                           # offers a resurrection square cannot drift onto a hard
-                           # coded rank when the profile changes board size.
-                           "pawnHomeSquares": [
-                               {"row": point.row, "col": point.col}
-                               for point in sorted(
-                                   self._pawn_home_squares(Color.RED)
-                                   | self._pawn_home_squares(Color.BLACK),
-                                   key=lambda item: (item.row, item.col))
-                           ]}
+        data["profile"] = {
+            "id": self.profile.id,
+            "title": self.profile.title,
+            "rows": self.profile.rows,
+            "cols": self.profile.cols,
+            "options": asdict(self.options),
+            "archerStarPoints": [
+                {"row": point.row, "col": point.col}
+                for point in sorted(self.rules.archer_star_points, key=lambda item: (item.row, item.col))
+            ],
+            # Same source `resurrect_pawn` reads, so a client that
+            # offers a resurrection square cannot drift onto a hard
+            # coded rank when the profile changes board size.
+            "pawnHomeSquares": [
+                {"row": point.row, "col": point.col}
+                for point in sorted(
+                    self._pawn_home_squares(Color.RED) | self._pawn_home_squares(Color.BLACK),
+                    key=lambda item: (item.row, item.col),
+                )
+            ],
+        }
         data["check"] = self.rules.in_check(self.state, self.state.turn) if not self.state.finished else False
         data["setup"] = self.setup.to_dict()
         if include_replay:
@@ -283,16 +317,23 @@ class Game:
         enemy_king = next((p for p in self.state.pieces if p.type is PieceType.KING and p.color is enemy), None)
         if enemy_king is None:
             self.state.winner, self.state.result_reason = mover, "king_captured"
-        elif moved and moved.type is PieceType.KING and self.options.invasion_victory and self.rules.enemy_palace(mover, moved.position):
+        elif (
+            moved
+            and moved.type is PieceType.KING
+            and self.options.invasion_victory
+            and self.rules.enemy_palace(mover, moved.position)
+        ):
             self.state.winner, self.state.result_reason = mover, "palace_invasion"
         elif self.rules.checkmate(self.state, enemy):
             self.state.winner, self.state.result_reason = mover, "checkmate"
         elif self.rules.stalemate(self.state, enemy):
             self.state.winner, self.state.result_reason = mover, "stalemate"
-        elif (self.options.threefold_draw
-              # L-06：**只看当前局面**的计数。用 `max(...)` 会让"历史上任何局面重复三次"
-              # 触发判和（注入 stale key 就能误判），而重复判定只对当前局面有意义。
-              and self.state.position_counts.get(self.rules.position_key(self.state), 0) >= 3):
+        elif (
+            self.options.threefold_draw
+            # L-06：**只看当前局面**的计数。用 `max(...)` 会让"历史上任何局面重复三次"
+            # 触发判和（注入 stale key 就能误判），而重复判定只对当前局面有意义。
+            and self.state.position_counts.get(self.rules.position_key(self.state), 0) >= 3
+        ):
             self.state.draw, self.state.result_reason = True, "threefold_repetition"
         elif self.options.no_progress_draw_plies and self._no_progress_plies() >= self.options.no_progress_draw_plies:
             self.state.draw, self.state.result_reason = True, "no_progress"

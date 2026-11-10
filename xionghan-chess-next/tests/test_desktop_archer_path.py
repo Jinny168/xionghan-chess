@@ -44,13 +44,12 @@ def build(pieces: list[Piece] | None = None) -> tuple[Game, list]:
     game = Game("desktop_complete")
     if pieces is not None:
         game.state.pieces = list(pieces)
-    archer = next(piece for piece in game.state.pieces if piece.position == ARCHER)
+    _archer = next(piece for piece in game.state.pieces if piece.position == ARCHER)
     legal = [move for move in game.rules.legal_moves(game.state) if move.source == ARCHER]
     return game, legal
 
 
-def render(game: Game, legal: list, *, selected: Position | None,
-           show: bool = True) -> tuple[QImage, BoardWidget]:
+def render(game: Game, legal: list, *, selected: Position | None, show: bool = True) -> tuple[QImage, BoardWidget]:
     board = BoardWidget()
     board.resize(SIZE, SIZE)
     board.set_game(game, Color.RED, True)
@@ -64,13 +63,11 @@ def render(game: Game, legal: list, *, selected: Position | None,
     return canvas.toImage(), board
 
 
-def probe(board: BoardWidget, source: Position, step_row: int, step_col: int,
-          cells: float) -> tuple[int, int]:
+def probe(board: BoardWidget, source: Position, step_row: int, step_col: int, cells: float) -> tuple[int, int]:
     """从 `source` 沿 (step_row, step_col) 走 `cells` 格处的像素坐标。"""
     _rect, left, top, cw, ch = board._geometry()
     shown = board._view_position(source)
-    return (int(left + shown.col * cw + step_col * cells * cw),
-            int(top + shown.row * ch + step_row * cells * ch))
+    return (int(left + shown.col * cw + step_col * cells * cw), int(top + shown.row * ch + step_row * cells * ch))
 
 
 def has_ink(marked: QImage, plain: QImage, x: int, y: int, span: int = 3) -> bool:
@@ -87,13 +84,15 @@ def has_ink(marked: QImage, plain: QImage, x: int, y: int, span: int = 3) -> boo
 # ---------------------------------------------------------------------------
 def test_path_stops_before_the_blocker(qt_app: QApplication) -> None:
     """在 (10,2) 放一枚己方子：最远可停格变成 (11,1)，线不得越过它。"""
-    game, _ = build([
-        Piece.create(PieceType.KING, Color.RED, 12, 6),
-        Piece.create(PieceType.KING, Color.BLACK, 1, 1),   # 不能与红帅同列（会"照面"→无合法着法）
-        Piece.create(PieceType.ARCHER, Color.RED, ARCHER.row, ARCHER.col),
-        Piece.create(PieceType.PAWN, Color.RED, 10, 2),      # 挡在斜线上
-        Piece.create(PieceType.PAWN, Color.RED, 8, 4),       # 阻挡之后的格子
-    ])
+    game, _ = build(
+        [
+            Piece.create(PieceType.KING, Color.RED, 12, 6),
+            Piece.create(PieceType.KING, Color.BLACK, 1, 1),  # 不能与红帅同列（会"照面"→无合法着法）
+            Piece.create(PieceType.ARCHER, Color.RED, ARCHER.row, ARCHER.col),
+            Piece.create(PieceType.PAWN, Color.RED, 10, 2),  # 挡在斜线上
+            Piece.create(PieceType.PAWN, Color.RED, 8, 4),  # 阻挡之后的格子
+        ]
+    )
     legal = [move for move in game.rules.legal_moves(game.state) if move.source == ARCHER]
     assert legal and max(legal, key=lambda m: abs(m.target.row - ARCHER.row)).target == Position(11, 1)
 
@@ -112,7 +111,7 @@ def test_path_stops_before_the_blocker(qt_app: QApplication) -> None:
 # ---------------------------------------------------------------------------
 def test_path_endpoint_is_the_farthest_legal_target(qt_app: QApplication) -> None:
     game, legal = build()
-    rays = BoardWidget().archer_rays()
+    _rays = BoardWidget().archer_rays()
     marked, board = render(game, legal, selected=ARCHER)
     plain, _ = render(game, legal, selected=None)
 
@@ -120,13 +119,13 @@ def test_path_endpoint_is_the_farthest_legal_target(qt_app: QApplication) -> Non
     board.selected = ARCHER
     board.show_legal_targets = True
     board.legal = legal
-    (source, farthest, _obstacle, step_row, step_col), = board.archer_rays()
+    ((source, farthest, _obstacle, step_row, step_col),) = board.archer_rays()
     assert source == ARCHER
     assert farthest == max(legal, key=lambda move: abs(move.target.row - ARCHER.row)).target
 
-    before = probe(board, ARCHER, step_row, step_col, 2.2)      # 终点前 0.8 格
+    before = probe(board, ARCHER, step_row, step_col, 2.2)  # 终点前 0.8 格
     assert has_ink(marked, plain, *before), "终点前应当有路径线"
-    beyond = probe(board, farthest, step_row, step_col, 0.35)   # 沿射线方向再走 0.35 格
+    beyond = probe(board, farthest, step_row, step_col, 0.35)  # 沿射线方向再走 0.35 格
     assert not has_ink(marked, plain, *beyond), "线越过了最远可走点"
 
 
@@ -137,8 +136,7 @@ def test_only_the_open_direction_gets_a_path(qt_app: QApplication) -> None:
     game, legal = build()
     marked, board = render(game, legal, selected=ARCHER)
     plain, _ = render(game, legal, selected=None)
-    for step_row, step_col, label in ((-1, 1, "右上"), (-1, -1, "左上"),
-                                      (1, 1, "右下"), (1, -1, "左下")):
+    for step_row, step_col, label in ((-1, 1, "右上"), (-1, -1, "左上"), (1, 1, "右下"), (1, -1, "左下")):
         x, y = probe(board, ARCHER, step_row, step_col, 0.6)
         drawn = has_ink(marked, plain, x, y)
         if (step_row, step_col) == (-1, 1):

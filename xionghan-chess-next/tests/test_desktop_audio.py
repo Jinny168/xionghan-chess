@@ -31,7 +31,7 @@ def qt_app() -> QApplication:
 @pytest.fixture()
 def player(qt_app: QApplication) -> audio_module.DesktopAudio:
     instance = audio_module.DesktopAudio()
-    instance.failures.clear()          # 不关心构造期是否有设备相关噪声
+    instance.failures.clear()  # 不关心构造期是否有设备相关噪声
     instance.on_failure = None
     return instance
 
@@ -80,8 +80,7 @@ def test_signals_are_actually_connected() -> None:
     tree = ast.parse(source)
     connected = set()
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) \
-                and node.func.attr == "connect":
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "connect":
             target = node.func.value
             if isinstance(target, ast.Attribute):
                 connected.add(target.attr)

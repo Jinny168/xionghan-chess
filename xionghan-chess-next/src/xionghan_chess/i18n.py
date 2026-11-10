@@ -5,7 +5,6 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-
 DEFAULT_LANGUAGE = "zh-CN"
 SUPPORTED_LANGUAGES = ("zh-CN", "en")
 
@@ -40,7 +39,10 @@ def catalog(language: str = DEFAULT_LANGUAGE) -> dict[str, Any]:
     lang = normalize_language(language)
     path = _locale_dir() / f"{lang}.json"
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        # 显式 dict[str, Any]：json.loads 返回 Any，不标注则 warn_return_any 报
+        # no-any-return（S2-3 CI 实证；本地 venv 曾被缓存掩盖，legacy.py 同款修法）。
+        parsed: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+        return parsed
     except (OSError, ValueError):
         if lang != DEFAULT_LANGUAGE:
             return catalog(DEFAULT_LANGUAGE)

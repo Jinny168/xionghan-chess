@@ -13,6 +13,7 @@ S1-4 要求把覆盖率从 6.2% 拉到 ≥85%。**如果不设门，下一次改
 
 退出码：0 = 达标；1 = 低于门槛。
 """
+
 from __future__ import annotations
 
 import argparse

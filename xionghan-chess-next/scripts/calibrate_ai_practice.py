@@ -50,8 +50,7 @@ def measure(level: str, samples: int, positions: int) -> dict:
             best_score, best_move, _ = ai.root_scores[0]
             if move.key() != best_move.key():
                 deviations += 1
-                chosen = next((score for score, m, _ in ai.root_scores if m.key() == move.key()),
-                              best_score)
+                chosen = next((score for score, m, _ in ai.root_scores if m.key() == move.key()), best_score)
                 gaps.append(round(best_score - chosen))
     return {
         "level": level,
@@ -72,9 +71,11 @@ def main() -> int:
     args = parser.parse_args()
 
     row = measure(args.level, args.samples, args.positions)
-    print(f"{row['level']:9s} 名义={row['nominal']:.2f}  "
-          f"实测偏离率={row['observed']:.2%}（{row['deviations']}/{row['samples']}）  "
-          f"平均分差={row['mean_gap']:.0f}cp  用时={row['seconds']:.0f}s")
+    print(
+        f"{row['level']:9s} 名义={row['nominal']:.2f}  "
+        f"实测偏离率={row['observed']:.2%}（{row['deviations']}/{row['samples']}）  "
+        f"平均分差={row['mean_gap']:.0f}cp  用时={row['seconds']:.0f}s"
+    )
     # 判据：实测与名义的差超过 ±0.15 就说明参数没兑现，需要调 p
     if abs(row["observed"] - row["nominal"]) > 0.15:
         print("  ⚠ 偏离超过 ±0.15：名义概率没有兑现，需要检查闸门或窗口")

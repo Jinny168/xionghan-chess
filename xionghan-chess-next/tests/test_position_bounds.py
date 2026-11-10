@@ -15,8 +15,14 @@ def _document(pieces: list[dict]) -> dict:
     return {
         "formatVersion": 1,
         "profileId": "desktop_complete",
-        "state": {"profileId": "desktop_complete", "pieces": pieces, "turn": "red",
-                  "captured": {"red": [], "black": []}, "history": [], "clocksMs": {}},
+        "state": {
+            "profileId": "desktop_complete",
+            "pieces": pieces,
+            "turn": "red",
+            "captured": {"red": [], "black": []},
+            "history": [],
+            "clocksMs": {},
+        },
         "snapshots": [],
     }
 

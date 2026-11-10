@@ -32,6 +32,7 @@
 拿到的是 ~130 B 的指针文本，`QPixmap` 解码失败 → 全部回退字形，**不报错**。
 `packaging/build_windows.ps1` 里因此有 PNG 魔数 + 目录总字节下限的构建断言。
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -195,8 +196,7 @@ def _raw(style: str, color: Color, piece_type: PieceType) -> QPixmap | None:
     return pixmap
 
 
-def pixmap(style: str | None, color: Color, piece_type: PieceType,
-           dev_edge: int) -> QPixmap | None:
+def pixmap(style: str | None, color: Color, piece_type: PieceType, dev_edge: int) -> QPixmap | None:
     """取一张已裁留白、按设备像素预缩放的棋子图；缺图返回 None（调用方回退字形）。
 
     `dev_edge` 是**设备像素**下的盘径，量化到 `EDGE_STEP` 后作为 L2 键的一部分
@@ -212,8 +212,7 @@ def pixmap(style: str | None, color: Color, piece_type: PieceType,
     raw = _raw(current, color, piece_type)
     if raw is None:
         return None
-    scaled = raw.scaled(edge, edge, Qt.AspectRatioMode.IgnoreAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation)
+    scaled = raw.scaled(edge, edge, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation)
     scaled.setDevicePixelRatio(_device_ratio())
     _SCALED[key] = (edge, scaled)
     return scaled

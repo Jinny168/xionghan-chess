@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import random
+from pathlib import Path
 
 from ..core.game import Game
 from ..core.mcts import MCTS
@@ -10,8 +10,9 @@ from ..core.model import Color
 from .encoding import action_index
 
 
-def collect_game(profile: str = "traditional", simulations: int = 32,
-                 max_plies: int = 240, seed: int = 0) -> list[dict]:
+def collect_game(
+    profile: str = "traditional", simulations: int = 32, max_plies: int = 240, seed: int = 0
+) -> list[dict]:
     """Run one local self-play episode using only the authoritative core."""
     game = Game(profile)
     randomizer = random.Random(seed)
@@ -30,8 +31,7 @@ def collect_game(profile: str = "traditional", simulations: int = 32,
         value = 0.0
         if game.state.winner is not None:
             value = 1.0 if game.state.winner is player else -1.0
-        samples.append({"schema": 1, "state": state, "action": action,
-                        "player": player.value, "value": value})
+        samples.append({"schema": 1, "state": state, "action": action, "player": player.value, "value": value})
     return samples
 
 

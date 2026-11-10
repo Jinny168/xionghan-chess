@@ -61,8 +61,10 @@ def test_allowlist_is_generated_and_idempotent() -> None:
     first = subprocess.run([sys.executable, str(SCRIPT)], check=True, capture_output=True).stdout
     second = subprocess.run([sys.executable, str(SCRIPT)], check=True, capture_output=True).stdout
     assert first == second, "生成结果不稳定"
+
     # 比较前统一行尾：Windows 上 `subprocess` 拿到的 stdout 与磁盘文件可能一处 CRLF 一处 LF，
     # 那是**载体差异不是内容差异**（这一轮已经被同样的坑坑过一次）。
-    normalise = lambda blob: blob.replace(b"\r\n", b"\n")
-    assert normalise(first) == normalise(ALLOWLIST.read_bytes()), \
-        "allowlist 与生成结果不一致（可能被手改）"
+    def normalise(blob: bytes) -> bytes:
+        return blob.replace(b"\r\n", b"\n")
+
+    assert normalise(first) == normalise(ALLOWLIST.read_bytes()), "allowlist 与生成结果不一致（可能被手改）"

@@ -36,10 +36,18 @@ def fonts(qt_app: QApplication) -> None:
 
 def _config(**overrides: object) -> dict:
     base = {
-        "profile": "desktop_complete", "language": "zh-CN", "difficulty": "medium",
-        "human_color": "red", "initial_minutes": 20, "sound": True, "sound_volume": 70,
-        "theme": "classic", "font": "system", "background": "none",
-        "piece_style": "traditional", "piece_render": "glyph",
+        "profile": "desktop_complete",
+        "language": "zh-CN",
+        "difficulty": "medium",
+        "human_color": "red",
+        "initial_minutes": 20,
+        "sound": True,
+        "sound_volume": 70,
+        "theme": "classic",
+        "font": "system",
+        "background": "none",
+        "piece_style": "traditional",
+        "piece_render": "glyph",
     }
     base.update(overrides)
     return base
@@ -61,8 +69,7 @@ def test_known_difficulty_selects_that_entry(qt_app: QApplication) -> None:
     dialog.deleteLater()
 
 
-def test_unknown_difficulty_falls_back_to_default_and_shows_the_raw_value(
-        qt_app: QApplication) -> None:
+def test_unknown_difficulty_falls_back_to_default_and_shows_the_raw_value(qt_app: QApplication) -> None:
     """未知档位 → 选默认（medium），并在下拉里显示原值且**不可选**。"""
     config = _config(difficulty="legendary")
     parent = _Parent(config)

@@ -59,17 +59,17 @@ IMAGE_MODE = board_widget.IMAGE_MODE
 
 PERCEPTIBLE_DELTA = 6
 HARD_DELTA = 30
-MIN_VISIBLE_RATIO = 0.02        # 设计口径：开/关差异 ≥ 2.0% 棋盘面积
-MIN_DOWNWARD_LEAN = 1.5         # 底部厚度 ≥ 顶部 1.5 倍（等宽就是描边，不是影子）
+MIN_VISIBLE_RATIO = 0.02  # 设计口径：开/关差异 ≥ 2.0% 棋盘面积
+MIN_DOWNWARD_LEAN = 1.5  # 底部厚度 ≥ 顶部 1.5 倍（等宽就是描边，不是影子）
 # 每套主题的硬区（Δ≥30）上下界 —— **五套全覆盖**，缺一套就等于那套超重无人拦
 # （曾经只写 classic/dark 两套，把 green 的 gain 调到 1.0 也全套绿）。
 # 下界防空画、上界防"脏了一圈"。括号内是本次定标时的实测值。
 HARD_ZONE_BUDGET = {
-    "classic": (2000, 7000),    # 实测 4,211
-    "green": (2000, 7000),      # 实测 4,008
-    "blue": (2000, 7000),       # 实测 4,031
-    "purple": (2000, 7000),     # 实测 4,058
-    "dark": (150, 300),         # 实测 242（深底几乎不显，必须给足满系数）
+    "classic": (2000, 7000),  # 实测 4,211
+    "green": (2000, 7000),  # 实测 4,008
+    "blue": (2000, 7000),  # 实测 4,031
+    "purple": (2000, 7000),  # 实测 4,058
+    "dark": (150, 300),  # 实测 242（深底几乎不显，必须给足满系数）
 }
 
 # 可感知（Δ≥6）面积下界：**浅色四套 4.0%**；dark 取 3.0%。
@@ -86,7 +86,7 @@ SOFT_AREA_FLOOR = {
     "green": 0.040,
     "blue": 0.040,
     "purple": 0.040,
-    "dark": 0.030,      # 见上：3.67% 实测，4.0% 与硬区 ≤300 互斥
+    "dark": 0.030,  # 见上：3.67% 实测，4.0% 与硬区 ≤300 互斥
 }
 
 SMALL = 480
@@ -101,8 +101,7 @@ def qt_app() -> QApplication:
     return app
 
 
-def render(*, mode: str = GLYPH_MODE, size: int = SMALL, theme_name: str = "classic",
-           pieces: int = 1) -> QImage:
+def render(*, mode: str = GLYPH_MODE, size: int = SMALL, theme_name: str = "classic", pieces: int = 1) -> QImage:
     """`pieces=1` 放一枚子在中心（比形状）；`pieces=0` 用整盘 61 枚（比强度）。"""
     game = Game("web")
     if pieces:
@@ -125,8 +124,7 @@ def render_without_shadow(**kwargs) -> QImage:
     也会被一起关掉，比出来的差异恒为 0。
     """
     with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(board_widget, "_piece_shadow_brush",
-                      lambda gain=1.0: QBrush(Qt.BrushStyle.NoBrush))
+        patch.setattr(board_widget, "_piece_shadow_brush", lambda gain=1.0: QBrush(Qt.BrushStyle.NoBrush))
         return render(**kwargs)
 
 
@@ -140,8 +138,7 @@ def _deltas(a: QImage, b: QImage) -> bytes:
     out = bytearray(len(pa) // 4)
     for index in range(len(out)):
         i = index * 4
-        out[index] = max(abs(pa[i] - pb[i]), abs(pa[i + 1] - pb[i + 1]),
-                         abs(pa[i + 2] - pb[i + 2]))
+        out[index] = max(abs(pa[i] - pb[i]), abs(pa[i + 1] - pb[i + 1]), abs(pa[i + 2] - pb[i + 2]))
     return bytes(out)
 
 
@@ -180,6 +177,7 @@ def soft_and_hard(theme_name: str) -> tuple[float, int]:
 
 # --- 三个分支都要有 -------------------------------------------------------
 
+
 @pytest.mark.parametrize("mode", [GLYPH_MODE, IMAGE_MODE])
 def test_shadow_is_drawn_in_every_render_branch(qt_app: QApplication, mode: str) -> None:
     """字形与位图两条分支都必须有投影像素。"""
@@ -188,8 +186,7 @@ def test_shadow_is_drawn_in_every_render_branch(qt_app: QApplication, mode: str)
     assert differing_pixels(on, off) > 0, f"{mode} 模式下没有画投影（开/关投影渲染结果完全相同）"
 
 
-def test_shadow_is_drawn_in_the_fallback_branch(qt_app: QApplication,
-                                               monkeypatch: pytest.MonkeyPatch) -> None:
+def test_shadow_is_drawn_in_the_fallback_branch(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
     """回退分支（无美术棋子）同样有投影 —— 因为它画在分发入口，不在分支里。"""
     monkeypatch.setattr(piece_assets, "pixmap", lambda *args, **kwargs: None)
     on = render(mode=IMAGE_MODE)
@@ -198,6 +195,7 @@ def test_shadow_is_drawn_in_the_fallback_branch(qt_app: QApplication,
 
 
 # --- 必须真的看得见（这条抓的是"参数写了但不可见"） ----------------------
+
 
 @pytest.mark.parametrize("theme_name", ["classic", "dark"])
 def test_shadow_is_actually_visible(qt_app: QApplication, theme_name: str) -> None:
@@ -211,7 +209,8 @@ def test_shadow_is_actually_visible(qt_app: QApplication, theme_name: str) -> No
     ratio = count_at_least(on, off, PERCEPTIBLE_DELTA) / BOARD
     assert ratio >= MIN_VISIBLE_RATIO, (
         f"[{theme_name}] 投影可感知面积只有 {ratio:.2%}，低于验收线 {MIN_VISIBLE_RATIO:.0%}"
-        "（参数写进去了但用户看不见 —— 先确认 PIECE_SHADOW_STRENGTH 与 shadow_gain 是否被改回硬边椭圆）")
+        "（参数写进去了但用户看不见 —— 先确认 PIECE_SHADOW_STRENGTH 与 shadow_gain 是否被改回硬边椭圆）"
+    )
 
 
 def test_shadow_leans_downward_instead_of_being_a_uniform_ring(qt_app: QApplication) -> None:
@@ -233,14 +232,15 @@ def test_shadow_leans_downward_instead_of_being_a_uniform_ring(qt_app: QApplicat
     up = sum(1 for dy in range(-60, 0) if any(changed_at(x, cy + dy) for x in band))
     down = sum(1 for dy in range(0, 60) if any(changed_at(x, cy + dy) for x in band))
     assert up > 0 and down > 0, f"投影没有同时出现在上下两侧（上 {up}px / 下 {down}px）"
-    assert down >= up * MIN_DOWNWARD_LEAN, (
-        f"投影上下等宽（上 {up}px / 下 {down}px），看起来会是描边而不是落影")
+    assert down >= up * MIN_DOWNWARD_LEAN, f"投影上下等宽（上 {up}px / 下 {down}px），看起来会是描边而不是落影"
 
 
 # --- 单旋钮必须真的有效 ---------------------------------------------------
 
+
 def test_strength_knob_changes_the_rendering_monotonically(
-        qt_app: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    qt_app: QApplication, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """`PIECE_SHADOW_STRENGTH` 四档（0 / ⅓ / ⅔ / 1）必须让强度**严格递增**。
 
     这里守的是"旋钮是不是接对了量"：如果旋钮去驱动**圆心 alpha**
@@ -262,8 +262,7 @@ def test_strength_knob_changes_the_rendering_monotonically(
     assert all(b > a for a, b in zip(energies, energies[1:])), f"差异能量不是严格递增：{energies}"
 
 
-def test_strength_zero_renders_exactly_like_no_shadow(
-        qt_app: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_strength_zero_renders_exactly_like_no_shadow(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
     """旋钮拧到 0 必须**逐像素相同**（不是"看起来差不多"）。
 
     判据写成 `== 0` 而不是 `> 0`：这是"关掉"的明确失败路径 ——
@@ -292,15 +291,14 @@ def test_every_theme_stays_within_its_budget(qt_app: QApplication) -> None:
         if not low <= hard <= high:
             problems.append(f"{theme_name}: 硬区 {hard} px 不在 [{low}, {high}]")
         if soft < SOFT_AREA_FLOOR[theme_name]:
-            problems.append(
-                f"{theme_name}: 可感知面积 {soft:.2%} 低于下界 {SOFT_AREA_FLOOR[theme_name]:.1%}")
+            problems.append(f"{theme_name}: 可感知面积 {soft:.2%} 低于下界 {SOFT_AREA_FLOOR[theme_name]:.1%}")
     assert not problems, "；".join(problems)
 
 
 # 跨主题不变式：浅色四套必须**贴着 classic**，不许"各随盘底漂"。
 # 为什么还要这一条：五套系数是手工试出来的，没有锚。换盘底色、或新增第六套主题时，
 # 就会重新出现"某套硬区 7.2k、其余 4.2k"这种错位 —— 而**每一套单独看都还在预算内**。
-SOFT_AREA_TOLERANCE = 0.10      # 相对 classic 的 ±10%
+SOFT_AREA_TOLERANCE = 0.10  # 相对 classic 的 ±10%
 HARD_ZONE_CEILING_RATIO = 1.10  # 不超过 classic × 1.1
 
 
@@ -320,12 +318,10 @@ def test_light_themes_are_calibrated_against_classic(qt_app: QApplication) -> No
         soft, hard = soft_and_hard(theme_name)
         if abs(soft - base_soft) > base_soft * SOFT_AREA_TOLERANCE:
             problems.append(
-                f"{theme_name}: 可感知 {soft:.2%} 偏离 classic {base_soft:.2%} 超过 "
-                f"±{SOFT_AREA_TOLERANCE:.0%}")
+                f"{theme_name}: 可感知 {soft:.2%} 偏离 classic {base_soft:.2%} 超过 ±{SOFT_AREA_TOLERANCE:.0%}"
+            )
         if hard > base_hard * HARD_ZONE_CEILING_RATIO:
-            problems.append(
-                f"{theme_name}: 硬区 {hard} px 超过 classic({base_hard}) × "
-                f"{HARD_ZONE_CEILING_RATIO}")
+            problems.append(f"{theme_name}: 硬区 {hard} px 超过 classic({base_hard}) × {HARD_ZONE_CEILING_RATIO}")
     assert not problems, "；".join(problems) + "（请调该主题的 shadow_gain，而不是改 budget）"
 
 
@@ -338,11 +334,12 @@ def test_theme_calibration_covers_every_theme() -> None:
         if name == "dark":
             continue
         assert palette["shadow_gain"] <= dark, (
-            f"{name} 的 shadow_gain {palette['shadow_gain']} 高于 dark {dark} —— "
-            "浅底上黑影更显眼，系数应当更低")
+            f"{name} 的 shadow_gain {palette['shadow_gain']} 高于 dark {dark} —— 浅底上黑影更显眼，系数应当更低"
+        )
 
 
 # --- 硬约束 ---------------------------------------------------------------
+
 
 def test_no_graphics_effect_is_used_for_the_shadow() -> None:
     """禁止 `QGraphicsDropShadowEffect`：与自带 QPainter 的绘制流程冲突。
@@ -356,13 +353,14 @@ def test_no_graphics_effect_is_used_for_the_shadow() -> None:
         kept: list[str] = []
         for token in tokenize.generate_tokens(io.StringIO(source).readline):
             if token.type in (tokenize.COMMENT, tokenize.STRING):
-                continue            # 文档字符串里提到它不算使用
+                continue  # 文档字符串里提到它不算使用
             kept.append(token.string)
         if "QGraphicsDropShadowEffect" in " ".join(kept):
             offenders.append(path.name)
     assert not offenders, (
         "棋盘棋子投影不得用 QGraphicsDropShadowEffect（会接管 paint 流程、"
-        f"与 paintEvent 的坐标系和绘制顺序冲突，并拖慢走子动画）：{offenders}")
+        f"与 paintEvent 的坐标系和绘制顺序冲突，并拖慢走子动画）：{offenders}"
+    )
 
 
 def test_shadow_has_a_single_external_knob() -> None:
@@ -372,13 +370,19 @@ def test_shadow_has_a_single_external_knob() -> None:
     `PIECE_SHADOW_ALPHA`（圆心）和 `PIECE_SHADOW_CORE_ALPHA`（中段）两个常量，
     用户拧到 0 会毫无反应 —— 那是接口陷阱，不是参数问题。
     """
-    for name in ("PIECE_SHADOW_STRENGTH", "PIECE_SHADOW_CORE_ALPHA",
-                 "PIECE_SHADOW_CENTER_FACTOR", "PIECE_SHADOW_CORE_STOP",
-                 "PIECE_SHADOW_OFFSET", "PIECE_SHADOW_RATIO"):
+    for name in (
+        "PIECE_SHADOW_STRENGTH",
+        "PIECE_SHADOW_CORE_ALPHA",
+        "PIECE_SHADOW_CENTER_FACTOR",
+        "PIECE_SHADOW_CORE_STOP",
+        "PIECE_SHADOW_OFFSET",
+        "PIECE_SHADOW_RATIO",
+    ):
         assert hasattr(board_widget, name), f"缺少投影参数常量 {name}"
     assert not hasattr(board_widget, "PIECE_SHADOW_ALPHA"), (
         "`PIECE_SHADOW_ALPHA`（圆心）已被 `PIECE_SHADOW_STRENGTH` 取代："
-        "它在渐变里被棋子完全盖住，单独改它没有任何可见效果")
+        "它在渐变里被棋子完全盖住，单独改它没有任何可见效果"
+    )
 
 
 def test_shadow_brush_is_reused_instead_of_rebuilt_per_piece(qt_app: QApplication) -> None:
@@ -393,5 +397,5 @@ def test_shadow_brush_is_reused_instead_of_rebuilt_per_piece(qt_app: QApplicatio
     board_widget._SHADOW_BRUSH_CACHE.clear()
     render(size=MEASURE, pieces=0)
     assert len(board_widget._SHADOW_BRUSH_CACHE) == 1, (
-        f"整盘渲染后应只缓存 1 个投影刷子，实际 {len(board_widget._SHADOW_BRUSH_CACHE)} 个"
-        "（说明每枚子都在重建渐变）")
+        f"整盘渲染后应只缓存 1 个投影刷子，实际 {len(board_widget._SHADOW_BRUSH_CACHE)} 个（说明每枚子都在重建渐变）"
+    )

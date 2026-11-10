@@ -25,8 +25,9 @@ class NumpyPolicyValueNet:
         self.wv = rng.normal(0, scale, (hidden, 1)).astype("float32")
         self.bv = np.zeros(1, dtype="float32")
 
-    def train_jsonl(self, path: str | Path, epochs: int = 1, learning_rate: float = 1e-3,
-                    limit: int | None = None) -> dict[str, float]:
+    def train_jsonl(
+        self, path: str | Path, epochs: int = 1, learning_rate: float = 1e-3, limit: int | None = None
+    ) -> dict[str, float]:
         np = self.np
         rows = []
         with Path(path).open(encoding="utf-8") as stream:
@@ -62,11 +63,16 @@ class NumpyPolicyValueNet:
             self.bv -= learning_rate * grad_values.sum(axis=0)
             self.w1 -= learning_rate * (x.T @ grad_hidden)
             self.b1 -= learning_rate * grad_hidden.sum(axis=0)
-        return {"samples": float(len(rows)), "policy_loss": policy_loss,
-                "value_loss": value_loss, "loss": policy_loss + value_loss}
+        return {
+            "samples": float(len(rows)),
+            "policy_loss": policy_loss,
+            "value_loss": value_loss,
+            "loss": policy_loss + value_loss,
+        }
 
     def save(self, path: str | Path) -> None:
         target = Path(path)
         target.parent.mkdir(parents=True, exist_ok=True)
-        self.np.savez_compressed(target, schema=1, w1=self.w1, b1=self.b1,
-                                 wp=self.wp, bp=self.bp, wv=self.wv, bv=self.bv)
+        self.np.savez_compressed(
+            target, schema=1, w1=self.w1, b1=self.b1, wp=self.wp, bp=self.bp, wv=self.wv, bv=self.bv
+        )

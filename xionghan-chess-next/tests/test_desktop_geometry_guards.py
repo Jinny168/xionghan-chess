@@ -26,6 +26,7 @@ DIALOGS_PY = (ROOT / "src" / "xionghan_chess" / "desktop" / "ui" / "dialogs.py")
 def qt_app() -> QApplication:
     app = QApplication.instance() or QApplication([])
     from xionghan_chess.desktop.ui import theme
+
     theme.load_bundled_fonts()
     return app
 
@@ -33,6 +34,7 @@ def qt_app() -> QApplication:
 @pytest.fixture()
 def window(qt_app: QApplication):
     from xionghan_chess.desktop.app import MainWindow
+
     w = MainWindow()
     w.show()
     qt_app.processEvents()
@@ -64,8 +66,7 @@ def test_board_is_square(window, qt_app) -> None:
         window.resize(*size)
         qt_app.processEvents()
         board = window.board
-        assert abs(board.width() - board.height()) <= 1, (
-            f"{size}: 棋盘 {board.width()}×{board.height()} 不是正方形")
+        assert abs(board.width() - board.height()) <= 1, f"{size}: 棋盘 {board.width()}×{board.height()} 不是正方形"
 
 
 def test_dialogs_declare_audit_minimum_sizes() -> None:
@@ -77,11 +78,11 @@ def test_dialogs_declare_audit_minimum_sizes() -> None:
     # 权威来源：`docs/UI_GEOMETRY_AUDIT_2026-10-31.md` §3「对话框最小尺寸」表。
     # 表变了就改这里；这里变了说明实现偏离审计 —— 两边必须同步，别只改一边。
     expected = {
-        "HandicapDialog": "setMinimumSize(520,480)",
-        "ReplayDialog": "setMinimumSize(820,560)",
-        "TrainingDialog": "setMinimumSize(560,420)",
-        "GameLibraryDialog": "setMinimumSize(560,380)",
-        "DocumentDialog": "setMinimumSize(420,360)",
+        "HandicapDialog": "setMinimumSize(520, 480)",
+        "ReplayDialog": "setMinimumSize(820, 560)",
+        "TrainingDialog": "setMinimumSize(560, 420)",
+        "GameLibraryDialog": "setMinimumSize(560, 380)",
+        "DocumentDialog": "setMinimumSize(420, 360)",
     }
     for name, snippet in expected.items():
         block = re.search(rf"class {name}\b[\s\S]*?(?=\nclass |\Z)", DIALOGS_PY)
@@ -102,7 +103,8 @@ def test_board_fills_the_limiting_dimension(window, qt_app) -> None:
         board, host = window.board, window._board_host
         expected = min(host.width(), host.height())
         assert abs(board.width() - expected) <= 1, (
-            f"{size}: 棋盘边长 {board.width()} != 容器短边 {expected}（限制维度没顶满）")
+            f"{size}: 棋盘边长 {board.width()} != 容器短边 {expected}（限制维度没顶满）"
+        )
 
 
 def test_document_dialog_body_is_usable(qt_app) -> None:
@@ -117,8 +119,8 @@ def test_document_dialog_body_is_usable(qt_app) -> None:
     dialog.resize(dialog.minimumSize())
     dialog.show()
     qt_app.processEvents()
-    body = dialog.findChild(type(dialog.findChildren(type(dialog))[0])) if False else None
     from PySide6.QtWidgets import QTextBrowser
+
     browser = dialog.findChild(QTextBrowser)
     assert browser is not None, "DocumentDialog 里没有正文控件"
     assert browser.height() >= 120, f"最小尺寸下正文只有 {browser.height()}px"
@@ -134,8 +136,8 @@ def test_library_dialog_list_is_usable(qt_app, tmp_path) -> None:
     dialog.show()
     qt_app.processEvents()
     from PySide6.QtWidgets import QListWidget
+
     lists = dialog.findChildren(QListWidget)
     assert lists, "GameLibraryDialog 里没有列表控件"
-    assert max(x.height() for x in lists) >= 120, (
-        f"最小尺寸下列表最高只有 {max(x.height() for x in lists)}px")
+    assert max(x.height() for x in lists) >= 120, f"最小尺寸下列表最高只有 {max(x.height() for x in lists)}px"
     dialog.close()

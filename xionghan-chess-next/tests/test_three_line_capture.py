@@ -11,7 +11,12 @@ from __future__ import annotations
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import (
-    Color, GameState, Move, Piece, PieceType, Position,
+    Color,
+    GameState,
+    Move,
+    Piece,
+    PieceType,
+    Position,
 )
 
 ON = {"pawn_three_line_capture": True}
@@ -25,8 +30,7 @@ def pc(kind: str, color: Color, row: int, col: int) -> Piece:
 
 def game(spec: list[tuple[str, Color, int, int]]) -> Game:
     pieces = [pc(*item) for item in list(KINGS) + spec]
-    state = GameState("web", pieces, turn=Color.RED,
-                      captured={Color.RED: [], Color.BLACK: []})
+    state = GameState("web", pieces, turn=Color.RED, captured={Color.RED: [], Color.BLACK: []})
     return Game.from_state(state, ON, None)
 
 
@@ -37,36 +41,38 @@ def removals(g: Game, source: tuple[int, int], target: tuple[int, int]) -> set[t
 
 def test_pawn_landing_on_the_end_of_the_line_captures() -> None:
     """落点在线端：兵 (6,4)→(5,4)，与 (5,5) 兵、(5,6) 黑士紧邻成线 → 吃 (5,6)。"""
-    g = game([("pawn", Color.RED, 6, 4), ("pawn", Color.RED, 5, 5),
-              ("advisor", Color.BLACK, 5, 6)])
+    g = game([("pawn", Color.RED, 6, 4), ("pawn", Color.RED, 5, 5), ("advisor", Color.BLACK, 5, 6)])
     assert removals(g, (6, 4), (5, 4)) == {(5, 6)}
 
 
 def test_pawn_landing_in_the_middle_of_the_line_captures() -> None:
     """落点居中：兵 (6,5)→(5,5)，两侧 (5,4) 兵、(5,6) 黑士 → 吃 (5,6)。"""
-    g = game([("pawn", Color.RED, 6, 5), ("pawn", Color.RED, 5, 4),
-              ("advisor", Color.BLACK, 5, 6)])
+    g = game([("pawn", Color.RED, 6, 5), ("pawn", Color.RED, 5, 4), ("advisor", Color.BLACK, 5, 6)])
     assert removals(g, (6, 5), (5, 5)) == {(5, 6)}
 
 
 def test_gap_of_one_does_not_capture() -> None:
     """隔一格（不相邻）→ 不吃。"""
-    g = game([("pawn", Color.RED, 6, 4), ("pawn", Color.RED, 5, 7),
-              ("advisor", Color.BLACK, 5, 8)])
+    g = game([("pawn", Color.RED, 6, 4), ("pawn", Color.RED, 5, 7), ("advisor", Color.BLACK, 5, 8)])
     assert removals(g, (6, 4), (5, 4)) == set()
 
 
 def test_gap_of_two_does_not_capture() -> None:
     """隔两格 → 不吃。"""
-    g = game([("pawn", Color.RED, 6, 4), ("pawn", Color.RED, 5, 8),
-              ("advisor", Color.BLACK, 5, 9)])
+    g = game([("pawn", Color.RED, 6, 4), ("pawn", Color.RED, 5, 8), ("advisor", Color.BLACK, 5, 9)])
     assert removals(g, (6, 4), (5, 4)) == set()
 
 
 def test_unrelated_pawn_move_does_not_harvest_a_far_line() -> None:
     """审计反例：走无关的兵 (8,4)→(7,4)，远处 (2,8)(2,9)(2,10) 已成线 → **不吃**。"""
-    g = game([("pawn", Color.RED, 8, 4), ("pawn", Color.RED, 2, 8),
-              ("pawn", Color.RED, 2, 9), ("advisor", Color.BLACK, 2, 10)])
+    g = game(
+        [
+            ("pawn", Color.RED, 8, 4),
+            ("pawn", Color.RED, 2, 8),
+            ("pawn", Color.RED, 2, 9),
+            ("advisor", Color.BLACK, 2, 10),
+        ]
+    )
     assert removals(g, (8, 4), (7, 4)) == set()
 
 
@@ -75,11 +81,9 @@ def test_capturable_squares_matches_actual_removals() -> None:
 
     不管内部有几条路径，只要"能吃到"与"实际吃到"分叉，这条就红。
     """
-    g = game([("pawn", Color.RED, 6, 4), ("pawn", Color.RED, 5, 5),
-              ("advisor", Color.BLACK, 5, 6)])
+    g = game([("pawn", Color.RED, 6, 4), ("pawn", Color.RED, 5, 5), ("advisor", Color.BLACK, 5, 6)])
     specs = g.rules.capturable_squares(g.state, Color.RED)
-    reported = {spec.position for spec in specs.values()
-                if any("three_line" in str(r.kind) for r in spec.removals)}
+    reported = {spec.position for spec in specs.values() if any("three_line" in str(r.kind) for r in spec.removals)}
 
     move = Move(Position(6, 4), Position(5, 4))
     before = {(p.type, p.position) for p in g.state.pieces}

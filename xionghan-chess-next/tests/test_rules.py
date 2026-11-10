@@ -23,22 +23,10 @@ def test_king_can_leave_palace_when_enabled():
     board = state(red, black)
     move = Move(red.position, Position(12, 6))
     assert RulesEngine(get_profile("desktop_complete")).is_legal(board, move)
-    assert not RulesEngine(get_profile("desktop_complete"),
-                           get_profile("desktop_complete").options.merged({"king_can_leave_palace": False})).is_legal(board, move)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    assert not RulesEngine(
+        get_profile("desktop_complete"),
+        get_profile("desktop_complete").options.merged({"king_can_leave_palace": False}),
+    ).is_legal(board, move)
 
 
 def test_archer_captures_through_blockers_but_moves_only_on_clear_path():
@@ -46,16 +34,24 @@ def test_archer_captures_through_blockers_but_moves_only_on_clear_path():
     red, black = kings()
     rules = RulesEngine(get_profile("desktop_complete"))
 
-    one = state(red, black, piece(PieceType.ARCHER, Color.RED, 0, 0),
-                piece(PieceType.PAWN, Color.RED, 1, 1),
-                piece(PieceType.HORSE, Color.BLACK, 3, 3))
+    one = state(
+        red,
+        black,
+        piece(PieceType.ARCHER, Color.RED, 0, 0),
+        piece(PieceType.PAWN, Color.RED, 1, 1),
+        piece(PieceType.HORSE, Color.BLACK, 3, 3),
+    )
     assert rules.is_legal(one, Move(Position(0, 0), Position(3, 3))), "隔 1 子应能吃到"
     assert not rules.is_legal(one, Move(Position(0, 0), Position(2, 2))), "空着位移被挡应非法"
 
-    two = state(red, black, piece(PieceType.ARCHER, Color.RED, 0, 0),
-                piece(PieceType.PAWN, Color.RED, 1, 1),
-                piece(PieceType.PAWN, Color.RED, 2, 2),
-                piece(PieceType.HORSE, Color.BLACK, 3, 3))
+    two = state(
+        red,
+        black,
+        piece(PieceType.ARCHER, Color.RED, 0, 0),
+        piece(PieceType.PAWN, Color.RED, 1, 1),
+        piece(PieceType.PAWN, Color.RED, 2, 2),
+        piece(PieceType.HORSE, Color.BLACK, 3, 3),
+    )
     assert rules.is_legal(two, Move(Position(0, 0), Position(3, 3))), "隔 2 子也应能吃到"
     assert not rules.is_legal(two, Move(Position(0, 0), Position(1, 1))), "己方子所在格不能落"
 
@@ -81,14 +77,12 @@ def test_pawn_charge_is_opt_in_and_never_captures():
     assert on.is_legal(middle, Move(Position(6, 3), Position(3, 3))) is False
 
     # 路径有子：只能走到子前面
-    blocked = state(red, black, piece(PieceType.PAWN, Color.RED, 5, 3),
-                    piece(PieceType.PAWN, Color.RED, 4, 3))
+    blocked = state(red, black, piece(PieceType.PAWN, Color.RED, 5, 3), piece(PieceType.PAWN, Color.RED, 4, 3))
     assert on.is_legal(blocked, Move(Position(5, 3), Position(2, 3))) is False
     assert on.is_legal(blocked, Move(Position(5, 3), Position(4, 3))) is False
 
     # 目标有子：冲锋不吃子
-    occupied = state(red, black, piece(PieceType.PAWN, Color.RED, 5, 3),
-                     piece(PieceType.HORSE, Color.BLACK, 2, 3))
+    occupied = state(red, black, piece(PieceType.PAWN, Color.RED, 5, 3), piece(PieceType.HORSE, Color.BLACK, 2, 3))
     assert on.is_legal(occupied, Move(Position(5, 3), Position(2, 3))) is False
 
 
@@ -102,10 +96,14 @@ def test_pawn_three_line_capture_is_opt_in():
     on = RulesEngine(profile, profile.options.merged({"pawn_three_line_capture": True}))
     off = RulesEngine(profile, profile.options.merged({"pawn_three_line_capture": False}))
 
-    board = state(red, black, piece(PieceType.PAWN, Color.RED, 7, 2),
-                  piece(PieceType.PAWN, Color.RED, 6, 3),
-                  piece(PieceType.HORSE, Color.BLACK, 6, 4))
-    move = Move(Position(7, 2), Position(6, 2))          # 落到 (6,2) 后成 6,2/6,3/6,4 三连
+    board = state(
+        red,
+        black,
+        piece(PieceType.PAWN, Color.RED, 7, 2),
+        piece(PieceType.PAWN, Color.RED, 6, 3),
+        piece(PieceType.HORSE, Color.BLACK, 6, 4),
+    )
+    move = Move(Position(7, 2), Position(6, 2))  # 落到 (6,2) 后成 6,2/6,3/6,4 三连
     assert on.is_legal(board, move)
     after = on.apply_unchecked(board, move, switch_turn=False)
     assert not any(p.type is PieceType.HORSE for p in after.pieces), "开启三连应吃掉敌子"
@@ -124,21 +122,19 @@ def test_patrol_moves_along_ranks_only_and_captures_at_distance_two():
     # 只沿横线、偶数格；行号不限（6 行也能走，残局摆子照走）
     assert rules.is_legal(board, Move(patrol.position, Position(6, 4)))
     assert rules.is_legal(board, Move(patrol.position, Position(6, 2)))
-    assert not rules.is_legal(board, Move(patrol.position, Position(6, 5)))   # 奇数格不行
+    assert not rules.is_legal(board, Move(patrol.position, Position(6, 5)))  # 奇数格不行
     # 竖移是硬规则禁行：同一条竖线上的偶数格也不行（这条推翻了「横竖同规则」）
     assert not rules.is_legal(board, Move(patrol.position, Position(4, 6)))
     assert not rules.is_legal(board, Move(patrol.position, Position(2, 6)))
     # 斜走当然也不行
     assert not rules.is_legal(board, Move(patrol.position, Position(4, 4)))
     # 吃子仅限横向距离 2
-    assert rules.is_legal(board, Move(patrol.position, Position(6, 8)))       # 走空点
-    assert not rules.is_legal(board, Move(patrol.position, Position(6, 9)))   # 距离 3 吃不到
-    near = state(red, black, piece(PieceType.PATROL, Color.RED, 6, 6),
-                 piece(PieceType.PAWN, Color.BLACK, 6, 8))
-    assert rules.is_legal(near, Move(Position(6, 6), Position(6, 8)))         # 距离 2 可吃
+    assert rules.is_legal(board, Move(patrol.position, Position(6, 8)))  # 走空点
+    assert not rules.is_legal(board, Move(patrol.position, Position(6, 9)))  # 距离 3 吃不到
+    near = state(red, black, piece(PieceType.PATROL, Color.RED, 6, 6), piece(PieceType.PAWN, Color.BLACK, 6, 8))
+    assert rules.is_legal(near, Move(Position(6, 6), Position(6, 8)))  # 距离 2 可吃
     # 竖着两格即便有敌子也吃不到
-    vertical = state(red, black, piece(PieceType.PATROL, Color.RED, 6, 6),
-                     piece(PieceType.PAWN, Color.BLACK, 4, 6))
+    vertical = state(red, black, piece(PieceType.PATROL, Color.RED, 6, 6), piece(PieceType.PAWN, Color.BLACK, 4, 6))
     assert not rules.is_legal(vertical, Move(Position(6, 6), Position(4, 6)))
 
 
@@ -160,12 +156,17 @@ def test_legal_moves_enumerate_required_promotion_choices():
     red, black = kings()
     pawn = piece(PieceType.PAWN, Color.RED, 1, 0)
     board = state(red, black, pawn)
-    board.captured[Color.RED].extend([
-        piece(PieceType.ROOK, Color.RED, 5, 5),
-        piece(PieceType.HORSE, Color.RED, 5, 6),
-    ])
-    moves = [move for move in RulesEngine(get_profile("desktop_complete")).legal_moves(board)
-             if move.source == pawn.position and move.target == Position(0, 0)]
+    board.captured[Color.RED].extend(
+        [
+            piece(PieceType.ROOK, Color.RED, 5, 5),
+            piece(PieceType.HORSE, Color.RED, 5, 6),
+        ]
+    )
+    moves = [
+        move
+        for move in RulesEngine(get_profile("desktop_complete")).legal_moves(board)
+        if move.source == pawn.position and move.target == Position(0, 0)
+    ]
     assert {move.promotion for move in moves} == {PieceType.ROOK, PieceType.HORSE}
     assert all(move.promotion is not None for move in moves)
 
@@ -221,9 +222,7 @@ def test_disabled_piece_type_cannot_be_used_for_promotion():
     board.captured[Color.RED].append(dead_rook)
     profile = get_profile("desktop_complete")
     options = profile.options.merged({"rook_appear": False})
-    assert not RulesEngine(profile, options).is_legal(
-        board, Move(pawn.position, Position(0, 0), PieceType.ROOK)
-    )
+    assert not RulesEngine(profile, options).is_legal(board, Move(pawn.position, Position(0, 0), PieceType.ROOK))
 
 
 def test_archer_default_mode_uses_next_diagonal_star_as_boundary():
@@ -277,14 +276,16 @@ def test_archer_star_visuals_follow_piece_appearance_setting():
 
 
 def test_archer_star_points_are_thirteen_diamonds_not_twenty_five():
-    # Audit item C-2. The three live paths already agree — `rules.py` filters
-    # with `(row // 3 + col // 3) % 2 == 0` (13 points), `web/js/app.js`
-    # `drawStarPoints` paints whatever `profile.archerStarPoints` carries, and
-    # `offline.js` `starPoints()` mirrors the same condition. The only file that
-    # still spells out the pre-migration 25 points (`row` and `col` both
-    # multiples of 3) is the legacy `web/js/core/game-rules.js`, which the
-    # running service never mounts — so it is pinned by this test instead of by
-    # editing a file that cannot reach a browser.
+    # Audit item C-2。三条**活**路径已经一致：`rules.py` 用
+    # `(row // 3 + col // 3) % 2 == 0` 过滤出 13 点；`web/js/app.js`
+    # `drawStarPoints` 只画 `profile.archerStarPoints` 送来的点（不自己算）；
+    # `android/.../offline.js` `starPoints()` 镜像同一条件。
+    #
+    # 这里原有一句「唯一还写着迁移前 25 点的是 legacy `web/js/core/game-rules.js`，
+    # 它被本测试钉住，所以不必去改一个到不了浏览器的文件」。S1 更正：那个路径属于
+    # 迁移前遗留树，已随 `108b166`（2026-10-30 清理遗留树）删除 —— 现在 `ls web/js/`
+    # 只有 app.js / atlas.js / i18n.js / ribbon.js。一句指向不存在文件的注释等于给
+    # 一条**不能执行**的覆盖背书，故删去，本测试只钉 `RulesEngine` 自己的产出。
     lattice = {(r, c) for r in range(0, 13, 3) for c in range(0, 13, 3) if (r // 3 + c // 3) % 2 == 0}
     assert len(lattice) == 13
     expected = frozenset(Position(row, col) for row, col in lattice)
@@ -295,6 +296,7 @@ def test_archer_star_points_are_thirteen_diamonds_not_twenty_five():
 # R-3: patrol (巡) was the only one of the 14 piece types with no direct
 # coverage at all.
 # --------------------------------------------------------------------------
+
 
 def _patrol_board(*extra, row=5, col=0, profile="desktop_complete"):
     return state(*kings(), piece(PieceType.PATROL, Color.RED, row, col), *extra, profile=profile)
@@ -335,10 +337,10 @@ def test_patrol_rejects_diagonal_moves():
     """
     rules = RulesEngine(get_profile("desktop_complete"))
     board = _patrol_board()
-    assert not _patrol_move(rules, board, 4, 2)    # 左上斜
-    assert not _patrol_move(rules, board, 6, 2)    # 左下斜
-    assert not _patrol_move(rules, board, 4, 0)    # 垂直一格（竖移硬禁行）
-    assert _patrol_move(rules, board, 5, 2)        # 同一行横向才是合法方向
+    assert not _patrol_move(rules, board, 4, 2)  # 左上斜
+    assert not _patrol_move(rules, board, 6, 2)  # 左下斜
+    assert not _patrol_move(rules, board, 4, 0)  # 垂直一格（竖移硬禁行）
+    assert _patrol_move(rules, board, 5, 2)  # 同一行横向才是合法方向
 
 
 def test_patrol_rejects_a_blocked_path():
@@ -357,10 +359,12 @@ def test_patrol_captures_two_columns_away_but_not_four():
 
 def test_traditional_profile_has_no_patrol():
     rules = RulesEngine(get_profile("traditional"))
-    board = state(piece(PieceType.KING, Color.RED, 9, 4),
-                  piece(PieceType.PATROL, Color.RED, 5, 0),
-                  piece(PieceType.KING, Color.BLACK, 0, 4),
-                  profile="traditional")
+    board = state(
+        piece(PieceType.KING, Color.RED, 9, 4),
+        piece(PieceType.PATROL, Color.RED, 5, 0),
+        piece(PieceType.KING, Color.BLACK, 0, 4),
+        profile="traditional",
+    )
     assert not _patrol_move(rules, board, 5, 2)
 
 
@@ -386,16 +390,18 @@ def test_pawn_fast_move_cannot_capture_or_jump_and_can_be_disabled():
     profile = get_profile("desktop_complete")
     rules = RulesEngine(profile)
     target = piece(PieceType.HORSE, Color.BLACK, 5, 0)
-    assert not rules.pseudo_legal(state(red, black, pawn, target),
-                                  Move(pawn.position, target.position))
+    assert not rules.pseudo_legal(state(red, black, pawn, target), Move(pawn.position, target.position))
     blocked_pawn = piece(PieceType.PAWN, Color.RED, 8, 2)
-    assert not rules.pseudo_legal(state(red, black, blocked_pawn, blocker),
-                                  Move(blocked_pawn.position, Position(5, 2)))
-    disabled = RulesEngine(profile, profile.options.merged({
-        "pawn_fast_move_before_enemy_territory": False,
-    }))
-    assert not disabled.pseudo_legal(board := state(red, black, pawn),
-                                     Move(pawn.position, Position(5, 0)))
+    assert not rules.pseudo_legal(state(red, black, blocked_pawn, blocker), Move(blocked_pawn.position, Position(5, 2)))
+    disabled = RulesEngine(
+        profile,
+        profile.options.merged(
+            {
+                "pawn_fast_move_before_enemy_territory": False,
+            }
+        ),
+    )
+    assert not disabled.pseudo_legal(_board := state(red, black, pawn), Move(pawn.position, Position(5, 0)))
 
 
 def test_archer_strong_mode_allows_empty_three_step_move_but_attack_requires_star():
@@ -417,14 +423,14 @@ def test_archer_strong_mode_allows_empty_three_step_move_but_attack_requires_sta
 def test_archer_origin_and_path_pinch_are_both_rejected():
     red, black = kings()
     archer = piece(PieceType.ARCHER, Color.RED, 3, 3)
-    origin_board = state(red, black, archer,
-                        piece(PieceType.PAWN, Color.BLACK, 3, 4),
-                        piece(PieceType.PAWN, Color.BLACK, 4, 3))
+    origin_board = state(
+        red, black, archer, piece(PieceType.PAWN, Color.BLACK, 3, 4), piece(PieceType.PAWN, Color.BLACK, 4, 3)
+    )
     rules = RulesEngine(get_profile("desktop_complete"))
     assert not rules.pseudo_legal(origin_board, Move(archer.position, Position(6, 6)))
-    path_board = state(red, black, archer,
-                       piece(PieceType.PAWN, Color.BLACK, 4, 5),
-                       piece(PieceType.PAWN, Color.BLACK, 5, 4))
+    path_board = state(
+        red, black, archer, piece(PieceType.PAWN, Color.BLACK, 4, 5), piece(PieceType.PAWN, Color.BLACK, 5, 4)
+    )
     assert not rules.pseudo_legal(path_board, Move(archer.position, Position(6, 6)))
 
 
@@ -437,9 +443,14 @@ def test_archer_screenshot_position_allows_upper_left_star_but_not_pinched_lower
     profile = get_profile("desktop_complete")
 
     for enhanced in (False, True):
-        rules = RulesEngine(profile, profile.options.merged({
-            "archer_enhanced_mode": enhanced,
-        }))
+        rules = RulesEngine(
+            profile,
+            profile.options.merged(
+                {
+                    "archer_enhanced_mode": enhanced,
+                }
+            ),
+        )
         assert rules.pseudo_legal(board, Move(archer.position, Position(6, 6)))
         for target in (Position(10, 10), Position(11, 11), Position(12, 12)):
             assert not rules.pseudo_legal(board, Move(archer.position, target))
@@ -450,28 +461,22 @@ def test_diagonal_pinch_applies_to_elephant_advisor_and_king():
     red, black = kings()
 
     elephant = piece(PieceType.ELEPHANT, Color.RED, 3, 3)
-    elephant_board = state(red, black, elephant,
-                           piece(PieceType.PAWN, Color.BLACK, 4, 5),
-                           piece(PieceType.PAWN, Color.BLACK, 5, 4))
-    assert not RulesEngine(profile).pseudo_legal(
-        elephant_board, Move(elephant.position, Position(5, 5))
+    elephant_board = state(
+        red, black, elephant, piece(PieceType.PAWN, Color.BLACK, 4, 5), piece(PieceType.PAWN, Color.BLACK, 5, 4)
     )
+    assert not RulesEngine(profile).pseudo_legal(elephant_board, Move(elephant.position, Position(5, 5)))
 
     advisor = piece(PieceType.ADVISOR, Color.RED, 10, 6)
-    advisor_board = state(red, black, advisor,
-                          piece(PieceType.PAWN, Color.BLACK, 10, 7),
-                          piece(PieceType.PAWN, Color.BLACK, 11, 6))
-    assert not RulesEngine(profile).pseudo_legal(
-        advisor_board, Move(advisor.position, Position(11, 7))
+    advisor_board = state(
+        red, black, advisor, piece(PieceType.PAWN, Color.BLACK, 10, 7), piece(PieceType.PAWN, Color.BLACK, 11, 6)
     )
+    assert not RulesEngine(profile).pseudo_legal(advisor_board, Move(advisor.position, Position(11, 7)))
 
     king = piece(PieceType.KING, Color.RED, 10, 6)
-    king_board = state(king, black,
-                       piece(PieceType.PAWN, Color.BLACK, 10, 7),
-                       piece(PieceType.PAWN, Color.BLACK, 11, 6))
-    assert not RulesEngine(profile).pseudo_legal(
-        king_board, Move(king.position, Position(11, 7))
+    king_board = state(
+        king, black, piece(PieceType.PAWN, Color.BLACK, 10, 7), piece(PieceType.PAWN, Color.BLACK, 11, 6)
     )
+    assert not RulesEngine(profile).pseudo_legal(king_board, Move(king.position, Position(11, 7)))
 
 
 def test_diagonal_pinch_applies_to_guard_and_thunder_paths():
@@ -483,15 +488,11 @@ def test_diagonal_pinch_applies_to_guard_and_thunder_paths():
     guard = piece(PieceType.GUARD, Color.RED, 3, 3)
     screen = piece(PieceType.PAWN, Color.RED, 5, 5)
     guard_board = state(red, black, guard, screen, pinch_a, pinch_b)
-    assert not RulesEngine(profile).pseudo_legal(
-        guard_board, Move(guard.position, Position(6, 6))
-    )
+    assert not RulesEngine(profile).pseudo_legal(guard_board, Move(guard.position, Position(6, 6)))
 
     thunder = piece(PieceType.THUNDER, Color.RED, 3, 3)
     thunder_board = state(red, black, thunder, pinch_a, pinch_b)
-    assert not RulesEngine(profile).pseudo_legal(
-        thunder_board, Move(thunder.position, Position(6, 6))
-    )
+    assert not RulesEngine(profile).pseudo_legal(thunder_board, Move(thunder.position, Position(6, 6)))
 
 
 # ---------------------------------------------------------------------------
@@ -503,8 +504,9 @@ def test_has_any_legal_move_matches_legal_moves():
         game = Game(profile)
         for _ in range(4):
             for color in (Color.RED, Color.BLACK):
-                assert (game.rules.has_any_legal_move(game.state, color)
-                        == bool(game.rules.legal_moves(game.state, color))), profile
+                assert game.rules.has_any_legal_move(game.state, color) == bool(
+                    game.rules.legal_moves(game.state, color)
+                ), profile
             legal = game.rules.legal_moves(game.state)
             if not legal:
                 break
@@ -514,6 +516,7 @@ def test_has_any_legal_move_matches_legal_moves():
 # --------------------------------------------------------------------------
 # 2.0.0 回归护栏（产品口径锁定，别把它们当"可以顺手放宽"的普通断言）
 # --------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize("row", [0, 3, 6, 9, 12])
 def test_patrol_never_leaves_its_own_rank(row: int) -> None:
@@ -528,14 +531,16 @@ def test_patrol_never_leaves_its_own_rank(row: int) -> None:
     """
     rules = RulesEngine(get_profile("desktop_complete"))
     # 王摆在 (12,0)/(1,5)：与巡的列错开，否则同格会被 `piece_at` 取成王、测出王的着法
-    board = state(piece(PieceType.KING, Color.RED, 12, 0),
-                  piece(PieceType.KING, Color.BLACK, 1, 5),
-                  piece(PieceType.PATROL, Color.RED, row, 6))
-    targets = {m.target for m in rules.legal_moves(board)
-               if (m.source.row, m.source.col) == (row, 6)}
+    board = state(
+        piece(PieceType.KING, Color.RED, 12, 0),
+        piece(PieceType.KING, Color.BLACK, 1, 5),
+        piece(PieceType.PATROL, Color.RED, row, 6),
+    )
+    targets = {m.target for m in rules.legal_moves(board) if (m.source.row, m.source.col) == (row, 6)}
     assert targets, f"第 {row} 行的巡一个点都走不了，判据是不是写成了行白名单？"
-    assert all(target.row == row for target in targets), \
+    assert all(target.row == row for target in targets), (
         f"第 {row} 行的巡出现了竖移落点：{sorted((t.row, t.col) for t in targets if t.row != row)}"
+    )
 
 
 def test_pawn_sideways_threshold_locks_current_rule():
@@ -556,17 +561,18 @@ def test_pawn_sideways_threshold_locks_current_rule():
     black_king = piece(PieceType.KING, Color.BLACK, 0, 9)
 
     def targets(board, source):
-        return {(m.target.row, m.target.col) for m in rules.legal_moves(board)
-                if (m.source.row, m.source.col) == source}
+        return {
+            (m.target.row, m.target.col) for m in rules.legal_moves(board) if (m.source.row, m.source.col) == source
+        }
 
     # 红：阴山(=6) 不行 / 过阴山(=5) 行；横走与横吃同步解锁
-    on_mountain = state(red_king, black_king,
-                        piece(PieceType.PAWN, Color.RED, 6, 0),
-                        piece(PieceType.PAWN, Color.BLACK, 6, 1))
+    on_mountain = state(
+        red_king, black_king, piece(PieceType.PAWN, Color.RED, 6, 0), piece(PieceType.PAWN, Color.BLACK, 6, 1)
+    )
     assert (6, 1) not in targets(on_mountain, (6, 0)), "阴山行不能横吃"
-    crossed = state(red_king, black_king,
-                    piece(PieceType.PAWN, Color.RED, 5, 0),
-                    piece(PieceType.PAWN, Color.BLACK, 5, 1))
+    crossed = state(
+        red_king, black_king, piece(PieceType.PAWN, Color.RED, 5, 0), piece(PieceType.PAWN, Color.BLACK, 5, 1)
+    )
     assert (5, 1) in targets(crossed, (5, 0)), "过阴山后可横吃"
 
     # 空盘验"横走"（有敌子时那一格变成吃子，别把两件事混在一个局面里）
@@ -576,13 +582,19 @@ def test_pawn_sideways_threshold_locks_current_rule():
     assert (5, 1) in targets(empty_crossed, (5, 0)), "过阴山后可横走"
 
     # 黑方对称：row7 行、row6 不行（不是 8/9）
-    black_on_mountain = state(red_king, black_king, turn=Color.BLACK,
-                              *[piece(PieceType.PAWN, Color.BLACK, 6, 0),
-                                piece(PieceType.PAWN, Color.RED, 6, 1)])
+    black_on_mountain = state(
+        red_king,
+        black_king,
+        turn=Color.BLACK,
+        *[piece(PieceType.PAWN, Color.BLACK, 6, 0), piece(PieceType.PAWN, Color.RED, 6, 1)],
+    )
     assert (6, 1) not in targets(black_on_mountain, (6, 0)), "黑兵阴山行不能横吃"
-    black_crossed = state(red_king, black_king, turn=Color.BLACK,
-                          *[piece(PieceType.PAWN, Color.BLACK, 7, 0),
-                            piece(PieceType.PAWN, Color.RED, 7, 1)])
+    black_crossed = state(
+        red_king,
+        black_king,
+        turn=Color.BLACK,
+        *[piece(PieceType.PAWN, Color.BLACK, 7, 0), piece(PieceType.PAWN, Color.RED, 7, 1)],
+    )
     assert (7, 1) in targets(black_crossed, (7, 0)), "黑兵过阴山后可横吃"
 
 
@@ -602,8 +614,11 @@ def test_pawn_reaching_enemy_base_always_promotes() -> None:
     board.captured[Color.RED].append(piece(PieceType.ROOK, Color.RED, 11, 0))
     promotable = RulesEngine(get_profile("desktop_complete")).promotable_types(board, Color.RED)
     assert promotable, "池里的车应当是可升变类型"
-    moves = [m for m in RulesEngine(get_profile("desktop_complete")).legal_moves(board)
-             if (m.source.row, m.source.col) == (1, 6)]
+    moves = [
+        m
+        for m in RulesEngine(get_profile("desktop_complete")).legal_moves(board)
+        if (m.source.row, m.source.col) == (1, 6)
+    ]
     assert moves, "兵应当能走到一格的任何落点"
     for move in moves:
         if move.target.row == 0:
@@ -611,6 +626,7 @@ def test_pawn_reaching_enemy_base_always_promotes() -> None:
 
     # 池空 → 不强制（既有行为）
     empty_pool = state(red_king, black_king, piece(PieceType.PAWN, Color.RED, 1, 6))
-    assert any(m.target.row == 0 and m.promotion is None
-               for m in RulesEngine(get_profile("desktop_complete")).legal_moves(empty_pool)), \
-        "池空时不应强制升变（这是既有行为，改它要单独过产品）"
+    assert any(
+        m.target.row == 0 and m.promotion is None
+        for m in RulesEngine(get_profile("desktop_complete")).legal_moves(empty_pool)
+    ), "池空时不应强制升变（这是既有行为，改它要单独过产品）"

@@ -6,6 +6,7 @@
 抽出的动机：`app.py` 原本 1200+ 行单体，UI/交互/网络/渲染全混在一起，无法单测也无法
 分人维护（见 docs/AUDIT_DESKTOP_1.7.0.md 轴 4）。
 """
+
 from __future__ import annotations
 
 import math
@@ -13,8 +14,18 @@ import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
-    QBrush, QColor, QFont, QFontMetricsF, QGradient, QMouseEvent, QPainter, QPaintEvent,
-    QPainterPath, QPen, QPixmap, QRadialGradient,
+    QBrush,
+    QColor,
+    QFont,
+    QFontMetricsF,
+    QGradient,
+    QMouseEvent,
+    QPainter,
+    QPainterPath,
+    QPaintEvent,
+    QPen,
+    QPixmap,
+    QRadialGradient,
 )
 from PySide6.QtWidgets import QWidget
 
@@ -25,26 +36,32 @@ from xionghan_chess.i18n import t
 from . import piece_assets, theme
 from .board_geometry import cell_layout, point_to_position, view_position
 
-
 # 缺图回退（**仅 image 模式**）的配色：美术从 66 张位图反推，让回退格与位图同材质。
 # 传统=象牙白+深棕环，现代=纯白+细红/黑环，卡通=纯白+粗粉/蓝环。
 # `radius_ratio` 是描边宽相对盘半径的系数（160 画布下 3/5/≥8 px 折算而来）。
 FALLBACK_STYLE: dict[str, dict[str, object]] = {
     "traditional": {
-        "fill": (252, 248, 238), "inner_fill": (245, 240, 228),
-        "ring": (80, 50, 20), "ring_ratio": 0.022, "inner_ring": (180, 160, 130),
+        "fill": (252, 248, 238),
+        "inner_fill": (245, 240, 228),
+        "ring": (80, 50, 20),
+        "ring_ratio": 0.022,
+        "inner_ring": (180, 160, 130),
         "text": {Color.RED: (190, 35, 35), Color.BLACK: (30, 30, 30)},
     },
     "modern": {
-        "fill": (255, 255, 255), "inner_fill": None,
+        "fill": (255, 255, 255),
+        "inner_fill": None,
         "ring": {Color.RED: (220, 50, 50), Color.BLACK: (40, 40, 40)},
-        "ring_ratio": 0.036, "inner_ring": "ring",
+        "ring_ratio": 0.036,
+        "inner_ring": "ring",
         "text": {Color.RED: (220, 50, 50), Color.BLACK: (40, 40, 40)},
     },
     "cartoon": {
-        "fill": (255, 255, 255), "inner_fill": None,
+        "fill": (255, 255, 255),
+        "inner_fill": None,
         "ring": {Color.RED: (255, 100, 100), Color.BLACK: (100, 150, 220)},
-        "ring_ratio": 0.058, "inner_ring": None,
+        "ring_ratio": 0.058,
+        "inner_ring": None,
         "text": {Color.RED: (200, 50, 50), Color.BLACK: (50, 100, 180)},
     },
 }
@@ -60,7 +77,7 @@ LEGAL_DOT_RATIO = 0.13
 LEGAL_DOT_RATIO_DARK = 0.15
 LEGAL_DOT_ALPHA_LIGHT = 0.55
 LEGAL_DOT_ALPHA_DARK = 0.60
-LEGAL_DOT_DARK_RGB = (0x9F, 0xBF, 0xA8)   # #9fbfa8 浅灰绿
+LEGAL_DOT_DARK_RGB = (0x9F, 0xBF, 0xA8)  # #9fbfa8 浅灰绿
 
 # 落子动画：460ms / 20ms = 23 帧（原来 350ms / 25ms ≈ 14 帧，肉眼只有 ~9 帧可见）。
 # 为什么不抄网页的 900ms：太拖沓。为什么不是 550/16：实测 900×900 单帧 p95 10.9ms、
@@ -88,17 +105,17 @@ CHECK_PULSE_FRAMES = 30
 # 不会让人把"这格是上一步"误读成"这格被选中"。
 # 层级保持不变（标记仍在棋子之前）—— 为一次高亮打破层级约定，后面每个新标记
 # 都要重新讨论层级，代价远大于换形状。
-LAST_MOVE_INSET = 0.05          # × 格，每边内缩 → 方框占 90% 格宽
-LAST_MOVE_CORNER = 0.16         # × 格，圆角半径
-LAST_MOVE_ALPHA = 64            # 64/255 ≈ .25，不到选择态不透明度（.55）的一半
+LAST_MOVE_INSET = 0.05  # × 格，每边内缩 → 方框占 90% 格宽
+LAST_MOVE_CORNER = 0.16  # × 格，圆角半径
+LAST_MOVE_ALPHA = 64  # 64/255 ≈ .25，不到选择态不透明度（.55）的一半
 # `_draw_marks` 里三种标注的不透明度档位。提成常量不是为了好看，是为了让
 # 「上一步 < 吃子提示 < 选择态」这条**顺序**能被断言锁住（见测试）。
 # 理由（设计定稿）：选出/可吃/被将都是**事件性**提示，出现即"此刻有事"；
 # 而上一步是**全场唯一恒常存在**的标注，每走一手就在，必须是最弱的一档，
 # 否则会把注意力从棋盘本身拉走（违背"棋盘即主角"）。
 # 谁想"调得明显一点"就会先撞到这条断言。
-CAPTURE_MARK_ALPHA = 90         # 可吃子格（红）
-SELECTION_MARK_ALPHA = 145      # 当前选中格（金）
+CAPTURE_MARK_ALPHA = 90  # 可吃子格（红）
+SELECTION_MARK_ALPHA = 145  # 当前选中格（金）
 
 # P1-1 棋子投影：**径向渐变**，不是纯色椭圆。
 #
@@ -125,12 +142,12 @@ SELECTION_MARK_ALPHA = 145      # 当前选中格（金）
 # 所以"圆心 115、中段 88"这种双常量，改圆心是空转、改中段才有反应 ——
 # 那是接口陷阱（改了没反应的常量比没有更糟）。旋钮必须**真的驱动中段**，
 # 并且有一条"强度↑ ⇒ 可感知面积↑"的单调性断言兜着（见测试文件）。
-PIECE_SHADOW_STRENGTH = 1.0     # 用户唯一旋钮：0 = 关，1 = 该主题的满强度
-PIECE_SHADOW_CORE_ALPHA = 88    # STRENGTH=1 × 系数=1 时 0.72 处的不透明度（有效强度看这个）
-PIECE_SHADOW_CENTER_FACTOR = 115 / 88   # 圆心 = 中段 × 该系数（历史配比，保持观感连续）
-PIECE_SHADOW_CORE_STOP = 0.72   # 中段色标位置
-PIECE_SHADOW_OFFSET = 0.09      # × radius，圆心向下偏移
-PIECE_SHADOW_RATIO = 1.30       # × radius，渐变外半径（色标 1.0 处 alpha 归零）
+PIECE_SHADOW_STRENGTH = 1.0  # 用户唯一旋钮：0 = 关，1 = 该主题的满强度
+PIECE_SHADOW_CORE_ALPHA = 88  # STRENGTH=1 × 系数=1 时 0.72 处的不透明度（有效强度看这个）
+PIECE_SHADOW_CENTER_FACTOR = 115 / 88  # 圆心 = 中段 × 该系数（历史配比，保持观感连续）
+PIECE_SHADOW_CORE_STOP = 0.72  # 中段色标位置
+PIECE_SHADOW_OFFSET = 0.09  # × radius，圆心向下偏移
+PIECE_SHADOW_RATIO = 1.30  # × radius，渐变外半径（色标 1.0 处 alpha 归零）
 
 # 61 枚子 × 每帧一次 = 每秒最多 3660 次构造，必须复用。
 # 两个设计点：
@@ -164,6 +181,7 @@ def _piece_shadow_brush(gain: float = 1.0) -> QBrush:
         brush = QBrush(gradient)
         _SHADOW_BRUSH_CACHE[key] = brush
     return brush
+
 
 # 射的对角路径预览：颜色比可走点更弱（可走点 .55），否则会和落点抢注意力。
 ARCHER_PATH_ALPHA = 0.35
@@ -227,8 +245,7 @@ def _piece_font(radius: float, mode: str, style: str = "traditional") -> QFont:
     return font
 
 
-def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float,
-                     piece: Piece, style: str) -> None:
+def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float, piece: Piece, style: str) -> None:
     """画一枚**字形**棋子（圆片 + 汉字）—— 默认 `piece_render="glyph"` 的渲染路径。
 
     1.7.0 的观感即此实现，**不要改动里面的颜色/字号/字重**：`glyph` 模式下
@@ -239,22 +256,33 @@ def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float,
     elif style == "cartoon":
         brush = QBrush(QColor("#ffd98e"))
     else:
-        gradient = QRadialGradient(center.x()-radius*.25, center.y()-radius*.3, radius*1.2)
-        gradient.setColorAt(0, QColor("#fff0c5")); gradient.setColorAt(1, QColor("#d4a763"))
+        gradient = QRadialGradient(center.x() - radius * 0.25, center.y() - radius * 0.3, radius * 1.2)
+        gradient.setColorAt(0, QColor("#fff0c5"))
+        gradient.setColorAt(1, QColor("#d4a763"))
         brush = QBrush(gradient)
     outline = QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e")
-    painter.setBrush(brush); painter.setPen(QPen(outline, max(2, radius*(.13 if style == "cartoon" else .1))))
+    painter.setBrush(brush)
+    painter.setPen(QPen(outline, max(2, radius * (0.13 if style == "cartoon" else 0.1))))
     painter.drawEllipse(center, radius, radius)
     if style == "modern":
-        painter.setBrush(Qt.BrushStyle.NoBrush); painter.setPen(QPen(outline, 1))
-        painter.drawEllipse(center, radius * .82, radius * .82)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(outline, 1))
+        painter.drawEllipse(center, radius * 0.82, radius * 0.82)
     painter.setFont(_piece_font(radius, GLYPH_MODE, style))
     painter.setPen(QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e"))
-    painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2), Qt.AlignmentFlag.AlignCenter, theme.NAMES[piece.color].get(piece.type, ""))
+    painter.drawText(
+        int(center.x() - radius),
+        int(center.y() - radius),
+        int(radius * 2),
+        int(radius * 2),
+        Qt.AlignmentFlag.AlignCenter,
+        theme.NAMES[piece.color].get(piece.type, ""),
+    )
 
 
-def draw_fallback_piece(painter: QPainter, center: QPointF, radius: float,
-                        color: Color, piece_type: PieceType, style: str) -> None:
+def draw_fallback_piece(
+    painter: QPainter, center: QPointF, radius: float, color: Color, piece_type: PieceType, style: str
+) -> None:
     """`image` 模式下**没有美术**的棋型（刺/巡）怎么画。
 
     与位图同材质：盘径仍是 `0.78 cell`，填充/环色/描边宽按风格取自 `FALLBACK_STYLE`，
@@ -270,16 +298,22 @@ def draw_fallback_piece(painter: QPainter, center: QPointF, radius: float,
     if inner_fill is not None:
         painter.setBrush(QBrush(_color(inner_fill, color)))
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawEllipse(center, radius * .86, radius * .86)
+        painter.drawEllipse(center, radius * 0.86, radius * 0.86)
     inner_ring = spec["inner_ring"]
     if inner_ring is not None:
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.setPen(QPen(_color(spec["ring"] if inner_ring == "ring" else inner_ring, color), 1))
-        painter.drawEllipse(center, radius * .82, radius * .82)
+        painter.drawEllipse(center, radius * 0.82, radius * 0.82)
     painter.setFont(_piece_font(radius, "image_fallback", style))
     painter.setPen(_color(spec["text"], color))  # type: ignore[arg-type]
-    painter.drawText(int(center.x()-radius), int(center.y()-radius), int(radius*2), int(radius*2),
-                     Qt.AlignmentFlag.AlignCenter, theme.NAMES[color].get(piece_type, ""))
+    painter.drawText(
+        int(center.x() - radius),
+        int(center.y() - radius),
+        int(radius * 2),
+        int(radius * 2),
+        Qt.AlignmentFlag.AlignCenter,
+        theme.NAMES[color].get(piece_type, ""),
+    )
 
 
 class BoardWidget(QWidget):
@@ -340,12 +374,11 @@ class BoardWidget(QWidget):
         if not self.flipped or not self.game:
             return position
         # 阶段1 S1-2：翻转换算抽到 desktop/ui/board_geometry.py（纯函数）
-        return view_position(position.row, position.col,
-                             self.game.profile.rows, self.game.profile.cols, True)
+        return view_position(position.row, position.col, self.game.profile.rows, self.game.profile.cols, True)
 
-    def set_appearance(self, theme_name: str, background_name: str,
-                       piece_style: str = "traditional",
-                       piece_render: str = GLYPH_MODE) -> None:
+    def set_appearance(
+        self, theme_name: str, background_name: str, piece_style: str = "traditional", piece_render: str = GLYPH_MODE
+    ) -> None:
         self.theme_name = theme_name if theme_name in theme.THEMES else "classic"
         self.theme = theme.THEMES[self.theme_name]
         self.piece_style = piece_assets.normalize_style(piece_style)
@@ -365,8 +398,7 @@ class BoardWidget(QWidget):
             self.background = QPixmap(str(path))
         self.update()
 
-    def set_assists(self, *, selection: bool, legal_targets: bool,
-                    capture_hints: bool, animations: bool) -> None:
+    def set_assists(self, *, selection: bool, legal_targets: bool, capture_hints: bool, animations: bool) -> None:
         self.show_selection = selection
         self.show_legal_targets = legal_targets
         self.show_capture_hints = capture_hints
@@ -395,8 +427,12 @@ class BoardWidget(QWidget):
         self.update()
 
     def _controlled(self, piece: Piece | None) -> bool:
-        return bool(piece and not self.game.state.paused and piece.color is self.game.state.turn and
-                    (self.control_both or piece.color is self.human_color))
+        return bool(
+            piece
+            and not self.game.state.paused
+            and piece.color is self.game.state.turn
+            and (self.control_both or piece.color is self.human_color)
+        )
 
     def paintEvent(self, event: QPaintEvent) -> None:
         if not self.game:
@@ -406,12 +442,13 @@ class BoardWidget(QWidget):
         rect, left, top, cw, ch = self._geometry()
         painter.fillRect(rect, QColor(self.theme["board"]))
         if not self.background.isNull():
-            painter.save(); painter.setOpacity(.12)
+            painter.save()
+            painter.setOpacity(0.12)
             painter.drawPixmap(rect, self.background, self.background.rect())
             painter.restore()
         painter.setPen(QPen(QColor(self.theme["frame"]), 5))
         painter.drawRect(rect)
-        rows, cols = self.game.profile.rows, self.game.profile.cols
+        rows = self.game.profile.rows
         painter.setPen(QPen(QColor(self.theme["line"]), 1.15))
         if rows == 13:
             self._draw_xionghan_grid(painter, left, top, cw, ch)
@@ -434,22 +471,30 @@ class BoardWidget(QWidget):
         # 遮罩的颜色/文案/透明度一个字都没改，只调顺序。
         if self.locked:
             painter.fillRect(rect, QColor(30, 25, 20, 90))
-            painter.setPen(QColor("white")); painter.setFont(QFont(theme.UI_FONT, 18, QFont.Weight.Bold))
+            painter.setPen(QColor("white"))
+            painter.setFont(QFont(theme.UI_FONT, 18, QFont.Weight.Bold))
             cell = min(cw, ch)
             if self.thinking_started is None:
                 painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, t("status.thinking_desktop", self.language))
             else:
                 # 文案上移一行，给下面的读条与秒数腾位置
-                painter.drawText(QRectF(rect.left(), rect.center().y() - cell * 0.45,
-                                        rect.width(), cell * 0.4),
-                                 Qt.AlignmentFlag.AlignCenter, t("status.thinking_desktop", self.language))
+                painter.drawText(
+                    QRectF(rect.left(), rect.center().y() - cell * 0.45, rect.width(), cell * 0.4),
+                    Qt.AlignmentFlag.AlignCenter,
+                    t("status.thinking_desktop", self.language),
+                )
                 self._draw_thinking_progress(painter, rect, cw, ch)
         self._draw_capture_hints(painter, left, top, cw, ch)
         self._draw_animation(painter, left, top, cw, ch)
         if self.game.state.paused:
             painter.fillRect(rect, QColor(30, 25, 20, 150))
-            painter.setPen(QColor("white")); painter.setFont(QFont(theme.UI_FONT, 19, QFont.Weight.Bold))
-            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, f"{t('status.paused', self.language)}\n{t('status.timer_stopped', self.language)}")
+            painter.setPen(QColor("white"))
+            painter.setFont(QFont(theme.UI_FONT, 19, QFont.Weight.Bold))
+            painter.drawText(
+                rect,
+                Qt.AlignmentFlag.AlignCenter,
+                f"{t('status.paused', self.language)}\n{t('status.timer_stopped', self.language)}",
+            )
 
     # ---------------------------------------------------------------- 思考态读条
     def begin_thinking(self, limit_seconds: float) -> None:
@@ -501,10 +546,11 @@ class BoardWidget(QWidget):
         # 正向秒数
         painter.setPen(QColor("white"))
         painter.setFont(QFont(theme.UI_FONT, max(10, int(cell * 0.16))))
-        painter.drawText(QRectF(bar.left(), bar.bottom() + cell * 0.08, bar_w, cell * 0.3),
-                         Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,
-                         t("status.thinking_elapsed", self.language,
-                           seconds=f"{self.thinking_elapsed():.1f}"))
+        painter.drawText(
+            QRectF(bar.left(), bar.bottom() + cell * 0.08, bar_w, cell * 0.3),
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,
+            t("status.thinking_elapsed", self.language, seconds=f"{self.thinking_elapsed():.1f}"),
+        )
         painter.restore()
 
     def thinking_progress_color(self) -> QColor:
@@ -535,18 +581,30 @@ class BoardWidget(QWidget):
             painter.drawLine(QPointF(x, top + 7 * ch), QPointF(x, bottom))
 
         separator_y = top + 6 * ch
-        marker = min(cw, ch) * .16
+        marker = min(cw, ch) * 0.16
         for col in range(13):
             x = left + col * cw
             painter.drawLine(QPointF(x - marker, separator_y), QPointF(x + marker, separator_y))
             if 0 < col < 12:
                 painter.drawLine(QPointF(x, separator_y - marker), QPointF(x, separator_y + marker))
 
-        painter.setFont(QFont(theme.PIECE_FONT, max(17, int(cw * .38))))
-        painter.drawText(int(left), int(separator_y - ch * .5), int(cw * 6), int(ch),
-                         Qt.AlignmentFlag.AlignCenter, t("board.great_wall", self.language))
-        painter.drawText(int(left + cw * 6), int(separator_y - ch * .5), int(cw * 6), int(ch),
-                         Qt.AlignmentFlag.AlignCenter, t("board.yin_mountains", self.language))
+        painter.setFont(QFont(theme.PIECE_FONT, max(17, int(cw * 0.38))))
+        painter.drawText(
+            int(left),
+            int(separator_y - ch * 0.5),
+            int(cw * 6),
+            int(ch),
+            Qt.AlignmentFlag.AlignCenter,
+            t("board.great_wall", self.language),
+        )
+        painter.drawText(
+            int(left + cw * 6),
+            int(separator_y - ch * 0.5),
+            int(cw * 6),
+            int(ch),
+            Qt.AlignmentFlag.AlignCenter,
+            t("board.yin_mountains", self.language),
+        )
 
     def _draw_traditional_grid(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         right, bottom = left + 8 * cw, top + 9 * ch
@@ -561,16 +619,28 @@ class BoardWidget(QWidget):
                 painter.drawLine(QPointF(x, top + 5 * ch), QPointF(x, bottom))
 
         river_y = top + 4.5 * ch
-        painter.setFont(QFont(theme.PIECE_FONT, max(16, int(cw * .38))))
-        painter.drawText(int(left), int(river_y - ch * .5), int(cw * 4), int(ch),
-                         Qt.AlignmentFlag.AlignCenter, t("board.chu_river", self.language))
-        painter.drawText(int(left + cw * 4), int(river_y - ch * .5), int(cw * 4), int(ch),
-                         Qt.AlignmentFlag.AlignCenter, t("board.han_boundary", self.language))
+        painter.setFont(QFont(theme.PIECE_FONT, max(16, int(cw * 0.38))))
+        painter.drawText(
+            int(left),
+            int(river_y - ch * 0.5),
+            int(cw * 4),
+            int(ch),
+            Qt.AlignmentFlag.AlignCenter,
+            t("board.chu_river", self.language),
+        )
+        painter.drawText(
+            int(left + cw * 4),
+            int(river_y - ch * 0.5),
+            int(cw * 4),
+            int(ch),
+            Qt.AlignmentFlag.AlignCenter,
+            t("board.han_boundary", self.language),
+        )
 
     def _draw_initial_position_marks(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
         positions = [(row, col) for row in (4, 8) for col in range(0, 13, 2)]
         positions += [(3, 1), (3, 11), (9, 1), (9, 11)]
-        offset, length = min(cw, ch) * .14, min(cw, ch) * .2
+        offset, length = min(cw, ch) * 0.14, min(cw, ch) * 0.2
         painter.save()
         painter.setPen(QPen(QColor(self.theme["line"]), 1.25))
         for row, col in positions:
@@ -590,15 +660,18 @@ class BoardWidget(QWidget):
         那一格就变成"一个星号"，整条落点线在第三格"断了"，看起来只有两个落点。
         隐藏的是**该格的刻线**，星位本身的位置与尺寸不动。
         """
-        covered = ({move.target for move in self.legal}
-                   if self.selected is not None and self.show_legal_targets else frozenset())
-        inner = min(cw, ch) * .07
-        outer = min(cw, ch) * .18
+        covered = (
+            {move.target for move in self.legal}
+            if self.selected is not None and self.show_legal_targets
+            else frozenset()
+        )
+        inner = min(cw, ch) * 0.07
+        outer = min(cw, ch) * 0.18
         painter.save()
-        color = QColor(self.theme["line"]); color.setAlpha(175)
+        color = QColor(self.theme["line"])
+        color.setAlpha(175)
         painter.setPen(QPen(color, 1.25))
-        for point in sorted(self.game.rules.archer_star_points,
-                            key=lambda item: (item.row, item.col)):
+        for point in sorted(self.game.rules.archer_star_points, key=lambda item: (item.row, item.col)):
             if point in covered:
                 continue
             center = QPointF(left + point.col * cw, top + point.row * ch)
@@ -612,8 +685,12 @@ class BoardWidget(QWidget):
     def _draw_palaces(self, painter: QPainter, left: float, top: float, cw: float, ch: float, rows: int) -> None:
         starts = ((0, 3), (7, 3)) if rows == 10 else ((1, 5), (9, 5))
         for row, col in starts:
-            painter.drawLine(QPointF(left + col*cw, top + row*ch), QPointF(left + (col+2)*cw, top + (row+2)*ch))
-            painter.drawLine(QPointF(left + (col+2)*cw, top + row*ch), QPointF(left + col*cw, top + (row+2)*ch))
+            painter.drawLine(
+                QPointF(left + col * cw, top + row * ch), QPointF(left + (col + 2) * cw, top + (row + 2) * ch)
+            )
+            painter.drawLine(
+                QPointF(left + (col + 2) * cw, top + row * ch), QPointF(left + col * cw, top + (row + 2) * ch)
+            )
 
     # ---------------------------------------------------------------- 射的路径
     def archer_rays(self) -> list[tuple[Position, Position, Position | None, int, int]]:
@@ -646,14 +723,15 @@ class BoardWidget(QWidget):
             farthest = max(targets, key=lambda target: abs(target.row - self.selected.row))
             # 只有当这条射线是**被棋子挡住**才画截断标记；走到星位距离上限不算"挡住"。
             star_limit = self.game.rules._nearest_archer_star_distance(  # noqa: SLF001
-                self.selected, step_row, step_col)
+                self.selected, step_row, step_col
+            )
             reached_limit = abs(farthest.row - self.selected.row) >= star_limit > 0
             beyond = Position(farthest.row + step_row, farthest.col + step_col)
-            obstacle = (beyond
-                        if not reached_limit
-                        and self.game.rules.inside(beyond)
-                        and self.game.state.piece_at(beyond) is not None
-                        else None)
+            obstacle = (
+                beyond
+                if not reached_limit and self.game.rules.inside(beyond) and self.game.state.piece_at(beyond) is not None
+                else None
+            )
             rays.append((self.selected, farthest, obstacle, step_row, step_col))
         return rays
 
@@ -678,7 +756,7 @@ class BoardWidget(QWidget):
         cell = min(cw, ch)
         color = self.archer_path_color()
         pen = QPen(color, max(1.0, cell * 0.02), Qt.PenStyle.DashLine)
-        pen.setDashPattern([4, 4])          # 单位是笔宽：宽 1px 时即 4px/4px
+        pen.setDashPattern([4, 4])  # 单位是笔宽：宽 1px 时即 4px/4px
         painter.save()
         painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -693,20 +771,22 @@ class BoardWidget(QWidget):
             # 截断标记：画在「最远可停格」与「障碍格」**正中间**，一对垂直于射线的短线。
             blocked = self._view_position(obstacle)
             blocked_point = QPointF(left + blocked.col * cw, top + blocked.row * ch)
-            middle = QPointF((end_point.x() + blocked_point.x()) / 2,
-                             (end_point.y() + blocked_point.y()) / 2)
+            middle = QPointF((end_point.x() + blocked_point.x()) / 2, (end_point.y() + blocked_point.y()) / 2)
             # 垂直方向（对角线射线的法向）
             normal = QPointF(-step_col, step_row)
             half = cell * 0.12 / 2
             # 标记用实线（虚线会更糊），宽度与虚线一致
             painter.setPen(QPen(color, max(1.0, cell * 0.02), Qt.PenStyle.SolidLine))
-            painter.drawLine(QPointF(middle.x() - normal.x() * half, middle.y() - normal.y() * half),
-                             QPointF(middle.x() + normal.x() * half, middle.y() + normal.y() * half))
+            painter.drawLine(
+                QPointF(middle.x() - normal.x() * half, middle.y() - normal.y() * half),
+                QPointF(middle.x() + normal.x() * half, middle.y() + normal.y() * half),
+            )
             painter.setPen(pen)
         painter.restore()
 
-    def _cell_frame(self, painter: QPainter, pos: Position, left: float, top: float,
-                    cw: float, ch: float, color: str) -> None:
+    def _cell_frame(
+        self, painter: QPainter, pos: Position, left: float, top: float, cw: float, ch: float, color: str
+    ) -> None:
         """在**交叉点所在的那一格**里画一个内缩的圆角方框（D1 上一步标记用）。
 
         与 `_mark`（实心圆）刻意分开：圆会和圆棋子撞脸，方不会；而且方框的四个角
@@ -714,9 +794,12 @@ class BoardWidget(QWidget):
         """
         pos = self._view_position(pos)
         inset_x, inset_y = cw * LAST_MOVE_INSET, ch * LAST_MOVE_INSET
-        rect = QRectF(left + pos.col*cw - cw/2 + inset_x,
-                      top + pos.row*ch - ch/2 + inset_y,
-                      cw - 2*inset_x, ch - 2*inset_y)
+        rect = QRectF(
+            left + pos.col * cw - cw / 2 + inset_x,
+            top + pos.row * ch - ch / 2 + inset_y,
+            cw - 2 * inset_x,
+            ch - 2 * inset_y,
+        )
         corner = min(cw, ch) * LAST_MOVE_CORNER
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(color)
@@ -739,12 +822,15 @@ class BoardWidget(QWidget):
             for square in (last.move.source, last.move.target):
                 self._cell_frame(painter, square, left, top, cw, ch, ink)
         if self.game.rules.in_check(self.game.state, self.game.state.turn):
-            king = next((p for p in self.game.state.pieces if p.type is PieceType.KING and p.color is self.game.state.turn), None)
+            king = next(
+                (p for p in self.game.state.pieces if p.type is PieceType.KING and p.color is self.game.state.turn),
+                None,
+            )
             if king:
                 pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / CHECK_PULSE_FRAMES)))
-                self._mark(painter, king.position, left, top, cw, ch, QColor(190, 28, 28, pulse), .47)
+                self._mark(painter, king.position, left, top, cw, ch, QColor(190, 28, 28, pulse), 0.47)
         if self.selected and self.show_selection:
-            self._mark(painter, self.selected, left, top, cw, ch, QColor(221, 166, 40, SELECTION_MARK_ALPHA), .48)
+            self._mark(painter, self.selected, left, top, cw, ch, QColor(221, 166, 40, SELECTION_MARK_ALPHA), 0.48)
         # 空位落点：统一半径 .13、按主题取色（深色主题必须提亮，见 legal_dot_color）。
         # **每个可走格都画**，不合并中间点——点同时承担"这格能点"的暗示，
         # 合并等于宣称"中间不能停"，与事实冲突。
@@ -753,7 +839,7 @@ class BoardWidget(QWidget):
         for move in self.legal if self.show_legal_targets else ():
             target = self.game.state.piece_at(move.target)
             if target:
-                self._mark(painter, move.target, left, top, cw, ch, QColor(148, 30, 30, CAPTURE_MARK_ALPHA), .4)
+                self._mark(painter, move.target, left, top, cw, ch, QColor(148, 30, 30, CAPTURE_MARK_ALPHA), 0.4)
             else:
                 self._mark(painter, move.target, left, top, cw, ch, dot_color, dot_ratio)
 
@@ -776,8 +862,7 @@ class BoardWidget(QWidget):
         color.setAlphaF(LEGAL_DOT_ALPHA_LIGHT)
         return color
 
-    def _draw_check_pulse_overlay(self, painter: QPainter, rect,
-                                  left: float, top: float, cw: float, ch: float) -> None:
+    def _draw_check_pulse_overlay(self, painter: QPainter, rect, left: float, top: float, cw: float, ch: float) -> None:
         """将军时的**可视**反馈：棋盘外框红脉冲 + 被将方王格红圈。
 
         为什么要画在棋子**之后**：`_draw_marks` 里的将军标记画在棋子之前，棋子一盖就看不见；
@@ -789,8 +874,7 @@ class BoardWidget(QWidget):
         state = self.game.state
         if not self.game.rules.in_check(state, state.turn):
             return
-        king = next((p for p in state.pieces
-                     if p.type is PieceType.KING and p.color is state.turn), None)
+        king = next((p for p in state.pieces if p.type is PieceType.KING and p.color is state.turn), None)
         progress = min(1.0, self.check_pulse_frame / CHECK_PULSE_FRAMES)
         alpha = int(200 * (1.0 - progress))
         color = QColor(200, 32, 32, alpha)
@@ -804,9 +888,9 @@ class BoardWidget(QWidget):
         # 王格：空心圆环（半径 0.42 格），盖在棋子上也看得见
         if king is not None:
             shown = self._view_position(king.position)
-            center = QPointF(left + (shown.col + .5) * cw, top + (shown.row + .5) * ch)
-            painter.setPen(QPen(color, max(2.5, min(cw, ch) * .06)))
-            painter.drawEllipse(center, cw * .42, ch * .42)
+            center = QPointF(left + (shown.col + 0.5) * cw, top + (shown.row + 0.5) * ch)
+            painter.setPen(QPen(color, max(2.5, min(cw, ch) * 0.06)))
+            painter.drawEllipse(center, cw * 0.42, ch * 0.42)
         painter.restore()
 
     def _draw_check_label(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
@@ -817,23 +901,23 @@ class BoardWidget(QWidget):
         """
         if not self.game or not self.game.rules.in_check(self.game.state, self.game.state.turn):
             return
-        king = next((p for p in self.game.state.pieces
-                     if p.type is PieceType.KING and p.color is self.game.state.turn), None)
+        king = next(
+            (p for p in self.game.state.pieces if p.type is PieceType.KING and p.color is self.game.state.turn), None
+        )
         if king is None:
             return
         pulse = 70 + int(70 * (1 - min(1, self.check_pulse_frame / CHECK_PULSE_FRAMES)))
-        font = QFont(theme.UI_FONT, max(14, int(min(cw, ch) * .22)), QFont.Weight.Bold)
+        font = QFont(theme.UI_FONT, max(14, int(min(cw, ch) * 0.22)), QFont.Weight.Bold)
         text = t("status.check", self.language)
         shown = self._view_position(king.position)
-        baseline = QPointF(left + shown.col * cw, top + shown.row * ch - min(cw, ch) * .55)
+        baseline = QPointF(left + shown.col * cw, top + shown.row * ch - min(cw, ch) * 0.55)
         # 描边：红字直接压在棋子圆面上会糊成一片；先描一圈浅色再把红字填进去。
         metrics = QFontMetricsF(font)
         path = QPainterPath()
-        path.addText(QPointF(baseline.x() - metrics.horizontalAdvance(text) / 2,
-                             baseline.y()), font, text)
+        path.addText(QPointF(baseline.x() - metrics.horizontalAdvance(text) / 2, baseline.y()), font, text)
         painter.save()
         painter.setBrush(QColor(190, 28, 28, min(255, pulse + 40)))
-        painter.setPen(QPen(QColor(255, 252, 245, 235), max(2.0, min(cw, ch) * .045)))
+        painter.setPen(QPen(QColor(255, 252, 245, 235), max(2.0, min(cw, ch) * 0.045)))
         painter.drawPath(path)
         painter.restore()
 
@@ -841,8 +925,8 @@ class BoardWidget(QWidget):
         if not self.show_capture_hints:
             return
         painter.save()
-        painter.setPen(QPen(QColor(205, 32, 32, 220), max(2.5, min(cw, ch) * .055)))
-        size = min(cw, ch) * .3
+        painter.setPen(QPen(QColor(205, 32, 32, 220), max(2.5, min(cw, ch) * 0.055)))
+        size = min(cw, ch) * 0.3
         for position in self.capturable:
             shown = self._view_position(position)
             x, y = left + shown.col * cw, top + shown.row * ch
@@ -860,45 +944,55 @@ class BoardWidget(QWidget):
             sx, sy = left + source.col * cw, top + source.row * ch
             tx, ty = left + target.col * cw, top + target.row * ch
             angle = math.atan2(ty - sy, tx - sx)
-            head = min(cw, ch) * .18
-            painter.save(); painter.setOpacity(max(0.0, 1.0 - progress))
+            head = min(cw, ch) * 0.18
+            painter.save()
+            painter.setOpacity(max(0.0, 1.0 - progress))
             color = QColor("#9d2525" if self.animation_capture else "#315c48")
-            painter.setPen(QPen(color, max(2.0, min(cw, ch) * .06))); painter.setBrush(color)
+            painter.setPen(QPen(color, max(2.0, min(cw, ch) * 0.06)))
+            painter.setBrush(color)
             painter.drawLine(QPointF(sx, sy), QPointF(tx, ty))
-            painter.drawPolygon([QPointF(tx, ty), QPointF(tx - head * math.cos(angle - .55), ty - head * math.sin(angle - .55)), QPointF(tx - head * math.cos(angle + .55), ty - head * math.sin(angle + .55))])
+            painter.drawPolygon(
+                [
+                    QPointF(tx, ty),
+                    QPointF(tx - head * math.cos(angle - 0.55), ty - head * math.sin(angle - 0.55)),
+                    QPointF(tx - head * math.cos(angle + 0.55), ty - head * math.sin(angle + 0.55)),
+                ]
+            )
             painter.restore()
-        radius = min(cw, ch) * (.25 + progress * .38)
+        radius = min(cw, ch) * (0.25 + progress * 0.38)
         color = QColor("#9d2525" if self.animation_capture else "#315c48")
         color.setAlphaF(max(0.0, 1.0 - progress))
-        painter.save(); painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.save()
+        painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.setPen(QPen(color, max(1.0, 5.0 * (1.0 - progress))))
         shown = self._view_position(self.animation_target)
-        painter.drawEllipse(QPointF(left + shown.col * cw,
-                                    top + shown.row * ch), radius, radius)
+        painter.drawEllipse(QPointF(left + shown.col * cw, top + shown.row * ch), radius, radius)
         painter.restore()
 
     def _select(self, position: Position) -> None:
         self.selected = position
-        self.legal = [move for move in self.game.rules.legal_moves(self.game.state)
-                      if move.source == position]
+        self.legal = [move for move in self.game.rules.legal_moves(self.game.state) if move.source == position]
         self.capturable = {
             captured.position
             for move in self.legal
             for captured in self.game.rules.captured_by_move(self.game.state, move)
         }
 
-    def _mark(self, painter: QPainter, pos: Position, left: float, top: float, cw: float, ch: float, color: str, ratio: float) -> None:
+    def _mark(
+        self, painter: QPainter, pos: Position, left: float, top: float, cw: float, ch: float, color: str, ratio: float
+    ) -> None:
         pos = self._view_position(pos)
         radius = min(cw, ch) * ratio
-        painter.setPen(Qt.PenStyle.NoPen); painter.setBrush(color)
-        painter.drawEllipse(QPointF(left + pos.col*cw, top + pos.row*ch), radius, radius)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        painter.drawEllipse(QPointF(left + pos.col * cw, top + pos.row * ch), radius, radius)
 
     def _draw_piece(self, painter: QPainter, piece: Piece, left: float, top: float, cw: float, ch: float) -> None:
         # 盘径是**不变量**：字形模式与图片模式共用这一个 radius（= 0.78 格），
         # 所以切风格时棋子不会「变大/变小」。图片的留白在载入时已按常量裁掉。
-        radius = min(cw, ch) * .39
+        radius = min(cw, ch) * 0.39
         shown = self._view_position(piece.position)
-        center = QPointF(left + shown.col*cw, top + shown.row*ch)
+        center = QPointF(left + shown.col * cw, top + shown.row * ch)
         # P1-1 棋子投影：**在这里统一画一次**，三个渲染分支共用。
         # 为什么不做成每分支各画一遍：字形/位图/回退三条路径的坐标算法不同，
         # 各画一遍早晚会漏一条（回退分支历史上就被漏过）。分发入口只有一个位置，
@@ -909,8 +1003,11 @@ class BoardWidget(QWidget):
         painter.save()
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(_piece_shadow_brush(float(self.theme.get("shadow_gain", theme.SHADOW_GAIN_DEFAULT))))
-        painter.drawEllipse(QPointF(center.x(), center.y() + radius * PIECE_SHADOW_OFFSET),
-                            radius * PIECE_SHADOW_RATIO, radius * PIECE_SHADOW_RATIO)
+        painter.drawEllipse(
+            QPointF(center.x(), center.y() + radius * PIECE_SHADOW_OFFSET),
+            radius * PIECE_SHADOW_RATIO,
+            radius * PIECE_SHADOW_RATIO,
+        )
         painter.restore()
         if self.piece_render == IMAGE_MODE:
             if self._draw_piece_image(painter, piece, center, radius):
@@ -920,8 +1017,7 @@ class BoardWidget(QWidget):
             return
         draw_piece_glyph(painter, center, radius, piece, self.piece_style)
 
-    def _draw_piece_image(self, painter: QPainter, piece: Piece, center: QPointF,
-                          radius: float) -> bool:
+    def _draw_piece_image(self, painter: QPainter, piece: Piece, center: QPointF, radius: float) -> bool:
         """把棋子画成美术图；没有可用美术时返回 False，由调用方走回退分支。
 
         图片已在载入时裁到盘径、并预缩放到 `dev = round(0.78 * cell * dpr)`，
@@ -929,13 +1025,14 @@ class BoardWidget(QWidget):
         `pixmap()` 返回的图已 `setDevicePixelRatio()`，所以**不要**再
         `painter.scale(dpr, dpr)`：那会把缩放叠乘一次，棋子整整放大一倍。
         """
-        artwork = piece_assets.pixmap(self.piece_style, piece.color, piece.type,
-                                      round(radius * 2 * self.devicePixelRatioF()))
+        artwork = piece_assets.pixmap(
+            self.piece_style, piece.color, piece.type, round(radius * 2 * self.devicePixelRatioF())
+        )
         if artwork is None:
             return False
         painter.drawPixmap(
-            QRectF(center.x() - radius, center.y() - radius, radius * 2, radius * 2),
-            artwork, QRectF(artwork.rect()))
+            QRectF(center.x() - radius, center.y() - radius, radius * 2, radius * 2), artwork, QRectF(artwork.rect())
+        )
         return True
 
     def _position(self, point: QPointF) -> Position | None:
@@ -943,8 +1040,9 @@ class BoardWidget(QWidget):
             return None
         _, left, top, cw, ch = self._geometry()
         # 阶段1 S1-2：像素→棋盘坐标抽到 desktop/ui/board_geometry.py（纯函数，可单测）
-        return point_to_position(point.x(), point.y(), left, top, cw, ch,
-                                 self.game.profile.rows, self.game.profile.cols, self.flipped)
+        return point_to_position(
+            point.x(), point.y(), left, top, cw, ch, self.game.profile.rows, self.game.profile.cols, self.flipped
+        )
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() is Qt.MouseButton.LeftButton and not self.locked and self.interactive and self.game:
@@ -956,8 +1054,7 @@ class BoardWidget(QWidget):
                 self.update()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        if (self.locked or not self.interactive or not self.game or self.game.state.finished
-                or self.game.state.paused):
+        if self.locked or not self.interactive or not self.game or self.game.state.finished or self.game.state.paused:
             return
         position = self._position(event.position())
         if not position:
@@ -968,7 +1065,9 @@ class BoardWidget(QWidget):
         if self.selected and any(m.target == position for m in self.legal):
             move = next(m for m in self.legal if m.target == position)
             self.selected, self.legal, self.capturable = None, [], set()
-            self.move_requested.emit(move); self.update(); return
+            self.move_requested.emit(move)
+            self.update()
+            return
         piece = self.game.state.piece_at(position)
         if self._controlled(piece):
             self._select(position)
@@ -976,5 +1075,3 @@ class BoardWidget(QWidget):
         else:
             self.selected, self.legal, self.capturable = None, [], set()
         self.update()
-
-

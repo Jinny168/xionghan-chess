@@ -31,14 +31,15 @@ HISTORY_MIN = 120
 # 2026-11-03：侧栏七个操作从「单列文字按钮（7×40）」改成「两行图标（2×34）」后，
 # 让出的高度全给了棋谱列表（297 → 315）。**变大是这次改动的目的**：
 # 侧栏原本被按钮顶到底、非滚动不可。
-HISTORY_DEFAULT_BEFORE = 297       # 图标化之前的基准（窄按钮那版实测 315，属中间态）
-BUTTON_PADDING = 14                # QSS padding:7px 左右
+HISTORY_DEFAULT_BEFORE = 297  # 图标化之前的基准（窄按钮那版实测 315，属中间态）
+BUTTON_PADDING = 14  # QSS padding:7px 左右
 
 
 @pytest.fixture(scope="module")
 def qt_app() -> QApplication:
     app = QApplication.instance() or QApplication([])
     from xionghan_chess.desktop.ui import theme
+
     theme.load_bundled_fonts()
     return app
 
@@ -68,11 +69,11 @@ def test_history_stays_visible_at_minimum_size(window: MainWindow, qt_app: QAppl
     window.resize(*MIN_SIZE)
     qt_app.processEvents()
     assert window.history.height() >= HISTORY_MIN, (
-        f"900×680 下棋谱只有 {window.history.height()}px（应 ≥ {HISTORY_MIN}）")
+        f"900×680 下棋谱只有 {window.history.height()}px（应 ≥ {HISTORY_MIN}）"
+    )
 
 
-def test_default_size_history_is_at_least_as_tall_as_before(
-        window: MainWindow, qt_app: QApplication) -> None:
+def test_default_size_history_is_at_least_as_tall_as_before(window: MainWindow, qt_app: QApplication) -> None:
     """默认 1260×850 下棋谱不得比图标化之前更矮（297px）。
 
     原断言是「与 297 相差 ≤2px」的**绝对基准**：单跑能过，整套一起跑会因为字体
@@ -84,7 +85,9 @@ def test_default_size_history_is_at_least_as_tall_as_before(
     qt_app.processEvents()
     actual = window.history.height()
     assert actual >= HISTORY_DEFAULT_BEFORE, (
-        f"默认尺寸棋谱 {actual}px，比图标化前的 {HISTORY_DEFAULT_BEFORE}px 还矮 —— 按钮区没压薄？")
+        f"默认尺寸棋谱 {actual}px，比图标化前的 {HISTORY_DEFAULT_BEFORE}px 还矮 —— 按钮区没压薄？"
+    )
+
 
 def test_action_buttons_are_compact_icons(window: MainWindow) -> None:
     """侧栏操作区必须是「两行图标」，不是「七行文字按钮」。
@@ -98,8 +101,7 @@ def test_action_buttons_are_compact_icons(window: MainWindow) -> None:
     for button in buttons:
         assert button.text() == "", "图标按钮不该有文字"
         assert button.height() <= 44, f"按钮过高：{button.height()}"
-        assert button.width() >= 50, \
-            f"按钮太窄，没铺满容器：{button.width()}px"
+        assert button.width() >= 50, f"按钮太窄，没铺满容器：{button.width()}px"
     widths = {button.width() for button in buttons}
     assert max(widths) - min(widths) <= 2, f"同一栅格里按钮宽度不一致：{widths}"
     # 两行：每行实测 37（QSS padding 撑高），加 12 间距，留 2px 余量

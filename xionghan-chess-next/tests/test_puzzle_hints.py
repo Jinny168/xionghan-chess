@@ -14,14 +14,16 @@ from xionghan_chess.core.puzzles import Puzzle, load_puzzles, piece_type_at
 from xionghan_chess.desktop import training
 
 ROOT = Path(__file__).resolve().parents[1]
-STEPS = (Move(Position(8, 4), Position(7, 4)), Move(Position(4, 4), Position(5, 4)),
-         Move(Position(7, 4), Position(6, 4)))
+STEPS = (
+    Move(Position(8, 4), Position(7, 4)),
+    Move(Position(4, 4), Position(5, 4)),
+    Move(Position(7, 4), Position(6, 4)),
+)
 
 
 def _puzzle() -> Puzzle:
     base = load_puzzles()[0]
-    return Puzzle("t-1", "测试题", "beginner", "描述", base.document, STEPS,
-                  ("第一手提示", "第二手提示"), ())
+    return Puzzle("t-1", "测试题", "beginner", "描述", base.document, STEPS, ("第一手提示", "第二手提示"), ())
 
 
 def test_first_hint_points_at_the_piece_not_the_move() -> None:
@@ -67,10 +69,8 @@ def test_piece_type_at_reads_the_document_without_rebuilding() -> None:
     first = puzzle.solution[0]
     assert piece_type_at(puzzle, first.source) is not None
 
-    occupied = {(piece["row"], piece["col"])
-                for piece in puzzle.document["state"]["pieces"]}
-    empty = next((Position(r, c) for r in range(13) for c in range(13)
-                  if (r, c) not in occupied), None)
+    occupied = {(piece["row"], piece["col"]) for piece in puzzle.document["state"]["pieces"]}
+    empty = next((Position(r, c) for r in range(13) for c in range(13) if (r, c) not in occupied), None)
     assert empty is not None, "整盘都摆满了，这条断言失去意义"
     assert piece_type_at(puzzle, empty) is None, "空格子上不该报出子力"
 

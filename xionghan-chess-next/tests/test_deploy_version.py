@@ -34,6 +34,7 @@ def _fake_get(version: str, buster: str):
         if url.endswith("/api/version"):
             return json.dumps({"version": version})
         return f'<link href="/css/app.css?v={buster}"><script src="/js/app.js?v={buster}"></script>'
+
     return _get
 
 

@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .model import Move, Position
 from .game import Game
+from .model import Move, Position
 from .rules import CaptureKind
 from .storage import game_document, game_from_document
-
 
 # 战役章节（A2）。顺序即推荐推进顺序：先一子杀，再两步、三步、四步。
 # 空串表示"不入章"（走法练习），列表里单独归档在后面。
@@ -35,9 +34,15 @@ class Puzzle:
     chapter: str = ""
 
     def summary(self) -> dict[str, Any]:
-        return {"id": self.id, "title": self.title, "difficulty": self.difficulty,
-                "description": self.description, "tags": list(self.tags),
-                "chapter": self.chapter, "steps": len(self.solution)}
+        return {
+            "id": self.id,
+            "title": self.title,
+            "difficulty": self.difficulty,
+            "description": self.description,
+            "tags": list(self.tags),
+            "chapter": self.chapter,
+            "steps": len(self.solution),
+        }
 
     def payload(self, reveal: bool = False) -> dict[str, Any]:
         data = self.summary() | {"document": self.document, "hints": list(self.hints)}
@@ -80,8 +85,10 @@ class Puzzle:
 
 
 def move_to_dict(move: Move) -> dict[str, Any]:
-    return {"from": {"row": move.source.row, "col": move.source.col},
-            "to": {"row": move.target.row, "col": move.target.col}}
+    return {
+        "from": {"row": move.source.row, "col": move.source.col},
+        "to": {"row": move.target.row, "col": move.target.col},
+    }
 
 
 def _move(data: dict[str, Any]) -> Move:
@@ -99,9 +106,9 @@ def _validate_solution(puzzle: "Puzzle") -> None:
     for index, step in enumerate(puzzle.solution, 1):
         try:
             game.move(step)
-        except Exception as exc:      # noqa: BLE001 - 任何解不出的原因都要点名
-            raise ValueError(
-                f"题目 {puzzle.id}《{puzzle.title}》第 {index} 步无法走：{step.key()}（{exc}）") from exc
+        except Exception as exc:  # noqa: BLE001 - 任何解不出的原因都要点名
+            raise ValueError(f"题目 {puzzle.id}《{puzzle.title}》第 {index} 步无法走：{step.key()}（{exc}）") from exc
+
 
 def piece_type_at(puzzle: Puzzle, position: Position) -> str | None:
     """题面上某一格是哪种子力（给"先指子"这一步提示用）。
@@ -111,7 +118,8 @@ def piece_type_at(puzzle: Puzzle, position: Position) -> str | None:
     pieces = puzzle.document.get("state", {}).get("pieces", [])
     for piece in pieces:
         if piece.get("row") == position.row and piece.get("col") == position.col:
-            return piece.get("type")
+            kind = piece.get("type")
+            return kind if isinstance(kind, str) else None
     return None
 
 
@@ -135,8 +143,11 @@ def load_puzzles(path: str | Path | None = None) -> list[Puzzle]:
                 game.move(_move(raw_move))
             document = game_document(game)
         puzzle = Puzzle(
-            puzzle_id, str(item["title"]), str(item["difficulty"]),
-            str(item.get("description", "")), document,
+            puzzle_id,
+            str(item["title"]),
+            str(item["difficulty"]),
+            str(item.get("description", "")),
+            document,
             tuple(_move(move) for move in item["solution"]),
             tuple(str(hint) for hint in item.get("hints", [])),
             tuple(str(tag) for tag in item.get("tags", [])),

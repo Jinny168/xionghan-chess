@@ -59,12 +59,11 @@ def check(url: str = DEFAULT_URL, expect: str | None = None) -> dict:
     """返回 `{ok, network, version, busters, stale, messages}`。不抛异常。"""
     expect = expect or __version__
     base = url.split("?")[0].rstrip("/")
-    result: dict = {"ok": False, "network": False, "version": None,
-                    "busters": set(), "stale": set(), "messages": []}
+    result: dict = {"ok": False, "network": False, "version": None, "busters": set(), "stale": set(), "messages": []}
 
     opener = _opener()
     try:
-        _get(opener, url)                      # 先用 sharecode 建立会话
+        _get(opener, url)  # 先用 sharecode 建立会话
         payload = json.loads(_get(opener, f"{base}/api/version"))
         result["version"] = payload.get("version")
         html = _get(opener, f"{base}/")

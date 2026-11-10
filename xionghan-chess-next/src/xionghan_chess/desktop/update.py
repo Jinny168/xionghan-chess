@@ -122,8 +122,7 @@ def evaluate(payload: object, current: str) -> CheckResult:
     return CheckResult(status, info)
 
 
-def check_for_update(current: str, *, transport: net.Transport | None = None,
-                     url: str = RELEASES_URL) -> CheckResult:
+def check_for_update(current: str, *, transport: net.Transport | None = None, url: str = RELEASES_URL) -> CheckResult:
     """查询远端最新版并与 `current` 比较。任何失败都折成 error，不抛。"""
     try:
         payload = net.request_json(url, transport=transport)

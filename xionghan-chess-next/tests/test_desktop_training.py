@@ -52,7 +52,7 @@ def test_multi_step_needs_every_step_in_order() -> None:
     """
     first, reply, last = _mv(8, 4, 7, 4), _mv(4, 4, 5, 4), _mv(7, 4, 6, 4)
     session = training.PuzzleSession(_puzzle((first, reply, last)))
-    assert session.submit(reply) == training.VERDICT_WRONG      # 对手应着，玩家提交即错
+    assert session.submit(reply) == training.VERDICT_WRONG  # 对手应着，玩家提交即错
     assert session.submit(first) == training.VERDICT_CORRECT
     assert session.cursor == 1 and not session.solved
     assert session.auto_reply is not None and session.auto_reply.key() == reply.key()
@@ -63,11 +63,10 @@ def test_multi_step_needs_every_step_in_order() -> None:
 
 def test_player_step_count_uses_hands_not_plies() -> None:
     """面向玩家的计数用「手」= ceil(ply/2)：5 ply 是 3 手，不是 5 步。"""
-    steps = (_mv(8, 4, 7, 4), _mv(4, 4, 5, 4), _mv(7, 4, 6, 4),
-             _mv(5, 4, 4, 4), _mv(6, 4, 5, 4))
+    steps = (_mv(8, 4, 7, 4), _mv(4, 4, 5, 4), _mv(7, 4, 6, 4), _mv(5, 4, 4, 4), _mv(6, 4, 5, 4))
     session = training.PuzzleSession(_puzzle(steps))
-    assert session.total == 5              # 内部 ply
-    assert session.player_total == 3       # 面向玩家
+    assert session.total == 5  # 内部 ply
+    assert session.player_total == 3  # 面向玩家
 
 
 def test_even_length_solution_is_rejected() -> None:
@@ -94,13 +93,13 @@ def test_promotion_field_is_ignored() -> None:
 
 def test_hint_escalates_with_attempts_and_then_sticks() -> None:
     session = training.PuzzleSession(_puzzle((_mv(8, 4, 7, 4),), hints=("一", "二")))
-    assert session.next_hint() == "一"       # 还没错，先给第一条
+    assert session.next_hint() == "一"  # 还没错，先给第一条
     session.submit(_mv(0, 0, 0, 1))
-    assert session.next_hint() == "一"       # 错 1 次仍给第一条
+    assert session.next_hint() == "一"  # 错 1 次仍给第一条
     session.submit(_mv(0, 0, 0, 1))
-    assert session.next_hint() == "二"       # 错 2 次给第二条
+    assert session.next_hint() == "二"  # 错 2 次给第二条
     session.submit(_mv(0, 0, 0, 1))
-    assert session.next_hint() == "二"       # 到底后不无限加码
+    assert session.next_hint() == "二"  # 到底后不无限加码
 
 
 def test_hint_empty_when_puzzle_has_none() -> None:

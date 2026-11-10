@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-import json
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -41,10 +40,9 @@ def render() -> str:
         "",
         "## 总览",
         "",
-        f"| | 条数 | " + " | ".join(f"{LEVEL_NAMES[l]}（{l}）" for l in LEVELS) + " |",
+        "| | 条数 | " + " | ".join(f"{LEVEL_NAMES[level]}（{level}）" for level in LEVELS) + " |",
         "|---|---|---|" + "---|" * len(LEVELS),
-        f"| 真题（杀题） | **{len(real)}** | "
-        + " | ".join(str(len(by_level[l])) for l in LEVELS) + " |",
+        f"| 真题（杀题） | **{len(real)}** | " + " | ".join(str(len(by_level[level])) for level in LEVELS) + " |",
         f"| 走法练习（drill） | {len(drills)} | — | — | — |".replace("— | — | — |", "— | — | — |"),
         f"| 合计 | {len(puzzles)} | | | |",
         "",
@@ -59,17 +57,23 @@ def render() -> str:
     for level in LEVELS:
         ply = Counter(len(p.solution) for p in by_level[level])
         lines.append(
-            f"| {LEVEL_NAMES[level]} | {ply.get(3, 0)} | {ply.get(5, 0)} | {ply.get(7, 0)} "
-            f"| {len(by_level[level])} |")
+            f"| {LEVEL_NAMES[level]} | {ply.get(3, 0)} | {ply.get(5, 0)} | {ply.get(7, 0)} | {len(by_level[level])} |"
+        )
     total_ply = Counter(len(p.solution) for p in real)
-    lines.append(f"| **合计** | **{total_ply.get(3, 0)}** | **{total_ply.get(5, 0)}** "
-                 f"| **{total_ply.get(7, 0)}** | **{len(real)}** |")
+    lines.append(
+        f"| **合计** | **{total_ply.get(3, 0)}** | **{total_ply.get(5, 0)}** "
+        f"| **{total_ply.get(7, 0)}** | **{len(real)}** |"
+    )
 
     lines += ["", "## 分档清单", ""]
     for level in LEVELS:
         rows = sorted(by_level[level], key=lambda p: (len(p.solution), p.id))
-        lines += [f"### {LEVEL_NAMES[level]}（{level}）· {len(rows)} 条", "",
-                  "| id | 标题 | ply | 解方手数 |", "|---|---|---|---|"]
+        lines += [
+            f"### {LEVEL_NAMES[level]}（{level}）· {len(rows)} 条",
+            "",
+            "| id | 标题 | ply | 解方手数 |",
+            "|---|---|---|---|",
+        ]
         for puzzle in rows:
             plies = len(puzzle.solution)
             lines.append(f"| `{puzzle.id}` | {puzzle.title} | {plies} | {(plies + 1) // 2} |")

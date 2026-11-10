@@ -23,5 +23,5 @@ def test_puzzle_library_doc_is_up_to_date() -> None:
     current = DOC.read_text(encoding="utf-8")
     expected = render()
     assert current == expected, (
-        "docs/PUZZLE_LIBRARY.md 已过期 —— 题库改过但没重生成文档。"
-        "跑 `python scripts/make_puzzle_doc.py` 后再提交。")
+        "docs/PUZZLE_LIBRARY.md 已过期 —— 题库改过但没重生成文档。跑 `python scripts/make_puzzle_doc.py` 后再提交。"
+    )
