@@ -321,10 +321,7 @@ class ChessAI:
         previous_score: float | None = None
         try:
             initial_order = self._order(game, legal, deadline=deadline, cancel=cancel)
-            initial_order = sorted(
-                initial_order,
-                key=lambda move: self._root_bias(game, move, deadline, cancel) < -100,
-            )
+            initial_order = self._partition_by_bias(game, initial_order, cfg.root_limit, deadline, cancel)
             best = initial_order[0]
             search_moves = initial_order[: cfg.root_limit]
             for depth in range(1, cfg.depth + 1):
@@ -986,6 +983,30 @@ class ChessAI:
             and abs(piece.position.col - king.position.col) <= 1
             for piece in game.state.pieces
         )
+
+    def _partition_by_bias(
+        self,
+        game: Game,
+        moves: list[Move],
+        limit: int,
+        deadline: float,
+        cancel: threading.Event | None,
+    ) -> list[Move]:
+        """M2：稳定分区 + 按需截断；输出与「全扫后 sorted(key=bias<-100)」前缀一致。
+
+        未降级（bias ≥ -100）按原序在前，降级在后；凑够 `limit` 个未降级即可停，
+        不必扫完全部 90–115 个着法。
+        """
+        primary: list[Move] = []
+        secondary: list[Move] = []
+        for move in moves:
+            if self._root_bias(game, move, deadline, cancel) < -100:
+                secondary.append(move)
+            else:
+                primary.append(move)
+                if len(primary) >= limit:
+                    return primary
+        return (primary + secondary)[:limit]
 
     def _root_bias(
         self,
