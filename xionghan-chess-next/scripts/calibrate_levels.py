@@ -33,6 +33,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import gen_opening_book as opening_book  # noqa: E402
 from level_targets import LEVELS, PRODUCT_LEVELS, PRODUCT_TIERS, TARGETS, Tier  # noqa: E402
 
+from xionghan_chess.core.ai import SearchConfig  # noqa: E402
 from xionghan_chess.core.benchmark import (  # noqa: E402
     benchmark_match,
     book_index,
@@ -42,6 +43,29 @@ from xionghan_chess.core.benchmark import (  # noqa: E402
 )
 
 DEFAULT_BOOK = opening_book.DEFAULT_OUT
+
+
+def _load_search_config(raw: str, label: str) -> SearchConfig:
+    """`--config-a/b`：JSON 字符串或 `@file.json`，字段必须与 SearchConfig 一一对应。
+
+    `--config-*` 优先于 `--tiers` / `--cap-*` / `--max-nodes-*`：给的是完整配置，
+    不再做任何二次覆盖（否则"扫候选"和"改全局"就分不清了）。
+    """
+    text = raw.strip()
+    if text.startswith("@"):
+        text = Path(text[1:]).read_text(encoding="utf-8")
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"{label} 不是合法 JSON：{exc}") from exc
+    if not isinstance(data, dict):
+        raise SystemExit(f"{label} 必须是 JSON object，实际 {type(data).__name__}")
+    allowed = set(SearchConfig.__dataclass_fields__)
+    unknown = sorted(set(data) - allowed)
+    missing = sorted(allowed - set(data))
+    if unknown or missing:
+        raise SystemExit(f"{label} 字段不匹配 SearchConfig：unknown={unknown} missing={missing}")
+    return SearchConfig(**data)
 
 
 def _parse_max_nodes(raw: str, level: str, tiers: dict[str, Tier]) -> int | None:
@@ -214,6 +238,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cap-b", default="auto")
     parser.add_argument("--max-nodes-a", default="auto", help="auto / none / 整数")
     parser.add_argument("--max-nodes-b", default="auto")
+    parser.add_argument("--config-a", default="", help="完整 SearchConfig JSON 或 @file.json（优先于 tiers/cap）")
+    parser.add_argument("--config-b", default="")
     parser.add_argument(
         "--time-scale", type=float, default=1.0, help="两侧 ChessAI 的预算缩放（默认 1.0；代理标定可 0.25）"
     )
@@ -230,13 +256,21 @@ def main(argv: list[str] | None = None) -> int:
         print(f"checkpoint 已有 {start_game} 局 ≥ n={args.n}，直接汇总")
     else:
         tier_a, tier_b = tiers[args.level_a], tiers[args.level_b]
-        config_a = tier_a.config(
-            cap=None if args.cap_a == "auto" else float(args.cap_a),
-            max_nodes=_parse_max_nodes(args.max_nodes_a, args.level_a, tiers),
+        config_a = (
+            _load_search_config(args.config_a, "--config-a")
+            if args.config_a
+            else tier_a.config(
+                cap=None if args.cap_a == "auto" else float(args.cap_a),
+                max_nodes=_parse_max_nodes(args.max_nodes_a, args.level_a, tiers),
+            )
         )
-        config_b = tier_b.config(
-            cap=None if args.cap_b == "auto" else float(args.cap_b),
-            max_nodes=_parse_max_nodes(args.max_nodes_b, args.level_b, tiers),
+        config_b = (
+            _load_search_config(args.config_b, "--config-b")
+            if args.config_b
+            else tier_b.config(
+                cap=None if args.cap_b == "auto" else float(args.cap_b),
+                max_nodes=_parse_max_nodes(args.max_nodes_b, args.level_b, tiers),
+            )
         )
         checkpoint.parent.mkdir(parents=True, exist_ok=True)
         handle = checkpoint.open("a" if args.resume else "w", encoding="utf-8")

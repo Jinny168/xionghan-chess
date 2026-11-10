@@ -97,3 +97,38 @@ def test_target_wall_remains_a_hard_gate() -> None:
     assert report["gates"]["wallClean"] is False
     assert report["gates"]["wallCleanEnforced"] is True
     assert report["pass"] is False, "target 表的 wallClean 仍是硬门"
+
+
+def test_load_search_config_accepts_json_and_file(tmp_path) -> None:
+    import json
+
+    from calibrate_levels import _load_search_config
+
+    payload = {
+        "depth": 2,
+        "time_limit": 2.0,
+        "randomness": 0.55,
+        "quiescence_depth": 1,
+        "candidate_count": 4,
+        "branch_limit": 3,
+        "root_limit": 5,
+        "sample_margin": 150,
+        "max_nodes": None,
+    }
+    direct = _load_search_config(json.dumps(payload), "--config-a")
+    assert (direct.depth, direct.time_limit, direct.sample_margin) == (2, 2.0, 150)
+
+    path = tmp_path / "c1.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    from_file = _load_search_config(f"@{path}", "--config-a")
+    assert from_file == direct
+
+
+def test_load_search_config_rejects_wrong_shape() -> None:
+    import pytest
+    from calibrate_levels import _load_search_config
+
+    with pytest.raises(SystemExit):
+        _load_search_config('{"depth": 2}', "--config-a")
+    with pytest.raises(SystemExit):
+        _load_search_config('{"depth": 2, "bogus": 1}', "--config-a")
