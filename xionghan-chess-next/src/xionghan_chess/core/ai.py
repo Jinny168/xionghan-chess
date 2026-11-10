@@ -338,6 +338,8 @@ class ChessAI:
                     search_moves = [item[1] for item in self.root_scores[: cfg.root_limit]]
                 if abs(score) >= VALUES[PieceType.KING]:
                     break
+                if self.bound_reason is not None:
+                    break
         except SearchTimeout:
             # 理由在抛点写入（`_guard` → wall/cancel、节点预算 → nodes）。
             self.bound_reason = self._timeout_reason or "wall"
@@ -422,27 +424,43 @@ class ChessAI:
         ordered = sorted(ordered, key=lambda move: self._root_bias(game, move) < -100)
         best_score, best_move = -math.inf, None
         scores: list[tuple[float, Move, bool]] = []
-        for move in ordered:
-            self._guard(deadline, cancel)
-            # `_qnode_truncated` 是**粘性**的：本根着法的任意一次静态搜索被截断，
-            # 就把整个根着法标记为"分数不完整"，不参与夺标。
-            self._qnode_truncated = False
-            child = Game.from_state(game.rules.apply_unchecked(game.state, move), game.options, game.setup)
-            score = -self._search(child, depth - 1, -beta, -alpha, deadline, cancel, 1)
-            truncated = self._qnode_truncated
-            scores.append((score, move, truncated))
-            # 判罚逻辑**不动**：被截断的根着法只是"不能夺标"（见下），
-            # 但它的分数也**不许**抬高 alpha / 触发 beta 截断 —— 否则一个偏高的
-            # 残缺分会让后续更好的着法被提前切掉，而且从选点上看不出来。
-            if truncated:
-                if score > best_score:
-                    best_score = score
-            else:
-                if score > best_score:
-                    best_score, best_move = score, move
-                alpha = max(alpha, score)
-                if alpha >= beta:
-                    break
+        try:
+            for move in ordered:
+                self._guard(deadline, cancel)
+                # `_qnode_truncated` 是**粘性**的：本根着法的任意一次静态搜索被截断，
+                # 就把整个根着法标记为"分数不完整"，不参与夺标。
+                self._qnode_truncated = False
+                child = Game.from_state(game.rules.apply_unchecked(game.state, move), game.options, game.setup)
+                score = -self._search(child, depth - 1, -beta, -alpha, deadline, cancel, 1)
+                truncated = self._qnode_truncated
+                scores.append((score, move, truncated))
+                # 判罚逻辑**不动**：被截断的根着法只是"不能夺标"（见下），
+                # 但它的分数也**不许**抬高 alpha / 触发 beta 截断 —— 否则一个偏高的
+                # 残缺分会让后续更好的着法被提前切掉，而且从选点上看不出来。
+                if truncated:
+                    if score > best_score:
+                        best_score = score
+                else:
+                    if score > best_score:
+                        best_score, best_move = score, move
+                    alpha = max(alpha, score)
+                    if alpha >= beta:
+                        break
+        except SearchTimeout:
+            # 修法 1：根循环**已完成的**根着法不许因为后续超时而全丢。
+            # 只要至少一个根着法跑完，就沿用原规则（残缺根不夺标）返回当前最优；
+            # 一个都没跑完才交给外层（此时 completed_depth 仍为 0）。
+            # 只对 wall 保留局部结果：`max_nodes` 是显式节点预算，既有口径是
+            # "预算耗尽 → 本层不算完成"（`test_ai_runtime_config` 钉住），不能顺手改。
+            if not scores or self._timeout_reason != "wall":
+                raise
+            # 记下截断原因：外层据此停止继续加深（否则会用已过期的 deadline 再跑一层）。
+            self.bound_reason = "wall"
+            self.root_scores = sorted(scores, key=lambda item: item[0], reverse=True)
+            if best_move is not None:
+                return best_score, best_move
+            self.no_candidate_fallbacks += 1
+            return self.root_scores[0][0], ordered[0]
         self.root_scores = sorted(scores, key=lambda item: item[0], reverse=True)
         if best_move is None and ordered:
             # 全部根着法都被截断：退回排序首着（= 初始序的第一手），不拿残缺分数赌。
