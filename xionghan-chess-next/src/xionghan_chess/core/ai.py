@@ -430,11 +430,16 @@ class ChessAI:
         alpha: float = -math.inf,
         beta: float = math.inf,
     ) -> tuple[float, Move | None]:
-        ordered = self._order(game, moves, self.principal_move, deadline=deadline, cancel=cancel)
-        ordered = sorted(
-            ordered,
-            key=lambda move: self._root_bias(game, move, deadline, cancel) < -100,
-        )
+        if self.principal_move is None:
+            # M1：第一层迭代的 `moves` 已由 choose_move 排好（同 `_order` + 同稳定分区），
+            # 再排一次是纯重复。沿用入参顺序；后续层才重排（principal 已产生）。
+            ordered = list(moves)
+        else:
+            ordered = self._order(game, moves, self.principal_move, deadline=deadline, cancel=cancel)
+            ordered = sorted(
+                ordered,
+                key=lambda move: self._root_bias(game, move, deadline, cancel) < -100,
+            )
         best_score, best_move = -math.inf, None
         scores: list[tuple[float, Move, bool]] = []
         try:
