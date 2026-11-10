@@ -1,4 +1,4 @@
-"""难度下拉文案里的时长必须与 `CONFIGS` 一致。
+"""难度下拉文案里的「看 N 步」必须与 `CONFIGS[d].depth` 一致。
 
 ## 为什么需要这条
 
@@ -36,18 +36,20 @@ def load(locale: str) -> dict:
 
 @pytest.mark.parametrize("locale", list(LOCALES))
 @pytest.mark.parametrize("difficulty", PUBLIC_DIFFICULTIES)
-def test_label_seconds_match_config(locale: str, difficulty: Difficulty) -> None:
+def test_label_depth_matches_config(locale: str, difficulty: Difficulty) -> None:
+    """文案「看 N 步」的 N 必须等于 CONFIGS[d].depth（今天标签写 d6、实际跑 d1 的漂移）。"""
     label = load(locale)[difficulty.value]
-    numbers = NUMBER.findall(label)
-    assert numbers, f"{locale}/{difficulty.value} 文案里没有秒数：{label!r}"
-    cap = CAP_SECONDS.search(label)
-    # 中文「上限 35 秒」→ group(1)；英文「35 s cap」→ group(3)
-    listed = float(cap.group(1) or cap.group(3)) if cap else float(numbers[0])
-    actual = CONFIGS[difficulty].time_limit
-    # **严格对齐，不放宽**：文案对应的是**配置值**，不是实测值 —— "约 12 秒"与实测 12.2s
-    # 并不冲突（差 1.7%），但"配置 6 秒、文案 5 秒"这种错配必须红。
-    assert listed == pytest.approx(actual), (
-        f"{locale}/{difficulty.value} 文案写 {listed} 秒，CONFIGS 实际 {actual} 秒 —— 改预算时忘了改文案？"
+    chinese = re.search(r"看([一二两三四五六七八九十])步", label)
+    if chinese:
+        listed = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}[
+            chinese.group(1)
+        ]
+    else:
+        ascii_depth = re.search(r"(\d+)\s*moves?\s*ahead", label, re.I)
+        assert ascii_depth, f"{locale}/{difficulty.value} 文案里没有「看 N 步」：{label!r}"
+        listed = int(ascii_depth.group(1))
+    assert listed == CONFIGS[difficulty].depth, (
+        f"{locale}/{difficulty.value} 文案写 {listed} 步，CONFIGS.depth={CONFIGS[difficulty].depth}"
     )
 
 

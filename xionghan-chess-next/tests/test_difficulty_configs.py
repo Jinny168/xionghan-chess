@@ -3,7 +3,7 @@
 对外只有 `beginner / medium / hard`；`easy / expert / master` 三个枚举成员保留，
 只为旧配置/旧存档能载入，其 `CONFIGS` 条目是**同一对象别名**——不是复制数值。
 
-并档不重标：三档沿用 main 现值（0.5s/d2、5s/d6、12s/d8），强度不变。
+B′ 档位表：depth 写成真能达到的 1/2/3，缩根宽/分支让深度装进 cap（2/5/12s）。
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ def test_three_public_tiers_keep_the_current_values() -> None:
         beginner.branch_limit,
         beginner.root_limit,
         beginner.sample_margin,
-    ) == (2, 0.5, 0.55, 1, 4, 3, 5, 150)
+    ) == (1, 2.0, 0.55, 1, 4, 3, 5, 150)
 
     medium = CONFIGS[Difficulty.MEDIUM]
     assert (
@@ -45,10 +45,10 @@ def test_three_public_tiers_keep_the_current_values() -> None:
         medium.candidate_count,
         medium.branch_limit,
         medium.root_limit,
-    ) == (6, 5.0, 0.05, 4, 3, 10, 18)
+    ) == (2, 5.0, 0.0, 4, 1, 6, 9)
 
     hard = CONFIGS[Difficulty.HARD]
-    assert (hard.depth, hard.time_limit, hard.randomness) == (8, 12.0, 0.0)
+    assert (hard.depth, hard.time_limit, hard.randomness, hard.branch_limit, hard.root_limit) == (3, 12.0, 0.0, 10, 10)
 
 
 def test_legacy_enum_configs_are_the_same_objects_not_copies() -> None:
@@ -89,8 +89,10 @@ def test_unknown_difficulty_still_raises() -> None:
 
 
 def test_expected_and_watchdog_seconds_cover_public_tiers_and_aliases() -> None:
+    assert EXPECTED_MOVE_SECONDS[Difficulty.BEGINNER] == 0.7
+    assert EXPECTED_MOVE_SECONDS[Difficulty.MEDIUM] == 3.0
+    assert EXPECTED_MOVE_SECONDS[Difficulty.HARD] == 7.0
     for difficulty in Difficulty:
-        assert EXPECTED_MOVE_SECONDS[difficulty] == CONFIGS[difficulty].time_limit
         assert WATCHDOG_SECONDS[difficulty] == round(PREFIX_MAX + CONFIGS[difficulty].time_limit * 1.15, 3)
         assert WATCHDOG_SECONDS[difficulty] > CONFIGS[difficulty].time_limit
 
@@ -98,10 +100,9 @@ def test_expected_and_watchdog_seconds_cover_public_tiers_and_aliases() -> None:
 def test_watchdog_includes_the_uninterruptible_prefix() -> None:
     """看门狗 = 前缀 0.78 + cap×1.15；cap 2.0 时必须留到 3.08s（p95≈2.5s 是合法手）。
 
-    当前发布的 beginner cap 是 0.5（不是 2.0）；2.0 是 r040 候选的注入值，
-    公式本身覆盖它即可。medium/hard 按发布值 5.0/12.0 断言。
+    B′ 后 beginner cap 已是 2.0；medium/hard 为 5.0/12.0。
     """
-    assert WATCHDOG_SECONDS[Difficulty.BEGINNER] == pytest.approx(PREFIX_MAX + 0.5 * 1.15)
+    assert WATCHDOG_SECONDS[Difficulty.BEGINNER] == pytest.approx(PREFIX_MAX + 2.0 * 1.15)
     assert PREFIX_MAX + 2.0 * 1.15 > 2.5, "cap 2.0 的 p95 合法手不能被看门狗误杀"
     assert WATCHDOG_SECONDS[Difficulty.MEDIUM] == pytest.approx(PREFIX_MAX + 5.0 * 1.15)
     assert WATCHDOG_SECONDS[Difficulty.HARD] == pytest.approx(PREFIX_MAX + 12.0 * 1.15)

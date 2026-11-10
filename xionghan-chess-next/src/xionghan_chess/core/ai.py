@@ -119,15 +119,12 @@ CONFIGS = {
     #   · **取样集合不含第 1 名**：包含它会让名义 0.35 的真实弱化率只剩约 28%，
     #     概率也就无法标定；
     #   · beginner 的分差放到 150（≈1.25 个兵）才够出窗口。
-    Difficulty.BEGINNER: SearchConfig(2, 0.5, 0.55, 1, 4, 3, 5, sample_margin=150),
-    # 为什么维持 5s 而不调到 6s：
-    #   · 预算在本引擎是"软上限"——`_guard` 逐子节点检查，一个根着法可以越过 deadline
-    #     再跑完（实测可超 0.1–0.5s）。所以加预算是把"结算点"往后挪，治不了
-    #     "同一配置一会儿 d2 一会儿 d1"的抖动。
-    #   · 真正的解是机制层的：① 每层/每子节点前做剩余时间硬检查；② 提前返回必须全档通用。
-    Difficulty.MEDIUM: SearchConfig(6, 5.0, 0.05, 4, 3, 10, 18),
-    # `root_limit` 32 → 18：12s 下 19/21 次（3 轮 × 7 局面，本机 18/21）能完成 depth 2。
-    Difficulty.HARD: SearchConfig(8, 12.0, 0.0, 6, 1, 18, 18),
+    Difficulty.BEGINNER: SearchConfig(1, 2.0, 0.55, 1, 4, 3, 5, sample_margin=150),
+    # B′：depth 写 2（真能达到），root 18→9、branch 10→6，让 d2 装进 cap 5s。
+    # 实测 d2@root18/b10 需 5.8–12.1s；节点≈root×branch，180→54 后中局约 3.3s。
+    Difficulty.MEDIUM: SearchConfig(2, 5.0, 0.0, 4, 1, 6, 9),
+    # B′：depth 3（真能达到），root 18→10、branch 18→10，让 d3 装进 cap 12s。
+    Difficulty.HARD: SearchConfig(3, 12.0, 0.0, 6, 1, 10, 10),
 }
 
 # 旧枚举 → 三档别名。**同一对象**，不是 `replace()` 出来的副本。
@@ -135,10 +132,15 @@ CONFIGS[Difficulty.EASY] = CONFIGS[Difficulty.BEGINNER]
 CONFIGS[Difficulty.EXPERT] = CONFIGS[Difficulty.HARD]
 CONFIGS[Difficulty.MASTER] = CONFIGS[Difficulty.HARD]
 
-# 读条分母 / 看门狗：沿用"读条 = 预算"口径；三档 + 三个旧别名（同一对象）。
-# 未来若改成"中位耗时"分母，必须连 `test_desktop_thinking_progress.py` 一起改。
+# 读条分母：depth 诚实后会提前返回，median 明显低于 cap；用设计给的预估 median
+# （0.7/3.0/7.0），首次实测后只回填这一处 + locale。
 EXPECTED_MOVE_SECONDS: dict[Difficulty, float] = {
-    difficulty: CONFIGS[difficulty].time_limit for difficulty in Difficulty
+    Difficulty.BEGINNER: 0.7,
+    Difficulty.EASY: 0.7,
+    Difficulty.MEDIUM: 3.0,
+    Difficulty.HARD: 7.0,
+    Difficulty.EXPERT: 7.0,
+    Difficulty.MASTER: 7.0,
 }
 # 搜索开始前有一段**不可中断前缀**（`legal_moves` + 两次 `_order`/`_root_bias` 全扫），
 # 架构总监实测 p50≈0.30s、max=0.78s；看门狗必须把这段加上，否则 cap=2.0 时

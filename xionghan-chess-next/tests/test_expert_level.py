@@ -11,7 +11,7 @@ from xionghan_chess.core.ai import CONFIGS, Difficulty
 
 def test_expert_is_an_alias_of_hard() -> None:
     assert CONFIGS[Difficulty.EXPERT] is CONFIGS[Difficulty.HARD]
-    assert CONFIGS[Difficulty.EXPERT].depth == 8
+    assert CONFIGS[Difficulty.EXPERT].depth == 3
     assert CONFIGS[Difficulty.EXPERT].time_limit == 12.0
 
 
