@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import cast
 
-from xionghan_chess.core.ai import SearchConfig
+from xionghan_chess.core.ai import CONFIGS, PUBLIC_DIFFICULTIES, SearchConfig
 
 _UNSET = object()
 
@@ -57,3 +57,25 @@ TARGETS: dict[str, Tier] = {
 }
 
 LEVELS: tuple[str, ...] = tuple(TARGETS)
+
+
+def _product_tier(config: SearchConfig) -> Tier:
+    """`SearchConfig` → 标定表行；逐字段搬运，不做任何换算/默认值猜测。"""
+    return Tier(
+        depth=config.depth,
+        cap=config.time_limit,
+        randomness=config.randomness,
+        quiescence_depth=config.quiescence_depth,
+        candidate_count=config.candidate_count,
+        branch_limit=config.branch_limit,
+        root_limit=config.root_limit,
+        max_nodes=config.max_nodes,
+    )
+
+
+# 发布三档（从 `core.ai.CONFIGS` 逐字段派生）。标定默认测这一张表；
+# `TARGETS` 是 S4-2b 的提案表，只保留给 `--tiers target` 复现历史测量。
+PRODUCT_TIERS: dict[str, Tier] = {
+    difficulty.value: _product_tier(CONFIGS[difficulty]) for difficulty in PUBLIC_DIFFICULTIES
+}
+PRODUCT_LEVELS: tuple[str, ...] = tuple(PRODUCT_TIERS)

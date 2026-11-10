@@ -31,7 +31,7 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import gen_opening_book as opening_book  # noqa: E402
-from level_targets import LEVELS, TARGETS  # noqa: E402
+from level_targets import LEVELS, PRODUCT_LEVELS, PRODUCT_TIERS, TARGETS, Tier  # noqa: E402
 
 from xionghan_chess.core.benchmark import (  # noqa: E402
     benchmark_match,
@@ -44,10 +44,10 @@ from xionghan_chess.core.benchmark import (  # noqa: E402
 DEFAULT_BOOK = opening_book.DEFAULT_OUT
 
 
-def _parse_max_nodes(raw: str, level: str) -> int | None:
+def _parse_max_nodes(raw: str, level: str, tiers: dict[str, Tier]) -> int | None:
     text = raw.strip().lower()
     if text == "auto":
-        return TARGETS[level].max_nodes
+        return tiers[level].max_nodes
     if text in {"none", "off", "0"}:
         return None
     return int(text)
@@ -165,8 +165,22 @@ def summarize(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="任意两档标定 / 验收对局")
-    parser.add_argument("--level-a", choices=LEVELS, required=True)
-    parser.add_argument("--level-b", choices=LEVELS, required=True)
+    tiers_name = "product"
+    if argv is None:
+        argv = sys.argv[1:]
+    pre = argparse.ArgumentParser(add_help=False)
+    pre.add_argument("--tiers", choices=("product", "target"), default="product")
+    tiers_name = pre.parse_known_args(argv)[0].tiers
+    tiers = PRODUCT_TIERS if tiers_name == "product" else TARGETS
+    levels = PRODUCT_LEVELS if tiers_name == "product" else LEVELS
+    parser.add_argument(
+        "--tiers",
+        choices=("product", "target"),
+        default=tiers_name,
+        help="product=发布三档（默认）；target=S4-2b 提案表",
+    )
+    parser.add_argument("--level-a", choices=levels, required=True)
+    parser.add_argument("--level-b", choices=levels, required=True)
     parser.add_argument("--n", type=int, default=32, help="总局数（必须偶数：每开局红黑各一）")
     parser.add_argument("--max-plies", type=int, default=100)
     parser.add_argument("--book", default=str(DEFAULT_BOOK))
@@ -178,6 +192,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-nodes-a", default="auto", help="auto / none / 整数")
     parser.add_argument("--max-nodes-b", default="auto")
     args = parser.parse_args(argv)
+    tiers = PRODUCT_TIERS if args.tiers == "product" else TARGETS
 
     if args.n % 2 != 0:
         parser.error("--n 必须是偶数：每开局恰好两局（红黑各一），奇数最后一局不成对")
@@ -188,14 +203,14 @@ def main(argv: list[str] | None = None) -> int:
     if start_game >= args.n:
         print(f"checkpoint 已有 {start_game} 局 ≥ n={args.n}，直接汇总")
     else:
-        tier_a, tier_b = TARGETS[args.level_a], TARGETS[args.level_b]
+        tier_a, tier_b = tiers[args.level_a], tiers[args.level_b]
         config_a = tier_a.config(
             cap=None if args.cap_a == "auto" else float(args.cap_a),
-            max_nodes=_parse_max_nodes(args.max_nodes_a, args.level_a),
+            max_nodes=_parse_max_nodes(args.max_nodes_a, args.level_a, tiers),
         )
         config_b = tier_b.config(
             cap=None if args.cap_b == "auto" else float(args.cap_b),
-            max_nodes=_parse_max_nodes(args.max_nodes_b, args.level_b),
+            max_nodes=_parse_max_nodes(args.max_nodes_b, args.level_b, tiers),
         )
         checkpoint.parent.mkdir(parents=True, exist_ok=True)
         handle = checkpoint.open("a" if args.resume else "w", encoding="utf-8")
