@@ -2,11 +2,11 @@
 
 在 13×13 扩展棋盘上展开、融合匈奴与东汉历史文化元素的中国象棋变体。Windows 桌面端、Web 端与 Android 端共享同一套 Python 规则、AI、联机协议和 `.xhgame` 棋谱格式；对局既可以在本机单机进行，也可以连接自建的 FastAPI 服务进行在线对战。
 
-- **当前版本**：2.0.0（唯一来源：`src/xionghan_chess/__init__.py` 的 `__version__`；`pyproject.toml` 的 version 是动态读取它）
+- **当前版本**：2.0.3（唯一来源：`src/xionghan_chess/__init__.py` 的 `__version__`；`pyproject.toml` 的 version 是动态读取它）
 - 棋子行棋规则：[docs/PIECE_RULES.md](docs/PIECE_RULES.md)；对局与胜负规则：[docs/RULES.md](docs/RULES.md)
 - 玩家操作与常见问题：[HELP.md](src/xionghan_chess/desktop/resources/docs/HELP.md)
 
-> 本目录 `xionghan-chess-next/` 是当前唯一的正式实现。仓库根目录下的 `desktop/`、`web/`、`docker/` 是**已退役的历史代码线**（目录名沿用当年的"2.0 计划"，与当前版本号 2.0.0 无关），不在本项目的构建与运行范围内。
+> 本目录 `xionghan-chess-next/` 是当前唯一的正式实现。仓库根目录下的 `desktop/`、`web/`、`docker/` 是**已退役的历史代码线**（目录名沿用当年的"2.0 计划"，与当前版本号 2.0.3 无关），不在本项目的构建与运行范围内。
 
 ## 一、快速开始
 
