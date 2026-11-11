@@ -83,6 +83,9 @@ Environment=PYTHONUNBUFFERED=1
 Environment=AI_DEFAULT_DIFFICULTY=normal
 Environment=AI_TIME_SCALE=1.0
 Environment=MAX_ONLINE_GAMES=100
+# Linux 侧**有意保留** uvicorn CLI（不改走 `-m xionghan_chess.service.app`）：
+#   ① Linux 默认即 Selector —— `uvicorn/loops/asyncio.py`：`if sys.platform == "win32" and not use_subprocess: return ProactorEventLoop` / `return SelectorEventLoop` ⇒ 裸 CLI 不会重现 `_ProactorBasePipeTransport._call_connection_lost` 噪声，`--loop` 只在 Windows 需要；
+#   ② systemd 下改走 `-m` 会把端口从 `--port 8000` 变成 `PORT` 环境变量，等于多一个出错点。
 ExecStart=/opt/xionghan-chess/venv/bin/python -m uvicorn xionghan_chess.service.app:app --host 127.0.0.1 --port 8000 --workers 1
 Restart=on-failure
 RestartSec=3
@@ -90,6 +93,11 @@ RestartSec=3
 [Install]
 WantedBy=multi-user.target
 ```
+
+> **Windows 侧不同**：请走 `python -m xionghan_chess.service.app`（`run()` 内已固定 Selector 事件循环），
+> 或在 CLI 上显式加 `--loop xionghan_chess.service.app:_selector_loop_factory`。
+> 裸 `uvicorn` CLI 在 Windows 会拿到 `ProactorEventLoop`，重新出现 `_ProactorBasePipeTransport._call_connection_lost` 噪声。
+> 详见 `docs/release/RUN.md` 网页端一节；Linux 不需要这些，因为默认就是 Selector。
 
 启动并检查：
 
