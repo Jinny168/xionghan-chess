@@ -48,7 +48,7 @@ def test_three_public_tiers_keep_the_current_values() -> None:
     ) == (2, 5.0, 0.0, 2, 1, 3, 3)
 
     hard = CONFIGS[Difficulty.HARD]
-    assert (hard.depth, hard.time_limit, hard.randomness, hard.branch_limit, hard.root_limit) == (3, 12.0, 0.0, 8, 10)
+    assert (hard.depth, hard.time_limit, hard.randomness, hard.branch_limit, hard.root_limit) == (3, 12.0, 0.0, 7, 7)
 
 
 def test_legacy_enum_configs_are_the_same_objects_not_copies() -> None:

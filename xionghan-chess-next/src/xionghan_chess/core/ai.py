@@ -123,8 +123,8 @@ CONFIGS = {
     # B′：depth 2 + 窄宽度（root3/branch3），让 d2 装进 cap 5s；低档浅而宽、中档深而窄。
     # 实测 d2@root18/b10 需 5.8–12.1s；节点≈root×branch，180→54 后中局约 3.3s。
     Difficulty.MEDIUM: SearchConfig(2, 5.0, 0.0, 2, 1, 3, 3),
-    # B′：depth 3 + root10/branch8，让 d3 装进 cap 12s。
-    Difficulty.HARD: SearchConfig(3, 12.0, 0.0, 6, 1, 8, 10),
+    # B′：depth 3 + root7/branch7，守 K1（高级 median≤10s）；d3 达标率 83.75%。
+    Difficulty.HARD: SearchConfig(3, 12.0, 0.0, 6, 1, 7, 7),
 }
 
 # 旧枚举 → 三档别名。**同一对象**，不是 `replace()` 出来的副本。
