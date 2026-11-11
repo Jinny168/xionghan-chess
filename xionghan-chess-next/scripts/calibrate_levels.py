@@ -79,6 +79,19 @@ def _load_search_config(raw: str, label: str) -> SearchConfig:
     return SearchConfig(**data)
 
 
+def _round(x: float, ndigits: int) -> float:
+    """报告里所有小数的**唯一**舍入出口。**必须是纯 `round`，不许先加 epsilon 再舍。**
+
+    为什么单独抽出来：`winRate + strongScore == 1` 这条守恒关系依赖两边用**同一个**
+    `round(_, 4)`；散在 8 处各写一遍，迟早有一处被改成 half-up 或加个 1e-9 修"浮点误差"，
+    而那种改动在**所有测试都绿的情况下悄悄改数值**。抽出来后由
+    `tests/test_report_rounding.py` 直接打这个函数（含 tie 用例），改动就瞒不住。
+
+    Python 的 `round` 是 half-to-even（银行家舍入）：`round(0.03125, 4) == 0.0312`。
+    """
+    return round(x, ndigits)
+
+
 def _parse_max_nodes(raw: str, level: str, tiers: dict[str, Tier]) -> int | None:
     text = raw.strip().lower()
     if text == "auto":
@@ -254,7 +267,7 @@ def summarize(
     nodes_ratio_b = b_bound["nodes"] / b_moves if b_moves else 0.0
     total_moves = a_moves + b_moves
     wall_moves = a_bound["wall"] + b_bound["wall"]
-    wall_percent = round(100.0 * wall_moves / total_moves, 2) if total_moves else 0.0
+    wall_percent = _round(100.0 * wall_moves / total_moves, 2) if total_moves else 0.0  # 2 位，与其余字段不同
     wall_clean = wall_moves == 0
     # 产品三档的 depth 是"时间预算下的上限"：d6/5s、d8/12s 几乎每手都会被墙钟截断。
     # 因此 product 下 `wallClean` 只记录、不判 red；target 表（预算足够跑完深度）仍当硬门。
@@ -355,15 +368,18 @@ def summarize(
         "losses": losses,
         "draws": draws,
         "score": score,
-        "winRate": round(point, 4),
-        "wilson95": [round(low, 4), round(high, 4)],
-        "elo": (None if (elo_value := elo_from_win_rate(point)) is None else round(elo_value, 1) or 0.0),
+        # `winRate` = **得分率**（`score / games`，和棋计 0.5），不是字面的"胜率"。历史名，勿按字面理解。
+        # 守恒关系 `winRate + strongScore == 1` 只在 `draws > 0` 时能区分"得分率 vs 胜率"
+        # 两种定义（`draws = 0` 时两者同值，任何测试都抓不到改名）——所以语义只能靠这两行守。
+        "winRate": _round(point, 4),
+        "wilson95": [_round(low, 4), _round(high, 4)],
+        "elo": (None if (elo_value := elo_from_win_rate(point)) is None else _round(elo_value, 1) or 0.0),
         "thresholdWins": threshold,
         "thresholdSide": "strong",
         "winRatePass": win_rate_pass,
         "strongSide": strong_side,
-        "strongScore": round(strong_score, 4),
-        "strongLow": round(strong_low, 4),
+        "strongScore": _round(strong_score, 4),
+        "strongLow": _round(strong_low, 4),
         "judgementVersion": "v2",
         "moveTimes": {"a": time_stats(a_times), "b": time_stats(b_times)},
         "boundReasons": {"a": a_bound, "b": b_bound},
@@ -373,7 +389,7 @@ def summarize(
         "wallBoundNote": wall_note,
         "zeroDepthK2": k2_note,
         "zeroDepthK2Evaluated": k2_evaluated,
-        "zeroDepthRate": {"a": round(a_zero_rate, 4), "b": round(b_zero_rate, 4)},
+        "zeroDepthRate": {"a": _round(a_zero_rate, 4), "b": _round(b_zero_rate, 4)},
         "zeroDepthMaxConsecutive": {"a": a_max_consecutive, "b": b_max_consecutive},
         "zeroDepthGamesWithGt1": {"a": a_games_gt1, "b": b_games_gt1},
         "gates": gates,
@@ -390,7 +406,7 @@ def summarize(
         # 截断判定的口径（测量值 ÷ policy 分开记）：`games == targetGames` 是恒真的假指标，
         # 32 局里 18 局被 ply_cap 截断时它照样全过。
         "adjudicatedGames": adjudicated_games,
-        "adjudicatedRatio": round(adjudicated_games / games, 4) if games else 0.0,
+        "adjudicatedRatio": _round(adjudicated_games / games, 4) if games else 0.0,
         "adjudicatedRatioPolicy": ADJUDICATED_RATIO_POLICY,
         # 口径声明：`score` 仍是旧义（含截断判定），新增字段给排除口径，不改旧义。
         "scoreIncludesAdjudicated": True,
