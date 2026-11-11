@@ -1,0 +1,60 @@
+{
+  "aiConfigDigest": {
+    "a": "b014d8072e5a7c7d",
+    "b": "0004d697df110392",
+    "method": "recomputed",
+    "provenance": "E2：depth/time_limit/max_nodes 由产物交叉验证与 CONFIGS 一致；root_limit 等 6 项无产物可验、无 --config-* 侧车，按默认值推断"
+  },
+  "backfilled": true,
+  "fields": {
+    "adjudicatedGames": 8,
+    "adjudicatedRatio": 0.125,
+    "blockScoreDistribution": {
+      "0.0": 20,
+      "0.5": 10,
+      "0.75": 1,
+      "1.0": 1
+    },
+    "blocksEffective": 25,
+    "blocksFullyAdjudicated": 1,
+    "blocksTotal": 32,
+    "blocksWithAdjudication": 7,
+    "drawsNoResult": 1,
+    "failedMeasurementGates": [],
+    "fpDigest": "4b8137b676b9327e",
+    "gamesExclAdjudicated": 56,
+    "missingFields": [
+      "gatesEvaluated"
+    ],
+    "scoreExclAdjudicated": 8.0
+  },
+  "source": {
+    "book": "xionghan-chess-next/benchmarks/openings/calibration_book.json",
+    "commit": "33e8fab",
+    "flags": "无运行时自证记录（该次运行早于这些字段的引入）",
+    "jsonl": "benchmarks/calibration_runs/2026-11-11-bm-final-n64.jsonl",
+    "report": "benchmarks/calibration_runs/2026-11-11-bm-final-n64.report.json"
+  },
+  "verification": {
+    "adjudicatedBlockIds": [
+      8,
+      10,
+      13,
+      22,
+      24,
+      25,
+      29
+    ],
+    "artifactConfigChecks": {
+      "a_clean_move_times_max": 1.971,
+      "a_completed_depth_all_1": true,
+      "bound_reason_nodes": 0
+    },
+    "score": 13.5,
+    "wins_losses_draws": [
+      13,
+      50,
+      1
+    ]
+  }
+}
