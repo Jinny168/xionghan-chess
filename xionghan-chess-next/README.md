@@ -2,7 +2,7 @@
 
 在 13×13 扩展棋盘上展开、融合匈奴与东汉历史文化元素的中国象棋变体。Windows 桌面端、Web 端与 Android 端共享同一套 Python 规则、AI、联机协议和 `.xhgame` 棋谱格式；对局既可以在本机单机进行，也可以连接自建的 FastAPI 服务进行在线对战。
 
-- **当前版本**：1.7.0
+- **当前版本**：2.0.0（唯一来源：`src/xionghan_chess/__init__.py` 的 `__version__`；`pyproject.toml` 的 version 是动态读取它）
 - 棋子行棋规则：[docs/PIECE_RULES.md](docs/PIECE_RULES.md)；对局与胜负规则：[docs/RULES.md](docs/RULES.md)
 - 玩家操作与常见问题：[HELP.md](src/xionghan_chess/desktop/resources/docs/HELP.md)
 
@@ -39,13 +39,13 @@ py -3.11 -m venv .venv
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[test]"
-# 日常门禁（约 2–3 分钟，跳过 slow；当前 1019 条）
+# 日常门禁（约 2–3 分钟，跳过 slow；实收 1350 条）
 .\.venv\Scripts\python.exe -m pytest tests/ -m "not slow"
 # 全量（含 slow；改评估/搜索参数后必跑）
 .\.venv\Scripts\python.exe -m pytest tests/ -m slow
 ```
 
-> 日常门禁用 `-m "not slow"`（当前 1019 条，约 2–3 分钟，随用例数增长）；**改评估 / 走法排序 / 搜索参数 / 难度参数后必须跑全量**
+> 日常门禁用 `-m "not slow"`（**实收 1350 条**；全量 `pytest -q` 最近实测 **1345 passed / 2 skipped，2026-11-11**；两条命令的选择器不同，不要互相替换；随用例数增长）；**改评估 / 走法排序 / 搜索参数 / 难度参数后必须跑全量**
 > （`-m slow`）。裸 `pytest` 会跑全量、更慢 —— 门禁命令请显式写出来，不要靠全局默认。
 
 ## 功能摘要
@@ -55,6 +55,7 @@ py -3.11 -m venv .venv
 内置题库、棋谱回放、本地棋谱库与棋子图谱。
 
 - 详细架构与功能：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- 三档 AI 与标定结论：[docs/AI_TIERS.md](docs/AI_TIERS.md)（三档参数、S4 重标定、K1–K5 契约、K4 出带未认证、K5 待人工试玩）
 - 全部文档索引：[docs/README.md](docs/README.md)
 
 ## 二、三端构建
@@ -113,9 +114,9 @@ xionghan-chess-next/
   - “网络房间、聊天、暂停计时、观战同步”等在线功能依赖一个已启动的 FastAPI 服务；服务不可达时这些入口保持禁用。
 - **Web 端不独立承载规则**：浏览器端是服务端规则的投影，合法走法、AI 与终局判定都发生在 Python 服务内，因此 Web 端必须连着服务端才能下棋。
 - **Android 端内置离线规则镜像**：APK 内置一份 `offline.js` 规则，用于“双人同机”离线对局；该镜像需要与 Python 核心规则保持一致（由跨引擎对拍测试守护）。
-- **AI 对外三档**：`beginner`（上限 3 s）· `medium`（上限 30 s）· `hard`（上限 120 s）。实际等待由每档中位耗时决定（实测约 0.35 s / 4.2 s / 15.5 s；hard 样本为 40 手中局探针），文案承诺的是上限而非典型值。
+- **AI 对外三档**：`beginner`（上限 2 s）· `medium`（上限 5 s）· `hard`（上限 12 s）。实际等待由每档典型耗时决定（见 `core/ai.py` 的 `EXPECTED_MOVE_SECONDS`，桌面读条与看门狗也读同一组常量，**不在文档里抄第二份数字**）；文案承诺的是上限而非典型值。
 - **内部档位**：`easy` / `expert` / `master` 保留配置与 locale 键，仅用于旧存档兼容与 benchmark（`master` 走 MCTS，不对玩家提供）；旧配置自动映射 `easy→medium`、`expert/master→hard`。
-- **正式胜率验收尚未完成**：三档的 n=32/64 对拍与 hard 中局耗时分布仍挂账，文档不把"档位胜率区间达标"写成已验证事实。
+- **档位验收现状（不要把未达标写成已达标）**：n=64 对拍已跑完；**K4（相邻档间距）强档得分率点估计 0.7891 出设计带 `[0.65, 0.75]`，`contractPass=false`，不可认证**；**K3-a 计数在预授权区间内，但「最长连续送子 ≤2 手」未达标（实测 3–4 手）**；**K5（新手首次上手的人工试玩）未测**。详见 [docs/AI_TIERS.md](docs/AI_TIERS.md)。
 - **内置题解规模有限**：题解集尚小，仍在补充中。
 
 ## 六、相关文档
@@ -126,7 +127,7 @@ xionghan-chess-next/
 - Linux 服务器部署：[docs/LINUX_DEPLOY.md](docs/LINUX_DEPLOY.md)、运行与部署（桌面/网页/Docker）：[docs/release/RUN.md](docs/release/RUN.md)
 - 玩家帮助与 FAQ：[HELP.md](src/xionghan_chess/desktop/resources/docs/HELP.md)（**仓库内唯一一份**：桌面端运行期加载并随包分发，`docs/HELP.md` 旧副本已删除）
 - 项目愿景：[ABOUT.md](src/xionghan_chess/desktop/resources/docs/ABOUT.md)（**仓库内唯一一份**：桌面端运行期加载并随包分发的权威副本，`docs/ABOUT.md` 旧副本已删除）
-- 变更记录：[docs/CHANGELOG_1.6.0.md](docs/CHANGELOG_1.6.0.md)；当前版本计划：[docs/VERSION_PLAN_1.6.0.md](docs/VERSION_PLAN_1.6.0.md)
+- 变更记录：[docs/CHANGELOG_1.8.2.md](docs/CHANGELOG_1.8.2.md)（最近一份；2.0.0 的 changelog 尚缺）；历史版本的变更记录与交付说明见 [docs/archive/](docs/archive/)
 - 排障：[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
 ## 许可证
