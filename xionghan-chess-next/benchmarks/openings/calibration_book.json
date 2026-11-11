@@ -1,9 +1,9 @@
 {
   "count": 64,
-  "format": 1,
+  "format": 2,
   "openings": [
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:6;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:2:7;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:2:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:1;red:horse:12:11;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:6;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:2:7;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:2:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:1;red:horse:12:11;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 101,
       "pieces": 50,
       "plies": 6,
@@ -11,7 +11,7 @@
       "seed": 700
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:6;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:2:7;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:10;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:1;red:horse:12:11;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:1;red:thunder:12:10||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:6;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:2:7;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:10;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:1;red:horse:12:11;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:1;red:thunder:12:10||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 102,
       "pieces": 50,
       "plies": 10,
@@ -19,23 +19,23 @@
       "seed": 700
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:2:11;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:8;black:pawn:4:10;black:pawn:7:4;black:pawn:7:6;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:5:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:4;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:6:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:black:pawn||opt:rs2-p3l1-promo1-self1",
-      "legal": 95,
-      "pieces": 49,
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:2:11;black:king:1:6;black:patrol:5:2;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:2:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:5:11;red:cannon:7:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:6:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
+      "legal": 103,
+      "pieces": 50,
       "plies": 6,
       "profile": "desktop_complete",
       "seed": 701
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:2:11;black:king:2:5;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:8;black:pawn:4:10;black:pawn:7:4;black:pawn:7:6;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:9;red:advisor:11:5;red:advisor:11:7;red:archer:10:2;red:archer:12:12;red:cannon:5:11;red:cannon:6:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:4;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:6:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:black:pawn||opt:rs2-p3l1-promo1-self1",
-      "legal": 100,
-      "pieces": 49,
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:0:1;black:cannon:3:9;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:2:11;black:king:1:6;black:patrol:5:2;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:2:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:9:9;red:archer:12:0;red:cannon:5:11;red:cannon:7:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:7;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:6:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
+      "legal": 109,
+      "pieces": 50,
       "plies": 10,
       "profile": "desktop_complete",
       "seed": 701
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:1:1;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:6;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:6:11;red:cannon:9:3;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:10;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:1:1;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:6;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:6:11;red:cannon:9:3;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:10;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 106,
       "pieces": 50,
       "plies": 6,
@@ -43,7 +43,7 @@
       "seed": 702
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:6;black:patrol:5:10;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:6:11;red:cannon:9:3;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:9;red:horse:12:5;red:king:11:6;red:patrol:7:10;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:10;red:rook:11:2;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:6;black:patrol:5:10;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:6:11;red:cannon:9:3;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:9;red:horse:12:5;red:king:11:6;red:patrol:7:10;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:10;red:rook:11:2;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 117,
       "pieces": 50,
       "plies": 10,
@@ -51,7 +51,7 @@
       "seed": 702
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:2:2;black:archer:2:10;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:0;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:7:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:2;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:1;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:2:2;black:archer:2:10;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:0;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:7:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:2;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:1;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 98,
       "pieces": 50,
       "plies": 6,
@@ -59,7 +59,7 @@
       "seed": 703
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:2:2;black:archer:2:10;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:8;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:0;black:rook:1:10;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:7:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:8;red:patrol:7:12;red:pawn:6:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:1;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:2:2;black:archer:2:10;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:8;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:0;black:rook:1:10;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:7:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:8;red:patrol:7:12;red:pawn:6:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:1;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 92,
       "pieces": 50,
       "plies": 10,
@@ -67,7 +67,7 @@
       "seed": 703
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:3:3;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:10;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:3;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:8:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:2;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:7||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:3:3;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:10;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:3;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:8:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:2;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:7||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 95,
       "pieces": 50,
       "plies": 6,
@@ -75,7 +75,7 @@
       "seed": 704
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:3:3;black:cannon:3:1;black:cannon:3:11;black:elephant:1:8;black:elephant:3:2;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:2:6;black:patrol:5:0;black:patrol:5:10;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:3;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:8:11;red:cannon:9:12;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:7;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:2;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:7||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:3:3;black:cannon:3:1;black:cannon:3:11;black:elephant:1:8;black:elephant:3:2;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:2:6;black:patrol:5:0;black:patrol:5:10;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:3;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:8:11;red:cannon:9:12;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:7;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:2;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:7||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 88,
       "pieces": 50,
       "plies": 10,
@@ -83,7 +83,7 @@
       "seed": 704
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:12;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:2:5;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:7:1;red:cannon:9:10;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:12;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:2:5;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:7:1;red:cannon:9:10;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 92,
       "pieces": 50,
       "plies": 6,
@@ -91,7 +91,7 @@
       "seed": 705
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:12;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:4:9;black:king:2:5;black:patrol:5:0;black:patrol:5:2;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:7:1;red:cannon:9:10;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:4;red:horse:12:7;red:king:11:6;red:patrol:7:0;red:patrol:7:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:12;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:4:9;black:king:2:5;black:patrol:5:0;black:patrol:5:2;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:7:1;red:cannon:9:10;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:4;red:horse:12:7;red:king:11:6;red:patrol:7:0;red:patrol:7:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 91,
       "pieces": 50,
       "plies": 10,
@@ -99,7 +99,7 @@
       "seed": 705
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:2:6;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:6;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:7:6;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:10;red:cannon:9:12;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:7;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:2:6;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:6;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:7:6;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:10;red:cannon:9:12;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:7;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 79,
       "pieces": 50,
       "plies": 6,
@@ -107,7 +107,7 @@
       "seed": 706
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:2:6;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:12;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:9;black:horse:2:1;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:7:6;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:9:3;red:archer:12:12;red:cannon:9:12;red:cannon:10:10;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:7;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:2:6;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:12;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:9;black:horse:2:1;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:7:6;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:9:3;red:archer:12:12;red:cannon:9:12;red:cannon:10:10;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:7;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 79,
       "pieces": 50,
       "plies": 10,
@@ -115,7 +115,7 @@
       "seed": 706
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:3:9;black:cannon:3:1;black:cannon:3:7;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:3:10;black:thunder:0:4;black:thunder:0:8;red:advisor:10:6;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:0;red:cannon:9:2;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:3:9;black:cannon:3:1;black:cannon:3:7;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:3:10;black:thunder:0:4;black:thunder:0:8;red:advisor:10:6;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:0;red:cannon:9:2;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 91,
       "pieces": 50,
       "plies": 6,
@@ -123,7 +123,7 @@
       "seed": 707
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:3:9;black:cannon:3:1;black:cannon:3:7;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:0:5;black:horse:3:8;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:3:10;black:thunder:0:4;black:thunder:0:8;red:advisor:10:6;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:0;red:cannon:9:2;red:elephant:9:6;red:elephant:11:4;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:8;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:3:9;black:cannon:3:1;black:cannon:3:7;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:0:5;black:horse:3:8;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:3:10;black:thunder:0:4;black:thunder:0:8;red:advisor:10:6;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:0;red:cannon:9:2;red:elephant:9:6;red:elephant:11:4;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:8;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 82,
       "pieces": 50,
       "plies": 10,
@@ -131,7 +131,7 @@
       "seed": 707
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:1:11;black:cannon:3:1;black:cannon:3:6;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:3;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:6;red:pawn:6:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:1:11;black:cannon:3:1;black:cannon:3:6;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:3;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:6;red:pawn:6:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 96,
       "pieces": 50,
       "plies": 6,
@@ -139,7 +139,7 @@
       "seed": 708
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:2:12;black:cannon:3:1;black:cannon:3:6;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:7:3;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:6;red:pawn:5:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:black:patrol||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:2:12;black:cannon:3:1;black:cannon:3:6;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:7:3;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:6;red:pawn:5:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:black:patrol||opt:rs3-p3l1-promo1-self1",
       "legal": 104,
       "pieces": 49,
       "plies": 10,
@@ -147,7 +147,7 @@
       "seed": 708
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:2:6;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:9;black:elephant:1:4;black:elephant:3:10;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:4;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:10;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:black:pawn||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:2:6;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:9;black:elephant:1:4;black:elephant:3:10;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:4;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:10;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:black:pawn||opt:rs3-p3l1-promo1-self1",
       "legal": 103,
       "pieces": 49,
       "plies": 6,
@@ -155,7 +155,7 @@
       "seed": 709
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:2:6;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:5;black:elephant:1:4;black:elephant:3:10;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:4;red:cannon:9:1;red:elephant:9:6;red:elephant:11:4;red:guard:12:6;red:horse:9:10;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:10||pool:black:pawn||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:2:6;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:5;black:elephant:1:4;black:elephant:3:10;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:4;red:cannon:9:1;red:elephant:9:6;red:elephant:11:4;red:guard:12:6;red:horse:9:10;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:10||pool:black:pawn||opt:rs3-p3l1-promo1-self1",
       "legal": 103,
       "pieces": 49,
       "plies": 10,
@@ -163,7 +163,7 @@
       "seed": 709
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:4:11;black:cannon:6:1;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:1;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:5;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:8;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:11:9;red:thunder:12:4||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:4:11;black:cannon:6:1;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:1;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:5;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:8;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:11:9;red:thunder:12:4||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 108,
       "pieces": 50,
       "plies": 6,
@@ -171,7 +171,7 @@
       "seed": 710
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:4:11;black:cannon:6:1;black:elephant:1:4;black:elephant:3:6;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:0:10;black:rook:1:1;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:5;red:elephant:9:6;red:elephant:11:8;red:guard:12:6;red:horse:9:8;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:10;red:rook:12:2;red:thunder:11:9;red:thunder:12:4||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:4:11;black:cannon:6:1;black:elephant:1:4;black:elephant:3:6;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:0:10;black:rook:1:1;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:5;red:elephant:9:6;red:elephant:11:8;red:guard:12:6;red:horse:9:8;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:10;red:rook:12:2;red:thunder:11:9;red:thunder:12:4||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 107,
       "pieces": 50,
       "plies": 10,
@@ -179,7 +179,7 @@
       "seed": 710
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:9:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:4;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:7:2;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:6;red:cannon:9:0;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:black:pawn||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:9:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:4;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:7:2;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:6;red:cannon:9:0;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:black:pawn||opt:rs3-p3l1-promo1-self1",
       "legal": 89,
       "pieces": 49,
       "plies": 6,
@@ -187,7 +187,7 @@
       "seed": 711
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:0:1;black:cannon:9:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:4;black:pawn:4:8;black:pawn:4:12;black:pawn:7:2;black:pawn:7:10;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:6;red:cannon:10:0;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:3;red:thunder:12:8||pool:black:pawn||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:0:1;black:cannon:9:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:4;black:pawn:4:8;black:pawn:4:12;black:pawn:7:2;black:pawn:7:10;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:6;red:cannon:10:0;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:3;red:thunder:12:8||pool:black:pawn||opt:rs3-p3l1-promo1-self1",
       "legal": 87,
       "pieces": 49,
       "plies": 10,
@@ -195,7 +195,7 @@
       "seed": 711
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:9;black:cannon:6:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:6:4;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:7;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:7;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:9;black:cannon:6:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:6:4;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:7;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:7;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 109,
       "pieces": 50,
       "plies": 6,
@@ -203,7 +203,7 @@
       "seed": 712
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:1:11;black:cannon:3:9;black:cannon:6:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:6:4;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:7;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:7;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:2;red:horse:11:9;red:king:10:7;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:4;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:1:11;black:cannon:3:9;black:cannon:6:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:6:4;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:7;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:7;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:2;red:horse:11:9;red:king:10:7;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:4;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 102,
       "pieces": 50,
       "plies": 10,
@@ -211,7 +211,7 @@
       "seed": 712
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:2:10;black:cannon:3:1;black:cannon:7:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:5:4;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:8;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:9;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:10;red:rook:11:2;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:2:10;black:cannon:3:1;black:cannon:7:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:5:4;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:8;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:9;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:10;red:rook:11:2;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 106,
       "pieces": 50,
       "plies": 6,
@@ -219,7 +219,7 @@
       "seed": 713
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:2:10;black:cannon:3:1;black:cannon:7:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:5:4;black:rook:1:0;black:rook:1:10;black:thunder:0:2;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:3;red:horse:8:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:10;red:rook:11:2;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:2:10;black:cannon:3:1;black:cannon:7:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:5:4;black:rook:1:0;black:rook:1:10;black:thunder:0:2;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:3;red:horse:8:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:10;red:rook:11:2;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 115,
       "pieces": 50,
       "plies": 10,
@@ -227,7 +227,7 @@
       "seed": 713
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:9:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:3:10;black:thunder:0:4;black:thunder:0:8;red:advisor:10:8;red:advisor:11:5;red:archer:12:0;red:archer:12:12;red:cannon:8:1;red:cannon:9:9;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:9:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:3:10;black:thunder:0:4;black:thunder:0:8;red:advisor:10:8;red:advisor:11:5;red:archer:12:0;red:archer:12:12;red:cannon:8:1;red:cannon:9:9;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 106,
       "pieces": 50,
       "plies": 6,
@@ -235,7 +235,7 @@
       "seed": 714
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:3:2;black:rook:3:10;black:thunder:0:4;black:thunder:0:8;red:advisor:10:6;red:advisor:10:8;red:archer:12:0;red:archer:12:12;red:cannon:8:1;red:cannon:9:9;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:3:2;black:rook:3:10;black:thunder:0:4;black:thunder:0:8;red:advisor:10:6;red:advisor:10:8;red:archer:12:0;red:archer:12:12;red:cannon:8:1;red:cannon:9:9;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 106,
       "pieces": 50,
       "plies": 10,
@@ -243,7 +243,7 @@
       "seed": 714
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:1:11;black:archer:2:2;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:7;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:10;red:rook:11:2;red:thunder:12:4;red:thunder:12:11||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:1:11;black:archer:2:2;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:7;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:10;red:rook:11:2;red:thunder:12:4;red:thunder:12:11||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 115,
       "pieces": 50,
       "plies": 6,
@@ -251,7 +251,7 @@
       "seed": 715
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:2:8;black:archer:0:0;black:archer:1:11;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:7;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:2;red:rook:10:10;red:thunder:12:4;red:thunder:12:11||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:2:8;black:archer:0:0;black:archer:1:11;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:4:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:7;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:2;red:rook:10:10;red:thunder:12:4;red:thunder:12:11||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 111,
       "pieces": 50,
       "plies": 10,
@@ -259,7 +259,7 @@
       "seed": 715
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:3:6;black:guard:0:6;black:horse:1:9;black:horse:2:5;black:king:1:6;black:patrol:5:8;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:8;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:11;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:3:6;black:guard:0:6;black:horse:1:9;black:horse:2:5;black:king:1:6;black:patrol:5:8;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:8;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:11;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 100,
       "pieces": 50,
       "plies": 6,
@@ -267,7 +267,7 @@
       "seed": 716
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:5:11;black:elephant:1:4;black:elephant:3:6;black:guard:0:6;black:horse:1:9;black:horse:2:5;black:king:1:6;black:patrol:5:8;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:3:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:11;red:cannon:10:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:8;red:patrol:7:12;red:pawn:6:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:11:2;red:rook:11:11;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:5:11;black:elephant:1:4;black:elephant:3:6;black:guard:0:6;black:horse:1:9;black:horse:2:5;black:king:1:6;black:patrol:5:8;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:3:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:11;red:cannon:10:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:8;red:patrol:7:12;red:pawn:6:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:11:2;red:rook:11:11;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 97,
       "pieces": 50,
       "plies": 10,
@@ -275,7 +275,7 @@
       "seed": 716
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:3:3;black:cannon:3:1;black:cannon:3:12;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:9:2;red:rook:11:12;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:3:3;black:cannon:3:1;black:cannon:3:12;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:9:2;red:rook:11:12;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 110,
       "pieces": 50,
       "plies": 6,
@@ -283,7 +283,7 @@
       "seed": 717
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:3:3;black:cannon:3:1;black:cannon:3:12;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:10;black:pawn:4:12;black:pawn:6:4;black:pawn:7:8;black:rook:1:2;black:rook:1:10;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:11;red:cannon:10:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:9:2;red:rook:11:12;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:3:3;black:cannon:3:1;black:cannon:3:12;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:10;black:pawn:4:12;black:pawn:6:4;black:pawn:7:8;black:rook:1:2;black:rook:1:10;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:11;red:cannon:10:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:9:2;red:rook:11:12;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 111,
       "pieces": 50,
       "plies": 10,
@@ -291,7 +291,7 @@
       "seed": 717
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:1:11;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:10;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:12;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:9:6;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:12:2;red:rook:12:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:1:11;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:10;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:12;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:9:6;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:12:2;red:rook:12:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 101,
       "pieces": 50,
       "plies": 6,
@@ -299,7 +299,7 @@
       "seed": 718
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:1:11;black:cannon:3:1;black:cannon:3:11;black:elephant:1:8;black:elephant:3:6;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:10;black:patrol:5:12;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:6:0;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:12;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:9:6;red:elephant:11:8;red:guard:12:6;red:horse:8:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:2;red:pawn:8:0;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:12:2;red:rook:12:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:1:11;black:cannon:3:1;black:cannon:3:11;black:elephant:1:8;black:elephant:3:6;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:10;black:patrol:5:12;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:6:0;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:12;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:9:6;red:elephant:11:8;red:guard:12:6;red:horse:8:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:2;red:pawn:8:0;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:12:2;red:rook:12:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 98,
       "pieces": 50,
       "plies": 10,
@@ -307,7 +307,7 @@
       "seed": 718
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:2:10;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:1;black:rook:1:10;black:thunder:0:4;black:thunder:0:7;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:7;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:9:10;red:rook:11:2;red:thunder:12:2;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:2:10;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:1;black:rook:1:10;black:thunder:0:4;black:thunder:0:7;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:7;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:9:10;red:rook:11:2;red:thunder:12:2;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 105,
       "pieces": 50,
       "plies": 6,
@@ -315,7 +315,7 @@
       "seed": 719
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:11;black:cannon:6:1;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:1;black:rook:1:10;black:thunder:0:4;black:thunder:0:7;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:7;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:6:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:9:10;red:rook:11:2;red:thunder:10:10;red:thunder:12:2||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:11;black:cannon:6:1;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:1;black:rook:1:10;black:thunder:0:4;black:thunder:0:7;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:7;red:horse:11:3;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:6:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:9:10;red:rook:11:2;red:thunder:10:10;red:thunder:12:2||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 102,
       "pieces": 50,
       "plies": 10,
@@ -323,7 +323,7 @@
       "seed": 719
     },
     {
-      "fp": "red|black:advisor:1:7;black:advisor:2:4;black:archer:0:0;black:archer:3:9;black:cannon:3:1;black:cannon:7:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:4;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:9;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:7;black:advisor:2:4;black:archer:0:0;black:archer:3:9;black:cannon:3:1;black:cannon:7:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:4;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:9;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 113,
       "pieces": 50,
       "plies": 6,
@@ -331,7 +331,7 @@
       "seed": 720
     },
     {
-      "fp": "red|black:advisor:1:7;black:advisor:2:4;black:archer:0:0;black:archer:3:9;black:cannon:3:5;black:cannon:7:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:5:4;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:9;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:4;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:4;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:7;black:advisor:2:4;black:archer:0:0;black:archer:3:9;black:cannon:3:5;black:cannon:7:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:5:4;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:9;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:4;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:10:4;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 95,
       "pieces": 50,
       "plies": 10,
@@ -339,7 +339,7 @@
       "seed": 720
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:6;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:10;black:rook:2:2;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:5;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:0;red:rook:11:12;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:6;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:10;black:rook:2:2;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:10:5;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:0;red:rook:11:12;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 108,
       "pieces": 50,
       "plies": 6,
@@ -347,7 +347,7 @@
       "seed": 721
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:11;black:cannon:8:1;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:6;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:12;black:pawn:5:10;black:rook:1:10;black:rook:2:2;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:4;red:horse:11:9;red:king:10:5;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:3;red:rook:11:12;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:11;black:cannon:8:1;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:6;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:12;black:pawn:5:10;black:rook:1:10;black:rook:2:2;black:thunder:0:1;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:4;red:horse:11:9;red:king:10:5;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:3;red:rook:11:12;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 100,
       "pieces": 50,
       "plies": 10,
@@ -355,7 +355,7 @@
       "seed": 721
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:2;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:5;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:1;red:rook:11:10;red:thunder:12:3;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:2;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:5;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:1;red:rook:11:10;red:thunder:12:3;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 114,
       "pieces": 50,
       "plies": 6,
@@ -363,7 +363,7 @@
       "seed": 722
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:2;black:archer:0:12;black:cannon:3:11;black:cannon:8:1;black:elephant:1:8;black:elephant:3:2;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:5;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:9;red:cannon:9:12;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:1;red:rook:11:10;red:thunder:12:3;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:2;black:archer:0:12;black:cannon:3:11;black:cannon:8:1;black:elephant:1:8;black:elephant:3:2;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:5;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:9;red:cannon:9:12;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:1;red:rook:11:10;red:thunder:12:3;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 104,
       "pieces": 50,
       "plies": 10,
@@ -371,7 +371,7 @@
       "seed": 722
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:2:2;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:12;black:thunder:0:3;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:9:6;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:11:10;red:rook:12:2;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:2:2;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:12;black:thunder:0:3;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:9:6;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:11:10;red:rook:12:2;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 96,
       "pieces": 50,
       "plies": 6,
@@ -379,7 +379,7 @@
       "seed": 723
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:2:2;black:cannon:3:1;black:cannon:8:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:9;black:horse:2:1;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:12;black:thunder:0:3;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:9:6;red:elephant:11:8;red:guard:12:6;red:horse:11:9;red:horse:12:1;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:12:2;red:rook:12:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:2:2;black:cannon:3:1;black:cannon:8:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:9;black:horse:2:1;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:12;black:thunder:0:3;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:9:6;red:elephant:11:8;red:guard:12:6;red:horse:11:9;red:horse:12:1;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:10;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:12;red:rook:12:2;red:rook:12:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 86,
       "pieces": 50,
       "plies": 10,
@@ -387,7 +387,7 @@
       "seed": 723
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:7;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:11;black:thunder:0:5;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:9:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:9||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:7;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:11;black:thunder:0:5;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:9:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:9||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 111,
       "pieces": 50,
       "plies": 6,
@@ -395,7 +395,7 @@
       "seed": 724
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:7;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:3:10;black:king:1:6;black:patrol:5:0;black:patrol:5:2;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:11;black:thunder:0:5;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:9:6;red:rook:11:12;red:thunder:12:4;red:thunder:12:9||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:7;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:3:10;black:king:1:6;black:patrol:5:0;black:patrol:5:2;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:11;black:thunder:0:5;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:9:6;red:rook:11:12;red:thunder:12:4;red:thunder:12:9||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 110,
       "pieces": 50,
       "plies": 10,
@@ -403,7 +403,7 @@
       "seed": 724
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:7;red:advisor:11:5;red:advisor:11:7;red:archer:10:8;red:archer:12:0;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:1;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:7;red:advisor:11:5;red:advisor:11:7;red:archer:10:8;red:archer:12:0;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:1;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 102,
       "pieces": 50,
       "plies": 6,
@@ -411,7 +411,7 @@
       "seed": 725
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:0:1;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:12;black:thunder:0:4;black:thunder:0:7;red:advisor:11:5;red:advisor:11:7;red:archer:10:8;red:archer:12:0;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:1;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:4;red:pawn:8:0;red:pawn:8:2;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:0;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:0:1;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:12;black:thunder:0:4;black:thunder:0:7;red:advisor:11:5;red:advisor:11:7;red:archer:10:8;red:archer:12:0;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:10:1;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:4;red:pawn:8:0;red:pawn:8:2;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:0;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 97,
       "pieces": 50,
       "plies": 10,
@@ -419,7 +419,7 @@
       "seed": 725
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:9;black:horse:2:5;black:king:1:6;black:patrol:5:0;black:patrol:5:6;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:11;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:9:2;red:elephant:11:8;red:guard:12:6;red:horse:10:5;red:horse:11:9;red:king:11:6;red:patrol:7:10;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:9;black:horse:2:5;black:king:1:6;black:patrol:5:0;black:patrol:5:6;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:11;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:9:2;red:elephant:11:8;red:guard:12:6;red:horse:10:5;red:horse:11:9;red:king:11:6;red:patrol:7:10;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 98,
       "pieces": 50,
       "plies": 6,
@@ -427,7 +427,7 @@
       "seed": 726
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:8;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:9;black:horse:2:5;black:king:1:6;black:patrol:5:0;black:patrol:5:6;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:11;black:thunder:1:3;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:4;red:elephant:9:2;red:elephant:11:8;red:guard:12:6;red:horse:10:5;red:horse:11:9;red:king:11:6;red:patrol:7:10;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:3;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:8;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:9;black:horse:2:5;black:king:1:6;black:patrol:5:0;black:patrol:5:6;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:11;black:thunder:1:3;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:4;red:elephant:9:2;red:elephant:11:8;red:guard:12:6;red:horse:10:5;red:horse:11:9;red:king:11:6;red:patrol:7:10;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:3;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 105,
       "pieces": 50,
       "plies": 10,
@@ -435,7 +435,7 @@
       "seed": 726
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:3:9;black:cannon:1:11;black:cannon:3:1;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:5:6;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:9:3;red:archer:12:12;red:cannon:9:2;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:9;red:horse:12:1;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:3:9;black:cannon:1:11;black:cannon:3:1;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:5:6;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:9:3;red:archer:12:12;red:cannon:9:2;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:11:9;red:horse:12:1;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 94,
       "pieces": 50,
       "plies": 6,
@@ -443,7 +443,7 @@
       "seed": 727
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:3:9;black:cannon:1:11;black:cannon:3:1;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:5:6;black:rook:1:10;black:rook:3:7;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:9:3;red:archer:12:12;red:cannon:9:2;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:12:1;red:horse:12:11;red:king:11:6;red:patrol:7:4;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:3:9;black:cannon:1:11;black:cannon:3:1;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:pawn:5:6;black:rook:1:10;black:rook:3:7;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:9:3;red:archer:12:12;red:cannon:9:2;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:12:1;red:horse:12:11;red:king:11:6;red:patrol:7:4;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 87,
       "pieces": 50,
       "plies": 10,
@@ -451,7 +451,7 @@
       "seed": 727
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:1;black:thunder:0:10;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:6:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:9;red:horse:12:5;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:1;black:thunder:0:10;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:6:11;red:cannon:9:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:9;red:horse:12:5;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 120,
       "pieces": 50,
       "plies": 6,
@@ -459,7 +459,7 @@
       "seed": 728
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:1;black:thunder:0:10;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:6:11;red:cannon:10:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:9;red:horse:12:5;red:king:11:6;red:patrol:7:8;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:1;black:thunder:0:10;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:6:11;red:cannon:10:1;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:9;red:horse:12:5;red:king:11:6;red:patrol:7:8;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 114,
       "pieces": 50,
       "plies": 10,
@@ -467,7 +467,7 @@
       "seed": 728
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:9;black:horse:3:4;black:king:1:6;black:patrol:5:8;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:0:10;black:rook:1:2;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:9;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:10||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:9;black:horse:3:4;black:king:1:6;black:patrol:5:8;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:0:10;black:rook:1:2;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:9;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:3;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:10||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 108,
       "pieces": 50,
       "plies": 6,
@@ -475,7 +475,7 @@
       "seed": 729
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:2:2;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:9;black:horse:5:5;black:king:1:6;black:patrol:5:8;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:0:10;black:rook:1:2;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:9;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:3;red:horse:9:8;red:king:11:6;red:patrol:7:4;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:10||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:12;black:archer:2:2;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:9;black:horse:5:5;black:king:1:6;black:patrol:5:8;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:0:10;black:rook:1:2;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:9;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:8:3;red:horse:9:8;red:king:11:6;red:patrol:7:4;red:patrol:7:12;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:8;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:10||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 103,
       "pieces": 50,
       "plies": 10,
@@ -483,7 +483,7 @@
       "seed": 729
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:11;black:cannon:6:1;black:elephant:1:8;black:elephant:3:6;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:2;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:11||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:11;black:cannon:6:1;black:elephant:1:8;black:elephant:3:6;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:11;black:thunder:0:4;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:2;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:11||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 94,
       "pieces": 50,
       "plies": 6,
@@ -491,7 +491,7 @@
       "seed": 730
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:6:1;black:cannon:6:11;black:elephant:1:8;black:elephant:3:6;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:10:6;red:advisor:11:5;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:2;red:horse:9:10;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:11||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:6:1;black:cannon:6:11;black:elephant:1:8;black:elephant:3:6;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:1:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:10;black:thunder:0:4;black:thunder:0:8;red:advisor:10:6;red:advisor:11:5;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:9:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:2;red:horse:9:10;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:7:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:11||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 85,
       "pieces": 50,
       "plies": 10,
@@ -499,7 +499,7 @@
       "seed": 730
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:2:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:12;black:thunder:0:5;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:12:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:4;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:6:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:0:12;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:2:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:12;black:thunder:0:5;black:thunder:0:8;red:advisor:11:5;red:advisor:11:7;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:12:11;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:4;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:6:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 93,
       "pieces": 50,
       "plies": 6,
@@ -507,7 +507,7 @@
       "seed": 731
     },
     {
-      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:1:11;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:2:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:12;black:thunder:0:4;black:thunder:0:8;red:advisor:10:6;red:advisor:11:5;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:12:10;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:4;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:6:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs2-p3l1-promo1-self1",
+      "fp": "red|black:advisor:1:5;black:advisor:1:7;black:archer:0:0;black:archer:1:11;black:cannon:3:1;black:cannon:3:11;black:elephant:1:4;black:elephant:1:8;black:guard:0:6;black:horse:1:3;black:horse:1:9;black:king:2:6;black:patrol:5:0;black:patrol:5:12;black:pawn:4:0;black:pawn:4:2;black:pawn:4:4;black:pawn:4:6;black:pawn:4:8;black:pawn:4:10;black:pawn:4:12;black:rook:1:2;black:rook:1:12;black:thunder:0:4;black:thunder:0:8;red:advisor:10:6;red:advisor:11:5;red:archer:12:0;red:archer:12:12;red:cannon:9:1;red:cannon:12:10;red:elephant:11:4;red:elephant:11:8;red:guard:12:6;red:horse:9:4;red:horse:11:9;red:king:11:6;red:patrol:7:0;red:patrol:7:12;red:pawn:6:8;red:pawn:8:0;red:pawn:8:2;red:pawn:8:4;red:pawn:8:6;red:pawn:8:10;red:pawn:8:12;red:rook:11:2;red:rook:11:10;red:thunder:12:4;red:thunder:12:8||pool:||opt:rs3-p3l1-promo1-self1",
       "legal": 87,
       "pieces": 50,
       "plies": 10,
@@ -521,6 +521,7 @@
   ],
   "policy": "scripts/bench_roots.py::build_position",
   "profile": "desktop_complete",
+  "ruleVersion": 3,
   "seeds": [
     700,
     731

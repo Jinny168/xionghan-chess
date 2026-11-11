@@ -101,3 +101,29 @@ def test_check_mode_matches_the_committed_file() -> None:
     from gen_opening_book import main
 
     assert main(["--check"]) == 0
+
+
+def test_book_declares_the_current_rule_version() -> None:
+    """书必须自报「按哪版规则生成」，且与 `RULE_VERSION` 一致。
+
+    ## 为什么需要这条快测试
+
+    今天两条内容校验（`--check` 逐字节、`fp` 逐条重建）**都在 `slow` 里**。本地默认跑法
+    `-m "not slow"` 永远不跑它们，于是"改了走法语义但忘了重生成书"要等推送后 CI 才发现 ——
+    这正是 `d855823` 带着红进去的原因（本地全绿，slow 红）。
+
+    本条 0.1s，把发现时机提前到**提交即红**。它和 `--check` 分工不同、不可互相替代：
+    - 本条管「**声明**对不对」（`format` / `ruleVersion` 两个字段）；
+    - `--check` 管「**内容**是不是真的一样」（64 条逐字节重建）。
+
+    读取端 `load_book` 不校验 `format`，只读 `openings` —— 所以字段本身拦不住任何人，
+    拦截全靠这一条。
+    """
+    from xionghan_chess.core.profiles import RULE_VERSION
+
+    payload = _payload()
+    assert payload["format"] == 2, "格式未升级：书应带顶层 ruleVersion（format 2）"
+    assert payload["ruleVersion"] == RULE_VERSION, (
+        f"开局书是按 ruleVersion={payload['ruleVersion']} 生成的，当前 RULE_VERSION={RULE_VERSION}。"
+        "走法语义变了就必须重生成：python scripts/gen_opening_book.py（不带参数即写盘）"
+    )

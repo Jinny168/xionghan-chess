@@ -27,6 +27,7 @@ A 方常排弱档（见下方用法），拿 A 的 `winRate` 直接判会恒 fal
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from dataclasses import asdict
@@ -42,6 +43,7 @@ from level_targets import LEVELS, PRODUCT_LEVELS, PRODUCT_TIERS, TARGETS, Tier  
 
 from xionghan_chess.core.ai import SearchConfig  # noqa: E402
 from xionghan_chess.core.benchmark import (  # noqa: E402
+    Opening,
     benchmark_match,
     book_index,
     elo_from_win_rate,
@@ -153,6 +155,29 @@ def band_pass(score_rate: float) -> bool:
     return BAND_LOW <= score_rate <= BAND_HIGH
 
 
+# 判「两次标定能不能比」的判据是
+# `(ruleVersion, bookFormat, book.fpDigest, aiConfigDigest, games, seeds)` 全同。
+# 其中两个 digest 的区别很关键：
+#   `book.fpDigest`  —— **自维护**：`fp` 里带 `rs{N}-` 前缀，母体一变它就变；
+#   `ruleVersion`    —— **手维护**：会撒谎（本轮就撒过：语义已是 v3、版本号还是 2）。
+# 所以"母体不同"要靠 fpDigest 先判，ruleVersion 只是给人看的标签。
+# `aiConfigDigest` 分档存、对**实际生效**的配置求哈希（`--config-*` / `--cap-*` /
+# `--max-nodes-*` 解析之后），不是对 `CONFIGS` 表 —— 否则两次不同 cap 的运行会得到
+# 同一个 digest，而报告里的 `levels` 只有档位名，看不出任何差别。
+ADJUDICATED_RATIO_POLICY = 0.2  # **policy**（会被数据推翻），与下面的测量值分开记
+
+
+def _config_digest(level: str, config: SearchConfig) -> str:
+    payload = json.dumps([level, asdict(config)], sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def _book_digest(book: list[Opening]) -> str:
+    entries = sorted(book, key=lambda entry: (entry.profile, entry.seed, entry.plies))
+    text = "\n".join(f"{e.profile}#{e.seed}@{e.plies}:{e.fp}" for e in entries)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
 def summarize(
     rows: list[dict[str, object]],
     level_a: str,
@@ -168,6 +193,22 @@ def summarize(
     # 和棋按半分计入：k_eff = W + 0.5·D。用 W/n 会系统性低估势均力敌的对局。
     score = wins + 0.5 * draws
     point = score / games if games else 0.0
+    # ---- 截断判定（adjudicated）必须与真和棋分开算 ----
+    # 现状问题：`draws = games - wins - losses`，而 `winner is None` 里混了两种东西 ——
+    # 真和棋，以及"被 ply_cap 截断、没下完"的局。于是"和棋率"不可解释，
+    # 且 `score` 把截断判定也计进了半分。
+    # 通则：**同名字段语义不可变，改口径一律新增字段**（否则历史报告会静默变成另一个含义）。
+    adjudicated_games = sum(1 for row in rows if row.get("adjudicated"))
+    # 截断且无胜负：这部分才是从 `draws` 里分出来的"没下完"
+    draws_no_result = sum(1 for row in rows if row.get("winner") is None and row.get("adjudicated"))
+    games_excl = games - adjudicated_games
+    score_excl = sum(
+        1.0
+        for row in rows
+        if not row.get("adjudicated") and row.get("winner") == row.get("master_color")
+    ) + 0.5 * sum(
+        1.0 for row in rows if not row.get("adjudicated") and row.get("winner") is None
+    )
     low, high = wilson_interval(score, games)
     a_bound = _aggregate_reasons(rows, "a")
     b_bound = _aggregate_reasons(rows, "b")
@@ -318,6 +359,16 @@ def summarize(
         "bandPass": band_ok,
         "contractPass": contract_pass,
         "contractFailedGates": contract_failed_gates,
+        # 截断判定的口径（测量值 ÷ policy 分开记）：`games == targetGames` 是恒真的假指标，
+        # 32 局里 18 局被 ply_cap 截断时它照样全过。
+        "adjudicatedGames": adjudicated_games,
+        "adjudicatedRatio": round(adjudicated_games / games, 4) if games else 0.0,
+        "adjudicatedRatioPolicy": ADJUDICATED_RATIO_POLICY,
+        # 口径声明：`score` 仍是旧义（含截断判定），新增字段给排除口径，不改旧义。
+        "scoreIncludesAdjudicated": True,
+        "scoreExclAdjudicated": score_excl,
+        "gamesExclAdjudicated": games_excl,
+        "drawsNoResult": draws_no_result,
         "book": {
             "size": book_size,
             "used": [f"{row.get('opening')}" for row in rows if row.get("opening")],
@@ -370,26 +421,28 @@ def main(argv: list[str] | None = None) -> int:
     checkpoint = Path(args.checkpoint) if args.checkpoint else default_checkpoint(args.level_a, args.level_b)
     rows = _load_rows(checkpoint) if args.resume else []
     start_game = len(rows)
+    # 两侧**实际生效**的配置先解出来：报告要写 `aiConfigDigest`，而"checkpoint 已够、
+    # 直接汇总"那条路径原本不构造 config —— 放在分支里会让摘要字段在 resume 时缺失。
+    tier_a, tier_b = tiers[args.level_a], tiers[args.level_b]
+    config_a = (
+        _load_search_config(args.config_a, "--config-a")
+        if args.config_a
+        else tier_a.config(
+            cap=None if args.cap_a == "auto" else float(args.cap_a),
+            max_nodes=_parse_max_nodes(args.max_nodes_a, args.level_a, tiers),
+        )
+    )
+    config_b = (
+        _load_search_config(args.config_b, "--config-b")
+        if args.config_b
+        else tier_b.config(
+            cap=None if args.cap_b == "auto" else float(args.cap_b),
+            max_nodes=_parse_max_nodes(args.max_nodes_b, args.level_b, tiers),
+        )
+    )
     if start_game >= args.n:
         print(f"checkpoint 已有 {start_game} 局 ≥ n={args.n}，直接汇总")
     else:
-        tier_a, tier_b = tiers[args.level_a], tiers[args.level_b]
-        config_a = (
-            _load_search_config(args.config_a, "--config-a")
-            if args.config_a
-            else tier_a.config(
-                cap=None if args.cap_a == "auto" else float(args.cap_a),
-                max_nodes=_parse_max_nodes(args.max_nodes_a, args.level_a, tiers),
-            )
-        )
-        config_b = (
-            _load_search_config(args.config_b, "--config-b")
-            if args.config_b
-            else tier_b.config(
-                cap=None if args.cap_b == "auto" else float(args.cap_b),
-                max_nodes=_parse_max_nodes(args.max_nodes_b, args.level_b, tiers),
-            )
-        )
         checkpoint.parent.mkdir(parents=True, exist_ok=True)
         handle = checkpoint.open("a" if args.resume else "w", encoding="utf-8")
 
@@ -426,6 +479,19 @@ def main(argv: list[str] | None = None) -> int:
             entry = book[book_index(game - 1, args.n, len(book))]
             row["opening"] = f"{entry.profile}#{entry.seed}@{entry.plies}"
     report["book"]["used"] = [str(row.get("opening")) for row in rows]  # type: ignore[index]
+    # 母体 + 引擎指纹：让"档位强度变了"能分清是**规则变了**还是**母体/配置变了**。
+    # 报告里的 `levels` 只有档位名、`book` 只有 size/used，而 size 与 used 在 v2/v3 下完全相同 ——
+    # 不加这两个 digest，旧报告会"看起来可比、实则不可比"。
+    # 顶层带**书自己声明的**版本（不是当前常量）：报告要能自证"我按哪版规则、哪个母体跑的"。
+    # 老报告没有这两个字段 → 判等脚本按"不可比"处理，不追改。
+    declared = json.loads(Path(args.book).read_text(encoding="utf-8"))
+    report["ruleVersion"] = declared.get("ruleVersion")
+    report["bookFormat"] = declared.get("format")
+    report["book"]["fpDigest"] = _book_digest(book)  # type: ignore[index]
+    report["aiConfigDigest"] = {
+        "a": _config_digest(args.level_a, config_a),
+        "b": _config_digest(args.level_b, config_b),
+    }
 
     rendered = json.dumps(report, ensure_ascii=False, indent=2)
     output = Path(args.output) if args.output else checkpoint.with_suffix(".report.json")

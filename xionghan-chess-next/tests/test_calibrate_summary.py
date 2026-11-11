@@ -289,3 +289,104 @@ def test_v2_report_schema_is_self_explanatory() -> None:
     assert report["failedGates"] == []
     assert report["contractFailedGates"] == [f"band: 0.7891 > {BAND_HIGH:.2f}"]
     assert report["contractPass"] is False
+
+
+# ---------------------------------------------------------------------------
+# 截断判定（adjudicated）必须与真和棋分开
+#
+# 现状：`draws = games - wins - losses`，而 `winner is None` 里混了两种东西 ——
+# 真和棋，以及"被 ply_cap 截断、没下完"的局。于是「和棋率」不可解释，
+# 而 `games == targetGames` 是个恒真的假指标（32 局 18 局截断时它照样全过）。
+#
+# 通则：**同名字段语义不可变，改口径一律新增字段** —— 旧报告不能静默变成另一个含义。
+# ---------------------------------------------------------------------------
+def _adjudicated_row(winner: str | None) -> dict[str, object]:
+    row = _row(winner)
+    row["adjudicated"] = True
+    return row
+
+
+def test_adjudicated_games_are_counted_separately_from_draws() -> None:
+    # 12 胜 + 3 负 + 2 真和 + 3 截断无胜负 = 20 局
+    rows = [_row("red")] * 12 + [_row("black")] * 3 + [_row(None)] * 2 + [_adjudicated_row(None)] * 3
+    report = summarize(rows, "beginner", "medium", 64, 20)
+
+    assert report["games"] == 20
+    assert report["wins"] == 12
+    assert report["losses"] == 3
+    # `draws` 保持旧义：winner is None 的全部（含截断无胜负）
+    assert report["draws"] == 5
+    assert report["drawsNoResult"] == 3
+    assert report["adjudicatedGames"] == 3
+    assert report["adjudicatedRatio"] == pytest.approx(3 / 20, abs=EPS)
+    # 旧 `score` 语义不变（含截断判定的半分），另给排除口径
+    assert report["score"] == 12 + 0.5 * 5
+    assert report["scoreIncludesAdjudicated"] is True
+    assert report["scoreExclAdjudicated"] == 12 + 0.5 * 2
+    assert report["gamesExclAdjudicated"] == 17
+
+
+def test_adjudicated_ratio_policy_is_labelled_as_policy() -> None:
+    """阈值是**设计判断**（会被数据推翻），测量值不可协商 —— 两者必须分开记。"""
+    report = summarize(_rows(16, 12, 4), "beginner", "medium", 64, 32)
+    assert report["adjudicatedRatioPolicy"] == 0.2
+    assert report["adjudicatedGames"] == 0
+
+
+# ---------------------------------------------------------------------------
+# 两个可比性指纹：必须真的**能分辨**，否则等于没写
+# ---------------------------------------------------------------------------
+def test_book_digest_changes_when_a_single_opening_fingerprint_changes() -> None:
+    """母体是自维护的：任何一条 `fp` 变了（含 `rs` 前缀），digest 必须变。
+
+    这条防的是"字段写了但永不变化"——那样判等脚本会永远判"可比"，
+    比没有字段更糟（它会给出错误的信心）。
+    """
+    from calibrate_levels import _book_digest
+
+    from xionghan_chess.core.benchmark import Opening
+
+    base = [
+        Opening(profile="desktop_complete", seed=700, plies=6, fp="a|opt:rs3-p3l1"),
+        Opening(profile="desktop_complete", seed=700, plies=10, fp="b|opt:rs3-p3l1"),
+    ]
+    same = list(base)
+    assert _book_digest(base) == _book_digest(same)
+
+    nudged = list(base)
+    nudged[1] = Opening(profile="desktop_complete", seed=700, plies=10, fp="b|opt:rs4-p3l1")
+    assert _book_digest(base) != _book_digest(nudged), "换了规则版本前缀，母体指纹必须变"
+
+
+def test_ai_config_digest_tracks_the_effective_config_not_just_the_level_name() -> None:
+    """两个 digest 分档存、对**实际生效**的配置求哈希。
+
+    报告里的 `levels` 只有档位名（`{"a": "beginner", "b": "medium"}`），而
+    `--config-*` / `--cap-*` / `--max-nodes-*` 优先于 `CONFIGS` 表 —— 两次配置差很远的
+    运行会得到**完全相同**的 `levels`。没有这个 digest，"档位强度变了真还是母体变了"
+    永远吵不清。
+    """
+    from dataclasses import replace
+
+    from calibrate_levels import _config_digest
+
+    from xionghan_chess.core.ai import SearchConfig
+
+    # `SearchConfig` 没有全默认构造：显式给一份，字段值本身不重要，只要可复现。
+    config = SearchConfig(
+        depth=1,
+        time_limit=1.0,
+        randomness=0,
+        quiescence_depth=0,
+        candidate_count=8,
+        branch_limit=8,
+        root_limit=8,
+    )
+    assert _config_digest("beginner", config) == _config_digest("beginner", config)
+
+    # 同一个档位名、不同的实际配置 → 必须分开
+    assert _config_digest("beginner", config) != _config_digest(
+        "beginner", replace(config, depth=config.depth + 1)
+    )
+    # 不同档位名、相同配置 → 也要分开（报告里档位名是给人看的标签）
+    assert _config_digest("beginner", config) != _config_digest("medium", config)

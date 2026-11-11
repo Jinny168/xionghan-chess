@@ -40,8 +40,12 @@ from bench_roots import build_position, position_fingerprint  # noqa: E402
 
 from xionghan_chess.core.benchmark import Opening  # noqa: E402
 from xionghan_chess.core.game import Game  # noqa: E402
+from xionghan_chess.core.profiles import RULE_VERSION  # noqa: E402
 
-FORMAT_VERSION = 1
+# 2 = 顶层带 `ruleVersion`（本轮起：开局书的**内容**依赖走法语义，书必须自报它按哪版规则生成）。
+# 读取端 `load_book` 不校验 format，只读 `openings` —— 所以升格式不破坏任何消费方，
+# 代价是"字段只能自证、拦不住人"：拦截全靠 `test_book_declares_the_current_rule_version`。
+FORMAT_VERSION = 2
 DEFAULT_PROFILE = "desktop_complete"
 DEFAULT_SEEDS = tuple(range(700, 732))
 DEFAULT_PLIES = (6, 10)
@@ -79,6 +83,7 @@ def generate_text(
     entries = build_entries(profile, seeds, plies_list)
     payload = {
         "format": FORMAT_VERSION,
+        "ruleVersion": RULE_VERSION,
         "policy": POLICY,
         "profile": profile,
         "seeds": [min(seeds), max(seeds)],
@@ -132,6 +137,22 @@ def main(argv: list[str] | None = None) -> int:
         actual = target.read_bytes()
         expected = generate_text().encode("utf-8")
         if actual != expected:
+            # 先报**版本不符**再报字节数：书是按当前规则重放出来的，`ruleVersion` 差一位时
+            # 62/64 条只是 `rs` 前缀不同、2 条会整盘分叉 —— 只报"62531 vs 62543 B"
+            # 会让人以为是格式细节，看不出根因是规则升位没重生成。
+            try:
+                stored = json.loads(actual.decode("utf-8"))
+            except (UnicodeDecodeError, ValueError):
+                stored = None
+            if isinstance(stored, dict):
+                was = (stored.get("format"), stored.get("ruleVersion"))
+                now = (FORMAT_VERSION, RULE_VERSION)
+                if was != now:
+                    print(
+                        f"版本不符：{target}（disk format/ruleVersion={was} / 期望={now}）"
+                        "—— 规则语义变了就必须重生成：python scripts/gen_opening_book.py"
+                    )
+                    return 1
             print(f"不一致：{target}（disk {len(actual)} B / rebuilt {len(expected)} B）")
             return 1
         print(f"一致：{target}（{len(actual)} B）")
