@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import os
+import sys
 from contextlib import asynccontextmanager, suppress
 from dataclasses import asdict
 from datetime import date as _date
@@ -752,6 +753,13 @@ if WEB_DIR.exists():
 def run() -> None:
     import uvicorn
 
+    if sys.platform == "win32":
+        # 只为消掉 `_ProactorBasePipeTransport._call_connection_lost` +
+        # `ConnectionResetError [WinError 10054]` 这类**连接清理回调**噪声：
+        # Proactor 在连接被对端重置时会把清理异常抛进事件循环的异常处理器，
+        # 但它不是业务错误。换 Selector 后真实异常仍照常记录。
+        # `service/` 内没有 create_subprocess*（Selector 不支持它），所以安全。
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     uvicorn.run("xionghan_chess.service.app:app", host="0.0.0.0", port=int(os.getenv("PORT", "8000")), reload=False)
 
 
