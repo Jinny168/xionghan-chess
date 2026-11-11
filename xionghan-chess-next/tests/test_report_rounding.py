@@ -7,6 +7,13 @@
 而**几乎所有测试仍然绿** —— 因为本轮锚点 `13.5/64 = 0.2109375` 与 `50.5/64 = 0.7890625`
 **都不是 tie**（第 5 位分别是 3 和 6），走不到 tie 分支。舍入模式的覆盖缺口是 **100%**。
 
+## 判别器只能让**两种舍入模式作用于同一个 exact 值**
+
+正确写法：`exact.quantize(q) != exact.quantize(q, rounding=ROUND_HALF_UP)`（左边默认就是
+half-even）。**不要**写成 `round(v, n) != float(exact.quantize(q, HALF_UP))` —— 左边 float
+语义、右边 decimal 语义，测到的是**表示差异**而不是舍入模式差异（`0.015` 即此类），
+后果是"报了覆盖但没覆盖"。
+
 ## 三层各守一件事（别让任何一层变成"永远绿"）
 
 1. **tie 单测**：`_round` vs `Decimal.quantize` 的 half-even，输入由 `float_exact_ties()` 生成。
@@ -14,20 +21,21 @@
 2. **单入口（AST 级）**：`calibrate_levels.py` 里裸 `round(` 只允许出现在 `_round` 内部。
    防"新加字段时顺手写 `round(x, 4)`"——那是真会发生的事。
 3. **守恒不变量 + 写出端**：跑 `tests/fixtures/mini_calibration.jsonl`（8 局，随仓库走）
-   复现 `summarize()`，断言 `winRate + strongScore == 1` 与各字段的舍入值。
+   复现 `summarize()`，断言 `winRate + strongScore` 在 1 的 **1 个 ulp** 内（`games` 为 80
+   的倍数时会各差 0.0001，见下方常量处的枚举依据）与各字段的舍入值。
    **不能用 `.report.json` / `.jsonl` 真产物** —— 它们不进仓库，CI 里会静默 skip，
    于是这条核心不变量在 CI 里根本不跑（本项目已经踩过一次"静默 skip"的坑）。
 
-## 两个必须写进代码的坑
+## oracle 语义为什么还要测（生成器已经不用它了）
 
-1. **oracle 必须 `_exact(v)` = `Decimal(v)`（float 精确值），不能 `Decimal(str(v))`。**
-   `str` 口径把输入域换成十进制，会造出**生产中不存在的 tie**。这个错本轮**真实发生过**
-   （写生成器的人自己写的），而且在生产参数下**完全静默**：`den=64` 时两种口径都给 8 个、
-   `den=8` 都给 2 个，只有非真实的 `den=200` 才分叉（50 vs 2）。
-   所以只能靠直接断言 `_exact` 的语义来守，行为断言抓不到。
-2. **判别器必须让两种舍入模式作用于同一个 exact 值**。
-   写成 `round(v, n) != float(exact.quantize(q, HALF_UP))` 会把 float 与 decimal 的
-   **表示误差**记成"舍入模式差异"（`0.015` 即此类）。
+生成器改成闭式（`j ≡ 1 (mod 4)`）之后**不再有 oracle**，所以那个"用 `Decimal(str(v))`
+会造出假 tie"的失效模式在生成器里已经不可达。但 `_exact` 仍是**断言侧**的 oracle
+（`_round(v, nd) == float(_exact(v).quantize(...))`），而闭式的值全部二进制精确 ——
+也就是说：**即使有人把 oracle 改回 `str(v)`，所有行为断言仍然全绿**（本题 255 个值实测
+`Decimal(v) == Decimal(str(v))` 恒成立）。
+
+正因为它"行为上不可观测"，才必须**直接断言** `_exact` 的语义：
+`_exact(0.005) != Decimal("0.005")` 是唯一抓手。（这个回归本轮真实发生过一次，当时完全静默。）
 """
 
 from __future__ import annotations
@@ -54,31 +62,31 @@ from calibrate_levels import _round, summarize  # noqa: E402
 def _exact(value: float) -> Decimal:
     """`float` 的**精确**十进制值。
 
-    **禁止改成 `Decimal(str(value))`**：那会把输入域换成"十进制读法"，造出生产中不存在的
-    tie（`0.015` 在 float 里略小于精确值，`round()` 根本不走 tie 分支）。本轮这个错真实
-    发生过，而且生产参数下完全静默 —— 见模块 docstring。
+    **禁止改成 `Decimal(str(value))`**：那会把输入域换成"十进制读法"。
+    本函数现在**只服务于断言侧的 oracle**（生成器已改成闭式、不再用它），
+    而闭式产出的值全部二进制精确 —— 所以这个改动在**行为上不可观测**，
+    只能靠下面的 `_exact(0.005) != Decimal("0.005")` 来守。见模块 docstring。
     """
     return Decimal(value)
 
 
 def float_exact_ties(ndigits: int) -> list[float]:
-    """`ndigits` 位小数下**能被 float 精确表示**、且两种舍入模式给出不同结果的 tie。
+    """`ndigits` 位小数下能被 float 精确表示、且能区分 half-even 与 half-up 的 tie。
 
-    完备性：tie 要求 `v = (2m+1)/(2·10^nd)` 且 float 可精确表示 ⇒ `5^nd | (2m+1)`
-    ⇒ 记 `2m+1 = j·5^nd`（j 奇）⇒ `v = j / 2^(nd+1)`。反向：`j/2^(nd+1) = j·5^(nd+1)/10^(nd+1)`，
-    j 奇 ⇒ 末位必为 5 ⇒ 恰是 nd 位 tie。故枚举奇 j 即"全部且仅有的 float 可精确 tie"。
+    **闭式（可证，不需要 oracle 筛选）**：这类 tie 恰是 `j / 2^(nd+1)` 里 `j ≡ 1 (mod 4)` 的那些。
 
-    **不要改成按分母枚举**：真实 `games ∈ {10,20,25,40,50,64,100,128}` 下两种写法结论相同
-    （不可达），但一旦有人引入非真实分母（如 `den=200`），会造出 50 个假 tie（真实只有 2 个）。
+    证明：`v·10^nd = j·5^nd / 2`。`nd ≥ 1` 时 `5^nd ≡ 5 (mod 20)`，故 `j·5^nd ≡ 5j (mod 20)`：
+    - `j ≡ 1 (mod 4)` → `5j = 20m+5` → 末位数字 `floor(...) % 10 = 2`（偶）⇒ half-even 下舍 ≠ half-up 上进 ✅
+    - `j ≡ 3 (mod 4)` → `5j = 20m+15` → 末位数字 `7`（奇）⇒ 两种模式同样上进 ❌
+
+    已穷举核对 `nd = 1..7`：与"枚举全部奇 j 再用 `Decimal` 筛选"逐值完全相同
+    （1/2/4/8/16/32/64 个）。所以生成器里不再需要 `Decimal` / `ROUND_HALF_UP` ——
+    判据从"算出来"变成"证出来"，少一层依赖。
+
+    `j / 2^k` 天生二进制精确，因此本函数产出的每个值都满足
+    `Decimal(v) == Decimal(str(v))`（255 个值实测全部成立）。
     """
-    quantum = Decimal(1).scaleb(-ndigits)
-    out: list[float] = []
-    for j in range(1, 2 ** (ndigits + 1), 2):
-        value = j / 2 ** (ndigits + 1)  # 天生二进制精确
-        exact = _exact(value)
-        if exact.quantize(quantum) != exact.quantize(quantum, rounding=ROUND_HALF_UP):
-            out.append(value)
-    return out
+    return [j / 2 ** (ndigits + 1) for j in range(1, 2 ** (ndigits + 1), 4)]
 
 
 # ---------------------------------------------------------------------------
