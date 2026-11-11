@@ -136,7 +136,18 @@ Write-Host ("  棋子图校验 OK：{0} 张，{1:N1} KB，均 160×160 且三风
 # 打包产物已用 scripts/probe_exe.py 探活（临时 APPDATA，验证数据目录被创建 + 进程存活）。
 $productName = -join [char[]](0x5308, 0x6F22, 0x8C61, 0x68CB)
 $platformName = -join [char[]](0x684C, 0x9762, 0x7248)
-$artifactName = "$productName-1.7.0-$platformName"
+# 版本号**唯一来源** = `src/xionghan_chess/__init__.py` 的 `__version__`
+# （它同时被 pyproject 的 dynamic version 与 `packaging/version_info.txt` 引用，
+#  后者由 `tests/test_packaging_version.py` 对齐）。
+# 这里原来写死 `1.7.0`：产品已经到 2.0.0，产物名却还叫 1.7.0 —— 用户看到的版本号是错的。
+# 用正则从源码里取，不引入新依赖。
+$VersionSource = Join-Path $ProjectRoot "src\xionghan_chess\__init__.py"
+if (-not (Test-Path -LiteralPath $VersionSource)) { Write-Error "版本来源缺失：$VersionSource"; exit 1 }
+$VersionMatch = Select-String -LiteralPath $VersionSource -Pattern '__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+[^"]*)"' | Select-Object -First 1
+if (-not $VersionMatch) { Write-Error "无法从 $VersionSource 解析 __version__"; exit 1 }
+$AppVersion = $VersionMatch.Matches[0].Groups[1].Value
+$artifactName = "$productName-$AppVersion-$platformName"
+Write-Host "  版本：$AppVersion（来源 $VersionSource）"
 # FIX (阶段0 S0-A 续)：构建链第三个缺陷。
 # PyInstaller 把 INFO 级日志写到 **stderr**；在 `$ErrorActionPreference = "Stop"`
 # 下，PowerShell 会把任何原生命令的 stderr 输出包装成 NativeCommandError 并**中止脚本**

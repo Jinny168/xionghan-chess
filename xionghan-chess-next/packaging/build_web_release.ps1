@@ -3,7 +3,16 @@ $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $ReleaseRoot = Join-Path $ProjectRoot "release"
 $productName = -join [char[]](0x5308, 0x6F22, 0x8C61, 0x68CB)
 $platformName = -join [char[]](0x7F51, 0x9875, 0x7248)
-$PackageName = "$productName-1.7.0-$platformName"
+# Version single source: src/xionghan_chess/__init__.py __version__ (this file used to hardcode 1.7.0).
+# NOTE: this .ps1 has no UTF-8 BOM, so keep every character ASCII here -- Chinese text in a
+# BOM-less file is decoded as ANSI by Windows PowerShell 5.1 and breaks string literals.
+$VersionSource = Join-Path $ProjectRoot "src\xionghan_chess\__init__.py"
+if (-not (Test-Path -LiteralPath $VersionSource)) { Write-Error "Version source missing: $VersionSource"; exit 1 }
+$VersionMatch = Select-String -LiteralPath $VersionSource -Pattern '__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+[^"]*)"' | Select-Object -First 1
+if (-not $VersionMatch) { Write-Error "Cannot parse __version__ from $VersionSource"; exit 1 }
+$AppVersion = $VersionMatch.Matches[0].Groups[1].Value
+$PackageName = "$productName-$AppVersion-$platformName"
+Write-Host "  version: $AppVersion (from $VersionSource)"
 $Stage = Join-Path $ReleaseRoot $PackageName
 $Archive = Join-Path $ReleaseRoot "$PackageName.zip"
 

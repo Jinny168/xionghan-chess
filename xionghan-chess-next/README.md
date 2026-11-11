@@ -6,7 +6,7 @@
 - 棋子行棋规则：[docs/PIECE_RULES.md](docs/PIECE_RULES.md)；对局与胜负规则：[docs/RULES.md](docs/RULES.md)
 - 玩家操作与常见问题：[HELP.md](src/xionghan_chess/desktop/resources/docs/HELP.md)
 
-> 本目录 `xionghan-chess-next/` 是当前唯一的正式实现。仓库根目录下的 `desktop/`、`web/`、`docker/` 属于旧的 2.0 代码线，已退出维护，不在本项目的构建与运行范围内。
+> 本目录 `xionghan-chess-next/` 是当前唯一的正式实现。仓库根目录下的 `desktop/`、`web/`、`docker/` 是**已退役的历史代码线**（目录名沿用当年的"2.0 计划"，与当前版本号 2.0.0 无关），不在本项目的构建与运行范围内。
 
 ## 一、快速开始
 
@@ -45,7 +45,7 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pytest tests/ -m slow
 ```
 
-> 日常门禁用 `-m "not slow"`（**实收 1350 条**；全量 `pytest -q` 最近实测 **1345 passed / 2 skipped，2026-11-11**；两条命令的选择器不同，不要互相替换；随用例数增长）；**改评估 / 走法排序 / 搜索参数 / 难度参数后必须跑全量**
+> 日常门禁用 `-m "not slow"`：**2026-11-11 实测 `pytest -q` 1345 passed / 2 skipped；`--collect-only` 计数 not slow 1350 / 全量 1361**（三条命令选择器不同，不要混写、也不要互相替换）；**改评估 / 走法排序 / 搜索参数 / 难度参数后必须跑全量**
 > （`-m slow`）。裸 `pytest` 会跑全量、更慢 —— 门禁命令请显式写出来，不要靠全局默认。
 
 ## 功能摘要
@@ -114,9 +114,9 @@ xionghan-chess-next/
   - “网络房间、聊天、暂停计时、观战同步”等在线功能依赖一个已启动的 FastAPI 服务；服务不可达时这些入口保持禁用。
 - **Web 端不独立承载规则**：浏览器端是服务端规则的投影，合法走法、AI 与终局判定都发生在 Python 服务内，因此 Web 端必须连着服务端才能下棋。
 - **Android 端内置离线规则镜像**：APK 内置一份 `offline.js` 规则，用于“双人同机”离线对局；该镜像需要与 Python 核心规则保持一致（由跨引擎对拍测试守护）。
-- **AI 对外三档**：`beginner`（上限 2 s）· `medium`（上限 5 s）· `hard`（上限 12 s）。实际等待由每档典型耗时决定（见 `core/ai.py` 的 `EXPECTED_MOVE_SECONDS`，桌面读条与看门狗也读同一组常量，**不在文档里抄第二份数字**）；文案承诺的是上限而非典型值。
+- **AI 对外三档**：`beginner`（上限 2.0 s）· `medium`（上限 5.0 s）· `hard`（上限 12.0 s）。典型耗时由 `core/ai.py` 的 `EXPECTED_MOVE_SECONDS` 给出：**0.7 / 3.0 / 7.0 s**（桌面读条与看门狗读同一组常量，改数值只改一处）；文案承诺的是上限而非典型值。
 - **内部档位**：`easy` / `expert` / `master` 保留配置与 locale 键，仅用于旧存档兼容与 benchmark（`master` 走 MCTS，不对玩家提供）；旧配置自动映射 `easy→medium`、`expert/master→hard`。
-- **档位验收现状（不要把未达标写成已达标）**：n=64 对拍已跑完；**K4（相邻档间距）强档得分率点估计 0.7891 出设计带 `[0.65, 0.75]`，`contractPass=false`，不可认证**；**K3-a 计数在预授权区间内，但「最长连续送子 ≤2 手」未达标（实测 3–4 手）**；**K5（新手首次上手的人工试玩）未测**。详见 [docs/AI_TIERS.md](docs/AI_TIERS.md)。
+- **档位验收现状（不要把未达标写成已达标）**：n=64 对拍**已执行**——得分率点估计 **入门 0.2109 / 中级 0.7891**，中级一侧**出设计带 `[0.65, 0.75]`，`contractPass=false`，不可认证**；**K3-a 计数在预授权区间内，但「最长连续送子 ≤2 手」未达标（实测 3–4 手）**；**K5（新手首次上手的人工试玩）未测**。详见 [docs/AI_TIERS.md](docs/AI_TIERS.md)。
 - **内置题解规模有限**：题解集尚小，仍在补充中。
 
 ## 六、相关文档

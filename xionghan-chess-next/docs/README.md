@@ -47,14 +47,15 @@
 |---|---|---|
 | [RUN_LOCAL_PLAN.md](RUN_LOCAL_PLAN.md) | 本机可玩交付计划：桌面版 + 网页版 | 参考 |
 
-## materials · 对外材料（非产品文档）
+## materials · 对外材料（非产品文档，见 [materials/](materials/)）
 
 | 文件 | 用途 | 是否权威 |
 |---|---|---|
-| [WEBAPP_1024.md](WEBAPP_1024.md) | WorkBuddy「1024 造物挑战」投稿材料 | 对外材料 |
-| [XHS_POST.md](XHS_POST.md) | 小红书发布文案（1024 参赛作品） | 对外材料 |
+| [materials/WEBAPP_1024.md](materials/WEBAPP_1024.md) | WorkBuddy「1024 造物挑战」投稿材料 | 对外材料 |
+| [materials/XHS_POST.md](materials/XHS_POST.md) | 小红书发布文案（1024 参赛作品） | 对外材料 |
 
-> 注：`HY4_SUBMISSION_KIT.md` / `HY4_CONVERSATION_RECORD.md` / `RETRO_S4_2026-11-11.md` 目前**尚未纳入版本控制**（`git status` 显示未跟踪）。本索引只索引已入库文件，避免新克隆出现死链；这三个文件入库后再补进来。
+> 注：`materials/HY4_SUBMISSION_KIT.md` / `materials/HY4_CONVERSATION_RECORD.md` 及其引用的 `contest-record/`、`xhs/` 素材**尚未纳入版本控制**；本索引只索引已入库文件，避免新克隆出现死链。入库后再补。<br>
+> `RETRO_S4_2026-11-11.md`（S4 复盘）同样是未跟踪文件，未列入索引。
 
 ## archive · 历史快照（已归档，只读不改）
 
