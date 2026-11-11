@@ -46,3 +46,18 @@
 - **建议处理**：在 `manager.create` 入口做一次 `Difficulty(normalize_difficulty(...))`，
   把「别名等价」升级为「值等价」。
 - **为何不阻断**：行为当前完全一致，属潜伏雷而非现行缺陷。
+
+## 5. 桌面端 windowed 构建零日志，崩溃无可回收证据（可维护性缺口）
+
+- **现象**：`packaging/build_windows.spec` 为 `console=False`（windowed，无控制台句柄），
+  且 `src/xionghan_chess/desktop/` 内 `logging.*` / `FileHandler` / `basicConfig` **零命中**，
+  也没有 `sys.excepthook` / `faulthandler`。`%APPDATA%\XionghanChess` 下只有
+  `settings.json` / `statistics.json` / `games\*.xhgame`，**没有任何 `.log`**。
+- **影响**：用户侧崩溃只弹一个对话框，留不下可回收的证据；`2>file` 也抓不到 stderr。
+  本轮 exe 冒烟只能用「窗口标题可见 + `Responding=True` + 关闭走完 `save_config`」作间接证据，
+  拿不到 stderr 文本。
+- **建议处理**：`run()` 里装 `sys.excepthook` + `faulthandler.enable(file=...)`，
+  落到 `%APPDATA%\XionghanChess\crash-<ts>.log`；保留 `disable_windowed_traceback=False`。
+- **为何不阻断**：不影响功能与启动，属可观测性缺口，后续版本补。
+- **附带观察**：PyInstaller onefile 启动后是**两个进程**（bootloader 父进程约 12MB / 4 线程，
+  应用子进程约 210MB / 19 线程）。只看父进程会误判「内存太小=没起来」。
