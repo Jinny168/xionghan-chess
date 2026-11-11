@@ -8,7 +8,7 @@
 | 文件 | 用途 | 是否权威 |
 |---|---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 架构与功能说明（含三档 AI、WASM 结论、离线数据 codegen） | ✅ 维护中 |
-| [AI_TIERS.md](AI_TIERS.md) | 三档参数、S4 重标定、K1–K5 契约、标定纪律（v2 判定） | ✅ 维护中 |
+| [AI_TIERS.md](AI_TIERS.md) | 三档参数、S4 重标定、K1–K5 契约、标定纪律（判定 v2） | ✅ 维护中 |
 | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | 已知问题与未完成实测登记 | ✅ 维护中 |
 | [WASM_DECISION.md](WASM_DECISION.md) | WASM 可行性结论、证据与重开条件 | ✅ 维护中 |
 | [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md) | 对标基准与改进计划（S1–S5 路线图载体） | ✅ 维护中 |
