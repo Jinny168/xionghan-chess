@@ -89,10 +89,10 @@
   },
   "difficulty": {
     "label": "AI difficulty",
-    "beginner": "1 move ahead. You dodge the immediate recapture, but nothing beyond that.",
+    "beginner": "Sees only the move in front of it.",
     "easy": "Easy (merged into Beginner)",
-    "medium": "2 moves ahead. Free pieces get taken.",
-    "hard": "3 moves ahead. One loose move gets punished.",
+    "medium": "Hang a piece and it takes it — recapture included.",
+    "hard": "One loose move and it collects two moves later.",
     "expert": "Expert (merged into Hard)",
     "master": "Master (merged into Hard)"
   },

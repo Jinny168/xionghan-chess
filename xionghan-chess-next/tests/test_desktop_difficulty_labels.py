@@ -1,4 +1,4 @@
-"""难度下拉文案里的「看 N 步」必须与 `CONFIGS[d].depth` 一致。
+"""难度下拉文案不得出现数字化深度承诺。
 
 ## 为什么需要这条
 
@@ -34,23 +34,19 @@ def load(locale: str) -> dict:
     return json.loads(LOCALES[locale].read_text(encoding="utf-8"))["difficulty"]
 
 
+FORBIDDEN_DEPTH = re.compile(r"看[一二三四五六七八九十0-9]+步|\d+\s*(?:步|plies?)", re.I)
+
+
 @pytest.mark.parametrize("locale", list(LOCALES))
 @pytest.mark.parametrize("difficulty", PUBLIC_DIFFICULTIES)
-def test_label_depth_matches_config(locale: str, difficulty: Difficulty) -> None:
-    """文案「看 N 步」的 N 必须等于 CONFIGS[d].depth（今天标签写 d6、实际跑 d1 的漂移）。"""
+def test_label_has_no_numeric_depth_claim(locale: str, difficulty: Difficulty) -> None:
+    """实测 hard 只有 ~83% 到 d3，写“看三步”是可核对却对不上的承诺。
+
+    文案改行为描述后，任何数字化深度承诺（看 N 步 / N plies）都禁止；depth 将来
+    怎么变都不会再产生假承诺。原有“更强/更深”禁词由下一条测试保留。
+    """
     label = load(locale)[difficulty.value]
-    chinese = re.search(r"看([一二两三四五六七八九十])步", label)
-    if chinese:
-        listed = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}[
-            chinese.group(1)
-        ]
-    else:
-        ascii_depth = re.search(r"(\d+)\s*moves?\s*ahead", label, re.I)
-        assert ascii_depth, f"{locale}/{difficulty.value} 文案里没有「看 N 步」：{label!r}"
-        listed = int(ascii_depth.group(1))
-    assert listed == CONFIGS[difficulty].depth, (
-        f"{locale}/{difficulty.value} 文案写 {listed} 步，CONFIGS.depth={CONFIGS[difficulty].depth}"
-    )
+    assert not FORBIDDEN_DEPTH.search(label), f"{locale}/{difficulty.value} 含数字化深度承诺：{label!r}"
 
 
 @pytest.mark.parametrize("locale", list(LOCALES))
