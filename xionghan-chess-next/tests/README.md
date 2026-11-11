@@ -4,10 +4,28 @@
 
 ```bash
 python -m pytest tests/ -m "not slow"   # 默认门禁，约 85–95s
-python -m pytest tests/ -m "slow"       # 专家档 14 条深度用例 + 性能护栏
+python -m pytest tests/ -m "slow"       # 11 条深度用例 + 性能护栏
 ```
 
-改**评估 / 走法排序 / 搜索参数 / 难度参数**之后必须跑全量（`-m slow`）。
+`slow` 的实测口径（2026-11-11 用 `--collect-only -m slow` 复核，共 **11 条**）：
+
+| 文件 | 条数 |
+|---|---|
+| `tests/test_performance.py` | 5 |
+| `tests/test_perft_fingerprint.py` | 3 |
+| `tests/test_opening_book.py` | 2 |
+| `tests/test_bench_roots.py` | 1 |
+
+**不含专家档**：`tests/test_expert_level.py` 只有 2 条别名校验
+（`test_expert_is_an_alias_of_hard` / `test_expert_is_merged_into_hard_in_the_dropdown`），
+且**未标** `slow`，跑在默认集里。
+
+**裸 `pytest` 就是全量**：`pyproject.toml` 的 `[tool.pytest.ini_options]` 只有
+`addopts = ["--strict-markers"]`，**没有**默认 `-m "not slow"`。上面两条 `-m` 是 CI job
+显式指定的，不是本地默认行为 —— 别以为本地 `pytest` 跑的是子集。
+
+改**评估 / 走法排序 / 搜索参数 / 难度参数**之后必须跑全量：裸 `pytest tests/`
+（当前约 1370 条，含这 11 条 slow），而不是只跑 `-m slow`。
 
 ## 对拍用例变更记录
 

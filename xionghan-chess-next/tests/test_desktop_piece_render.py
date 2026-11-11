@@ -41,8 +41,9 @@ from xionghan_chess.desktop.ui.board_widget import (  # noqa: E402
 
 SIZE = 620
 STYLES = ("traditional", "modern", "cartoon")
-# 美术已覆盖全部 11 型（2026-10-31 起无缺图型）：没有"回退绘制"的样本
-MISSING: tuple[PieceType, ...] = ()
+# 刺/assassin 已于 a3dc236「硬删除甲/楯/刺」从 `PieceType` 移除，且美术已覆盖全部
+# 11 型（2026-10-31 起无缺图型）——"缺美术仍要画墨"的样本已经不存在。
+# 不要用空元组做 `parametrize`：那会静默归零（报告里 0 条用例，且不会自己恢复）。
 
 
 @pytest.fixture(scope="module")
@@ -155,14 +156,14 @@ def test_disk_diameter_stays_0_78_cell(qt_app: QApplication, style: str) -> None
     )
 
 
-@pytest.mark.parametrize("kind", MISSING)
-def test_missing_art_still_draws_ink_in_image_mode(qt_app: QApplication, kind: PieceType) -> None:
-    """刺没有美术，但 image 模式下必须画出同风格底盘 + 字形（不能空白）。"""
-    style = "traditional"
-    empty, board = render(style, IMAGE_MODE, [])
-    marked, _ = render(style, IMAGE_MODE, one_piece(kind))
-    ink_bounds(empty, marked, board)  # 没有墨迹会在这里 assert 失败
-    assert piece_assets.is_missing(style, Color.RED, kind)
+def test_missing_art_still_draws_ink_in_image_mode() -> None:
+    """缺美术的棋子仍要画出同风格底盘 + 字形 —— 但这样的棋种已经不存在。
+
+    刺/assassin 在 a3dc236 被硬删除，且美术已覆盖全部 11 型，本覆盖不再适用。
+    显式 skip 而不是空 `parametrize`：后者在报告里是 0 条用例，静默归零且不会
+    自己恢复（正是这轮 qa 挖出的"永久 skip 的死用例"）。
+    """
+    pytest.skip("刺已从 PieceType 移除（a3dc236），缺美术仍能画墨的场景不再存在")
 
 
 def test_default_glyph_mode_never_touches_artwork(qt_app: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
