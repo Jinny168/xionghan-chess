@@ -327,7 +327,12 @@ class BoardWidget(QWidget):
         self.control_both = False
         self.selected: Position | None = None
         self.legal: list[Move] = []
+        # `capturable` = **落点可吃**：这枚子就在某条合法着法的落点上，点过去就吃掉。
+        # `victims` = **旁吃受害者**：三连吃子从落点旁边的线上取子，那枚子不在任何落点上。
+        # 两者必须分开画 —— 合成一个集合时，红叉会出现在棋子永远到不了的格子上，
+        # 玩家读成"落点可吃"，与规则不符。
         self.capturable: set[Position] = set()
+        self.victims: set[Position] = set()
         self.drag_origin: Position | None = None
         self.locked = False
         # 思考态读条：`thinking_started` 为 None 表示不在思考（不画条）。
@@ -362,12 +367,12 @@ class BoardWidget(QWidget):
     def set_game(self, game: Game, human_color: Color, control_both: bool = False) -> None:
         self.game, self.human_color = game, human_color
         self.control_both = control_both
-        self.selected, self.legal, self.capturable = None, [], set()
+        self.selected, self.legal, self.capturable, self.victims = None, [], set(), set()
         self.update()
 
     def set_flipped(self, flipped: bool) -> None:
         self.flipped = flipped
-        self.selected, self.legal, self.capturable = None, [], set()
+        self.selected, self.legal, self.capturable, self.victims = None, [], set(), set()
         self.update()
 
     def _view_position(self, position: Position) -> Position:
@@ -922,16 +927,30 @@ class BoardWidget(QWidget):
         painter.restore()
 
     def _draw_capture_hints(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
+        """两种吃子提示，两套视觉，别合并。
+
+        - **实心叉**（`capturable`）= 落点可吃：这条合法着法的落点上就站着这枚子，
+          点过去必吃。形状与"能不能走"一一对应，玩家据此决定点哪里。
+        - **空心圈**（`victims`）= 旁吃受害者：三连吃子从落点旁边的线上取子，
+          这枚子**不在任何落点上**，点它会被引擎拒绝。用圈而不用叉，是为了不再让
+          玩家把"会被吃掉"读成"往这儿走就能吃"。
+        """
         if not self.show_capture_hints:
             return
         painter.save()
-        painter.setPen(QPen(QColor(205, 32, 32, 220), max(2.5, min(cw, ch) * 0.055)))
-        size = min(cw, ch) * 0.3
+        cell = min(cw, ch)
+        size = cell * 0.3
+        painter.setPen(QPen(QColor(205, 32, 32, 220), max(2.5, cell * 0.055)))
         for position in self.capturable:
             shown = self._view_position(position)
             x, y = left + shown.col * cw, top + shown.row * ch
             painter.drawLine(QPointF(x - size, y - size), QPointF(x + size, y + size))
             painter.drawLine(QPointF(x + size, y - size), QPointF(x - size, y + size))
+        painter.setPen(QPen(QColor(205, 32, 32, 170), max(2.0, cell * 0.04)))
+        for position in self.victims:
+            shown = self._view_position(position)
+            x, y = left + shown.col * cw, top + shown.row * ch
+            painter.drawEllipse(QPointF(x, y), cell * 0.34, cell * 0.34)
         painter.restore()
 
     def _draw_animation(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
@@ -972,11 +991,17 @@ class BoardWidget(QWidget):
     def _select(self, position: Position) -> None:
         self.selected = position
         self.legal = [move for move in self.game.rules.legal_moves(self.game.state) if move.source == position]
-        self.capturable = {
-            captured.position
+        # `captured_by_move` 回答的是"这一步会吃掉哪些子"，不等于"落点可吃哪格"：
+        # 三连吃子吃的是落点所在直线上的另一枚子（away-from-target）。两条分开收，
+        # 否则多格行军 / 一格三连的旁吃都会画出"落点可吃"的红叉，骗玩家去点一个
+        # 引擎根本不接受的落点。
+        captured_pieces = [
+            (move, captured)
             for move in self.legal
             for captured in self.game.rules.captured_by_move(self.game.state, move)
-        }
+        ]
+        self.capturable = {captured.position for move, captured in captured_pieces if captured.position == move.target}
+        self.victims = {captured.position for move, captured in captured_pieces if captured.position != move.target}
 
     def _mark(
         self, painter: QPainter, pos: Position, left: float, top: float, cw: float, ch: float, color: str, ratio: float
@@ -1064,7 +1089,7 @@ class BoardWidget(QWidget):
             return
         if self.selected and any(m.target == position for m in self.legal):
             move = next(m for m in self.legal if m.target == position)
-            self.selected, self.legal, self.capturable = None, [], set()
+            self.selected, self.legal, self.capturable, self.victims = None, [], set(), set()
             self.move_requested.emit(move)
             self.update()
             return
@@ -1073,5 +1098,5 @@ class BoardWidget(QWidget):
             self._select(position)
             self.piece_selected.emit()
         else:
-            self.selected, self.legal, self.capturable = None, [], set()
+            self.selected, self.legal, self.capturable, self.victims = None, [], set(), set()
         self.update()

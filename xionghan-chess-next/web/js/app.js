@@ -9,7 +9,7 @@ const replayBoard = $('#replayBoard');
 const replayCtx = replayBoard.getContext('2d');
 const app = {
   roomId: null, token: null, color: null, revision: 0, state: null, socket: null,
-  mode: 'ai', selected: null, legal: [], capturable: [], dragging: null,
+  mode: 'ai', selected: null, legal: [], capturable: [], victims: [], dragging: null,
   replayIndex: null, replaySource: null, replayTimer: null, sound: true, music: true,
   preferences: {systemTheme:'light',font:'system',boardTheme:'classic',pageBackground:'none',boardBackground:'1',pieceStyle:'traditional',musicStyle:'fc',volume:70,animation:true,selection:true,legalTargets:true,captureHints:true,taunts:true,autosave:true,initialMinutes:10,countdownSeconds:30,language:'zh-CN',flipped:false},
   options: {}, profiles: new Map(), pieceImages: new Map(), animation: null, legalPromise: null, resultKey: null, reconnectTimer: null, reconnectAttempts: 0,
@@ -127,7 +127,7 @@ function appendChat(payload){if(payload.automated&&app.preferences.taunts===fals
 function sendChat(quick=false){const input=$('#chatInput'),text=(quick?$('#quickChatSelect').value:input.value).trim();if(!text)return;send('chat',{text,quick});if(!quick)input.value=''}
 function showRecordView(view){const chat=view==='chat';$('#chatView').hidden=!chat;$('#moveList').hidden=chat;$('#moveCount').hidden=chat;$('#showMovesButton').classList.toggle('active',!chat);$('#showChatButton').classList.toggle('active',chat)}
 function receiveSnapshot(snapshot){
-  const previous=app.state,revisionChanged=snapshot.revision!==app.revision;app.revision=snapshot.revision;app.state=snapshot.game;app.mode=snapshot.mode;app.options=snapshot.game.profile.options;$('#modeSelect').value=app.mode;syncModeControls();if(revisionChanged){app.selected=null;app.legal=[];app.capturable=[]}
+  const previous=app.state,revisionChanged=snapshot.revision!==app.revision;app.revision=snapshot.revision;app.state=snapshot.game;app.mode=snapshot.mode;app.options=snapshot.game.profile.options;$('#modeSelect').value=app.mode;syncModeControls();if(revisionChanged){app.selected=null;app.legal=[];app.capturable=[],app.victims=[]}
   if(!previous&&snapshot.chatHistory?.length){$('#chatMessages').innerHTML='';snapshot.chatHistory.forEach(appendChat)}
   $('#roomCode').textContent=snapshot.roomId;$('#roomInput').value=snapshot.roomId;const turnRibbon=$('#turnRibbon');turnRibbon.className=ribbonClass(app.state);turnRibbon.textContent=app.state.finished?t('status.game_over'):(app.state.paused?t('status.paused'):(app.state.check?`${t('status.check')} · `:'')+t('status.turn',{color:t(`common.${app.state.turn}`)}));if(app.state.check&&turnRibbon.animate)turnRibbon.animate([{transform:'scale(1)',color:'inherit'},{transform:'scale(1.08)',color:CHECK_PULSE_MID},{transform:'scale(1)',color:'inherit'}],{duration:900,iterations:2});
   $('#spectatorCount').textContent=`${snapshot.spectatorCount||0} 人观战`;
@@ -211,7 +211,12 @@ function cellFrame(g,raw,color){const p=displayPosition(g,raw),ix=g.cw*.05,iy=g.
 // 与显示局面严格对应，所以那边照画。**两端语义一致（都显示当前局面的上一步），
 // 实现必然不同，别为了"统一"把其中一边改成另一种做法，那会引入错位 bug。**
 function drawHighlights(g){const last=app.replayIndex===null?app.state.history?.at(-1):null;if(last){const ink=lastMoveInk(.25);cellFrame(g,last.move.from,ink);cellFrame(g,last.move.to,ink)}if(app.state.check){const king=app.state.pieces.find(p=>p.type==='king'&&p.color===app.state.turn);if(king)ring(g,king,'rgba(196,35,35,.35)',.47)}if(app.selected&&app.preferences.selection!==false)ring(g,app.selected,'rgba(215,167,55,.55)',.48);if(app.preferences.legalTargets!==false)for(const raw of app.legal){const p=displayPosition(g,raw),occupied=app.state.pieces.some(x=>x.row===raw.row&&x.col===raw.col);ctx.beginPath();ctx.arc(g.pad+p.col*g.cw,g.pad+p.row*g.ch,occupied?Math.min(g.cw,g.ch)*.43:Math.min(g.cw,g.ch)*.1,0,Math.PI*2);ctx.fillStyle=occupied?'rgba(157,37,37,.28)':'rgba(49,92,72,.72)';ctx.fill()}}
-function drawCaptureHints(g){if(app.preferences.captureHints===false)return;const size=Math.min(g.cw,g.ch)*.3;ctx.save();ctx.strokeStyle='rgba(205,32,32,.9)';ctx.lineWidth=Math.max(2.5,Math.min(g.cw,g.ch)*.055);for(const raw of app.capturable){const p=displayPosition(g,raw),x=g.pad+p.col*g.cw,y=g.pad+p.row*g.ch;ctx.beginPath();ctx.moveTo(x-size,y-size);ctx.lineTo(x+size,y+size);ctx.moveTo(x+size,y-size);ctx.lineTo(x-size,y+size);ctx.stroke()}ctx.restore()}
+// 两种吃子提示，两套视觉，别合并（桌面端 board_widget._draw_capture_hints 同构）：
+// 实心叉 = 落点可吃（这枚子就站在某条合法着法的落点上，点过去必吃）；
+// 空心圈 = 旁吃受害者（三连吃子从落点旁边的线上取子，这枚子不在任何落点上，
+// 点它会被引擎拒绝）。合并成一个集合时，红叉会出现在棋子去不了的格子上，
+// 玩家读成"落点可吃" —— 正是用户报的那个 bug。
+function drawCaptureHints(g){if(app.preferences.captureHints===false)return;const cell=Math.min(g.cw,g.ch),size=cell*.3;ctx.save();ctx.strokeStyle='rgba(205,32,32,.9)';ctx.lineWidth=Math.max(2.5,cell*.055);for(const raw of app.capturable){const p=displayPosition(g,raw),x=g.pad+p.col*g.cw,y=g.pad+p.row*g.ch;ctx.beginPath();ctx.moveTo(x-size,y-size);ctx.lineTo(x+size,y+size);ctx.moveTo(x+size,y-size);ctx.lineTo(x-size,y+size);ctx.stroke()}ctx.strokeStyle='rgba(205,32,32,.66)';ctx.lineWidth=Math.max(2,cell*.04);for(const raw of app.victims){const p=displayPosition(g,raw),x=g.pad+p.col*g.cw,y=g.pad+p.row*g.ch;ctx.beginPath();ctx.arc(x,y,cell*.34,0,Math.PI*2);ctx.stroke()}ctx.restore()}
 function ring(g,raw,color,size){const p=displayPosition(g,raw);ctx.beginPath();ctx.arc(g.pad+p.col*g.cw,g.pad+p.row*g.ch,Math.min(g.cw,g.ch)*size,0,Math.PI*2);ctx.fillStyle=color;ctx.fill()}
 const pieceAssetTypes={king:'han',rook:'che',horse:'ma',elephant:'xiang',advisor:'shi',cannon:'pao',pawn:'bing',guard:'wei',archer:'she',thunder:'lei',patrol:'xun'};
 function pieceImage(p){const suffix=pieceAssetTypes[p.type];if(!suffix)return null;const key=`${app.preferences.pieceStyle}:${p.color}:${suffix}`;if(app.pieceImages.has(key))return app.pieceImages.get(key);const image=new Image();image.onload=draw;image.onerror=()=>app.pieceImages.set(key,null);image.src=`/assets/pieces/${app.preferences.pieceStyle}/${p.color==='red'?'hong':'hei'}${suffix}.png`;app.pieceImages.set(key,image);return image}
@@ -219,13 +224,13 @@ function drawPiece(g,p){const shown=displayPosition(g,p),x=g.pad+shown.col*g.cw,
 
 async function selectOrMove(pos){
   if(!app.state||app.state.finished||app.replayIndex!==null)return;const piece=app.state.pieces.find(p=>p.row===pos.row&&p.col===pos.col);
-  if(app.selected&&app.legal.some(p=>p.row===pos.row&&p.col===pos.col)){const payload={from:{row:app.selected.row,col:app.selected.col},to:pos};if(app.selected.type==='pawn'&&app.options.pawn_promotion&&(pos.row===0||pos.row===app.state.profile.rows-1)){const choices=[...new Set((app.state.captured[app.selected.color]||[]).map(p=>p.type).filter(t=>!['pawn','king'].includes(t)))];if(choices.length){const answer=prompt(t('prompt.promotion',{choices:choices.join(' / ')}),choices[0]);if(!choices.includes(answer))return toast(t('toast.valid_promotion'));payload.promotion=answer}}send('move',payload);app.selected=null;app.legal=[];app.capturable=[];draw();return}
+  if(app.selected&&app.legal.some(p=>p.row===pos.row&&p.col===pos.col)){const payload={from:{row:app.selected.row,col:app.selected.col},to:pos};if(app.selected.type==='pawn'&&app.options.pawn_promotion&&(pos.row===0||pos.row===app.state.profile.rows-1)){const choices=[...new Set((app.state.captured[app.selected.color]||[]).map(p=>p.type).filter(t=>!['pawn','king'].includes(t)))];if(choices.length){const answer=prompt(t('prompt.promotion',{choices:choices.join(' / ')}),choices[0]);if(!choices.includes(answer))return toast(t('toast.valid_promotion'));payload.promotion=answer}}send('move',payload);app.selected=null;app.legal=[];app.capturable=[],app.victims=[];draw();return}
   if(piece&&app.selected&&piece.row===app.selected.row&&piece.col===app.selected.col){draw();return}
-  if(canControl(piece)){app.selected=piece;playSound('select');await loadLegal(piece)}else{app.selected=null;app.legal=[];app.capturable=[];draw()}
+  if(canControl(piece)){app.selected=piece;playSound('select');await loadLegal(piece)}else{app.selected=null;app.legal=[];app.capturable=[],app.victims=[];draw()}
 }
 async function loadLegal(piece){
   app.legalPromise=api(`/api/rooms/${app.roomId}/legal?row=${piece.row}&col=${piece.col}`);
-  try{const data=await app.legalPromise;if(data.revision===app.revision){app.legal=data.moves;app.capturable=data.captures||[]}}catch(error){toast(error.message);app.legal=[];app.capturable=[]}finally{app.legalPromise=null}draw()
+  try{const data=await app.legalPromise;if(data.revision===app.revision){app.legal=data.moves;app.capturable=data.capturesOnLanding??data.captures??[];app.victims=data.capturesAway??[]}}catch(error){toast(error.message);app.legal=[];app.capturable=[],app.victims=[]}finally{app.legalPromise=null}draw()
 }
 
 async function refreshAccount(){if(!app.authToken){app.account=null;$('#accountGuest').hidden=false;$('#accountProfile').hidden=true;return}try{const data=await api('/api/me');app.account=data.account;app.preferences={...app.preferences,...data.preferences};applyPreferences();$('#accountGuest').hidden=true;$('#accountProfile').hidden=false;$('#accountName').textContent=`${app.account.displayName} (@${app.account.username})`;$('#profileDisplayName').value=app.account.displayName;$('#profileAvatarUrl').value=app.account.avatarUrl?.startsWith('http')?app.account.avatarUrl:'';renderAvatarPicker(app.account.avatarUrl||'');await refreshCloudGames()}catch{app.authToken=null;app.account=null;localStorage.removeItem('xh-auth-token');$('#accountGuest').hidden=false;$('#accountProfile').hidden=true}}

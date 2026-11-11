@@ -418,6 +418,7 @@ class PieceAtlasDialog(QDialog):
         except Exception:
             return
         self._demo_board.selected, self._demo_board.legal, self._demo_board.capturable = None, [], set()
+        self._demo_board.victims = set()
         self._demo_board.set_game(game, Color.RED, control_both=True)
         self._demo_board.set_assists(selection=True, legal_targets=True, capture_hints=True, animations=False)
         self._demo_board._select(move.target)

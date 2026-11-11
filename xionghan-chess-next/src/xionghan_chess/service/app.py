@@ -446,10 +446,24 @@ async def legal_moves(
         captures = {
             captured.position for move in moves for captured in room.game.rules.captured_by_move(room.game.state, move)
         }
+        # 「落点可吃」与「这一步会吃掉某个子」是两件事，必须分开下发。
+        # `captured_by_move` 给的是后者：三连吃子吃的是落点所在直线上的另一枚子
+        # （away-from-target），那枚子不在任何落点上。前端若把整个 `captures`
+        # 都画成"往这儿走就能吃"，红叉就落在棋子根本去不了的格子上 —— 用户报的
+        # 「落点被标可吃、实际不许吃」正是这个。
+        # `captures` 原样保留（棋子图谱等消费者按"受害者格"语义读它）。
+        on_landing = {
+            captured.position
+            for move in moves
+            for captured in room.game.rules.captured_by_move(room.game.state, move)
+            if captured.position == move.target
+        }
         return {
             "revision": room.revision,
             "moves": [{"row": m.target.row, "col": m.target.col} for m in moves],
             "captures": [{"row": pos.row, "col": pos.col} for pos in sorted(captures)],
+            "capturesOnLanding": [{"row": pos.row, "col": pos.col} for pos in sorted(on_landing)],
+            "capturesAway": [{"row": pos.row, "col": pos.col} for pos in sorted(captures - on_landing)],
         }
     except GameError as exc:
         raise HTTPException(403, str(exc)) from exc
