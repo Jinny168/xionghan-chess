@@ -171,14 +171,59 @@ def _mini_report() -> dict:
     return summarize(_mini_rows(), "beginner", "medium", 64, 8)
 
 
-def test_win_rate_plus_strong_score_is_one() -> None:
-    """守恒关系用 `Decimal` 读**已存储**值做加法，全程不涉及舍入。
+# 容差 1e-4 的依据（实测枚举，不是推演）：
+#   在 2..800 的全部偶数局数里，`k/(2g)` 会撞上"十进制是 4 位 tie、但 float 不精确"的
+#   取值，两个补数各自舍入后和偏离 1 —— 且**偏离集恰好是 80 的所有倍数**
+#   （[80,160,240,320,400,480,560,640,720,800]），偏差为 **±0.0001 双边**。
+#   生产候选 {10,20,25,40,50,64,100,128} 全部精确相等，但 `--n 80` 一条命令就能踩到。
+#   容差只放过这 1 个 ulp：语义改名（得分率 0.3125 vs 胜率 0.25，差 0.0625）远大于它。
+CONSERVATION_TOLERANCE = Decimal("0.0001")
+
+
+def test_win_rate_plus_strong_score_is_within_one_unit() -> None:
+    """守恒关系在**写出端产物**上也成立（容差 1 个 4 位单位，见上）。
 
     这条用 fixture 跑，所以 **CI 里真的会执行** —— 之前的版本依赖 `.report.json`
     （不进仓库），在干净 clone 上会静默 skip，等于这条核心不变量没被守。
     """
     report = _mini_report()
-    assert Decimal(str(report["winRate"])) + Decimal(str(report["strongScore"])) == Decimal("1")
+    delta = Decimal(str(report["winRate"])) + Decimal(str(report["strongScore"])) - Decimal("1")
+    assert abs(delta) <= CONSERVATION_TOLERANCE, delta
+
+
+def test_ratio_conservation_on_all_reachable_scores() -> None:
+    """纯函数性质：不依赖任何产物，任何环境都会跑。
+
+    扫生产候选局数下的**全部可达得分**（`k/(2g)`，k 从 0 到 2g 覆盖每半分局），
+    两个补数的舍入结果之和必须落在 1 的 1 个 ulp 内。
+    """
+    for games in (10, 20, 25, 40, 50, 64, 100, 128):
+        for k in range(0, 2 * games + 1):
+            score = k / 2
+            total = _round(score / games, 4) + _round((games - score) / games, 4)
+            assert abs(total - 1) <= 1e-4, (games, k, total)
+
+
+def test_conservation_deviation_is_confined_to_multiples_of_80() -> None:
+    """特征断言：偏离的局数**恰好是 80 的倍数**。
+
+    这条把"容差该多大"从口头依据变成机器判据：若它红了，说明 `--n` 的取值域或舍入实现
+    变了 —— 那时才该重新决定容差（而不是直接调大数字）。
+    范围写进断言，红的时候能一眼看出是"范围变了"还是"回归了"。
+    用 `_round` 而不是内置 `round`：后者测的是平台，不是报告路径。
+    """
+    deviating = {games for games in range(2, 801, 2) if _deviates(games)}
+    assert deviating == set(range(80, 801, 80)), deviating
+    # 钉住已知偏离的具体量与方向（双边都实测出现过，所以必须取绝对值）
+    assert abs(_round(0.5 / 80, 4) + _round(79.5 / 80, 4) - 1) == pytest.approx(1e-4)
+    assert abs(_round(0.5 / 64, 4) + _round(63.5 / 64, 4) - 1) == 0  # 生产候选：精确相等
+
+
+def _deviates(games: int) -> bool:
+    return any(
+        _round((k / 2) / games, 4) + _round((games - k / 2) / games, 4) != 1.0
+        for k in range(0, 2 * games + 1)
+    )
 
 
 def test_win_rate_is_the_score_ratio_not_the_win_ratio() -> None:
