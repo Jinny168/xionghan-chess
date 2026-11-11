@@ -166,6 +166,12 @@ def band_pass(score_rate: float) -> bool:
 # 同一个 digest，而报告里的 `levels` 只有档位名，看不出任何差别。
 ADJUDICATED_RATIO_POLICY = 0.2  # **policy**（会被数据推翻），与下面的测量值分开记
 
+# **设计契约门**：它失败说明"这一档没达到交付标准"，与"测量本身可不可信"是两件事。
+# `failedGates` 把两者混在同一个数组里（`winRatePass` 排第一），于是判据若自己写
+# `set(failedGates) - {"winRatePass"}` 就等于又维护一份白名单 —— 将来加 `bandPass` 就复发。
+# 所以在**写出端**定义一次，报告里直接给子集 `failedMeasurementGates`，消费方只读不推。
+CONTRACT_GATES = frozenset({"winRatePass"})
+
 
 def _config_digest(level: str, config: SearchConfig) -> str:
     payload = json.dumps([level, asdict(config)], sort_keys=True, ensure_ascii=False)
@@ -308,6 +314,23 @@ def summarize(
         )
         if gate_flags[name] is False and (name != "wallClean" or wall_enforced)
     ]
+    # 测量门子集：`failedGates` 里去掉**设计契约**那几项。判据只读这个字段，
+    # 不要自己去减 —— 那会变成第二份"哪些是契约门"的白名单。
+    failed_measurement_gates = [name for name in failed_gates if name not in CONTRACT_GATES]
+    # 这次**实际评估了哪些**测量门。`failedGates == []` 只说明"评估过的都过了"，
+    # 不说明"评估了同样多"（实测有 9 键与 5 键两种产物）—— 门集范围不一致时不可比。
+    # `wallClean` 在 product 档只记录不判红（`wall_enforced=False`），因此不算"评估过"；
+    # 零深度三兄弟在样本不足时不评估。两者都靠各自的既有条件判定，不另设白名单。
+    gates_evaluated = ["enoughGames", "noZeroDepth", "nodesRatioAtMost2Percent"]
+    if wall_enforced:
+        gates_evaluated.append("wallClean")
+    if k2_evaluated:
+        gates_evaluated += [
+            "zeroDepthRateAtMost1Percent",
+            "zeroDepthNoConsecutive",
+            "zeroDepthAtMostOnePerGame",
+        ]
+
     # K4 设计带是独立判据，口径固定为**点估计**（非 Wilson 区间），且只走 band_pass 纯函数。
     # pass=true 只代表"强档显著强 + 数据可引用"，不代表落进 65–75%。
     band_ok = band_pass(strong_score)
@@ -356,6 +379,11 @@ def summarize(
         "gates": gates,
         "pass": pass_value,
         "failedGates": failed_gates,
+        # 新增两字段（`failedGates` 保持原义）：没有它们，判据就得自己维护白名单、
+        # 也无法发现"两份报告评估的门集不同"。**永不出 null** —— 不带键=没评估，
+        # `[]`/非空=评估了。`键缺失`/`null`/`[]` 三者语义不同，读取端请用 `in` 判断。
+        "failedMeasurementGates": failed_measurement_gates,
+        "gatesEvaluated": sorted(gates_evaluated),
         "bandPass": band_ok,
         "contractPass": contract_pass,
         "contractFailedGates": contract_failed_gates,

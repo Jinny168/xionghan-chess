@@ -390,3 +390,34 @@ def test_ai_config_digest_tracks_the_effective_config_not_just_the_level_name() 
     )
     # 不同档位名、相同配置 → 也要分开（报告里档位名是给人看的标签）
     assert _config_digest("beginner", config) != _config_digest("medium", config)
+
+
+# ---------------------------------------------------------------------------
+# `failedMeasurementGates` / `gatesEvaluated`：判据不许自己维护白名单
+#
+# `failedGates` 把**设计契约**（`winRatePass`：这一档达没达到交付标准）与**测量门**
+# （数据可不可信）混在同一个数组里。判据若写 `set(failedGates) - {"winRatePass"}`，
+# 那就是第二份"哪些是契约门"的白名单，将来加 `bandPass` 就复发。
+# 所以写出端直接给子集，消费方只读不推。
+# ---------------------------------------------------------------------------
+def test_failed_measurement_gates_excludes_the_design_contract() -> None:
+    # 胜率 0.5 会被 winRatePass 判否，但测量本身没问题（和棋半分、无截断、无零深度）
+    report = summarize(_rows(16, 0, 16), "beginner", "medium", 64, 32)
+    assert "winRatePass" in report["failedGates"], "前提：这一组应当只挂契约门"
+    assert report["failedMeasurementGates"] == [], "契约门不是测量门，不该出现在子集里"
+    assert set(report["failedMeasurementGates"]) <= set(report["failedGates"])
+
+
+def test_gates_evaluated_reports_what_was_actually_evaluated() -> None:
+    """`failedGates == []` 只说明"评估过的都过了"，不说明"评估了同样多"。
+
+    实测历史产物有两种门集规模（9 键 / 5 键），所以必须显式记录本次评估了哪些。
+    product 档下 `wallClean` 只记录不判红（`wallCleanEnforced=False`），因此**不算评估过**。
+    """
+    report = summarize(_rows(16, 12, 4), "beginner", "medium", 64, 32)
+    evaluated = set(report["gatesEvaluated"])
+    assert {"enoughGames", "noZeroDepth", "nodesRatioAtMost2Percent"} <= evaluated
+    assert report["gates"]  # 既有 gates 字典保持原样
+    # 样本量小时零深度门本来就不评估（k2_evaluated 为假），不该混进"评估过"的名单
+    short = summarize(_rows(2, 0, 0), "beginner", "medium", 64, 2)
+    assert "zeroDepthNoConsecutive" not in set(short["gatesEvaluated"])
