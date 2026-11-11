@@ -4,7 +4,6 @@ import asyncio
 import json
 import logging
 import os
-import sys
 from contextlib import asynccontextmanager, suppress
 from dataclasses import asdict
 from datetime import date as _date
@@ -750,17 +749,35 @@ if WEB_DIR.exists():
         return FileResponse(WEB_DIR / "index.html")
 
 
+def _selector_loop_factory() -> asyncio.AbstractEventLoop:
+    """Windows 下用 Selector 事件循环跑 uvicorn。
+
+    不能靠 `asyncio.set_event_loop_policy()`：uvicorn 0.36+ 改为由
+    `Server.run()` 显式传 `loop_factory` 给 `asyncio.Runner`，Runner 拿到显式
+    factory 后不再查询全局 policy（见 uvicorn/_compat.py）。因此必须在
+    `uvicorn.run(loop=...)` 这一层传，而不是设全局。
+    """
+    return asyncio.SelectorEventLoop()
+
+
 def run() -> None:
     import uvicorn
 
-    if sys.platform == "win32":
-        # 只为消掉 `_ProactorBasePipeTransport._call_connection_lost` +
-        # `ConnectionResetError [WinError 10054]` 这类**连接清理回调**噪声：
-        # Proactor 在连接被对端重置时会把清理异常抛进事件循环的异常处理器，
-        # 但它不是业务错误。换 Selector 后真实异常仍照常记录。
-        # `service/` 内没有 create_subprocess*（Selector 不支持它），所以安全。
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    uvicorn.run("xionghan_chess.service.app:app", host="0.0.0.0", port=int(os.getenv("PORT", "8000")), reload=False)
+    # 只为消掉 `_ProactorBasePipeTransport._call_connection_lost` +
+    # `ConnectionResetError [WinError 10054]` 这类**连接清理回调**噪声：
+    # Proactor 在连接被对端重置时会把清理异常抛进事件循环的异常处理器，
+    # 但它不是业务错误。`service/` 内没有 create_subprocess*（Selector 不支持它），
+    # 所以安全。
+    # `loop` 不在内置 LOOP_FACTORIES 表里时，`Config.get_loop_factory()` 会
+    # `import_from_string` 后**直接**当 factory 用（不传 `use_subprocess`），
+    # 因此签名必须是 `() -> AbstractEventLoop`。
+    uvicorn.run(
+        "xionghan_chess.service.app:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "8000")),
+        reload=False,
+        loop="xionghan_chess.service.app:_selector_loop_factory",
+    )
 
 
 if __name__ == "__main__":
