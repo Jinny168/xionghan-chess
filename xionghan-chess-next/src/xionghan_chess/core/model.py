@@ -173,6 +173,7 @@ class GameState:
             "winner": self.winner.value if self.winner else None,
             "resultReason": self.result_reason,
             "draw": self.draw,
+            "finished": self.finished,
             "pendingDrawOffer": self.pending_draw_offer.value if self.pending_draw_offer else None,
             "pendingUndoOffer": self.pending_undo_offer.value if self.pending_undo_offer else None,
             "pendingRestartOffer": self.pending_restart_offer.value if self.pending_restart_offer else None,

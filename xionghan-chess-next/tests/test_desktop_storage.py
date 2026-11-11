@@ -135,3 +135,31 @@ def test_statistics_upgrade_old_schema_and_track_streak(tmp_path, monkeypatch):
     assert stats["games"] == 3
     assert stats["winStreak"] == {"current": 1, "max": 1}
     assert stats["perColor"][game.state.turn.value]["wins"] == 1
+
+
+def test_game_state_to_dict_exposes_finished():
+    """快照必须带 `finished`：Web 端 `if(app.state.finished)` 是终局弹窗的唯一入口。
+
+    `finished` 是 `winner is not None or draw` 的派生属性。若快照只给 `winner`/`draw`，
+    前端就得各自重算，等于两份真相；把派生值放进快照，core→service→web 读同一个键。
+    """
+    profile_id = get_profile("web").id
+
+    # ① 未终局
+    state = GameState(profile_id, [])
+    assert state.to_dict()["finished"] is False
+
+    # ② 有胜者
+    state.winner = Color.RED
+    assert state.to_dict()["finished"] is True
+
+    # ③ 仅和棋（无 winner）
+    drawn = GameState(profile_id, [])
+    drawn.draw = True
+    assert drawn.to_dict()["finished"] is True
+
+    # ④ 快照 round-trip：from_dict 接受新键，且 finished 一致
+    live = GameState(profile_id, [])
+    assert GameState.from_dict(live.to_dict()).finished is False
+    live.winner = Color.BLACK
+    assert GameState.from_dict(live.to_dict()).finished is True
