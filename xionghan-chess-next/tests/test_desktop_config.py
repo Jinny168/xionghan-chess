@@ -17,7 +17,10 @@
 
 from __future__ import annotations
 
+import datetime
 import json
+import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -413,3 +416,68 @@ def test_migration_is_idempotent() -> None:
     twice, changed_twice = desktop_config.migrate(once)
     assert changed_twice is False, "第二次迁移不该再报改动"
     assert twice == once, "幂等：两次结果必须一致"
+
+
+# --------------------------------------------------------------------------- #
+# windowed 崩溃日志：console=False 没有 stderr，崩溃证据只能自己留
+# --------------------------------------------------------------------------- #
+def test_crash_log_path_lives_under_data_dir(isolated_appdata) -> None:
+    """崩溃日志必须落在 data_dir（与 settings/statistics 同一个来源），且带时间戳。"""
+    from xionghan_chess.desktop import crashlog
+
+    path = crashlog.crash_log_path(datetime.datetime(2026, 11, 11, 13, 53, 7))
+    assert path.name == "crash-20261111-135307.log"
+    assert path.parent == desktop_config.data_dir()
+    assert path.parent.is_dir(), "crash_dir() 应当顺手建好目录"
+
+
+def test_faulthandler_path_lives_under_data_dir(isolated_appdata) -> None:
+    from xionghan_chess.desktop import crashlog
+
+    assert crashlog.faulthandler_log_path() == desktop_config.data_dir() / "crash-faulthandler.log"
+
+
+def test_write_uncaught_records_traceback_and_versions(isolated_appdata) -> None:
+    """一条未捕获异常落盘后，文件里必须有 traceback、异常消息与版本头。"""
+    from xionghan_chess.desktop import crashlog
+
+    try:
+        raise RuntimeError("boom-marker-42")
+    except RuntimeError:
+        target = crashlog.write_uncaught(*sys.exc_info())
+
+    text = target.read_text(encoding="utf-8")
+    assert target.parent == desktop_config.data_dir()
+    assert target.name.startswith("crash-")
+    assert "Traceback (most recent call last)" in text
+    assert "RuntimeError: boom-marker-42" in text
+    assert "python:" in text
+    assert "pyside6:" in text
+
+
+def test_prune_keeps_only_five_crash_logs(isolated_appdata) -> None:
+    """crash-*.log 最多保留最近 5 个；faulthandler 文件不计入。"""
+    from xionghan_chess.desktop import crashlog
+
+    folder = desktop_config.data_dir()
+    folder.mkdir(parents=True, exist_ok=True)
+    for index in range(8):
+        path = folder / f"crash-2026111100000{index}.log"
+        path.write_text("x", encoding="utf-8")
+        os.utime(path, (index + 1, index + 1))  # mtime 递增：最新是 index=7
+    crashlog._prune_crash_logs()
+
+    remaining = sorted(p.name for p in folder.glob("crash-*.log"))
+    assert len(remaining) == 5
+    assert "crash-20261111000003.log" in remaining  # 保留 mtime 4..8 这 5 个
+    assert "crash-20261111000002.log" not in remaining
+
+
+def test_oversized_log_is_rotated(isolated_appdata) -> None:
+    from xionghan_chess.desktop import crashlog
+
+    target = desktop_config.data_dir() / "crash-oversize.log"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(b"x" * (crashlog.CRASH_LOG_LIMIT_BYTES + 1))
+    crashlog._truncate_if_oversized(target)
+    assert not target.exists()

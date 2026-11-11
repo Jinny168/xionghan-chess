@@ -55,6 +55,7 @@ from xionghan_chess.core.taunts import select_taunt, swing_scene, taunt_allowed,
 from xionghan_chess.i18n import t
 
 from ..core import daily as daily_quiz
+from . import crashlog
 from . import net
 from . import training as puzzle_judge
 from . import update as version_check
@@ -2082,6 +2083,8 @@ class MainWindow(QMainWindow):
 
 
 def run() -> None:
+    # windowed 构建没有控制台：先装崩溃日志，再起 QApplication，启动期崩溃也能留证。
+    crashlog.install()
     app = QApplication(sys.argv)
     app.setApplicationName(t("app.name"))
     icon_path = theme.resource("icon.ico")
