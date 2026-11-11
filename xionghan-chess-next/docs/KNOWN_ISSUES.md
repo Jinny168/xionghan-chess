@@ -19,7 +19,11 @@
   root18 `12-49-3`；A 得分率两轮均 **0.2109**、强档 **0.7891**；K4 点估计出带、
   **不可认证**（`contractPass=false`）。详见 `docs/AI_TIERS.md` §9 / §11。
   **准确表述是「已跑、出带、不可认证」**——不要写「未跑」，也不要写「档位胜率已验证」。
-- **`medium↔hard` 未做 n=64 最终验收**：仅有早期 `2026-11-09-hard-vs-medium.jsonl`。
+- **`medium↔hard` n=64 明确不做（2026-11-11 用户裁定）**：按历史 `2026-11-09-hard-vs-medium.jsonl`
+  （2 局、46 手/局、431s/局）估算，64 局约 **7.7 小时**；按真实手数（约 129 手/局）外推更可能
+  **10–15 小时**，与 `beginner↔medium`（约 100 分钟）不是一个量级。**这是「不做」，不是「待做」**：
+  属成本过高且非阻断，档间距若需验收应另开机时窗口，不应与收尾混在一起。
+  （hard 的 K1 已有实测：median 8.46s，见 `docs/AI_TIERS.md` §13。）
 - **`max_nodes` 三档全关**：中局节点数没有可靠分布，半成品值会确定性截断；
   工具 `scripts/measure_node_budget.py` 保留，回填时需同步 `level_targets` 与 `CONFIGS`。
 - **`EXPECTED_MOVE_SECONDS` 现为 0.7 / 3.0 / 7.0**（S4 设计预估；hard 实测 median 8.46s，
