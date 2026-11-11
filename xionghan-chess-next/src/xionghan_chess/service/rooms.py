@@ -11,7 +11,7 @@ from typing import Any
 
 from fastapi import WebSocket
 
-from xionghan_chess.core.ai import ChessAI, Difficulty, should_accept_draw
+from xionghan_chess.core.ai import ChessAI, Difficulty, as_public_difficulty, should_accept_draw
 from xionghan_chess.core.game import DEFAULT_INITIAL_MINUTES, Game, GameError
 from xionghan_chess.core.model import Color, Move, PieceType, Position
 from xionghan_chess.core.profiles import RULE_VERSION, get_profile
@@ -83,6 +83,12 @@ class Room:
     chat_history: list[dict[str, Any]] = field(default_factory=list)
     # 刚接入/重连的 token：它们的**下一条** STATE 带完整 replay，之后一律不带
     fresh_tokens: set[str] = field(default_factory=set)
+
+    def __post_init__(self) -> None:
+        # 存储归一的**单一入口**：`create` / `create_from_game` / 将来新增的构造点
+        # 都自动覆盖。旧客户端或老存档可能传 expert/master，存进 Room 的一律收敛
+        # 到对外三档（beginner / medium / hard），广播给前端时不会出现旧名。
+        self.ai_difficulty = as_public_difficulty(self.ai_difficulty)
 
     def tr(self, key: str, **params: object) -> str:
         return t(key, self.language, **params)

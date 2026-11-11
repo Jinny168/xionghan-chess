@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager, suppress
 from dataclasses import asdict
 from datetime import date as _date
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Annotated, Any, AsyncIterator
 
 from fastapi import (
     FastAPI,
@@ -21,11 +21,11 @@ from fastapi import (
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, BeforeValidator, Field, ValidationError
 
 from xionghan_chess import __version__
 from xionghan_chess.core import daily as daily_quiz
-from xionghan_chess.core.ai import Difficulty
+from xionghan_chess.core.ai import Difficulty, as_public_difficulty
 from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.avatars import normalize_avatar
 from xionghan_chess.core.game import DEFAULT_INITIAL_MINUTES, GameError
@@ -117,7 +117,10 @@ async def _validation_as_400(request: Request, exc: RequestValidationError) -> J
     details = []
     for item in exc.errors():
         field = ".".join(str(part) for part in item.get("loc", ()) if part != "body")
-        details.append(f"{field or '请求体'}：{item.get('msg', '无效')}")
+        # pydantic v2 会把自定义 ValueError 的 msg 前缀成 "Value error, "；
+        # 对客户端来说那是实现细节，去掉后才是人话。
+        message = str(item.get("msg", "无效")).removeprefix("Value error, ")
+        details.append(f"{field or '请求体'}：{message}")
     return JSONResponse(status_code=400, content={"detail": "；".join(details) or "请求参数无效"})
 
 
@@ -129,6 +132,11 @@ MAX_PLAYER_NAME = 24
 # 单帧上限（B-05）：正常消息都在 1 KB 量级，64 KB 留两个数量级余量。
 MAX_FRAME_BYTES = 64 * 1024
 
+# 对外档位：只接受 beginner / medium / hard（旧名 easy/expert/master 按别名归一）。
+# 三个请求模型共用同一个类型 —— 否则"只改了其中一个模型、另一条路径仍能存 expert"
+# 正是这次 D-2 要堵的漏洞。
+PublicDifficulty = Annotated[Difficulty, BeforeValidator(as_public_difficulty)]
+
 
 class CreateRoomRequest(BaseModel):
     profile_id: str = Field("web", alias="profileId")
@@ -136,7 +144,7 @@ class CreateRoomRequest(BaseModel):
     player_name: str = Field("玩家", alias="playerName", max_length=MAX_PLAYER_NAME)
     avatar_url: str = Field("", alias="avatarUrl", max_length=500)
     player_color: Color = Field(Color.RED, alias="playerColor")
-    difficulty: Difficulty = Difficulty(os.getenv("AI_DEFAULT_DIFFICULTY", "medium"))
+    difficulty: PublicDifficulty = Difficulty(os.getenv("AI_DEFAULT_DIFFICULTY", "medium"))
     options: dict[str, object] = Field(default_factory=dict)
     initial_minutes: int = Field(DEFAULT_INITIAL_MINUTES, ge=1, le=180, alias="initialMinutes")
     language: str = "zh-CN"
@@ -164,7 +172,7 @@ class ImportGameRequest(BaseModel):
     mode: str = "local"
     player_name: str = Field("玩家", alias="playerName", max_length=MAX_PLAYER_NAME)
     player_color: Color = Field(Color.RED, alias="playerColor")
-    difficulty: Difficulty = Difficulty.MEDIUM
+    difficulty: PublicDifficulty = Difficulty.MEDIUM
     language: str = "zh-CN"
     model_config = {"populate_by_name": True}
 
@@ -204,7 +212,7 @@ class SpectateRequest(BaseModel):
 
 class AnalyzeRequest(BaseModel):
     document: dict[str, Any]
-    difficulty: Difficulty = Difficulty.BEGINNER
+    difficulty: PublicDifficulty = Difficulty.BEGINNER
 
 
 def bearer_token(authorization: str | None) -> str:

@@ -57,6 +57,28 @@ def normalize_difficulty(value: str) -> str:
     return LEGACY_DIFFICULTY_ALIASES.get(key, key)
 
 
+_PUBLIC_DIFFICULTY_OPTIONS = " / ".join(difficulty.value for difficulty in PUBLIC_DIFFICULTIES)
+
+
+def as_public_difficulty(value: str | Difficulty) -> Difficulty:
+    """把外部传入的档位收敛成**对外三档**之一（`str` 与 `Difficulty` 都接受）。
+
+    服务层从 JSON 拿到的是字符串，内部调用方给的是枚举 —— 两者必须走同一个入口，
+    否则「库里存什么」会随调用路径分叉。旧名（easy / expert / master）按
+    `LEGACY_DIFFICULTY_ALIASES` 归到三档，与 `ChessAI("easy")` 的既有行为一致。
+
+    未知值抛 `ValueError`，消息里**只列三档**：`Difficulty` 的 6 个成员是兼容层
+    （桌面读老 `settings.json` 要用），不该出现在给用户看的报错里。
+    """
+    try:
+        candidate = Difficulty(normalize_difficulty(str(value)))
+    except ValueError:
+        candidate = None
+    if candidate not in PUBLIC_DIFFICULTIES:
+        raise ValueError(f"未知档位 '{value}'；可选：{_PUBLIC_DIFFICULTY_OPTIONS}")
+    return candidate
+
+
 # 静态搜索（quiescence）单个**根着法**内的节点上限。
 # 作用：吃子链偶发跑飞时不让它独吞整个思考预算；**正常局面应当一次都不触发**。
 # 计数口径：单个**静态搜索**（一次 `_quiescence` 入口及其递归）的节点数，
