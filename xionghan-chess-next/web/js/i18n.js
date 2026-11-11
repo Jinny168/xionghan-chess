@@ -72,6 +72,12 @@ function setPlaceholder(selector, key) {
 export function applyStaticI18n() {
   document.title = t('app.name');
   setText('.brand h1', 'app.name');
+  // 首跑引导：登记后切换语言也能自愈，不再依赖 maybeShowOnboarding 的调用时机。
+  setText('#onboardTitle', 'training.onboard_title');
+  setText('#onboardLine1', 'training.onboard_1');
+  setText('#onboardLine2', 'training.onboard_2');
+  setText('#onboardLine3', 'training.onboard_3');
+  setText('#onboardStartButton', 'training.onboard_cta');
   setText('.menubar .menu:nth-child(1) summary', 'menu.file');
   setText('.menubar .menu:nth-child(2) summary', 'menu.game');
   setText('.menubar .menu:nth-child(3) summary', 'menu.replay');
