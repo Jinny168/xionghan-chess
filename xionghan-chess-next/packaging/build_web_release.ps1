@@ -41,6 +41,19 @@ Get-ChildItem -LiteralPath $Stage -Directory -Filter "__pycache__" -Recurse |
 Get-ChildItem -LiteralPath $Stage -File -Filter "*.pyc" -Recurse |
     Remove-Item -Force
 
+# Do NOT ship history / submission material in the release package.
+# `docs/archive/` is "read-only historical snapshots, NOT current implementation" and
+# `docs/materials/` is submission copy (HY4 / XHS). Shipping them makes users and
+# maintainers read obsolete docs as current. They are still in the repo, just not in
+# the distributable. Keep this step AFTER the docs copy and BEFORE the zip.
+foreach ($excluded in @("docs\archive", "docs\materials")) {
+    $target = Join-Path $Stage $excluded
+    if (Test-Path -LiteralPath $target) {
+        Remove-Item -LiteralPath $target -Recurse -Force
+        Write-Host "  excluded from package: $excluded"
+    }
+}
+
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::CreateFromDirectory(
     $Stage,
@@ -49,4 +62,9 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
     $false
 )
 Copy-Item -LiteralPath $Archive -Destination (Join-Path $ReleaseRoot "$productName-$platformName.zip") -Force
+
+# Drop the staging tree: it is a build intermediate and the archive already holds it.
+# Leaving it behind puts ~33 MB per build next to the deliverable, and after two builds
+# nobody can tell which directory is the artifact. (The zip above is the artifact.)
+Remove-Item -LiteralPath $Stage -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host "Web release completed: $Archive"
