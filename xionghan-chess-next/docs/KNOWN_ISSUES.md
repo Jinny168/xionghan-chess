@@ -26,3 +26,24 @@
   见 `docs/AI_TIERS.md` §13）。旧的 `15.5s` 是 2026-11-09 旧配置的实测，已不适用。
 - **K3-a 连送未达标**：A 最长 3–4 手、B 两轮均 3 手，硬线 ≤2；按预登记本轮不调参，
   列入 S5 观察项（详见 `docs/AI_TIERS.md` §8 的 K3-a 注）。
+
+## 3. Windows asyncio Proactor 连接清理回调噪声（首次修复无效，重修中）
+
+- **现象**：uvicorn 日志中段偶发
+  `Exception in callback _ProactorBasePipeTransport._call_connection_lost(None)` →
+  `ConnectionResetError: [WinError 10054] 远程主机强迫关闭了一个现有的连接`。
+  日志统计 **1 条 Traceback、0 个 5xx**，不影响任何响应。
+- **首次修复为何无效（`2f136aa`）**：用的是
+  `asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())`。
+  但 uvicorn 0.36+ 由 `Server.run()` 显式传 `loop_factory` 给 `asyncio.Runner`
+  （见 `uvicorn/server.py`、`uvicorn/_compat.py`），**Runner 拿到显式 factory 后不查全局 policy**；
+  而 `uvicorn/loops/asyncio.py` 在 Windows 上直接返回 `asyncio.ProactorEventLoop`。
+  ⇒ 那三行是**死代码**。实测三路对照：普通启动 **3 次**噪声 + 1 条 Traceback；
+  先设 policy 再 `uvicorn.run()` **同样 3 次 + 1 条（一字不差）**；真 Selector factory **0 次 + 0 条**。
+- **正解**：`uvicorn.run(..., loop="xionghan_chess.service.app:_selector_loop_factory")`，
+  工厂返回 `asyncio.SelectorEventLoop()`；`Config.get_loop_factory()` 对不在内置表里的值
+  会 `import_from_string`，属官方支持路径。
+- **复现姿势（重要）**：必须用「客户端 reload / 正常关闭 keep-alive 连接」；
+  用 raw socket RST 强断**掐不出**这个噪声（实测 24 次 0 命中）。
+- **为何不阻断**：不影响响应、5xx 为 0。
+- **状态**：修复待落地——`2f136aa` 的写法已确认无效，**不得当作已修**。
