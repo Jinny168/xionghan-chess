@@ -61,3 +61,16 @@
 - **为何不阻断**：不影响功能与启动，属可观测性缺口，后续版本补。
 - **附带观察**：PyInstaller onefile 启动后是**两个进程**（bootloader 父进程约 12MB / 4 线程，
   应用子进程约 210MB / 19 线程）。只看父进程会误判「内存太小=没起来」。
+
+## 6. Windows asyncio Proactor 连接清理回调会打一条 Traceback（已知噪声，不修）
+
+- **现象**：uvicorn 日志中段偶发
+  `Exception in callback _ProactorBasePipeTransport._call_connection_lost(None)` →
+  `ConnectionResetError: [WinError 10054] 远程主机强迫关闭了一个现有的连接`。
+- **成因**：客户端（浏览器 reload / keep-alive 断开）直接掐断连接，asyncio Proactor 在
+  `sock.shutdown()` 时撞上 10054。Windows 上 asyncio 的已知噪声，uvicorn 抓不到。
+- **影响**：不影响任何响应；该异常之后服务继续正常处理请求。产物级验证日志统计为
+  **Traceback 1 条、5xx 0 条**（119×200 / 21×206 / 6×304）。
+- **处置**：**不修**。真要消除只能换 Selector 事件循环策略，代价与收益不成比例。
+- **纪律**：判断「无异常 / 无 Traceback」必须**全量 grep**，不能用 `tail -n` 的局部样本
+  下全局结论——本轮 qa 与 team-lead 都在这一点上出过错。
