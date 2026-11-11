@@ -283,7 +283,7 @@ class RulesEngine:
             )
         clone.pieces[clone.pieces.index(piece)] = piece.at(move.target)
 
-        if self._three_line_mover(piece):
+        if self._three_line_mover(piece, move):
             for captured in self._three_line_removals(clone, piece.color, move.target):
                 if captured in clone.pieces:
                     clone.pieces.remove(captured)
@@ -425,22 +425,25 @@ class RulesEngine:
                         victim.position,
                     )
                 )
-            if self._three_line_mover(piece):
-                landings = []
-                for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
-                    for step in (1, 2):
-                        for sign in (1, -1):
-                            square = Position(
-                                victim.position.row + sign * step * dr, victim.position.col + sign * step * dc
-                            )
-                            if self.inside(square):
-                                landings.append(square)
-            else:
+            if not self._three_line_enabled(piece):
                 continue
+            # 受害者两侧各 2 格都要列：落点可以在窗口的任意一端，于是它离受害者最远 2 格，
+            # 而离**兵的起点**仍只有一格 —— 位移判据管的是后者，不是前者。
+            landings = []
+            for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
+                for step in (1, 2):
+                    for sign in (1, -1):
+                        square = Position(
+                            victim.position.row + sign * step * dr, victim.position.col + sign * step * dc
+                        )
+                        if self.inside(square):
+                            landings.append(square)
             for landing in landings:
                 if self.get(state, landing) is not None:
                     continue
                 move = Move(piece.position, landing)
+                if not self._three_line_mover(piece, move):
+                    continue
                 if not self.pseudo_legal(state, move):
                     continue
                 after = self.apply_unchecked(state, move, switch_turn=False)
@@ -813,21 +816,48 @@ class RulesEngine:
                 return False
         return True
 
-    def _three_line_mover(self, piece: Piece) -> bool:
-        """这枚子移动后是否结算"三连吃子"：只有兵，且需 `pawn_three_line_capture` 开关（默认关）。"""
+    def _three_line_enabled(self, piece: Piece) -> bool:
+        """这枚子是否有资格结算"三连吃子"：只有兵，且需开关开启（默认关）。
+
+        与"这一着走多远"无关，只回答"种类 + 开关"；位移判据在 `_three_line_mover`。
+        """
         return piece.type is PieceType.PAWN and self.options.pawn_three_line_capture
+
+    def _three_line_mover(self, piece: Piece, move: Move) -> bool:
+        """这一着是否**真的**结算三连吃子。
+
+        三个条件缺一不可：兵、开关开启、**这一着位移不超过一格**。
+
+        为什么要看位移：快速行军能一次跨 n 格（`_pawn` 的 `1 < distance`），
+        敌阵冲锋（`pawn_charge`）同样能长距离直线走。两者本身"落点必须为空、不吃子"，
+        但三连吃子是**结算阶段**的旁吃，若不拦，就会出现"一着位移 5 格顺便吃掉一枚子"
+        —— 实测存在，且 `PIECE_RULES.md` 的「移动超过一格时不能吃子」管不住它。
+
+        判据按**着法位移**而不是"走了哪个分支"：快速行军与冲锋共用一个上限，
+        将来加别的多格走法也自动受约束；而兵的前进一格、横走一格都是位移 1，不会被误伤。
+        """
+        if not self._three_line_enabled(piece):
+            return False
+        return max(abs(move.target.row - move.source.row), abs(move.target.col - move.source.col)) <= 1
 
     def _three_line_removals(self, state: GameState, color: Color, landing: Position) -> list[Piece]:
         """三连吃子：**只结算落点所在的线**。
 
         口径（规则作者定稿）：
         - 三子**紧挨**（相邻，窗口步长 1，天然满足）；
+        - 这条线上**恰好三子**：窗口两端的外侧邻格若有子（实际连成 4 子或 5 子），**不结算**；
         - **两枚我方 + 一枚敌方**，**任意顺序**（兵兵敌 / 兵敌兵 / 敌兵兵 都算）；
         - 至少一枚是兵，且**移动的那枚兵必须在这个窗口里**；
-        - `pawn_three_line_capture` 开启（默认关）。
+        - `pawn_three_line_capture` 开启（默认关）；
+        - **这一着位移不超过一格**（判据在 `_three_line_mover`，调用前已拦）。
 
         为什么按落点枚举而不是全盘扫描：全盘扫描会把"移动前就已存在的线"一并收割 ——
         走一步无关的兵，远处已成线的敌子也会被吃，这既反直觉也让"能吃到"与"实际吃到"分叉。
+
+        "恰好三子"为什么要在窗口外再查两格：不查的话，一条 4 子/5 子的长线里
+        每个"两我一敌"的 3 格窗口都会各算一次，玩家摆出的明明是"四子相连"，
+        却按"三子相连"被吃 —— 实测成立，且加长一条线反而更容易吃，与这条规则的
+        识别特征（眼看"三子相连"）相反。
         """
         if not self.options.pawn_three_line_capture:
             return []
@@ -835,6 +865,13 @@ class RulesEngine:
         for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
             # 落点可能落在窗口的第 1/2/3 格 → 3 个偏移；4 向共 12 个窗口
             for offset in (-2, -1, 0):
+                # 窗口两端的外侧邻格：任一有子 → 这条线上其实连了 4 子以上，不算三连。
+                # `get()` 对越界返回 None（`GameState.piece_at` 逐个比对坐标），
+                # 所以贴边窗口不需要额外判 `inside`。
+                before = Position(landing.row + (offset - 1) * dr, landing.col + (offset - 1) * dc)
+                after = Position(landing.row + (offset + 3) * dr, landing.col + (offset + 3) * dc)
+                if self.get(state, before) is not None or self.get(state, after) is not None:
+                    continue
                 group = [
                     self.get(state, Position(landing.row + (offset + i) * dr, landing.col + (offset + i) * dc))
                     for i in range(3)
