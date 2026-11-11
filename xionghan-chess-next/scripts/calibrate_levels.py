@@ -2,7 +2,14 @@
 
 ## 判据
 
-单侧：`点估计 ≥0.60 且 Wilson 下界 ≥0.50`（n=32 → ≥22 胜；n=64 → ≥40 胜）。
+**强档方向**（v2，报告 `judgementVersion == "v2"`）：`strong = max(point, 1-point)`、
+`strong_low = max(low, 1-high)`，判 `strong ≥0.60 且 strong_low ≥0.50`
+（n=32 → 22；n=64 → 40）。
+`thresholdSide: "strong"` 只标注门槛的**语义作用域**，数值与 v1 完全相同；
+不得解释成"强档最低得分"（A=弱档时会被误读成 A 只拿 24 分）。
+A 方常排弱档（见下方用法），拿 A 的 `winRate` 直接判会恒 false。
+`winRatePass` / `pass` 只表示"档位可分"，**不等于落进设计带**；设计带另用
+`bandPass = 0.65 ≤ strong ≤ 0.75` 单独记录，验收结论必须读 `bandPass`。
 另加三条"这批数据能不能引用"的门禁：
 - `boundReasons.wall == 0`；否则说明截断点由机器速度决定，胜率不可引用；
 - `zeroDepthMoves == 0`；连一手都搜不完说明预算或配置标错；
@@ -132,6 +139,20 @@ def _zero_flags(rows: list[dict[str, object]], side: str) -> list[bool]:
     return [bool(flag) for row in rows for flag in (row.get(f"{side}_zero_depth_flags") or [])]
 
 
+BAND_LOW = 0.65
+BAND_HIGH = 0.75
+
+
+def band_pass(score_rate: float) -> bool:
+    """K4 设计带：强档得分率**点估计**须落在 [0.65, 0.75] 闭区间。
+
+    口径固定为点估计，不是 Wilson 区间：n=64 时 CI 全宽约 19.69pt > 设计带 10pt，
+    「整个 CI 落在带内」恒 false；p≈0.70 时全宽降到 10pt 以下需 n≈400 量级。
+    `summarize` 必须复用本函数，不得在别处复制 0.65 / 0.75 字面量。
+    """
+    return BAND_LOW <= score_rate <= BAND_HIGH
+
+
 def summarize(
     rows: list[dict[str, object]],
     level_a: str,
@@ -215,7 +236,53 @@ def summarize(
         if not wall_enforced
         else f"target 表：wallClean 为硬门（wall 占比 {wall_percent:.2f}%）"
     )
-    win_rate_pass = point >= 0.60 and low >= 0.50
+    # v2：按"强档方向"判定。A 常排弱档（见 docstring 用法），拿 A 的 point 直接判会恒 false。
+    # Wilson 对称：wilson_lower(1-p) == 1 - wilson_upper(p)，故两侧通用写法是 max(low, 1-high)。
+    strong_side = "a" if point >= 0.5 else "b"
+    strong_score = max(point, 1.0 - point)
+    strong_low = max(low, 1.0 - high)
+    win_rate_pass = strong_score >= 0.60 and strong_low >= 0.50
+    gate_flags = {**gates, "winRatePass": win_rate_pass}
+    pass_value = (
+        win_rate_pass
+        and gates["enoughGames"]
+        and (gates["wallClean"] or not wall_enforced)
+        and gates["noZeroDepth"]
+        and gates["nodesRatioAtMost2Percent"]
+        and gates["zeroDepthRateAtMost1Percent"]
+        and gates["zeroDepthNoConsecutive"]
+        and gates["zeroDepthAtMostOnePerGame"]
+    )
+    failed_gates = [
+        name
+        for name in (
+            "winRatePass",
+            "enoughGames",
+            "wallClean",
+            "noZeroDepth",
+            "nodesRatioAtMost2Percent",
+            "zeroDepthRateAtMost1Percent",
+            "zeroDepthNoConsecutive",
+            "zeroDepthAtMostOnePerGame",
+        )
+        if gate_flags[name] is False and (name != "wallClean" or wall_enforced)
+    ]
+    # K4 设计带是独立判据，口径固定为**点估计**（非 Wilson 区间），且只走 band_pass 纯函数。
+    # pass=true 只代表"强档显著强 + 数据可引用"，不代表落进 65–75%。
+    band_ok = band_pass(strong_score)
+    band_reason = (
+        []
+        if band_ok
+        else [
+            f"band: {strong_score:.4f} > {BAND_HIGH:.2f}"
+            if strong_score > BAND_HIGH
+            else f"band: {strong_score:.4f} < {BAND_LOW:.2f}"
+        ]
+    )
+    # 契约验收是脚本门禁的子集：contractPass 为真时 pass 必为真。
+    contract_pass = pass_value and band_ok
+    # 契约层失败项与 failedGates 严格分开：后者只收录参与 pass 计算的脚本门禁。
+    contract_failed_gates = band_reason
     return {
         "levels": {"a": level_a, "b": level_b},
         "games": games,
@@ -228,7 +295,12 @@ def summarize(
         "wilson95": [round(low, 4), round(high, 4)],
         "elo": (None if (elo_value := elo_from_win_rate(point)) is None else round(elo_value, 1) or 0.0),
         "thresholdWins": threshold,
+        "thresholdSide": "strong",
         "winRatePass": win_rate_pass,
+        "strongSide": strong_side,
+        "strongScore": round(strong_score, 4),
+        "strongLow": round(strong_low, 4),
+        "judgementVersion": "v2",
         "moveTimes": {"a": time_stats(a_times), "b": time_stats(b_times)},
         "boundReasons": {"a": a_bound, "b": b_bound},
         "zeroDepthReasons": {"a": a_zero, "b": b_zero},
@@ -241,29 +313,11 @@ def summarize(
         "zeroDepthMaxConsecutive": {"a": a_max_consecutive, "b": b_max_consecutive},
         "zeroDepthGamesWithGt1": {"a": a_games_gt1, "b": b_games_gt1},
         "gates": gates,
-        "pass": (
-            win_rate_pass
-            and gates["enoughGames"]
-            and (gates["wallClean"] or not wall_enforced)
-            and gates["noZeroDepth"]
-            and gates["nodesRatioAtMost2Percent"]
-            and gates["zeroDepthRateAtMost1Percent"]
-            and gates["zeroDepthNoConsecutive"]
-            and gates["zeroDepthAtMostOnePerGame"]
-        ),
-        "failedGates": [
-            name
-            for name in (
-                "enoughGames",
-                "wallClean",
-                "noZeroDepth",
-                "nodesRatioAtMost2Percent",
-                "zeroDepthRateAtMost1Percent",
-                "zeroDepthNoConsecutive",
-                "zeroDepthAtMostOnePerGame",
-            )
-            if gates[name] is False and (name != "wallClean" or wall_enforced)
-        ],
+        "pass": pass_value,
+        "failedGates": failed_gates,
+        "bandPass": band_ok,
+        "contractPass": contract_pass,
+        "contractFailedGates": contract_failed_gates,
         "book": {
             "size": book_size,
             "used": [f"{row.get('opening')}" for row in rows if row.get("opening")],
@@ -382,7 +436,14 @@ def main(argv: list[str] | None = None) -> int:
         f"{args.level_a} vs {args.level_b}  n={report['games']}  "
         f"{report['wins']}-{report['losses']}-{report['draws']}  "
         f"winRate={report['winRate']:.3f}  Wilson={report['wilson95']}  "
-        f"threshold={report['thresholdWins']}  pass={report['pass']}"
+        f"threshold={report['thresholdWins']}({report['thresholdSide']})  "
+        f"pass={report['pass']}  contractPass={report['contractPass']}"
+    )
+    print(
+        f"strong={report['strongSide']}:{report['strongScore']}  "
+        f"bandPass={report['bandPass']}  "
+        f"contractFailedGates={report['contractFailedGates']}  "
+        "（pass 只表示档位可分，不等于落进 65–75% 设计带）"
     )
     print(f"gates={report['gates']}  bound={report['boundReasons']}")
     print(report["wallBoundNote"])

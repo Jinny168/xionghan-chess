@@ -13,11 +13,22 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from calibrate_levels import default_checkpoint, summarize  # noqa: E402
+from calibrate_levels import (  # noqa: E402
+    BAND_HIGH,
+    BAND_LOW,
+    band_pass,
+    default_checkpoint,
+    summarize,
+)
+
+# 边界测试专用浮点容差；带宽只由 BAND_LOW / BAND_HIGH 定义，待测输入从二者派生。
+EPS = 1e-4
 
 
 def _row(winner: str | None) -> dict[str, object]:
@@ -176,3 +187,105 @@ def test_k2_consecutive_and_per_game_gates_go_red() -> None:
     assert report["gates"]["zeroDepthNoConsecutive"] is False
     assert report["gates"]["zeroDepthAtMostOnePerGame"] is False
     assert "zeroDepthNoConsecutive" in report["failedGates"]
+
+
+# --- v2 强档方向判定 / K4 设计带守卫 ---------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("score_rate", "expected"),
+    [
+        (BAND_LOW - EPS, False),
+        (BAND_LOW, True),
+        ((BAND_LOW + BAND_HIGH) / 2, True),
+        (BAND_HIGH, True),
+        (BAND_HIGH + EPS, False),
+        (0.7891, False),  # 本轮实测强档得分率（测量值，允许原样出现）
+    ],
+)
+def test_band_pass_point_estimate_bounds(score_rate: float, expected: bool) -> None:
+    """带宽闭区间只由 BAND_LOW / BAND_HIGH 定义；待测输入从常量派生，不硬编码带宽。"""
+    assert band_pass(score_rate) is expected
+
+
+def test_summarize_reuses_band_pass_pure_function() -> None:
+    """判定层只能调用 band_pass，不得另写一份 0.65 / 0.75 比较。"""
+    for wins, draws, losses, n in ((13, 1, 50, 64), (70, 0, 30, 100), (3, 0, 7, 10)):
+        report = summarize(_rows(wins, draws, losses), "beginner", "medium", 64, n)
+        assert report["bandPass"] is band_pass(report["strongScore"])
+
+
+def test_contract_pass_truth_table() -> None:
+    """contractPass = pass and bandPass 四格；为真时 pass 必为真（单调，不得洗绿）。"""
+    cases = {
+        "F/T": (summarize(_rows(3, 0, 7), "beginner", "medium", 64, 10), False, True, False),
+        "T/T": (summarize(_rows(70, 0, 30), "beginner", "medium", 64, 100), True, True, True),
+        "T/F": (summarize(_rows(13, 1, 50), "beginner", "medium", 64, 64), True, False, False),
+        "F/F": (summarize(_rows(16, 0, 16), "beginner", "medium", 64, 32), False, False, False),
+    }
+    for label, (report, expected_pass, expected_band, expected_contract) in cases.items():
+        assert report["pass"] is expected_pass, label
+        assert report["bandPass"] is expected_band, label
+        assert report["contractPass"] is expected_contract, label
+        assert not (report["contractPass"] and not report["pass"]), label
+
+
+def test_strong_side_and_low_are_symmetric() -> None:
+    """A 强取 low、A 弱取 1-high，两侧通用公式为 max(low, 1-high)。"""
+    a_strong = summarize(_rows(16, 12, 4), "beginner", "medium", 64, 32)
+    a_weak = summarize(_rows(4, 12, 16), "beginner", "medium", 64, 32)
+    assert a_strong["strongSide"] == "a"
+    assert a_strong["strongLow"] == pytest.approx(a_strong["wilson95"][0], abs=EPS)
+    assert a_weak["strongSide"] == "b"
+    assert a_weak["strongLow"] == pytest.approx(1 - a_weak["wilson95"][1], abs=EPS)
+    assert a_strong["strongScore"] == 0.6875
+    assert a_weak["strongScore"] == 0.6875
+
+
+@pytest.mark.parametrize(
+    ("rows", "target_n", "win_rate", "wilson", "elo", "threshold"),
+    [
+        (_rows(16, 12, 4), 32, 0.6875, [0.5143, 0.8205], 137.0, 22),
+        (_rows(20, 8, 4), 32, 0.75, [0.5789, 0.8675], 190.8, 22),
+        (_rows(16, 0, 16), 32, 0.5, [0.3363, 0.6637], 0.0, 22),
+        (_rows(2, 0, 0), 32, 1.0, [0.3424, 1.0], None, None),
+    ],
+)
+def test_measurement_layer_unchanged(
+    rows: list[dict[str, object]],
+    target_n: int,
+    win_rate: float,
+    wilson: list[float],
+    elo: float | None,
+    threshold: int | None,
+) -> None:
+    """v2 只改判定层：原始测量字段逐夹具不变，不受强档方向改判影响。"""
+    report = summarize(rows, "beginner", "medium", 64, target_n)
+    assert report["winRate"] == win_rate
+    assert report["wilson95"] == wilson
+    assert report["elo"] == elo
+    assert report["thresholdWins"] == threshold
+
+
+def test_v2_report_schema_is_self_explanatory() -> None:
+    """本轮终验：脚本门禁通过但 K4 契约未达成，报告必须自己说得清。"""
+    report = summarize(_rows(13, 1, 50), "beginner", "medium", 64, 64)
+    for key in (
+        "strongSide",
+        "strongScore",
+        "strongLow",
+        "judgementVersion",
+        "bandPass",
+        "contractPass",
+        "contractFailedGates",
+        "thresholdSide",
+    ):
+        assert key in report
+    assert report["judgementVersion"] == "v2"
+    assert report["thresholdSide"] == "strong"
+    assert report["strongSide"] == "b"
+    assert report["strongScore"] == 0.7891
+    assert report["strongLow"] == pytest.approx(1 - report["wilson95"][1], abs=EPS)
+    assert report["failedGates"] == []
+    assert report["contractFailedGates"] == [f"band: 0.7891 > {BAND_HIGH:.2f}"]
+    assert report["contractPass"] is False
