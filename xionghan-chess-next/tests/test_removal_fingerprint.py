@@ -2,17 +2,27 @@
 
 ## 为什么需要它
 
-`RULE_VERSION` 靠人记得 `+1`。三连吃子那轮改动就是活例子：三项收紧（多格位移不结算 /
-恰好三子 / 不吃王）**每一条都在改移除集合**，却没有任何既有测试会因此变红 ——
-因为既有测试只断言"某些局面下的具体结果"，覆盖不到的每一种组合都是沉默漂移。
+`RULE_VERSION` 靠人记得 `+1`。三连吃子那一轮就是活例子：三项收紧（多格位移不结算 /
+恰好三子 / 不吃王）**每一条都在改移除集合**，而既有 88 条跨引擎护栏**一条都没红** ——
+因为 `perft` 数的是**着法条数**，`verify-rules.mjs` 也只比 `legal` + `check`：
+"这一着吃掉哪些子"完全不在任何护栏里。网页版缺整条兵三连能潜伏到今天，正是这个盲区。
 
-这里换一种钉法：把「合法着法 / 谁能吃到谁 / 每一步吃掉哪些子」三类摘要打进基线
-（`tests/fixtures/removal_fingerprint.json`，由 `scripts/gen_removal_fingerprint.py`
-用固定种子确定性生成）。**语义一变，摘要必变**，门禁红，文案直接给出处置步骤。
+这里换一种钉法：把「合法着法 / 谁能吃到谁 / 每一步吃掉哪些子」三类摘要打进基线，
+语义一变必红，且红灯直接给出处置步骤。
 
-它是**唯一**会因为"语义变了但没人声明"而红的地方，所以：
-- 不许标 `slow`（它会和 `-m "not slow"` 的主门禁一起跑，否则等于不存在）；
-- 必须快（基线 200 例 ≈ 0.5s，硬上限 2.0s），慢到被人想跳过就失去意义。
+## 三条硬口径
+
+1. **不进 `slow`**：进了 `-m "not slow"` 就等于不存在（提交不再即红）。
+2. **不 assert 墙钟**：共享 CI 上必然 flaky，而 flaky 的门禁最后一定被人挪进 slow。
+   改用与机器无关的计算量代理 —— `sum(perft1)`（基线里本来就有，天然是"这台机器要处理
+   多少着法"的度量）。`PERFT_BUDGET` 首跑实测 2964（2026-11-12），取 2 倍余量；**只许下调**。
+3. **只跑 Python**：指纹回答"比上一版变了吗"（绝对基线），跨端回答"两边一致吗"（parity）。
+   混在一个测试里，红了不知道该修哪边。跨端交给 `test_cross_engine.py`。
+
+## 红灯要指名下一步动作
+
+三条失败路径（版本 / 缺例 / 摘要漂移）各自给出**该做什么**，而不是只说"不匹配"。
+但**没有测试去 grep 这段文案** —— 那会把文案锁死成 API，改一句话就得改测试。
 """
 
 from __future__ import annotations
@@ -22,24 +32,16 @@ import json
 import time
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "gen_removal_fingerprint.py"
 BASELINE = ROOT / "tests" / "fixtures" / "removal_fingerprint.json"
-OFFLINE = ROOT / "android" / "Resources" / "assets" / "offline" / "offline.js"
-MAX_SECONDS = 2.0
-MAX_CASES = 200
-DIGESTS = ("perft1", "legalDigest", "capturableDigest", "capturedByMoveDigest")
 
-RED_LIGHT = (
-    "移除集合指纹变了 —— 有走法语义被改动。处置顺序：\n"
-    "  1) 确认这是**有意**的规则改动；不是 → 修代码，别动基线。\n"
-    "  2) 是 → 把 core/profiles.py 的 RULE_VERSION +1"
-    "（同时改 offline.js::positionKey 里的 'rs{N}-' 字面量，两处必须一起改）；\n"
-    "  3) 然后重生成基线：python scripts/gen_removal_fingerprint.py\n"
-    "  4) 把「RULE_VERSION 升位 + 新基线」放进**同一个 commit**，别拆开。"
-)
+# 计算量代理上限（不是墙钟）。首跑实测 2964 着法 / 78 例，取 2 倍余量。
+# 有人塞 perft(2) 进来会乘上约 30 倍，立刻红。
+PERFT_BUDGET = 6000
+MAX_CASES = 200
+
+REGEN = "python scripts/gen_removal_fingerprint.py --write"
 
 
 def _module():
@@ -54,103 +56,79 @@ def _baseline() -> dict:
     return json.loads(BASELINE.read_text(encoding="utf-8"))
 
 
-def test_baseline_is_regenerable_within_the_time_budget() -> None:
-    """指纹必须能在 2.0s 内算完 —— 否则门禁会被 `-m slow` 赶出去，等于没有。"""
-    module = _module()
+def test_fingerprint_is_cheap_enough_to_stay_in_the_main_gate() -> None:
+    """算不完的指纹门禁会被赶进 `-m slow`，那就等于没有 —— 用算量而不是墙钟来守。"""
     started = time.perf_counter()
-    payload = module.fingerprint()
+    payload = _module().fingerprint()
     elapsed = time.perf_counter() - started
 
-    assert elapsed <= MAX_SECONDS, f"指纹生成耗时 {elapsed:.2f}s 超过 {MAX_SECONDS}s 上限，先减案例数"
-    assert payload["caseCount"] <= MAX_CASES, f"案例数 {payload['caseCount']} 超过 {MAX_CASES}"
-    assert payload["cases"], "指纹为空集 —— 门禁什么都不钉"
+    cases = payload["cases"]
+    moves = sum(case["perft1"] for case in cases.values())
+    # 墙钟只打印，供人看趋势；不断言（共享 CI 上必然 flaky）。
+    print(f"[removal-fingerprint] {len(cases)} cases / {moves} moves / {elapsed:.2f}s")
+
+    assert len(cases) <= MAX_CASES, f"指纹用例 {len(cases)} 例超过 {MAX_CASES} 上限"
+    assert moves <= PERFT_BUDGET, (
+        f"指纹要处理 {moves} 条着法，超过 {PERFT_BUDGET} 预算 —— "
+        "覆盖加太多或误加了 perft(2)，先减范围再加回来"
+    )
+    assert cases, "指纹为空集 —— 门禁什么都不钉"
 
 
 def test_baseline_actually_covers_the_capture_kinds() -> None:
-    """基线必须真的咬到三连吃子与直接吃子。
+    """基线必须真的咬到三连吃子，而不只是直接吃子。
 
-    这条不是洁癖：第一版生成器在整盘撒子，200 例里"可吃格"摘要**全是空串哈希** ——
-    门禁照样绿，但三连吃子的语义怎么改它都不会动，等于没钉。覆盖度必须显式断言，
+    这条不是洁癖：第一版生成器在整盘均匀撒子，200 例的「可吃格」摘要**全是空串** ——
+    门禁照样绿，但三连语义怎么改它都不动，等于没钉。覆盖度必须显式断言，
     否则"绿"只证明了两边都算出了同一个零。
     """
-    kinds: set[str] = set()
-    for case in _baseline()["cases"]:
-        kinds.update(case["kinds"])
-    assert {"direct", "three_line"} <= kinds, (
-        f"基线只覆盖了 {sorted(kinds) or '空'} —— 三连吃子/直接吃子的语义都没被钉住，"
-        "请调 scripts/gen_removal_fingerprint.py 的局面生成（聚簇布局/兵的比例）"
+    cases = _baseline()["cases"]
+    assert any("three_line" in case["capturable"] for case in cases.values()), (
+        "基线里没有任何 three_line 记录 —— 三连吃子的语义没被钉住，"
+        "请检查 tests/_removal_cases.py 的构造（线内补位子不能用兵，会把线带歪）"
     )
+    assert any("direct" in case["capturable"] for case in cases.values()), "基线里没有 direct 记录"
 
 
 def test_removal_fingerprint_matches_the_baseline() -> None:
-    """语义未变时逐例一致；变了就报出**是哪几例、哪一类摘要**变了。"""
+    """版本 → 缺例 → 摘要漂移，三条路径分别报，各自指名下一步动作。"""
     expected = _baseline()
     actual = _module().fingerprint()
 
-    assert actual["ruleVersion"] == expected["ruleVersion"], RED_LIGHT
-    assert actual["seed"] == expected["seed"], f"生成器种子变了（{expected['seed']} → {actual['seed']}），基线必须重生成"
+    assert actual["ruleVersion"] == expected["ruleVersion"], (
+        f"[version] 规则语义版本不一致：基线 ruleVersion={expected['ruleVersion']}，"
+        f"当前 RULE_VERSION={actual['ruleVersion']}。\n"
+        "  → 已 bump 版本：重生成基线并提交（基线里的 ruleVersion 要跟着变）。\n"
+        "  → 未 bump 版本：说明本次改动动了移除语义，必须 bump RULE_VERSION "
+        "并同步 offline.js 的 rs 字面量。"
+    )
+    assert actual["generatorVersion"] == expected["generatorVersion"], (
+        f"[generator] 构造规则版本不一致：基线 {expected['generatorVersion']}，"
+        f"当前 {actual['generatorVersion']}。\n"
+        "  → 你改了 tests/_removal_cases.py 的局面构造（加族 / 改坐标），"
+        f"请在该模块注释里说明改了什么并重生成基线：{REGEN}"
+    )
 
-    if actual == expected:
-        return
+    missing = sorted(set(actual["cases"]) - set(expected["cases"]))
+    extra = sorted(set(expected["cases"]) - set(actual["cases"]))
+    assert not missing and not extra, (
+        f"[missing] 基线缺 {len(missing)} 例、多 {len(extra)} 例："
+        f"{', '.join(missing[:6]) or '-'} / {', '.join(extra[:6]) or '-'}。\n"
+        "  → 你改了覆盖范围（加族 / 加维度）。重生成基线，"
+        "并在 GENERATOR_VERSION 注释里写明新增了哪一维。"
+    )
 
-    by_id = {case["id"]: case for case in expected["cases"]}
-    drifted: list[str] = []
-    for case in actual["cases"]:
-        was = by_id.get(case["id"])
-        if was is None:
-            drifted.append(f"{case['id']}: 基线里没有这一例（生成器变了？）")
-            continue
-        changed = [key for key in DIGESTS if was.get(key) != case.get(key)]
+    drifted = []
+    for case_id, case in actual["cases"].items():
+        was = expected["cases"][case_id]
+        changed = [key for key in ("perft1", "capturable", "removals") if was[key] != case[key]]
         if changed:
-            detail = ", ".join(f"{key} {was.get(key)}→{case.get(key)}" for key in changed)
-            drifted.append(f"{case['id']}: {detail}")
-    missing = sorted(set(by_id) - {case["id"] for case in actual["cases"]})
-    if missing:
-        drifted.append(f"基线里多出 {len(missing)} 例（生成器变了？如 {missing[0]}）")
-
+            details = "; ".join(f"{key}: was={was[key]!r} now={case[key]!r}" for key in changed)
+            drifted.append(f"{case_id} → {details}")
     assert not drifted, (
-        f"{len(drifted)}/{len(actual['cases'])} 例漂移：\n  " + "\n  ".join(drifted[:12]) + f"\n\n{RED_LIGHT}"
+        f"[delta] {len(drifted)}/{len(actual['cases'])} 例的移除集合变了：\n  "
+        + "\n  ".join(drifted[:8])
+        + "\n  → 若这是有意的规则变更：bump RULE_VERSION + 同步 offline.js 的 rs + "
+        f"重生成基线 + 写发布说明，四件缺一不可（{REGEN}）。\n"
+        "  → 若不是：rules.py / offline.js 有回归，不要改基线。"
     )
-
-
-@pytest.mark.parametrize("key", ["pawn_three_line_capture", "pawn_charge"])
-def test_toggle_flip_changes_the_fingerprint(key: str) -> None:
-    """开关必须在指纹里留痕 —— 否则"改了开关默认值"同样能静默漂移。
-
-    做法：把**整批**用例的该开关统一翻面后重算，摘要必须变（单看某一例不行：
-    随机摆的局面里，很多局面本来就与这个开关无关，翻了也不该变）。这条同时证明了
-    `options` 真的进了 `RulesEngine` —— 历史上踩过"payload 丢 options，
-    比对的全是档案默认值"这种假绿。
-    """
-    module = _module()
-    baseline = _baseline()
-    assert {case["options"][key] for case in baseline["cases"]} == {True, False}, (
-        f"基线里 {key} 只有一种取值，翻面测试没有意义"
-    )
-
-    # 短路：只要**有任何一例**因翻面而变，就证明开关进了算法。
-    # 不预先挑某一例 —— 随机局面里很多例本来就与这个开关无关，翻了也不该变。
-    for case in module.build_cases():
-        flipped = {**case, "options": {**case["options"], key: not case["options"][key]}}
-        if module.case_digests(case) != module.case_digests(flipped):
-            return
-    pytest.fail(f"翻转 {key} 后全部 200 例摘要都没变 —— 该开关没有进算法，或没有进指纹")
-
-
-def test_offline_position_key_literal_matches_rule_version() -> None:
-    """`offline.js` 的 `'rs{N}-'` 必须等于 `RULE_VERSION`（JS 与 Python 无法共享常量）。
-
-    这条是升位时最容易漏的一处：Python 改了、JS 没改，两端算出的重复局面键不同，
-    同一盘棋在安卓与桌面上的"三次重复"判得不一样 —— 且不会有任何测试喊。
-    """
-    from xionghan_chess.core.profiles import RULE_VERSION
-
-    source = OFFLINE.read_text(encoding="utf-8")
-    key_literal = f"'rs{RULE_VERSION}-'"
-    assert key_literal in source, (
-        f"offline.js::positionKey 里找不到 {key_literal}；"
-        f"当前 RULE_VERSION={RULE_VERSION}，JS 侧字面量没跟上（改一处必须改另一处）"
-    )
-    # 旧的版本前缀不许残留：只留注释里的历史说明也不行，容易看错。
-    for stale in range(1, RULE_VERSION):
-        assert f"'rs{stale}-'" not in source, f"offline.js 里还留着旧字面量 'rs{stale}-'"

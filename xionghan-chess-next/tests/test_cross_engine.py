@@ -1798,15 +1798,16 @@ def test_three_line_capture_parity_ignores_a_far_line():
 
     assert python_captured == [], f"不该收割远线，实际 {python_captured}"
     assert js_captured == python_captured, f"python={python_captured} js={js_captured}"
-
-
 # ---------------------------------------------------------------------------
-# 三连吃子 v3（RULE_VERSION=3）四条收紧口径的两端对拍
+# 三连吃子 v3（RULE_VERSION=3）的五条收紧口径，两端对拍
 #
-# 2.0.4 之前这三处都不成立，两端**一起错**——所以只比"两边相等"会绿着骗人。
-# 每条用例因此都带一个同局的**正对照**：同一块盘、同一套选项，把兵挪到能成
-# 三连的位置（位移 1 格 / 恰好三子 / 被吃的是士），断言两端都吃。
-# 收紧的口径只有"控制变量"那一个变量不同，绿了才说明是规则收紧、不是盘摆错了。
+# 为什么是 5 条而不是"每个开关一条"：「快速行军」与「敌阵冲锋」在 `_pawn` 里是**两个独立
+# 分支**（`pawn_fast_move_before_enemy_territory` 走本方侧、`pawn_charge` 走敌阵侧，距离与
+# 路径各自判定），只测一个必然漏另一个。同理「王不触发」必须配一条「同一窗口换成车要触发」
+# —— 否则过滤过头（把整条三连都关掉）也能全绿。
+#
+# 2.0.4 之前这几处**两端一起错**，所以不能只比"两边相等"（会绿着骗人）：每条收缩性断言
+# 都配一个同局的正对照，只改一个变量。
 # ---------------------------------------------------------------------------
 def _python_vs_js_captured(game: Game, source: Position, target: Position) -> tuple[list, list]:
     move = Move(source, target)
@@ -1815,9 +1816,88 @@ def _python_vs_js_captured(game: Game, source: Position, target: Position) -> tu
     return python, js
 
 
-def test_three_line_parity_multi_square_fast_march_does_not_capture():
-    """位移 > 1 格的快速行军不结算三连（两端一致）。"""
-    # 红兵 (8,3) → (5,3) 走 3 格（快速行军上限正好是 3）；落点线与 (5,4) 兵、(5,5) 黑士成三连。
+def _three_line_king_in_window(king: bool) -> Game:
+    """落点 (6,3) + (6,4) 我兵 + (6,5) 敌方 `king=True` 取王 / `False` 取车，外侧皆空。"""
+    victim = (PieceType.KING if king else PieceType.ROOK, Color.BLACK, 6, 5)
+    return _three_line_game(
+        [
+            (PieceType.PAWN, Color.RED, 7, 3),
+            (PieceType.PAWN, Color.RED, 6, 4),
+            victim,
+        ]
+    )
+
+
+def test_three_line_parity_king_is_never_removed_by_three_line():
+    """王在窗口内 → 两端都不吃，且王格上不出现任何 THREE_LINE 威胁。"""
+    game = _three_line_king_in_window(king=True)
+    move = Move(Position(7, 3), Position(6, 3))
+    assert game.rules.pseudo_legal(game.state, move), "这一步应当合法（只是不该吃王）"
+
+    python, js = _python_vs_js_captured(game, Position(7, 3), Position(6, 3))
+    assert python == [], f"三连不该吃王，实际 {python}"
+    assert js == python, f"python={python} js={js}"
+
+    # 攻击图同源：`capturable_squares` 对王格必须没有 three_line 记录（否则 `in_check` 会
+    # 早一拍报将军，而 `checkmate` 仍是 False —— 玩家会看到"被将"却找不到攻击子）。
+    king_square = Position(6, 5)
+    specs = game.rules.capturable_squares(game.state, Color.RED, targets=(king_square,))
+    three_line = [
+        removal
+        for spec in specs.values()
+        for removal in spec.removals
+        if "three_line" in removal.kind.value
+    ]
+    assert three_line == [], f"王格不该有三连威胁，实际 {three_line}"
+
+
+def test_three_line_parity_rook_in_the_same_window_is_removed():
+    """正向对照：同一窗口把王换成车 → 两端都吃。
+
+    没有这一条，把整条三连关掉（过滤过头）也能让上一条全绿。
+    """
+    game = _three_line_king_in_window(king=False)
+    python, js = _python_vs_js_captured(game, Position(7, 3), Position(6, 3))
+    assert python == [("rook", "black")], f"同一窗口换成车应当被吃，实际 {python}"
+    assert js == python, f"python={python} js={js}"
+
+
+def test_three_line_parity_four_in_a_row_never_fires():
+    """线上连成 4 子 / 5 子都不触发；恰好 3 子照吃（两端一致）。"""
+    exact_python, exact_js = _python_vs_js_captured(
+        _three_line_game(
+            [
+                (PieceType.PAWN, Color.RED, 7, 3),
+                (PieceType.PAWN, Color.RED, 6, 4),
+                (PieceType.ADVISOR, Color.BLACK, 6, 5),
+            ]
+        ),
+        Position(7, 3),
+        Position(6, 3),
+    )
+    assert exact_python == [("advisor", "black")], f"恰好三子应当吃，实际 {exact_python}"
+    assert exact_js == exact_python, f"python={exact_python} js={exact_js}"
+
+    for extra, label in (
+        ([(PieceType.PAWN, Color.RED, 6, 6)], "四子"),
+        ([(PieceType.PAWN, Color.RED, 6, 6), (PieceType.PAWN, Color.RED, 6, 7)], "五子"),
+    ):
+        longer = _three_line_game(
+            [
+                (PieceType.PAWN, Color.RED, 7, 3),
+                (PieceType.PAWN, Color.RED, 6, 4),
+                (PieceType.ADVISOR, Color.BLACK, 6, 5),
+                *extra,
+            ]
+        )
+        python, js = _python_vs_js_captured(longer, Position(7, 3), Position(6, 3))
+        assert python == [], f"{label}相连不该吃，实际 {python}"
+        assert js == python, f"{label}: python={python} js={js}"
+
+
+def test_three_line_parity_fast_move_does_not_settle():
+    """快速行军（多格）不结算三连；同线只走一格照吃（两端一致）。"""
+    # 红兵 (8,3) → (5,3) 走 3 格，落点线与 (5,4) 兵、(5,5) 黑士成三连。
     game = _three_line_game(
         [
             (PieceType.PAWN, Color.RED, 8, 3),
@@ -1830,7 +1910,6 @@ def test_three_line_parity_multi_square_fast_march_does_not_capture():
     assert python == [], f"多格行军不该吃子，实际 {python}"
     assert js == python, f"python={python} js={js}"
 
-    # 正对照：同一条线，兵只走一格 → 两端都吃掉那枚士。
     control = _three_line_game(
         [
             (PieceType.PAWN, Color.RED, 6, 3),
@@ -1843,8 +1922,8 @@ def test_three_line_parity_multi_square_fast_march_does_not_capture():
     assert control_js == control_python, f"python={control_python} js={control_js}"
 
 
-def test_three_line_parity_pawn_charge_long_move_does_not_capture():
-    """敌阵冲锋（`pawn_charge`）走 3 格同样不结算三连（两端一致）。"""
+def test_three_line_parity_charge_does_not_settle():
+    """敌阵冲锋（`pawn_charge`，另一条多格分支）同样不结算三连；紧邻一格照吃。"""
     options = {**THREE_LINE_OPTIONS, "pawn_charge": True}
     game = _three_line_game(
         [
@@ -1859,7 +1938,6 @@ def test_three_line_parity_pawn_charge_long_move_does_not_capture():
     assert python == [], f"冲锋多格不该吃子，实际 {python}"
     assert js == python, f"python={python} js={js}"
 
-    # 正对照：把兵放到紧邻位置走一格 → 两端都吃。
     control = _three_line_game(
         [
             (PieceType.PAWN, Color.RED, 3, 3),
@@ -1871,58 +1949,3 @@ def test_three_line_parity_pawn_charge_long_move_does_not_capture():
     control_python, control_js = _python_vs_js_captured(control, Position(3, 3), Position(2, 3))
     assert control_python == [("advisor", "black")], f"正对照应当吃子，实际 {control_python}"
     assert control_js == control_python, f"python={control_python} js={control_js}"
-
-
-def test_three_line_parity_needs_exactly_three_on_the_line():
-    """线上连成 4 子不结算；恰好 3 子才结算（两端一致）。"""
-    # 恰好三子：(6,3) 落点 + (6,4) 兵 + (6,5) 黑士，外侧 (6,2)/(6,6) 均空。
-    exact = _three_line_game(
-        [
-            (PieceType.PAWN, Color.RED, 7, 3),
-            (PieceType.PAWN, Color.RED, 6, 4),
-            (PieceType.ADVISOR, Color.BLACK, 6, 5),
-        ]
-    )
-    exact_python, exact_js = _python_vs_js_captured(exact, Position(7, 3), Position(6, 3))
-    assert exact_python == [("advisor", "black")], f"恰好三子应当吃，实际 {exact_python}"
-    assert exact_js == exact_python, f"python={exact_python} js={exact_js}"
-
-    # 四子：同一行远端 (6,6) 多一枚我兵 → 两端都不吃。
-    longer = _three_line_game(
-        [
-            (PieceType.PAWN, Color.RED, 7, 3),
-            (PieceType.PAWN, Color.RED, 6, 4),
-            (PieceType.ADVISOR, Color.BLACK, 6, 5),
-            (PieceType.PAWN, Color.RED, 6, 6),
-        ]
-    )
-    longer_python, longer_js = _python_vs_js_captured(longer, Position(7, 3), Position(6, 3))
-    assert longer_python == [], f"四子相连不该吃，实际 {longer_python}"
-    assert longer_js == longer_python, f"python={longer_python} js={longer_js}"
-
-
-def test_three_line_parity_never_captures_a_king():
-    """三连窗口里的敌王不被吃（两端一致）；同一窗口换成士则照吃。"""
-    # 窗口 = (6,3) 落点兵 + (6,4) 我兵 + (6,5) 敌王。
-    with_king = _three_line_game(
-        [
-            (PieceType.PAWN, Color.RED, 7, 3),
-            (PieceType.PAWN, Color.RED, 6, 4),
-            (PieceType.KING, Color.BLACK, 6, 5),
-        ]
-    )
-    king_python, king_js = _python_vs_js_captured(with_king, Position(7, 3), Position(6, 3))
-    assert king_python == [], f"不该吃王，实际 {king_python}"
-    assert king_js == king_python, f"python={king_python} js={king_js}"
-
-    # 正对照：同一窗口换成士 → 两端都吃，证明"不吃"是排王规则在起作用。
-    with_advisor = _three_line_game(
-        [
-            (PieceType.PAWN, Color.RED, 7, 3),
-            (PieceType.PAWN, Color.RED, 6, 4),
-            (PieceType.ADVISOR, Color.BLACK, 6, 5),
-        ]
-    )
-    advisor_python, advisor_js = _python_vs_js_captured(with_advisor, Position(7, 3), Position(6, 3))
-    assert advisor_python == [("advisor", "black")], f"正对照应当吃子，实际 {advisor_python}"
-    assert advisor_js == advisor_python, f"python={advisor_python} js={advisor_js}"
