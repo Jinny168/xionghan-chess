@@ -43,8 +43,10 @@ from xionghan_chess.service.app import app
 
 def test_document_carries_the_rule_version_but_not_a_new_format_version() -> None:
     document = game_document(Game("web"))
-    assert document["ruleVersion"] == RULE_VERSION == 2
-    # 本轮只改走法语义：容器结构与重复局面键都不该动
+    # 字面量是**故意的**：任何一次升位都得有人明确改这一行，不能靠常量漂移带过去。
+    # 3 = 三连吃子收紧（多格位移不结算 / 恰好三子 / 不吃王），见 `core/profiles.py`。
+    assert document["ruleVersion"] == RULE_VERSION == 3
+    # 只改走法语义：容器结构与重复局面键都不该动
     assert document["formatVersion"] == 1
     assert document["positionKeyVersion"] >= 1
 

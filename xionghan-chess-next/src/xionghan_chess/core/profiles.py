@@ -20,8 +20,13 @@ XIONGHAN_COLS = 13
 # 2.0.0 = 巡禁竖移 + 兵底线不再后退（`pawn_backward_at_base` 默认关）。这两条会让**旧客户端算出
 # 不同的合法着法**，所以：棋谱文件带 `ruleVersion`（旧档缺省 1），联机建房/加入必须
 # 双方一致（见 `service/rooms.py::RoomManager._check_rule_version`）。
+# 3 = 三连吃子收紧（2.0.4 起）：①兵这一着**位移 > 1 格**不结算三连（快速行军 / 敌阵冲锋
+# 都受约束）；②线上必须**恰好三子**，连成 4/5 子不结算；③**被吃子不能是将/帅**。
+# 三条都改变**移除集合**，也就是同一局面在旧客户端上会少/多出吃子 —— 必须升位，
+# 否则新旧客户端同桌、旧棋谱回放都会分叉。JS 侧对应 `offline.js::positionKey` 的
+# `rs3` 前缀与 `tests/fixtures/removal_fingerprint.json` 的基线。
 # 只改走法语义时才 +1；改存档结构请改 `FORMAT_VERSION`，别动这里。
-RULE_VERSION = 2
+RULE_VERSION = 3
 # Home rank of the patrol ("巡") before mirroring. Black starts on this rank and
 # Red starts on its mirror image, so the patrol may only ever move along one of
 # those two ranks. Only profiles that enable PieceType.PATROL place it.

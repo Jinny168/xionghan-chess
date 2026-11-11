@@ -848,6 +848,7 @@ class RulesEngine:
         - 这条线上**恰好三子**：窗口两端的外侧邻格若有子（实际连成 4 子或 5 子），**不结算**；
         - **两枚我方 + 一枚敌方**，**任意顺序**（兵兵敌 / 兵敌兵 / 敌兵兵 都算）；
         - 至少一枚是兵，且**移动的那枚兵必须在这个窗口里**；
+        - **被吃的那枚不能是将/帅**（否则等于一步无声吃王，见循环里的注释）；
         - `pawn_three_line_capture` 开启（默认关）；
         - **这一着位移不超过一格**（判据在 `_three_line_mover`，调用前已拦）。
 
@@ -886,6 +887,11 @@ class RulesEngine:
                 if not any(p.type is PieceType.PAWN for p in allies):
                     continue
                 if not any(p.position == landing for p in allies):
+                    continue
+                # 将/帅不吃：三连是"围住一枚敌子"，把王围进去等于一步无声吃王（走之前对方
+                # 并未被将，玩家没有预警）。规则作者裁定排除，`capturable_squares` 走同一条
+                # 结算，因此"王不会被三连吃"在攻击图上也自动一致（`in_check` 不会误判）。
+                if enemies[0].type is PieceType.KING:
                     continue
                 captures[enemies[0].id] = enemies[0]
         return list(captures.values())
