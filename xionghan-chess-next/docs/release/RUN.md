@@ -33,6 +33,13 @@ py -3.11 -m venv .venv
 访问 `http://127.0.0.1:8000`。同一局域网设备访问服务器局域网 IP。浏览器人机对战的 AI
 运行于同一 Python 服务，不复制 JavaScript 规则引擎。
 
+> **可复现 / 离线部署请用 `requirements/lock/py312-server.txt`**（19 个包的精确锁定）；
+> `requirements/server.txt` 只是**范围约束**（如 `fastapi>=0.116,<1`），实际解析版本会随时间前移
+> —— 2026-11-11 实测干净环境解析到 fastapi 0.162.4 / starlette 1.10.0，与本仓库开发环境不同。
+> 离线机器先用 `pip download -r requirements/lock/py312-server.txt -d wheels/` 备好 wheel，
+> 再 `pip install --no-index --find-links wheels/ -r requirements/lock/py312-server.txt`。
+> 桌面端另需 `requirements/desktop.txt`（PySide6），服务端不需要。
+
 ## Docker 部署
 
 完整的 Linux、systemd、Nginx、HTTPS 和更新维护说明见 [LINUX_DEPLOY.md](../LINUX_DEPLOY.md)。
