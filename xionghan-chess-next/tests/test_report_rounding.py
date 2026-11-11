@@ -2,33 +2,37 @@
 
 ## 为什么要单独测"舍入"
 
-`winRate + strongScore == 1` 这条守恒关系，依赖两边用**同一个** `round(_, 4)`。
+`winRate + strongScore == 1` 这条守恒关系依赖两边用**同一个** `round(_, 4)`。
 生成端一旦有一处被改成 half-up，或有人"顺手加个 1e-9 修浮点误差"，数值会变、
 而**几乎所有测试仍然绿** —— 因为本轮锚点 `13.5/64 = 0.2109375` 与 `50.5/64 = 0.7890625`
-**都不是 tie**（第 5 位分别是 3 和 6），走不到 tie 分支。舍入模式的覆盖缺口是 **100%**，
-本文件是唯一保护。
+**都不是 tie**（第 5 位分别是 3 和 6），走不到 tie 分支。舍入模式的覆盖缺口是 **100%**。
 
-## 两个必须写进代码的坑（改之前先读）
+## 三层各守一件事（别让任何一层变成"永远绿"）
 
-1. **oracle 必须 `Decimal(v)`（float 的精确值），不能 `Decimal(str(v))`。**
-   `str` 口径把输入域换成十进制，会造出**生产中不存在的 tie**：`nd=2, den=200` 时
-   str 口径给 50 个"tie"，float 口径只给 2 个（`0.125 / 0.625`）。`0.015` 就是典型：
-   它在十进制里是 tie，但 float 里略小于 0.015，`round()` 根本不走 tie 分支。
-   而且这个坑**换判别器救不回来**，只有换 oracle 才修好。
-2. **判别器必须让两种舍入模式作用于同一个 exact 值**：
-   `exact.quantize(q) != exact.quantize(q, rounding=ROUND_HALF_UP)`。
-   若写成 `round(v, n) != float(exact.quantize(q, ROUND_HALF_UP))`，测到的是
-   float 与 decimal 的**表示差异**，不是舍入模式差异 —— 会"报覆盖但没覆盖"。
+1. **tie 单测**：`_round` vs `Decimal.quantize` 的 half-even，输入由 `float_exact_ties()` 生成。
+   不依赖任何本地文件 → CI 一定跑。
+2. **单入口（AST 级）**：`calibrate_levels.py` 里裸 `round(` 只允许出现在 `_round` 内部。
+   防"新加字段时顺手写 `round(x, 4)`"——那是真会发生的事。
+3. **守恒不变量 + 写出端**：跑 `tests/fixtures/mini_calibration.jsonl`（8 局，随仓库走）
+   复现 `summarize()`，断言 `winRate + strongScore == 1` 与各字段的舍入值。
+   **不能用 `.report.json` / `.jsonl` 真产物** —— 它们不进仓库，CI 里会静默 skip，
+   于是这条核心不变量在 CI 里根本不跑（本项目已经踩过一次"静默 skip"的坑）。
 
-## tie 只在第 4 位为偶数时才区分
+## 两个必须写进代码的坑
 
-`0.96875` 是 tie 但第 4 位是 7（奇），half-even 与 half-up 都给 `0.9688`，**无区分力**。
-`0.005` 更不是 tie（float 里略大于 0.005，两模式都上进）。所以用例只能从
-`float_exact_ties()` 里取，不能手挑"看起来像 tie"的十进制数。
+1. **oracle 必须 `_exact(v)` = `Decimal(v)`（float 精确值），不能 `Decimal(str(v))`。**
+   `str` 口径把输入域换成十进制，会造出**生产中不存在的 tie**。这个错本轮**真实发生过**
+   （写生成器的人自己写的），而且在生产参数下**完全静默**：`den=64` 时两种口径都给 8 个、
+   `den=8` 都给 2 个，只有非真实的 `den=200` 才分叉（50 vs 2）。
+   所以只能靠直接断言 `_exact` 的语义来守，行为断言抓不到。
+2. **判别器必须让两种舍入模式作用于同一个 exact 值**。
+   写成 `round(v, n) != float(exact.quantize(q, HALF_UP))` 会把 float 与 decimal 的
+   **表示误差**记成"舍入模式差异"（`0.015` 即此类）。
 """
 
 from __future__ import annotations
 
+import ast
 import json
 import sys
 from decimal import ROUND_HALF_UP, Decimal
@@ -37,36 +41,57 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "scripts"
 RUNS = ROOT / "benchmarks" / "calibration_runs"
+FIXTURE = ROOT / "tests" / "fixtures" / "mini_calibration.jsonl"
 STEM = "2026-11-11-bm-final-n64"
-if str(ROOT / "scripts") not in sys.path:
-    sys.path.insert(0, str(ROOT / "scripts"))
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
 
 from calibrate_levels import _round, summarize  # noqa: E402
 
 
-def float_exact_ties(ndigits: int) -> list[float]:
-    """`ndigits` 位小数下**能被 float 精确表示**、且两舍入模式给出不同结果的 tie。
+def _exact(value: float) -> Decimal:
+    """`float` 的**精确**十进制值。
 
-    完备性：tie 要求 `v = (2m+1) / (2·10^nd)` 且 float 可精确表示 ⇒ `5^nd | (2m+1)`
-    ⇒ `v = j / 2^(nd+1)`，j 为奇数；反向亦成立（末位必为 5）。所以枚举奇数 j
-    就穷尽了"float 可表示的 tie"，遗漏为零。
-
-    没有 `den` 参数是有意的：任何"该填哪个分母"的参数都是"可能填错"的位置，
-    而 `den` 从 `report["games"]` 推会让 n=100 的报告红 —— 那是正确结果，却看起来像测试坏了。
+    **禁止改成 `Decimal(str(value))`**：那会把输入域换成"十进制读法"，造出生产中不存在的
+    tie（`0.015` 在 float 里略小于精确值，`round()` 根本不走 tie 分支）。本轮这个错真实
+    发生过，而且生产参数下完全静默 —— 见模块 docstring。
     """
+    return Decimal(value)
+
+
+def float_exact_ties(ndigits: int) -> list[float]:
+    """`ndigits` 位小数下**能被 float 精确表示**、且两种舍入模式给出不同结果的 tie。
+
+    完备性：tie 要求 `v = (2m+1)/(2·10^nd)` 且 float 可精确表示 ⇒ `5^nd | (2m+1)`
+    ⇒ 记 `2m+1 = j·5^nd`（j 奇）⇒ `v = j / 2^(nd+1)`。反向：`j/2^(nd+1) = j·5^(nd+1)/10^(nd+1)`，
+    j 奇 ⇒ 末位必为 5 ⇒ 恰是 nd 位 tie。故枚举奇 j 即"全部且仅有的 float 可精确 tie"。
+
+    **不要改成按分母枚举**：真实 `games ∈ {10,20,25,40,50,64,100,128}` 下两种写法结论相同
+    （不可达），但一旦有人引入非真实分母（如 `den=200`），会造出 50 个假 tie（真实只有 2 个）。
+    """
+    quantum = Decimal(1).scaleb(-ndigits)
     out: list[float] = []
-    q = Decimal(1).scaleb(-ndigits)
     for j in range(1, 2 ** (ndigits + 1), 2):
-        value = j / 2 ** (ndigits + 1)
-        exact = Decimal(value)  # ← 必须 Decimal(v)，不能 Decimal(str(v))
-        if exact.quantize(q) != exact.quantize(q, rounding=ROUND_HALF_UP):
+        value = j / 2 ** (ndigits + 1)  # 天生二进制精确
+        exact = _exact(value)
+        if exact.quantize(quantum) != exact.quantize(quantum, rounding=ROUND_HALF_UP):
             out.append(value)
     return out
 
 
-def test_tie_enumerator_is_not_degenerate() -> None:
-    """生成器自身要够用：4 位 8 个、2 位 2 个、3 位 4 个（将来换精度可直接复用）。"""
+# ---------------------------------------------------------------------------
+# ① oracle 语义（唯一能抓住 `str(v)` 回归的地方）
+# ---------------------------------------------------------------------------
+def test_exact_oracle_uses_float_semantics() -> None:
+    """`0.005` 是唯一抓手：float 里它略大于精确值，而十进制读法会把它当精确 0.005。"""
+    assert _exact(0.005) != Decimal("0.005"), "改成 Decimal(str(v)) 了？那会造出生产中不存在的 tie"
+    assert _exact(0.03125) == Decimal("0.03125"), "二进制可精确表示的值必须相等"
+
+
+def test_tie_enumeration_is_not_degenerate() -> None:
+    """枚举边界 / 奇偶过滤写错时红；顺带证明换精度可复用。"""
     assert float_exact_ties(4) == [
         0.03125,
         0.15625,
@@ -83,90 +108,116 @@ def test_tie_enumerator_is_not_degenerate() -> None:
 
 @pytest.mark.parametrize(("ndigits", "expected_count"), [(4, 8), (2, 2)])
 def test_round_is_half_to_even_on_every_representable_tie(ndigits: int, expected_count: int) -> None:
-    """被测是 `_round`（不是内置 `round`）——写内置就是"参考 vs 参考"，绿了也没碰实现。"""
+    """被测是 `_round`，不是内置 `round` —— 写成内置就是"参考 vs 参考"，绿了也没碰实现。"""
     ties = float_exact_ties(ndigits)
-    assert len(ties) == expected_count, "枚举退化了：tie 集合变少说明生成器写错"
+    assert len(ties) == expected_count, "枚举退化了"
     quantum = Decimal(1).scaleb(-ndigits)
     for value in ties:
-        exact = Decimal(value)
+        exact = _exact(value)
         # ① 实现 vs 独立 oracle（Decimal 的 half-even）
         assert _round(value, ndigits) == float(exact.quantize(quantum)), f"{value} @ {ndigits} 位"
         # ② 本用例确实有区分力：half-up 必须给出不同结果，否则它在测空气
         assert exact.quantize(quantum, rounding=ROUND_HALF_UP) != exact.quantize(quantum), (
-            f"{value} @ {ndigits} 位 对舍入模式不敏感，不能承担覆盖"
+            f"{value} @ {ndigits} 位 对舍入模式不敏感"
         )
 
 
 def test_non_discriminating_ties_are_documented_not_used() -> None:
     """这两条**不承担覆盖**，只记录"为什么它们不进上面的循环"。
 
-    `0.96875` 是 tie 但第 4 位为奇数 → 两模式同值；`0.005` 在 float 里不是 tie。
+    `0.96875` 是 tie 但第 4 位为奇数 → 两模式同值；`0.005` 在 float 里根本不是 tie。
     """
     assert _round(0.96875, 4) == 0.9688
-    assert _round(0.005, 2) == 0.01  # float 略大于 0.005，两模式都上进 —— 不是 tie
+    assert _round(0.005, 2) == 0.01
 
 
-def _artifacts_present() -> bool:
-    """`calibration_runs/` 是本地运行输出，仓库不跟踪 —— 缺产物时跳过相关用例，不红。"""
-    return (RUNS / f"{STEM}.report.json").is_file() and (RUNS / f"{STEM}.jsonl").is_file()
+# ---------------------------------------------------------------------------
+# ② 舍入单入口（AST 级：`round(` 是 `_round(` 的子串，文本匹配必然误报）
+# ---------------------------------------------------------------------------
+def test_all_rounding_goes_through_the_helper() -> None:
+    """裸 `round()` 只允许出现在 `_round` 函数体内。
 
-
-needs_artifacts = pytest.mark.skipif(not _artifacts_present(), reason="缺少本地标定产物（运行输出不进仓库）")
-
-
-def _report() -> dict:
-    path = RUNS / f"{STEM}.report.json"
-    assert path.is_file(), f"缺仓库外的本地产物 {path.name}"
-    return json.loads(path.read_text(encoding="utf-8"), parse_float=Decimal)
-
-
-@needs_artifacts
-def test_report_rounding_values_are_pinned() -> None:
-    """金测试：从**报告文件**读（顺带覆盖写盘层），钉住所有舍入字段。
-
-    没有这条，"`_round` 是纯 round、没塞 epsilon" 就只是一句声明 —— 给 helper 加
-    `+1e-9` 修"浮点误差"这类改动会静默通过。
+    防的是"新加一个比例字段时顺手写 `round(x, 4)`"——那一处会绕过 tie 护栏，
+    而且不会有任何行为测试变红（只有它的取值恰好落在 tie 上才看得出来）。
     """
-    report = _report()
-    assert report["winRate"] == Decimal("0.2109")
-    assert report["strongScore"] == Decimal("0.7891")
-    assert report["strongLow"] == Decimal("0.6742")
-    # 注意量纲：`wallPercent` 是**百分数、2 位小数**，与其余 4 位小数的比例字段不同。
-    assert report["wallPercent"] == Decimal("0.16")
-    assert report["wilson95"] == [Decimal("0.1289"), Decimal("0.3258")]
-    assert report["zeroDepthRate"] == {"a": Decimal("0.0"), "b": Decimal("0.0")}
+    source = (SCRIPTS / "calibrate_levels.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+
+    helper = next(
+        node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == "_round"
+    )
+    body_start = helper.lineno
+    body_end = max(getattr(node, "lineno", body_start) for node in ast.walk(helper))
+
+    calls = [
+        node.lineno
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "round"
+    ]
+    outside = [line for line in calls if not body_start <= line <= body_end]
+    assert not outside, f"存在裸 round() 调用（行 {outside}）：所有舍入必须走 _round(x, ndigits)"
+    assert len(calls) == 1, f"`_round` 内部应当恰好一次 round()，实际 {len(calls)} 处"
 
 
-@needs_artifacts
+# ---------------------------------------------------------------------------
+# ③ 守恒不变量 + 写出端（跑随仓库走的 mini fixture → CI 一定执行）
+# ---------------------------------------------------------------------------
+def _mini_rows() -> list[dict]:
+    assert FIXTURE.is_file(), f"缺 fixture：{FIXTURE}"
+    return [json.loads(line) for line in FIXTURE.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def _mini_report() -> dict:
+    return summarize(_mini_rows(), "beginner", "medium", 64, 8)
+
+
+def test_win_rate_plus_strong_score_is_one() -> None:
+    """守恒关系用 `Decimal` 读**已存储**值做加法，全程不涉及舍入。
+
+    这条用 fixture 跑，所以 **CI 里真的会执行** —— 之前的版本依赖 `.report.json`
+    （不进仓库），在干净 clone 上会静默 skip，等于这条核心不变量没被守。
+    """
+    report = _mini_report()
+    assert Decimal(str(report["winRate"])) + Decimal(str(report["strongScore"])) == Decimal("1")
+
+
 def test_win_rate_is_the_score_ratio_not_the_win_ratio() -> None:
     """`winRate` 存的是**得分率**（`score / games`，和棋计 0.5），不是 `wins / games`。
 
-    守恒关系 `winRate + strongScore == 1` 用 `Decimal` 读**已存储**值做加法，全程不涉及舍入；
-    顺带钉住语义：将来谁把名字"修正"成 `wins / games`，这个和立刻不等于 1。
-
-    可识别性的固有限制：`draws == 0` 时两种定义同值，这条断言抓不到改名 ——
-    所以生成端那段"`winRate` = 得分率，历史名，勿按字面理解"的注释是必需的，不能删。
+    可识别性依赖 `draws > 0`（`draws = 0` 时两种定义同值，任何断言都抓不到改名）——
+    fixture 特意挑了一局和棋，所以这里能真的区分：得分率 `0.3125` vs 胜率 `0.25`。
+    生成端那段"历史名、勿按字面理解"的注释因此是必需的，不能删。
     """
-    report = _report()
-    assert report["winRate"] + report["strongScore"] == Decimal("1")
-    # 本轮 draws=1，所以两种定义确实不同值：得分率 0.2109、胜率 13/64=0.203125
-    assert report["draws"] > 0, "这条断言的可识别性依赖 draws > 0"
-    assert report["winRate"] != Decimal(str(round(report["wins"] / report["games"], 4)))
+    report = _mini_report()
+    assert report["draws"] > 0, "fixture 必须含和棋，否则这条断言没有区分力"
+    assert report["winRate"] == 0.3125
+    assert report["winRate"] != _round(report["wins"] / report["games"], 4)  # 胜率是 0.25
 
 
-@needs_artifacts
-def test_writer_emits_the_same_rounded_values_and_the_new_ratio() -> None:
-    """重跑汇总函数（不跑棋）必须复现同样的舍入值，且产出 `adjudicatedRatio`。
+def test_mini_fixture_writer_rounds_every_ratio_field() -> None:
+    """写出端各比例字段的舍入值（顺带覆盖 2 位的 `wallPercent`，它与其他字段精度不同）。"""
+    report = _mini_report()
+    assert report["winRate"] == 0.3125
+    assert report["strongScore"] == 0.6875
+    assert report["adjudicatedRatio"] == 0.125  # 1/8，无舍入歧义，但证明该字段被写出
+    assert report["wallPercent"] == pytest.approx(0.47, abs=1e-9)  # 2 位
 
-    历史报告没有 `adjudicatedRatio`（本字段后加），所以它只能从写出端验证。
-    这条同时证明 `_round` 在所有字段上都被用到了 —— 漏掉一处，值就会与磁盘报告不一致。
+
+# ---------------------------------------------------------------------------
+# ④ 历史报告金测试（本地产物，CI 上跳过 —— 它的守卫职责已由 ③ 的 fixture 承接）
+# ---------------------------------------------------------------------------
+@pytest.mark.skipif(
+    not (RUNS / f"{STEM}.report.json").is_file(), reason="缺少本地标定产物（calibration_runs/ 不进仓库）"
+)
+def test_historical_report_rounding_values_are_pinned() -> None:
+    """钉住那一份历史报告的实际取值，防"helper 被塞进 epsilon"这类静默改数值。
+
+    注意量纲：`wallPercent` 是**百分数、2 位小数**，其余比例字段是 4 位。
     """
-    jsonl = RUNS / f"{STEM}.jsonl"
-    assert jsonl.is_file(), f"缺本地产物 {jsonl.name}"
-    rows = [json.loads(line) for line in jsonl.read_text(encoding="utf-8").splitlines() if line.strip()]
-    fresh = summarize(rows, "beginner", "medium", 64, 64)
-    stored = _report()
-
-    for key in ("winRate", "strongScore", "strongLow", "wallPercent"):
-        assert fresh[key] == pytest.approx(float(stored[key]), abs=1e-9), key
-    assert fresh["adjudicatedRatio"] == pytest.approx(0.125, abs=1e-9)
+    report = json.loads((RUNS / f"{STEM}.report.json").read_text(encoding="utf-8"), parse_float=Decimal)
+    assert report["winRate"] == Decimal("0.2109")
+    assert report["strongScore"] == Decimal("0.7891")
+    assert report["strongLow"] == Decimal("0.6742")
+    assert report["wallPercent"] == Decimal("0.16")
+    assert report["wilson95"] == [Decimal("0.1289"), Decimal("0.3258")]
+    assert report["zeroDepthRate"] == {"a": Decimal("0.0"), "b": Decimal("0.0")}
