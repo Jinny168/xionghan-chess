@@ -343,7 +343,9 @@
     "chu_river": "楚  河",
     "han_boundary": "汉  界",
     "great_wall": "长 城",
-    "yin_mountains": "阴 山"
+    "yin_mountains": "阴 山",
+    "legend_capture_on_landing": "✕ 落点可吃",
+    "legend_capture_away": "○ 三连旁吃"
   },
   "piece": {
     "king": "主帅",
@@ -439,7 +441,7 @@
     "pawn_resurrection": "兵卒复活",
     "pawn_promotion": "兵卒升变",
     "pawn_charge": "兵卒过长城后可沿直线直冲（不吃子）",
-    "pawn_three_line_capture": "两己方兵夹一敌子成线即可吃",
+    "pawn_three_line_capture": "两枚己方子（至少一枚是兵）夹住一枚敌子成一线；该线恰好三子、本手只走一格时吃掉它，将/帅不可被三连吃",
     "enforce_self_check": "禁止送将",
     "threefold_draw": "三次重复和棋",
     "no_progress_draw_plies": "长时间无进展判和",
@@ -461,7 +463,7 @@
     "pawn_resurrection_short": "允许复活",
     "pawn_promotion_short": "允许升变",
     "pawn_charge_short": "过长城后可沿直线直冲（不吃子）",
-    "pawn_three_line_capture_short": "两己方兵夹一敌子成线即可吃"
+    "pawn_three_line_capture_short": "兵走一格后与另一枚己方子夹住一枚敌子；恰好三子、不吃将帅"
   },
   "error": {
     "game_finished": "对局已经结束",

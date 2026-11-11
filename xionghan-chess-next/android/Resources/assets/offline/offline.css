@@ -72,3 +72,9 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
   .actions button:last-child{grid-column:1/-1}
 }
 body[data-theme="green"]{--paper:#e4f0df;--line:#315c36}body[data-theme="blue"]{--paper:#dcebf1;--line:#285c73}body[data-theme="purple"]{--paper:#eee1f2;--line:#6c3d78;--ink:#3d2942}body[data-theme="dark"]{--paper:#34302b;--line:#c9b58e;--ink:#f3ead7;--panel:#29241f;--panel-soft:#352f29;background:#1d1a17}body[data-theme="dark"] button,body[data-theme="dark"] select{background:#3a3229;color:#f3ead7;border-color:#75624b}
+
+/* 吃子图例：叉=落点可吃，圈=三连旁吃。`[hidden]` 需显式 display:none —— 加了 flex 之后
+   浏览器默认样式表的 [hidden] 会被覆盖。 */
+.capture-legend{display:flex;gap:12px;margin:6px 0 0;font-size:12px;color:#776653}
+.capture-legend[hidden]{display:none}
+.capture-legend span[hidden]{display:none}

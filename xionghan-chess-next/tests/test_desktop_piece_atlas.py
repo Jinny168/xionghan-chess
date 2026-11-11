@@ -396,7 +396,13 @@ def test_switches_are_piece_scoped_only(atlas: PieceAtlasDialog) -> None:
 
     boxes = atlas._detail.findChildren(QCheckBox)
     texts = " ".join(box.text() for box in boxes)
-    assert "直冲" in texts and "夹一敌子" in texts, "兵的两个开关必须在图谱里可写"
+    # 判据取**语言包里的原文**，不写字面量子串：这两行的文案随规则收紧改过
+    # （「两己方兵…即可吃」是既有的错误说法，2.0.4 已改成「恰好三子、不吃将帅」），
+    # 硬编码子串会让"改文案"看起来像"开关丢了"。要断言的是"两个开关都渲染出来了"。
+    from xionghan_chess.i18n import t
+
+    for key in ("pawn_charge_short", "pawn_three_line_capture_short"):
+        assert t(f"rule.{key}", "zh-CN") in texts, f"兵缺 {key} 这个开关"
     for forbidden in ("登场", "送将", "和棋", "长将"):
         assert forbidden not in texts, f"图谱不该出现 {forbidden} 类开关"
 

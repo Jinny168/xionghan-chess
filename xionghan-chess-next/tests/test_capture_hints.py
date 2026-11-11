@@ -183,3 +183,49 @@ def test_desktop_direct_capture_still_lands_in_capturable(qt_app: QApplication) 
     assert board.victims == set()
     # 「落点有敌子」的盘面标记仍由 `piece_at(move.target)` 负责，与本集合无冲突
     assert board.game.state.piece_at(Position(5, 4)) is not None
+
+
+# ---------------------------------------------------------------------------
+# 图例判据（桌面端；网页/离线同构，谓词一致）
+#
+# 图例是**常驻**的（零新增偏好键）。两半的显示条件必须分开：
+#   叉 = 落点可吃   → 跟 `capture_hints` 走；
+#   圈 = 三连旁吃   → 还要求本档案真开了 `pawn_three_line_capture`。
+# 后者不能用"盘面此刻有没有圈"来判 —— 那会让图例随选子忽隐忽现。
+# ---------------------------------------------------------------------------
+def test_desktop_capture_legend_follows_preference_and_profile(
+    qt_app: QApplication, monkeypatch, tmp_path
+) -> None:
+    """叉那一半跟偏好走；圈那一半只在开了三连的档案里出现。"""
+    monkeypatch.setenv("APPDATA", str(tmp_path))  # 与 test_desktop_action_visibility 同款隔离
+    from xionghan_chess.desktop import app as app_module
+    from xionghan_chess.desktop import config as settings
+
+    monkeypatch.setattr(app_module, "save_config", lambda *_a, **_k: None)
+    monkeypatch.setattr(settings, "save_config", lambda *_a, **_k: None)
+
+    window = app_module.MainWindow()
+    try:
+        legend = window.capture_legend
+        assert legend.objectName() == "captureLegend"
+
+        # 完整模式：三连是开的 → 两半都显示
+        window.board.game = Game("desktop_complete")
+        window.config["capture_hints"] = True
+        window.sync_capture_legend()
+        assert not legend.isHidden(), "capture_hints 开着时图例应当常显"
+        assert "落点可吃" in legend.text()
+        assert "三连旁吃" in legend.text(), "完整模式开了三连，圈那一半必须显示"
+
+        # 经典模式：三连是关的 → 只留叉那一半
+        window.board.game = Game("desktop_classic")
+        window.sync_capture_legend()
+        assert "落点可吃" in legend.text()
+        assert "三连旁吃" not in legend.text(), "经典模式里旁吃不可能发生，不该解释它"
+
+        # 关掉吃子提示 → 整条图例隐藏
+        window.config["capture_hints"] = False
+        window.sync_capture_legend()
+        assert legend.isHidden(), "capture_hints 关掉后图例不该还挂着"
+    finally:
+        window.close()

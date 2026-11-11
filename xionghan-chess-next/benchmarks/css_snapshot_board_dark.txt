@@ -836,3 +836,11 @@ body[data-system-theme="dark"] .brand p,body[data-system-theme="dark"] span,body
 .atlas-demo-slot@board-dark|font-size|13px
 body[data-system-theme="dark"] .chat-messages@board-dark|background|transparent
 body[data-system-theme="dark"] .chat-message.black strong@board-dark|color|#f3ead7
+.capture-legend@board-dark|display|flex
+.capture-legend@board-dark|gap|12px
+.capture-legend@board-dark|margin|0
+.capture-legend@board-dark|font-size|12px
+.capture-legend@board-dark|color|#776653
+.capture-legend@board-dark|padding|0 2px
+.capture-legend[hidden]@board-dark|display|none
+.capture-legend span[hidden]@board-dark|display|none

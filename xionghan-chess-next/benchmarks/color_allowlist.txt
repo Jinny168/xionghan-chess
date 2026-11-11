@@ -73,7 +73,7 @@ web/css/app.css:#73573a:1
 web/css/app.css:#746353:1
 web/css/app.css:#756555:9
 web/css/app.css:#765a36:1
-web/css/app.css:#776653:5
+web/css/app.css:#776653:6
 web/css/app.css:#7b6b5a:1
 web/css/app.css:#7c6c5b:1
 web/css/app.css:#7d5b36:1

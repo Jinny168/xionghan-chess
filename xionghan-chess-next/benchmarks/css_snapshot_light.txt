@@ -836,3 +836,11 @@ body[data-system-theme="dark"] .brand p,body[data-system-theme="dark"] span,body
 .atlas-demo-slot|font-size|13px
 body[data-system-theme="dark"] .chat-messages|background|transparent
 body[data-system-theme="dark"] .chat-message.black strong|color|#f3ead7
+.capture-legend|display|flex
+.capture-legend|gap|12px
+.capture-legend|margin|0
+.capture-legend|font-size|12px
+.capture-legend|color|#776653
+.capture-legend|padding|0 2px
+.capture-legend[hidden]|display|none
+.capture-legend span[hidden]|display|none

@@ -43,6 +43,8 @@
         <button id="drawButton">和棋</button><button id="resignButton">认输</button>
         <button id="saveButton">保存</button><button id="loadButton">读取</button><input id="gameFileInput" type="file" accept=".xhgame,.fen,.json,application/json,text/plain" hidden>
       </section>
+      <!-- 吃子图例：叉=落点可吃，圈=三连旁吃（只有开了三连的档案才显示圈）。 -->
+      <p class="capture-legend" id="captureLegend" hidden><span id="captureLegendOnLanding"></span><span id="captureLegendAway"></span></p>
     </section>
     <section class="record"><div><strong>棋谱</strong><span id="resultText"></span></div><ol id="moves"></ol></section>
   </main>

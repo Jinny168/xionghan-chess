@@ -343,7 +343,9 @@
     "chu_river": "Chu River",
     "han_boundary": "Han Boundary",
     "great_wall": "Great Wall",
-    "yin_mountains": "Yin Mountains"
+    "yin_mountains": "Yin Mountains",
+    "legend_capture_on_landing": "✕ capture on landing",
+    "legend_capture_away": "○ three-in-a-row capture"
   },
   "piece": {
     "king": "King",
@@ -439,7 +441,7 @@
     "pawn_resurrection": "Pawn resurrection",
     "pawn_promotion": "Pawn promotion",
     "pawn_charge": "Pawns may charge straight forward after crossing the Great Wall (never captures)",
-    "pawn_three_line_capture": "Two allied pawns sandwiching an enemy in a line capture it",
+    "pawn_three_line_capture": "Two allied pieces (at least one a pawn) sandwich an enemy in a line of exactly three, with a single-square move. Kings cannot be captured this way.",
     "enforce_self_check": "Forbid self-check",
     "threefold_draw": "Threefold repetition draw",
     "no_progress_draw_plies": "No-progress draw",
@@ -461,7 +463,7 @@
     "pawn_resurrection_short": "Allow resurrection",
     "pawn_promotion_short": "Allow promotion",
     "pawn_charge_short": "May charge straight forward past the Great Wall (never captures)",
-    "pawn_three_line_capture_short": "Two allied pawns sandwiching an enemy in a line capture it"
+    "pawn_three_line_capture_short": "Exactly three in line, single-square move; kings immune"
   },
   "error": {
     "game_finished": "The game is already over",

@@ -73,6 +73,9 @@ export function applyStaticI18n() {
   document.title = t('app.name');
   setText('.brand h1', 'app.name');
   // 首跑引导：登记后切换语言也能自愈，不再依赖 maybeShowOnboarding 的调用时机。
+  // 吃子图例（网页端场记板旁那一行）：文案走 locales，别硬编码。
+  setText('#captureLegendOnLanding', 'board.legend_capture_on_landing');
+  setText('#captureLegendAway', 'board.legend_capture_away');
   setText('#onboardTitle', 'training.onboard_title');
   setText('#onboardLine1', 'training.onboard_1');
   setText('#onboardLine2', 'training.onboard_2');

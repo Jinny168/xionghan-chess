@@ -38,6 +38,9 @@ EN: dict[str, str] = {
     "再看落点": "Where to",
     "没有更多提示": "No more hints",
     "翻转棋盘": "Flip board",
+    # 吃子图例（状态栏右侧常驻）：叉 = 落点可吃，圈 = 三连旁吃。
+    "✕ 落点可吃": "✕ capture on landing",
+    "○ 三连旁吃": "○ three-in-a-row capture",
     "账号与云同步": "Account & cloud sync",
     "对局统计": "Statistics",
     "检查更新": "Check for updates",

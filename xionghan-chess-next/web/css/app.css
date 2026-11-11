@@ -65,3 +65,8 @@ body[data-system-theme="dark"]{--ink:#f2ede6;--surface:#282b2d;--red:#c94b4b;--r
 body[data-system-theme="dark"] .chat-messages{background:transparent}
 
 body[data-system-theme="dark"] .chat-message.black strong{color:#f3ead7}
+/* 吃子图例（常驻、零新增偏好键）：叉=落点可吃，圈=三连旁吃。
+   `[hidden]` 必须显式 `display:none` —— 本文件没有全局兜底，加了 flex 之后 hidden 会被覆盖。 */
+.capture-legend{display:flex;gap:12px;margin:0;font-size:12px;color:#776653;padding:0 2px}
+.capture-legend[hidden]{display:none}
+.capture-legend span[hidden]{display:none}

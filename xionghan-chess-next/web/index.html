@@ -61,6 +61,12 @@
         <div class="avatar">汗</div><div><strong>黑方</strong><span id="blackStatus">等待落座</span></div>
         <time id="blackClock">20:00</time>
       </section>
+      <!-- 图例常驻、零新增偏好键：叉=落点可吃（captureHints 开即显示），圈=三连旁吃（只有该档案
+           开了 pawn_three_line_capture 才可能出现，否则等于解释一个不存在的现象）。
+           判据用**静态规则**，不看"盘面此刻有没有圈" —— 否则图例会随选子忽隐忽现。 -->
+      <p class="capture-legend" id="captureLegend" hidden>
+        <span id="captureLegendOnLanding"></span><span id="captureLegendAway"></span>
+      </p>
       <section class="captured-panel"><h2>黑方损失</h2><div id="blackCaptured" class="captured"></div></section>
       <section class="mode-panel">
         <label>模式<select id="modeSelect"><option value="ai">人机对战</option><option value="local">双人同机</option><option value="online">网络对战</option></select></label>
