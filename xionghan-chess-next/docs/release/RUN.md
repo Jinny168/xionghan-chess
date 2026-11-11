@@ -27,11 +27,22 @@ powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1
 cd xionghan-chess-next
 py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e .
-.\.venv\Scripts\python.exe -m uvicorn xionghan_chess.service.app:app --host 0.0.0.0 --port 8000 --reload
+# 不要用 `uvicorn` CLI 直接起：CLI 不经过 `run()`，拿不到 Windows 上的 Selector 事件循环修复
+# （uvicorn 0.36+ 用 loop_factory，全局 policy 已无效），会重新出现
+# `_ProactorBasePipeTransport._call_connection_lost` 噪声。
+.\.venv\Scripts\python.exe -m xionghan_chess.service.app
 ```
 
 访问 `http://127.0.0.1:8000`。同一局域网设备访问服务器局域网 IP。浏览器人机对战的 AI
 运行于同一 Python 服务，不复制 JavaScript 规则引擎。
+
+> 端口用环境变量 `PORT`（默认 `8000`），绑定 `0.0.0.0`。**不要用 `uvicorn` CLI 直接起** ——
+> CLI 不经过 `run()`，拿不到 Windows 上的 Selector 事件循环修复（uvicorn 0.36+ 用 `loop_factory`，
+> 全局 policy 无效），会重新出现 `_ProactorBasePipeTransport._call_connection_lost` 噪声。
+> 若必须保留 CLI 形态（systemd / docker exec），写成
+> `python -m uvicorn xionghan_chess.service.app:app --host 0.0.0.0 --port 8000 --loop xionghan_chess.service.app:_selector_loop_factory`
+> —— `--loop` 只在 Windows 需要，Linux/macOS 默认即 Selector；已实测 Windows 上
+> `Config(loop="auto")` → `ProactorEventLoop`、加 `--loop` → `_WindowsSelectorEventLoop`。
 
 > **可复现 / 离线部署请用 `requirements/lock/py312-server.txt`**（19 个包的精确锁定）；
 > `requirements/server.txt` 只是**范围约束**（如 `fastapi>=0.116,<1`），实际解析版本会随时间前移

@@ -21,10 +21,20 @@
 cd xionghan-chess-next
 py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e .
-.\.venv\Scripts\python.exe -m uvicorn xionghan_chess.service.app:app --host 0.0.0.0 --port 8000 --reload
+# 不要用 `uvicorn` CLI 直接起：CLI 不经过 `run()`，拿不到 Windows 上的 Selector 事件循环修复
+# （uvicorn 0.36+ 用 loop_factory，全局 policy 已无效），会重新出现
+# `_ProactorBasePipeTransport._call_connection_lost` 噪声。
+.\.venv\Scripts\python.exe -m xionghan_chess.service.app
 ```
 
 浏览器打开 `http://127.0.0.1:8000` 即进入 Web 客户端；同一局域网的其他设备用服务器的局域网 IP 访问。人机对战的 AI 在同一 Python 服务内运行，Web 端不复制一套 JavaScript 规则引擎。
+
+> 端口用环境变量 `PORT`（默认 `8000`），绑定 `0.0.0.0`。**不要用 `uvicorn` CLI 直接起** ——
+> CLI 不经过 `run()`，拿不到 Windows 上的 Selector 事件循环修复（uvicorn 0.36+ 用 `loop_factory`，
+> 全局 policy 无效），会重新出现 `_ProactorBasePipeTransport._call_connection_lost` 噪声。
+> 若必须保留 CLI 形态（systemd / docker exec），写成
+> `python -m uvicorn xionghan_chess.service.app:app --host 0.0.0.0 --port 8000 --loop xionghan_chess.service.app:_selector_loop_factory`
+> —— `--loop` 只在 Windows 需要，Linux/macOS 默认即 Selector。
 
 ### Windows 桌面端
 

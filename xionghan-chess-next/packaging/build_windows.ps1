@@ -155,6 +155,15 @@ Write-Host "  版本：$AppVersion（来源 $VersionSource）"
 # 处置：原生命令段临时切到 Continue，真正的是否失败只看 $LASTEXITCODE（下面已逐行检查）。
 $ErrorActionPreference = "Continue"
 $env:XIONGHAN_EXE_NAME = $artifactName
+# 先删同名产物再构建。PyInstaller 覆盖已存在的 exe 时内部走 `os.remove(EXE 名)`；
+# 在受限沙箱/受管环境里那一步会被 safe-delete 拦截并 abort，报
+# `OSError: [safe-delete] 操作失败: … Error during a 'trash' operation: …`，
+# 构建在最后一步失败（实测 exit=1，前 50 秒全白跑）。这里先删，绕过那条路径。
+$exeTarget = Join-Path $release "$artifactName.exe"
+if (Test-Path -LiteralPath $exeTarget) {
+    Remove-Item -LiteralPath $exeTarget -Force -ErrorAction SilentlyContinue
+    Write-Host "  已删除同名旧产物：$artifactName.exe"
+}
 & $Python -m PyInstaller --noconfirm --clean --distpath $release --workpath $work (Join-Path $PSScriptRoot "build_windows.spec")
 if ($LASTEXITCODE -ne 0) { $ErrorActionPreference = "Stop"; exit $LASTEXITCODE }
 $ErrorActionPreference = "Stop"
