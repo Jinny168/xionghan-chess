@@ -14,6 +14,7 @@
 | [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md) | 对标基准与改进计划（S1–S5 路线图载体） | ✅ 维护中 |
 | [PUZZLE_LIBRARY.md](PUZZLE_LIBRARY.md) | 题库清单（自动生成，勿手改） | ✅ 维护中 |
 | [AUDIT_1.7.5_full.md](AUDIT_1.7.5_full.md) | v1.7.5 全面审计（最近一次，含 S1–S5 执行记录） | 参考 |
+| [RETRO_S4_2026-11-11.md](RETRO_S4_2026-11-11.md) | S4 复盘：五条可复用教训、引用清单、遗留项 | ✅ 维护中 |
 
 ## rules · 规则与棋型
 
@@ -54,8 +55,7 @@
 | [materials/WEBAPP_1024.md](materials/WEBAPP_1024.md) | WorkBuddy「1024 造物挑战」投稿材料 | 对外材料 |
 | [materials/XHS_POST.md](materials/XHS_POST.md) | 小红书发布文案（1024 参赛作品） | 对外材料 |
 
-> 注：`materials/HY4_SUBMISSION_KIT.md` / `materials/HY4_CONVERSATION_RECORD.md` 及其引用的 `contest-record/`、`xhs/` 素材**尚未纳入版本控制**；本索引只索引已入库文件，避免新克隆出现死链。入库后再补。<br>
-> `RETRO_S4_2026-11-11.md`（S4 复盘）同样是未跟踪文件，未列入索引。
+> 注：`materials/HY4_SUBMISSION_KIT.md` / `materials/HY4_CONVERSATION_RECORD.md` 及其引用的 `contest-record/`、`xhs/` 素材**尚未纳入版本控制**；本索引只索引已入库文件，避免新克隆出现死链。入库后再补。
 
 ## archive · 历史快照（已归档，只读不改）
 
