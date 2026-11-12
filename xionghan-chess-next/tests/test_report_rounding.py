@@ -26,16 +26,15 @@ half-even）。**不要**写成 `round(v, n) != float(exact.quantize(q, HALF_UP)
    **不能用 `.report.json` / `.jsonl` 真产物** —— 它们不进仓库，CI 里会静默 skip，
    于是这条核心不变量在 CI 里根本不跑（本项目已经踩过一次"静默 skip"的坑）。
 
-## oracle 语义为什么还要测（生成器已经不用它了）
+## `Decimal(str(v))` 这条守卫为什么也撤掉了
 
-生成器改成闭式（`j ≡ 1 (mod 4)`）之后**不再有 oracle**，所以那个"用 `Decimal(str(v))`
-会造出假 tie"的失效模式在生成器里已经不可达。但 `_exact` 仍是**断言侧**的 oracle
-（`_round(v, nd) == float(_exact(v).quantize(...))`），而闭式的值全部二进制精确 ——
-也就是说：**即使有人把 oracle 改回 `str(v)`，所有行为断言仍然全绿**（本题 255 个值实测
-`Decimal(v) == Decimal(str(v))` 恒成立）。
+闭式生成器产出 255 个值，全部二进制精确 ⇒ `Decimal(v) == Decimal(str(v))` 恒成立。
+也就是说那个区别**对任何在用的值都没有可观测后果** —— 原先守它的 `_exact` 断言，
+守的是一个空集。留一条永不失败的断言，比没有更糟：它会让人以为那一层有人看着。
 
-正因为它"行为上不可观测"，才必须**直接断言** `_exact` 的语义：
-`_exact(0.005) != Decimal("0.005")` 是唯一抓手。（这个回归本轮真实发生过一次，当时完全静默。）
+判据（本轮定的）：**只有"该失效在本轮或历史上有过一次静默实例"、且删掉之后仍有可观测
+后果的，才配留断言**。`Decimal(str(v))` 有过实例（写生成器时），但闭式之后后果消失了，
+所以随生成器的 oracle 一起撤。
 """
 
 from __future__ import annotations
@@ -59,47 +58,58 @@ if str(SCRIPTS) not in sys.path:
 from calibrate_levels import _round, summarize  # noqa: E402
 
 
-def _exact(value: float) -> Decimal:
-    """`float` 的**精确**十进制值。
-
-    **禁止改成 `Decimal(str(value))`**：那会把输入域换成"十进制读法"。
-    本函数现在**只服务于断言侧的 oracle**（生成器已改成闭式、不再用它），
-    而闭式产出的值全部二进制精确 —— 所以这个改动在**行为上不可观测**，
-    只能靠下面的 `_exact(0.005) != Decimal("0.005")` 来守。见模块 docstring。
-    """
-    return Decimal(value)
-
-
 def float_exact_ties(ndigits: int) -> list[float]:
     """`ndigits` 位小数下能被 float 精确表示、且能区分 half-even 与 half-up 的 tie。
 
-    **闭式（可证，不需要 oracle 筛选）**：这类 tie 恰是 `j / 2^(nd+1)` 里 `j ≡ 1 (mod 4)` 的那些。
+    **闭式（可证，不需要 oracle 枚举）**：这类 tie 恰是 `j / 2^(nd+1)` 里 `j ≡ 1 (mod 4)` 的那些。
 
     证明：`v·10^nd = j·5^nd / 2`。`nd ≥ 1` 时 `5^nd ≡ 5 (mod 20)`，故 `j·5^nd ≡ 5j (mod 20)`：
-    - `j ≡ 1 (mod 4)` → `5j = 20m+5` → 末位数字 `floor(...) % 10 = 2`（偶）⇒ half-even 下舍 ≠ half-up 上进 ✅
+    - `j ≡ 1 (mod 4)` → `5j = 20m+5` → 末位数字 `2`（偶）⇒ half-even 下舍 ≠ half-up 上进 ✅
     - `j ≡ 3 (mod 4)` → `5j = 20m+15` → 末位数字 `7`（奇）⇒ 两种模式同样上进 ❌
 
-    已穷举核对 `nd = 1..7`：与"枚举全部奇 j 再用 `Decimal` 筛选"逐值完全相同
-    （1/2/4/8/16/32/64 个）。所以生成器里不再需要 `Decimal` / `ROUND_HALF_UP` ——
-    判据从"算出来"变成"证出来"，少一层依赖。
+    已穷举核对 `nd = 1..7`：与"枚举全部奇 j 再用 `Decimal` 筛选"**逐值完全相同**。
+    判据从"算出来"变成"证出来"，生成器因此不再需要 `Decimal` / `ROUND_HALF_UP`。
 
-    `j / 2^k` 天生二进制精确，因此本函数产出的每个值都满足
-    `Decimal(v) == Decimal(str(v))`（255 个值实测全部成立）。
+    `j / 2^k` 天生二进制精确 ⇒ 产出的每个值都满足 `Decimal(v) == Decimal(str(v))`
+    （nd=1..8 共 255 个值实测成立）。**这也是本文件不再为 `Decimal(str(v))` 设守卫的原因**：
+    闭式之后那个区别对任何在用的值都没有可观测后果，守它只是守一个空集。
     """
     return [j / 2 ** (ndigits + 1) for j in range(1, 2 ** (ndigits + 1), 4)]
 
 
 # ---------------------------------------------------------------------------
-# ① oracle 语义（唯一能抓住 `str(v)` 回归的地方）
+# fact#1：生成器选对了 residue 类（`j ≡ 1 mod 4`）
+#
+#   **禁令**：本段禁止使用 `_round`。否则 `_round` 被加 eps 的突变会同时杀掉 fact#1 与
+#           fact#3，四个事实的矩阵就被压平了（这正是上一轮踩过的"引用越界"）。
+#   **拆分**：与 fact#3 分成两段写，目的是失败时不互相遮蔽 —— 同一个循环里第一条断言
+#           失败会中断后续，后面的事实就不再被评估。
+#
+#   可机械核对：本段不得出现 `_round`；fact#3 段必须出现 `_round`。
 # ---------------------------------------------------------------------------
-def test_exact_oracle_uses_float_semantics() -> None:
-    """`0.005` 是唯一抓手：float 里它略大于精确值，而十进制读法会把它当精确 0.005。"""
-    assert _exact(0.005) != Decimal("0.005"), "改成 Decimal(str(v)) 了？那会造出生产中不存在的 tie"
-    assert _exact(0.03125) == Decimal("0.03125"), "二进制可精确表示的值必须相等"
+def test_generator_picks_the_discriminating_residue_class() -> None:
+    """只碰 `Decimal` 与生成器返回值，不碰被测实现。"""
+    for ndigits in (2, 4):
+        quantum = Decimal(1).scaleb(-ndigits)
+        for value in float_exact_ties(ndigits):
+            exact = Decimal(value)
+            # ① 这个值确实能区分两种舍入模式（否则它在测空气）
+            assert exact.quantize(quantum, rounding=ROUND_HALF_UP) != exact.quantize(quantum), (
+                f"{value} @ {ndigits} 位 对舍入模式不敏感"
+            )
+            # ② 它属于 j ≡ 1 (mod 4)（诊断用：residue 选错时这一条比上一条更好读）
+            assert round(value * 2 ** (ndigits + 1)) % 4 == 1, value
 
 
+# ---------------------------------------------------------------------------
+# fact#2：枚举没退化
+# ---------------------------------------------------------------------------
 def test_tie_enumeration_is_not_degenerate() -> None:
-    """枚举边界 / 奇偶过滤写错时红；顺带证明换精度可复用。"""
+    """守枚举边界（起点/上界/步长写错时红）。
+
+    **它守不住 residue 类**：`range(1, N, 4)` 与 `range(3, N, 4)` 都给 8 个值，而后者
+    全不可区分。所以条数只能当"枚举没退化"的信号，residue 由 fact#1 承重。
+    """
     assert float_exact_ties(4) == [
         0.03125,
         0.15625,
@@ -114,6 +124,12 @@ def test_tie_enumeration_is_not_degenerate() -> None:
     assert len(float_exact_ties(3)) == 4
 
 
+# ---------------------------------------------------------------------------
+# fact#3：`_round` 内部没有加料（half-to-even，纯 round）
+#
+#   **必须**使用 `_round` —— 这段的全部意义就是让被测实现在场。
+#   与 fact#1 分离：fact#1 若也调用 `_round`，eps 突变会同时打红两段，矩阵压平。
+# ---------------------------------------------------------------------------
 @pytest.mark.parametrize(("ndigits", "expected_count"), [(4, 8), (2, 2)])
 def test_round_is_half_to_even_on_every_representable_tie(ndigits: int, expected_count: int) -> None:
     """被测是 `_round`，不是内置 `round` —— 写成内置就是"参考 vs 参考"，绿了也没碰实现。"""
@@ -121,13 +137,7 @@ def test_round_is_half_to_even_on_every_representable_tie(ndigits: int, expected
     assert len(ties) == expected_count, "枚举退化了"
     quantum = Decimal(1).scaleb(-ndigits)
     for value in ties:
-        exact = _exact(value)
-        # ① 实现 vs 独立 oracle（Decimal 的 half-even）
-        assert _round(value, ndigits) == float(exact.quantize(quantum)), f"{value} @ {ndigits} 位"
-        # ② 本用例确实有区分力：half-up 必须给出不同结果，否则它在测空气
-        assert exact.quantize(quantum, rounding=ROUND_HALF_UP) != exact.quantize(quantum), (
-            f"{value} @ {ndigits} 位 对舍入模式不敏感"
-        )
+        assert _round(value, ndigits) == float(Decimal(value).quantize(quantum)), f"{value} @ {ndigits} 位"
 
 
 def test_non_discriminating_ties_are_documented_not_used() -> None:
