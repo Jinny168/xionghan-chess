@@ -62,6 +62,13 @@ transitions 19,197,323 = positionCounts 12,342,963 + 其余 transitions[] 6,854,
 当 pytest 输出带 ANSI 颜色码时（CI runner 上可能发生），FAILED 行首不是字面 `FAILED`，
 该 grep 匹配不到 → 注解只剩「Process completed with exit code 1」，根因在匿名日志里不可见。
 2026-11-12 的 run #176 即此形态：test job 42s exit 1 却无 FAILED 注解。
-**当前处置**：靠本地同口径复现定位（当时为版本源不一致，三条红，已在 commit `76de99b` 修掉，
-本地复现 `1442 passed / 0 failed`）。**待改进**：改用 `pytest --color=no`，或让正则容忍
-ANSI 转义码；未改，因为不影响判定本身（exit code 仍正确非零），只影响日志可读性。
+**当前处置（2026-11-12）**：
+- 先按本地同口径复现定位：当时为版本源不一致三条红，已在 commit `76de99b` 把 4 处版本源
+  统一 2.0.3，本地复现从 `3 failed / 1439 passed` → **`1442 passed / 0 failed`**（跨引擎
+  对拍 93/93 跳过 0）。
+- 再在 commit `d5df438` 根治注解盲点：pytest 加 `--color=no`；失败时若 `grep -c` 数出
+  0 条 FAILED/ERROR 行，把日志尾部 60 行原样转 `::error::`。此后任何失败形态（收集阶段
+  崩溃 / import error / fixture 缺失）都能在匿名注解里看到根因。
+- **未决**：版本源修复后 CI #177/#178 仍 failed（41/43s 快速失败、无 FAILED 注解），说明
+  CI 上有本地复现不到的第二种失败（平台差异或收集期异常）。d5df438 推出后 CI run 触发，
+  待其带兜底日志的下一跑给出真因再定点修；在此之前不臆测、不放宽门禁。
