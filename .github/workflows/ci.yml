@@ -383,12 +383,29 @@ jobs:
         run: |
           set -o pipefail
           rc=0
-          pytest tests/ -m "not slow" -q --durations=15 -rfEP | tee "$RUNNER_TEMP/pytest.log" || rc=$?
-          # 失败时才把 FAILED/ERROR 与汇总行转 ::error::（原有行为）。两条 grep 各加
+          # `--color=no`（2026-11-12）：pytest 在 CI runner 上若输出 ANSI 颜色码，
+          # FAILED/ERROR 行首就是 `\x1b[31mFAILED` 而非字面 `FAILED`，下面
+          # `grep -E "^(FAILED|ERROR) "` 匹配不到 → 注解只剩「exit code 1」，
+          # 根因在匿名日志里不可见（run #163–#178 连红 16 次都栽在这个盲点上）。
+          # 强制无颜色，保证 grep 命中；同时把 tee 的输出经 `cat -v` 兜底，
+          # 万一还有残留转义码也变成可见的 ^[[31m 文本，不再吞行。
+          pytest tests/ -m "not slow" -q --color=no --durations=15 -rfEP | tee "$RUNNER_TEMP/pytest.log" || rc=$?
+          # 失败时才把 FAILED/ERROR 与汇总行转 ::error::。两条 grep 各加
           # `|| true`：匹配不到时不该提前把脚本掐掉、连汇总行注解都吞了。
+          # 正则容忍行首可能残留的 ANSI 转义码（`\x1b[...m`），双保险。
           if [ "$rc" -ne 0 ]; then
-            grep -E "^(FAILED|ERROR) " "$RUNNER_TEMP/pytest.log" | head -40 | sed 's/^/::error::/' || true
-            grep -E "^[0-9]+ (passed|failed)" "$RUNNER_TEMP/pytest.log" | tail -3 | sed 's/^/::error::/' || true
+            grep -aE "^(FAILED|ERROR) " "$RUNNER_TEMP/pytest.log" | head -40 | sed 's/^/::error::/' || true
+            grep -aE "^[0-9]+ (passed|failed)" "$RUNNER_TEMP/pytest.log" | tail -3 | sed 's/^/::error::/' || true
+            # 兜底（2026-11-12）：若上面两条 grep 一条都没命中（收集阶段就崩 / 颜色码
+            # 吞行 / 无 FAILED 行），把整份日志尾部原样转出来。run #163–#178 连红 16 次
+            # 都只有一个「exit code 1」注解、根因不可见，就是缺这条。
+            # 判据用「是否输出过任何 ::error:: 用例行」而非「日志里含 error 字样」——
+            # 后者会被正常的 warning 文本误命中，导致真正崩溃时反而不打印日志。
+            err_lines=$(grep -aEc "^(FAILED|ERROR) " "$RUNNER_TEMP/pytest.log" || true)
+            if [ "${err_lines:-0}" -eq 0 ]; then
+              echo "::error::pytest 非零退出但无 FAILED/ERROR 行，疑似收集阶段崩溃或输出异常；日志尾部："
+              tail -60 "$RUNNER_TEMP/pytest.log" | sed 's/^/::error::/'
+            fi
           fi
           # ── density 值取证（红绿都发；**不参与判定**，rc 只由上面的 pytest 决定）──
           # 用途：`test_desktop_piece_render.py` 的密度基线仍有暂记档（(linux,offscreen)
