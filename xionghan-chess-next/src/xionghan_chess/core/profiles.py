@@ -33,6 +33,43 @@ RULE_VERSION = 3
 PATROL_HOME_ROW = 5
 
 
+# 规则开关的**历史别名**：旧键 → 当前 `RuleOptions` 字段名。
+#
+# 提升为模块级常量的理由：`scripts/gen_web_profiles.py` 要 import 它，把同一张表
+# 生成到网页端 `profiles.js`，让 Python 与 JS 的 `mergeOptions` 共用一份别名口径；
+# 留在 `merged()` 内部作为局部变量时无法 import，只能再抄一份（必然漂移）。
+# 字典内容逐字不变，只换作用域。
+OPTION_ALIASES: dict[str, str] = {
+    "king_can_diagonal_in_palace": "king_diagonal_in_palace",
+    "shi_can_leave_palace": "advisor_can_leave_palace",
+    "shi_gain_straight_outside_palace": "advisor_gain_straight_outside_palace",
+    "xiang_can_cross_river": "elephant_can_cross_river",
+    "xiang_gain_jump_two_outside_river": "elephant_gain_jump_two_enemy_territory",
+    "ma_can_straight_three": "horse_straight_three",
+    "ma_blocked_by_leg": "horse_blocked_by_leg",
+    "horse_blocked_by_leg_enabled": "horse_blocked_by_leg",
+    "ma_straight_three_move_only": "horse_straight_three_move_only",
+    "horse_straight_three_move_only_enabled": "horse_straight_three_move_only",
+    "pawn_fast_move": "pawn_fast_move_before_enemy_territory",
+    "pawn_fast_move_enabled": "pawn_fast_move_before_enemy_territory",
+    "pawn_fast_move_before_enemy_territory_enabled": "pawn_fast_move_before_enemy_territory",
+    "pawn_resurrection_enabled": "pawn_resurrection",
+    "pawn_promotion_enabled": "pawn_promotion",
+    "pawn_backward_at_base_enabled": "pawn_backward_at_base",
+    "pawn_charge_enabled": "pawn_charge",
+    "pawn_three_line_capture_enabled": "pawn_three_line_capture",
+    "ju_appear": "rook_appear",
+    "ma_appear": "horse_appear",
+    "xiang_appear": "elephant_appear",
+    "shi_appear": "advisor_appear",
+    "pao_appear": "cannon_appear",
+    "wei_appear": "guard_appear",
+    "she_appear": "archer_appear",
+    "lei_appear": "thunder_appear",
+    "xun_appear": "patrol_appear",
+}
+
+
 @dataclass(frozen=True, slots=True)
 class RuleOptions:
     king_can_leave_palace: bool = True
@@ -79,37 +116,8 @@ class RuleOptions:
     def merged(self, values: dict[str, object] | None) -> "RuleOptions":
         if not values:
             return self
-        aliases = {
-            "king_can_diagonal_in_palace": "king_diagonal_in_palace",
-            "shi_can_leave_palace": "advisor_can_leave_palace",
-            "shi_gain_straight_outside_palace": "advisor_gain_straight_outside_palace",
-            "xiang_can_cross_river": "elephant_can_cross_river",
-            "xiang_gain_jump_two_outside_river": "elephant_gain_jump_two_enemy_territory",
-            "ma_can_straight_three": "horse_straight_three",
-            "ma_blocked_by_leg": "horse_blocked_by_leg",
-            "horse_blocked_by_leg_enabled": "horse_blocked_by_leg",
-            "ma_straight_three_move_only": "horse_straight_three_move_only",
-            "horse_straight_three_move_only_enabled": "horse_straight_three_move_only",
-            "pawn_fast_move": "pawn_fast_move_before_enemy_territory",
-            "pawn_fast_move_enabled": "pawn_fast_move_before_enemy_territory",
-            "pawn_fast_move_before_enemy_territory_enabled": "pawn_fast_move_before_enemy_territory",
-            "pawn_resurrection_enabled": "pawn_resurrection",
-            "pawn_promotion_enabled": "pawn_promotion",
-            "pawn_backward_at_base_enabled": "pawn_backward_at_base",
-            "pawn_charge_enabled": "pawn_charge",
-            "pawn_three_line_capture_enabled": "pawn_three_line_capture",
-            "ju_appear": "rook_appear",
-            "ma_appear": "horse_appear",
-            "xiang_appear": "elephant_appear",
-            "shi_appear": "advisor_appear",
-            "pao_appear": "cannon_appear",
-            "wei_appear": "guard_appear",
-            "she_appear": "archer_appear",
-            "lei_appear": "thunder_appear",
-            "xun_appear": "patrol_appear",
-        }
         normalized = {
-            aliases.get(key, key): value
+            OPTION_ALIASES.get(key, key): value
             for key, value in values.items()
             if key not in {"archer_weak_mode", "sheWeakMode", "she_weak_mode"}
         }

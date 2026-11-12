@@ -866,13 +866,6 @@ class RulesEngine:
         for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
             # 落点可能落在窗口的第 1/2/3 格 → 3 个偏移；4 向共 12 个窗口
             for offset in (-2, -1, 0):
-                # 窗口两端的外侧邻格：任一有子 → 这条线上其实连了 4 子以上，不算三连。
-                # `get()` 对越界返回 None（`GameState.piece_at` 逐个比对坐标），
-                # 所以贴边窗口不需要额外判 `inside`。
-                before = Position(landing.row + (offset - 1) * dr, landing.col + (offset - 1) * dc)
-                after = Position(landing.row + (offset + 3) * dr, landing.col + (offset + 3) * dc)
-                if self.get(state, before) is not None or self.get(state, after) is not None:
-                    continue
                 group = [
                     self.get(state, Position(landing.row + (offset + i) * dr, landing.col + (offset + i) * dc))
                     for i in range(3)
@@ -892,6 +885,18 @@ class RulesEngine:
                 # 并未被将，玩家没有预警）。规则作者裁定排除，`capturable_squares` 走同一条
                 # 结算，因此"王不会被三连吃"在攻击图上也自动一致（`in_check` 不会误判）。
                 if enemies[0].type is PieceType.KING:
+                    continue
+                # 窗口两端的外侧邻格：任一有子 → 这条线上其实连了 4 子以上，不算三连。
+                # `get()` 对越界返回 None（`GameState.piece_at` 逐个比对坐标），
+                # 所以贴边窗口不需要额外判 `inside`。
+                #
+                # 放在其余 continue **之后**是纯性能优化：`get()` 是线性扫描
+                # （`model.py::GameState.piece_at` 逐子比对），多数窗口应在
+                # `len(present) != 3` 就退出；先查外侧两格等于每个窗口都白付两次全盘扫描。
+                # 所有判据是 AND 关系，重排不改变结果（T06 用指纹逐字验收语义等价）。
+                before = Position(landing.row + (offset - 1) * dr, landing.col + (offset - 1) * dc)
+                after = Position(landing.row + (offset + 3) * dr, landing.col + (offset + 3) * dc)
+                if self.get(state, before) is not None or self.get(state, after) is not None:
                     continue
                 captures[enemies[0].id] = enemies[0]
         return list(captures.values())

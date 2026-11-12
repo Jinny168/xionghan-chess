@@ -112,21 +112,15 @@ export function generateCandidates(state, rules, piece, capturesOnly = false) {
     case 'pawn': {
       const forward = piece.color === 'red' ? -1 : 1;
       const middle = Math.floor(rows / 2);
-      const distanceLimit = piece.color === 'red'
-        ? piece.row - middle + 1
-        : middle - piece.row + 1;
+      // 阴山（中间行）不算敌境：红 row < middle、黑 row > middle（rules.py::_pawn `:648`）。
+      const crossed = piece.color === 'red' ? piece.row < middle : piece.row > middle;
       const enemyBase = piece.row === (piece.color === 'red' ? 0 : rows - 1);
-      if (enemyBase && options.pawn_full_movement_at_base) {
-        for (const [dr, dc] of ORTHO) push(piece.row + dr, piece.col + dc);
-        break;
+      // 候选是**超集**：快速行军 / 敌阵冲锋都是沿 forward 的直线长距离走，
+      // 统一把 1..max(rows,cols) 的直线落点全列出，由 pseudoLegal/isLegal 逐条裁决。
+      // 多列无害（isLegal 会剔除），漏列才会让 legalMovesFast 少于参考实现。
+      for (let step = 1; step < Math.max(rows, cols); step += 1) {
+        if (!push(piece.row + forward * step, piece.col)) break;
       }
-      if (options.pawn_fast_move_before_enemy_territory) {
-        for (let step = 2; step <= Math.max(1, distanceLimit); step += 1) {
-          push(piece.row + forward * step, piece.col);
-        }
-      }
-      push(piece.row + forward, piece.col);
-      const crossed = piece.color === 'red' ? piece.row <= middle : piece.row >= middle;
       if (crossed) {
         push(piece.row, piece.col - 1);
         push(piece.row, piece.col + 1);
@@ -135,7 +129,10 @@ export function generateCandidates(state, rules, piece, capturesOnly = false) {
       break;
     }
     case 'guard':
-      jumpWalk(ALL8);
+      // 尉＝标准主教：斜向任意距离、路径无子（rules.js::_guard 同源）。
+      // 1.9.x 的 `jumpWalk`（隔一子跳）会漏掉斜线多格落点，让
+      // legalMovesFast 少于参考实现。
+      walk(DIAG);
       break;
     case 'archer': {
       let limit;

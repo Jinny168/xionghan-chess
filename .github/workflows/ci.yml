@@ -102,6 +102,19 @@ jobs:
           node --check android/Resources/assets/offline/offline-locales.js
           node --check scripts/offline_rules_probe.cjs
 
+      - name: JS 语法检查（网页规则内核唯一源，仅 tracked 文件）
+        # 主理人裁决「漏洞 3」：lint job 的 checkout 只拉 tracked 文件，online/core/
+        # online/public/ 是 S3 现场生成的派生产物（不入库），lint 不能依赖它们，
+        # 否则 CI 冷启动必红。副本一致性由 test job 的 C 步 `build_webapp_bundle.py
+        # --check` 保证（同一验收进程内紧随重建），这里只查 tracked 唯一源。
+        run: |
+          node --check webapp/js/core/rules.js
+          node --check webapp/js/core/profiles.js
+          node --check webapp/js/core/movegen.js
+          node --check webapp/js/core/model.js
+          node --check webapp/js/core/game.js
+          node --check webapp/js/core/ai.js
+
       - name: Python 语法检查
         run: python -m compileall -q src
 
@@ -326,6 +339,24 @@ jobs:
         # 放在主 pytest 之前：它 20s，主 pytest 465s —— 自检不过就没必要跑后面那一大坨。
         run: pytest tests/test_gate_integrity.py -q
 
+      - name: 重建派生产物（A→B→C，必须在主 pytest 之前）
+        # 主理人裁决「漏洞 1 + 漏洞 2」：
+        #  · 漏洞 1：tests/test_bundle_codegen.py / test_pipeline_order.py 直接读
+        #    dist/online/.edgeone 产物；这些不入库（checkout 只拉 tracked），必须在
+        #    主 pytest **之前**由 S3 现场生成，否则 CI 冷启动先红。
+        #  · 漏洞 2：唯一源 profiles.js 是 **tracked**，CI 只 `--check` 不 `--write`；
+        #    先 --write 再 --check 等于自己给自己发证，抓不到 tracked 文件与 Python
+        #    常量的漂移。
+        #  · S5（fixtures 55s）不在这里：rules.json 两份**入库**，verifier 用
+        #    sourceDigest 校验「入库 fixtures」与「磁盘重建产物」一致；完整重生成链
+        #    放 slow job。
+        #  顺序 A→B→C→D(pytest)→E(verifier)，与裁决逐字一致。
+        run: |
+          echo "A gen_web_profiles --check（只校验 tracked 唯一源，不写）"; python scripts/gen_web_profiles.py --check
+          echo "B build_webapp_bundle（重建 5 类派生产物）";            python scripts/build_webapp_bundle.py
+          echo "C build_webapp_bundle --check（同一验收进程内紧随重建）"; python scripts/build_webapp_bundle.py --check
+          echo "A–C 完成，进入 D 主 pytest"
+
       - name: pytest（主门禁）
         # 与 pyproject.toml 注释里写的口径**逐字一致**：不加 `-m` 的默认值、不加 plugins。
         # `--durations=15`：首次运行时用它核对耗时预估，不用再另跑一遍。
@@ -376,6 +407,22 @@ jobs:
           # 于是下面 grep 到的每一行都能直接对号入座，不需要猜是哪个渲染上下文。
           grep -E "^\[density\]" "$RUNNER_TEMP/pytest.log" | sed 's/^/::notice::/' || true
           exit "$rc"
+
+      - name: 网页规则护栏（E 步：T14/T15/T17 + removals + movegen）
+        # 主理人裁决 A→E 的 E 步：放在 D（主 pytest）之后、对拍汇总行断言之前。
+        # 前面的 A→B→C 已在**同一 job** 里重建派生产物，故此处读到的
+        # online/public/index.html / online/core/*.js / .edgeone 都是刚重建的。
+        # verify-rules.mjs 用 sourceDigest 校验**入库 fixtures** 与磁盘重建产物一致，
+        # 顺序错（fixtures 早于 bundle）会 fail('build-order')。
+        # 三连吃子不改 legal/check，只改 removals；只比 legal+check 会全绿骗人。
+        # T14 五端 positionKey 全等、T15 两份内嵌引擎 vm 运行时判据、
+        # T17 --selftest 防空跑三断言 + 顺序错必 fail 样本。
+        run: |
+          node webapp/tests/verify-rules.mjs
+          node webapp/tests/verify-movegen.mjs
+          node webapp/tests/verify-position-key.mjs
+          node webapp/tests/verify-bundle.mjs
+          node webapp/tests/verify-rules.mjs --selftest
 
       - name: 对拍门禁汇总行断言（区分「绿」与「空绿」）
         # 为什么必须有这一步：`tests/conftest.py` 的汇总是**输出**，不是**断言**。
@@ -548,3 +595,23 @@ jobs:
         # （见 test_expert_level.py 顶部注释），所以这里**不**再叠一个 AI_TIME_SCALE，
         # 否则会与用例自己算的预算相乘，掩盖"到底有没有跑完 d3"这个判定。
         run: pytest tests/ -m slow -q --durations=20
+
+      - name: 完整重生成 + 逐字节比对（S1–S6，55s+，不阻塞 PR）
+        # **S1–S6 是唯一合法顺序（严过关硬阻断：任一缺失或次序颠倒 ⇒ 判不得交付，
+        # 且 T02' 结果一律作废）**。bundle（S3/S4）必须先于 fixtures（S5）：
+        # sourceDigest 把 online/public/index.html 纳入哈希，不先重建它 fixtures
+        # 就录不到正确摘要，S6 会 fail('build-order')。
+        # 重生成 fixtures 约 55s，放 PR 路径会拖慢每次 push；主 gate 靠 test job
+        # 里的毫秒级 manifest 断言防「忘了重生成」，这里证明生成脚本确定性。
+        run: |
+          echo "S1 gen_web_profiles --write";  python scripts/gen_web_profiles.py --write
+          echo "S2 gen_web_profiles --check";  python scripts/gen_web_profiles.py --check
+          echo "S3 build_webapp_bundle";       python scripts/build_webapp_bundle.py
+          echo "S4 build_webapp_bundle --check"; python scripts/build_webapp_bundle.py --check
+          echo "S5 gen_rule_fixtures --write"; python scripts/gen_rule_fixtures.py --write
+          echo "S5b gen_rule_fixtures --check"; python scripts/gen_rule_fixtures.py --check
+          echo "S6 verify-rules";              node webapp/tests/verify-rules.mjs
+          echo "S6b verify-rules --selftest";  node webapp/tests/verify-rules.mjs --selftest
+          echo "S6c verify-position-key";      node webapp/tests/verify-position-key.mjs
+          echo "S6d verify-bundle";            node webapp/tests/verify-bundle.mjs
+          echo "S1–S6 顺序日志结束"
