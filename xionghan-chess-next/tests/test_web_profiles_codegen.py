@@ -59,7 +59,6 @@ def test_generated_profiles_exposes_the_v3_switches() -> None:
 
 def test_profile_manifest_matches_the_live_artifacts() -> None:
     """manifest 的 hash 必须等于当前文件（毫秒级，防止「忘了重生成」）。"""
-    import hashlib
     import json
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))

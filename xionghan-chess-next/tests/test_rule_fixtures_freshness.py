@@ -28,8 +28,6 @@ from xionghan_chess.core.profiles import RULE_VERSION, RuleOptions  # noqa: E402
 
 def _norm_sha(path: Path) -> str:
     # 与 scripts/gen_web_profiles.py::sha256 同一口径：归一化行尾（CRLF→LF）后再哈希。
-    import hashlib
-
     return hashlib.sha256(
         path.read_text(encoding="utf-8").replace("\r\n", "\n").encode("utf-8")
     ).hexdigest()
