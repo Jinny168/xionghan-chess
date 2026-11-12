@@ -18,6 +18,15 @@ TARGET = ROOT / "webapp" / "js" / "core" / "profiles.js"
 MANIFEST = ROOT / "webapp" / "js" / "core" / "profiles.manifest.json"
 
 
+def _norm_sha(path: Path) -> str:
+    # 与 scripts/gen_web_profiles.py::sha256 同一口径：归一化行尾（CRLF→LF）后再哈希。
+    import hashlib
+
+    return hashlib.sha256(
+        path.read_text(encoding="utf-8").replace("\r\n", "\n").encode("utf-8")
+    ).hexdigest()
+
+
 def test_web_profiles_is_in_sync_with_python_profiles() -> None:
     """产物逐字节 == 生成结果；DEFAULT_OPTIONS/三个 OPTIONS/别名/依赖表/名称表逐值相等。"""
     result = subprocess.run(
@@ -55,10 +64,8 @@ def test_profile_manifest_matches_the_live_artifacts() -> None:
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     assert manifest["ruleVersion"] == 3
-    assert manifest["profilesHash"] == hashlib.sha256(TARGET.read_bytes()).hexdigest()
-    assert manifest["rulesHash"] == hashlib.sha256(
-        (ROOT / "webapp" / "js" / "core" / "rules.js").read_bytes()
-    ).hexdigest()
+    assert manifest["profilesHash"] == _norm_sha(TARGET)
+    assert manifest["rulesHash"] == _norm_sha(ROOT / "webapp" / "js" / "core" / "rules.js")
 
 
 @pytest.mark.slow

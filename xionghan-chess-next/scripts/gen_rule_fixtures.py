@@ -76,7 +76,12 @@ PIECE_TYPES = [item for item in PieceType]
 
 
 def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    # 与 gen_web_profiles.sha256 同一口径：归一化行尾（CRLF→LF）后再哈希。
+    # 否则 CRLF 工作副本算出的 raw hash 与 manifest 的归一化 rulesHash 对不上，
+    # 表现为 preflight（run #181 余波）在开发者机器（CRLF）红、CI（LF）绿。
+    return hashlib.sha256(
+        path.read_text(encoding="utf-8").replace("\r\n", "\n").encode("utf-8")
+    ).hexdigest()
 
 
 # S1–S6 顺序护栏：sourceDigest 把「bundle 产物」也纳入哈希，故 bundle（S3/S4）
@@ -99,7 +104,9 @@ def source_digest_parts() -> dict[str, str]:
 def source_digest() -> str:
     h = hashlib.sha256()
     for _name, path in SOURCE_DIGEST_FILES:
-        h.update(path.read_bytes())
+        # 归一化行尾再喂入：build 产物若在 CRLF 机器生成会带 CR，归一化后
+        # 与 CI（LF checkout）重算值一致，否则 sourceDigest 跨环境分叉。
+        h.update(path.read_text(encoding="utf-8").replace("\r\n", "\n").encode("utf-8"))
     h.update(str(RULE_VERSION).encode("utf-8"))
     return h.hexdigest()
 
