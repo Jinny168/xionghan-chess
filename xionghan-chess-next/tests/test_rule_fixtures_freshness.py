@@ -26,6 +26,13 @@ PROFILES_MANIFEST = ROOT / "webapp" / "js" / "core" / "profiles.manifest.json"
 from xionghan_chess.core.profiles import RULE_VERSION, RuleOptions  # noqa: E402
 
 
+def _norm_sha(path: Path) -> str:
+    # 与 scripts/gen_web_profiles.py::sha256 同一口径：归一化行尾（CRLF→LF）后再哈希。
+    return hashlib.sha256(
+        path.read_text(encoding="utf-8").replace("\r\n", "\n").encode("utf-8")
+    ).hexdigest()
+
+
 def _fixture() -> dict:
     return json.loads(FIXTURE.read_text(encoding="utf-8"))
 
@@ -34,8 +41,8 @@ def test_fixture_manifest_matches_live_core() -> None:
     """ruleVersion / profilesHash / rulesHash / optionsKeys 必须与当前源码一致。"""
     data = _fixture()
     assert data["ruleVersion"] == RULE_VERSION == 3
-    assert data["profilesHash"] == hashlib.sha256(PROFILES_JS.read_bytes()).hexdigest()
-    assert data["rulesHash"] == hashlib.sha256(RULES_JS.read_bytes()).hexdigest()
+    assert data["profilesHash"] == _norm_sha(PROFILES_JS)
+    assert data["rulesHash"] == _norm_sha(RULES_JS)
     assert data["optionsKeys"] == sorted(asdict(RuleOptions()))
     assert data["caseCount"] == len(data["cases"])
     assert data["transitionCount"] == len(data["transitions"])

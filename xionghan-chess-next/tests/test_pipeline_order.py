@@ -28,16 +28,21 @@ VERIFIER = ROOT / "webapp" / "tests" / "verify-rules.mjs"
 from xionghan_chess.core.profiles import RULE_VERSION, RuleOptions  # noqa: E402
 
 
-def _sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def _norm_sha(path: Path) -> str:
+    # 与 scripts/gen_web_profiles.py::sha256 同一口径：归一化行尾（CRLF→LF）后再哈希。
+    # manifest 的 rulesHash/profilesHash 已是归一化值，测试必须用同一口径，
+    # 否则开发者机器（CRLF 工作副本）红、CI（LF checkout）绿，门禁失效。
+    return hashlib.sha256(
+        path.read_text(encoding="utf-8").replace("\r\n", "\n").encode("utf-8")
+    ).hexdigest()
 
 
 def test_step1_manifest_is_self_consistent() -> None:
     m = json.loads(MANIFEST.read_text(encoding="utf-8"))
     assert m["generatedBy"] == "scripts/gen_web_profiles.py"
     assert m["ruleVersion"] == RULE_VERSION == 3
-    assert m["profilesHash"] == _sha(PROFILES_JS)
-    assert m["rulesHash"] == _sha(RULES_JS)
+    assert m["profilesHash"] == _norm_sha(PROFILES_JS)
+    assert m["rulesHash"] == _norm_sha(RULES_JS)
     canonical = hashlib.sha256(
         json.dumps(sorted(asdict(RuleOptions())), separators=(",", ":")).encode("utf-8")
     ).hexdigest()

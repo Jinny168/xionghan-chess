@@ -265,7 +265,11 @@ def _rules_snapshot_count(html: str) -> int:
 
 
 def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    # 与 gen_web_profiles 的 manifest.rulesHash 同一口径：归一化行尾后再哈希，
+    # 否则 CRLF 工作副本算出的 raw hash 与 manifest 的归一化 hash 对不上（run #177–#180）。
+    return hashlib.sha256(
+        path.read_text(encoding="utf-8").replace("\r\n", "\n").encode("utf-8")
+    ).hexdigest()
 
 
 def check(html: str) -> int:

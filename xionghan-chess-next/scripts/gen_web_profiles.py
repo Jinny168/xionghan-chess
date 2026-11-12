@@ -260,7 +260,12 @@ def read_back(source: str) -> dict[str, object]:
 
 
 def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    # 归一化行尾（CRLF→LF）后再哈希：manifest 的 hash 必须跨 CRLF/LF checkout 一致。
+    # 否则开发者机器（CRLF 工作副本）生成的 manifest 在 CI（LF checkout）会判不一致，
+    # 表现为 gen_web_profiles --check 报 [manifest] 与当前产物/内核 hash 不一致（run #177–#180）。
+    return hashlib.sha256(
+        path.read_text(encoding="utf-8").replace("\r\n", "\n").encode("utf-8")
+    ).hexdigest()
 
 
 def manifest() -> dict[str, object]:
