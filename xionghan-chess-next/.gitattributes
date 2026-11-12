@@ -1,2 +1,8 @@
 benchmarks/*.txt -text
 benchmarks/openings/*.json -text
+
+# 网页规则内核唯一源：强制 LF，杜绝 CRLF 入库污染 manifest 的 rulesHash
+# （gen_web_profiles --check 在 CI 的 LF checkout 下会因此判 [manifest] 不一致，run #177–#180）。
+webapp/js/core/*.js text eol=lf
+webapp/js/core/profiles.manifest.json text eol=lf
+webapp/tests/fixtures/rules.json text eol=lf

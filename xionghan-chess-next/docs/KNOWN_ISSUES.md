@@ -69,6 +69,14 @@ transitions 19,197,323 = positionCounts 12,342,963 + 其余 transitions[] 6,854,
 - 再在 commit `d5df438` 根治注解盲点：pytest 加 `--color=no`；失败时若 `grep -c` 数出
   0 条 FAILED/ERROR 行，把日志尾部 60 行原样转 `::error::`。此后任何失败形态（收集阶段
   崩溃 / import error / fixture 缺失）都能在匿名注解里看到根因。
-- **未决**：版本源修复后 CI #177/#178 仍 failed（41/43s 快速失败、无 FAILED 注解），说明
-  CI 上有本地复现不到的第二种失败（平台差异或收集期异常）。d5df438 推出后 CI run 触发，
-  待其带兜底日志的下一跑给出真因再定点修；在此之前不臆测、不放宽门禁。
+- **已闭环（2026-11-12）**：#177–#180 的「41/43s 快速失败、无 FAILED 注解」经远端日志取证，
+  根因**不在 pytest**，而在 step 12-A `gen_web_profiles.py --check` 报
+  `[manifest] 与当前产物/内核 hash 不一致`：`profiles.manifest.json` 的 `rulesHash` 是在
+  开发者机器 **CRLF 工作副本**的 `rules.js` 上算出的，而仓库 blob / CI checkout 均为 **LF**，
+  → `sha256(LF rules.js) ≠ manifest 里的 CRLF 哈希` → `--check` 退出 1（pytest 因前序 step
+  失败被整体跳过，故一直看不到 FAILED 行，曾误判为 pytest 问题）。
+  修复：`gen_web_profiles.py` 与 `build_webapp_bundle.py` 对 `rules.js`/`profiles.js` 的哈希
+  改为 **CRLF→LF 归一化**（行尾无关）；并在 `xionghan-chess-next/.gitattributes` 给
+  `webapp/js/core/*.js` + `profiles.manifest.json` + `webapp/tests/fixtures/rules.json`
+  加 `eol=lf`，从根上杜绝 CRLF 入库。重生成并提交的 manifest 其 `rulesHash` 与 LF 归一化
+  哈希逐字节相等，本地 A/B/C 全过、CI 同口径通过。
