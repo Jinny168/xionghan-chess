@@ -63,3 +63,47 @@ def test_onboarding_has_no_telemetry() -> None:
     body = _function_body(_read(APP_JS), "maybeShowOnboarding")
     for token in ("fetch(", "XMLHttpRequest", "analytics", "track(", "sendBeacon"):
         assert token not in body, f"引导不得引入网络/采集: {token}"
+
+
+def test_first_run_picks_light_profile_without_changing_default() -> None:
+    """新用户首次落点=轻量档；系统默认不动（老用户回家路径不变）。"""
+    source = _read(APP_JS)
+    assert "function maybePickFirstRunProfile()" in source, "首访落档函数被删"
+    body = _function_body(source, "maybePickFirstRunProfile")
+    # 只首访：读 xh-web-visited 才判首访；设置轻量档并落盘
+    assert "xh-web-visited" in body, "首访落档未读首访标记"
+    assert "app.prefs.profileId = 'desktop_light'" in body, "首访未落到轻量档"
+    assert "savePrefs()" in body, "首访落档未持久化"
+    # 不改系统默认：DEFAULT_PREFS 里的 profileId 必须仍是 desktop_complete
+    assert "profileId: 'desktop_complete'" in source, "系统默认 profile 被改（老用户回家路径不能动）"
+    # 有安全降级：生成产物缺轻量档时不崩
+    assert "PROFILES.desktop_light" in body, "缺轻量档时无安全降级"
+
+
+def test_first_run_profile_runs_before_onboarding_marker_is_written() -> None:
+    """boot 中首访落档必须在引导写标记之前，否则首访判定失效。
+
+    注意：不能用 _function_body 切 boot —— boot 体内有缩进的箭头函数与注释，
+    "\nfunction " 会命中它们而提前截断（曾据此误报一例假红）。顶层函数定义
+    行首无缩进，用正则按行定位 boot 的真实边界。
+    """
+    import re
+
+    source = _read(APP_JS)
+    # 先剥行注释：boot 开头的注释里就写着 "maybeShowOnboarding()"，
+    # 不剥会让 find 命中注释而误报假红（文本取证铁律：别把注释当代码）。
+    code = "\n".join(line.split("//", 1)[0] for line in source.splitlines())
+    m = re.search(r"^function boot\(\) \{", code, re.M)
+    assert m, "boot 函数缺失"
+    nxt = re.search(r"^function \w+\(", code[m.end():], re.M)
+    boot = code[m.start(): m.end() + (nxt.start() if nxt else len(code) - m.end())]
+    pick_at = boot.find("maybePickFirstRunProfile()")
+    guide_at = boot.find("maybeShowOnboarding()")
+    assert pick_at != -1 and guide_at != -1, "boot 缺首访落档或引导调用"
+    assert pick_at < guide_at, "首访落档必须在引导写 xh-web-visited 标记之前调用"
+
+
+def test_first_run_profile_has_no_telemetry() -> None:
+    body = _function_body(_read(APP_JS), "maybePickFirstRunProfile")
+    for token in ("fetch(", "XMLHttpRequest", "analytics", "track(", "sendBeacon"):
+        assert token not in body, f"首访落档不得引入网络/采集: {token}"

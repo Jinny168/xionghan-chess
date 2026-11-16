@@ -148,8 +148,26 @@ function savePrefs() {
   }
 }
 
+// 新用户首次落点 = 轻量档（P0-4 收尾 / G3 痛点）。只首访生效：
+// 不改 DEFAULT_PREFS（那是老用户的回家路径），仅在 xh-web-visited 尚未写入时
+// 覆盖本次 profileId 并落盘；标记本身由 maybeShowOnboarding() 统一写入，
+// 两函数只读同一标记、boot 中本函数在前，顺序确定。零采集，标记存本地。
+function maybePickFirstRunProfile() {
+  try {
+    if (localStorage.getItem('xh-web-visited')) return;
+    if (!PROFILES.desktop_light) return; // 生成产物未含轻量档时安全降级，不崩
+    app.prefs.profileId = 'desktop_light';
+    savePrefs();
+  } catch {
+    /* 隐私模式下 localStorage 不可用：保持默认 profile 即可 */
+  }
+}
+
 function boot() {
   loadPrefs();
+  // 新用户首次落点 = 轻量档：只首访生效，不改 DEFAULT_PREFS（老用户的回家路径不变）。
+  // 必须在 maybeShowOnboarding() 写 xh-web-visited 之前判断，故放在 boot 开头。
+  maybePickFirstRunProfile();
   setLanguage(app.prefs.language || 'zh-CN');
 
   board = new BoardRenderer($('#board'));
