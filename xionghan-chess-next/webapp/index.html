@@ -323,11 +323,14 @@
           <div class="analysis-box">
             <button type="button" class="analyze-btn" data-act="analyze" data-i18n="analysis.run">AI 复盘</button>
             <div class="analysis-progress" id="analysisProgress" hidden>
-              <div class="bar"><i></i></div>
               <span id="analysisProgressText"></span>
             </div>
             <canvas id="curveCanvas" width="460" height="170" hidden></canvas>
             <p class="analysis-summary" id="analysisSummary" hidden></p>
+            <p class="hint" id="analysisNote">
+              <button type="button" id="analysisNoteToggle" style="border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer" data-i18n="analysis.shallow" aria-expanded="false" aria-controls="analysisNoteHelper">浅层参考</button>
+              <span id="analysisNoteHelper" data-i18n="analysis.shallowHint" hidden>依据本机浅层搜索，仅供参考</span>
+            </p>
           </div>
           <div class="replay-controls">
             <button type="button" data-replay="first" aria-label="开局">|‹</button>

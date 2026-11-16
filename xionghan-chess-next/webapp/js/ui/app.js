@@ -705,9 +705,7 @@ function tickClock() {
 
 function updateAnalysisProgress({ done, total }) {
   const box = $('#analysisProgress');
-  const bar = box.querySelector('.bar i');
   box.hidden = false;
-  bar.style.width = `${Math.round((done / total) * 100)}%`;
   $('#analysisProgressText').textContent = t('analysis.running', { done, total });
 }
 
@@ -768,70 +766,14 @@ function finishAnalysis(results) {
   summary.hidden = false;
   summary.textContent = `${t('analysis.done', {
     n: results.length,
-    best: stats.best + stats.good,
-    mistake: stats.inaccuracy + stats.mistake,
+    best: stats.best,
+    good: stats.good,
+    inaccuracy: stats.inaccuracy,
+    mistake: stats.mistake,
     blunder: stats.blunder,
   })}${results.length >= 120 ? ` ${t('analysis.capped', { n: 120 })}` : ''}`;
 
-  drawCurve(results);
   drawReplay();
-}
-
-function drawCurve(results) {
-  const canvas = $('#curveCanvas');
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const W = 920;
-  const H = 320;
-  canvas.width = W;
-  canvas.height = H;
-  canvas.hidden = false;
-  const ctx = canvas.getContext('2d');
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, W, H);
-
-  const padX = 26;
-  const padY = 26;
-  const plotW = W - padX * 2;
-  const plotH = H - padY * 2;
-  const xAt = (i) => padX + (results.length === 1 ? plotW / 2 : (i / (results.length - 1)) * plotW);
-  const yAt = (rate) => padY + (1 - rate / 100) * plotH;
-
-  ctx.strokeStyle = 'rgba(90,70,40,.16)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 8]);
-  ctx.beginPath();
-  ctx.moveTo(padX, yAt(50));
-  ctx.lineTo(padX + plotW, yAt(50));
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  ctx.beginPath();
-  ctx.moveTo(xAt(0), padY + plotH);
-  results.forEach((item, i) => ctx.lineTo(xAt(i), yAt(item.winRate)));
-  ctx.lineTo(xAt(results.length - 1), padY + plotH);
-  ctx.closePath();
-  ctx.fillStyle = 'rgba(156,43,34,.12)';
-  ctx.fill();
-
-  ctx.beginPath();
-  results.forEach((item, i) => {
-    const x = xAt(i);
-    const y = yAt(item.winRate);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.strokeStyle = '#9c2b22';
-  ctx.lineWidth = 3;
-  ctx.lineJoin = 'round';
-  ctx.stroke();
-
-  for (const [i, item] of results.entries()) {
-    if (item.quality !== 'blunder' && item.quality !== 'mistake') continue;
-    ctx.beginPath();
-    ctx.arc(xAt(i), yAt(item.winRate), 5, 0, Math.PI * 2);
-    ctx.fillStyle = item.quality === 'blunder' ? '#b03a2e' : '#d07a2a';
-    ctx.fill();
-  }
 }
 
 function openReplay() {
@@ -2018,6 +1960,15 @@ function buildRuleList() {
 }
 
 function bindDialogs() {
+  const noteToggle = $('#analysisNoteToggle');
+  const noteHelper = $('#analysisNoteHelper');
+  if (noteToggle && noteHelper) {
+    noteToggle.onclick = () => {
+      noteHelper.hidden = !noteHelper.hidden;
+      noteToggle.setAttribute('aria-expanded', String(!noteHelper.hidden));
+    };
+  }
+
   $$('[data-close]').forEach((button) => {
     button.onclick = () => hideDialog(button.dataset.close);
   });

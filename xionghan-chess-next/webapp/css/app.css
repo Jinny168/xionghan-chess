@@ -1270,19 +1270,6 @@ button.ghost:hover { background: rgba(90, 70, 40, 0.13); }
 
 .analysis-progress { display: flex; flex-direction: column; gap: 5px; }
 .analysis-progress[hidden] { display: none; }
-.analysis-progress .bar {
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(90, 70, 40, 0.12);
-  overflow: hidden;
-}
-.analysis-progress .bar i {
-  display: block;
-  height: 100%;
-  width: 0;
-  background: var(--seal);
-  transition: width 0.2s;
-}
 .analysis-progress span { font-size: 11px; color: var(--ink-faint); }
 
 #curveCanvas {
