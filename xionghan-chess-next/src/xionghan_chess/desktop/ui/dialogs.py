@@ -20,7 +20,7 @@ from dataclasses import asdict
 from datetime import date
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QThreadPool, QTimer
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -838,9 +838,21 @@ class ReplayDialog(QDialog):
         game._snapshots = [item.to_dict() for item in self.snapshots[:-1]]
         worker = AnalysisWorker(game, self._analysis_cancel)
         worker.signals.finished.connect(self._show_analysis_result)
-        worker.signals.failed.connect(lambda message: QMessageBox.warning(self, dl("分析失败"), str(message)))
-        self.statusBar().showMessage(dl("正在分析对局…"), 30000)
-        self.pool.start(worker)
+        worker.signals.finished.connect(self._restore_analysis_info)
+        worker.signals.failed.connect(self._analysis_failed)
+        # QDialog 没有 statusBar()，进度落在对话框自己的 QLabel 上；线程池取全局
+        # 实例，不依赖 parent 是否为 QMainWindow（复盘窗常被无 parent 地构造）。
+        self.info.setText(dl("正在分析对局…"))
+        QThreadPool.globalInstance().start(worker)
+
+    def _restore_analysis_info(self) -> None:
+        """分析结束/失败后把提示行还给复盘步信息；沙盘态不打断试走。"""
+        if not self._sandbox_active:
+            self.show_step(self.slider.value())
+
+    def _analysis_failed(self, message: object) -> None:
+        self._restore_analysis_info()
+        QMessageBox.warning(self, dl("分析失败"), str(message))
 
     def _show_analysis_result(self, result: object) -> None:
         labels = {
