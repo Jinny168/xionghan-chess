@@ -188,12 +188,7 @@ function boot() {
   document.body.classList.add('ready');
   app.started = true;
 
-  if (!localStorage.getItem('xh-web-visited')) {
-    localStorage.setItem('xh-web-visited', '1');
-    setTimeout(() => toast(getLanguage() === 'en'
-      ? 'Tap a piece, then tap a square to move.'
-      : '点选棋子，再点落点即可落子'), 900);
-  }
+  maybeShowOnboarding();
 
   if (!globalThis.__xhBundled && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
@@ -1718,6 +1713,36 @@ function toast(message) {
   node.classList.add('show');
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => node.classList.remove('show'), 2200);
+}
+
+// 首跑引导：首次访问连播三步定稿文案（认棋子 → 看亮点 → 落子）。
+// 约束：默认只在首访出现、可跳过、不常驻、零规则术语；标记存 localStorage，
+// 不采集不上报。播完自动收起；玩家自行落子（历史变长）也立即收起，避免遮挡对局。
+// 注意：不把"点棋子"当跳过信号——第②步正是鼓励玩家点棋子看亮点，点一下就消失会教 incomplete。
+function maybeShowOnboarding() {
+  if (localStorage.getItem('xh-web-visited')) return;
+  localStorage.setItem('xh-web-visited', '1');
+  const steps = ['onboard.step1', 'onboard.step2', 'onboard.step3'];
+  const timers = [];
+  let idx = 0;
+  let stopped = false;
+  const startPlies = app.game?.state?.history?.length || 0;
+  const stop = () => {
+    if (stopped) return;
+    stopped = true;
+    timers.forEach(clearTimeout);
+    $('#toast')?.classList.remove('show');
+  };
+  const play = () => {
+    if (stopped) return;
+    if (idx >= steps.length) { stop(); return; }
+    // 玩家已经落子 → 引导使命完成，立即收起。
+    if ((app.game?.state?.history?.length || 0) > startPlies) { stop(); return; }
+    toast(t(steps[idx]));
+    idx += 1;
+    timers.push(setTimeout(play, 2300));
+  };
+  timers.push(setTimeout(play, 900));
 }
 
 function buildProfileCards() {

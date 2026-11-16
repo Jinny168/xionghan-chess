@@ -138,6 +138,10 @@ const zh = {
   'profile.desktop_light': '轻量模式',
   'profile.traditional': '传统象棋',
 
+  'onboard.step1': '这是尉，斜着走',
+  'onboard.step2': '点一下棋子，亮点就是能走的地方',
+  'onboard.step3': '点亮点落子',
+
   'status.ready': '请落子',
   'status.check': '将军',
   'status.checkmate': '将死',
@@ -436,6 +440,10 @@ const en = {
   'profile.web': 'Compact',
   'profile.desktop_light': 'Light',
   'profile.traditional': 'Xiangqi',
+
+  'onboard.step1': 'This is the Guard — it moves diagonally',
+  'onboard.step2': 'Tap a piece: lit squares are where it can go',
+  'onboard.step3': 'Tap a lit square to move',
 
   'status.ready': 'Your move',
   'status.check': 'Check',
