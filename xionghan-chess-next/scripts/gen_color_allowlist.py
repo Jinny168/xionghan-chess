@@ -4,7 +4,7 @@
 B 阶段每收编一批颜色就重跑一次，条目数应当**单调下降**。
 
 口径（与 `tests/test_no_raw_colors.py` 完全一致）：
-- 扫描面：`web/css/app.css`、`src/**/desktop/app.py`、`src/**/desktop/ui/*.py`；
+- 扫描面：`web/css/app.css`、`webapp/css/app.css`、`src/**/desktop/app.py`、`src/**/desktop/ui/*.py`；
 - 统计所有 `#rgb` / `#rrggbb` / `#rrggbbaa`；
 - **豁免**：`--name: #hex` 的令牌定义、以及注释（`/* … */` 与 `# …` 行）——注释里的 hex 单独计数，
   不进 allowlist（防止把颜色藏进注释绕过检查）；
@@ -30,7 +30,7 @@ LINE_COMMENT = re.compile(r"(?m)^\s*#.*$")
 
 
 def targets() -> list[Path]:
-    files = [ROOT / "web" / "css" / "app.css"]
+    files = [ROOT / "web" / "css" / "app.css", ROOT / "webapp" / "css" / "app.css"]
     desktop = ROOT / "src" / "xionghan_chess" / "desktop"
     files.append(desktop / "app.py")
     files.extend(sorted((desktop / "ui").glob("*.py")))

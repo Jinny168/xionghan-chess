@@ -1,0 +1,965 @@
+*|box-sizing|border-box
+html, body|height|100%
+html, body|margin|0
+body|font-family|"PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif
+body|color|#2b2620
+body|background|radial-gradient(120% 90% at 50% -10%, #fbf6ec 0%, #f7f1e4 45%, #f0e6d5 100%)
+body|-webkit-font-smoothing|antialiased
+body|overflow|hidden
+.grain|position|fixed
+.grain|inset|0
+.grain|pointer-events|none
+.grain|z-index|0
+.grain|opacity|0.22
+.grain|background-image|url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E")
+.grain|mix-blend-mode|multiply
+button|font|inherit
+button|color|inherit
+button|cursor|pointer
+button|border|none
+button|background|none
+button:focus-visible, select:focus-visible, input:focus-visible|outline|2px solid #9c2b22
+button:focus-visible, select:focus-visible, input:focus-visible|outline-offset|2px
+.shell|position|relative
+.shell|z-index|1
+.shell|height|100dvh
+.shell|display|grid
+.shell|grid-template-columns|minmax(0, 1fr) 296px
+.shell|grid-template-rows|auto minmax(0, 1fr)
+.topbar|grid-column|1 / -1
+.topbar|display|flex
+.topbar|align-items|center
+.topbar|gap|18px
+.topbar|padding|14px 26px
+.topbar|border-bottom|1px solid rgba(90, 70, 40, 0.16)
+.topbar|background|rgba(251, 246, 236, 0.72)
+.topbar|backdrop-filter|blur(8px)
+.brand|display|flex
+.brand|align-items|center
+.brand|gap|11px
+.brand|min-width|0
+.brand-mark|width|36px
+.brand-mark|height|36px
+.brand-mark|display|grid
+.brand-mark|place-items|center
+.brand-mark|border-radius|50%
+.brand-mark|background|#9c2b22
+.brand-mark|color|#fdf6e6
+.brand-mark|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.brand-mark|font-size|21px
+.brand-mark|line-height|1
+.brand-mark|box-shadow|inset 0 0 0 1.5px rgba(255, 240, 210, 0.55)
+.brand-text|display|flex
+.brand-text|flex-direction|column
+.brand-text|line-height|1.2
+.brand-text strong|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.brand-text strong|font-size|17px
+.brand-text strong|letter-spacing|0.08em
+.brand-text small|color|#9a8f80
+.brand-text small|font-size|11px
+.brand-text small|letter-spacing|0.14em
+.topnav|display|flex
+.topnav|gap|2px
+.topnav|margin-left|auto
+.topnav button|padding|7px 13px
+.topnav button|border-radius|999px
+.topnav button|color|#6d6255
+.topnav button|font-size|13.5px
+.topnav button|letter-spacing|0.02em
+.topnav button|transition|background 0.18s, color 0.18s
+.topnav button:hover|background|rgba(156, 43, 34, 0.08)
+.topnav button:hover|color|#9c2b22
+.nav-toggle|display|none
+.nav-toggle|flex-direction|column
+.nav-toggle|justify-content|center
+.nav-toggle|gap|4px
+.nav-toggle|width|40px
+.nav-toggle|height|40px
+.nav-toggle|padding|0 10px
+.nav-toggle|border-radius|10px
+.nav-toggle|background|rgba(156, 43, 34, 0.06)
+.nav-toggle span|display|block
+.nav-toggle span|width|100%
+.nav-toggle span|height|2px
+.nav-toggle span|background|#9c2b22
+.nav-toggle span|border-radius|2px
+.nav-toggle span|opacity|0.85
+.stage|display|flex
+.stage|flex-direction|column
+.stage|align-items|center
+.stage|min-height|0
+.stage|padding|10px 22px 12px
+.stage|gap|6px
+.seat|width|var(--board-size, min(100%, 760px))
+.seat|display|flex
+.seat|align-items|center
+.seat|gap|10px
+.seat|padding|4px 10px
+.seat|border-radius|9px
+.seat|transition|background 0.25s
+.seat.active|background|rgba(176, 138, 46, 0.1)
+.seat-disc|width|30px
+.seat-disc|height|30px
+.seat-disc|flex|0 0 auto
+.seat-disc|display|grid
+.seat-disc|place-items|center
+.seat-disc|border-radius|50%
+.seat-disc|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.seat-disc|font-size|16px
+.seat-disc|background|#f6e7c8
+.seat-disc|box-shadow|inset 0 0 0 1.4px currentColor
+.seat-disc.red|color|#9c2b22
+.seat-disc.black|color|#2b2622
+.seat-meta|display|flex
+.seat-meta|flex-direction|column
+.seat-meta|line-height|1.25
+.seat-meta|min-width|0
+.seat-meta strong|font-size|14px
+.seat-meta strong|font-weight|600
+.seat-meta strong|letter-spacing|0.04em
+.seat-meta small|color|#9a8f80
+.seat-meta small|font-size|11.5px
+.seat-meta small|white-space|nowrap
+.seat-meta small|overflow|hidden
+.seat-meta small|text-overflow|ellipsis
+.seat-clock|margin-left|auto
+.seat-clock|font-variant-numeric|tabular-nums
+.seat-clock|font-size|19px
+.seat-clock|letter-spacing|0.06em
+.seat-clock|color|#6d6255
+.seat-clock|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.seat-clock.urgent|color|#9c2b22
+.seat-clock.urgent|animation|pulse 1s ease-in-out infinite
+@keyframes pulse|50% { opacity|0.55
+.board-holder|position|relative
+.board-holder|flex|1 1 auto
+.board-holder|width|100%
+.board-holder|min-height|0
+.board-holder|display|grid
+.board-holder|place-items|center
+.board-holder|padding-top|26px
+#board|display|block
+#board|max-height|100%
+#board|border-radius|10px
+#board|box-shadow|0 1px 0 rgba(255, 255, 255, 0.6),
+    0 22px 40px -18px rgba(70, 45, 15, 0.45),
+    0 0 0 1px rgba(120, 90, 50, 0.18)
+#board|touch-action|manipnulation
+#board|touch-action|manipulation
+#board|cursor|pointer
+.badge|position|absolute
+.badge|top|0
+.badge|left|50%
+.badge|transform|translate(-50%, 0)
+.badge|padding|4px 15px
+.badge|border-radius|999px
+.badge|background|rgba(43, 38, 32, 0.86)
+.badge|color|#f8f0dd
+.badge|font-size|12px
+.badge|letter-spacing|0.14em
+.badge|white-space|nowrap
+.badge|pointer-events|none
+.badge|opacity|0
+.badge|transition|opacity 0.3s
+.badge.show|opacity|1
+.thinking|position|absolute
+.thinking|bottom|6px
+.thinking|left|50%
+.thinking|transform|translateX(-50%)
+.thinking|display|flex
+.thinking|gap|5px
+.thinking|padding|8px 14px
+.thinking|border-radius|999px
+.thinking|background|rgba(43, 38, 32, 0.82)
+.thinking i|width|6px
+.thinking i|height|6px
+.thinking i|border-radius|50%
+.thinking i|background|#f3e7cd
+.thinking i|animation|bounce 1.05s infinite
+.thinking i:nth-child(2)|animation-delay|0.14s
+.thinking i:nth-child(3)|animation-delay|0.28s
+@keyframes bounce|0%, 60%, 100% { transform|translateY(0)
+@keyframes bounce|opacity|0.45
+@keyframes bounce|}
+  30% { transform|translateY(-5px)
+@keyframes bounce|opacity|1
+.thinking[hidden]|display|none
+.board-tip|display|none
+.toolbar|display|flex
+.toolbar|gap|8px
+.toolbar|width|var(--board-size, min(100%, 760px))
+.toolbar|justify-content|center
+.toolbar|padding-top|2px
+.toolbar button|flex|1 1 0
+.toolbar button|min-width|0
+.toolbar button|padding|9px 6px
+.toolbar button|border-radius|9px
+.toolbar button|background|rgba(156, 43, 34, 0.07)
+.toolbar button|color|#7a3b32
+.toolbar button|font-size|13px
+.toolbar button|letter-spacing|0.06em
+.toolbar button|transition|background 0.18s, transform 0.12s
+.toolbar button:hover:not(:disabled)|background|rgba(156, 43, 34, 0.13)
+.toolbar button:active:not(:disabled)|transform|translateY(1px)
+.toolbar button:disabled|color|#9a8f80
+.toolbar button:disabled|background|rgba(90, 70, 40, 0.05)
+.toolbar button:disabled|cursor|not-allowed
+.only-mobile|display|none
+.side|border-left|1px solid rgba(90, 70, 40, 0.16)
+.side|overflow-y|auto
+.side|padding|18px 18px 26px
+.side|display|flex
+.side|flex-direction|column
+.side|gap|22px
+.side|background|rgba(252, 247, 237, 0.5)
+.side-block h2|margin|0 0 8px
+.side-block h2|font-size|11px
+.side-block h2|font-weight|600
+.side-block h2|letter-spacing|0.22em
+.side-block h2|color|#9a8f80
+.side-block h2|text-transform|uppercase
+.movelist|list-style|none
+.movelist|margin|0
+.movelist|padding|0
+.movelist|max-height|38vh
+.movelist|overflow-y|auto
+.movelist|font-size|12.5px
+.movelist|line-height|1.9
+.movelist|color|#6d6255
+.movelist li|padding|1px 6px
+.movelist li|border-radius|5px
+.movelist li|cursor|default
+.movelist li|font-variant-numeric|tabular-nums
+.movelist li:nth-child(odd)|background|rgba(90, 70, 40, 0.035)
+.movelist li .idx|display|inline-block
+.movelist li .idx|width|26px
+.movelist li .idx|color|#9a8f80
+.movelist li.red|color|#9c2b22
+.movelist li.black|color|#34302a
+.empty|margin|0
+.empty|font-size|12.5px
+.empty|color|#9a8f80
+.captured-row|display|flex
+.captured-row|align-items|flex-start
+.captured-row|gap|8px
+.captured-row|margin-bottom|6px
+.captured-label|width|20px
+.captured-label|height|20px
+.captured-label|flex|0 0 auto
+.captured-label|display|grid
+.captured-label|place-items|center
+.captured-label|border-radius|5px
+.captured-label|font-size|11px
+.captured-label|color|#9a8f80
+.captured-label|background|rgba(90, 70, 40, 0.06)
+.captured-label|margin-top|2px
+.captured-label.red|color|#9c2b22
+.captured|display|flex
+.captured|flex-wrap|wrap
+.captured|gap|4px
+.captured|min-height|26px
+.captured|align-content|flex-start
+.captured span|width|24px
+.captured span|height|24px
+.captured span|display|grid
+.captured span|place-items|center
+.captured span|border-radius|50%
+.captured span|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.captured span|font-size|13px
+.captured span|background|#f2e4c8
+.captured span|color|#4a4238
+.captured span|box-shadow|inset 0 0 0 1px rgba(90, 70, 40, 0.16)
+.captured span.red|color|#9c2b22
+.meta-block dl|margin|0
+.meta-block dl|display|grid
+.meta-block dl|grid-template-columns|auto 1fr
+.meta-block dl|gap|5px 12px
+.meta-block dl|font-size|12.5px
+.meta-block dt|color|#9a8f80
+.meta-block dd|margin|0
+.meta-block dd|color|#6d6255
+.meta-actions|display|grid
+.meta-actions|grid-template-columns|repeat(2, minmax(0, 1fr))
+.meta-actions|gap|8px
+.meta-actions|margin-top|14px
+.meta-actions button|padding|8px 6px
+.meta-actions button|border-radius|8px
+.meta-actions button|border|1px solid rgba(90, 70, 40, 0.28)
+.meta-actions button|font-size|12px
+.meta-actions button|color|#6d6255
+.meta-actions button|white-space|nowrap
+dialog.sheet|border|none
+dialog.sheet|padding|0
+dialog.sheet|background|transparent
+dialog.sheet|color|#2b2620
+dialog.sheet|max-width|none
+dialog.sheet|max-height|none
+dialog.sheet::backdrop|background|rgba(38, 30, 20, 0.42)
+dialog.sheet::backdrop|backdrop-filter|blur(3px)
+.sheet-inner|width|min(560px, calc(100vw - 28px))
+.sheet-inner|max-height|88dvh
+.sheet-inner|overflow-y|auto
+.sheet-inner|margin|auto
+.sheet-inner|padding|22px 24px 20px
+.sheet-inner|border-radius|14px
+.sheet-inner|background|#fdfaf2
+.sheet-inner|box-shadow|0 18px 44px rgba(60, 40, 15, 0.16)
+.sheet-inner|border|1px solid rgba(120, 90, 50, 0.14)
+dialog[open] .sheet-inner|animation|rise 0.22s cubic-bezier(0.2, 0.9, 0.3, 1)
+@keyframes rise|from { opacity|0
+@keyframes rise|transform|translateY(10px) scale(0.985)
+.sheet.wide .sheet-inner|width|min(880px, calc(100vw - 28px))
+.sheet.narrow .sheet-inner|width|min(380px, calc(100vw - 28px))
+.sheet.narrow .sheet-inner|text-align|center
+.sheet-head|display|flex
+.sheet-head|align-items|center
+.sheet-head|justify-content|space-between
+.sheet-head|gap|12px
+.sheet-head|margin-bottom|14px
+.sheet-head h2|margin|0
+.sheet-head h2|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.sheet-head h2|font-size|19px
+.sheet-head h2|letter-spacing|0.08em
+.sheet-head h2|font-weight|600
+.icon-btn|width|30px
+.icon-btn|height|30px
+.icon-btn|border-radius|50%
+.icon-btn|display|grid
+.icon-btn|place-items|center
+.icon-btn|font-size|18px
+.icon-btn|color|#9a8f80
+.icon-btn|line-height|1
+.icon-btn:hover|background|rgba(90, 70, 40, 0.08)
+.icon-btn:hover|color|#2b2620
+.section-title|margin|20px 0 8px
+.section-title|font-size|11px
+.section-title|letter-spacing|0.2em
+.section-title|color|#9a8f80
+.section-title|font-weight|600
+.hint|margin|0 0 12px
+.hint|font-size|12.5px
+.hint|color|#9a8f80
+.hint|line-height|1.6
+.field|margin-bottom|14px
+.field|min-width|0
+.field > label|display|block
+.field > label|margin-bottom|6px
+.field > label|font-size|12px
+.field > label|color|#6d6255
+.field > label|letter-spacing|0.05em
+.field-row|display|grid
+.field-row|grid-template-columns|1fr 1fr
+.field-row|gap|12px
+select|width|100%
+select|padding|9px 10px
+select|font|inherit
+select|font-size|13px
+select|color|#2b2620
+select|background|#fbf5e8
+select|border|1px solid rgba(90, 70, 40, 0.28)
+select|border-radius|9px
+select|appearance|none
+select|background-image|linear-gradient(45deg, transparent 50%, #9a8f80 50%),
+    linear-gradient(135deg, #9a8f80 50%, transparent 50%)
+select|background-position|calc(100% - 15px) 50%, calc(100% - 10px) 50%
+select|background-size|5px 5px, 5px 5px
+select|background-repeat|no-repeat
+.segmented|display|flex
+.segmented|gap|4px
+.segmented|padding|3px
+.segmented|background|rgba(90, 70, 40, 0.07)
+.segmented|border-radius|10px
+.segmented button|flex|1
+.segmented button|min-width|0
+.segmented button|padding|8px 6px
+.segmented button|border-radius|8px
+.segmented button|font-size|12.5px
+.segmented button|color|#6d6255
+.segmented button|transition|background 0.16s, color 0.16s
+.segmented button|white-space|nowrap
+.segmented button|overflow|hidden
+.segmented button|text-overflow|ellipsis
+.segmented button.on|background|#fdf8ec
+.segmented button.on|color|#9c2b22
+.segmented button.on|box-shadow|0 1px 3px rgba(90, 70, 40, 0.16)
+.segmented button.on|font-weight|600
+.profile-grid|display|grid
+.profile-grid|grid-template-columns|1fr 1fr
+.profile-grid|gap|8px
+.profile-card|text-align|left
+.profile-card|padding|10px 12px
+.profile-card|border-radius|10px
+.profile-card|border|1px solid rgba(90, 70, 40, 0.16)
+.profile-card|background|#fbf5e8
+.profile-card|transition|border-color 0.16s, background 0.16s
+.profile-card strong|display|block
+.profile-card strong|font-size|13px
+.profile-card strong|margin-bottom|3px
+.profile-card span|font-size|11.5px
+.profile-card span|color|#9a8f80
+.profile-card span|line-height|1.45
+.profile-card span|display|block
+.profile-card.on|border-color|rgba(156, 43, 34, 0.5)
+.profile-card.on|background|#fdf1ee
+.profile-card.on strong|color|#9c2b22
+.swatches|display|flex
+.swatches|gap|10px
+.swatch|width|42px
+.swatch|height|30px
+.swatch|border-radius|8px
+.swatch|border|2px solid transparent
+.swatch|position|relative
+.swatch.on|border-color|#9c2b22
+.swatch[data-theme="classic"]|background|linear-gradient(135deg, #f3e3c3, #d8bb88)
+.swatch[data-theme="jade"]|background|linear-gradient(135deg, #e8efdf, #b9cdaa)
+.swatch[data-theme="ink"]|background|linear-gradient(135deg, #45454a, #232326)
+.toggles|display|grid
+.toggles|grid-template-columns|1fr 1fr
+.toggles|gap|6px 14px
+.toggle|display|flex
+.toggle|align-items|center
+.toggle|gap|8px
+.toggle|font-size|12.5px
+.toggle|color|#6d6255
+.toggle|padding|5px 0
+.toggle input|appearance|none
+.toggle input|width|34px
+.toggle input|height|19px
+.toggle input|border-radius|999px
+.toggle input|background|rgba(90, 70, 40, 0.2)
+.toggle input|position|relative
+.toggle input|transition|background 0.18s
+.toggle input|flex|0 0 auto
+.toggle input::after|content|""
+.toggle input::after|position|absolute
+.toggle input::after|top|2px
+.toggle input::after|left|2px
+.toggle input::after|width|15px
+.toggle input::after|height|15px
+.toggle input::after|border-radius|50%
+.toggle input::after|background|#fffdf7
+.toggle input::after|transition|transform 0.18s
+.toggle input::after|box-shadow|0 1px 2px rgba(0, 0, 0, 0.2)
+.toggle input:checked|background|#9c2b22
+.toggle input:checked::after|transform|translateX(15px)
+.rule-list|display|grid
+.rule-list|grid-template-columns|1fr 1fr
+.rule-list|gap|2px 14px
+.rule-list|font-size|12px
+.rule-list|color|#6d6255
+.rule-list label|display|flex
+.rule-list label|align-items|center
+.rule-list label|gap|7px
+.rule-list label|padding|4px 0
+.rule-list label|line-height|1.35
+.rule-list input|appearance|none
+.rule-list input|width|15px
+.rule-list input|height|15px
+.rule-list input|border-radius|4px
+.rule-list input|border|1px solid rgba(90, 70, 40, 0.28)
+.rule-list input|background|#fbf5e8
+.rule-list input|flex|0 0 auto
+.rule-list input|position|relative
+.rule-list input:checked|background|#9c2b22
+.rule-list input:checked|border-color|#9c2b22
+.rule-list input:checked::after|content|""
+.rule-list input:checked::after|position|absolute
+.rule-list input:checked::after|left|4px
+.rule-list input:checked::after|top|1px
+.rule-list input:checked::after|width|4px
+.rule-list input:checked::after|height|8px
+.rule-list input:checked::after|border|solid #fff
+.rule-list input:checked::after|border-width|0 1.8px 1.8px 0
+.rule-list input:checked::after|transform|rotate(42deg)
+.sheet-foot|display|flex
+.sheet-foot|justify-content|flex-end
+.sheet-foot|gap|10px
+.sheet-foot|margin-top|20px
+.sheet-foot|padding|12px 0 2px
+.sheet-foot|border-top|1px solid rgba(90, 70, 40, 0.16)
+.sheet-foot|position|sticky
+.sheet-foot|bottom|-20px
+.sheet-foot|background|linear-gradient(to bottom, rgba(253, 250, 242, 0.86), #fdfaf2 34%)
+.sheet-foot|backdrop-filter|blur(3px)
+.sheet-foot.center|justify-content|center
+button.primary, button.ghost|padding|10px 22px
+button.primary, button.ghost|border-radius|10px
+button.primary, button.ghost|font-size|13.5px
+button.primary, button.ghost|letter-spacing|0.05em
+button.primary, button.ghost|transition|background 0.16s, transform 0.12s
+button.primary|background|#9c2b22
+button.primary|color|#fdf3e4
+button.primary|box-shadow|0 6px 14px -6px rgba(156, 43, 34, 0.7)
+button.primary:hover|background|#88251d
+button.primary:active|transform|translateY(1px)
+button.ghost|background|rgba(90, 70, 40, 0.07)
+button.ghost|color|#6d6255
+button.ghost:hover|background|rgba(90, 70, 40, 0.13)
+.prose p|margin|0 0 12px
+.prose p|font-size|13.5px
+.prose p|line-height|1.85
+.prose p|color|#4a4238
+.prose h3|margin|20px 0 6px
+.prose h3|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.prose h3|font-size|14px
+.prose h3|letter-spacing|0.06em
+.prose h3|color|#9c2b22
+.prose .muted|color|#9a8f80
+.prose .muted|font-size|12.5px
+.prose .howto|margin|0 0 12px
+.prose .howto|padding-left|20px
+.prose .howto|font-size|13.5px
+.prose .howto|line-height|1.85
+.prose .howto|color|#4a4238
+.prose .howto li|margin-bottom|6px
+.prose .howto li::marker|color|#9c2b22
+.prose .howto li::marker|font-weight|600
+.atlas-layout|display|grid
+.atlas-layout|grid-template-columns|210px minmax(0, 1fr)
+.atlas-layout|gap|22px
+.atlas-layout|align-items|start
+.atlas-pieces|display|grid
+.atlas-pieces|grid-template-columns|repeat(2, 1fr)
+.atlas-pieces|gap|6px
+.atlas-pieces button|display|flex
+.atlas-pieces button|align-items|center
+.atlas-pieces button|gap|8px
+.atlas-pieces button|padding|7px 9px
+.atlas-pieces button|border-radius|9px
+.atlas-pieces button|border|1px solid rgba(90, 70, 40, 0.16)
+.atlas-pieces button|font-size|12.5px
+.atlas-pieces button|color|#6d6255
+.atlas-pieces button|text-align|left
+.atlas-pieces button .glyph|width|22px
+.atlas-pieces button .glyph|height|22px
+.atlas-pieces button .glyph|display|grid
+.atlas-pieces button .glyph|place-items|center
+.atlas-pieces button .glyph|border-radius|50%
+.atlas-pieces button .glyph|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.atlas-pieces button .glyph|font-size|13px
+.atlas-pieces button .glyph|background|#f4e6c9
+.atlas-pieces button .glyph|color|#9c2b22
+.atlas-pieces button .glyph|box-shadow|inset 0 0 0 1px rgba(156, 43, 34, 0.4)
+.atlas-pieces button.on|border-color|rgba(156, 43, 34, 0.5)
+.atlas-pieces button.on|background|#fdf1ee
+.atlas-pieces button.on|color|#9c2b22
+.atlas-board|display|grid
+.atlas-board|place-items|center
+.atlas-board|gap|10px
+#atlasCanvas|width|min(100%, 420px)
+#atlasCanvas|height|auto
+#atlasCanvas|border-radius|10px
+#atlasCanvas|box-shadow|0 14px 30px -14px rgba(70, 45, 15, 0.4)
+.atlas-caption|text-align|center
+.atlas-caption|max-width|440px
+.atlas-caption strong|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.atlas-caption strong|font-size|17px
+.atlas-caption strong|color|#9c2b22
+.atlas-caption strong|letter-spacing|0.1em
+.atlas-caption span|display|block
+.atlas-caption span|margin-top|4px
+.atlas-caption span|font-size|12.5px
+.atlas-caption span|color|#6d6255
+.atlas-caption span|line-height|1.7
+.atlas-caption em|display|block
+.atlas-caption em|margin-top|4px
+.atlas-caption em|font-style|normal
+.atlas-caption em|font-size|11.5px
+.atlas-caption em|color|#9a8f80
+.replay-inner|width|min(900px, calc(100vw - 28px))
+.replay-layout|display|grid
+.replay-layout|grid-template-columns|minmax(0, 1fr) 230px
+.replay-layout|gap|20px
+.replay-layout|align-items|start
+#replayCanvas|width|100%
+#replayCanvas|height|auto
+#replayCanvas|border-radius|10px
+#replayCanvas|box-shadow|0 14px 30px -14px rgba(70, 45, 15, 0.4)
+.replay-side|display|flex
+.replay-side|flex-direction|column
+.replay-side|gap|12px
+.replay-side|min-width|0
+.replay-controls|display|flex
+.replay-controls|gap|4px
+.replay-controls button|flex|1
+.replay-controls button|padding|8px 0
+.replay-controls button|border-radius|8px
+.replay-controls button|background|rgba(90, 70, 40, 0.07)
+.replay-controls button|color|#6d6255
+.replay-controls button|font-size|13px
+.replay-controls button:hover|background|rgba(90, 70, 40, 0.14)
+.replay-progress|display|flex
+.replay-progress|align-items|center
+.replay-progress|gap|8px
+.replay-progress|font-size|11.5px
+.replay-progress|color|#9a8f80
+.replay-progress|font-variant-numeric|tabular-nums
+.replay-progress input|flex|1
+.replay-progress input|accent-color|#9c2b22
+.replay-side .movelist|max-height|46vh
+.replay-side .movelist li|cursor|pointer
+.replay-side .movelist li.current|background|rgba(176, 138, 46, 0.18)
+.replay-side .movelist li.current|color|#2b2620
+.result-mark|width|66px
+.result-mark|height|66px
+.result-mark|margin|6px auto 12px
+.result-mark|display|grid
+.result-mark|place-items|center
+.result-mark|border-radius|50%
+.result-mark|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.result-mark|font-size|32px
+.result-mark|color|#fdf3e4
+.result-mark|background|#9c2b22
+.result-mark|box-shadow|inset 0 0 0 2px rgba(255, 240, 210, 0.4)
+.result-inner h2|margin|0 0 4px
+.result-inner h2|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.result-inner h2|font-size|22px
+.result-inner h2|letter-spacing|0.1em
+.result-inner p|margin|0 0 6px
+.result-inner p|color|#9a8f80
+.result-inner p|font-size|13px
+.promo-options|display|flex
+.promo-options|flex-wrap|wrap
+.promo-options|gap|10px
+.promo-options|justify-content|center
+.promo-options|margin|8px 0 4px
+.promo-options button|width|54px
+.promo-options button|height|54px
+.promo-options button|border-radius|50%
+.promo-options button|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.promo-options button|font-size|24px
+.promo-options button|background|#f6e7c8
+.promo-options button|color|#9c2b22
+.promo-options button|box-shadow|inset 0 0 0 1.6px rgba(156, 43, 34, 0.55)
+.promo-options button|transition|transform 0.14s, box-shadow 0.14s
+.promo-options button:hover|transform|translateY(-2px)
+.promo-options button:hover|box-shadow|inset 0 0 0 1.6px #9c2b22, 0 6px 14px -6px rgba(156, 43, 34, 0.5)
+.toast|position|fixed
+.toast|left|50%
+.toast|bottom|34px
+.toast|transform|translate(-50%, 12px)
+.toast|padding|9px 18px
+.toast|border-radius|999px
+.toast|background|rgba(43, 38, 32, 0.9)
+.toast|color|#f7efdd
+.toast|font-size|12.5px
+.toast|letter-spacing|0.04em
+.toast|opacity|0
+.toast|pointer-events|none
+.toast|transition|opacity 0.24s, transform 0.24s
+.toast|z-index|50
+.toast|max-width|80vw
+.toast|text-align|center
+.toast.show|opacity|1
+.toast.show|transform|translate(-50%, 0)
+@media (max-width: 980px)|.shell { grid-template-columns|minmax(0, 1fr)
+@media (max-width: 980px)|}
+  .side { display|none
+@media (max-width: 980px)|}
+  .only-mobile { display|block
+@media (max-width: 980px)|}
+  .stage { padding|8px 12px 10px
+@media (max-width: 980px)|justify-content|center
+@media (max-width: 980px)|}
+  .board-holder { flex|0 0 auto
+@media (max-width: 980px)|}
+  .seat { width|100%
+@media (max-width: 980px)|}
+  .toolbar { width|100%
+@media (max-width: 980px)|}
+  .badge { top|0
+@media (max-width: 980px)|}
+  .atlas-layout { grid-template-columns|1fr
+@media (max-width: 980px)|}
+  .atlas-pieces { grid-template-columns|repeat(4, 1fr)
+@media (max-width: 980px)|}
+  .replay-layout { grid-template-columns|1fr
+@media (max-width: 980px)|}
+  #replayCanvas { max-width|520px
+@media (max-width: 980px)|margin|0 auto
+@media (max-width: 980px)|}
+  .replay-side .movelist { max-height|22vh
+@media (max-width: 640px)|.topbar { padding|10px 14px
+@media (max-width: 640px)|gap|10px
+@media (max-width: 640px)|}
+  .topnav {
+    position|absolute
+@media (max-width: 640px)|top|58px
+@media (max-width: 640px)|right|12px
+@media (max-width: 640px)|flex-direction|column
+@media (max-width: 640px)|gap|2px
+@media (max-width: 640px)|padding|8px
+@media (max-width: 640px)|border-radius|12px
+@media (max-width: 640px)|background|#fdfaf2
+@media (max-width: 640px)|box-shadow|0 18px 44px rgba(60, 40, 15, 0.16)
+@media (max-width: 640px)|border|1px solid rgba(90, 70, 40, 0.16)
+@media (max-width: 640px)|display|none
+@media (max-width: 640px)|z-index|20
+@media (max-width: 640px)|}
+  .topnav.open { display|flex
+@media (max-width: 640px)|}
+  .topnav button { text-align|left
+@media (max-width: 640px)|}
+  .nav-toggle {
+    display|flex
+@media (max-width: 640px)|margin-left|auto
+@media (max-width: 640px)|width|40px
+@media (max-width: 640px)|height|40px
+@media (max-width: 640px)|padding|0 10px
+@media (max-width: 640px)|}
+  .brand-text small { display|none
+@media (max-width: 640px)|}
+  .seat-clock { font-size|17px
+@media (max-width: 640px)|}
+  .seat { padding|5px 6px
+@media (max-width: 640px)|}
+  .field-row { grid-template-columns|1fr
+@media (max-width: 640px)|}
+  .toggles, .rule-list { grid-template-columns|1fr
+@media (max-width: 640px)|}
+  .profile-grid { grid-template-columns|1fr
+@media (max-width: 640px)|}
+  .sheet-inner { padding|18px 16px 16px
+@media (max-width: 640px)|}
+  .atlas-pieces { grid-template-columns|repeat(3, 1fr)
+@media (max-width: 640px)|}
+  .board-tip { display|none
+@media (prefers-reduced-motion: reduce)|* { animation-duration|0.01ms !important
+@media (prefers-reduced-motion: reduce)|transition-duration|0.01ms !important
+.pause-mask|position|absolute
+.pause-mask|inset|26px 0 0
+.pause-mask|display|grid
+.pause-mask|place-items|center
+.pause-mask|align-content|center
+.pause-mask|gap|14px
+.pause-mask|background|rgba(247, 241, 228, 0.84)
+.pause-mask|backdrop-filter|blur(2px)
+.pause-mask|border-radius|10px
+.pause-mask|z-index|3
+.pause-mask[hidden]|display|none
+.pause-mask strong|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.pause-mask strong|font-size|21px
+.pause-mask strong|letter-spacing|0.18em
+.pause-mask strong|color|#2b2620
+.pause-mask button|padding|9px 30px
+.pause-mask button|border-radius|10px
+.pause-mask button|background|#9c2b22
+.pause-mask button|color|#fdf3e4
+.pause-mask button|font-size|13.5px
+.pause-mask button|letter-spacing|0.08em
+.resurrect-pill|position|absolute
+.resurrect-pill|top|30px
+.resurrect-pill|left|50%
+.resurrect-pill|transform|translateX(-50%)
+.resurrect-pill|padding|6px 15px
+.resurrect-pill|border-radius|999px
+.resurrect-pill|background|rgba(47, 107, 70, 0.93)
+.resurrect-pill|color|#f1f7ef
+.resurrect-pill|font-size|12px
+.resurrect-pill|letter-spacing|0.04em
+.resurrect-pill|white-space|nowrap
+.resurrect-pill|z-index|2
+.resurrect-pill|pointer-events|none
+.resurrect-pill[hidden]|display|none
+.stats-grid|display|grid
+.stats-grid|grid-template-columns|1fr 1fr
+.stats-grid|gap|10px
+.stat-card|padding|14px 10px
+.stat-card|border-radius|11px
+.stat-card|background|#fbf5e8
+.stat-card|border|1px solid rgba(90, 70, 40, 0.16)
+.stat-card|text-align|center
+.stat-card b|display|block
+.stat-card b|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.stat-card b|font-size|26px
+.stat-card b|font-variant-numeric|tabular-nums
+.stat-card b|color|#2b2620
+.stat-card span|font-size|11.5px
+.stat-card span|color|#9a8f80
+.stat-card span|letter-spacing|0.06em
+.puzzle-list|display|grid
+.puzzle-list|grid-template-columns|repeat(3, 1fr)
+.puzzle-list|gap|10px
+@media (max-width: 760px)|.puzzle-list { grid-template-columns|1fr 1fr
+.puzzle-group|grid-column|1 / -1
+.puzzle-group|font-size|11px
+.puzzle-group|letter-spacing|0.2em
+.puzzle-group|color|#9a8f80
+.puzzle-group|margin|10px 0 0
+.puzzle-card|display|flex
+.puzzle-card|flex-direction|column
+.puzzle-card|gap|3px
+.puzzle-card|padding|11px 13px
+.puzzle-card|border-radius|11px
+.puzzle-card|border|1px solid rgba(90, 70, 40, 0.16)
+.puzzle-card|background|#fbf5e8
+.puzzle-card|text-align|left
+.puzzle-card|transition|border-color 0.16s, background 0.16s
+.puzzle-card:hover|border-color|rgba(156, 43, 34, 0.45)
+.puzzle-card:hover|background|#fdf1ee
+.puzzle-card strong|font-size|13.5px
+.puzzle-card strong|display|flex
+.puzzle-card strong|align-items|center
+.puzzle-card strong|gap|6px
+.puzzle-card span|font-size|11.5px
+.puzzle-card span|color|#9a8f80
+.puzzle-card span|line-height|1.5
+.puzzle-card em|font-style|normal
+.puzzle-card em|font-size|10.5px
+.puzzle-card em|padding|1px 7px
+.puzzle-card em|border-radius|999px
+.puzzle-card em|background|rgba(156, 43, 34, 0.08)
+.puzzle-card em|color|#9c2b22
+.puzzle-card.solved strong::after|content|"✓"
+.puzzle-card.solved strong::after|color|#2f6b46
+.puzzle-card.solved strong::after|font-size|12px
+@media (max-width: 640px)|.puzzle-list { grid-template-columns|1fr
+.analysis-box|display|flex
+.analysis-box|flex-direction|column
+.analysis-box|gap|8px
+.analyze-btn|padding|8px 12px
+.analyze-btn|border-radius|9px
+.analyze-btn|background|rgba(156, 43, 34, 0.08)
+.analyze-btn|color|#9c2b22
+.analyze-btn|font-size|12.5px
+.analyze-btn|letter-spacing|0.06em
+.analyze-btn:hover|background|rgba(156, 43, 34, 0.14)
+.analysis-progress|display|flex
+.analysis-progress|flex-direction|column
+.analysis-progress|gap|5px
+.analysis-progress[hidden]|display|none
+.analysis-progress span|font-size|11px
+.analysis-progress span|color|#9a8f80
+#curveCanvas|width|100%
+#curveCanvas|height|auto
+#curveCanvas|border-radius|9px
+#curveCanvas|background|#fdfaf2
+#curveCanvas|border|1px solid rgba(90, 70, 40, 0.16)
+#curveCanvas[hidden]|display|none
+.analysis-summary|margin|0
+.analysis-summary|font-size|11.5px
+.analysis-summary|color|#6d6255
+.analysis-summary|line-height|1.6
+.analysis-summary[hidden]|display|none
+.movelist li.q-best|box-shadow|inset 3px 0 0 #2f6b46
+.movelist li.q-good|box-shadow|inset 3px 0 0 #7ba05b
+.movelist li.q-inaccuracy|box-shadow|inset 3px 0 0 #c9a227
+.movelist li.q-mistake|box-shadow|inset 3px 0 0 #d07a2a
+.movelist li.q-blunder|box-shadow|inset 3px 0 0 #b03a2e
+.appear-grid|display|grid
+.appear-grid|grid-template-columns|repeat(4, 1fr)
+.appear-grid|gap|6px
+.appear-chip|display|flex
+.appear-chip|align-items|center
+.appear-chip|gap|6px
+.appear-chip|padding|5px 8px
+.appear-chip|border-radius|8px
+.appear-chip|border|1px solid rgba(90, 70, 40, 0.16)
+.appear-chip|background|#fbf5e8
+.appear-chip|font-size|12px
+.appear-chip|color|#6d6255
+.appear-chip|cursor|pointer
+.appear-chip input|accent-color|#9c2b22
+.appear-chip .glyph|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.appear-chip .glyph|font-size|14px
+.appear-chip .glyph|color|#9c2b22
+.appear-chip small|color|#9a8f80
+.appear-chip small|font-size|10.5px
+.appear-chip.off|opacity|0.45
+.library-list|display|flex
+.library-list|flex-direction|column
+.library-list|gap|8px
+.library-row|display|flex
+.library-row|align-items|center
+.library-row|gap|10px
+.library-row|padding|10px 12px
+.library-row|border-radius|10px
+.library-row|border|1px solid rgba(90, 70, 40, 0.16)
+.library-row|background|#fbf5e8
+.library-row .info|flex|1
+.library-row .info|min-width|0
+.library-row strong|display|block
+.library-row strong|font-size|13px
+.library-row span|font-size|11px
+.library-row span|color|#9a8f80
+.library-row button|padding|5px 10px
+.library-row button|border-radius|7px
+.library-row button|background|rgba(156, 43, 34, 0.08)
+.library-row button|color|#9c2b22
+.library-row button|font-size|11.5px
+.library-row button.del|background|rgba(90, 70, 40, 0.07)
+.library-row button.del|color|#9a8f80
+.library-empty|font-size|12.5px
+.library-empty|color|#9a8f80
+@media (max-width: 640px)|.appear-grid { grid-template-columns|repeat(3, 1fr)
+.join-row|display|flex
+.join-row|gap|8px
+.join-row|margin-top|10px
+.join-row input|flex|1
+.join-row input|min-width|0
+.join-row input|padding|9px 12px
+.join-row input|border-radius|9px
+.join-row input|border|1px solid rgba(90, 70, 40, 0.28)
+.join-row input|background|#fbf5e8
+.join-row input|font|inherit
+.join-row input|font-size|14px
+.join-row input|letter-spacing|0.32em
+.join-row input|text-transform|uppercase
+.join-row input|text-align|center
+button.wide|width|100%
+button.wide|margin-top|10px
+.room-code|display|flex
+.room-code|align-items|center
+.room-code|justify-content|center
+.room-code|gap|10px
+.room-code|padding|12px 0 6px
+.room-code|font-size|12px
+.room-code|color|#9a8f80
+.room-code b|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.room-code b|font-size|26px
+.room-code b|letter-spacing|0.22em
+.room-code b|color|#9c2b22
+.room-code button|width|auto
+.room-code button|margin|0
+.room-code button|padding|4px 10px
+.room-code button|font-size|11.5px
+.shell.side-hidden|grid-template-columns|minmax(0, 1fr) 0
+.shell.side-hidden .side|display|none
+.side-restore|position|absolute
+.side-restore|top|10px
+.side-restore|right|10px
+.side-restore|z-index|5
+.side-restore|padding|6px 12px
+.side-restore|border-radius|999px
+.side-restore|border|1px solid rgba(90, 70, 40, 0.28)
+.side-restore|background|rgba(253, 248, 238, 0.92)
+.side-restore|color|#6d6255
+.side-restore|font-size|11.5px
+.side-restore|letter-spacing|0.06em
+.side-restore[hidden]|display|none
+.volume-field|gap|6px
+.volume-field input[type="range"]|width|100%
+.volume-field input[type="range"]|accent-color|#9c2b22
+.bg-row|display|flex
+.bg-row|gap|8px
+.bg-row button|flex|1
+.head-actions|display|flex
+.head-actions|align-items|center
+.head-actions|gap|8px
+.head-actions .ghost|padding|5px 10px
+.head-actions .ghost|font-size|11.5px
+body.has-bg::before|content|""
+body.has-bg::before|position|fixed
+body.has-bg::before|inset|0
+body.has-bg::before|z-index|0
+body.has-bg::before|background-image|var(--page-bg)
+body.has-bg::before|background-size|cover
+body.has-bg::before|background-position|center
+body.has-bg::before|opacity|0.85
+body.has-bg::after|content|""
+body.has-bg::after|position|fixed
+body.has-bg::after|inset|0
+body.has-bg::after|z-index|0
+body.has-bg::after|background|rgba(250, 245, 234, 0.45)
+body.has-bg .side, body.has-bg .topbar|background|rgba(252, 247, 238, 0.96)
+body.has-bg .side, body.has-bg .topbar|backdrop-filter|none
