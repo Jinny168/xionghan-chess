@@ -185,14 +185,20 @@ def _write(path: Path, text: str) -> None:
 
 
 def _edgeone_targets() -> dict[Path, Path]:
-    """EdgeOne 部署源 → webapp 唯一源的映射（只列本轮明确纳入清单的文件）。"""
-    return {
-        EDGEONE / "js" / "core" / "profiles.js": WEB / "js" / "core" / "profiles.js",
-        EDGEONE / "js" / "core" / "rules.js": WEB / "js" / "core" / "rules.js",
-        # movegen.js 本轮也改了（rules.js 的配套快速生成器），不同步会让部署源 AI 与主规则分叉
-        EDGEONE / "js" / "core" / "movegen.js": WEB / "js" / "core" / "movegen.js",
-        EDGEONE / "tests" / "fixtures" / "rules.json": WEB / "tests" / "fixtures" / "rules.json",
-    }
+    """EdgeOne 部署源 → webapp 唯一源的映射。
+
+    EdgeOne index.html 用 `<script type="module" src="./js/ui/app.js">` 引用式加载，
+    而 app.js 的 import 闭包覆盖 webapp/js 下几乎所有 JS —— 手工列举曾只同步 3 个
+    core 文件，导致 ui/app.js（84KB）、i18n、net、cloud、puzzles、ai-worker 等整棵
+    UI/数据/网络层陈旧（线上跑两个月前的旧代码，且缺 3 个 import 目标会 404）。
+    改为**从源码树自动构建全量映射**：新增/修改任何 JS 都自动纳入 sync 与 --check，
+    根除"隐性同步点"。fixtures 是跨引擎对拍产物，显式单列。
+    """
+    targets: dict[Path, Path] = {}
+    for source in sorted((WEB / "js").rglob("*.js")):
+        targets[EDGEONE / "js" / source.relative_to(WEB / "js")] = source
+    targets[EDGEONE / "tests" / "fixtures" / "rules.json"] = WEB / "tests" / "fixtures" / "rules.json"
+    return targets
 
 
 def sync(html: str) -> None:

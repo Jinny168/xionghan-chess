@@ -83,6 +83,32 @@ def test_edgeone_deployment_source_is_synced() -> None:
         ).replace("\r\n", "\n"), f"{target} 与唯一源漂移"
 
 
+def test_edgeone_syncs_entire_js_tree_not_a_handpicked_subset() -> None:
+    """EdgeOne 部署源必须同步 webapp/js 全树（app.js 的 import 闭包覆盖所有 JS）。
+
+    回归背景：_edgeone_targets 曾只列 3 个 core 文件，导致 ui/app.js、i18n、net、
+    cloud、puzzles、ai-worker 等整棵 UI/数据/网络层陈旧（线上跑两个月前旧代码，
+    且缺 import 目标会 404）。此守卫钉死"全树"，防止改回手工列举少数文件。
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import build_webapp_bundle as bundle
+
+    targets = bundle._edgeone_targets()
+    src_js = sorted((ROOT / "webapp" / "js").rglob("*.js"))
+    mapped_sources = {v.resolve() for v in targets.values() if v.suffix == ".js"}
+    assert {s.resolve() for s in src_js} == mapped_sources, (
+        f"EdgeOne 映射未覆盖全部 JS：漏="
+        f"{sorted(str(s.relative_to(ROOT)) for s in src_js if s.resolve() not in mapped_sources)}；"
+        f"多={sorted(str(v.relative_to(ROOT)) for v in mapped_sources if v not in {s.resolve() for s in src_js})}"
+    )
+    # 每个映射目标必须真实存在且内容一致（归一化行尾）
+    for target, source in targets.items():
+        assert target.exists(), f"EdgeOne 缺 {target.relative_to(ROOT)} —— 跑 build_webapp_bundle.py"
+        assert target.read_text(encoding="utf-8").replace("\r\n", "\n") == source.read_text(
+            encoding="utf-8"
+        ).replace("\r\n", "\n"), f"{target.relative_to(ROOT)} 与唯一源漂移"
+
+
 def test_online_core_matches_webapp_core() -> None:
     """online/core/*.js 归一化行尾后与 webapp/js/core/*.js 逐字相同。"""
     for item in (ROOT / "webapp" / "js" / "core").glob("*.js"):
