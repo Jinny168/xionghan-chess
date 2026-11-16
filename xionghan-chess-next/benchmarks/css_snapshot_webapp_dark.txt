@@ -1,0 +1,959 @@
+*@dark|box-sizing|border-box
+html, body@dark|height|100%
+html, body@dark|margin|0
+body@dark|font-family|"PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif
+body@dark|color|#2b2620
+body@dark|background|radial-gradient(120% 90% at 50% -10%, #fbf6ec 0%, #f7f1e4 45%, #f0e6d5 100%)
+body@dark|-webkit-font-smoothing|antialiased
+body@dark|overflow|hidden
+.grain@dark|position|fixed
+.grain@dark|inset|0
+.grain@dark|pointer-events|none
+.grain@dark|z-index|0
+.grain@dark|opacity|0.22
+.grain@dark|background-image|url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E")
+.grain@dark|mix-blend-mode|multiply
+button@dark|font|inherit
+button@dark|color|inherit
+button@dark|cursor|pointer
+button@dark|border|none
+button@dark|background|none
+button:focus-visible, select:focus-visible, input:focus-visible@dark|outline|2px solid #9c2b22
+button:focus-visible, select:focus-visible, input:focus-visible@dark|outline-offset|2px
+.shell@dark|position|relative
+.shell@dark|z-index|1
+.shell@dark|height|100dvh
+.shell@dark|display|grid
+.shell@dark|grid-template-columns|minmax(0, 1fr) 296px
+.shell@dark|grid-template-rows|auto minmax(0, 1fr)
+.topbar@dark|grid-column|1 / -1
+.topbar@dark|display|flex
+.topbar@dark|align-items|center
+.topbar@dark|gap|18px
+.topbar@dark|padding|14px 26px
+.topbar@dark|border-bottom|1px solid rgba(90, 70, 40, 0.16)
+.topbar@dark|background|rgba(251, 246, 236, 0.72)
+.topbar@dark|backdrop-filter|blur(8px)
+.brand@dark|display|flex
+.brand@dark|align-items|center
+.brand@dark|gap|11px
+.brand@dark|min-width|0
+.brand-mark@dark|width|36px
+.brand-mark@dark|height|36px
+.brand-mark@dark|display|grid
+.brand-mark@dark|place-items|center
+.brand-mark@dark|border-radius|50%
+.brand-mark@dark|background|#9c2b22
+.brand-mark@dark|color|#fdf6e6
+.brand-mark@dark|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.brand-mark@dark|font-size|21px
+.brand-mark@dark|line-height|1
+.brand-mark@dark|box-shadow|inset 0 0 0 1.5px rgba(255, 240, 210, 0.55)
+.brand-text@dark|display|flex
+.brand-text@dark|flex-direction|column
+.brand-text@dark|line-height|1.2
+.brand-text strong@dark|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.brand-text strong@dark|font-size|17px
+.brand-text strong@dark|letter-spacing|0.08em
+.brand-text small@dark|color|#9a8f80
+.brand-text small@dark|font-size|11px
+.brand-text small@dark|letter-spacing|0.14em
+.topnav@dark|display|flex
+.topnav@dark|gap|2px
+.topnav@dark|margin-left|auto
+.topnav button@dark|padding|7px 13px
+.topnav button@dark|border-radius|999px
+.topnav button@dark|color|#6d6255
+.topnav button@dark|font-size|13.5px
+.topnav button@dark|letter-spacing|0.02em
+.topnav button@dark|transition|background 0.18s, color 0.18s
+.topnav button:hover@dark|background|rgba(156, 43, 34, 0.08)
+.topnav button:hover@dark|color|#9c2b22
+.nav-toggle@dark|display|none
+.nav-toggle@dark|flex-direction|column
+.nav-toggle@dark|justify-content|center
+.nav-toggle@dark|gap|4px
+.nav-toggle@dark|width|40px
+.nav-toggle@dark|height|40px
+.nav-toggle@dark|padding|0 10px
+.nav-toggle@dark|border-radius|10px
+.nav-toggle@dark|background|rgba(156, 43, 34, 0.06)
+.nav-toggle span@dark|display|block
+.nav-toggle span@dark|width|100%
+.nav-toggle span@dark|height|2px
+.nav-toggle span@dark|background|#9c2b22
+.nav-toggle span@dark|border-radius|2px
+.nav-toggle span@dark|opacity|0.85
+.stage@dark|display|flex
+.stage@dark|flex-direction|column
+.stage@dark|align-items|center
+.stage@dark|min-height|0
+.stage@dark|padding|10px 22px 12px
+.stage@dark|gap|6px
+.seat@dark|width|var(--board-size, min(100%, 760px))
+.seat@dark|display|flex
+.seat@dark|align-items|center
+.seat@dark|gap|10px
+.seat@dark|padding|4px 10px
+.seat@dark|border-radius|9px
+.seat@dark|transition|background 0.25s
+.seat.active@dark|background|rgba(176, 138, 46, 0.1)
+.seat-disc@dark|width|30px
+.seat-disc@dark|height|30px
+.seat-disc@dark|flex|0 0 auto
+.seat-disc@dark|display|grid
+.seat-disc@dark|place-items|center
+.seat-disc@dark|border-radius|50%
+.seat-disc@dark|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.seat-disc@dark|font-size|16px
+.seat-disc@dark|background|#f6e7c8
+.seat-disc@dark|box-shadow|inset 0 0 0 1.4px currentColor
+.seat-disc.red@dark|color|#9c2b22
+.seat-disc.black@dark|color|#2b2622
+.seat-meta@dark|display|flex
+.seat-meta@dark|flex-direction|column
+.seat-meta@dark|line-height|1.25
+.seat-meta@dark|min-width|0
+.seat-meta strong@dark|font-size|14px
+.seat-meta strong@dark|font-weight|600
+.seat-meta strong@dark|letter-spacing|0.04em
+.seat-meta small@dark|color|#9a8f80
+.seat-meta small@dark|font-size|11.5px
+.seat-meta small@dark|white-space|nowrap
+.seat-meta small@dark|overflow|hidden
+.seat-meta small@dark|text-overflow|ellipsis
+.seat-clock@dark|margin-left|auto
+.seat-clock@dark|font-variant-numeric|tabular-nums
+.seat-clock@dark|font-size|19px
+.seat-clock@dark|letter-spacing|0.06em
+.seat-clock@dark|color|#6d6255
+.seat-clock@dark|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.seat-clock.urgent@dark|color|#9c2b22
+.seat-clock.urgent@dark|animation|pulse 1s ease-in-out infinite
+@keyframes pulse@dark|50% { opacity|0.55
+.board-holder@dark|position|relative
+.board-holder@dark|flex|1 1 auto
+.board-holder@dark|width|100%
+.board-holder@dark|min-height|0
+.board-holder@dark|display|grid
+.board-holder@dark|place-items|center
+.board-holder@dark|padding-top|26px
+#board@dark|display|block
+#board@dark|max-height|100%
+#board@dark|border-radius|10px
+#board@dark|box-shadow|0 1px 0 rgba(255, 255, 255, 0.6),
+    0 22px 40px -18px rgba(70, 45, 15, 0.45),
+    0 0 0 1px rgba(120, 90, 50, 0.18)
+#board@dark|touch-action|manipnulation
+#board@dark|touch-action|manipulation
+#board@dark|cursor|pointer
+.badge@dark|position|absolute
+.badge@dark|top|0
+.badge@dark|left|50%
+.badge@dark|transform|translate(-50%, 0)
+.badge@dark|padding|4px 15px
+.badge@dark|border-radius|999px
+.badge@dark|background|rgba(43, 38, 32, 0.86)
+.badge@dark|color|#f8f0dd
+.badge@dark|font-size|12px
+.badge@dark|letter-spacing|0.14em
+.badge@dark|white-space|nowrap
+.badge@dark|pointer-events|none
+.badge@dark|opacity|0
+.badge@dark|transition|opacity 0.3s
+.badge.show@dark|opacity|1
+.thinking@dark|position|absolute
+.thinking@dark|bottom|6px
+.thinking@dark|left|50%
+.thinking@dark|transform|translateX(-50%)
+.thinking@dark|display|flex
+.thinking@dark|gap|5px
+.thinking@dark|padding|8px 14px
+.thinking@dark|border-radius|999px
+.thinking@dark|background|rgba(43, 38, 32, 0.82)
+.thinking i@dark|width|6px
+.thinking i@dark|height|6px
+.thinking i@dark|border-radius|50%
+.thinking i@dark|background|#f3e7cd
+.thinking i@dark|animation|bounce 1.05s infinite
+.thinking i:nth-child(2)@dark|animation-delay|0.14s
+.thinking i:nth-child(3)@dark|animation-delay|0.28s
+@keyframes bounce@dark|0%, 60%, 100% { transform|translateY(0)
+@keyframes bounce@dark|opacity|0.45
+@keyframes bounce@dark|}
+  30% { transform|translateY(-5px)
+@keyframes bounce@dark|opacity|1
+.thinking[hidden]@dark|display|none
+.board-tip@dark|display|none
+.toolbar@dark|display|flex
+.toolbar@dark|gap|8px
+.toolbar@dark|width|var(--board-size, min(100%, 760px))
+.toolbar@dark|justify-content|center
+.toolbar@dark|padding-top|2px
+.toolbar button@dark|flex|1 1 0
+.toolbar button@dark|min-width|0
+.toolbar button@dark|padding|9px 6px
+.toolbar button@dark|border-radius|9px
+.toolbar button@dark|background|rgba(156, 43, 34, 0.07)
+.toolbar button@dark|color|#7a3b32
+.toolbar button@dark|font-size|13px
+.toolbar button@dark|letter-spacing|0.06em
+.toolbar button@dark|transition|background 0.18s, transform 0.12s
+.toolbar button:hover:not(:disabled)@dark|background|rgba(156, 43, 34, 0.13)
+.toolbar button:active:not(:disabled)@dark|transform|translateY(1px)
+.toolbar button:disabled@dark|color|#9a8f80
+.toolbar button:disabled@dark|background|rgba(90, 70, 40, 0.05)
+.toolbar button:disabled@dark|cursor|not-allowed
+.only-mobile@dark|display|none
+.side@dark|border-left|1px solid rgba(90, 70, 40, 0.16)
+.side@dark|overflow-y|auto
+.side@dark|padding|18px 18px 26px
+.side@dark|display|flex
+.side@dark|flex-direction|column
+.side@dark|gap|22px
+.side@dark|background|rgba(252, 247, 237, 0.5)
+.side-block h2@dark|margin|0 0 8px
+.side-block h2@dark|font-size|11px
+.side-block h2@dark|font-weight|600
+.side-block h2@dark|letter-spacing|0.22em
+.side-block h2@dark|color|#9a8f80
+.side-block h2@dark|text-transform|uppercase
+.movelist@dark|list-style|none
+.movelist@dark|margin|0
+.movelist@dark|padding|0
+.movelist@dark|max-height|38vh
+.movelist@dark|overflow-y|auto
+.movelist@dark|font-size|12.5px
+.movelist@dark|line-height|1.9
+.movelist@dark|color|#6d6255
+.movelist li@dark|padding|1px 6px
+.movelist li@dark|border-radius|5px
+.movelist li@dark|cursor|default
+.movelist li@dark|font-variant-numeric|tabular-nums
+.movelist li:nth-child(odd)@dark|background|rgba(90, 70, 40, 0.035)
+.movelist li .idx@dark|display|inline-block
+.movelist li .idx@dark|width|26px
+.movelist li .idx@dark|color|#9a8f80
+.movelist li.red@dark|color|#9c2b22
+.movelist li.black@dark|color|#34302a
+.empty@dark|margin|0
+.empty@dark|font-size|12.5px
+.empty@dark|color|#9a8f80
+.captured-row@dark|display|flex
+.captured-row@dark|align-items|flex-start
+.captured-row@dark|gap|8px
+.captured-row@dark|margin-bottom|6px
+.captured-label@dark|width|20px
+.captured-label@dark|height|20px
+.captured-label@dark|flex|0 0 auto
+.captured-label@dark|display|grid
+.captured-label@dark|place-items|center
+.captured-label@dark|border-radius|5px
+.captured-label@dark|font-size|11px
+.captured-label@dark|color|#9a8f80
+.captured-label@dark|background|rgba(90, 70, 40, 0.06)
+.captured-label@dark|margin-top|2px
+.captured-label.red@dark|color|#9c2b22
+.captured@dark|display|flex
+.captured@dark|flex-wrap|wrap
+.captured@dark|gap|4px
+.captured@dark|min-height|26px
+.captured@dark|align-content|flex-start
+.captured span@dark|width|24px
+.captured span@dark|height|24px
+.captured span@dark|display|grid
+.captured span@dark|place-items|center
+.captured span@dark|border-radius|50%
+.captured span@dark|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.captured span@dark|font-size|13px
+.captured span@dark|background|#f2e4c8
+.captured span@dark|color|#4a4238
+.captured span@dark|box-shadow|inset 0 0 0 1px rgba(90, 70, 40, 0.16)
+.captured span.red@dark|color|#9c2b22
+.meta-block dl@dark|margin|0
+.meta-block dl@dark|display|grid
+.meta-block dl@dark|grid-template-columns|auto 1fr
+.meta-block dl@dark|gap|5px 12px
+.meta-block dl@dark|font-size|12.5px
+.meta-block dt@dark|color|#9a8f80
+.meta-block dd@dark|margin|0
+.meta-block dd@dark|color|#6d6255
+.meta-actions@dark|display|grid
+.meta-actions@dark|grid-template-columns|repeat(2, minmax(0, 1fr))
+.meta-actions@dark|gap|8px
+.meta-actions@dark|margin-top|14px
+.meta-actions button@dark|padding|8px 6px
+.meta-actions button@dark|border-radius|8px
+.meta-actions button@dark|border|1px solid rgba(90, 70, 40, 0.28)
+.meta-actions button@dark|font-size|12px
+.meta-actions button@dark|color|#6d6255
+.meta-actions button@dark|white-space|nowrap
+dialog.sheet@dark|border|none
+dialog.sheet@dark|padding|0
+dialog.sheet@dark|background|transparent
+dialog.sheet@dark|color|#2b2620
+dialog.sheet@dark|max-width|none
+dialog.sheet@dark|max-height|none
+dialog.sheet::backdrop@dark|background|rgba(38, 30, 20, 0.42)
+dialog.sheet::backdrop@dark|backdrop-filter|blur(3px)
+.sheet-inner@dark|width|min(560px, calc(100vw - 28px))
+.sheet-inner@dark|max-height|88dvh
+.sheet-inner@dark|overflow-y|auto
+.sheet-inner@dark|margin|auto
+.sheet-inner@dark|padding|22px 24px 20px
+.sheet-inner@dark|border-radius|14px
+.sheet-inner@dark|background|#fdfaf2
+.sheet-inner@dark|box-shadow|0 18px 44px rgba(60, 40, 15, 0.16)
+.sheet-inner@dark|border|1px solid rgba(120, 90, 50, 0.14)
+dialog[open] .sheet-inner@dark|animation|rise 0.22s cubic-bezier(0.2, 0.9, 0.3, 1)
+@keyframes rise@dark|from { opacity|0
+@keyframes rise@dark|transform|translateY(10px) scale(0.985)
+.sheet.wide .sheet-inner@dark|width|min(880px, calc(100vw - 28px))
+.sheet.narrow .sheet-inner@dark|width|min(380px, calc(100vw - 28px))
+.sheet.narrow .sheet-inner@dark|text-align|center
+.sheet-head@dark|display|flex
+.sheet-head@dark|align-items|center
+.sheet-head@dark|justify-content|space-between
+.sheet-head@dark|gap|12px
+.sheet-head@dark|margin-bottom|14px
+.sheet-head h2@dark|margin|0
+.sheet-head h2@dark|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.sheet-head h2@dark|font-size|19px
+.sheet-head h2@dark|letter-spacing|0.08em
+.sheet-head h2@dark|font-weight|600
+.icon-btn@dark|width|30px
+.icon-btn@dark|height|30px
+.icon-btn@dark|border-radius|50%
+.icon-btn@dark|display|grid
+.icon-btn@dark|place-items|center
+.icon-btn@dark|font-size|18px
+.icon-btn@dark|color|#9a8f80
+.icon-btn@dark|line-height|1
+.icon-btn:hover@dark|background|rgba(90, 70, 40, 0.08)
+.icon-btn:hover@dark|color|#2b2620
+.section-title@dark|margin|20px 0 8px
+.section-title@dark|font-size|11px
+.section-title@dark|letter-spacing|0.2em
+.section-title@dark|color|#9a8f80
+.section-title@dark|font-weight|600
+.hint@dark|margin|0 0 12px
+.hint@dark|font-size|12.5px
+.hint@dark|color|#9a8f80
+.hint@dark|line-height|1.6
+.field@dark|margin-bottom|14px
+.field@dark|min-width|0
+.field > label@dark|display|block
+.field > label@dark|margin-bottom|6px
+.field > label@dark|font-size|12px
+.field > label@dark|color|#6d6255
+.field > label@dark|letter-spacing|0.05em
+.field-row@dark|display|grid
+.field-row@dark|grid-template-columns|1fr 1fr
+.field-row@dark|gap|12px
+select@dark|width|100%
+select@dark|padding|9px 10px
+select@dark|font|inherit
+select@dark|font-size|13px
+select@dark|color|#2b2620
+select@dark|background|#fbf5e8
+select@dark|border|1px solid rgba(90, 70, 40, 0.28)
+select@dark|border-radius|9px
+select@dark|appearance|none
+select@dark|background-image|linear-gradient(45deg, transparent 50%, #9a8f80 50%),
+    linear-gradient(135deg, #9a8f80 50%, transparent 50%)
+select@dark|background-position|calc(100% - 15px) 50%, calc(100% - 10px) 50%
+select@dark|background-size|5px 5px, 5px 5px
+select@dark|background-repeat|no-repeat
+.segmented@dark|display|flex
+.segmented@dark|gap|4px
+.segmented@dark|padding|3px
+.segmented@dark|background|rgba(90, 70, 40, 0.07)
+.segmented@dark|border-radius|10px
+.segmented button@dark|flex|1
+.segmented button@dark|min-width|0
+.segmented button@dark|padding|8px 6px
+.segmented button@dark|border-radius|8px
+.segmented button@dark|font-size|12.5px
+.segmented button@dark|color|#6d6255
+.segmented button@dark|transition|background 0.16s, color 0.16s
+.segmented button@dark|white-space|nowrap
+.segmented button@dark|overflow|hidden
+.segmented button@dark|text-overflow|ellipsis
+.segmented button.on@dark|background|#fdf8ec
+.segmented button.on@dark|color|#9c2b22
+.segmented button.on@dark|box-shadow|0 1px 3px rgba(90, 70, 40, 0.16)
+.segmented button.on@dark|font-weight|600
+.profile-grid@dark|display|grid
+.profile-grid@dark|grid-template-columns|1fr 1fr
+.profile-grid@dark|gap|8px
+.profile-card@dark|text-align|left
+.profile-card@dark|padding|10px 12px
+.profile-card@dark|border-radius|10px
+.profile-card@dark|border|1px solid rgba(90, 70, 40, 0.16)
+.profile-card@dark|background|#fbf5e8
+.profile-card@dark|transition|border-color 0.16s, background 0.16s
+.profile-card strong@dark|display|block
+.profile-card strong@dark|font-size|13px
+.profile-card strong@dark|margin-bottom|3px
+.profile-card span@dark|font-size|11.5px
+.profile-card span@dark|color|#9a8f80
+.profile-card span@dark|line-height|1.45
+.profile-card span@dark|display|block
+.profile-card.on@dark|border-color|rgba(156, 43, 34, 0.5)
+.profile-card.on@dark|background|#fdf1ee
+.profile-card.on strong@dark|color|#9c2b22
+.swatches@dark|display|flex
+.swatches@dark|gap|10px
+.swatch@dark|width|42px
+.swatch@dark|height|30px
+.swatch@dark|border-radius|8px
+.swatch@dark|border|2px solid transparent
+.swatch@dark|position|relative
+.swatch.on@dark|border-color|#9c2b22
+.swatch[data-theme="classic"]@dark|background|linear-gradient(135deg, #f3e3c3, #d8bb88)
+.swatch[data-theme="jade"]@dark|background|linear-gradient(135deg, #e8efdf, #b9cdaa)
+.swatch[data-theme="ink"]@dark|background|linear-gradient(135deg, #45454a, #232326)
+.toggles@dark|display|grid
+.toggles@dark|grid-template-columns|1fr 1fr
+.toggles@dark|gap|6px 14px
+.toggle@dark|display|flex
+.toggle@dark|align-items|center
+.toggle@dark|gap|8px
+.toggle@dark|font-size|12.5px
+.toggle@dark|color|#6d6255
+.toggle@dark|padding|5px 0
+.toggle input@dark|appearance|none
+.toggle input@dark|width|34px
+.toggle input@dark|height|19px
+.toggle input@dark|border-radius|999px
+.toggle input@dark|background|rgba(90, 70, 40, 0.2)
+.toggle input@dark|position|relative
+.toggle input@dark|transition|background 0.18s
+.toggle input@dark|flex|0 0 auto
+.toggle input::after@dark|content|""
+.toggle input::after@dark|position|absolute
+.toggle input::after@dark|top|2px
+.toggle input::after@dark|left|2px
+.toggle input::after@dark|width|15px
+.toggle input::after@dark|height|15px
+.toggle input::after@dark|border-radius|50%
+.toggle input::after@dark|background|#fffdf7
+.toggle input::after@dark|transition|transform 0.18s
+.toggle input::after@dark|box-shadow|0 1px 2px rgba(0, 0, 0, 0.2)
+.toggle input:checked@dark|background|#9c2b22
+.toggle input:checked::after@dark|transform|translateX(15px)
+.rule-list@dark|display|grid
+.rule-list@dark|grid-template-columns|1fr 1fr
+.rule-list@dark|gap|2px 14px
+.rule-list@dark|font-size|12px
+.rule-list@dark|color|#6d6255
+.rule-list label@dark|display|flex
+.rule-list label@dark|align-items|center
+.rule-list label@dark|gap|7px
+.rule-list label@dark|padding|4px 0
+.rule-list label@dark|line-height|1.35
+.rule-list input@dark|appearance|none
+.rule-list input@dark|width|15px
+.rule-list input@dark|height|15px
+.rule-list input@dark|border-radius|4px
+.rule-list input@dark|border|1px solid rgba(90, 70, 40, 0.28)
+.rule-list input@dark|background|#fbf5e8
+.rule-list input@dark|flex|0 0 auto
+.rule-list input@dark|position|relative
+.rule-list input:checked@dark|background|#9c2b22
+.rule-list input:checked@dark|border-color|#9c2b22
+.rule-list input:checked::after@dark|content|""
+.rule-list input:checked::after@dark|position|absolute
+.rule-list input:checked::after@dark|left|4px
+.rule-list input:checked::after@dark|top|1px
+.rule-list input:checked::after@dark|width|4px
+.rule-list input:checked::after@dark|height|8px
+.rule-list input:checked::after@dark|border|solid #fff
+.rule-list input:checked::after@dark|border-width|0 1.8px 1.8px 0
+.rule-list input:checked::after@dark|transform|rotate(42deg)
+.sheet-foot@dark|display|flex
+.sheet-foot@dark|justify-content|flex-end
+.sheet-foot@dark|gap|10px
+.sheet-foot@dark|margin-top|20px
+.sheet-foot@dark|padding|12px 0 2px
+.sheet-foot@dark|border-top|1px solid rgba(90, 70, 40, 0.16)
+.sheet-foot@dark|position|sticky
+.sheet-foot@dark|bottom|-20px
+.sheet-foot@dark|background|linear-gradient(to bottom, rgba(253, 250, 242, 0.86), #fdfaf2 34%)
+.sheet-foot@dark|backdrop-filter|blur(3px)
+.sheet-foot.center@dark|justify-content|center
+button.primary, button.ghost@dark|padding|10px 22px
+button.primary, button.ghost@dark|border-radius|10px
+button.primary, button.ghost@dark|font-size|13.5px
+button.primary, button.ghost@dark|letter-spacing|0.05em
+button.primary, button.ghost@dark|transition|background 0.16s, transform 0.12s
+button.primary@dark|background|#9c2b22
+button.primary@dark|color|#fdf3e4
+button.primary@dark|box-shadow|0 6px 14px -6px rgba(156, 43, 34, 0.7)
+button.primary:hover@dark|background|#88251d
+button.primary:active@dark|transform|translateY(1px)
+button.ghost@dark|background|rgba(90, 70, 40, 0.07)
+button.ghost@dark|color|#6d6255
+button.ghost:hover@dark|background|rgba(90, 70, 40, 0.13)
+.prose p@dark|margin|0 0 12px
+.prose p@dark|font-size|13.5px
+.prose p@dark|line-height|1.85
+.prose p@dark|color|#4a4238
+.prose h3@dark|margin|20px 0 6px
+.prose h3@dark|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.prose h3@dark|font-size|14px
+.prose h3@dark|letter-spacing|0.06em
+.prose h3@dark|color|#9c2b22
+.prose .muted@dark|color|#9a8f80
+.prose .muted@dark|font-size|12.5px
+.prose .howto@dark|margin|0 0 12px
+.prose .howto@dark|padding-left|20px
+.prose .howto@dark|font-size|13.5px
+.prose .howto@dark|line-height|1.85
+.prose .howto@dark|color|#4a4238
+.prose .howto li@dark|margin-bottom|6px
+.prose .howto li::marker@dark|color|#9c2b22
+.prose .howto li::marker@dark|font-weight|600
+.atlas-layout@dark|display|grid
+.atlas-layout@dark|grid-template-columns|210px minmax(0, 1fr)
+.atlas-layout@dark|gap|22px
+.atlas-layout@dark|align-items|start
+.atlas-pieces@dark|display|grid
+.atlas-pieces@dark|grid-template-columns|repeat(2, 1fr)
+.atlas-pieces@dark|gap|6px
+.atlas-pieces button@dark|display|flex
+.atlas-pieces button@dark|align-items|center
+.atlas-pieces button@dark|gap|8px
+.atlas-pieces button@dark|padding|7px 9px
+.atlas-pieces button@dark|border-radius|9px
+.atlas-pieces button@dark|border|1px solid rgba(90, 70, 40, 0.16)
+.atlas-pieces button@dark|font-size|12.5px
+.atlas-pieces button@dark|color|#6d6255
+.atlas-pieces button@dark|text-align|left
+.atlas-pieces button .glyph@dark|width|22px
+.atlas-pieces button .glyph@dark|height|22px
+.atlas-pieces button .glyph@dark|display|grid
+.atlas-pieces button .glyph@dark|place-items|center
+.atlas-pieces button .glyph@dark|border-radius|50%
+.atlas-pieces button .glyph@dark|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.atlas-pieces button .glyph@dark|font-size|13px
+.atlas-pieces button .glyph@dark|background|#f4e6c9
+.atlas-pieces button .glyph@dark|color|#9c2b22
+.atlas-pieces button .glyph@dark|box-shadow|inset 0 0 0 1px rgba(156, 43, 34, 0.4)
+.atlas-pieces button.on@dark|border-color|rgba(156, 43, 34, 0.5)
+.atlas-pieces button.on@dark|background|#fdf1ee
+.atlas-pieces button.on@dark|color|#9c2b22
+.atlas-board@dark|display|grid
+.atlas-board@dark|place-items|center
+.atlas-board@dark|gap|10px
+#atlasCanvas@dark|width|min(100%, 420px)
+#atlasCanvas@dark|height|auto
+#atlasCanvas@dark|border-radius|10px
+#atlasCanvas@dark|box-shadow|0 14px 30px -14px rgba(70, 45, 15, 0.4)
+.atlas-caption@dark|text-align|center
+.atlas-caption@dark|max-width|440px
+.atlas-caption strong@dark|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.atlas-caption strong@dark|font-size|17px
+.atlas-caption strong@dark|color|#9c2b22
+.atlas-caption strong@dark|letter-spacing|0.1em
+.atlas-caption span@dark|display|block
+.atlas-caption span@dark|margin-top|4px
+.atlas-caption span@dark|font-size|12.5px
+.atlas-caption span@dark|color|#6d6255
+.atlas-caption span@dark|line-height|1.7
+.atlas-caption em@dark|display|block
+.atlas-caption em@dark|margin-top|4px
+.atlas-caption em@dark|font-style|normal
+.atlas-caption em@dark|font-size|11.5px
+.atlas-caption em@dark|color|#9a8f80
+.replay-inner@dark|width|min(900px, calc(100vw - 28px))
+.replay-layout@dark|display|grid
+.replay-layout@dark|grid-template-columns|minmax(0, 1fr) 230px
+.replay-layout@dark|gap|20px
+.replay-layout@dark|align-items|start
+#replayCanvas@dark|width|100%
+#replayCanvas@dark|height|auto
+#replayCanvas@dark|border-radius|10px
+#replayCanvas@dark|box-shadow|0 14px 30px -14px rgba(70, 45, 15, 0.4)
+.replay-side@dark|display|flex
+.replay-side@dark|flex-direction|column
+.replay-side@dark|gap|12px
+.replay-side@dark|min-width|0
+.replay-controls@dark|display|flex
+.replay-controls@dark|gap|4px
+.replay-controls button@dark|flex|1
+.replay-controls button@dark|padding|8px 0
+.replay-controls button@dark|border-radius|8px
+.replay-controls button@dark|background|rgba(90, 70, 40, 0.07)
+.replay-controls button@dark|color|#6d6255
+.replay-controls button@dark|font-size|13px
+.replay-controls button:hover@dark|background|rgba(90, 70, 40, 0.14)
+.replay-progress@dark|display|flex
+.replay-progress@dark|align-items|center
+.replay-progress@dark|gap|8px
+.replay-progress@dark|font-size|11.5px
+.replay-progress@dark|color|#9a8f80
+.replay-progress@dark|font-variant-numeric|tabular-nums
+.replay-progress input@dark|flex|1
+.replay-progress input@dark|accent-color|#9c2b22
+.replay-side .movelist@dark|max-height|46vh
+.replay-side .movelist li@dark|cursor|pointer
+.replay-side .movelist li.current@dark|background|rgba(176, 138, 46, 0.18)
+.replay-side .movelist li.current@dark|color|#2b2620
+.result-mark@dark|width|66px
+.result-mark@dark|height|66px
+.result-mark@dark|margin|6px auto 12px
+.result-mark@dark|display|grid
+.result-mark@dark|place-items|center
+.result-mark@dark|border-radius|50%
+.result-mark@dark|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.result-mark@dark|font-size|32px
+.result-mark@dark|color|#fdf3e4
+.result-mark@dark|background|#9c2b22
+.result-mark@dark|box-shadow|inset 0 0 0 2px rgba(255, 240, 210, 0.4)
+.result-inner h2@dark|margin|0 0 4px
+.result-inner h2@dark|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.result-inner h2@dark|font-size|22px
+.result-inner h2@dark|letter-spacing|0.1em
+.result-inner p@dark|margin|0 0 6px
+.result-inner p@dark|color|#9a8f80
+.result-inner p@dark|font-size|13px
+.promo-options@dark|display|flex
+.promo-options@dark|flex-wrap|wrap
+.promo-options@dark|gap|10px
+.promo-options@dark|justify-content|center
+.promo-options@dark|margin|8px 0 4px
+.promo-options button@dark|width|54px
+.promo-options button@dark|height|54px
+.promo-options button@dark|border-radius|50%
+.promo-options button@dark|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.promo-options button@dark|font-size|24px
+.promo-options button@dark|background|#f6e7c8
+.promo-options button@dark|color|#9c2b22
+.promo-options button@dark|box-shadow|inset 0 0 0 1.6px rgba(156, 43, 34, 0.55)
+.promo-options button@dark|transition|transform 0.14s, box-shadow 0.14s
+.promo-options button:hover@dark|transform|translateY(-2px)
+.promo-options button:hover@dark|box-shadow|inset 0 0 0 1.6px #9c2b22, 0 6px 14px -6px rgba(156, 43, 34, 0.5)
+.toast@dark|position|fixed
+.toast@dark|left|50%
+.toast@dark|bottom|34px
+.toast@dark|transform|translate(-50%, 12px)
+.toast@dark|padding|9px 18px
+.toast@dark|border-radius|999px
+.toast@dark|background|rgba(43, 38, 32, 0.9)
+.toast@dark|color|#f7efdd
+.toast@dark|font-size|12.5px
+.toast@dark|letter-spacing|0.04em
+.toast@dark|opacity|0
+.toast@dark|pointer-events|none
+.toast@dark|transition|opacity 0.24s, transform 0.24s
+.toast@dark|z-index|50
+.toast@dark|max-width|80vw
+.toast@dark|text-align|center
+.toast.show@dark|opacity|1
+.toast.show@dark|transform|translate(-50%, 0)
+@media (max-width: 980px)@dark|.shell { grid-template-columns|minmax(0, 1fr)
+@media (max-width: 980px)@dark|}
+  .side { display|none
+@media (max-width: 980px)@dark|}
+  .only-mobile { display|block
+@media (max-width: 980px)@dark|}
+  .stage { padding|8px 12px 10px
+@media (max-width: 980px)@dark|justify-content|center
+@media (max-width: 980px)@dark|}
+  .board-holder { flex|0 0 auto
+@media (max-width: 980px)@dark|}
+  .seat { width|100%
+@media (max-width: 980px)@dark|}
+  .toolbar { width|100%
+@media (max-width: 980px)@dark|}
+  .badge { top|0
+@media (max-width: 980px)@dark|}
+  .atlas-layout { grid-template-columns|1fr
+@media (max-width: 980px)@dark|}
+  .atlas-pieces { grid-template-columns|repeat(4, 1fr)
+@media (max-width: 980px)@dark|}
+  .replay-layout { grid-template-columns|1fr
+@media (max-width: 980px)@dark|}
+  #replayCanvas { max-width|520px
+@media (max-width: 980px)@dark|margin|0 auto
+@media (max-width: 980px)@dark|}
+  .replay-side .movelist { max-height|22vh
+@media (max-width: 640px)@dark|.topbar { padding|10px 14px
+@media (max-width: 640px)@dark|gap|10px
+@media (max-width: 640px)@dark|}
+  .topnav {
+    position|absolute
+@media (max-width: 640px)@dark|top|58px
+@media (max-width: 640px)@dark|right|12px
+@media (max-width: 640px)@dark|flex-direction|column
+@media (max-width: 640px)@dark|gap|2px
+@media (max-width: 640px)@dark|padding|8px
+@media (max-width: 640px)@dark|border-radius|12px
+@media (max-width: 640px)@dark|background|#fdfaf2
+@media (max-width: 640px)@dark|box-shadow|0 18px 44px rgba(60, 40, 15, 0.16)
+@media (max-width: 640px)@dark|border|1px solid rgba(90, 70, 40, 0.16)
+@media (max-width: 640px)@dark|display|none
+@media (max-width: 640px)@dark|z-index|20
+@media (max-width: 640px)@dark|}
+  .topnav.open { display|flex
+@media (max-width: 640px)@dark|}
+  .topnav button { text-align|left
+@media (max-width: 640px)@dark|}
+  .nav-toggle {
+    display|flex
+@media (max-width: 640px)@dark|margin-left|auto
+@media (max-width: 640px)@dark|width|40px
+@media (max-width: 640px)@dark|height|40px
+@media (max-width: 640px)@dark|padding|0 10px
+@media (max-width: 640px)@dark|}
+  .brand-text small { display|none
+@media (max-width: 640px)@dark|}
+  .seat-clock { font-size|17px
+@media (max-width: 640px)@dark|}
+  .seat { padding|5px 6px
+@media (max-width: 640px)@dark|}
+  .field-row { grid-template-columns|1fr
+@media (max-width: 640px)@dark|}
+  .toggles, .rule-list { grid-template-columns|1fr
+@media (max-width: 640px)@dark|}
+  .profile-grid { grid-template-columns|1fr
+@media (max-width: 640px)@dark|}
+  .sheet-inner { padding|18px 16px 16px
+@media (max-width: 640px)@dark|}
+  .atlas-pieces { grid-template-columns|repeat(3, 1fr)
+@media (max-width: 640px)@dark|}
+  .board-tip { display|none
+@media (prefers-reduced-motion: reduce)@dark|* { animation-duration|0.01ms !important
+@media (prefers-reduced-motion: reduce)@dark|transition-duration|0.01ms !important
+.pause-mask@dark|position|absolute
+.pause-mask@dark|inset|26px 0 0
+.pause-mask@dark|display|grid
+.pause-mask@dark|place-items|center
+.pause-mask@dark|align-content|center
+.pause-mask@dark|gap|14px
+.pause-mask@dark|background|rgba(247, 241, 228, 0.84)
+.pause-mask@dark|backdrop-filter|blur(2px)
+.pause-mask@dark|border-radius|10px
+.pause-mask@dark|z-index|3
+.pause-mask[hidden]@dark|display|none
+.pause-mask strong@dark|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.pause-mask strong@dark|font-size|21px
+.pause-mask strong@dark|letter-spacing|0.18em
+.pause-mask strong@dark|color|#2b2620
+.pause-mask button@dark|padding|9px 30px
+.pause-mask button@dark|border-radius|10px
+.pause-mask button@dark|background|#9c2b22
+.pause-mask button@dark|color|#fdf3e4
+.pause-mask button@dark|font-size|13.5px
+.pause-mask button@dark|letter-spacing|0.08em
+.resurrect-pill@dark|position|absolute
+.resurrect-pill@dark|top|30px
+.resurrect-pill@dark|left|50%
+.resurrect-pill@dark|transform|translateX(-50%)
+.resurrect-pill@dark|padding|6px 15px
+.resurrect-pill@dark|border-radius|999px
+.resurrect-pill@dark|background|rgba(47, 107, 70, 0.93)
+.resurrect-pill@dark|color|#f1f7ef
+.resurrect-pill@dark|font-size|12px
+.resurrect-pill@dark|letter-spacing|0.04em
+.resurrect-pill@dark|white-space|nowrap
+.resurrect-pill@dark|z-index|2
+.resurrect-pill@dark|pointer-events|none
+.resurrect-pill[hidden]@dark|display|none
+.stats-grid@dark|display|grid
+.stats-grid@dark|grid-template-columns|1fr 1fr
+.stats-grid@dark|gap|10px
+.stat-card@dark|padding|14px 10px
+.stat-card@dark|border-radius|11px
+.stat-card@dark|background|#fbf5e8
+.stat-card@dark|border|1px solid rgba(90, 70, 40, 0.16)
+.stat-card@dark|text-align|center
+.stat-card b@dark|display|block
+.stat-card b@dark|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.stat-card b@dark|font-size|26px
+.stat-card b@dark|font-variant-numeric|tabular-nums
+.stat-card b@dark|color|#2b2620
+.stat-card span@dark|font-size|11.5px
+.stat-card span@dark|color|#9a8f80
+.stat-card span@dark|letter-spacing|0.06em
+.puzzle-list@dark|display|grid
+.puzzle-list@dark|grid-template-columns|repeat(3, 1fr)
+.puzzle-list@dark|gap|10px
+@media (max-width: 760px)@dark|.puzzle-list { grid-template-columns|1fr 1fr
+.puzzle-group@dark|grid-column|1 / -1
+.puzzle-group@dark|font-size|11px
+.puzzle-group@dark|letter-spacing|0.2em
+.puzzle-group@dark|color|#9a8f80
+.puzzle-group@dark|margin|10px 0 0
+.puzzle-card@dark|display|flex
+.puzzle-card@dark|flex-direction|column
+.puzzle-card@dark|gap|3px
+.puzzle-card@dark|padding|11px 13px
+.puzzle-card@dark|border-radius|11px
+.puzzle-card@dark|border|1px solid rgba(90, 70, 40, 0.16)
+.puzzle-card@dark|background|#fbf5e8
+.puzzle-card@dark|text-align|left
+.puzzle-card@dark|transition|border-color 0.16s, background 0.16s
+.puzzle-card:hover@dark|border-color|rgba(156, 43, 34, 0.45)
+.puzzle-card:hover@dark|background|#fdf1ee
+.puzzle-card strong@dark|font-size|13.5px
+.puzzle-card strong@dark|display|flex
+.puzzle-card strong@dark|align-items|center
+.puzzle-card strong@dark|gap|6px
+.puzzle-card span@dark|font-size|11.5px
+.puzzle-card span@dark|color|#9a8f80
+.puzzle-card span@dark|line-height|1.5
+.puzzle-card em@dark|font-style|normal
+.puzzle-card em@dark|font-size|10.5px
+.puzzle-card em@dark|padding|1px 7px
+.puzzle-card em@dark|border-radius|999px
+.puzzle-card em@dark|background|rgba(156, 43, 34, 0.08)
+.puzzle-card em@dark|color|#9c2b22
+.puzzle-card.solved strong::after@dark|content|"✓"
+.puzzle-card.solved strong::after@dark|color|#2f6b46
+.puzzle-card.solved strong::after@dark|font-size|12px
+@media (max-width: 640px)@dark|.puzzle-list { grid-template-columns|1fr
+.analysis-box@dark|display|flex
+.analysis-box@dark|flex-direction|column
+.analysis-box@dark|gap|8px
+.analyze-btn@dark|padding|8px 12px
+.analyze-btn@dark|border-radius|9px
+.analyze-btn@dark|background|rgba(156, 43, 34, 0.08)
+.analyze-btn@dark|color|#9c2b22
+.analyze-btn@dark|font-size|12.5px
+.analyze-btn@dark|letter-spacing|0.06em
+.analyze-btn:hover@dark|background|rgba(156, 43, 34, 0.14)
+.analysis-progress@dark|display|flex
+.analysis-progress@dark|flex-direction|column
+.analysis-progress@dark|gap|5px
+.analysis-progress[hidden]@dark|display|none
+.analysis-progress span@dark|font-size|11px
+.analysis-progress span@dark|color|#9a8f80
+.analysis-summary@dark|margin|0
+.analysis-summary@dark|font-size|11.5px
+.analysis-summary@dark|color|#6d6255
+.analysis-summary@dark|line-height|1.6
+.analysis-summary[hidden]@dark|display|none
+.movelist li.q-best@dark|box-shadow|inset 3px 0 0 #2f6b46
+.movelist li.q-good@dark|box-shadow|inset 3px 0 0 #7ba05b
+.movelist li.q-inaccuracy@dark|box-shadow|inset 3px 0 0 #c9a227
+.movelist li.q-mistake@dark|box-shadow|inset 3px 0 0 #d07a2a
+.movelist li.q-blunder@dark|box-shadow|inset 3px 0 0 #b03a2e
+.appear-grid@dark|display|grid
+.appear-grid@dark|grid-template-columns|repeat(4, 1fr)
+.appear-grid@dark|gap|6px
+.appear-chip@dark|display|flex
+.appear-chip@dark|align-items|center
+.appear-chip@dark|gap|6px
+.appear-chip@dark|padding|5px 8px
+.appear-chip@dark|border-radius|8px
+.appear-chip@dark|border|1px solid rgba(90, 70, 40, 0.16)
+.appear-chip@dark|background|#fbf5e8
+.appear-chip@dark|font-size|12px
+.appear-chip@dark|color|#6d6255
+.appear-chip@dark|cursor|pointer
+.appear-chip input@dark|accent-color|#9c2b22
+.appear-chip .glyph@dark|font-family|"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", serif
+.appear-chip .glyph@dark|font-size|14px
+.appear-chip .glyph@dark|color|#9c2b22
+.appear-chip small@dark|color|#9a8f80
+.appear-chip small@dark|font-size|10.5px
+.appear-chip.off@dark|opacity|0.45
+.library-list@dark|display|flex
+.library-list@dark|flex-direction|column
+.library-list@dark|gap|8px
+.library-row@dark|display|flex
+.library-row@dark|align-items|center
+.library-row@dark|gap|10px
+.library-row@dark|padding|10px 12px
+.library-row@dark|border-radius|10px
+.library-row@dark|border|1px solid rgba(90, 70, 40, 0.16)
+.library-row@dark|background|#fbf5e8
+.library-row .info@dark|flex|1
+.library-row .info@dark|min-width|0
+.library-row strong@dark|display|block
+.library-row strong@dark|font-size|13px
+.library-row span@dark|font-size|11px
+.library-row span@dark|color|#9a8f80
+.library-row button@dark|padding|5px 10px
+.library-row button@dark|border-radius|7px
+.library-row button@dark|background|rgba(156, 43, 34, 0.08)
+.library-row button@dark|color|#9c2b22
+.library-row button@dark|font-size|11.5px
+.library-row button.del@dark|background|rgba(90, 70, 40, 0.07)
+.library-row button.del@dark|color|#9a8f80
+.library-empty@dark|font-size|12.5px
+.library-empty@dark|color|#9a8f80
+@media (max-width: 640px)@dark|.appear-grid { grid-template-columns|repeat(3, 1fr)
+.join-row@dark|display|flex
+.join-row@dark|gap|8px
+.join-row@dark|margin-top|10px
+.join-row input@dark|flex|1
+.join-row input@dark|min-width|0
+.join-row input@dark|padding|9px 12px
+.join-row input@dark|border-radius|9px
+.join-row input@dark|border|1px solid rgba(90, 70, 40, 0.28)
+.join-row input@dark|background|#fbf5e8
+.join-row input@dark|font|inherit
+.join-row input@dark|font-size|14px
+.join-row input@dark|letter-spacing|0.32em
+.join-row input@dark|text-transform|uppercase
+.join-row input@dark|text-align|center
+button.wide@dark|width|100%
+button.wide@dark|margin-top|10px
+.room-code@dark|display|flex
+.room-code@dark|align-items|center
+.room-code@dark|justify-content|center
+.room-code@dark|gap|10px
+.room-code@dark|padding|12px 0 6px
+.room-code@dark|font-size|12px
+.room-code@dark|color|#9a8f80
+.room-code b@dark|font-family|"Songti SC", "Noto Serif SC", "STSong", "SimSun", serif
+.room-code b@dark|font-size|26px
+.room-code b@dark|letter-spacing|0.22em
+.room-code b@dark|color|#9c2b22
+.room-code button@dark|width|auto
+.room-code button@dark|margin|0
+.room-code button@dark|padding|4px 10px
+.room-code button@dark|font-size|11.5px
+.shell.side-hidden@dark|grid-template-columns|minmax(0, 1fr) 0
+.shell.side-hidden .side@dark|display|none
+.side-restore@dark|position|absolute
+.side-restore@dark|top|10px
+.side-restore@dark|right|10px
+.side-restore@dark|z-index|5
+.side-restore@dark|padding|6px 12px
+.side-restore@dark|border-radius|999px
+.side-restore@dark|border|1px solid rgba(90, 70, 40, 0.28)
+.side-restore@dark|background|rgba(253, 248, 238, 0.92)
+.side-restore@dark|color|#6d6255
+.side-restore@dark|font-size|11.5px
+.side-restore@dark|letter-spacing|0.06em
+.side-restore[hidden]@dark|display|none
+.volume-field@dark|gap|6px
+.volume-field input[type="range"]@dark|width|100%
+.volume-field input[type="range"]@dark|accent-color|#9c2b22
+.bg-row@dark|display|flex
+.bg-row@dark|gap|8px
+.bg-row button@dark|flex|1
+.head-actions@dark|display|flex
+.head-actions@dark|align-items|center
+.head-actions@dark|gap|8px
+.head-actions .ghost@dark|padding|5px 10px
+.head-actions .ghost@dark|font-size|11.5px
+body.has-bg::before@dark|content|""
+body.has-bg::before@dark|position|fixed
+body.has-bg::before@dark|inset|0
+body.has-bg::before@dark|z-index|0
+body.has-bg::before@dark|background-image|var(--page-bg)
+body.has-bg::before@dark|background-size|cover
+body.has-bg::before@dark|background-position|center
+body.has-bg::before@dark|opacity|0.85
+body.has-bg::after@dark|content|""
+body.has-bg::after@dark|position|fixed
+body.has-bg::after@dark|inset|0
+body.has-bg::after@dark|z-index|0
+body.has-bg::after@dark|background|rgba(250, 245, 234, 0.45)
+body.has-bg .side, body.has-bg .topbar@dark|background|rgba(252, 247, 238, 0.96)
+body.has-bg .side, body.has-bg .topbar@dark|backdrop-filter|none

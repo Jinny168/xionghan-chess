@@ -22,8 +22,10 @@ S1 的声明会被按"根值 / S2 值"展开 —— 记下的是**名义值而�
 - 不排序（保持文件内的出现顺序），剔注释与令牌定义本身。
 
 用法：
-    python scripts/css_snapshot.py             # 打到 stdout（亮色段）
-    python scripts/css_snapshot.py --write     # 写三份基线
+    python scripts/css_snapshot.py                    # 打到 stdout（亮色段）
+    python scripts/css_snapshot.py --write            # 写 web 的三份基线
+    python scripts/css_snapshot.py --webapp --write   # 写 webapp 的三份基线
+`--webapp` 只换输入 CSS 与基线前缀，展开逻辑完全共用；不带该开关时行为与从前逐字一致。
 """
 
 from __future__ import annotations
@@ -34,12 +36,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CSS = ROOT / "web" / "css" / "app.css"
+WEBAPP_CSS = ROOT / "webapp" / "css" / "app.css"
 LIGHT = ROOT / "benchmarks" / "css_snapshot_light.txt"
 DARK = ROOT / "benchmarks" / "css_snapshot_dark.txt"
 BOARD_DARK = ROOT / "benchmarks" / "css_snapshot_board_dark.txt"
+WEBAPP_LIGHT = ROOT / "benchmarks" / "css_snapshot_webapp_light.txt"
+WEBAPP_DARK = ROOT / "benchmarks" / "css_snapshot_webapp_dark.txt"
+WEBAPP_BOARD_DARK = ROOT / "benchmarks" / "css_snapshot_webapp_board-dark.txt"
 
 SCOPES = {"light": "", "dark": "@dark", "board-dark": "@board-dark"}
 BASELINES = {"light": LIGHT, "dark": DARK, "board-dark": BOARD_DARK}
+WEBAPP_BASELINES = {"light": WEBAPP_LIGHT, "dark": WEBAPP_DARK, "board-dark": WEBAPP_BOARD_DARK}
 
 VAR_RE = re.compile(r"var\(\s*(--[A-Za-z0-9_-]+)\s*(?:,\s*([^()]*))?\)")
 
@@ -139,18 +146,22 @@ def render(rules, table: dict[str, str], suffix: str = "") -> str:
     return "\n".join(lines) + "\n"
 
 
-def snapshots() -> dict[str, str]:
-    """三个作用域各展开一份，键为 `light` / `dark` / `board-dark`。"""
-    text = strip_comments(CSS.read_text(encoding="utf-8"))
+def snapshots(css: Path = CSS) -> dict[str, str]:
+    """三个作用域各展开一份，键为 `light` / `dark` / `board-dark`。
+
+    `css` 可传入 webapp 的样式表；默认仍是 web 的，保证既有零参调用逐字不变。
+    """
+    text = strip_comments(css.read_text(encoding="utf-8"))
     rules = split_rules(text)
     tables = variable_tables(rules)
     return {name: render(rules, tables[name], SCOPES[name]) for name in SCOPES}
 
 
 def main() -> None:
-    snaps = snapshots()
+    webapp = "--webapp" in sys.argv
+    snaps = snapshots(WEBAPP_CSS if webapp else CSS)
     if "--write" in sys.argv:
-        for name, path in BASELINES.items():
+        for name, path in (WEBAPP_BASELINES if webapp else BASELINES).items():
             body = snaps[name]
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(body, encoding="utf-8", newline="\n")

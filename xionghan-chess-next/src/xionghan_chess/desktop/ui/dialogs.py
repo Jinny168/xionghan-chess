@@ -20,7 +20,7 @@ from dataclasses import asdict
 from datetime import date
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QThreadPool, QTimer
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -49,13 +49,14 @@ from xionghan_chess.core import daily as daily_quiz
 from xionghan_chess.core import puzzles as puzzle_chapters
 from xionghan_chess.core.ai import PUBLIC_DIFFICULTIES, normalize_difficulty
 from xionghan_chess.core.game import Game
-from xionghan_chess.core.model import Color, GameState, PieceType
+from xionghan_chess.core.model import Color, GameState, Move, PieceType
 from xionghan_chess.core.profiles import OPTION_DEPENDS_ON, PROFILES, display_value, profile_rule_values, stored_value
 from xionghan_chess.core.setup import profile_slots
 from xionghan_chess.core.storage import game_from_document
 from xionghan_chess.i18n import normalize_language, t
 
 from ..puzzle_store import available_puzzles, install_puzzles
+from ..sandbox import build_sandbox_game, undo_sandbox_move
 from ..storage import load_game
 from ..texts import difficulty_alias_hint, dl, dlf
 from . import piece_assets, theme
@@ -626,6 +627,11 @@ class ReplayDialog(QDialog):
         self._analysis_cancel = threading.Event()
         self.snapshots = [GameState.from_dict(item) for item in game._snapshots] + [game.state.clone()]
         self.options = asdict(game.options)
+        self.setup = game.setup.to_dict()
+        # 推演沙盘：源只能是快照，绝不持有权威 Game 的可变引用。
+        self._sandbox_active = False
+        self._sandbox_game: Game | None = None
+        self._sandbox_source_history: int | None = None
         layout = QVBoxLayout(self)
         self.info = QLabel()
         self.info.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -643,12 +649,31 @@ class ReplayDialog(QDialog):
         split.addWidget(self.board)
         side = QWidget()
         side_layout = QVBoxLayout(side)
-        side_layout.addWidget(QLabel(t("desktop.replay_moves", self.language)))
+        self.tabs = QTabWidget()
         self.moves = QListWidget()
         self.moves.addItem(f"0. {t('desktop.opening', self.language)}")
         self.moves.addItems([f"{index}. {record.notation}" for index, record in enumerate(game.state.history, 1)])
         self.moves.currentRowChanged.connect(self.set_step)
-        side_layout.addWidget(self.moves, 1)
+        self.tabs.addTab(self.moves, t("desktop.replay_moves", self.language))
+        sandbox_panel = QWidget()
+        sandbox_layout = QVBoxLayout(sandbox_panel)
+        self.sandbox_hint = QLabel(t("desktop.sandbox_hint", self.language))
+        self.sandbox_hint.setWordWrap(True)
+        sandbox_layout.addWidget(self.sandbox_hint)
+        self.sandbox_enter = QPushButton(t("desktop.sandbox_enter", self.language))
+        self.sandbox_undo = QPushButton(t("desktop.sandbox_undo", self.language))
+        self.sandbox_reset = QPushButton(t("desktop.sandbox_reset", self.language))
+        self.sandbox_exit = QPushButton(t("desktop.sandbox_exit", self.language))
+        self.sandbox_enter.clicked.connect(self._sandbox_enter)
+        self.sandbox_undo.clicked.connect(self._sandbox_undo)
+        self.sandbox_reset.clicked.connect(self._sandbox_reset)
+        self.sandbox_exit.clicked.connect(self._sandbox_exit)
+        for button in (self.sandbox_enter, self.sandbox_undo, self.sandbox_reset, self.sandbox_exit):
+            sandbox_layout.addWidget(button)
+        sandbox_layout.addStretch(1)
+        self.tabs.addTab(sandbox_panel, t("desktop.sandbox_tab", self.language))
+        self.tabs.currentChanged.connect(self._on_sandbox_tab)
+        side_layout.addWidget(self.tabs, 1)
         split.addWidget(side)
         split.setSizes([700, 230])
         controls = QHBoxLayout()
@@ -681,9 +706,130 @@ class ReplayDialog(QDialog):
         analyze.clicked.connect(self.show_analysis)
         controls.insertWidget(0, analyze)
 
+        # 只轮询界面状态（AI 是否开始思考 / 对局是否已前进），不做任何后台计算。
+        self.sandbox_poll = QTimer(self)
+        self.sandbox_poll.setInterval(250)
+        self.sandbox_poll.timeout.connect(self._refresh_sandbox_status)
+        self.sandbox_poll.start()
+        self._refresh_sandbox_status()
+
     def closeEvent(self, event: object) -> None:
         self._analysis_cancel.set()  # 关窗即取消后台分析
+        self.sandbox_poll.stop()
         super().closeEvent(event)
+
+    # ── 推演沙盘（复盘侧栏第二标签）─────────────────────────────────────────
+    def _ai_thinking(self) -> bool:
+        """只读地看主窗口的 AI 思考态；单测里没有 parent 时按空闲处理。"""
+        timer = getattr(self.parent(), "thinking_timer", None)
+        return bool(timer is not None and timer.isActive())
+
+    def _sandbox_source(self) -> Game | None:
+        """G5：只从 `snapshots[-1]` 取源，构造失败即禁用；绝不把权威 Game 交出去。"""
+        if not self.snapshots:
+            return None
+        try:
+            return Game.from_state(self.snapshots[-1].clone(), self.options, setup=self.setup)
+        except Exception:
+            return None
+
+    def _on_sandbox_tab(self, index: int) -> None:
+        if index == 1:
+            self._sandbox_enter()
+        else:
+            self._sandbox_exit()
+
+    def _sandbox_enter(self) -> None:
+        if self._sandbox_active or self._ai_thinking():
+            self._refresh_sandbox_status()
+            return
+        source = self._sandbox_source()
+        if source is None:
+            self._refresh_sandbox_status()
+            return
+        self._sandbox_game = build_sandbox_game(source)
+        self._sandbox_active = True
+        authoritative = getattr(self.parent(), "game", None)
+        self._sandbox_source_history = len(authoritative.state.history) if authoritative else None
+        # 信号层隔离：复盘棋盘在这条链路上只发给沙盘自己的 move()，不碰 app.human_move。
+        self.board.move_requested.connect(self._sandbox_move)
+        self.board.set_game(self._sandbox_game, Color.RED, True)
+        self.board.interactive = True
+        self.slider.setEnabled(False)
+        self.moves.setEnabled(False)
+        self.play.setEnabled(False)
+        self._refresh_sandbox_status()
+
+    def _sandbox_exit(self) -> None:
+        if not self._sandbox_active:
+            return
+        try:
+            self.board.move_requested.disconnect(self._sandbox_move)
+        except (RuntimeError, TypeError):
+            pass
+        self._sandbox_active = False
+        self._sandbox_game = None
+        self._sandbox_source_history = None
+        self.board.interactive = False
+        self.slider.setEnabled(True)
+        self.moves.setEnabled(True)
+        self.play.setEnabled(True)
+        # 退出后才放行复盘控制面：按滑块当前位置回到复盘局面。
+        # set_step 在滑块值未变时不会发 valueChanged，必须补一次 show_step，
+        # 否则棋盘仍指向刚丢弃的沙盘 Game —— 退出即污染，最难查的那一种。
+        self.set_step(self.slider.value())
+        self.show_step(self.slider.value())
+        self._refresh_sandbox_status()
+
+    def _sandbox_reset(self) -> None:
+        if not self._sandbox_active:
+            return
+        source = self._sandbox_source()
+        if source is None:
+            return
+        self._sandbox_game = build_sandbox_game(source)
+        self.board.set_game(self._sandbox_game, Color.RED, True)
+        self.board.interactive = True
+        self._refresh_sandbox_status()
+
+    def _sandbox_move(self, move: Move) -> None:
+        if not self._sandbox_active or self._sandbox_game is None:
+            return
+        self._sandbox_game.move(move)
+        self._refresh_sandbox_status()
+
+    def _sandbox_undo(self) -> None:
+        if not self._sandbox_active or self._sandbox_game is None:
+            return
+        if not undo_sandbox_move(self._sandbox_game):
+            self.sandbox_hint.setText(t("desktop.sandbox_no_undo", self.language))
+
+    def _refresh_sandbox_status(self) -> None:
+        """G2/G6/G7：AI 思考中置灰；对局已前进则冻结并提示，绝不自动跟随。"""
+        thinking = self._ai_thinking()
+        self.sandbox_enter.setEnabled(bool(self.snapshots) and not thinking and not self._sandbox_active)
+        self.sandbox_undo.setEnabled(self._sandbox_active and not thinking)
+        self.sandbox_reset.setEnabled(self._sandbox_active and not thinking)
+        self.sandbox_exit.setEnabled(self._sandbox_active)
+        stale = False
+        if self._sandbox_active:
+            authoritative = getattr(self.parent(), "game", None)
+            history = getattr(getattr(authoritative, "state", None), "history", None)
+            stale = (
+                self._sandbox_source_history is not None
+                and history is not None
+                and len(history) != self._sandbox_source_history
+            )
+            self.board.interactive = not thinking and not stale
+        if thinking:
+            text = t("desktop.sandbox_thinking", self.language)
+        elif stale:
+            text = t("desktop.sandbox_stale", self.language)
+        elif self._sandbox_active:
+            text = t("desktop.sandbox_active", self.language)
+        else:
+            text = t("desktop.sandbox_hint", self.language)
+        self.sandbox_hint.setText(text)
 
     def show_analysis(self) -> None:
         # 阶段0 S0-C：analyze_game(40 ply) 原先在 GUI 线程同步跑，复盘窗直接冻结。
@@ -692,9 +838,21 @@ class ReplayDialog(QDialog):
         game._snapshots = [item.to_dict() for item in self.snapshots[:-1]]
         worker = AnalysisWorker(game, self._analysis_cancel)
         worker.signals.finished.connect(self._show_analysis_result)
-        worker.signals.failed.connect(lambda message: QMessageBox.warning(self, dl("分析失败"), str(message)))
-        self.statusBar().showMessage(dl("正在分析对局…"), 30000)
-        self.pool.start(worker)
+        worker.signals.finished.connect(self._restore_analysis_info)
+        worker.signals.failed.connect(self._analysis_failed)
+        # QDialog 没有 statusBar()，进度落在对话框自己的 QLabel 上；线程池取全局
+        # 实例，不依赖 parent 是否为 QMainWindow（复盘窗常被无 parent 地构造）。
+        self.info.setText(dl("正在分析对局…"))
+        QThreadPool.globalInstance().start(worker)
+
+    def _restore_analysis_info(self) -> None:
+        """分析结束/失败后把提示行还给复盘步信息；沙盘态不打断试走。"""
+        if not self._sandbox_active:
+            self.show_step(self.slider.value())
+
+    def _analysis_failed(self, message: object) -> None:
+        self._restore_analysis_info()
+        QMessageBox.warning(self, dl("分析失败"), str(message))
 
     def _show_analysis_result(self, result: object) -> None:
         labels = {
@@ -718,9 +876,14 @@ class ReplayDialog(QDialog):
         DocumentDialog(t("desktop.analysis_title", self.language), "\n".join(lines), self).exec()
 
     def set_step(self, step: int) -> None:
+        # 沙盘态拖滑块会把棋盘指向过期 Game —— 最隐蔽的污染路径，入口直接挡掉。
+        if self._sandbox_active:
+            return
         self.slider.setValue(max(0, min(len(self.snapshots) - 1, step)))
 
     def show_step(self, step: int) -> None:
+        if self._sandbox_active:
+            return
         state = self.snapshots[step].clone()
         replay = Game.from_state(state, self.options)
         self.board.set_game(replay, Color.RED, True)
@@ -744,6 +907,8 @@ class ReplayDialog(QDialog):
             self.play.setText(t("action.pause", self.language))
 
     def next_step(self) -> None:
+        if self._sandbox_active:
+            return
         if self.slider.value() >= self.slider.maximum():
             self.timer.stop()
             self.play.setText(t("desktop.play", self.language))
