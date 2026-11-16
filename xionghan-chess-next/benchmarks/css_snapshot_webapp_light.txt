@@ -830,12 +830,6 @@ button.ghost:hover|background|rgba(90, 70, 40, 0.13)
 .analysis-progress[hidden]|display|none
 .analysis-progress span|font-size|11px
 .analysis-progress span|color|#9a8f80
-#curveCanvas|width|100%
-#curveCanvas|height|auto
-#curveCanvas|border-radius|9px
-#curveCanvas|background|#fdfaf2
-#curveCanvas|border|1px solid rgba(90, 70, 40, 0.16)
-#curveCanvas[hidden]|display|none
 .analysis-summary|margin|0
 .analysis-summary|font-size|11.5px
 .analysis-summary|color|#6d6255

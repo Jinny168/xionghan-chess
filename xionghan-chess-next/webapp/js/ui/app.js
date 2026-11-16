@@ -739,7 +739,6 @@ function runAnalysis() {
 
   app.analysisId += 1;
   app.analysis = null;
-  $('#curveCanvas').hidden = true;
   $('#analysisSummary').hidden = true;
   updateAnalysisProgress({ done: 0, total });
 

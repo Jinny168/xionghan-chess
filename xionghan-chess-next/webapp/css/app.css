@@ -1272,14 +1272,6 @@ button.ghost:hover { background: rgba(90, 70, 40, 0.13); }
 .analysis-progress[hidden] { display: none; }
 .analysis-progress span { font-size: 11px; color: var(--ink-faint); }
 
-#curveCanvas {
-  width: 100%;
-  height: auto;
-  border-radius: 9px;
-  background: #fdfaf2;
-  border: 1px solid var(--line);
-}
-#curveCanvas[hidden] { display: none; }
 
 .analysis-summary {
   margin: 0;

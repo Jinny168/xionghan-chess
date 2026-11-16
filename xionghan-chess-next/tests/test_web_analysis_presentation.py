@@ -48,3 +48,20 @@ def test_webapp_progress_is_text_only():
     assert ".bar i" not in ui
     assert "bar.style.width" not in ui
     assert '<div class="bar"><i></i></div>' not in _read("webapp/index.html")
+
+
+def test_webapp_has_no_dead_curve_canvas():
+    """webapp 受控源里死画布必须清干净：DOM、CSS、JS 引用与 i18n 键四处一起看。
+
+    只扫受控源；`webapp/dist/` 与 `webapp/.edgeone/assets/` 是未入库的生成产物，
+    由 bundle 脚本重建，不当作唯一源来守（否则守卫会盯着陈旧副本假红）。
+    """
+    targets = [ROOT / "webapp" / "index.html", ROOT / "webapp" / "css" / "app.css"]
+    targets += sorted((ROOT / "webapp" / "js").rglob("*.js"))
+    offenders: list[str] = []
+    for path in targets:
+        text = path.read_text(encoding="utf-8")
+        for token in ("curveCanvas", "analysis.curve"):
+            if token in text:
+                offenders.append(f"{path.relative_to(ROOT).as_posix()}:{token}")
+    assert not offenders, "webapp 受控源仍有死画布残留：" + "；".join(offenders)
