@@ -389,6 +389,23 @@ COMPLETE_OPTIONS = RuleOptions(
     # **兵底线不再后退**（2.0.0）：`pawn_backward_at_base` 默认关，故不在此列。
 )
 
+# 轻量模式：与完整档**同一批棋子**，但关掉三条"认知负荷最高"的加强规则，
+# 给新手一个"棋子不缺、规则最简单"的入口。与经典档同构（棋子集相同、规则不同），
+# 因此不违反"各交付档棋子集互不相同"的约束（test_profiles.py 只钉四类交付档）。
+# 关掉的三条都是"最劝退"项（见 ITERATION_PLAN P0-4 / G3）：
+#   - invasion_victory         将入敌九宫即时获胜（绕开将死的速胜路线）
+#   - pawn_resurrection        兵复活（与升变合造成"子力永动"）
+#   - pawn_three_line_capture  兵三连吃子（恰好三子/位移≤1/4 轴，实战低频但难懂）
+# 射保持增强（自由斜走三格）：星轨弱化才是全场最反直觉的机制，留着更劝退；
+# 增强版是直觉、可解释的额外走法，故不列入关闭项。
+# 不新增任何 RuleOptions 字段、不改走法语义实现 → RULE_VERSION 不升位。
+LIGHT_OPTIONS = replace(
+    COMPLETE_OPTIONS,
+    invasion_victory=False,
+    pawn_resurrection=False,
+    pawn_three_line_capture=False,
+)
+
 # 经典模式：**同样全子**，但士/象/马/兵/将回退到最经典的中国象棋走法。
 # 特色棋子（尉/射/檑/巡）没有"经典原型"，保留自身规则，故只关传统棋子的加强项。
 CLASSIC_OPTIONS = RuleOptions(
@@ -447,6 +464,18 @@ PROFILES: dict[str, RuleProfile] = {
         tuple(xionghan_side(Color.BLACK, False, True) + xionghan_side(Color.RED, False, True)),
         WEB,
         WEB_OPTIONS,
+        RED_NAMES,
+        BLACK_NAMES,
+    ),
+    "desktop_light": RuleProfile(
+        "desktop_light",
+        "轻量模式",
+        13,
+        13,
+        # 与完整/经典同一批棋子（25 枚 11 型），只靠规则变简单。
+        tuple(xionghan_side(Color.BLACK, True) + xionghan_side(Color.RED, True)),
+        ALL,
+        LIGHT_OPTIONS,
         RED_NAMES,
         BLACK_NAMES,
     ),

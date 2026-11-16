@@ -37,6 +37,7 @@ from xionghan_chess.core.profiles import (  # noqa: E402
     BLACK_NAMES,
     CLASSIC_OPTIONS,
     COMPLETE_OPTIONS,
+    LIGHT_OPTIONS,
     NEGATED_OPTIONS,
     OPTION_ALIASES,
     PROFILES,
@@ -67,7 +68,11 @@ UI_META = {
     },
     "web": {
         "shortTitle": "精简",
-        "description": "只有射与檑两枚特色棋子，规则最好懂，适合首次上手。",
+        "description": "只有射与檑两枚特色棋子，棋子少、局面轻，适合喜欢快节奏的玩家。",
+    },
+    "desktop_light": {
+        "shortTitle": "轻量",
+        "description": "棋子齐全，关掉入宫速胜、兵复活与三连吃子三条复杂规则，最适合首次上手。",
     },
     "traditional": {
         "shortTitle": "传统",
@@ -127,6 +132,7 @@ def payload() -> dict[str, object]:
         "COMPLETE_OPTIONS": asdict(COMPLETE_OPTIONS),
         "CLASSIC_OPTIONS": asdict(CLASSIC_OPTIONS),
         "WEB_OPTIONS": asdict(WEB_OPTIONS),
+        "LIGHT_OPTIONS": asdict(LIGHT_OPTIONS),
         "OPTION_ALIASES": dict(OPTION_ALIASES),
         "OPTION_DEPENDENCIES": option_dependencies(),
         "UI_ACTION_REQUIRES": action_requirements(),
@@ -306,8 +312,8 @@ def check() -> int:
     elif default_js != expected_payload["DEFAULT_OPTIONS"]:
         problems.append("[profile-values] DEFAULT_OPTIONS 逐值分叉")
 
-    # ③ 三个 OPTIONS 与 Python 逐键值相等
-    for name in ("COMPLETE_OPTIONS", "CLASSIC_OPTIONS", "WEB_OPTIONS"):
+    # ③ 四个 OPTIONS 与 Python 逐键值相等
+    for name in ("COMPLETE_OPTIONS", "CLASSIC_OPTIONS", "WEB_OPTIONS", "LIGHT_OPTIONS"):
         if found.get(name) != expected_payload[name]:
             problems.append(f"[profile-values] {name} 与 Python 不逐键值相等")
 

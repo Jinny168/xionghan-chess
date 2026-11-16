@@ -135,6 +135,7 @@ const zh = {
   'profile.desktop_complete': '完整模式',
   'profile.desktop_classic': '经典模式',
   'profile.web': '精简模式',
+  'profile.desktop_light': '轻量模式',
   'profile.traditional': '传统象棋',
 
   'status.ready': '请落子',
@@ -433,6 +434,7 @@ const en = {
   'profile.desktop_complete': 'Complete',
   'profile.desktop_classic': 'Classic',
   'profile.web': 'Compact',
+  'profile.desktop_light': 'Light',
   'profile.traditional': 'Xiangqi',
 
   'status.ready': 'Your move',

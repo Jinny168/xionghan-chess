@@ -193,6 +193,7 @@ def _offline_capture_specs(game: Game, color: Color, targets=None) -> list[dict]
         "web",
         "desktop_classic",
         "desktop_complete",
+        "desktop_light",
     ],
 )
 def test_initial_legal_moves_and_check_match_android_offline(profile_id):
@@ -265,12 +266,13 @@ def _offline_native_opening(game: Game) -> dict:
         "desktop_classic",
         "web",
         "traditional",
+        "desktop_light",
     ],
 )
 def test_native_opening_matches_python_roster(profile_id):
     """JS 自建开局必须与 Python 同档逐项一致：roster / 尺寸 / 选项 / perft(1)。
 
-    四档全测。曾经只测两档，因为 `desktop_classic` / `web` 盘上有一枚
+    五档全测（含轻量档）。曾经只测两档，因为 `desktop_classic` / `web` 盘上有一枚
     `enabled_piece_types` 之外的尉（`(1,5)`/`(11,5)`，0 个合法着法却
     `appear=True`）—— 那是**规则口径**问题而不是镜像问题，等 F1 裁决。
     F1 已裁决为 **F1-a**（`(1,5)` 是仕，不是尉）：那枚子在 classic/web 里既不
@@ -1482,7 +1484,13 @@ def test_capturable_squares_point_query_parity():
 #      *identically* -- exactly what a pure parity gate cannot do.
 
 _ALL_TYPES: tuple[PieceType, ...] = tuple(sorted(PieceType, key=lambda kind: kind.value))
-_SAMPLING_PROFILES: tuple[str, ...] = ("traditional", "web", "desktop_classic", "desktop_complete")
+_SAMPLING_PROFILES: tuple[str, ...] = (
+    "traditional",
+    "web",
+    "desktop_classic",
+    "desktop_complete",
+    "desktop_light",
+)
 PARITY_SEED_BASE = 20261013
 PARITY_SAMPLES = max(1, int(os.environ.get("XH_PARITY_SAMPLES", "16")))
 

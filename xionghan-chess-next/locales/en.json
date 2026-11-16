@@ -85,6 +85,7 @@
     "desktop_complete": "Complete",
     "desktop_classic": "Classic",
     "web": "Compact",
+    "desktop_light": "Light",
     "traditional": "Traditional Xiangqi"
   },
   "difficulty": {

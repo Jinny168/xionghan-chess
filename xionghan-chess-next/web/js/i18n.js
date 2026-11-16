@@ -184,7 +184,7 @@ export function applyStaticI18n() {
   setOption('#modeSelect', 'ai', 'mode.ai');
   setOption('#modeSelect', 'local', 'mode.local');
   setOption('#modeSelect', 'online', 'mode.online');
-  for (const id of ['desktop_complete', 'desktop_classic', 'web', 'traditional']) setOption('#profileSelect', id, `profile.${id}`);
+  for (const id of ['desktop_complete', 'desktop_classic', 'web', 'desktop_light', 'traditional']) setOption('#profileSelect', id, `profile.${id}`);
   for (const id of ['beginner', 'medium', 'hard']) setOption('#difficultySelect', id, `difficulty.${id}`);
   setOption('#colorSelect', 'red', 'option.red_first');
   setOption('#colorSelect', 'black', 'option.black_second');

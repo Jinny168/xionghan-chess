@@ -297,6 +297,9 @@ def option_variant_cases(rng: random.Random) -> list[dict]:
         # 第 9 条：三连吃子开关。A≠B 走法的关键变体 —— legal/check 与默认相同，
         # 唯 removals 不同（若该局面恰好有兵可成线）。
         {"pawn_three_line_capture": True},
+        # 第 10 条：轻量档组合。基于 desktop_complete 合并后正好等于 LIGHT_OPTIONS
+        # （关入宫速胜/兵复活/兵三连吃子，射保持增强）；不带 archer_enhanced_mode。
+        {"invasion_victory": False, "pawn_resurrection": False, "pawn_three_line_capture": False},
     ]
     cases = []
     for index, overrides in enumerate(variants):
