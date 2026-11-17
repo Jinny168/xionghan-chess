@@ -127,6 +127,8 @@
     "selection": "选中棋子高亮",
     "legal_targets": "显示可行落点",
     "capture_hints": "提示可吃棋子",
+    "star_hints": "射·星轨提示（选中射显形）",
+    "star_hints_hint": "空心环＝星位（射程锚点），实心圆点＝可落子",
     "taunts": "AI 快捷语",
     "autosave": "结束后自动保存棋谱",
     "autosave_desktop": "对局结束后自动保存棋谱",

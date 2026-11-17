@@ -1092,6 +1092,10 @@ class MainWindow(QMainWindow):
             legal_targets=self.config.get("legal_targets", True),
             capture_hints=self.config.get("capture_hints", True),
             animations=self.config.get("animations", True),
+            # 计分测验态（题库真题 / 每日一题 / Streak / 闯关）屏蔽：提示会替玩家答题。
+            # 复盘态的 BoardWidget 由 ReplayDialog 自建、从不走这里，默认值 False 即屏蔽。
+            archer_star_hints=self.config.get("archer_star_hints", False)
+            and getattr(self, "puzzle_session", None) is None,
         )
         self.board.set_flipped(self.config.get("flipped", False))
         self.sync_capture_legend()
@@ -1152,9 +1156,11 @@ class MainWindow(QMainWindow):
             self.config["game_mode"] = "local"
             self._reset_ui_cache()
             self.board.set_game(self.game, Color.RED, True)
-            self.configure_board()
             # S2-7 配套：带上题目本身，之后每一手都要对答案。
+            # 必须在 configure_board() **之前**置位：星轨提示读取这个状态决定屏蔽，
+            # 放在后面会让整盘测验题带着提示显形（提示会替玩家答题）。
             self.puzzle_session = puzzle_judge.session_for(dialog.selected_puzzle)
+            self.configure_board()
             # 只有走「每日一题」入口才更新连续天数；从列表里挑同一道题不算。
             self.puzzle_is_daily = getattr(dialog, "started_daily", False)
             if self.puzzle_is_daily:

@@ -131,6 +131,8 @@ export class BoardRenderer {
     }
     ctx.restore();
 
+    // 星轨锚点放射线：静态星位刻线之后、上一步与可走点之前。
+    if (view.showStarHints) this.drawStarHints(view, theme, geom);
     this.drawLastMove(view, theme, geom);
     this.drawSelection(view, theme, geom);
     this.drawTargets(view, theme, geom);
@@ -302,6 +304,40 @@ export class BoardRenderer {
       for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
         line(ctx, x + sx * inner, y + sy * inner, x + sx * outer, y + sy * outer);
       }
+    }
+    ctx.restore();
+  }
+
+  /**
+   * P1-7 射·星轨：选中射 → 四斜向星位锚点的**放射线** + 端点空心环。
+   *
+   * 画的是放射线而不是星点之间的网格边 —— 后者会读成"射能沿网继续走"。
+   * 锚点由 core 的最近星位距离换算（app.js 经 star_hints.js 传入），这里不重算。
+   * webapp 没有虚线预览，故每条有锚点的方向都画实线 + 环，单帧 ≤4 线 + ≤4 环。
+   *
+   * 颜色取盘线色 @.24（上一步 .3 的 0.8 倍），零新增色值；
+   * 空心环半径 = 可走点半径(.145)的一半，实心圆点仍由 drawTargets 独掌语义。
+   */
+  drawStarHints(view, theme, geom) {
+    const anchors = view.starHintAnchors || [];
+    if (!anchors.length) return;
+    const ctx = this.ctx;
+    const { cell } = geom;
+    const from = view.selected ? this.screenPos(view.selected.row, view.selected.col, view) : null;
+    if (!from) return;
+    ctx.save();
+    ctx.globalAlpha = 0.24;
+    ctx.strokeStyle = theme.line;
+    ctx.lineWidth = Math.max(1, cell * 0.145 * 2 / 6);
+    for (const anchor of anchors) {
+      const to = this.screenPos(anchor.row, anchor.col, view);
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(to.x, to.y, cell * 0.145 * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
     }
     ctx.restore();
   }

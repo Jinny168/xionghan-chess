@@ -231,6 +231,7 @@ export function applyStaticI18n() {
     selectionEnabled: 'settings.selection',
     legalTargetsEnabled: 'settings.legal_targets',
     captureHintsEnabled: 'settings.capture_hints',
+    starHintsEnabled: 'settings.star_hints',
     tauntsEnabled: 'settings.taunts',
     autosaveEnabled: 'settings.autosave',
   };
@@ -238,6 +239,8 @@ export function applyStaticI18n() {
     const label = document.getElementById(id)?.closest('label');
     if (label) label.lastChild.textContent = t(key);
   }
+  const starLabel = document.getElementById('starHintsLabel');
+  if (starLabel) starLabel.title = t('settings.star_hints_hint');
   const docs = {
     helpDialog: 'docs.help',
     rulesDialog: 'docs.rules',

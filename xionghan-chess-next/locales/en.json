@@ -127,6 +127,8 @@
     "selection": "Selected piece highlight",
     "legal_targets": "Show legal targets",
     "capture_hints": "Show capturable pieces",
+    "star_hints": "Archer star-trail hints (on selection)",
+    "star_hints_hint": "Hollow ring = star point (range anchor); solid dot = legal landing square",
     "taunts": "AI quick chat",
     "autosave": "Auto-save finished replays",
     "autosave_desktop": "Auto-save finished replays",

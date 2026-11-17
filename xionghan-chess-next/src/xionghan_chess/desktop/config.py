@@ -108,6 +108,9 @@ DEFAULTS: dict[str, Any] = {
     "selection_highlight": True,
     "legal_targets": True,
     "capture_hints": True,
+    # P1-7：选中经典档「射」时显示到星位锚点的放射线。纯新增键，不 bump
+    # 配置文件 schema 版本（旧配置由 `{**DEFAULTS, **data}` 补默认值）；也不进云同步映射。
+    "archer_star_hints": False,
     "taunts": True,
     "countdown_seconds": 30,
     "autosave": True,

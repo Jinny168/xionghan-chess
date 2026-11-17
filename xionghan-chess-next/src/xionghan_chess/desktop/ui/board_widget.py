@@ -117,6 +117,13 @@ LAST_MOVE_ALPHA = 64  # 64/255 ≈ .25，不到选择态不透明度（.55）的
 CAPTURE_MARK_ALPHA = 90  # 可吃子格（红）
 SELECTION_MARK_ALPHA = 145  # 当前选中格（金）
 
+# P1-7 射·星轨提示：经典档选中射时，画到四个斜向星位锚点的放射线 + 端点空心环。
+# 与「上一步」同色（盘线色），但严格弱一档：int(64 × 0.8) = 51 < 64 < 90 < 145。
+# 不引入新色值；这一档必须留在 64 以下，否则「恒常的上一步」就不再是全场最弱标注。
+STAR_HINT_ALPHA = int(64 * 0.8)  # 51/255
+# 端点空心环半径 = 可走点半径的一半：实心圆点仍是可落子的唯一语义，环只标"星位"。
+STAR_HINT_RING_RATIO = 0.5
+
 # P1-1 棋子投影：**径向渐变**，不是纯色椭圆。
 #
 # 为什么不能在纯色椭圆上靠调参了事（几何算得清清楚楚）：
@@ -350,6 +357,9 @@ class BoardWidget(QWidget):
         self.show_selection = True
         self.show_legal_targets = True
         self.show_capture_hints = True
+        # P1-7：默认关闭。复盘窗自建 BoardWidget 时不调用 set_assists，
+        # 这个默认值本身就是「复盘态屏蔽」的第一道闸。
+        self.show_archer_star_hints = False
         self.animations_enabled = True
         self.language = "zh-CN"
         self.flipped = False
@@ -403,11 +413,20 @@ class BoardWidget(QWidget):
             self.background = QPixmap(str(path))
         self.update()
 
-    def set_assists(self, *, selection: bool, legal_targets: bool, capture_hints: bool, animations: bool) -> None:
+    def set_assists(
+        self,
+        *,
+        selection: bool,
+        legal_targets: bool,
+        capture_hints: bool,
+        animations: bool,
+        archer_star_hints: bool = False,
+    ) -> None:
         self.show_selection = selection
         self.show_legal_targets = legal_targets
         self.show_capture_hints = capture_hints
         self.animations_enabled = animations
+        self.show_archer_star_hints = archer_star_hints
         self.update()
 
     def animate_move(self, target: Position, capture: bool, source: Position | None = None) -> None:
@@ -463,6 +482,9 @@ class BoardWidget(QWidget):
         if rows == 13:
             self._draw_initial_position_marks(painter, left, top, cw, ch)
             self._draw_star_points(painter, left, top, cw, ch)
+        # 层级：静态星位刻线 → 星轨锚点放射线 → 射路径虚线预览 → 可走点。
+        # 星轨放在虚线之前：两者重叠时虚线在上，玩家仍读得出"实际能走到哪"。
+        self._draw_star_hints(painter, left, top, cw, ch)
         self._draw_archer_paths(painter, left, top, cw, ch)
         self._draw_marks(painter, left, top, cw, ch)
         for piece in self.game.state.pieces:
@@ -696,6 +718,80 @@ class BoardWidget(QWidget):
             painter.drawLine(
                 QPointF(left + (col + 2) * cw, top + row * ch), QPointF(left + col * cw, top + (row + 2) * ch)
             )
+
+    # ------------------------------------------------------ 射·星轨（锚点放射线）
+    def archer_star_anchor_rays(self) -> list[tuple[Position, int, int]]:
+        """四斜方向最近的星位锚点 `(锚点, 行步长, 列步长)`；无锚点的方向省略。
+
+        语义**复用 core**：`_nearest_archer_star_distance` 从 source 沿方向逐格走，
+        命中第一个星点返回距离、出盘返回 0。这里只把距离换算成坐标，绝不自己
+        判定"哪些点是星位"（星点集只有 core 一份）。私有方法全仓已在
+        `archer_rays()` 中调用；本类只读取，不触碰 core 文件。
+        """
+        if not self.game or self.selected is None:
+            return []
+        anchors: list[tuple[Position, int, int]] = []
+        for step_row, step_col in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+            distance = self.game.rules._nearest_archer_star_distance(  # noqa: SLF001
+                self.selected, step_row, step_col
+            )
+            if distance > 0:
+                anchor = Position(
+                    self.selected.row + distance * step_row,
+                    self.selected.col + distance * step_col,
+                )
+                anchors.append((anchor, step_row, step_col))
+        return anchors
+
+    def _draw_star_hints(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
+        """经典档选中射时，P → 四斜向星位锚点的**放射线** + 端点空心环。
+
+        画的是放射线，**不是星点之间的网格边** —— 沿网格边会读成"射能沿网继续走"。
+
+        与桌面已有的"选中射四向虚线预览"去重（游有方修订）：
+          · 虚线端点 == 锚点（没有阻挡）→ 该方向**只画端点环，0 实线**（环被可走点遮住，近零新增）；
+          · 虚线端点 ≠ 锚点（被棋子挡住，或该方向根本没有虚线）→ 补画 P→A 实线 + 环，
+            表达"规则锚点在此，只是被挡"。
+        每个方向至多 1 线 + 1 环，故单帧上限 4 线 + 4 环。
+
+        显形条件：开关开 + 13×13 + 选中子是射 + `archer_enhanced_mode == False`。
+        场景守卫由 app 层把开关置 False 实现：复盘窗的 BoardWidget 从不调用
+        `set_assists`（默认 False），计分测验态 `configure_board()` 传 False；
+        AI 观战没有玩家选中，自然不画。
+        """
+        game = self.game
+        if not game or not self.show_archer_star_hints:
+            return
+        if game.profile.rows != 13 or game.profile.cols != 13:
+            return
+        if game.rules.options.archer_enhanced_mode:
+            return
+        if self.selected is None:
+            return
+        piece = game.state.piece_at(self.selected)
+        if piece is None or piece.type is not PieceType.ARCHER:
+            return
+        anchors = self.archer_star_anchor_rays()
+        if not anchors:
+            return
+        dashed_ends = {farthest for _source, farthest, _obstacle, _sr, _sc in self.archer_rays()}
+        cell = min(cw, ch)
+        ink = QColor(self.theme["line"])  # 盘线色，无 theme["mark"]（桌面无该键）
+        ink.setAlpha(STAR_HINT_ALPHA)
+        painter.save()
+        start = self._view_position(self.selected)
+        start_point = QPointF(left + start.col * cw, top + start.row * ch)
+        ring_radius = max(1.0, cell * self.legal_dot_ratio() * STAR_HINT_RING_RATIO)
+        for anchor, _step_row, _step_col in anchors:
+            shown = self._view_position(anchor)
+            center = QPointF(left + shown.col * cw, top + shown.row * ch)
+            if anchor not in dashed_ends:
+                painter.setPen(QPen(ink, max(1.0, cell * 0.02), Qt.PenStyle.SolidLine))
+                painter.drawLine(start_point, center)
+            painter.setPen(QPen(ink, max(1.0, cell * 0.015), Qt.PenStyle.SolidLine))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawEllipse(center, ring_radius, ring_radius)
+        painter.restore()
 
     # ---------------------------------------------------------------- 射的路径
     def archer_rays(self) -> list[tuple[Position, Position, Position | None, int, int]]:

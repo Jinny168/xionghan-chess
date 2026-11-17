@@ -16,6 +16,7 @@ import { PUZZLES } from '../data/puzzles.js';
 import * as net from '../net.js';
 import * as cloud from './cloud.js';
 import { BoardRenderer } from './board.js';
+import { archerAnchorRays } from './star_hints.js';
 import { resolveRemoteOptions } from './remote-options.js';
 import { pickDaily, todayLocal, readRecord, saveRecord, lazyStreak, solveToday } from './daily.js';
 import * as sound from './sound.js';
@@ -34,6 +35,8 @@ const DEFAULT_PREFS = {
   animation: true,
   legal: true,
   captureHint: true,
+  // P1-7：默认关闭，纯本地偏好；不进任何云端偏好载荷。
+  starHints: false,
   sound: true,
   mode: 'ai',
   profileId: 'desktop_complete',
@@ -520,6 +523,19 @@ function render() {
   const profile = app.game.profile;
   const isReplay = app.replay.open;
   const checkSide = !isReplay && state.check ? state.turn : null;
+  // P1-7 星轨提示：仅经典档（archer_enhanced_mode === false）+ 13×13 + 玩家选中射。
+  // 复盘态 / 计分测验态一律屏蔽：这两处的 legal 与显示局面错位，或提示会替玩家答题。
+  const selectedPiece = !isReplay && app.selected
+    ? state.pieces.find((p) => p.row === app.selected.row && p.col === app.selected.col)
+    : null;
+  const showStarHints = Boolean(
+    app.prefs.starHints
+    && profile.rows === 13
+    && app.game.rules.options.archer_enhanced_mode === false
+    && selectedPiece && selectedPiece.type === 'archer'
+    && !app.puzzle,
+  );
+  const starHintAnchors = showStarHints ? archerAnchorRays(app.game.rules, app.selected) : [];
 
   board.draw({
     state,
@@ -534,6 +550,8 @@ function render() {
     flipped: app.flipped,
     theme: app.prefs.theme,
     pieceStyle: app.prefs.pieceStyle,
+    showStarHints,
+    starHintAnchors,
     lastMove: isReplay ? replayLastMove() : app.lastMove,
     checkSide: isReplay ? null : (app.game.rules.inCheck(state, state.turn) ? state.turn : null),
     anim: isReplay ? null : app.anim,
@@ -2096,6 +2114,7 @@ function bindDialogs() {
   $('#optAnimation').onchange = (event) => { app.prefs.animation = event.target.checked; savePrefs(); };
   $('#optLegal').onchange = (event) => { app.prefs.legal = event.target.checked; savePrefs(); render(); };
   $('#optCapture').onchange = (event) => { app.prefs.captureHint = event.target.checked; savePrefs(); render(); };
+  $('#optStarHints').onchange = (event) => { app.prefs.starHints = event.target.checked; savePrefs(); render(); };
   $('#optSound').onchange = (event) => {
     app.prefs.sound = event.target.checked;
     sound.setSoundEnabled(app.prefs.sound);
@@ -2309,6 +2328,7 @@ function syncSettings() {
   $('#optAnimation').checked = app.prefs.animation;
   $('#optLegal').checked = app.prefs.legal;
   $('#optCapture').checked = app.prefs.captureHint;
+  $('#optStarHints').checked = app.prefs.starHints === true;
   $('#optSound').checked = app.prefs.sound;
   const vol = $('#optVolume');
   if (vol) vol.value = String(Math.round((app.prefs.volume ?? 0.55) * 100));

@@ -222,6 +222,9 @@ class SettingsDialog(QDialog):
         self.legal_targets.setChecked(config.get("legal_targets", True))
         self.capture_hints = QCheckBox(t("settings.capture_hints", self.language))
         self.capture_hints.setChecked(config.get("capture_hints", True))
+        self.archer_star_hints = QCheckBox(t("settings.star_hints", self.language))
+        self.archer_star_hints.setChecked(config.get("archer_star_hints", False))
+        self.archer_star_hints.setToolTip(t("settings.star_hints_hint", self.language))
         self.taunts = QCheckBox("棋灵挑衅短语" if self.language != "en" else "AI taunts")
         self.taunts.setChecked(config.get("taunts", True))
         self.autosave = QCheckBox(t("settings.autosave_desktop", self.language))
@@ -261,6 +264,7 @@ class SettingsDialog(QDialog):
         appearance_form.addRow(t("settings.selection", self.language), self.selection_highlight)
         appearance_form.addRow(t("settings.legal_targets", self.language), self.legal_targets)
         appearance_form.addRow(t("settings.capture_hints", self.language), self.capture_hints)
+        appearance_form.addRow(t("settings.star_hints", self.language), self.archer_star_hints)
         appearance_form.addRow("棋灵挑衅" if self.language != "en" else "AI taunts", self.taunts)
 
         sound_tab = QWidget()
@@ -513,6 +517,7 @@ class SettingsDialog(QDialog):
             "selection_highlight": self.selection_highlight.isChecked(),
             "legal_targets": self.legal_targets.isChecked(),
             "capture_hints": self.capture_hints.isChecked(),
+            "archer_star_hints": self.archer_star_hints.isChecked(),
             "taunts": self.taunts.isChecked(),
             "autosave": self.autosave.isChecked(),
             "server_url": previous.get("server_url", "http://127.0.0.1:8000"),
