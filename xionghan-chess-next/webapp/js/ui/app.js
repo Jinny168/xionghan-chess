@@ -16,6 +16,7 @@ import { PUZZLES } from '../data/puzzles.js';
 import * as net from '../net.js';
 import * as cloud from './cloud.js';
 import { BoardRenderer } from './board.js';
+import { resolveRemoteOptions } from './remote-options.js';
 import * as sound from './sound.js';
 import { t, setLanguage, getLanguage, applyI18n } from '../i18n.js';
 
@@ -1335,7 +1336,8 @@ function applyRemote(data, force = false) {
   if (!data || !data.state) return;
   if (!force && app.online && data.ply === app.online.since) return;
   const profile = getProfile(data.state.profileId || app.prefs.profileId);
-  const options = mergeOptions(profile.options, app.prefs.options);
+  // 联机规则以房间为准；本机 prefs 只用于单机/人机/残局/读档。
+  const options = resolveRemoteOptions(data, profile);
   app.game = new Game(profile, options, { state: stateFromDict(data.state) });
   app.game.state.clocksMs = { red: 0, black: 0 };
   app.unlimited = true;
