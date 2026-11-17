@@ -32,7 +32,7 @@ const zh = {
   'online.you': '你',
   'online.rival': '对手',
   'puzzle.title': '残局训练',
-  'puzzle.subtitle': '9 道走法教学 + 12 道一步杀，全部由规则引擎验证',
+  'puzzle.subtitle': '题库由规则引擎验证，每天一道，练手有常',
   'puzzle.level.beginner': '入门 · 走法',
   'puzzle.level.advanced': '进阶 · 走法',
   'puzzle.level.master': '大师 · 走法',
@@ -141,6 +141,12 @@ const zh = {
   'onboard.step1': '这是尉，斜着走',
   'onboard.step2': '点一下棋子，亮点就是能走的地方',
   'onboard.step3': '点亮点落子',
+
+  'puzzle.daily': '每日一题',
+  'puzzle.daily_done': '今日已完成',
+  'puzzle.daily_streak': '连续 {count} 天',
+  'puzzle.daily_solved': '解出！连续 {count} 天',
+  'puzzle.daily_empty': '暂无每日题',
 
   'status.ready': '请落子',
   'status.check': '将军',
@@ -335,7 +341,7 @@ const en = {
   'online.you': 'You',
   'online.rival': 'Rival',
   'puzzle.title': 'Puzzle training',
-  'puzzle.subtitle': '9 movement drills + 12 mate-in-one puzzles, all engine-verified',
+  'puzzle.subtitle': 'Engine-verified puzzles, one each day to keep your practice steady',
   'puzzle.level.beginner': 'Beginner · movement',
   'puzzle.level.advanced': 'Advanced · movement',
   'puzzle.level.master': 'Master · movement',
@@ -444,6 +450,12 @@ const en = {
   'onboard.step1': 'This is the Guard — it moves diagonally',
   'onboard.step2': 'Tap a piece: lit squares are where it can go',
   'onboard.step3': 'Tap a lit square to move',
+
+  'puzzle.daily': 'Daily Puzzle',
+  'puzzle.daily_done': 'Done today',
+  'puzzle.daily_streak': '{count}-day streak',
+  'puzzle.daily_solved': 'Solved! {count}-day streak',
+  'puzzle.daily_empty': 'No daily puzzle',
 
   'status.ready': 'Your move',
   'status.check': 'Check',

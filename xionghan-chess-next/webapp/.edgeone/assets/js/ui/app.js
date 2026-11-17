@@ -17,6 +17,7 @@ import * as net from '../net.js';
 import * as cloud from './cloud.js';
 import { BoardRenderer } from './board.js';
 import { resolveRemoteOptions } from './remote-options.js';
+import { pickDaily, todayLocal, readRecord, saveRecord, lazyStreak, solveToday } from './daily.js';
 import * as sound from './sound.js';
 import { t, setLanguage, getLanguage, applyI18n } from '../i18n.js';
 
@@ -1546,12 +1547,64 @@ function markSolved(id) {
   }
 }
 
+// 每日一题：题目只由本地日期决定（ui/daily.js 的算法与 core/daily.py 逐日对拍等价），
+// 连续天数记在 localStorage 单键 xh-daily；零联网零采集。
+function refreshDailyButton() {
+  const button = $('#dailyPuzzleButton');
+  if (!button) return;
+  const today = todayLocal();
+  const puzzle = pickDaily(PUZZLES, today);
+  const record = readRecord();
+  const meta = $('#dailyPuzzleMeta');
+  if (!puzzle) {
+    button.disabled = true;
+    if (meta) meta.textContent = t('puzzle.daily_empty');
+    return;
+  }
+  const done = record.day === today && record.done;
+  const streak = lazyStreak(record, today);
+  if (meta) {
+    meta.textContent = done
+      ? `${puzzle.title} · ${t('puzzle.daily_done')}`
+      : streak
+        ? `${puzzle.title} · ${t('puzzle.daily_streak', { count: streak + 1 })}`
+        : puzzle.title;
+  }
+  button.dataset.puzzleId = puzzle.id;
+}
+
+function openDaily() {
+  const today = todayLocal();
+  const puzzle = pickDaily(PUZZLES, today);
+  if (!puzzle) return toast(t('puzzle.daily_empty'));
+  const record = readRecord();
+  if (record.day === today && record.done) return toast(t('puzzle.daily_done'));
+  // 惰性归零：昨天开了没做完 / 断了两天以上 → 连续归零（与桌面端同一口径）
+  const streak = lazyStreak(record, today);
+  if (streak !== (record.streak || 0)) saveRecord({ ...record, streak });
+  app.dailyDay = today;
+  startPuzzle(puzzle);
+}
+
+function recordDailySolved(data) {
+  if (!app.dailyDay) return;
+  const puzzle = PUZZLES.find((p) => p.id === data.id);
+  if (!puzzle) return;
+  const record = readRecord();
+  const next = solveToday(record, app.dailyDay, puzzle);
+  saveRecord(next);
+  app.dailyDay = null;
+  toast(t('puzzle.daily_solved', { count: next.streak }));
+  refreshDailyButton();
+}
+
 function allPuzzles() {
   const custom = Array.isArray(app.prefs.customPuzzles) ? app.prefs.customPuzzles : [];
   return [...PUZZLES, ...custom];
 }
 
 function renderPuzzleList() {
+  refreshDailyButton();
   const root = $('#puzzleList');
   root.innerHTML = '';
   const solved = solvedIds();
@@ -1643,6 +1696,7 @@ function checkPuzzle(record) {
   const total = data.type === 'mate' ? 1 : (data.solution.length || 1);
   if (app.puzzle.step >= total) {
     markSolved(data.id);
+    recordDailySolved(data);
     sound.play('win');
     toast(t('puzzle.success'));
     setTimeout(() => exitPuzzle(), 1100);
@@ -2004,6 +2058,9 @@ function buildRuleList() {
 }
 
 function bindDialogs() {
+  const dailyButton = $('#dailyPuzzleButton');
+  if (dailyButton) dailyButton.onclick = openDaily;
+
   const noteToggle = $('#analysisNoteToggle');
   const noteHelper = $('#analysisNoteHelper');
   if (noteToggle && noteHelper) {

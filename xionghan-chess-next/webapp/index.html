@@ -454,7 +454,11 @@
           <button type="button" class="icon-btn" data-close="dlgPuzzles" aria-label="关闭">×</button>
         </div>
       </header>
-      <p class="hint" data-i18n="puzzle.subtitle">9 道走法教学 + 12 道一步杀，均由规则引擎验证</p>
+      <p class="hint" data-i18n="puzzle.subtitle">题库由规则引擎验证，每天一道，练手有常</p>
+      <button type="button" class="puzzle-card daily-card" id="dailyPuzzleButton">
+        <strong data-i18n="puzzle.daily">每日一题</strong>
+        <span id="dailyPuzzleMeta"></span>
+      </button>
       <div class="puzzle-list" id="puzzleList"></div>
     </div>
   </dialog>
