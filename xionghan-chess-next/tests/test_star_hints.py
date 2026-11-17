@@ -168,6 +168,31 @@ def _diff(a: QImage, b: QImage) -> int:
     )
 
 
+def _diff_bbox(a: QImage, b: QImage) -> tuple[int, int, int, int] | None:
+    """两图差异像素的外接矩形 (min_col, min_row, max_col, max_row)；无差异返回 None。"""
+    points = [
+        (col, row)
+        for row in range(a.height())
+        for col in range(a.width())
+        if a.pixelColor(col, row) != b.pixelColor(col, row)
+    ]
+    if not points:
+        return None
+    cols = [point[0] for point in points]
+    rows = [point[1] for point in points]
+    return min(cols), min(rows), max(cols), max(rows)
+
+
+def _archer_anchors(game: Game, source: Position) -> list[tuple[Position, int, int]]:
+    """测试侧只读换算四方向锚点（不判定星位，复用 core 距离方法），用于构造去重前提。"""
+    out: list[tuple[Position, int, int]] = []
+    for step_row, step_col in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+        distance = game.rules._nearest_archer_star_distance(source, step_row, step_col)  # noqa: SLF001
+        if distance > 0:
+            out.append((Position(source.row + distance * step_row, source.col + distance * step_col), step_row, step_col))
+    return out
+
+
 def test_board_default_is_off_and_demo_call_stays_valid(qt_app: QApplication) -> None:
     board = BoardWidget()
     assert board.show_archer_star_hints is False
@@ -230,3 +255,39 @@ def test_blocked_direction_draws_solid_ray(qt_app: QApplication) -> None:
     off = _render(game, hints=False, selected=ARCHER)
     on = _render(game, hints=True, selected=ARCHER)
     assert _diff(off, on) > 0, "被挡方向应有 P→锚点实线 + 端点环"
+
+
+def test_unobstructed_direction_draws_only_a_ring_no_solid_ray(qt_app: QApplication) -> None:
+    """虚线端点==锚点（无阻挡、射程已满）→ 只画端点环、**0 实线**（D1 补强）。
+
+    P1-7 QA 验收留下的唯一建议项：被挡方向有 committed 断言，但"去重后仅环"
+    这一态没有 —— 未来若有人误把去重删掉、改成恒画实线，原测试全绿却语义错误。
+    本测试用像素 diff 的 bbox 把去重钉死：仅环时差异集中在一个小方块（实测约
+    10×10px），而补实线会跨越整条对角线（实测约 183×183px）。
+
+    关键：必须传**真实 legal**（含射到锚点的着法），否则 archer_rays() 拿不到
+    虚线端点、dashed_ends 为空，会走"补实线"分支——那样测的不是去重态。
+    """
+    pieces = [
+        Piece.create(PieceType.KING, Color.RED, 12, 6),
+        Piece.create(PieceType.KING, Color.BLACK, 1, 1),
+        Piece.create(PieceType.ARCHER, Color.RED, ARCHER.row, ARCHER.col),
+    ]
+    game = _game(pieces)
+    legal = [move for move in game.rules.legal_moves(game.state) if move.source == ARCHER]
+    assert legal, "该局面下射应有合法着法，否则测不到去重分支"
+    # 确认至少一个锚点恰好落在虚线端点上（去重前提成立）
+    anchor_positions = {pos for pos, _sr, _sc in _archer_anchors(game, ARCHER)}
+    legal_targets = {move.target for move in legal}
+    assert anchor_positions & legal_targets, "应有方向的虚线端点==射程锚点"
+
+    off = _render(game, hints=False, selected=ARCHER, legal=legal)
+    on = _render(game, hints=True, selected=ARCHER, legal=legal)
+    bbox = _diff_bbox(off, on)
+    assert bbox is not None and _diff(off, on) > 0, "仅环态仍应有端点环，不是完全不画"
+    width = bbox[2] - bbox[0] + 1
+    height = bbox[3] - bbox[1] + 1
+    assert max(width, height) <= 16, (
+        f"虚线端点==锚点的方向应只画一个小环（bbox≤16px），实际 {width}×{height}——"
+        "疑似去重失效、画了 P→锚点长实线"
+    )
