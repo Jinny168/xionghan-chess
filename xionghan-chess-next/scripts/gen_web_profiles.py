@@ -60,11 +60,11 @@ GENERATED_BY = "scripts/gen_web_profiles.py"
 UI_META = {
     "desktop_complete": {
         "shortTitle": "完整",
-        "description": "十四种棋子全部登场，规则最完整，接近桌面原版。",
+        "description": "11 个兵种、50 枚棋子全部登场，规则最完整，接近桌面原版。",
     },
     "desktop_classic": {
         "shortTitle": "经典",
-        "description": "保留射、檑、巡，去掉甲、刺、楯，节奏更接近传统象棋。",
+        "description": "棋子与完整档完全相同，只把士、象、马、兵、将回退成传统走法，节奏更接近传统象棋。",
     },
     "web": {
         "shortTitle": "精简",
@@ -233,7 +233,7 @@ def generated_source() -> str:
         " * 开局摆子、启用兵种）只有 Python core 一份。改规则请改 core，再跑\n"
         " *   python scripts/gen_web_profiles.py --write\n"
         " *\n"
-        " * 四套档案共用同一套走法判定，只在棋盘尺寸、初始棋子、可用棋种与\n"
+        " * 各套档案共用同一套走法判定，只在棋盘尺寸、初始棋子、可用棋种与\n"
         " * 默认开关上不同 —— 这是本项目「一套内核、多种玩法」的核心设计。\n"
         " */\n"
         "\n"
