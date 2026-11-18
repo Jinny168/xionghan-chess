@@ -123,6 +123,13 @@ class SearchConfig:
     max_nodes: int | None = None
 
 
+# 入门档单层软取样的触发概率（设计常量，见 docs/AI_TIERS.md §15）。
+# 只在 beginner 路径被咨询；medium/hard 的 randomness=0 已在 `_sampling_blocked`
+# 拦下。`CONFIGS.beginner.randomness` 保留为「该档是否参与取样」的语义标记，
+# 真实软取样概率由本常量控制 —— 不新增 SearchConfig 字段，避免扰动档位快照。
+BEGINNER_SOFT_SAMPLE_PROBABILITY = 0.18
+
+
 def resolve_time_scale(instance: float | None, env: str | None) -> float:
     """时间缩放解析：实例参数 → 环境变量 `AI_TIME_SCALE` → 1.0。
 
@@ -263,6 +270,7 @@ class ChessAI:
         seed: int | None = None,
         config: SearchConfig | None = None,
         time_scale: float | None = None,
+        sample_enabled: bool = True,
     ):
         # `config` 是实例级搜索参数（标定/A-B 用），构造时解析一次；`time_scale` 是
         # 预算缩放（与搜索参数正交）。`self._config` 是唯一读取点 —— 任何一处回头读
@@ -272,6 +280,9 @@ class ChessAI:
         )
         self._config: SearchConfig = config if config is not None else CONFIGS[self.difficulty]
         self.time_scale = time_scale
+        # 入门档软取样开关（实例级，默认开）。关闭时 `_sample_weaker` 恒返回 None，
+        # 与「未引入取样」的路径等价；纯决策层开关，不写复盘 / 存档 / PGN。
+        self.sample_enabled = sample_enabled
         self.random = random.Random(seed)
         self.transposition: dict[str, TTEntry] = {}
         self.history: dict[tuple[PieceType, int, int], int] = {}
@@ -411,13 +422,19 @@ class ChessAI:
         return static_exchange_score(game, best_move, VALUES) >= VALUES[PieceType.PAWN]
 
     def _sample_weaker(self, game: Game, cfg: SearchConfig) -> Move | None:
-        """按概率从"名次 2..N"里挑一手看似合理、但略差的着法。
+        """入门档唯一一层软取样：在近优分差带内挑一手非最佳着。
 
-        为什么不起选第 1 名：命中第 1 名等于没弱化，名义概率和实际弱化率会脱节。
-        为什么吃子要过 SEE：弱档可以走次优，但不该白送子 —— 按着法粒度判，
-        比"整局只在非吃子局面生效"更稳（后者会让弱档在乱战里突然满血，前后不一致本身更像机器）。
+        设计口径见 docs/AI_TIERS.md §15。只有 beginner 路径会到这里；medium/hard
+        的 `randomness=0` 已被 `_sampling_blocked` 拦在前面。取样是纯决策层行为，
+        不写入 `MoveRecord` / 存档 / PGN。
+
+        候选集合不含第 1 名：命中第 1 名等于没弱化，名义概率与真实弱化率会脱节。
+        吃子要过 SEE：弱档可以走次优，但不该白送子 —— 按着法粒度判，比「整局只在
+        非吃子局面生效」更稳（后者会让弱档在乱战里突然满血，前后不一致本身更像机器）。
         """
-        if self._sampling_blocked(game, cfg) or self.random.random() >= cfg.randomness:
+        if not self.sample_enabled or self._sampling_blocked(game, cfg):
+            return None
+        if self.random.random() >= BEGINNER_SOFT_SAMPLE_PROBABILITY:
             return None
         best_score = self.root_scores[0][0]
         pool: list[tuple[float, Move]] = []
@@ -432,12 +449,7 @@ class ChessAI:
             pool.append((score, move))
         if not pool:
             return None
-        # **只在较差的那一半里挑**：候选窗口里同分等价着法经常占满（杀题局面尤甚），
-        # 均匀取样会几乎总挑回等价着法 —— 名义概率兑现了，实际一步也没变弱。
-        # 实测：均匀取样时平均分差只有 0–6cp，玩家体感等于没设这个档。
-        pool.sort(key=lambda item: item[0])
-        floor = max(1, len(pool) // 2)
-        return self.random.choice([move for _, move in pool[:floor]])
+        return self.random.choice([move for _, move in pool])
 
     def _root(
         self,
