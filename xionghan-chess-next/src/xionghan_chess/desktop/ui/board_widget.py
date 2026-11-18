@@ -77,7 +77,21 @@ LEGAL_DOT_RATIO = 0.13
 LEGAL_DOT_RATIO_DARK = 0.15
 LEGAL_DOT_ALPHA_LIGHT = 0.55
 LEGAL_DOT_ALPHA_DARK = 0.60
-LEGAL_DOT_DARK_RGB = (0x9F, 0xBF, 0xA8)  # #9fbfa8 浅灰绿
+LEGAL_DOT_DARK_RGB = (0x9F, 0xBF, 0xA8)  # #9fbfa8
+
+# 特色子徽记（P1-6 / VA-14）：形状线索为主，墨色沿用棋子自身 ink，零新增色值。
+# 几何与 web/webapp 已落地版本同源，不许另起一套：
+#   徽记中心在盘缘上方 0.86×r；外接半尺寸 0.26×r；线宽 0.055×r。
+# 原语按 射 > 尉 > 檑/巡 复杂度递减：射=四角星+细环，尉=双斜杠，檑=三横，巡=空心方。
+BADGE_ORBIT = 0.86
+BADGE_SIZE = 0.26
+BADGE_STROKE = 0.055
+_SPECIAL_BADGE: dict[PieceType, str] = {
+    PieceType.GUARD: "slash",
+    PieceType.ARCHER: "star",
+    PieceType.THUNDER: "bars",
+    PieceType.PATROL: "square",
+}
 
 # 落子动画：460ms / 20ms = 23 帧（原来 350ms / 25ms ≈ 14 帧，肉眼只有 ~9 帧可见）。
 # 为什么不抄网页的 900ms：太拖沓。为什么不是 550/16：实测 900×900 单帧 p95 10.9ms、
@@ -252,6 +266,51 @@ def _piece_font(radius: float, mode: str, style: str = "traditional") -> QFont:
     return font
 
 
+def _draw_special_badge(
+    painter: QPainter, piece_type: PieceType, center: QPointF, radius: float, ink: QColor
+) -> None:
+    """在特色子盘缘上方画形状徽记；普通子直接返回。墨色由调用方按棋子自身 ink 传入。"""
+    kind = _SPECIAL_BADGE.get(piece_type)
+    if kind is None:
+        return
+    bx, by = center.x(), center.y() - radius * BADGE_ORBIT
+    r = radius * BADGE_SIZE
+    pen = QPen(ink, max(1.0, radius * BADGE_STROKE))
+    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+    painter.save()
+    painter.setPen(pen)
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    if kind == "star":
+        inner = r * 0.42
+        pts = [
+            (0.0, -r), (inner, -inner), (r, 0.0), (inner, inner),
+            (0.0, r), (-inner, inner), (-r, 0.0), (-inner, -inner),
+        ]
+        path = QPainterPath()
+        path.moveTo(bx + pts[0][0], by + pts[0][1])
+        for px, py in pts[1:]:
+            path.lineTo(bx + px, by + py)
+        path.closeSubpath()
+        painter.drawPath(path)
+        painter.drawEllipse(QPointF(bx, by), r * 1.35, r * 1.35)
+    elif kind == "slash":
+        for off in (-r * 0.28, r * 0.28):
+            painter.drawLine(
+                QPointF(bx - r * 0.6 + off, by - r * 0.6 - off),
+                QPointF(bx + r * 0.6 + off, by + r * 0.6 - off),
+            )
+    elif kind == "bars":
+        for dy in (-r * 0.5, 0.0, r * 0.5):
+            painter.drawLine(
+                QPointF(bx - r * 0.6, by + dy),
+                QPointF(bx + r * 0.6, by + dy),
+            )
+    else:
+        painter.drawRect(QRectF(bx - r * 0.6, by - r * 0.6, r * 1.2, r * 1.2))
+    painter.restore()
+
+
 def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float, piece: Piece, style: str) -> None:
     """画一枚**字形**棋子（圆片 + 汉字）—— 默认 `piece_render="glyph"` 的渲染路径。
 
@@ -285,6 +344,7 @@ def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float, piece: P
         Qt.AlignmentFlag.AlignCenter,
         theme.NAMES[piece.color].get(piece.type, ""),
     )
+    _draw_special_badge(painter, piece.type, center, radius, outline)
 
 
 def draw_fallback_piece(
@@ -312,7 +372,8 @@ def draw_fallback_piece(
         painter.setPen(QPen(_color(spec["ring"] if inner_ring == "ring" else inner_ring, color), 1))
         painter.drawEllipse(center, radius * 0.82, radius * 0.82)
     painter.setFont(_piece_font(radius, "image_fallback", style))
-    painter.setPen(_color(spec["text"], color))  # type: ignore[arg-type]
+    badge_ink = _color(spec["text"], color)  # type: ignore[arg-type]
+    painter.setPen(badge_ink)
     painter.drawText(
         int(center.x() - radius),
         int(center.y() - radius),
@@ -321,6 +382,7 @@ def draw_fallback_piece(
         Qt.AlignmentFlag.AlignCenter,
         theme.NAMES[color].get(piece_type, ""),
     )
+    _draw_special_badge(painter, piece_type, center, radius, badge_ink)
 
 
 class BoardWidget(QWidget):
@@ -1154,6 +1216,9 @@ class BoardWidget(QWidget):
         painter.drawPixmap(
             QRectF(center.x() - radius, center.y() - radius, radius * 2, radius * 2), artwork, QRectF(artwork.rect())
         )
+        # 徽记叠在图像之后、同一圆心/半径；helper 内部 save/restore，不带入投影状态。
+        badge_ink = QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e")
+        _draw_special_badge(painter, piece.type, center, radius, badge_ink)
         return True
 
     def _position(self, point: QPointF) -> Position | None:
