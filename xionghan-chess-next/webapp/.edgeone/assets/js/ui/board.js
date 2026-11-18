@@ -335,7 +335,7 @@ export class BoardRenderer {
     ctx.save();
     ctx.globalAlpha = 0.24;
     ctx.strokeStyle = theme.line;
-    ctx.lineWidth = Math.max(1, cell * 0.145 * 2 / 6);
+    ctx.lineWidth = Math.max(1, cell * 0.13 * 2 / 6);
     for (const anchor of anchors) {
       const to = this.screenPos(anchor.row, anchor.col, view);
       ctx.beginPath();
@@ -343,7 +343,7 @@ export class BoardRenderer {
       ctx.lineTo(to.x, to.y);
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(to.x, to.y, cell * 0.145 * 0.5, 0, Math.PI * 2);
+      ctx.arc(to.x, to.y, cell * 0.13 * 0.5, 0, Math.PI * 2);
       ctx.stroke();
     }
     ctx.restore();
@@ -429,7 +429,7 @@ export class BoardRenderer {
       } else {
         ctx.fillStyle = 'rgba(58,104,72,.78)';
         ctx.beginPath();
-        ctx.arc(x, y, cell * 0.145, 0, Math.PI * 2);
+        ctx.arc(x, y, cell * 0.13, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = 'rgba(255,250,238,.75)';
         ctx.lineWidth = Math.max(1, cell * 0.028);

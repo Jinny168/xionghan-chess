@@ -389,7 +389,7 @@ function commitMove(move) {
       piece: moving,
       capture: captured,
       started: performance.now(),
-      duration: 190,
+      duration: 320,
     };
     animate();
   }

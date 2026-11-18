@@ -250,8 +250,8 @@
       "name": "可走点半径（格）",
       "unit": "cell",
       "compare": true,
-      "verdict": "drift",
-      "note": "0.13/0.10/0.145，桌面深色主题还会放大到 0.15（对比度补偿）。同为「这格能落子」的暗示，三端三种大小。",
+      "verdict": "aligned",
+      "note": "三端可走点半径统一 0.13 格；桌面深色主题保留 0.15 对比度补偿（不抹平）。",
       "ends": {
         "desktop": {
           "lit": "LEGAL_DOT_RATIO = {}",
@@ -260,13 +260,13 @@
         },
         "web": {
           "lit": "occupied?Math.min(g.cw,g.ch)*.43:Math.min(g.cw,g.ch)*{}",
-          "raw": 0.1,
-          "value": 0.1
+          "raw": 0.13,
+          "value": 0.13
         },
         "webapp": {
           "lit": "ctx.arc(x, y, cell * {}",
-          "raw": 0.145,
-          "value": 0.145,
+          "raw": 0.13,
+          "value": 0.13,
           "index": 2
         }
       }
@@ -302,24 +302,24 @@
       "name": "落子动画时长",
       "unit": "ms",
       "compare": true,
-      "verdict": "drift",
-      "note": "桌面 23 帧 × 20ms = 460ms（无轨迹线，只移动）；web 旧树 900ms（额外画箭头 + 扩散圆）；webapp 190ms（只移动 + 吃子扩散环）。900ms 是历史包袱，桌面实测该量级会掉帧。",
+      "verdict": "aligned",
+      "note": "三端落子动画统一 320ms：桌面 16 帧 × 20ms；web 旧树 age/320；webapp duration 320ms。",
       "ends": {
         "desktop": {
           "lit": "ANIMATION_FRAMES = {}",
-          "raw": 23,
+          "raw": 16,
           "scale": 20,
-          "value": 460
+          "value": 320
         },
         "web": {
           "lit": "progress=Math.min(1,age/{})",
-          "raw": 900,
-          "value": 900
+          "raw": 320,
+          "value": 320
         },
         "webapp": {
           "lit": "duration: {}",
-          "raw": 190,
-          "value": 190,
+          "raw": 320,
+          "value": 320,
           "file": "webapp/js/ui/app.js"
         }
       }
@@ -338,12 +338,12 @@
           "value": 0.5
         },
         "web": {
-          "lit": "radius=cell*.1*{}",
+          "lit": "radius=cell*.13*{}",
           "raw": 0.5,
           "value": 0.5
         },
         "webapp": {
-          "lit": "cell * 0.145 * {}",
+          "lit": "cell * 0.13 * {}",
           "raw": 0.5,
           "value": 0.5,
           "index": 1

@@ -93,13 +93,10 @@ _SPECIAL_BADGE: dict[PieceType, str] = {
     PieceType.PATROL: "square",
 }
 
-# 落子动画：460ms / 20ms = 23 帧（原来 350ms / 25ms ≈ 14 帧，肉眼只有 ~9 帧可见）。
-# 为什么不抄网页的 900ms：太拖沓。为什么不是 550/16：实测 900×900 单帧 p95 10.9ms、
-# **max 14.3ms**（超 12ms 掉帧线），1470px 更大时 p95 已 16.2ms —— 按"单帧 >12ms 就回退"
-# 的规则取 450ms/20ms 一档：预算 20ms 时两个尺寸的 p95（10.9 / 16.2）都在预算内。
+# 落子动画：320ms / 20ms = 16 帧（与 web 旧树、webapp 三端同值；原来 460ms/23 帧）。
 # 结束即停表，不常驻定时器。
 ANIMATION_TIMER_MS = 20
-ANIMATION_FRAMES = 23
+ANIMATION_FRAMES = 16
 # 将军脉冲保持原来的 600ms 观感（24 帧 × 25ms）：换成 20ms 定时器后 = 600/20 = 30 帧。
 CHECK_PULSE_FRAMES = 30
 
