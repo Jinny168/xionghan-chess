@@ -571,7 +571,7 @@
     "atlas_restart_later": "Later",
     "atlas_rule_saved": "Saved; takes effect after you restart the game.",
     "daily": "Daily puzzle",
-    "daily_streak": "Day {count}",
+    "daily_streak": "{count}-day streak",
     "daily_done": "Solved today · see you tomorrow",
     "drills": "Drills"
   },
@@ -586,7 +586,7 @@
   },
   "training": {
     "daily": "Daily puzzle",
-    "daily_streak": "Day {count}",
+    "daily_streak": "{count}-day streak",
     "daily_done": "Solved today — see you tomorrow",
     "daily_solved": "{count}-day streak",
     "drills": "Drills",
@@ -594,6 +594,22 @@
     "onboard_1": "1. Pick an opponent: AI, two players, or online (top bar).",
     "onboard_2": "2. Move: click your piece, then its destination.",
     "onboard_3": "3. Stuck? Training has a daily puzzle and a step-by-step hint.",
-    "onboard_cta": "Start"
+    "onboard_cta": "Start",
+    "locked": "Finish 〈{chapter}〉 first",
+    "freeHint": "Pick whichever piece you want to practice",
+    "streak": "Solve chain",
+    "streakSub": "One mistake ends the run",
+    "streakBest": "Best: {count} in a row",
+    "streakEmpty": "No chapter puzzle available yet",
+    "streakSkip": "Skip this puzzle",
+    "streakSkipHint": "Thinking a while — skip this one?",
+    "hintDue": "A few misses in a row — want a hint?",
+    "streakRound": "{count} solved in a row this run",
+    "streakRecord": "{count} more than last time",
+    "streakNoRecord": "Next time, start from the first puzzle",
+    "streakGap": "{count} more to beat your record",
+    "streakKept": "Your best record is kept",
+    "streakPractice": "This is just practice; your progress is unaffected",
+    "streakAgain": "Play again"
   }
 }

@@ -37,6 +37,7 @@ EN: dict[str, str] = {
     "先指子，再指招": "Piece first, then the move",
     "再看落点": "Where to",
     "没有更多提示": "No more hints",
+    "卡住了？": "Stuck?",
     "翻转棋盘": "Flip board",
     # 吃子图例（状态栏右侧常驻）：叉 = 落点可吃，圈 = 三连旁吃。
     "✕ 落点可吃": "✕ capture on landing",

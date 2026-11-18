@@ -265,9 +265,9 @@ function renderAnalysis(result){$('#analysisLoading').hidden=true;$('#analysisCo
 function customPuzzles(){try{const items=JSON.parse(localStorage.getItem('xh-custom-puzzles')||'[]');return Array.isArray(items)?items:[]}catch{return[]}}
 function validPuzzle(item){return!!(item&&typeof item.id==='string'&&typeof item.title==='string'&&['beginner','advanced','master'].includes(item.difficulty)&&item.document&&item.document.formatVersion===1&&Array.isArray(item.solution)&&item.solution.length&&item.solution.every(move=>move?.from&&move?.to)&&Array.isArray(item.hints))}
 async function openTraining(level='beginner'){try{const builtIn=await api(`/api/puzzles?difficulty=${level}`),puzzles=[...builtIn,...customPuzzles().filter(item=>item.difficulty===level)];// A2：按战役章节分组。分组标题是不可点的 div，用 CSS 让它看起来像小标题。
-const order=['揭竿','破釜','逐鹿','垓下','定鼎'];const groups=new Map();puzzles.forEach(item=>{const key=item.chapter||'';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item)});const keys=[...groups.keys()].sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?order.length:ia)-(ib<0?order.length:ib)});$('#puzzleList').innerHTML=keys.map(key=>{const title=key||t('training.drills');const rows=groups.get(key).map(item=>`<button data-puzzle-id="${item.id}" data-custom-puzzle="${item.document?'true':'false'}"><strong>${item.title}</strong><span>${item.description||''}</span><small>${(item.tags||[]).join(' · ')}</small></button>`).join('');return `<div class="puzzle-chapter">${title}</div>${rows}`}).join('');$('#puzzleDetail').hidden=true;if(!$('#trainingDialog').open)$('#trainingDialog').showModal()}catch(error){toast(error.message)}}
+app.trainingPuzzles=puzzles;const order=TRAINING_ORDER;const groups=new Map();puzzles.forEach(item=>{const key=item.chapter||'';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item)});const keys=[...groups.keys()].sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?order.length:ia)-(ib<0?order.length:ib)});const tp=readTraining();const unlockedCh=unlockedChapters(tp.stars,puzzles);$('#puzzleList').innerHTML=keys.map(key=>{const items=groups.get(key);const isDrill=!key;const locked=!isDrill&&!unlockedCh.includes(key);const prevIdx=order.indexOf(key)-1;const prev=prevIdx>=0?order[prevIdx]:order[0];const earned=items.reduce((s,p)=>s+(tp.stars[p.id]||0),0);const maxStars=items.length*3;let title=key||t('training.drills');if(isDrill)title+=` · ${t('training.freeHint')}`;else if(!locked)title+=` · ${'★'.repeat(earned)}${'☆'.repeat(Math.max(0,maxStars-earned))}`;const rows=locked?`<button class="puzzle-locked" disabled><strong>🔒 ${t('training.locked',{chapter:prev})}</strong></button>`:items.map(item=>`<button data-puzzle-id="${item.id}" data-custom-puzzle="${item.document?'true':'false'}"><strong>${item.title}${(tp.stars[item.id]||0)>0?' '+'★'.repeat(tp.stars[item.id])+'☆'.repeat(3-tp.stars[item.id]):''}</strong><span>${item.description||''}</span><small>${(item.tags||[]).join(' · ')}</small></button>`).join('');return `<div class="puzzle-chapter">${title}</div>${rows}`}).join('');refreshStreakButton();$('#puzzleDetail').hidden=true;if(!$('#trainingDialog').open)$('#trainingDialog').showModal()}catch(error){toast(error.message)}}
 async function selectPuzzle(id){try{app.dailyDay=null;app.selectedPuzzle=customPuzzles().find(item=>item.id===id)||await api(`/api/puzzles/${id}?reveal=true`);$('#puzzleInfo').innerHTML=`<h3>${app.selectedPuzzle.title}</h3><p>${app.selectedPuzzle.description||''}</p><small>${(app.selectedPuzzle.tags||[]).join(' · ')}</small>`;$('#puzzleDetail').hidden=false}catch(error){toast(error.message)}}
-async function startPuzzle(){if(!app.selectedPuzzle)return;app.puzzleSession={...app.selectedPuzzle,step:0,misses:0,hints:0,hintStage:0};$('#trainingDialog').close();await importDocument(app.selectedPuzzle.document,'local');toast(t('toast.puzzle_started'))}
+async function startPuzzle(){if(!app.selectedPuzzle)return;app.puzzleSession={...app.selectedPuzzle,step:0,misses:0,hints:0,hintStage:0,scored:false,streak:false};$('#trainingDialog').close();await importDocument(app.selectedPuzzle.document,'local');toast(t('toast.puzzle_started'))}
 // --- 每日一题 ---------------------------------------------------------------
 // 选题在服务端算（`/api/daily` → `core/daily.py`），前端只负责记「今天做没做」。
 // 连续性规则与 `core/daily.py` **同构**：隔天做完 +1、同一天重解不涨、断档归零、
@@ -303,7 +303,7 @@ async function openDaily(){try{
   if(record.day===today&&record.done)return toast(t('training.daily_done'));
   // 惰性归零：昨天开了没做完、或断了两天以上 —— 与桌面端 `start_today` 同一口径
   if(record.day&&(gap>1||(gap===1&&!record.done))){record.streak=0;saveDailyRecord(record)}
-  app.dailyDay=today;app.selectedPuzzle=data.puzzle;await startPuzzle();refreshDailyButton();
+  app.dailyDay=today;app.selectedPuzzle=data.puzzle;await startPuzzle();if(app.puzzleSession)app.puzzleSession.scored=true;refreshDailyButton();
 }catch(error){toast(error.message)}}
 function recordDailySolved(session){if(!app.dailyDay)return;const today=app.dailyDay,record=dailyRecord(),gap=record.day?dailyGap(record.day,today):0;
   const streak=(record.day&&gap===1&&record.done)?(record.streak||0)+1:1;
@@ -317,7 +317,33 @@ function isBigCapture(captured){return (captured||[]).some(piece=>BIG_CAPTURE_TY
 function shakeBoard(){const shell=$('#boardShell');if(!shell)return;
   shell.classList.remove('board-shake');void shell.offsetWidth;shell.classList.add('board-shake');
   setTimeout(()=>shell.classList.remove('board-shake'),320)}
+// ===== 批次 A：训练进度（章节化 + 连对挑战）================================
+// 进度存独立键 xh-training，**不进 app.preferences**，因此绝不随
+// persistPreferences 的 /api/me/preferences POST 上传（零采集）。坚持天数仍在 xh-daily。
+const TRAINING_KEY='xh-training';
+const TRAINING_ORDER=['揭竿','破釜','逐鹿','垓下','定鼎'];
+function readTraining(){try{const t=JSON.parse(localStorage.getItem(TRAINING_KEY)||'{}');return {stars:t.stars||{},unlocked:Array.isArray(t.unlocked)?t.unlocked:['揭竿'],streak:{best:Number((t.streak||{}).best)||0}}}catch{return {stars:{},unlocked:['揭竿'],streak:{best:0}}}}
+function writeTraining(t){safeStorageSet(TRAINING_KEY,JSON.stringify(t))}
+function recordTrainingStar(id,stars){const t=readTraining();t.stars[id]=Math.max(t.stars[id]||0,stars);t.unlocked=unlockedChapters(t.stars,app.trainingPuzzles||[]);writeTraining(t)}
+function unlockedChapters(stars,puzzles){const solved=stars||{};const out=[];for(let i=0;i<TRAINING_ORDER.length;i++){if(i===0){out.push(TRAINING_ORDER[i]);continue}if(!out.includes(TRAINING_ORDER[i-1]))continue;const prev=(puzzles||[]).filter(p=>p.chapter===TRAINING_ORDER[i-1]&&!((p.tags||[]).includes('drill')));if(prev.length>0&&prev.every(p=>(solved[p.id]||0)>=1))out.push(TRAINING_ORDER[i])}return out}
+function poolForTraining(stars,unlocked,dailyId,puzzles){const solved=stars||{};const open=unlocked||[];const rank=p=>{const s=solved[p.id]||0;return s===0?0:(s<3?1:2)};return (puzzles||[]).filter(p=>p.chapter&&open.includes(p.chapter)&&!((p.tags||[]).includes('drill'))&&p.id!==dailyId).map((p,i)=>({p,i,r:rank(p)})).sort((a,b)=>a.r-b.r||TRAINING_ORDER.indexOf(a.p.chapter)-TRAINING_ORDER.indexOf(b.p.chapter)||a.i-b.i).map(x=>x.p)}
+function softHintDue(n){return (n||0)>=5}
 function puzzleStars(session){const penalty=(session.misses||0)+(session.hints||0);return penalty===0?3:(penalty<=2?2:1)}
+// 连对挑战会话（一错即止）。scored=true 计分态屏蔽文字提示。
+function refreshStreakButton(){const btn=$('#streakPuzzleButton');if(!btn)return;const meta=$('#streakPuzzleMeta');const best=readTraining().streak.best||0;if(meta)meta.textContent=best?t('training.streakBest',{count:best}):t('training.streakSub')}
+async function startStreakRun(){try{const tp=readTraining();// 连对池必须覆盖全部难度，不能只用当前筛选档的 app.trainingPuzzles
+  const all=[...(await api('/api/puzzles?difficulty=beginner')),...(await api('/api/puzzles?difficulty=advanced')),...(await api('/api/puzzles?difficulty=master'))];app.trainingPuzzles=all;const dailyPuzzle=await api('/api/daily');const dailyId=dailyPuzzle&&dailyPuzzle.puzzle?dailyPuzzle.puzzle.id:null;const pool=poolForTraining(tp.stars,tp.unlocked,dailyId,all);if(!pool.length){toast(t('training.streakEmpty'));return}$('#trainingDialog').close();hideStreakBanner();app.streakRun={correct:0,pool,used:new Set(),scored:true};nextStreakPuzzle()}catch(error){toast(error.message)}}
+function nextStreakPuzzle(){const run=app.streakRun;if(!run)return;const next=run.pool.find(p=>!run.used.has(p.id));if(!next){endStreakRun();return}run.used.add(next.id);startStreakPuzzle(next)}
+async function startStreakPuzzle(summary){try{// 池里是 summary（无 document/solution），按 id 取完整题面再开局
+  const data=await api(`/api/puzzles/${encodeURIComponent(summary.id)}?reveal=true`);app.dailyDay=null;app.selectedPuzzle=data;app.puzzleSession={...data,step:0,misses:0,hints:0,hintStage:0,scored:true,streak:true};$('#trainingDialog').close();await importDocument(data.document,'local');startStreakTimer();toast(t('toast.puzzle_started'))}catch(error){toast(error.message)}}
+let streakTimer=null;
+function startStreakTimer(){stopStreakTimer();streekSkipHidden(true);streakTimer=setTimeout(()=>{streekSkipHidden(false);toast(t('training.streakSkipHint'))},60000)}
+function streekSkipHidden(hidden){const b=$('#streakSkipButton');if(b)b.hidden=hidden}
+function stopStreakTimer(){if(streakTimer)clearTimeout(streakTimer);streakTimer=null}
+function skipStreakPuzzle(){endStreakRun()}
+function endStreakRun(){const run=app.streakRun;if(!run)return;stopStreakTimer();const correct=run.correct;const tp=readTraining();const previousBest=tp.streak.best||0;const isRecord=correct>previousBest;if(isRecord){tp.streak.best=correct;writeTraining(tp)}app.streakRun=null;app.puzzleSession=null;streekSkipHidden(true);showStreakBanner(correct,previousBest,isRecord);refreshStreakButton()}
+function showStreakBanner(correct,previousBest,isRecord){const banner=$('#streakBanner');if(!banner)return;const lines=[t('training.streakRound',{count:correct})];if(isRecord)lines.push(t('training.streakRecord',{count:correct-previousBest}));else{lines.push(t('training.streakNoRecord'));lines.push(t('training.streakGap',{count:Math.max(1,previousBest-correct+1)}))}lines.push(t('training.streakKept'));lines.push(t('training.streakPractice'));const body=$('#streakBannerBody');if(body)body.textContent=lines.join('\n');banner.hidden=false}
+function hideStreakBanner(){const b=$('#streakBanner');if(b)b.hidden=true}
 function puzzleMoveKey(move){return `${move.from.row},${move.from.col}-${move.to.row},${move.to.col}`}
 function checkPuzzleProgress(){
   const session=app.puzzleSession;if(!session||!app.state?.history.length)return;
@@ -326,9 +352,21 @@ function checkPuzzleProgress(){
   // 程序刚替对手落的那一着会再触发一次本函数，跳过判定（游标已在下面推进过）
   if(session.pendingAuto===key){session.pendingAuto=null;return}
   const expected=session.solution[session.step];if(!expected)return;
-  if(puzzleMoveKey(expected)!==key){session.misses=(session.misses||0)+1;toast(t('toast.puzzle_wrong'));return}
-  session.step++;session.hintStage=0;
-  if(session.step>=session.solution.length){const stars=puzzleStars(session);toast(`${t('toast.puzzle_solved')} ${'★'.repeat(stars)}${'☆'.repeat(3-stars)}`);recordDailySolved(session);app.puzzleSession=null;return}
+  if(puzzleMoveKey(expected)!==key){
+    session.misses=(session.misses||0)+1;session.consecutiveMisses=(session.consecutiveMisses||0)+1;
+    // 连对挑战：一错即止
+    if(session.streak){stopStreakTimer();setTimeout(()=>endStreakRun(),380);return}
+    toast(t('toast.puzzle_wrong'));
+    if(!session.scored&&softHintDue(session.consecutiveMisses))setTimeout(()=>toast(t('training.hintDue')),420);
+    return
+  }
+  session.consecutiveMisses=0;session.step++;session.hintStage=0;
+  if(session.step>=session.solution.length){
+    const stars=puzzleStars(session);
+    if(session.streak&&app.streakRun){app.streakRun.correct+=1;stopStreakTimer();setTimeout(()=>nextStreakPuzzle(),500);return}
+    if(!session.scored)recordTrainingStar(session.id,stars);
+    toast(`${t('toast.puzzle_solved')} ${'★'.repeat(stars)}${'☆'.repeat(3-stars)}`);recordDailySolved(session);app.puzzleSession=null;return
+  }
   toast(t('toast.puzzle_continue'));
   // 交替序列：偶数下标归玩家、奇数下标是**对手的被迫应着**，由程序自动落。
   // 少了这一步，多步题第二步就会把对手的应着当成玩家的答案（必错）。
@@ -355,11 +393,13 @@ $('#accountButton').onclick=async()=>{await refreshAccount();$('#accountDialog')
 document.addEventListener('click',event=>{const button=event.target.closest('#profileAvatarPicker [data-avatar]');if(!button)return;document.querySelectorAll('#profileAvatarPicker [data-avatar]').forEach(item=>item.classList.toggle('selected',item===button));if(button.dataset.avatar)$('#profileAvatarUrl').value=''});
 $('#cloudGameList').onclick=async e=>{const open=e.target.closest('[data-cloud-open]'),fav=e.target.closest('[data-cloud-favorite]'),del=e.target.closest('[data-cloud-delete]');try{if(open){const game=await api(`/api/me/games/${open.dataset.cloudOpen}`);$('#accountDialog').close();await importDocument(game.document)}if(fav){await api(`/api/me/games/${fav.dataset.cloudFavorite}/favorite`,{method:'PUT',body:JSON.stringify({favorite:fav.dataset.favorite==='true'})});await refreshCloudGames()}if(del&&confirm('确定删除这份云端棋谱？')){await api(`/api/me/games/${del.dataset.cloudDelete}`,{method:'DELETE'});await refreshCloudGames()}}catch(error){toast(error.message)}};
 $('#analyzeReplayButton').onclick=runAnalysis;$('#analysisMoveList').onclick=e=>{const item=e.target.closest('[data-analysis-ply]');if(item){$('#analysisDialog').close();if(!replayDialog.open)openReplay();setReplayIndex(Number(item.dataset.analysisPly))}};$('#analysisNoteToggle').onclick=()=>{const helper=$('#analysisNoteHelper');helper.hidden=!helper.hidden;$('#analysisNoteToggle').setAttribute('aria-expanded',String(!helper.hidden))};
-$('#trainingButton').onclick=()=>openTraining();document.querySelector('.training-filters').onclick=e=>{const level=e.target.closest('[data-puzzle-level]');if(level){document.querySelectorAll('[data-puzzle-level]').forEach(button=>button.classList.toggle('active',button===level));openTraining(level.dataset.puzzleLevel)}};$('#puzzleList').onclick=e=>{const item=e.target.closest('[data-puzzle-id]');if(item)selectPuzzle(item.dataset.puzzleId)};$('#puzzleStartButton').onclick=startPuzzle;$('#dailyPuzzleButton').onclick=openDaily;refreshDailyButton();
+$('#trainingButton').onclick=()=>openTraining();document.querySelector('.training-filters').onclick=e=>{const level=e.target.closest('[data-puzzle-level]');if(level){document.querySelectorAll('[data-puzzle-level]').forEach(button=>button.classList.toggle('active',button===level));openTraining(level.dataset.puzzleLevel)}};$('#puzzleList').onclick=e=>{const item=e.target.closest('[data-puzzle-id]');if(item)selectPuzzle(item.dataset.puzzleId)};$('#puzzleStartButton').onclick=startPuzzle;$('#dailyPuzzleButton').onclick=openDaily;const streakBtn=$('#streakPuzzleButton');if(streakBtn)streakBtn.onclick=startStreakRun;const skipBtn=$('#streakSkipButton');if(skipBtn)skipBtn.onclick=skipStreakPuzzle;const againBtn=$('#streakAgainButton');if(againBtn)againBtn.onclick=()=>{hideStreakBanner();startStreakRun()};refreshDailyButton();
 loadAppVersion();// C2 两段式提示：先指子、再指招（与桌面 `PuzzleSession.staged_hint` 同构）
 $('#puzzleHintButton').onclick=()=>{
   if(!app.selectedPuzzle)return;
   const session=app.puzzleSession;
+  // 计分态（每日一题 / 连对挑战）屏蔽文字提示；星轨几何层守卫在别处，勿改。
+  if(session&&session.scored)return;
   if(!session){toast(app.selectedPuzzle.hints[0]||'暂无更多提示');return}
   const move=session.solution[session.step];
   if(!move)return;

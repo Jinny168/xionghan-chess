@@ -39,7 +39,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from xionghan_chess.core.puzzles import load_puzzles, move_to_dict  # noqa: E402
+from xionghan_chess.core.puzzles import CHAPTERS, load_puzzles, move_to_dict  # noqa: E402
 
 DATA = ROOT / "src" / "xionghan_chess" / "core" / "data" / "puzzles.json"
 OUTPUT = ROOT / "webapp" / "js" / "data" / "puzzles.js"
@@ -48,6 +48,9 @@ HEADER = """/** 由 scripts/build_web_puzzles.py 生成，**请勿手改**。
  * 数据源：src/xionghan_chess/core/data/puzzles.json（与桌面/服务端/网页旧端同一份题库）。
  * 共 {count} 条；每日一题见 ui/daily.js（按本题库 + 本地日期选题）。
  */
+// 章节顺序单一口径来自 core.CHAPTERS，三端一致（webapp 侧勿另建一份）。
+export const CHAPTER_ORDER = {chapter_order};
+
 export const PUZZLES = """
 
 
@@ -75,6 +78,10 @@ def build_payload() -> list[dict]:
             "pieces": pieces,
             "solution": [move_to_dict(move) for move in puzzle.solution],
             "hints": list(puzzle.hints),
+            # 批次 A：章节与标签透传，webapp 按 CHAPTERS 分组、按 tags 区分守题/特色/自由练习。
+            # 单一口径来自 core 题库，不在 JS 侧重新维护一份章节表。
+            "chapter": puzzle.chapter,
+            "tags": list(puzzle.tags),
         }
         if "drill" in puzzle.tags:
             entry["drill"] = True
@@ -84,7 +91,7 @@ def build_payload() -> list[dict]:
 
 def render(payload: list[dict]) -> str:
     body = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-    return HEADER.format(count=len(payload)) + body + ";\n"
+    return HEADER.format(count=len(payload), chapter_order=json.dumps(list(CHAPTERS), ensure_ascii=False)) + body + ";\n"
 
 
 def main() -> int:

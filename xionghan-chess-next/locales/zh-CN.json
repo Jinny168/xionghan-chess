@@ -571,7 +571,7 @@
     "atlas_restart_later": "稍后",
     "atlas_rule_saved": "规则已保存，重开对局后生效。",
     "daily": "每日一题",
-    "daily_streak": "第 {count} 天",
+    "daily_streak": "坚持 {count} 天",
     "daily_done": "今日已解 · 明天见",
     "drills": "走法练习"
   },
@@ -586,14 +586,30 @@
   },
   "training": {
     "daily": "每日一题",
-    "daily_streak": "第 {count} 天",
+    "daily_streak": "坚持 {count} 天",
     "daily_done": "今日已解，明天见",
-    "daily_solved": "连对 {count} 天",
+    "daily_solved": "坚持 {count} 天",
     "drills": "走法练习",
     "onboard_title": "怎么开始",
     "onboard_1": "1. 先选对手：顶栏可选人机、双人或联机。",
     "onboard_2": "2. 走一步：点自己的棋子，再点落点。",
     "onboard_3": "3. 卡住了：训练里有每日一题，做题时可用「步骤提示」。",
-    "onboard_cta": "开始吧"
+    "onboard_cta": "开始吧",
+    "locked": "先走完〈{chapter}〉",
+    "freeHint": "想熟悉哪枚子就点哪枚",
+    "streak": "连对挑战",
+    "streakSub": "一错即止",
+    "streakBest": "最高连对 {count} 题",
+    "streakEmpty": "还没有可挑战的章节题",
+    "streakSkip": "跳过本题",
+    "streakSkipHint": "想了一会儿了，要不要跳过？",
+    "hintDue": "连续错几次了，要不要看一条提示？",
+    "streakRound": "本轮连对 {count} 题",
+    "streakRecord": "比上次多了 {count} 题",
+    "streakNoRecord": "下一次从第一题重新开始",
+    "streakGap": "还差 {count} 题破纪录",
+    "streakKept": "最高记录保留",
+    "streakPractice": "这只是练习，不影响你的进度",
+    "streakAgain": "再来一局"
   }
 }

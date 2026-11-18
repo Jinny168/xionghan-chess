@@ -81,6 +81,7 @@
         <button type="button" data-act="flip" data-i18n="action.flip">翻转</button>
         <button type="button" data-act="resign" data-i18n="action.resign">认输</button>
         <button type="button" id="puzzleExit" data-act="exitPuzzle" data-i18n="puzzle.exit" hidden>退出</button>
+        <button type="button" id="streakSkipButton" data-act="streakSkip" data-i18n="puzzle.streakSkip" hidden>跳过本题</button>
         <button type="button" class="only-mobile" data-act="replay" data-i18n="nav.replay">复盘</button>
       </div>
     </main>
@@ -460,6 +461,10 @@
         <strong data-i18n="puzzle.daily">每日一题</strong>
         <span id="dailyPuzzleMeta"></span>
       </button>
+      <button type="button" class="puzzle-card streak-card" id="streakPuzzleButton" data-act="streakStart">
+        <strong data-i18n="puzzle.streak">连对挑战</strong>
+        <span id="streakPuzzleMeta"></span>
+      </button>
       <div class="puzzle-list" id="puzzleList"></div>
     </div>
   </dialog>
@@ -495,6 +500,12 @@
       </footer>
     </div>
   </dialog>
+
+  <!-- 连对挑战结束横幅：右下角浮层，不遮棋盘；复用现有配色变量，不新增色值。 -->
+  <div id="streakBanner" role="status" hidden style="position:fixed;right:18px;bottom:18px;z-index:45;max-width:min(340px,86vw);padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--paper,#fbf5e8);box-shadow:0 8px 30px rgba(43,38,32,.18);color:var(--ink,#2b261f);font-size:12.5px;line-height:1.7">
+    <pre id="streakBannerBody" style="margin:0 0 10px;white-space:pre-line;font:inherit"></pre>
+    <button type="button" data-act="streakAgain" data-i18n="puzzle.streakAgain" style="cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:6px 16px;background:var(--seal,#9c2b22);color:#f7efdd">再来一局</button>
+  </div>
 
   <div class="toast" id="toast" role="status"></div>
   <input type="file" id="fileInput" accept=".xhgame,.json,application/json" hidden>

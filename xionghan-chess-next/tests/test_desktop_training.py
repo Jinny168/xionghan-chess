@@ -107,6 +107,25 @@ def test_hint_empty_when_puzzle_has_none() -> None:
     assert session.next_hint() == ""
 
 
+def test_reset_clears_hint_penalty_and_stage() -> None:
+    """重做一题时，提示扣分与提示阶段必须一起归零（批次 A 修真 bug）。
+
+    旧 `reset()` 只重置 cursor/attempts，漏掉 `_hints_shown` 与 `_hint_stage`：
+    玩家看过提示 → 点重做 →  monotone 的 `_hints_shown` 仍带着旧扣分，
+    于是"重做拿 3 星"永远不可能，且第一段提示直接跳过指子。这里先红后绿。
+    """
+    session = training.PuzzleSession(_puzzle((_mv(8, 4, 7, 4),), hints=("一", "二")))
+    session.staged_hint()  # 看一次提示 → _hints_shown=1
+    session.staged_hint()  # 再看一次 → _hint_stage=2
+    assert session._hints_shown == 2 and session._hint_stage == 2
+    session.reset()
+    assert session._hints_shown == 0, "reset 后提示扣分必须归零"
+    assert session._hint_stage == 0, "reset 后提示阶段必须回到第一段"
+    # 干净重做应拿回满星
+    session.submit(_mv(8, 4, 7, 4))
+    assert session.stars == 3
+
+
 def test_session_for_none_means_not_training() -> None:
     assert training.session_for(None) is None
     puzzle = _puzzle((_mv(8, 4, 7, 4),))

@@ -21,6 +21,14 @@ import { resolveRemoteOptions } from './remote-options.js';
 import { pickDaily, todayLocal, readRecord, saveRecord, lazyStreak, solveToday } from './daily.js';
 import * as sound from './sound.js';
 import { t, setLanguage, getLanguage, applyI18n } from '../i18n.js';
+import {
+  CHAPTER_ORDER,
+  starsFor,
+  unlockedChapters,
+  poolFor,
+  softHintDue,
+  chapterSummary,
+} from './training_progress.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -52,6 +60,9 @@ const DEFAULT_PREFS = {
   background: '',
   sideHidden: false,
   customPuzzles: [],
+  // 批次 A：训练进度单键分区。坚持天数仍在 xh-daily，绝不写进这里。
+  // 字段与桌面 / web 旧树逐字一致：stars{id:星} / unlocked[章] / streak.best(题)。
+  training: { stars: {}, unlocked: ['揭竿'], streak: { best: 0 } },
 };
 
 const RULE_LABELS = {
@@ -121,6 +132,8 @@ const app = {
   resurrectTargets: [],
   statsRecorded: false,
   puzzle: null,
+  // 连对挑战会话（一错即止）。scored=true 表示计分态，屏蔽一切提示。
+  streakRun: null,
   analysis: null,
   analysisId: 0,
   online: null,
@@ -140,6 +153,13 @@ function loadPrefs() {
     app.prefs = { ...DEFAULT_PREFS, ...stored };
     app.prefs.options = { ...(stored.options || {}) };
     app.prefs.appear = { ...(stored.appear || {}) };
+    // 训练进度分区：老用户缺字段时补默认，且逐层合并防止缺 streak/unlocked。
+    const tr = stored.training || {};
+    app.prefs.training = {
+      stars: { ...(tr.stars || {}) },
+      unlocked: Array.isArray(tr.unlocked) ? tr.unlocked : ['揭竿'],
+      streak: { best: Number((tr.streak || {}).best) || 0 },
+    };
   } catch {
     app.prefs = { ...DEFAULT_PREFS };
   }
@@ -243,6 +263,10 @@ function startGame({ silent = false } = {}) {
   });
   if (app.unlimited) app.game.state.clocksMs = { red: 0, black: 0 };
   app.puzzle = null;
+  // 开新局时清理连对会话与跳过计时器，防止悬空状态。
+  if (typeof stopStreakTimer === 'function') stopStreakTimer();
+  app.streakRun = null;
+  if (typeof hideStreakBanner === 'function') hideStreakBanner();
   app.analysis = null;
   stopPolling();
   app.online = null;
@@ -635,7 +659,9 @@ function updateHud(state, checkSide) {
   const inOnline = Boolean(app.online);
   const canAct = !isOver(state) && !isReplay && !app.thinking && !state.paused && !inPuzzle;
   $$('.toolbar [data-act="undo"]').forEach((b) => { b.disabled = inPuzzle || inOnline || !app.game.canUndo(1) || isReplay; });
-  $$('.toolbar [data-act="hint"]').forEach((b) => { b.disabled = !canAct || !isHumanTurn(); });
+  // 章节闯关（scored=false）提示按钮可用；计分态（每日/连对，scored=true）禁用。
+  const puzzleHintBlocked = inPuzzle && Boolean(app.puzzle.scored);
+  $$('.toolbar [data-act="hint"]').forEach((b) => { b.disabled = puzzleHintBlocked || !canAct || !isHumanTurn(); });
   $$('.toolbar [data-act="resign"]').forEach((b) => { b.disabled = !canAct; });
   $$('.toolbar [data-act="pause"]').forEach((b) => {
     b.disabled = isOver(state) || isReplay || inPuzzle || inOnline;
@@ -948,6 +974,10 @@ function undo() {
 function hint() {
   if (!app.game || app.thinking) return;
   if (app.puzzle) {
+    // 计分态（每日一题 / 连对挑战）屏蔽一切文字提示；章节闯关可用且计入星级。
+    // 星轨几何层由 render() 的 `&& !app.puzzle` 守卫统一屏蔽，与 scored 无关，勿改。
+    if (app.puzzle.scored) return;
+    app.puzzle.hints = (app.puzzle.hints || 0) + 1; // 章节闯关：文字提示计入扣分
     const list = app.puzzle.data.hints || [];
     const text = list[Math.min(app.puzzle.step, list.length - 1)] || app.puzzle.data.desc;
     toast(t('puzzle.hint', { hint: text }));
@@ -1547,6 +1577,132 @@ function renderStats() {
 
 /** ---------------------------------------------------------------- 残局训练 */
 
+// 训练进度：单键分区 app.prefs.training，字段 {stars, unlocked, streak.best}。
+// 坚持天数在 xh-daily，绝不写进这里；本分区零联网零采集。
+function training() {
+  return app.prefs.training;
+}
+
+function saveTraining() {
+  savePrefs();
+}
+
+function recordStar(id, stars) {
+  const tr = training();
+  // 重做取历史最高星，不取最后一次。
+  tr.stars[id] = Math.max(tr.stars[id] || 0, stars);
+  // 解锁随「解出过」推进（stars>=1 即算解出），重算一遍即可，只增不减。
+  tr.unlocked = unlockedChapters(tr.stars, allPuzzles());
+  saveTraining();
+}
+
+/* -------------------------------------------------------- 连对挑战（一错即止） */
+
+function refreshStreakButton() {
+  const button = $('#streakPuzzleButton');
+  if (!button) return;
+  const meta = $('#streakPuzzleMeta');
+  const best = training().streak.best || 0;
+  if (meta) meta.textContent = best ? t('puzzle.streakBest', { count: best }) : t('puzzle.streakSub');
+}
+
+function todayDailyId() {
+  const puzzle = pickDaily(PUZZLES, todayLocal());
+  return puzzle ? puzzle.id : null;
+}
+
+function startStreakRun() {
+  const tr = training();
+  const pool = poolFor(tr.stars, tr.unlocked, todayDailyId(), allPuzzles());
+  if (!pool.length) {
+    toast(t('puzzle.streakEmpty'));
+    return;
+  }
+  hideDialog('dlgPuzzles');
+  hideStreakBanner();
+  app.streakRun = { correct: 0, pool, used: new Set() };
+  nextStreakPuzzle();
+}
+
+function nextStreakPuzzle() {
+  const run = app.streakRun;
+  if (!run) return;
+  const next = run.pool.find((item) => !run.used.has(item.id));
+  if (!next) {
+    // 一轮池走完（没有重复），按「答对全部」收尾。
+    endStreakRun();
+    return;
+  }
+  run.used.add(next.id);
+  startPuzzle(next, { scored: true, streak: true });
+  startStreakTimer();
+}
+
+// 单题思考超 60 秒柔性提醒「要不要跳过？」——只提醒，不自动结束。
+let streakTimer = null;
+function startStreakTimer() {
+  stopStreakTimer();
+  streakTimer = setTimeout(() => {
+    const skip = $('#streakSkipButton');
+    if (skip) skip.hidden = false;
+    toast(t('puzzle.streakSkipHint'));
+  }, 60000);
+}
+function stopStreakTimer() {
+  if (streakTimer) clearTimeout(streakTimer);
+  streakTimer = null;
+}
+
+function skipStreakPuzzle() {
+  // 跳过算结束、不计错；本轮成绩止于已连续答对数。
+  endStreakRun();
+}
+
+function endStreakRun() {
+  const run = app.streakRun;
+  if (!run) return;
+  stopStreakTimer();
+  const correct = run.correct;
+  const tr = training();
+  const previousBest = tr.streak.best || 0;
+  const isRecord = correct > previousBest;
+  if (isRecord) {
+    tr.streak.best = correct;
+    saveTraining();
+  }
+  app.streakRun = null;
+  app.puzzle = null;
+  const skip = $('#streakSkipButton');
+  if (skip) skip.hidden = true;
+  app.unlimited = Number(app.minutes) === 0;
+  // 重绘一次：让「退出题」按钮、提示按钮等按 inPuzzle=false 复位，避免残留启用态。
+  if (app.game) render();
+  showStreakBanner({ correct, previousBest, isRecord });
+}
+
+function showStreakBanner({ correct, previousBest, isRecord }) {
+  const banner = $('#streakBanner');
+  if (!banner) return;
+  const lines = [t('puzzle.streakRound', { count: correct })];
+  if (isRecord) {
+    lines.push(t('puzzle.streakRecord', { count: correct - previousBest }));
+  } else {
+    lines.push(t('puzzle.streakNoRecord'));
+    const gap = Math.max(1, previousBest - correct + 1);
+    lines.push(t('puzzle.streakGap', { count: gap }));
+  }
+  lines.push(t('puzzle.streakKept'));
+  lines.push(t('puzzle.streakPractice'));
+  const body = $('#streakBannerBody');
+  if (body) body.textContent = lines.join('\n');
+  banner.hidden = false;
+}
+
+function hideStreakBanner() {
+  const banner = $('#streakBanner');
+  if (banner) banner.hidden = true;
+}
+
 function solvedIds() {
   try {
     return new Set(JSON.parse(localStorage.getItem(SOLVED_KEY) || '[]'));
@@ -1602,6 +1758,9 @@ function openDaily() {
   if (streak !== (record.streak || 0)) saveRecord({ ...record, streak });
   app.dailyDay = today;
   startPuzzle(puzzle);
+  // 每日一题是计分态：scored=true，屏蔽文字提示、不计星（连续性记在 xh-daily）。
+  // 保持 startPuzzle(puzzle) 调用形态（test_webapp_daily 的字面量守卫），随后就地标记并重绘。
+  if (app.puzzle) { app.puzzle.scored = true; render(); }
 }
 
 function recordDailySolved(data) {
@@ -1623,39 +1782,114 @@ function allPuzzles() {
 
 function renderPuzzleList() {
   refreshDailyButton();
+  refreshStreakButton();
   const root = $('#puzzleList');
   root.innerHTML = '';
+  const tr = training();
   const solved = solvedIds();
-  const groups = ['beginner', 'advanced', 'master', 'tactics', 'custom'];
   const pool = allPuzzles();
-  for (const level of groups) {
-    const items = pool.filter((p) => p.level === level);
-    if (!items.length) continue;
-    const title = document.createElement('div');
-    title.className = 'puzzle-group';
-    title.textContent = level === 'custom' ? t('puzzle.customGroup') : t(`puzzle.level.${level}`);
-    root.append(title);
-    for (const item of items) {
-      const card = document.createElement('button');
-      card.type = 'button';
-      card.className = `puzzle-card${solved.has(item.id) ? ' solved' : ''}`;
-      const strong = document.createElement('strong');
-      strong.textContent = item.title;
-      const desc = document.createElement('span');
-      desc.textContent = item.desc;
-      card.append(strong, desc);
-      if (solved.has(item.id)) {
-        const tag = document.createElement('em');
-        tag.textContent = t('puzzle.solvedTag');
-        strong.append(tag);
-      }
-      card.onclick = () => startPuzzle(item);
-      root.append(card);
+  const unlocked = unlockedChapters(tr.stars, pool);
+  const summary = chapterSummary(tr.stars, unlocked, pool);
+
+  // 五章按 CHAPTER_ORDER：章节 tile（复用 .puzzle-card 语言），锁定态不可点。
+  for (const info of summary) {
+    const header = document.createElement('div');
+    header.className = 'puzzle-group';
+    const starText = `${'★'.repeat(info.stars)}${'☆'.repeat(Math.max(0, info.max - info.stars))}`;
+    header.textContent = `${info.chapter} · ${info.solved}/${info.total} · ${starText}`;
+    root.append(header);
+    const chapterItems = pool.filter((item) => item.chapter === info.chapter && !(item.tags || []).includes('drill'));
+    if (!info.unlocked) {
+      // 锁定章节：整章一个禁用 tile，文案「先走完〈前一章〉」（不出现"尚未解锁"）。
+      const locked = document.createElement('button');
+      locked.type = 'button';
+      locked.className = 'puzzle-card locked';
+      locked.disabled = true;
+      const prev = prevChapter(info.chapter);
+      locked.textContent = `🔒 ${t('puzzle.locked', { chapter: prev })}`;
+      root.append(locked);
+      continue;
     }
+    for (const item of chapterItems) {
+      root.append(puzzleCard(item, tr, solved));
+    }
+  }
+
+  // 自由练习：13 条 drill，按标签分组、不限序、不计星、不进连对池。
+  const drills = pool.filter((item) => (item.tags || []).includes('drill') && !item.chapter);
+  if (drills.length) {
+    const header = document.createElement('div');
+    header.className = 'puzzle-group';
+    header.textContent = t('puzzle.freeTitle');
+    root.append(header);
+    const hintLine = document.createElement('p');
+    hintLine.className = 'hint';
+    hintLine.textContent = t('puzzle.freeHint');
+    root.append(hintLine);
+    const byTag = new Map();
+    for (const item of drills) {
+      const key = drillGroup(item);
+      if (!byTag.has(key)) byTag.set(key, []);
+      byTag.get(key).push(item);
+    }
+    for (const [group, items] of byTag) {
+      const sub = document.createElement('div');
+      sub.className = 'puzzle-group';
+      sub.textContent = group;
+      root.append(sub);
+      for (const item of items) root.append(puzzleCard(item, tr, solved));
+    }
+  }
+
+  // 自定义题库（用户导入）保持原有入口，独立于章节体系。
+  const custom = pool.filter((item) => item.level === 'custom' || item.start === 'initial');
+  if (custom.length) {
+    const header = document.createElement('div');
+    header.className = 'puzzle-group';
+    header.textContent = t('puzzle.customGroup');
+    root.append(header);
+    for (const item of custom) root.append(puzzleCard(item, tr, solved));
   }
 }
 
-function startPuzzle(data) {
+function puzzleCard(item, tr, solved) {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = `puzzle-card${solved.has(item.id) ? ' solved' : ''}`;
+  const strong = document.createElement('strong');
+  strong.textContent = item.title;
+  const star = tr.stars[item.id] || 0;
+  if (star > 0) strong.textContent += ` ${'★'.repeat(star)}${'☆'.repeat(3 - star)}`;
+  const desc = document.createElement('span');
+  desc.textContent = item.desc;
+  card.append(strong, desc);
+  if (solved.has(item.id)) {
+    const tag = document.createElement('em');
+    tag.textContent = t('puzzle.solvedTag');
+    strong.append(tag);
+  }
+  card.onclick = () => startPuzzle(item, { scored: false });
+  return card;
+}
+
+function prevChapter(chapter) {
+  const index = CHAPTER_ORDER.indexOf(chapter);
+  return index > 0 ? CHAPTER_ORDER[index - 1] : CHAPTER_ORDER[0];
+}
+
+function drillGroup(item) {
+  const tags = item.tags || [];
+  const priority = ['兵卒', '炮', '马', '射', '巡', '檑', '尉', '布局', '吃子'];
+  return priority.find((key) => tags.includes(key)) || (t('puzzle.freeOther'));
+}
+
+function startPuzzle(data, { scored = false, streak = false } = {}) {
+  // 非连对入口（章节题/每日题/自定义）要清掉上一轮可能残留的连对会话与计时器，
+  // 避免连对中途切走后状态悬空。连对内部推进走 nextStreakPuzzle，不经这里清。
+  if (!streak) {
+    if (typeof stopStreakTimer === 'function') stopStreakTimer();
+    app.streakRun = null;
+  }
   const profile = getProfile(data.profileId);
   const options = mergeOptions(profile.options, app.prefs.options);
   let game;
@@ -1671,7 +1905,9 @@ function startPuzzle(data) {
 
   app.game = game;
   app.unlimited = true;
-  app.puzzle = { data, step: 0 };
+  // scored=true：计分态（每日/连对），屏蔽文字提示、不计星；
+  // scored=false：章节闯关，文字提示可用且计入星级。
+  app.puzzle = { data, step: 0, scored, streak, misses: 0, hints: 0, consecutiveMisses: 0 };
   app.humanColor = data.turn || game.state.turn;
   app.flipped = app.humanColor === 'black';
   app.anim = null;
@@ -1701,7 +1937,19 @@ function checkPuzzle(record) {
   }
 
   if (!ok) {
+    app.puzzle.misses = (app.puzzle.misses || 0) + 1;
+    app.puzzle.consecutiveMisses = (app.puzzle.consecutiveMisses || 0) + 1;
+    // 连对挑战：一错即止，立即结束本轮（不计星、本轮成绩止于此前答对数）。
+    if (app.puzzle.streak) {
+      stopStreakTimer();
+      setTimeout(() => endStreakRun(), 380);
+      return;
+    }
     toast(t('puzzle.wrong'));
+    // 章节闯关：连续错 ≥5 次软引导「要不要看一条提示？」（不强制）。
+    if (!app.puzzle.scored && softHintDue(app.puzzle.consecutiveMisses)) {
+      setTimeout(() => toast(t('puzzle.hintDue')), 420);
+    }
     setTimeout(() => {
       try { app.game.undo(1); } catch { /* 忽略 */ }
       clearSelection();
@@ -1710,10 +1958,23 @@ function checkPuzzle(record) {
     return;
   }
 
+  app.puzzle.consecutiveMisses = 0;
   app.puzzle.step += 1;
   const total = data.type === 'mate' ? 1 : (data.solution.length || 1);
   if (app.puzzle.step >= total) {
+    // 连对挑战：本题答对，连续数 +1，直接推进下一题（不计星）。
+    if (app.puzzle.streak && app.streakRun) {
+      app.streakRun.correct += 1;
+      sound.play('win');
+      stopStreakTimer();
+      setTimeout(() => nextStreakPuzzle(), 500);
+      return;
+    }
     markSolved(data.id);
+    // 章节闯关（scored=false）：按 misses+hints 记星，重做取最高。
+    if (!app.puzzle.scored) {
+      recordStar(data.id, starsFor(app.puzzle.misses, app.puzzle.hints));
+    }
     recordDailySolved(data);
     sound.play('win');
     toast(t('puzzle.success'));
@@ -1725,6 +1986,10 @@ function checkPuzzle(record) {
 
 function exitPuzzle() {
   if (!app.puzzle) return;
+  if (app.puzzle.streak) {
+    endStreakRun();
+    return;
+  }
   app.puzzle = null;
   app.unlimited = Number(app.minutes) === 0;
   startGame({ silent: true });
@@ -2252,6 +2517,9 @@ function bindGlobal() {
       if (name === 'library') { renderLibrary(); showDialog('dlgLibrary'); }
       if (name === 'puzzles') { renderPuzzleList(); showDialog('dlgPuzzles'); }
       if (name === 'exitPuzzle') exitPuzzle();
+      if (name === 'streakStart') startStreakRun();
+      if (name === 'streakSkip') skipStreakPuzzle();
+      if (name === 'streakAgain') { hideStreakBanner(); startStreakRun(); }
       if (name === 'analyze') runAnalysis();
       if (name === 'fullscreen') toggleFullscreen();
       if (name === 'pickBackground') $('#bgFile').click();
