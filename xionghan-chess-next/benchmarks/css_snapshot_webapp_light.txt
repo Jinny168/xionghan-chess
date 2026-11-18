@@ -278,6 +278,18 @@ button:focus-visible, select:focus-visible, input:focus-visible|outline-offset|2
 .meta-block dt|color|#9a8f80
 .meta-block dd|margin|0
 .meta-block dd|color|#6d6255
+.meta-details|margin|0 0 12px
+.meta-details summary|cursor|pointer
+.meta-details summary|list-style|none
+.meta-details summary|font-size|12px
+.meta-details summary|color|#9a8f80
+.meta-details summary::-webkit-details-marker|display|none
+.meta-details summary::before|content|'▸'
+.meta-details summary::before|margin-right|6px
+.meta-details[open] summary::before|content|'▾'
+.meta-details dl|margin-top|10px
+.more-details|margin-bottom|0
+.more-details .meta-actions|margin-top|10px
 .meta-actions|display|grid
 .meta-actions|grid-template-columns|repeat(2, minmax(0, 1fr))
 .meta-actions|gap|8px
