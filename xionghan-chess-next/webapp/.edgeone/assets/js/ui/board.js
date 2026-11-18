@@ -373,16 +373,20 @@ export class BoardRenderer {
     if (!last) return;
     const ctx = this.ctx;
     const { cell } = geom;
+    // 与 web 旧树 cellFrame / 桌面 LAST_MOVE_* 同参数：格内圆角方框，内缩 5%、
+    // 圆角 16%、盘线色；起点 0.25、落点 0.30 稍重以区分起讫。
+    const inset = cell * 0.05;
+    const radius = cell * 0.16;
+    const size = cell - inset * 2;
     ctx.save();
-    for (const [point, alpha] of [[last.source, 0.3], [last.target, 0.42]]) {
+    ctx.fillStyle = theme.line;
+    for (const [point, alpha] of [[last.source, 0.25], [last.target, 0.30]]) {
       const { x, y } = this.screenPos(point.row, point.col, view);
-      ctx.fillStyle = `rgba(196,146,44,${alpha})`;
-      ctx.beginPath();
-      ctx.arc(x, y, cell * 0.46, 0, Math.PI * 2);
+      ctx.globalAlpha = alpha;
+      roundRect(ctx, x - cell / 2 + inset, y - cell / 2 + inset, size, size, radius);
       ctx.fill();
     }
     ctx.restore();
-    void theme;
   }
 
   drawSelection(view, theme, geom) {

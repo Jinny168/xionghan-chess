@@ -172,7 +172,7 @@
       "unit": "cell",
       "compare": false,
       "verdict": "form",
-      "note": "桌面与 web 旧树**已对齐**：格内圆角方框、内缩 5%、圆角 16%、盘线色。webapp 仍是半径 0.46 格的圆盘 + 固定金色，与棋子同心被遮、且不跟主题令牌。这是本清单第 1 优先对齐项。",
+      "note": "三端已一致：桌面 / web 旧树 / webapp 均为格内圆角方框（内缩 5%、圆角 16%、盘线色）。webapp 本轮 B1 由圆盘 + 固定金色对齐到同参数；方框四角与圆棋子不同心，两个端点都读得出来。",
       "ends": {
         "desktop": {
           "lit": "LAST_MOVE_INSET = {}",
@@ -185,9 +185,9 @@
           "value": 0.05
         },
         "webapp": {
-          "lit": "for (const [point, alpha] of [[last.source, 0.3], [last.target, {}]])",
-          "raw": 0.42,
-          "value": 0.42
+          "lit": "const inset = cell * {};",
+          "raw": 0.05,
+          "value": 0.05
         }
       }
     },
@@ -196,8 +196,8 @@
       "name": "上一步标记不透明度",
       "unit": "alpha",
       "compare": true,
-      "verdict": "drift",
-      "note": "桌面 64/255≈0.251、web 旧树 0.25（两端已对齐）；webapp 起点 .30 / 落点 .42 两档，破了「上一步是全场最弱标注」的层级：它比对局中的选中环还抢眼。",
+      "verdict": "aligned",
+      "note": "桌面 64/255≈0.251、web 旧树 0.25、webapp 起点 0.25（落点 0.30 稍重以区分起讫），三端极差 ≈0.001，已对齐；上一步仍是全场最弱标注之一。",
       "ends": {
         "desktop": {
           "lit": "LAST_MOVE_ALPHA = {}",
@@ -214,8 +214,8 @@
         },
         "webapp": {
           "lit": "[last.source, {}]",
-          "raw": 0.3,
-          "value": 0.3
+          "raw": 0.25,
+          "value": 0.25
         }
       }
     },
@@ -267,7 +267,7 @@
           "lit": "ctx.arc(x, y, cell * {}",
           "raw": 0.145,
           "value": 0.145,
-          "index": 3
+          "index": 2
         }
       }
     },
@@ -293,7 +293,7 @@
           "lit": "ctx.arc(x, y, cell * {}",
           "raw": 0.45,
           "value": 0.45,
-          "index": 2
+          "index": 1
         }
       }
     },
