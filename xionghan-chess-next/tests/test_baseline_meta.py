@@ -134,3 +134,22 @@ def test_ai_config_digest_declares_its_confidence() -> None:
     assert digest["method"] == "recomputed"
     assert digest["provenance"].startswith("E2")
     assert digest["a"] and digest["b"] and digest["a"] != digest["b"]
+
+
+def test_digest_is_anchored_to_recorded_commit_and_keeps_legacy_label() -> None:
+    """指纹必须锚定记录 commit 的旧口径，不能被当前 CONFIGS 漂移改写。
+
+    历史教训：曾有人为让「回填脚本按当前 CONFIGS 复算」变绿，把 n=64 基线的 beginner
+    指纹从 0.55 口径（`b014d8072e5a7c7d`）改成 0.18 口径 —— 等于把「当时跑的配置」抹成
+    「现在的配置」，会让新口径基线被误判成与这份旧基线配置可比。这里钉住：锚定 commit、
+    旧口径留痕说明、以及旧指纹本身，三者缺一即红。
+    """
+    meta = _meta()
+    digest = meta["aiConfigDigest"]
+    assert digest["anchorCommit"] == meta["source"]["commit"] == "33e8fab"
+    note = digest["legacyNote"]
+    assert "0.55" in note and "0.18" in note and "等价比较" in note
+    # 0.55 两层串行口径的 beginner 指纹（锚定 33e8fab 派生，脚本 --check 复算一致）。
+    assert digest["a"] == "b014d8072e5a7c7d"
+    # medium 摘要未随 D4 改动。
+    assert digest["b"] == "0004d697df110392"

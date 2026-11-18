@@ -1,9 +1,11 @@
 {
   "aiConfigDigest": {
-    "a": "91f67b4c9afa682a",
+    "a": "b014d8072e5a7c7d",
+    "anchorCommit": "33e8fab",
     "b": "0004d697df110392",
+    "legacyNote": "本 run 为 §15 之前口径：beginner randomness=0.55 两层串行；已由 D4 单层软取样（randomness=0.18）取代；本基线不与新口径基线做配置等价比较",
     "method": "recomputed",
-    "provenance": "E2：depth/time_limit/max_nodes 由产物交叉验证与 CONFIGS 一致；root_limit 等 6 项无产物可验、无 --config-* 侧车，按默认值推断"
+    "provenance": "E2：depth/time_limit/max_nodes 由产物交叉验证与记录 commit 的 CONFIGS 一致；root_limit 等 6 项无产物可验、无 --config-* 侧车，按默认值推断；指纹按 anchorCommit 源码派生，不按当前工作树 CONFIGS 复算"
   },
   "backfilled": true,
   "fields": {
