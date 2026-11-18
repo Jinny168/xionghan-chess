@@ -21,6 +21,13 @@ import { resolveRemoteOptions } from './remote-options.js';
 import { pickDaily, todayLocal, readRecord, saveRecord, lazyStreak, solveToday } from './daily.js';
 import * as sound from './sound.js';
 import { t, setLanguage, getLanguage, applyI18n } from '../i18n.js';
+
+// 系统级「减少动态」偏好。与用户手动关闭 `preferences.animation` 是两条独立口径：
+// 这里只读媒体查询命中与否，不改用户偏好开关；命中时落子改淡入、将军脉冲关闭。
+function systemReducedMotion() {
+  return typeof window !== 'undefined' && typeof matchMedia === 'function'
+    && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 import {
   CHAPTER_ORDER,
   starsFor,
@@ -579,6 +586,7 @@ function render() {
     lastMove: isReplay ? replayLastMove() : app.lastMove,
     checkSide: isReplay ? null : (app.game.rules.inCheck(state, state.turn) ? state.turn : null),
     anim: isReplay ? null : app.anim,
+    reducedMotion: systemReducedMotion(),
     showCoordinates: false,
     showMarks: !app.puzzle,
   });

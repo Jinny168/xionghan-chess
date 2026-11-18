@@ -100,6 +100,11 @@ ANIMATION_FRAMES = 16
 # 将军脉冲保持原来的 600ms 观感（24 帧 × 25ms）：换成 20ms 定时器后 = 600/20 = 30 帧。
 CHECK_PULSE_FRAMES = 30
 
+# 系统级「减少动态」(prefers-reduced-motion) 桌面入口：PySide6 6.12 的 QStyleHints
+# 未暴露 reduced-motion / 关闭动效属性（仅 colorScheme、useHoverEffects 等），Qt 平台
+# 主题也读不到 Windows「在 Windows 中显示动画」开关。桌面端暂以既有用户开关
+# `config.animations` 为准，**系统级入口列为待办**，不臆造一个开关充数。
+
 # 上一步起讫格（D1）：**必须弱于将军标注**，所以三件事都不跟将军抢：
 #   ① 画在最前面（将军/选择/可走点依次压在上面，重叠时将军一定在上）；
 #   ② 没有脉冲、没有描边、没有文字；

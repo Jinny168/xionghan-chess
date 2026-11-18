@@ -516,13 +516,22 @@ export class BoardRenderer {
     ctx.restore();
 
     if (view.checkSide === piece.color && piece.type === 'king') {
-      const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 260);
       ctx.save();
-      ctx.strokeStyle = `rgba(200,40,30,${0.5 + pulse * 0.45})`;
-      ctx.lineWidth = Math.max(2, cell * 0.05);
-      ctx.beginPath();
-      ctx.arc(x, y, r * (1.1 + pulse * 0.06), 0, Math.PI * 2);
-      ctx.stroke();
+      if (view.reducedMotion) {
+        // 系统减少动态：静态环，不做正弦脉冲。
+        ctx.strokeStyle = 'rgba(200,40,30,.5)';
+        ctx.lineWidth = Math.max(2, cell * 0.05);
+        ctx.beginPath();
+        ctx.arc(x, y, r * 1.1, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 260);
+        ctx.strokeStyle = `rgba(200,40,30,${0.5 + pulse * 0.45})`;
+        ctx.lineWidth = Math.max(2, cell * 0.05);
+        ctx.beginPath();
+        ctx.arc(x, y, r * (1.1 + pulse * 0.06), 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.restore();
     }
   }
@@ -578,12 +587,18 @@ export class BoardRenderer {
     const eased = 1 - (1 - t) ** 3;
     const from = this.screenPos(anim.from.row, anim.from.col, view);
     const to = this.screenPos(anim.to.row, anim.to.col, view);
-    const x = from.x + (to.x - from.x) * eased;
-    const y = from.y + (to.y - from.y) * eased;
     const ctx = this.ctx;
     ctx.save();
-    ctx.globalAlpha = 1;
-    this.drawPiece(ctx, anim.piece, x, y, geom, theme, view);
+    if (view.reducedMotion) {
+      // 系统减少动态：不做位移动画，只在落点淡入。
+      ctx.globalAlpha = Math.max(0, Math.min(1, t));
+      this.drawPiece(ctx, anim.piece, to.x, to.y, geom, theme, view);
+    } else {
+      const x = from.x + (to.x - from.x) * eased;
+      const y = from.y + (to.y - from.y) * eased;
+      ctx.globalAlpha = 1;
+      this.drawPiece(ctx, anim.piece, x, y, geom, theme, view);
+    }
     if (anim.capture) {
       const { x: cx, y: cy } = to;
       ctx.globalAlpha = (1 - t) * 0.7;
