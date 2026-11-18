@@ -47,10 +47,10 @@
 
 ### 三端视觉对齐清单（2026-11-18，P1-8）
 
-- **清单即数据**：`docs/visual_alignment_ledger.json` 是权威（13 行 × 桌面/web/webapp 三端），`docs/VISUAL_ALIGNMENT_TRIAD.md` 是叙述，`tests/test_visual_alignment_triad.py` 是门禁。三者**必须成对更新**，守卫会查「每个 id 与名称都出现在叙述文档里」。
+- **清单即数据**：`docs/visual_alignment_ledger.json` 是权威（14 行 × 桌面/web/webapp 三端），`docs/VISUAL_ALIGNMENT_TRIAD.md` 是叙述，`tests/test_visual_alignment_triad.py` 是门禁。三者**必须成对更新**，守卫会查「每个 id 与名称都出现在叙述文档里」。
 - **门禁判档**：三端数值极差 ≤0.005 → `aligned`、≤0.02 → `minor`，否则 `drift`；不可比记 `form`。记的是**现状快照**，把三端对齐了同样会红 —— 改值必须先改清单再改代码。
 - **片段模板口径**：`lit` 恰好一个 `{}`，`{}` 要紧贴数字起点（源码大量 `*.5` 省略前导零；写成 `*.{}` 会抠成 `5`）；正则由 `re.escape` 生成，允许以点开头；同一 minified 文件里同名片段多处时用 `index` 指名第几处（`VA-02` web=3、`VA-08` web=1、`VA-09/10/11` webapp=0/3/2、`VA-13` webapp=1）。
-- **已知真漂移（不是缺陷记录就完事，是待裁决项）**：VA-07 webapp 上一步仍是圆盘 + 固定金色（第一优先）；VA-10 可走点 0.13/0.10/0.145；VA-12 动画 460/900/190ms（web 旧树 900ms 是历史包袱）；VA-02 盘半径 0.39/0.39/0.42。
+- **漂移收口状态（2026-11-18 D3 后）**：VA-02/04/05/11 已三端对齐，清单 drift=0；现存分档 aligned 9 / minor 2（VA-03/09）/ form 3（VA-01/06/07）。
 - **不做像素基线**：webapp canvas 无基线，无头浏览器要处理字体/DPR/抗锯齿三处非确定 → 渲染结果层标「仅人工验收」（M-1…M-7）。
 - **两条线纪律（星轨 vs 文字提示）**：星轨几何层按「有没有在答题」屏蔽（三端判据 `app.puzzleSession` / `!app.puzzle` / `puzzle_session is None`）；文字提示层按 `scored` 分流。**判据不许合并**，合并即回退（2026-11-18 已在工作树抓到一次 `!app.puzzle.scored`，常规对局会 TypeError 且章节闯关会放出星轨）。
 
