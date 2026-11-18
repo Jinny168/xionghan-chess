@@ -322,10 +322,10 @@ function handleSquare(point) {
       clearSelection();
       render();
       saveSession();
-      toast(t('action.resurrect'));
+      toast(t('action.resurrect'), 'success');
       setTimeout(maybeAI, 160);
     } catch {
-      toast(t('toast.illegal'));
+      toast(t('toast.illegal'), 'warn');
     }
     return;
   }
@@ -359,7 +359,7 @@ function commitMove(move) {
   if (app.online) {
     net.sendMove(app.online.code, app.online.color, move)
       .then((data) => applyRemote(data, true))
-      .catch(() => toast(t('online.moveRejected')));
+      .catch(() => toast(t('online.moveRejected'), 'error'));
     return;
   }
   const state = app.game.state;
@@ -376,7 +376,7 @@ function commitMove(move) {
     record = app.game.move(move);
   } catch (error) {
     if (error instanceof GameError) {
-      toast(t('toast.illegal'));
+      toast(t('toast.illegal'), 'warn');
       return;
     }
     throw error;
@@ -770,7 +770,7 @@ function updateAnalysisProgress({ done, total }) {
 
 function analysisFailed() {
   $('#analysisProgress').hidden = true;
-  toast(t('analysis.failed'));
+  toast(t('analysis.failed'), 'error');
 }
 
 /** 逐手分析：把每个局面交给工作线程跑一次浅层搜索，取根着法分数。 */
@@ -961,13 +961,13 @@ function undo() {
     sound.play('undo');
     render();
     saveSession();
-    toast(t('toast.undone'));
+    toast(t('toast.undone'), 'success');
     // 悔棋后如果轮到棋灵，继续让它走，避免卡住
     if (app.mode === 'ai' && app.game.state.turn !== app.humanColor) {
       setTimeout(maybeAI, 180);
     }
   } catch {
-    toast(t('toast.noUndo'));
+    toast(t('toast.noUndo'), 'warn');
   }
 }
 
@@ -990,7 +990,7 @@ function hint() {
     app.thinking = false;
     $('#thinking').hidden = true;
     if (!result.move) {
-      toast(t('toast.noHint'));
+      toast(t('toast.noHint'), 'warn');
       return;
     }
     const moving = app.game.state.pieces.find(
@@ -1194,7 +1194,7 @@ function clearBackground() {
   app.prefs.background = '';
   applyBackground();
   savePrefs();
-  toast(t('settings.clearBackground'));
+  toast(t('settings.clearBackground'), 'success');
 }
 
 async function handleBackgroundFile(file) {
@@ -1210,14 +1210,14 @@ async function handleBackgroundFile(file) {
     let data = canvas.toDataURL('image/jpeg', 0.82);
     if (data.length > 1_600_000) data = canvas.toDataURL('image/jpeg', 0.68);
     if (data.length > 1_900_000) {
-      toast(t('settings.bgTooBig'));
+      toast(t('settings.bgTooBig'), 'warn');
       return;
     }
     app.prefs.background = data;
     applyBackground();
     savePrefs();
   } catch {
-    toast(t('settings.bgTooBig'));
+    toast(t('settings.bgTooBig'), 'warn');
   }
 }
 
@@ -1274,16 +1274,16 @@ async function handlePuzzleFile(file) {
     const text = await file.text();
     const parsed = normalizePuzzles(JSON.parse(text));
     if (!parsed || !parsed.length) {
-      toast(t('puzzle.importFailed'));
+      toast(t('puzzle.importFailed'), 'error');
       return;
     }
     const merged = [...(app.prefs.customPuzzles || []), ...parsed].slice(-30);
     app.prefs.customPuzzles = merged;
     savePrefs();
     renderPuzzleList();
-    toast(t('puzzle.imported', { n: parsed.length }));
+    toast(t('puzzle.imported', { n: parsed.length }), 'success');
   } catch {
-    toast(t('puzzle.importFailed'));
+    toast(t('puzzle.importFailed'), 'error');
   }
 }
 
@@ -1292,7 +1292,7 @@ function toggleFullscreen() {
     document.exitFullscreen?.();
     return;
   }
-  document.documentElement.requestFullscreen?.().catch(() => toast(t('toast.fullscreenFailed')));
+  document.documentElement.requestFullscreen?.().catch(() => toast(t('toast.fullscreenFailed'), 'warn'));
 }
 
 function openOnlineDialog() {
@@ -1315,7 +1315,7 @@ async function createOnlineRoom() {
     const data = await net.createRoom(app.prefs.profileId);
     enterOnline(data, 'red');
   } catch {
-    toast(t('online.failed'));
+    toast(t('online.failed'), 'error');
   }
 }
 
@@ -1323,14 +1323,14 @@ async function joinOnlineRoom() {
   const input = $('#roomInput');
   const code = (input.value || '').trim().toUpperCase();
   if (code.length !== 4) {
-    toast(t('online.badCode'));
+    toast(t('online.badCode'), 'warn');
     return;
   }
   try {
     const data = await net.joinRoom(code);
     enterOnline(data, 'black');
   } catch (error) {
-    toast(error.status === 409 ? t('online.full') : t('online.notFound'));
+    toast(error.status === 409 ? t('online.full') : t('online.notFound'), 'warn');
   }
 }
 
@@ -1350,7 +1350,7 @@ function enterOnline(data, color) {
 function copyRoomCode() {
   if (!app.online) return;
   navigator.clipboard?.writeText(app.online.code).then(
-    () => toast(t('online.copied')),
+    () => toast(t('online.copied'), 'success'),
     () => toast(app.online.code),
   );
 }
@@ -1371,7 +1371,7 @@ function startPolling() {
       if (data.finished) return;
     } catch (error) {
       if (error.status === 404 || error.status === 410) {
-        toast(t('online.roomClosed'));
+        toast(t('online.roomClosed'), 'error');
         leaveOnline(false);
         return;
       }
@@ -1447,7 +1447,7 @@ function canResurrect() {
 
 function enterResurrect() {
   if (!canResurrect()) {
-    toast(t('toast.noResurrect'));
+    toast(t('toast.noResurrect'), 'warn');
     return;
   }
   const state = app.game.state;
@@ -1459,7 +1459,7 @@ function enterResurrect() {
     }
   }
   if (!app.resurrectTargets.length) {
-    toast(t('toast.noResurrect'));
+    toast(t('toast.noResurrect'), 'warn');
     return;
   }
   app.resurrecting = true;
@@ -1498,7 +1498,7 @@ function offerDraw() {
   }
   state.draw = true;
   state.resultReason = 'draw_agreement';
-  toast(t('draw.accepted'));
+  toast(t('draw.accepted'), 'success');
   render();
   setTimeout(onGameFinished, 260);
 }
@@ -1615,7 +1615,7 @@ function startStreakRun() {
   const tr = training();
   const pool = poolFor(tr.stars, tr.unlocked, todayDailyId(), allPuzzles());
   if (!pool.length) {
-    toast(t('puzzle.streakEmpty'));
+    toast(t('puzzle.streakEmpty'), 'warn');
     return;
   }
   hideDialog('dlgPuzzles');
@@ -1750,7 +1750,7 @@ function refreshDailyButton() {
 function openDaily() {
   const today = todayLocal();
   const puzzle = pickDaily(PUZZLES, today);
-  if (!puzzle) return toast(t('puzzle.daily_empty'));
+  if (!puzzle) return toast(t('puzzle.daily_empty'), 'warn');
   const record = readRecord();
   if (record.day === today && record.done) return toast(t('puzzle.daily_done'));
   // 惰性归零：昨天开了没做完 / 断了两天以上 → 连续归零（与桌面端同一口径）
@@ -1771,7 +1771,7 @@ function recordDailySolved(data) {
   const next = solveToday(record, app.dailyDay, puzzle);
   saveRecord(next);
   app.dailyDay = null;
-  toast(t('puzzle.daily_solved', { count: next.streak }));
+  toast(t('puzzle.daily_solved', { count: next.streak }), 'success');
   refreshDailyButton();
 }
 
@@ -1945,7 +1945,7 @@ function checkPuzzle(record) {
       setTimeout(() => endStreakRun(), 380);
       return;
     }
-    toast(t('puzzle.wrong'));
+    toast(t('puzzle.wrong'), 'warn');
     // 章节闯关：连续错 ≥5 次软引导「要不要看一条提示？」（不强制）。
     if (!app.puzzle.scored && softHintDue(app.puzzle.consecutiveMisses)) {
       setTimeout(() => toast(t('puzzle.hintDue')), 420);
@@ -1977,7 +1977,7 @@ function checkPuzzle(record) {
     }
     recordDailySolved(data);
     sound.play('win');
-    toast(t('puzzle.success'));
+    toast(t('puzzle.success'), 'success');
     setTimeout(() => exitPuzzle(), 1100);
   } else {
     toast(t('puzzle.progress', { n: app.puzzle.step + 1, total }));
@@ -1998,7 +1998,7 @@ function exitPuzzle() {
 function resetStats() {
   saveStats(emptyStats());
   renderStats();
-  toast(t('settings.reset'));
+  toast(t('settings.reset'), 'success');
 }
 
 /* ---------------------------------------------------------------- 会话持久化 */
@@ -2064,12 +2064,19 @@ function hideDialog(id) {
   else dialog.removeAttribute('open');
 }
 
-function toast(message) {
+// 反馈分级：info（状态提示，默认）/ success（已完成动作）/ warn（操作被拒或需注意）/ error（解析或请求失败）。
+// 形状线索（✓ / i / ! / ×）由 CSS ::before 给出，颜色不是唯一载体；时长按等级写死常量。
+const TOAST_LEVELS = ['info', 'success', 'warn', 'error'];
+const TOAST_DURATION = { info: 2200, success: 2200, warn: 2600, error: 3200 };
+
+function toast(message, level = 'info') {
   const node = $('#toast');
+  const safeLevel = TOAST_LEVELS.includes(level) ? level : 'info';
   node.textContent = message;
-  node.classList.add('show');
+  node.classList.remove('toast--info', 'toast--success', 'toast--warn', 'toast--error');
+  node.classList.add('show', `toast--${safeLevel}`);
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => node.classList.remove('show'), 2200);
+  toast.timer = setTimeout(() => node.classList.remove('show'), TOAST_DURATION[safeLevel]);
 }
 
 // 首跑引导：首次访问连播三步定稿文案（认棋子 → 看亮点 → 落子）。
@@ -2216,7 +2223,7 @@ function saveToLibrary() {
   const list = loadLibrary();
   list.unshift(entry);
   writeLibrary(list);
-  toast(t('library.saved'));
+  toast(t('library.saved'), 'success');
 }
 
 function buildFromEntry(entry) {
@@ -2244,7 +2251,7 @@ function useEntry(entry, thenReplay) {
   resizeAll();
   render();
   if (thenReplay) openReplay();
-  else toast(t('library.loaded'));
+  else toast(t('library.loaded'), 'success');
 }
 
 function renderLibrary() {
@@ -2461,9 +2468,9 @@ function bindDialogs() {
       clearSelection();
       closeReplay();
       render();
-      toast(t('toast.imported'));
+      toast(t('toast.imported'), 'success');
     } catch {
-      toast(t('toast.importFailed'));
+      toast(t('toast.importFailed'), 'error');
     }
   };
 }
@@ -2618,7 +2625,7 @@ function resetSettings() {
   syncSettings();
   buildThemeSwatches();
   refreshTexts();
-  toast(t('settings.reset'));
+  toast(t('settings.reset'), 'success');
 }
 
 function exportGame() {
@@ -2632,7 +2639,7 @@ function exportGame() {
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-  toast(t('toast.exported'));
+  toast(t('toast.exported'), 'success');
 }
 
 /** 把当前局面渲染成一张带落款的图片，便于分享。 */
@@ -2680,7 +2687,7 @@ function exportSnapshot() {
   document.body.append(link);
   link.click();
   link.remove();
-  toast(t('toast.image'));
+  toast(t('toast.image'), 'success');
 }
 
 /* ---------------------------------------------------------------- 棋盘交互 */

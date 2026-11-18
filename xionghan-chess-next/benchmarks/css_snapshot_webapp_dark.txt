@@ -652,6 +652,17 @@ button.ghost:hover@dark|background|rgba(90, 70, 40, 0.13)
 .toast@dark|text-align|center
 .toast.show@dark|opacity|1
 .toast.show@dark|transform|translate(-50%, 0)
+.toast::before@dark|margin-right|7px
+.toast::before@dark|font-weight|700
+.toast::before@dark|font-family|"PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif
+.toast--info::before@dark|content|'i'
+.toast--info::before@dark|color|#9a8f80
+.toast--success::before@dark|content|'✓'
+.toast--success::before@dark|color|#4f6b52
+.toast--warn::before@dark|content|'!'
+.toast--warn::before@dark|color|#b08a2e
+.toast--error::before@dark|content|'×'
+.toast--error::before@dark|color|#9c2b22
 @media (max-width: 980px)@dark|.shell { grid-template-columns|minmax(0, 1fr)
 @media (max-width: 980px)@dark|}
   .side { display|none

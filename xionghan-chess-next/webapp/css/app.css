@@ -1062,6 +1062,18 @@ button.ghost:hover { background: rgba(90, 70, 40, 0.13); }
   transform: translate(-50%, 0);
 }
 
+/* 分级反馈：形状（✓ / i / ! / ×）是主线索，颜色为辅；令牌取自既有 -- 变量。 */
+.toast::before {
+  margin-right: 7px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+}
+
+.toast--info::before { content: 'i'; color: var(--ink-faint); }
+.toast--success::before { content: '✓'; color: var(--jade); }
+.toast--warn::before { content: '!'; color: var(--gold); }
+.toast--error::before { content: '×'; color: var(--seal); }
+
 /* ---------------------------------------------------------------- 响应式 */
 
 @media (max-width: 980px) {

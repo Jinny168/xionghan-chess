@@ -215,8 +215,8 @@ const zh = {
   'toast.exported': '棋谱已导出',
   'toast.image': '局面图已保存',
   'toast.importFailed': '棋谱文件无法解析',
-  'toast.soundOn': '声音已开启',
-  'toast.soundOff': '声音已关闭',
+  'toast.soundOn': '音效已开启',
+  'toast.soundOff': '音效已关闭',
   'toast.promotion': '兵卒到底，请选择升变棋子',
   'toast.saved': '已保存到本机',
 
