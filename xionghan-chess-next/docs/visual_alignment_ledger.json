@@ -349,6 +349,31 @@
           "index": 1
         }
       }
+    },
+    {
+      "id": "VA-14",
+      "name": "特色棋子徽记尺寸（× r）",
+      "unit": "ratio",
+      "compare": true,
+      "verdict": "aligned",
+      "note": "射/尉/檑/巡四枚特色子的形状徽记，外接半尺寸 = 0.26 r，中心在盘缘上方 0.86 r 处；形状线索为主，墨色沿用棋子自身 ink，零新增色值。web 旧树与 webapp 已同参数；桌面端本轮整端降级为待办（字形/位图双路径均未加徽记），现状如实记录在案。",
+      "ends": {
+        "desktop": {
+          "lit": "def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float, piece: Piece, style: str) -> None:",
+          "value": null,
+          "note": "待办：glyph 路径 draw_piece_glyph 与位图路径 _draw_piece_image 都需补同款徽记；本轮未改桌面一个字节。"
+        },
+        "web": {
+          "lit": "BADGE_SIZE={}",
+          "raw": 0.26,
+          "value": 0.26
+        },
+        "webapp": {
+          "lit": "const BADGE_SIZE = {};",
+          "raw": 0.26,
+          "value": 0.26
+        }
+      }
     }
   ]
 }

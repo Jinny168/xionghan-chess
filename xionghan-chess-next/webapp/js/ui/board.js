@@ -43,6 +43,13 @@ const THEMES = {
 const GLYPH_FONT = '"KaiTi","STKaiti","Kaiti SC","Noto Serif SC","Songti SC",serif';
 const UI_FONT = '"PingFang SC","Microsoft YaHei",system-ui,sans-serif';
 
+// 特色子徽记（P1-6）：形状线索为主，颜色沿用棋子自身 ink；几何量写常量，不写魔法数。
+const BADGE_ORBIT = 0.86;   // 徽记中心到子心的距离（× r）
+const BADGE_SIZE = 0.26;     // 徽记外接半尺寸（× r）
+const BADGE_STROKE = 0.055;  // 徽记线宽（× r）
+// 射 > 尉 > 檑/巡：复杂度按权重递减（星+环 / 双斜杠 / 三横 / 空心方）。
+const SPECIAL_BADGE = { guard: 'slash', archer: 'star', thunder: 'bars', patrol: 'square' };
+
 export class BoardRenderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -504,6 +511,8 @@ export class BoardRenderer {
       ? (isRed ? '#f0a79f' : '#ddd5c5')
       : inkDark;
     ctx.fillText(glyph, x, y + r * 0.04);
+    this.drawSpecialBadge(ctx, piece.type, x, y, r,
+      view.theme === 'ink' ? (isRed ? '#f0a79f' : '#ddd5c5') : inkDark);
     ctx.restore();
 
     if (view.checkSide === piece.color && piece.type === 'king') {
@@ -516,6 +525,51 @@ export class BoardRenderer {
       ctx.stroke();
       ctx.restore();
     }
+  }
+
+  drawSpecialBadge(ctx, type, x, y, r, inkColor) {
+    const kind = SPECIAL_BADGE[type];
+    if (!kind) return;
+    const bx = x;
+    const by = y - r * BADGE_ORBIT;
+    const R = r * BADGE_SIZE;
+    ctx.save();
+    ctx.strokeStyle = inkColor;
+    ctx.lineWidth = Math.max(1, r * BADGE_STROKE);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    if (kind === 'star') {
+      // 四角星（射，权重最高）+ 一道细环，与其余三枚拉开复杂度。
+      const inner = R * 0.42;
+      const pts = [[0, -R], [inner, -inner], [R, 0], [inner, inner], [0, R], [-inner, inner], [-R, 0], [-inner, -inner]];
+      ctx.beginPath();
+      pts.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(bx + px, by + py) : ctx.lineTo(bx + px, by + py)));
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(bx, by, R * 1.35, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (kind === 'slash') {
+      // 双短斜杠（尉）。
+      for (const off of [-R * 0.28, R * 0.28]) {
+        ctx.beginPath();
+        ctx.moveTo(bx - R * 0.6 + off, by - R * 0.6 - off);
+        ctx.lineTo(bx + R * 0.6 + off, by + R * 0.6 - off);
+        ctx.stroke();
+      }
+    } else if (kind === 'bars') {
+      // 三条短横（檑）。
+      for (const dy of [-R * 0.5, 0, R * 0.5]) {
+        ctx.beginPath();
+        ctx.moveTo(bx - R * 0.6, by + dy);
+        ctx.lineTo(bx + R * 0.6, by + dy);
+        ctx.stroke();
+      }
+    } else {
+      // 空心小方（巡）。
+      ctx.strokeRect(bx - R * 0.6, by - R * 0.6, R * 1.2, R * 1.2);
+    }
+    ctx.restore();
   }
 
   drawAnimation(view, theme, geom) {
