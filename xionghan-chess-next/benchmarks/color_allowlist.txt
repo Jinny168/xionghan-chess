@@ -2,10 +2,10 @@ src/xionghan_chess/desktop/app.py:#211b17:1
 src/xionghan_chess/desktop/app.py:#4a433b:1
 src/xionghan_chess/desktop/app.py:#f1dfbf:1
 src/xionghan_chess/desktop/app.py:#f3ead7:1
-src/xionghan_chess/desktop/ui/board_widget.py:#24211e:2
+src/xionghan_chess/desktop/ui/board_widget.py:#24211e:3
 src/xionghan_chess/desktop/ui/board_widget.py:#315c48:3
 src/xionghan_chess/desktop/ui/board_widget.py:#34302b:1
-src/xionghan_chess/desktop/ui/board_widget.py:#9a2424:2
+src/xionghan_chess/desktop/ui/board_widget.py:#9a2424:3
 src/xionghan_chess/desktop/ui/board_widget.py:#9d2525:2
 src/xionghan_chess/desktop/ui/board_widget.py:#9fbfa8:2
 src/xionghan_chess/desktop/ui/board_widget.py:#d4a763:1
