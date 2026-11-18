@@ -4,6 +4,7 @@
 > 渲染结果层（字形、投影、对比、层级）按 TRIAD 第 3 节口径**仅人工验收**，不引入 canvas 像素基线（字体 / DPR / 抗锯齿三处非确定）。
 >
 > **当前状态：证据已备，判定未做。** 下表结论栏在真人目检前一律保持未勾选；任何人不得代替真人填「通过」。
+> 所有离屏渲染 / 截图证据仅为观察材料，判定仍归真人。
 
 ## 0. 执行环境（目检时填写）
 
@@ -26,6 +27,7 @@
 | M-5 | 高 DPI / 小盘缩放 | 本轮未出图，按第 2 节手工步骤 | 待补 | 浏览器缩放 50% / 200% 或窗口拉窄到最小宽度：线宽不发虚、投影比例不失控 |
 | M-6 | 落子手感 | 本轮未出图（动画需活体走子），按第 2 节手工步骤 | 待补 | 同一手棋三端各走一次：动画结束无回弹、无残影；320ms 差异可感知但不突兀 |
 | M-7 | 状态叠加层级 | `benchmarks/visual_evidence/c5_m7_state_layers.png` | 待补 | 将军 + 选择 + 可走点 + 上一步四态同屏；层级仍是「上一步 < 可吃 < 选择 < 将军」，都亮等于都没亮视为不通过 |
+| 徽记（B4/C1，VA-14） | 特色棋子形状徽记 | `benchmarks/visual_evidence/c1_badge_13x13_glyph.png`、`benchmarks/visual_evidence/c1_badge_13x13_image.png`、`benchmarks/visual_evidence/c1_badge_9x10_glyph.png`、`benchmarks/visual_evidence/c1_badge_9x10_image.png` | 待补 | 射=四角星+细环、尉=双斜杠、檑=三横、巡=空心方；徽记落在盘缘上方，不压子面字形；位图模式叠加在美术图之上 |
 
 ## 2. 逐条执行记录
 
@@ -75,6 +77,17 @@
 
 - 判据（TRIAD）：将军 + 选择 + 可走点 + 上一步四态同屏；层级仍是「上一步 < 可吃 < 选择 < 将军」，都亮等于都没亮视为不通过。
 - 桌面证据：`benchmarks/visual_evidence/c5_m7_state_layers.png`
+- 结论：☐ 通过　☐ 不通过
+- 备注 / 偏差记录：__________
+
+### 特色棋子徽记（B4/C1，VA-14）
+
+- 判据（TRIAD）：射=四角星+细环、尉=双短斜杠、檑=三条短横、巡=空心小方；徽记落在盘缘上方（0.86 r），不压子面字形；墨色沿用棋子自身 ink，不靠颜色作为唯一区分。
+- 桌面证据：
+  - `benchmarks/visual_evidence/c1_badge_13x13_glyph.png`（13×13 字形模式）
+  - `benchmarks/visual_evidence/c1_badge_13x13_image.png`（13×13 位图模式）
+  - `benchmarks/visual_evidence/c1_badge_9x10_glyph.png`（9×10 字形模式）
+  - `benchmarks/visual_evidence/c1_badge_9x10_image.png`（9×10 位图模式）
 - 结论：☐ 通过　☐ 不通过
 - 备注 / 偏差记录：__________
 
