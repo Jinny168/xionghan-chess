@@ -50,8 +50,8 @@
       "name": "棋子盘半径（格）",
       "unit": "cell",
       "compare": true,
-      "verdict": "drift",
-      "note": "桌面与 web 旧树同源 0.39 格，webapp 0.42 格：同一枚子在公网门面上比桌面大 7.7%（盘径 0.78 格 vs 0.84 格）。",
+      "verdict": "aligned",
+      "note": "三端统一 0.39 格（盘径 0.78 格）；webapp 由 0.42 收到 0.39。",
       "ends": {
         "desktop": {
           "lit": "radius = min(cw, ch) * {}",
@@ -66,8 +66,8 @@
         },
         "webapp": {
           "lit": "const r = cell * {}",
-          "raw": 0.42,
-          "value": 0.42
+          "raw": 0.39,
+          "value": 0.39
         }
       }
     },
@@ -101,8 +101,8 @@
       "name": "棋子字形字号",
       "unit": "ratio",
       "compare": true,
-      "verdict": "drift",
-      "note": "1.15/1.18/1.14，极差 0.04r。三端字族也不同（打包 Noto Serif SC / 系统 KaiTi / 楷体回退栈），字高比无法只靠一个数对齐；列为「同一批改字族时一起收」的项。",
+      "verdict": "aligned",
+      "note": "三端字号统一 1.15 r；字族仍不同（打包 Noto Serif SC / 系统 KaiTi / 楷体回退栈），字高比以数值对齐为准。",
       "ends": {
         "desktop": {
           "lit": "max(13, int(radius * {}))",
@@ -111,13 +111,13 @@
         },
         "web": {
           "lit": "${r*{}}px KaiTi",
-          "raw": 1.18,
-          "value": 1.18
+          "raw": 1.15,
+          "value": 1.15
         },
         "webapp": {
           "lit": "const fontSize = style === 'modern' ? r * 1.02 : r * {};",
-          "raw": 1.14,
-          "value": 1.14
+          "raw": 1.15,
+          "value": 1.15
         }
       }
     },
@@ -126,19 +126,19 @@
       "name": "投影纵向偏移",
       "unit": "ratio",
       "compare": true,
-      "verdict": "drift",
-      "note": "桌面 0.09r（径向渐变重心向下）、webapp 0.14r；web 旧树写死 2px（见 VA-06），不可比。webapp 的偏移比桌面大 55%，观感更「浮」。",
+      "verdict": "aligned",
+      "note": "桌面与 webapp 投影纵向偏移统一 0.10 r；web 旧树写死 2px（见 VA-06），不可比、单列形态项。",
       "ends": {
         "desktop": {
           "lit": "PIECE_SHADOW_OFFSET = {}",
-          "raw": 0.09,
-          "value": 0.09
+          "raw": 0.10,
+          "value": 0.10
         },
         "web": null,
         "webapp": {
           "lit": "ctx.shadowOffsetY = r * {}",
-          "raw": 0.14,
-          "value": 0.14
+          "raw": 0.10,
+          "value": 0.10
         }
       }
     },
@@ -259,7 +259,7 @@
           "value": 0.13
         },
         "web": {
-          "lit": "occupied?Math.min(g.cw,g.ch)*.43:Math.min(g.cw,g.ch)*{}",
+          "lit": "occupied?Math.min(g.cw,g.ch)*.42:Math.min(g.cw,g.ch)*{}",
           "raw": 0.13,
           "value": 0.13
         },
@@ -276,23 +276,23 @@
       "name": "可吃点标记半径（格）",
       "unit": "cell",
       "compare": true,
-      "verdict": "drift",
-      "note": "桌面 0.40（实心红盘）/ web 0.43（半透明红盘）/ webapp 0.45（红描边环）：形态与大小都不一致。",
+      "verdict": "aligned",
+      "note": "三端可吃点半径统一 0.42 格；形态差异保留（桌面实心红盘 / web 半透明红盘 / webapp 红描边环），只对数值。",
       "ends": {
         "desktop": {
           "lit": "CAPTURE_MARK_ALPHA), {})",
-          "raw": 0.4,
-          "value": 0.4
+          "raw": 0.42,
+          "value": 0.42
         },
         "web": {
           "lit": "occupied?Math.min(g.cw,g.ch)*{}",
-          "raw": 0.43,
-          "value": 0.43
+          "raw": 0.42,
+          "value": 0.42
         },
         "webapp": {
           "lit": "ctx.arc(x, y, cell * {}",
-          "raw": 0.45,
-          "value": 0.45,
+          "raw": 0.42,
+          "value": 0.42,
           "index": 1
         }
       }

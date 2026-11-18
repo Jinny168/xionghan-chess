@@ -424,7 +424,7 @@ export class BoardRenderer {
         ctx.strokeStyle = 'rgba(176,58,46,.85)';
         ctx.lineWidth = Math.max(2, cell * 0.045);
         ctx.beginPath();
-        ctx.arc(x, y, cell * 0.45, 0, Math.PI * 2);
+        ctx.arc(x, y, cell * 0.42, 0, Math.PI * 2);
         ctx.stroke();
       } else {
         ctx.fillStyle = 'rgba(58,104,72,.78)';
@@ -451,7 +451,7 @@ export class BoardRenderer {
 
   drawPiece(ctx, piece, x, y, geom, theme, view) {
     const { cell } = geom;
-    const r = cell * 0.42;
+    const r = cell * 0.39;
     const style = view.pieceStyle || 'traditional';
     const isRed = piece.color === 'red';
     const ink = isRed ? '#a3271f' : '#2b2622';
@@ -460,7 +460,7 @@ export class BoardRenderer {
     ctx.save();
     ctx.shadowColor = theme.shadow;
     ctx.shadowBlur = r * 0.42;
-    ctx.shadowOffsetY = r * 0.14;
+    ctx.shadowOffsetY = r * 0.10;
 
     const gradient = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.2, x, y, r * 1.05);
     if (view.theme === 'ink') {
@@ -501,7 +501,7 @@ export class BoardRenderer {
 
     const names = isRed ? RED_NAMES : BLACK_NAMES;
     const glyph = names[piece.type] || piece.type;
-    const fontSize = style === 'modern' ? r * 1.02 : r * 1.14;
+    const fontSize = style === 'modern' ? r * 1.02 : r * 1.15;
     ctx.font = style === 'modern'
       ? `600 ${fontSize}px ${UI_FONT}`
       : `600 ${fontSize}px ${GLYPH_FONT}`;
