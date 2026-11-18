@@ -13,7 +13,7 @@
 
 | 档位 | 枚举 | depth | cap | randomness | q_depth | candidate | branch | root | sample_margin | 看门狗 | 读条分母 |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 入门 | `beginner` | 1 | 2.0s | 0.55 | 1 | 4 | 6 | 16 | 150 | 3.08s | 0.7s |
+| 入门 | `beginner` | 1 | 2.0s | 0.18 | 1 | 4 | 6 | 16 | 150 | 3.08s | 0.7s |
 | 中级 | `medium` | 2 | 5.0s | 0.0 | 2 | 1 | 3 | 3 | 90 | 6.53s | 3.0s |
 | 高级 | `hard` | 3 | 12.0s | 0.0 | 6 | 1 | 7 | 7 | 90 | 14.58s | 7.0s |
 
@@ -468,7 +468,8 @@ B 0.790s vs 0.942s，wall 手 1 vs 5 —— **无系统性变慢，K1 数据可�
 ### 15.2 选定方案：单层评分带 censoring
 
 - 取样只在 **beginner** 且实例开关 `sample_enabled=True` 时生效；`medium/hard` 的 `randomness=0` 已被 `_sampling_blocked` 拦下，`CONFIGS` 字段级零 diff、不跑标定批次。
-- 触发概率是设计常量 `BEGINNER_SOFT_SAMPLE_PROBABILITY = 0.18`（`ai.py`）；不新增 `SearchConfig` 字段，避免扰动档位快照。`CONFIGS.beginner.randomness=0.55` 保留为「该档是否参与取样」的语义标记，真实软取样概率由该常量控制。
+- **概率来源单一（`CONFIGS`）**：`CONFIGS.beginner.randomness = 0.18` 就是入门档软取样的**触发概率**；`randomness=0` 表示该档不参与取样，`_sampling_blocked` 直接拦下。不再设模块常量，也不把 `randomness` 降级成「是否参与取样」的 truthy 语义标记——同一件事只有这一份真相。
+- `sample_enabled` 是**实例级开关**（默认开；关闭即等价于不取样），与档位配置正交；它不进入复盘 / 计分 / 棋谱 / 存档。
 - 候选限于 `sample_margin=150cp` 分差带内、吃子过 SEE（不白送子）；去掉旧版「只在较差那一半里挑」的截断。
 - 随机源用实例 `random.Random(seed)`，固定种子可复现；取样是**纯决策层**行为，不写入 `MoveRecord`、存档或 PGN/棋谱格式。
 
@@ -476,7 +477,13 @@ B 0.790s vs 0.942s，wall 手 1 vs 5 —— **无系统性变慢，K1 数据可�
 
 验收两条同时满足：① 软取样层触发占比 ∈ **[8%, 20%]**；② 非最佳着法占比 **≤ 20%**。
 
-固定种子 `20261118`、20 局、单局上限 120 手的 beginner self-play 实测（探针 `d4_acceptance_probe.py`，临时脚本不入库）：
+可复现测量脚本：`scripts/measure_beginner_sampling.py`（固定种子、参数写在脚本头部并打印，用真实 `CONFIGS.beginner` 跑 20 局 self-play，结果打一行 JSON）。复现命令：
+
+```
+python scripts/measure_beginner_sampling.py
+```
+
+种子 `20261118`、20 局、单局上限 120 手的实测：
 
 | 口径 | 数值 |
 |---|---:|
@@ -487,8 +494,17 @@ B 0.790s vs 0.942s，wall 手 1 vs 5 —— **无系统性变慢，K1 数据可�
 
 层触发 13.30% ∈ [8%, 20%]，非最佳 13.30% ≤ 20%，两条同时通过。
 
+> 与核验方独立探针（898 着 / 非最佳 11.92% / rank2 4.01%）的差异来自**着法上限与注入配置不同**：本脚本走真实 `CONFIGS.beginner`、单局 120 手上限、beginner 自对弈；旧探针配置未留档，故以本脚本输出为可复现口径。
+
 ### 15.4 开关语义
 
-- `ChessAI(..., sample_enabled=False)` 关闭软取样；关闭时 `_sample_weaker` 恒返回 None，与「未引入取样」的路径等价。
-- 默认 `sample_enabled=True`，默认行为由 `tests/test_ai_beginner_soft_sample.py` 钉住。
+- `ChessAI(..., sample_enabled=False)` 关闭软取样；关闭时 `_sample_weaker` 恒返回 None，与「`randomness=0`」路径等价。
+- 等价性由 `tests/test_ai_beginner_soft_sample.py` 钉住：同一局面、同一种子下，`sample_enabled=False` 与注入 `randomness=0` 两条路径在 ≥20 个局面上**逐着法比对**取到的着法 key 相等（不只比状态位）。
+- 默认 `sample_enabled=True`，默认行为由同文件测试钉住。
 - 该开关不进入复盘、计分、棋谱或存档；`MoveRecord` / 存档 / PGN 结构本轮零改动。
+
+### 15.5 迁移说明（旧口径为何被替换）
+
+D4 首版曾是**双真相**：模块常量 `BEGINNER_SOFT_SAMPLE_PROBABILITY = 0.18` 才是真实触发概率，而 `CONFIGS.beginner.randomness`（当时 0.55）被降级成「该档是否参与取样」的 truthy 闸门；`_sampling_blocked` 读的正是 `cfg.randomness`。同一件事两套来源，改概率要同时动两处，容易漂移。
+
+核验确认 medium/hard 的 `randomness=0` 本就被该闸门拦死、行为在本轮无变化，因此「把 `randomness` 直接当概率」这条路是安全的。本次改为**同一字段换语义**：不新增 `SearchConfig` 字段（避免扰动档位快照与派生链），删模块常量，`randomness` 回灌为唯一概率来源；beginner 取值 0.55 → **0.18**。旧的「0.55 两层串行」口径（weaker 层 + 前置次优层各取一次）已在 §15.1 判定不可收敛，不再恢复。

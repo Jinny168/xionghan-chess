@@ -34,7 +34,7 @@ def test_three_public_tiers_keep_the_current_values() -> None:
         beginner.branch_limit,
         beginner.root_limit,
         beginner.sample_margin,
-    ) == (1, 2.0, 0.55, 1, 4, 6, 16, 150)
+    ) == (1, 2.0, 0.18, 1, 4, 6, 16, 150)
 
     medium = CONFIGS[Difficulty.MEDIUM]
     assert (
