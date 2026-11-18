@@ -43,6 +43,13 @@ const THEMES = {
 const GLYPH_FONT = '"KaiTi","STKaiti","Kaiti SC","Noto Serif SC","Songti SC",serif';
 const UI_FONT = '"PingFang SC","Microsoft YaHei",system-ui,sans-serif';
 
+// 特色子徽记（P1-6）：形状线索为主，颜色沿用棋子自身 ink；几何量写常量，不写魔法数。
+const BADGE_ORBIT = 0.86;   // 徽记中心到子心的距离（× r）
+const BADGE_SIZE = 0.26;     // 徽记外接半尺寸（× r）
+const BADGE_STROKE = 0.055;  // 徽记线宽（× r）
+// 射 > 尉 > 檑/巡：复杂度按权重递减（星+环 / 双斜杠 / 三横 / 空心方）。
+const SPECIAL_BADGE = { guard: 'slash', archer: 'star', thunder: 'bars', patrol: 'square' };
+
 export class BoardRenderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -131,6 +138,8 @@ export class BoardRenderer {
     }
     ctx.restore();
 
+    // 星轨锚点放射线：静态星位刻线之后、上一步与可走点之前。
+    if (view.showStarHints) this.drawStarHints(view, theme, geom);
     this.drawLastMove(view, theme, geom);
     this.drawSelection(view, theme, geom);
     this.drawTargets(view, theme, geom);
@@ -306,6 +315,40 @@ export class BoardRenderer {
     ctx.restore();
   }
 
+  /**
+   * P1-7 射·星轨：选中射 → 四斜向星位锚点的**放射线** + 端点空心环。
+   *
+   * 画的是放射线而不是星点之间的网格边 —— 后者会读成"射能沿网继续走"。
+   * 锚点由 core 的最近星位距离换算（app.js 经 star_hints.js 传入），这里不重算。
+   * webapp 没有虚线预览，故每条有锚点的方向都画实线 + 环，单帧 ≤4 线 + ≤4 环。
+   *
+   * 颜色取盘线色 @.24（上一步 .3 的 0.8 倍），零新增色值；
+   * 空心环半径 = 可走点半径(.145)的一半，实心圆点仍由 drawTargets 独掌语义。
+   */
+  drawStarHints(view, theme, geom) {
+    const anchors = view.starHintAnchors || [];
+    if (!anchors.length) return;
+    const ctx = this.ctx;
+    const { cell } = geom;
+    const from = view.selected ? this.screenPos(view.selected.row, view.selected.col, view) : null;
+    if (!from) return;
+    ctx.save();
+    ctx.globalAlpha = 0.24;
+    ctx.strokeStyle = theme.line;
+    ctx.lineWidth = Math.max(1, cell * 0.13 * 2 / 6);
+    for (const anchor of anchors) {
+      const to = this.screenPos(anchor.row, anchor.col, view);
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(to.x, to.y, cell * 0.13 * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   drawInitialMarks(theme, geom, view) {
     const ctx = this.ctx;
     const { pad, cell, w } = geom;
@@ -337,16 +380,20 @@ export class BoardRenderer {
     if (!last) return;
     const ctx = this.ctx;
     const { cell } = geom;
+    // 与 web 旧树 cellFrame / 桌面 LAST_MOVE_* 同参数：格内圆角方框，内缩 5%、
+    // 圆角 16%、盘线色；起点 0.25、落点 0.30 稍重以区分起讫。
+    const inset = cell * 0.05;
+    const radius = cell * 0.16;
+    const size = cell - inset * 2;
     ctx.save();
-    for (const [point, alpha] of [[last.source, 0.3], [last.target, 0.42]]) {
+    ctx.fillStyle = theme.line;
+    for (const [point, alpha] of [[last.source, 0.25], [last.target, 0.30]]) {
       const { x, y } = this.screenPos(point.row, point.col, view);
-      ctx.fillStyle = `rgba(196,146,44,${alpha})`;
-      ctx.beginPath();
-      ctx.arc(x, y, cell * 0.46, 0, Math.PI * 2);
+      ctx.globalAlpha = alpha;
+      roundRect(ctx, x - cell / 2 + inset, y - cell / 2 + inset, size, size, radius);
       ctx.fill();
     }
     ctx.restore();
-    void theme;
   }
 
   drawSelection(view, theme, geom) {
@@ -382,7 +429,7 @@ export class BoardRenderer {
       } else {
         ctx.fillStyle = 'rgba(58,104,72,.78)';
         ctx.beginPath();
-        ctx.arc(x, y, cell * 0.145, 0, Math.PI * 2);
+        ctx.arc(x, y, cell * 0.13, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = 'rgba(255,250,238,.75)';
         ctx.lineWidth = Math.max(1, cell * 0.028);
@@ -464,6 +511,8 @@ export class BoardRenderer {
       ? (isRed ? '#f0a79f' : '#ddd5c5')
       : inkDark;
     ctx.fillText(glyph, x, y + r * 0.04);
+    this.drawSpecialBadge(ctx, piece.type, x, y, r,
+      view.theme === 'ink' ? (isRed ? '#f0a79f' : '#ddd5c5') : inkDark);
     ctx.restore();
 
     if (view.checkSide === piece.color && piece.type === 'king') {
@@ -476,6 +525,51 @@ export class BoardRenderer {
       ctx.stroke();
       ctx.restore();
     }
+  }
+
+  drawSpecialBadge(ctx, type, x, y, r, inkColor) {
+    const kind = SPECIAL_BADGE[type];
+    if (!kind) return;
+    const bx = x;
+    const by = y - r * BADGE_ORBIT;
+    const R = r * BADGE_SIZE;
+    ctx.save();
+    ctx.strokeStyle = inkColor;
+    ctx.lineWidth = Math.max(1, r * BADGE_STROKE);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    if (kind === 'star') {
+      // 四角星（射，权重最高）+ 一道细环，与其余三枚拉开复杂度。
+      const inner = R * 0.42;
+      const pts = [[0, -R], [inner, -inner], [R, 0], [inner, inner], [0, R], [-inner, inner], [-R, 0], [-inner, -inner]];
+      ctx.beginPath();
+      pts.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(bx + px, by + py) : ctx.lineTo(bx + px, by + py)));
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(bx, by, R * 1.35, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (kind === 'slash') {
+      // 双短斜杠（尉）。
+      for (const off of [-R * 0.28, R * 0.28]) {
+        ctx.beginPath();
+        ctx.moveTo(bx - R * 0.6 + off, by - R * 0.6 - off);
+        ctx.lineTo(bx + R * 0.6 + off, by + R * 0.6 - off);
+        ctx.stroke();
+      }
+    } else if (kind === 'bars') {
+      // 三条短横（檑）。
+      for (const dy of [-R * 0.5, 0, R * 0.5]) {
+        ctx.beginPath();
+        ctx.moveTo(bx - R * 0.6, by + dy);
+        ctx.lineTo(bx + R * 0.6, by + dy);
+        ctx.stroke();
+      }
+    } else {
+      // 空心小方（巡）。
+      ctx.strokeRect(bx - R * 0.6, by - R * 0.6, R * 1.2, R * 1.2);
+    }
+    ctx.restore();
   }
 
   drawAnimation(view, theme, geom) {

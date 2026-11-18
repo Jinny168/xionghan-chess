@@ -108,6 +108,9 @@ DEFAULTS: dict[str, Any] = {
     "selection_highlight": True,
     "legal_targets": True,
     "capture_hints": True,
+    # P1-7：选中经典档「射」时显示到星位锚点的放射线。纯新增键，不 bump
+    # 配置文件 schema 版本（旧配置由 `{**DEFAULTS, **data}` 补默认值）；也不进云同步映射。
+    "archer_star_hints": False,
     "taunts": True,
     "countdown_seconds": 30,
     "autosave": True,
@@ -124,6 +127,10 @@ DEFAULTS: dict[str, Any] = {
     # 每日一题的记录（单键覆盖）：`{day,id,done,streak,best}`。
     # 纯新增键，**不 bump schema_version** —— `{**DEFAULTS, **data}` 会给旧配置补上。
     "daily": {},
+    # 批次 A：训练进度单键分区（stars/unlocked/streak.best/storm.best）。
+    # 纯新增键，不 bump schema_version；不在云同步 allowlist 里，零采集。
+    # 具体结构由 desktop/training_store.py 归一，这里给空壳即可。
+    "training": {},
     # 首跑引导是否已看过（D4）。纯新增键，不 bump schema_version。
     "onboarded": False,
 }

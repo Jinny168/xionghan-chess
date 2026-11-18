@@ -35,20 +35,45 @@ def test_every_generated_puzzle_can_be_played_to_the_end() -> None:
                 session.advance_auto()
                 game.move(move)
         assert session.solved, f"{puzzle.id} 走完解法仍未判定通过"
-        assert game.state.finished, f"{puzzle.id} 解完后局面没有结束 —— 末手不是杀棋"
+        # 批次 A：守题（defense / equilibrium）的正解是"化解威胁"，不是将死对方，
+        # 末手局面**不该**结束（否则就不是守题了）。只有杀题/特色子题才要求末手将死。
+        is_defense = {"defense", "equilibrium"} & set(puzzle.tags)
+        if is_defense:
+            assert not game.state.finished, f"{puzzle.id} 守题解完却成了将死 —— 判据②被破坏"
+        else:
+            assert game.state.finished, f"{puzzle.id} 解完后局面没有结束 —— 末手不是杀棋"
 
 
 def test_generated_puzzle_mix_matches_the_plan() -> None:
-    """22 条的难度与 ply 配比是设计定稿值：beginner 9 / advanced 7 / master 6；
-    ply 必须是奇数，且覆盖 3/5/7 三档。"""
+    """批次 A 后 35 条的配比：难度 beginner 9 / advanced 12 / master 14；
+    ply 覆盖 1/3/5/7（新增守题与特色子题为 1 ply 单步）。"""
     from collections import Counter
 
     levels = Counter(item.difficulty for item in GENERATED)
     plies = Counter(len(item.solution) for item in GENERATED)
-    assert levels == {"beginner": 9, "advanced": 7, "master": 6}, levels
-    assert sum(plies.values()) == 22
-    assert set(plies) == {3, 5, 7}, plies
+    assert levels == {"beginner": 9, "advanced": 12, "master": 14}, levels
+    assert sum(plies.values()) == 35
+    assert set(plies) == {1, 3, 5, 7}, plies
     assert all(len(item.solution) % 2 == 1 for item in GENERATED)
+
+
+def test_batch_a_new_puzzles_shape() -> None:
+    """gen-23~35 的专题、章节、id 结构锁定（批次 A / P1-1）。"""
+    from collections import Counter
+
+    new = [p for p in GENERATED if 23 <= int(p.id.split("-")[1]) <= 35]
+    assert len(new) == 13, f"新题应有 13 条，实际 {len(new)}"
+    assert {p.id for p in new} == {f"gen-{n}" for n in range(23, 36)}
+    chapters = Counter(p.chapter for p in new)
+    assert chapters == {"破釜": 3, "逐鹿": 2, "垓下": 4, "定鼎": 4}, chapters
+    # 专题配额：守题 6 / 特色子 4 / 长算 3
+    defense = sum(1 for p in new if "defense" in p.tags)
+    feature = sum(1 for p in new if any(t.startswith("feature:") for t in p.tags))
+    long = sum(1 for p in new if "mate5" in p.tags or "mate7" in p.tags)
+    assert (defense, feature, long) == (6, 4, 3), (defense, feature, long)
+    # 特色子四种各一
+    kinds = {t for p in new for t in p.tags if t.startswith("feature:")}
+    assert kinds == {"feature:archer", "feature:patrol", "feature:thunder", "feature:guard"}, kinds
 
 
 def test_generated_puzzles_declare_hands_not_plies() -> None:

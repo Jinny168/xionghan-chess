@@ -174,8 +174,56 @@ class PuzzleSession:
     def reset(self) -> None:
         self.cursor = 0
         self.attempts = 0
+        # 批次 A 修真 bug：漏重置这两个字段会让重做时扣分残留、提示跳段。
+        # 星级 penalty = attempts + _hints_shown；只清 attempts 等于"重做也拿不回满星"。
+        self._hints_shown = 0
+        self._hint_stage = 0
 
 
 def session_for(puzzle: Puzzle | None) -> PuzzleSession | None:
     """给 `None` 就返回 `None` —— 调用方据此判断「当前不是训练模式」。"""
     return None if puzzle is None else PuzzleSession(puzzle)
+
+
+@dataclass(slots=True)
+class StreakSession:
+    """连对挑战会话（一错即止，批次 A / P1-4）。
+
+    题池来自 `core.training_progress.pool_for`（已解锁章节、非 drill、排除当日题），
+    一轮内不重复由 `used` 集合维护。计分态：任何文字提示都被屏蔽（由 app 层
+    `puzzle_scored=True` 保证），错一次立即结束，跳过不算错。
+    """
+
+    pool: list  # list of Puzzle
+    used: set[str] = field(default_factory=set)
+    count: int = 0  # 本轮已连对题数
+    skip_threshold_s: int = 60  # 超过这个秒数柔性提醒"要不要跳过"
+
+    @property
+    def remaining(self) -> list:
+        return [p for p in self.pool if p.id not in self.used]
+
+    def next_puzzle(self):
+        """取下一道未做过的题；池走完返回 None。取到的题立即标记 used。"""
+        for puzzle in self.remaining:
+            self.used.add(puzzle.id)
+            return puzzle
+        return None
+
+    def on_correct(self) -> None:
+        """答对一题，连对数 +1。"""
+        self.count += 1
+
+    def on_wrong(self) -> None:
+        """答错：一错即止。连对数不增（本轮成绩=终止前连续答对数）。"""
+        # count 保持不变；结束由调用方读 finished 后处理
+        return None
+
+    def on_skip(self) -> None:
+        """跳过：结束本轮，不算错（count 不变）。"""
+        return None
+
+
+STREAK_END_WRONG = "wrong"
+STREAK_END_SKIP = "skip"
+STREAK_END_EXHAUSTED = "exhausted"

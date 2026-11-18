@@ -81,6 +81,7 @@
         <button type="button" data-act="flip" data-i18n="action.flip">翻转</button>
         <button type="button" data-act="resign" data-i18n="action.resign">认输</button>
         <button type="button" id="puzzleExit" data-act="exitPuzzle" data-i18n="puzzle.exit" hidden>退出</button>
+        <button type="button" id="streakSkipButton" data-act="streakSkip" data-i18n="puzzle.streakSkip" hidden>跳过本题</button>
         <button type="button" class="only-mobile" data-act="replay" data-i18n="nav.replay">复盘</button>
       </div>
     </main>
@@ -98,24 +99,30 @@
       </section>
       <section class="side-block meta-block">
         <h2 data-i18n="panel.info">对局信息</h2>
-        <dl>
-          <dt>规则</dt><dd id="metaProfile">完整模式</dd>
-          <dt>模式</dt><dd id="metaMode">人机对战</dd>
-          <dt>棋力</dt><dd id="metaLevel">中级</dd>
-        </dl>
+        <details class="meta-details">
+          <summary data-i18n="meta.details">详情</summary>
+          <dl>
+            <dt data-i18n="meta.rule">规则</dt><dd id="metaProfile">完整模式</dd>
+            <dt data-i18n="meta.mode">模式</dt><dd id="metaMode">人机对战</dd>
+            <dt data-i18n="meta.level">棋力</dt><dd id="metaLevel">中级</dd>
+          </dl>
+        </details>
         <div class="meta-actions">
           <button type="button" data-act="export" data-i18n="action.export">导出棋谱</button>
           <button type="button" data-act="import" data-i18n="action.import">读取棋谱</button>
-        </div>
-        <div class="meta-actions">
-          <button type="button" data-act="snapshot" data-i18n="action.snapshot">保存局面图</button>
-          <button type="button" data-act="stats" data-i18n="action.stats">对局统计</button>
-          <button type="button" data-act="library" data-i18n="action.library">棋谱库</button>
           <button type="button" data-act="restart" data-i18n="action.restart">重新开始</button>
-          <button type="button" data-act="cloud" data-i18n="action.cloud">云同步</button>
           <button type="button" data-act="toggleSide" data-i18n="action.hideSide">隐藏侧栏</button>
-          <button type="button" data-act="fullscreen" data-i18n="action.fullscreen">全屏</button>
         </div>
+        <details class="meta-details more-details">
+          <summary data-i18n="meta.more">更多操作</summary>
+          <div class="meta-actions">
+            <button type="button" data-act="snapshot" data-i18n="action.snapshot">保存局面图</button>
+            <button type="button" data-act="stats" data-i18n="action.stats">对局统计</button>
+            <button type="button" data-act="library" data-i18n="action.library">棋谱库</button>
+            <button type="button" data-act="cloud" data-i18n="action.cloud">云同步</button>
+            <button type="button" data-act="fullscreen" data-i18n="action.fullscreen">全屏</button>
+          </div>
+        </details>
       </section>
     </aside>
   </div>
@@ -228,6 +235,7 @@
         <label class="toggle"><input type="checkbox" id="optAnimation" checked><span data-i18n="settings.animation">走子动画</span></label>
         <label class="toggle"><input type="checkbox" id="optLegal" checked><span data-i18n="settings.legal">显示可行落点</span></label>
         <label class="toggle"><input type="checkbox" id="optCapture" checked><span data-i18n="settings.capture">标记可吃棋子</span></label>
+        <label class="toggle" data-i18n-title="settings.starHintsHint"><input type="checkbox" id="optStarHints"><span data-i18n="settings.starHints">射·星轨提示</span></label>
         <label class="toggle"><input type="checkbox" id="optSound" checked><span data-i18n="settings.sound">音效</span></label>
         <div class="field volume-field">
           <label data-i18n="settings.soundVolume">音效音量</label>
@@ -454,7 +462,15 @@
           <button type="button" class="icon-btn" data-close="dlgPuzzles" aria-label="关闭">×</button>
         </div>
       </header>
-      <p class="hint" data-i18n="puzzle.subtitle">9 道走法教学 + 12 道一步杀，均由规则引擎验证</p>
+      <p class="hint" data-i18n="puzzle.subtitle">题库由规则引擎验证，每天一道，练手有常</p>
+      <button type="button" class="puzzle-card daily-card" id="dailyPuzzleButton">
+        <strong data-i18n="puzzle.daily">每日一题</strong>
+        <span id="dailyPuzzleMeta"></span>
+      </button>
+      <button type="button" class="puzzle-card streak-card" id="streakPuzzleButton" data-act="streakStart">
+        <strong data-i18n="puzzle.streak">连对挑战</strong>
+        <span id="streakPuzzleMeta"></span>
+      </button>
       <div class="puzzle-list" id="puzzleList"></div>
     </div>
   </dialog>
@@ -490,6 +506,12 @@
       </footer>
     </div>
   </dialog>
+
+  <!-- 连对挑战结束横幅：右下角浮层，不遮棋盘；复用现有配色变量，不新增色值。 -->
+  <div id="streakBanner" role="status" hidden style="position:fixed;right:18px;bottom:18px;z-index:45;max-width:min(340px,86vw);padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--paper,#fbf5e8);box-shadow:0 8px 30px rgba(43,38,32,.18);color:var(--ink,#2b261f);font-size:12.5px;line-height:1.7">
+    <pre id="streakBannerBody" style="margin:0 0 10px;white-space:pre-line;font:inherit"></pre>
+    <button type="button" data-act="streakAgain" data-i18n="puzzle.streakAgain" style="cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:6px 16px;background:var(--seal,#9c2b22);color:#f7efdd">再来一局</button>
+  </div>
 
   <div class="toast" id="toast" role="status"></div>
   <input type="file" id="fileInput" accept=".xhgame,.json,application/json" hidden>

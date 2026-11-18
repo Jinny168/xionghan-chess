@@ -19,14 +19,18 @@ def _generated():
 
 
 def test_tiers_are_ordered_by_ply() -> None:
-    """低档的 ply 不得高于高档：beginner ≤ advanced ≤ master。
+    """杀题（ply≥3）的低档 ply 不得高于高档：beginner ≤ advanced ≤ master。
 
     这条是标定排序的直接后果。如果有人手工把一道 7 ply 塞进 beginner，
     玩家第一天就会撞上一道四手杀 —— 而"每日一题"的第一印象就毁了。
+
+    批次 A 新增的守题/特色子题只有 1 ply，它们的难度按**章节层级**给（破釜/逐鹿
+    advanced、垓下/定鼎 master），不按 ply —— ply 排序对它们无意义，故只筛杀题。
     """
     by_level = defaultdict(list)
     for puzzle in _generated():
-        by_level[puzzle.difficulty].append(len(puzzle.solution))
+        if len(puzzle.solution) >= 3:  # 只对杀题守 ply 单调性
+            by_level[puzzle.difficulty].append(len(puzzle.solution))
     for lower, higher in zip(LEVELS, LEVELS[1:]):
         assert by_level[lower], f"{lower} 档是空的"
         assert max(by_level[lower]) <= min(by_level[higher]), (

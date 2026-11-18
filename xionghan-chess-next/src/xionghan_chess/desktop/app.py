@@ -50,12 +50,13 @@ CHAT_HISTORY_LIMIT = 200
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position, is_big_capture
 from xionghan_chess.core.profiles import RULE_VERSION, action_visible
-from xionghan_chess.core.storage import game_document
+from xionghan_chess.core.storage import game_document, game_from_document
 from xionghan_chess.core.taunts import select_taunt, swing_scene, taunt_allowed, taunts
 from xionghan_chess.i18n import t
 
 from ..core import daily as daily_quiz
-from . import crashlog, net
+from ..core.puzzles import load_puzzles
+from . import crashlog, net, training_store
 from . import training as puzzle_judge
 from . import update as version_check
 from .audio import DesktopAudio
@@ -180,10 +181,19 @@ class MainWindow(QMainWindow):
         self.thinking_timer = QTimer(self)
         self.thinking_timer.setInterval(THINKING_TICK_MS)
         self.thinking_timer.timeout.connect(self._tick_thinking)
+        # 连对挑战：单题思考计时（60s 柔性提醒跳过），独立于 AI 读条定时器。
+        self.streak_timer = QTimer(self)
+        self.streak_timer.setInterval(1000)
+        self.streak_timer.timeout.connect(self._tick_streak_skip)
         # S2-7 配套：非 None 时表示正处在「残局题」里，`human_move` 要判对错。
         self.puzzle_session = None
         # 这道题是不是「每日一题」——只有它是，过关才更新连续天数（见 `_judge_puzzle`）。
         self.puzzle_is_daily = False
+        # 批次 A：计分态（连对挑战 / 每日一题）屏蔽一切文字提示；章节闯关 scored=False，
+        # 文字提示可用且计入星级。星轨层由 configure_board 对所有题目态一律关闭（P1-7）。
+        self.puzzle_scored = False
+        # 连对挑战会话（一错即止）：{pool, index, used, count, threshold}；非连对态为 None。
+        self.streak_session = None
         # C2：题目模式下状态栏右下角给一个「提示」按钮。桌面原先只有选题列表里那个
         # 提示按钮（开局前），进了棋局就没有任何求助入口 —— 这是它和网页端最大的体验差。
         self.hint_button = QPushButton(dl("提示"))
@@ -434,6 +444,9 @@ class MainWindow(QMainWindow):
     def new_game(self) -> None:
         self.puzzle_session = None
         self.puzzle_is_daily = False
+        self.puzzle_scored = False
+        self.streak_session = None
+        self.streak_timer.stop()
         self.chat_messages.clear()  # 换局清空（悔棋不清，聊天是历史）
         self.close_network()
         self.cancel.set()
@@ -539,7 +552,12 @@ class MainWindow(QMainWindow):
 
         走法提示直接落状态栏而不是弹框：解题过程中弹框会打断思路，
         而且玩家往往只想瞄一眼。
+
+        批次 A（裁决5）：计分态（连对挑战 / 每日一题）屏蔽一切文字提示——提示会替
+        玩家答题，破坏"计分只看实力"。章节闯关 scored=False，文字提示可用且计入星级。
         """
+        if self.puzzle_scored:
+            return
         session = self.puzzle_session
         if session is None:
             return
@@ -576,6 +594,98 @@ class MainWindow(QMainWindow):
             t("desktop.daily_streak", self.config.get("language", "zh-CN"), count=updated.streak), 8000
         )
 
+    def _maybe_soft_hint(self, session) -> None:
+        """卡关软引导：某题错≥5次后才问一句"要不要看条提示？"。
+
+        裁决5：软提示也计入 penalty —— 一旦玩家点进去看，`staged_hint` 会正常计数。
+        连对计分态不看软引导（提示被完全屏蔽）。每局只问一次，避免反复打断。
+        """
+        if self.puzzle_scored or getattr(self, "_soft_hint_asked", False):
+            return
+        if session.attempts >= 5:
+            self._soft_hint_asked = True
+            QMessageBox.information(
+                self,
+                dl("卡住了？"),
+                t("training.hintDue", self.config.get("language", "zh-CN")),
+            )
+
+    def _end_streak(self, reason: str) -> None:
+        """结束连对挑战：记录最高连对、弹结束页（一错即止；跳过不算错）。
+
+        结束页文案按定稿：不出现"失败/错误/你输了"，只报本轮连对、破纪录与否、
+        距纪录还差、最高保留、"这只是练习"。一键再来一局无确认。
+        """
+        run = self.streak_session
+        if run is None:
+            return
+        count = run.count
+        best = training_store.record_streak_best(self.config, count)
+        save_config(self.config)
+        lang = self.config.get("language", "zh-CN")
+        lines = [t("training.streakRound", lang, count=count)]
+        if count > 0 and count >= best and count > getattr(self, "_streak_prev_best", 0):
+            lines.append(t("training.streakRecord", lang, count=count - getattr(self, "_streak_prev_best", 0)))
+        elif count > 0:
+            lines.append(t("training.streakNoRecord", lang))
+        gap = best - count + 1
+        if gap > 0:
+            lines.append(t("training.streakGap", lang, count=gap))
+        lines.append(t("training.streakKept", lang))
+        lines.append(t("training.streakPractice", lang))
+        self.streak_timer.stop()
+        self.streak_session = None
+        self.puzzle_session = None
+        self.puzzle_scored = False
+        self.hint_button.hide()
+        box = QMessageBox(self)
+        box.setWindowTitle(t("training.streak", lang))
+        box.setText("\n".join(lines))
+        again = box.addButton(t("training.streakAgain", lang), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(t("common.close", lang), QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        if box.clickedButton() is again:
+            self.start_streak()
+
+    def _advance_streak(self) -> None:
+        """连对答对一题：连对数+1，载入下一题；池走完则结束。"""
+        run = self.streak_session
+        if run is None:
+            return
+        run.on_correct()
+        next_puzzle = run.next_puzzle()
+        if next_puzzle is None:
+            self._end_streak(puzzle_judge.STREAK_END_EXHAUSTED)
+            return
+        self._load_puzzle_into_board(next_puzzle, scored=True, daily=False, streak=True)
+
+    def _load_puzzle_into_board(self, puzzle, *, scored: bool, daily: bool, streak: bool) -> None:
+        """把一道题载入棋盘（共用的入口，start_training/连对/每日都走这里）。"""
+        self.close_network()
+        self.game = game_from_document(puzzle.document)
+        self.config["game_mode"] = "local"
+        self._reset_ui_cache()
+        self.board.set_game(self.game, Color.RED, True)
+        self.puzzle_session = puzzle_judge.session_for(puzzle)
+        self.configure_board()
+        self.puzzle_is_daily = daily
+        self.puzzle_scored = scored
+        self._soft_hint_asked = False
+        self._skip_prompted = False
+        self._streak_puzzle_started = datetime.datetime.now() if streak else None
+        if streak:
+            self.streak_timer.start()
+        else:
+            self.streak_timer.stop()
+        if daily:
+            self._record_daily_start()
+        self.hint_button.setText(dl("提示"))
+        # 计分态屏蔽文字提示按钮（星轨层由 configure_board 对所有题态一律关闭）。
+        self.hint_button.setVisible(not scored)
+        self._stats_recorded = True
+        self._autosaved = True
+        self.refresh()
+
     def _judge_puzzle(self, move: Move) -> bool:
         """判定训练题的一手棋。返回 False 表示答错且已回退（调用方不要再刷新）。
 
@@ -597,7 +707,13 @@ class MainWindow(QMainWindow):
                 pass
             self.board.set_game(self.game, self.game.state.turn, True)
             self.board.locked = False
+            # 连对挑战：一错即止，不弹"再想想"，直接结束本轮。
+            if self.streak_session is not None:
+                self.streak_session.on_wrong()
+                self._end_streak(puzzle_judge.STREAK_END_WRONG)
+                return False
             hint = session.next_hint()
+            self._maybe_soft_hint(session)
             detail = ((dl("提示：") + hint) if hint else "") if not english else (("Hint: " + hint) if hint else "")
             QMessageBox.information(
                 self,
@@ -608,13 +724,25 @@ class MainWindow(QMainWindow):
             self.refresh()
             return False
         if verdict == puzzle_judge.VERDICT_SOLVED:
+            # 连对挑战：答对+1，不留弹窗，直接进下一题（不记星、不看提示）。
+            if self.streak_session is not None:
+                self._advance_streak()
+                return True
             title = session.puzzle.title
             stars = session.stars
             rating = "★" * stars + "☆" * (3 - stars)
             if self.puzzle_is_daily:
                 self._record_daily_solve(session.puzzle)
+            else:
+                # 章节闯关（非每日、非连对）：记历史最高星 + 重算解锁。自由练习（drill）
+                # 不计星也不进解锁——这里只处理有 chapter 的真题。
+                if session.puzzle.chapter:
+                    training_store.record_stars(self.config, session.puzzle.id, stars)
+                    training_store.refresh_unlocks(self.config, load_puzzles())
+                    save_config(self.config)
             self.puzzle_session = None
             self.puzzle_is_daily = False
+            self.puzzle_scored = False
             self.hint_button.hide()
             QMessageBox.information(
                 self,
@@ -668,6 +796,32 @@ class MainWindow(QMainWindow):
     def _end_thinking(self) -> None:
         self.thinking_timer.stop()
         self.board.end_thinking()
+
+    def _tick_streak_skip(self) -> None:
+        """连对挑战：单题思考超过阈值（默认 60 秒）柔性提醒"要不要跳过？"。
+
+        跳过算结束、不计错；提醒只弹一次/题（_skip_prompted），避免反复打断。
+        """
+        run = self.streak_session
+        if run is None or getattr(self, "_skip_prompted", False):
+            return
+        started = getattr(self, "_streak_puzzle_started", None)
+        if started is None:
+            return
+        elapsed = (datetime.datetime.now() - started).total_seconds()
+        if elapsed < run.skip_threshold_s:
+            return
+        self._skip_prompted = True
+        lang = self.config.get("language", "zh-CN")
+        box = QMessageBox(self)
+        box.setWindowTitle(t("training.streak", lang))
+        box.setText(t("training.streakSkipHint", lang))
+        skip_btn = box.addButton(t("training.streakSkip", lang), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(t("common.close", lang), QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        if box.clickedButton() is skip_btn:
+            run.on_skip()
+            self._end_streak(puzzle_judge.STREAK_END_SKIP)
 
     def _tick_thinking(self) -> None:
         self.board.update()
@@ -1092,6 +1246,10 @@ class MainWindow(QMainWindow):
             legal_targets=self.config.get("legal_targets", True),
             capture_hints=self.config.get("capture_hints", True),
             animations=self.config.get("animations", True),
+            # 计分测验态（题库真题 / 每日一题 / Streak / 闯关）屏蔽：提示会替玩家答题。
+            # 复盘态的 BoardWidget 由 ReplayDialog 自建、从不走这里，默认值 False 即屏蔽。
+            archer_star_hints=self.config.get("archer_star_hints", False)
+            and getattr(self, "puzzle_session", None) is None,
         )
         self.board.set_flipped(self.config.get("flipped", False))
         self.sync_capture_legend()
@@ -1140,32 +1298,65 @@ class MainWindow(QMainWindow):
         save_config(self.config)
         self.board.set_flipped(self.config["flipped"])
 
+    def start_streak(self) -> None:
+        """开始连对挑战（一错即止）：从已解锁章节抽题，排除 drill / 当日题。
+
+        题池由 training_store 按优先级排好（未做过→星级<3→随机），池空则提示无题可挑战。
+        """
+        puzzles = load_puzzles()
+        today_puzzle = daily_quiz.pick_daily(puzzles, datetime.date.today())
+        pool = training_store.puzzle_pool(self.config, today_puzzle.id if today_puzzle else None, puzzles)
+        if not pool:
+            lang = self.config.get("language", "zh-CN")
+            QMessageBox.information(self, t("training.streak", lang), t("training.streakEmpty", lang))
+            return
+        self._streak_prev_best = training_store.read(self.config)["streak"]["best"]
+        self.streak_session = puzzle_judge.StreakSession(list(pool))
+        first = self.streak_session.next_puzzle()
+        # 计分态：屏蔽文字提示；星轨层由 configure_board 对所有题态一律关闭。
+        self._load_puzzle_into_board(first, scored=True, daily=False, streak=True)
+
     def show_training(self) -> None:
         dialog = TrainingDialog(self)
-        if dialog.exec() and dialog.selected_game:
-            # P1-L：**不要**写 `self.config["profile"]`。训练题自带 profile（可能是
-            # traditional 的 10×9），一旦写进全局配置，玩家做完一道题再开新局就会
-            # 静默变成那道题的盘型；联机建房、让子设置也会跟着串。
-            # 题目的盘型由 `self.game.profile` 承担，与用户自己的偏好配置无关。
-            self.close_network()
-            self.game = dialog.selected_game
-            self.config["game_mode"] = "local"
-            self._reset_ui_cache()
-            self.board.set_game(self.game, Color.RED, True)
-            self.configure_board()
-            # S2-7 配套：带上题目本身，之后每一手都要对答案。
-            self.puzzle_session = puzzle_judge.session_for(dialog.selected_puzzle)
-            # 只有走「每日一题」入口才更新连续天数；从列表里挑同一道题不算。
-            self.puzzle_is_daily = getattr(dialog, "started_daily", False)
-            if self.puzzle_is_daily:
-                self._record_daily_start()
-            self.hint_button.setText(dl("提示"))
-            self.hint_button.show()
-            # 训练棋不是正式对局：既不进战绩，也不往棋谱库塞一条两步的「棋谱」。
-            # 这两个标志是 refresh() 里「终局才记账/才自动存」的开关，置 True 即抑制。
-            self._stats_recorded = True
-            self._autosaved = True
-            self.refresh()
+        if not dialog.exec():
+            return
+        # 连对挑战入口（一错即止）
+        if getattr(dialog, "started_streak", False):
+            self.start_streak()
+            return
+        if not dialog.selected_game:
+            return
+        # P1-L：**不要**写 `self.config["profile"]`。训练题自带 profile（可能是
+        # traditional 的 10×9），一旦写进全局配置，玩家做完一道题再开新局就会
+        # 静默变成那道题的盘型；联机建房、让子设置也会跟着串。
+        # 题目的盘型由 `self.game.profile` 承担，与用户自己的偏好配置无关。
+        self.close_network()
+        self.game = dialog.selected_game
+        self.config["game_mode"] = "local"
+        self._reset_ui_cache()
+        self.board.set_game(self.game, Color.RED, True)
+        # S2-7 配套：带上题目本身，之后每一手都要对答案。
+        # 必须在 configure_board() **之前**置位：星轨提示读取这个状态决定屏蔽，
+        # 放在后面会让整盘测验题带着提示显形（提示会替玩家答题）。
+        self.puzzle_session = puzzle_judge.session_for(dialog.selected_puzzle)
+        self.configure_board()
+        # 只有走「每日一题」入口才更新连续天数；从列表里挑同一道题不算。
+        self.puzzle_is_daily = getattr(dialog, "started_daily", False)
+        # 章节闯关 scored=False（文字提示可用且计星）；每日一题 scored=True（屏蔽）。
+        self.puzzle_scored = self.puzzle_is_daily
+        self.streak_session = None
+        self.streak_timer.stop()
+        self._soft_hint_asked = False
+        if self.puzzle_is_daily:
+            self._record_daily_start()
+        self.hint_button.setText(dl("提示"))
+        # 计分态（每日题）隐藏文字提示按钮；章节闯关保留。
+        self.hint_button.setVisible(not self.puzzle_scored)
+        # 训练棋不是正式对局：既不进战绩，也不往棋谱库塞一条两步的「棋谱」。
+        # 这两个标志是 refresh() 里「终局才记账/才自动存」的开关，置 True 即抑制。
+        self._stats_recorded = True
+        self._autosaved = True
+        self.refresh()
 
     def toggle_fullscreen(self) -> None:
         self.showNormal() if self.isFullScreen() else self.showFullScreen()
@@ -1207,6 +1398,9 @@ class MainWindow(QMainWindow):
             self.game = game
             self.puzzle_session = None
             self.puzzle_is_daily = False
+            self.puzzle_scored = False
+            self.streak_session = None
+            self.streak_timer.stop()
             self._reset_ui_cache()
             self.config["profile"] = game.profile.id
             self.config["rule_options"] = asdict(game.options)
@@ -1746,6 +1940,8 @@ class MainWindow(QMainWindow):
         self.network_players = {item["color"]: item for item in snapshot.get("players", [])}
         self.puzzle_session = None
         self.puzzle_is_daily = False
+        self.puzzle_scored = False
+        self.streak_session = None
         self.game = Game.from_state(
             GameState.from_dict(game_data), game_data["profile"]["options"], game_data.get("setup")
         )

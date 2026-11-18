@@ -41,6 +41,7 @@
 |---|---|---|
 | [UI_AUDIT_2026-10-31.md](UI_AUDIT_2026-10-31.md) | 匈汉象棋 UI 系统审计（2026-10-31） | 参考 |
 | [UI_GEOMETRY_AUDIT_2026-10-31.md](UI_GEOMETRY_AUDIT_2026-10-31.md) | 匈汉象棋 桌面端运行期几何审计（2026-10-31） | 参考 |
+| [VISUAL_ALIGNMENT_TRIAD.md](VISUAL_ALIGNMENT_TRIAD.md) | 三端视觉对齐清单（P1-8）：13 项参数矩阵 + 人工验收清单；权威数据在 [visual_alignment_ledger.json](visual_alignment_ledger.json)，门禁 `tests/test_visual_alignment_triad.py` | ✅ 维护中 |
 
 ## ops · 运维与本地环境
 

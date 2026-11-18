@@ -122,3 +122,42 @@ def test_delivery_profiles_have_distinct_piece_sets() -> None:
     assert sets["web"] not in (sets["desktop_complete"], sets["traditional"])
     distinct = {frozenset(v) for k, v in sets.items() if k != "desktop_classic"}
     assert len(distinct) == len(sets) - 1, f"有档案的棋子集重复：{sorted(sets)}"
+
+
+def test_light_profile_ships_full_pieces_with_only_three_confusing_rules_off():
+    """轻量档 = 完整棋子 + 三条最劝退规则关闭；其余选项与完整档逐字段一致。
+
+    与经典档同构（棋子集相同、只靠规则区分），但方向不同：经典是"回退到传统
+    走法"，轻量是"保留加强、只砍认知负荷最高的三条"。射保持增强（自由斜走三格）
+    —— 星轨弱化才是最反直觉的机制，不列入关闭项。
+    """
+    light = get_profile("desktop_light")
+    complete = get_profile("desktop_complete")
+
+    # 棋子构成与完整档逐枚相同 —— 选这档不缺子。
+    assert {(p.type, p.position.row, p.position.col) for p in light.initial_pieces()} == {
+        (p.type, p.position.row, p.position.col) for p in complete.initial_pieces()
+    }
+
+    # 关掉的三条（ITERATION_PLAN P0-4 / G3）。
+    assert light.options.invasion_victory is False
+    assert light.options.pawn_resurrection is False
+    assert light.options.pawn_three_line_capture is False
+    # 射保持增强：星轨弱化比自由斜走三格更反直觉，故轻量档不开弱化。
+    assert light.options.archer_enhanced_mode is True
+
+    # 其余选项不得漂移：把三条拨回完整档的值后，应逐字段等于完整档。
+    import dataclasses
+
+    restored = dataclasses.replace(
+        light.options,
+        invasion_victory=complete.options.invasion_victory,
+        pawn_resurrection=complete.options.pawn_resurrection,
+        pawn_three_line_capture=complete.options.pawn_three_line_capture,
+    )
+    assert restored == complete.options
+
+    # 纯 options 组合，不改走法语义 → RULE_VERSION 不升位。
+    from xionghan_chess.core.profiles import RULE_VERSION
+
+    assert RULE_VERSION == 3

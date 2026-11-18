@@ -10856,5 +10856,2603 @@
       "mate7"
     ],
     "chapter": "定鼎"
+  },
+  {
+    "id": "gen-23",
+    "title": "破釜·断援",
+    "difficulty": "advanced",
+    "description": "黑方下一步就有杀。轮到你走，兑掉进攻的子，找出唯一能化解的一手——先守住，再谈反击。",
+    "solution": [
+      {
+        "from": {
+          "row": 11,
+          "col": 10
+        },
+        "to": {
+          "row": 7,
+          "col": 6
+        }
+      }
+    ],
+    "hints": [
+      "先看黑方哪枚子在威胁帅",
+      "兑掉攻子或护住帅，化解这一路杀"
+    ],
+    "tags": [
+      "generated",
+      "defense"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "605dd789769f",
+            "type": "king",
+            "color": "red",
+            "row": 9,
+            "col": 6
+          },
+          {
+            "id": "eca562297e1f",
+            "type": "king",
+            "color": "black",
+            "row": 0,
+            "col": 7
+          },
+          {
+            "id": "093b63325520",
+            "type": "rook",
+            "color": "black",
+            "row": 7,
+            "col": 6
+          },
+          {
+            "id": "3e0a725b8fba",
+            "type": "archer",
+            "color": "black",
+            "row": 10,
+            "col": 6
+          },
+          {
+            "id": "e437b5b6ae44",
+            "type": "cannon",
+            "color": "red",
+            "row": 11,
+            "col": 2
+          },
+          {
+            "id": "e07b781e1af6",
+            "type": "guard",
+            "color": "red",
+            "row": 11,
+            "col": 10
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 1200000,
+          "black": 1200000
+        }
+      },
+      "savedAt": "2026-11-17T23:34:28"
+    },
+    "chapter": "破釜"
+  },
+  {
+    "id": "gen-24",
+    "title": "破釜·稳局",
+    "difficulty": "advanced",
+    "description": "大敌当前，硬拼无益。走出唯一一手，化解杀棋、稳住局面。",
+    "solution": [
+      {
+        "from": {
+          "row": 9,
+          "col": 3
+        },
+        "to": {
+          "row": 11,
+          "col": 5
+        }
+      }
+    ],
+    "hints": [
+      "找出黑方即将成杀的那条线",
+      "用唯一的一手把它化解掉"
+    ],
+    "tags": [
+      "generated",
+      "defense",
+      "equilibrium"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "b62076d76d47",
+            "type": "king",
+            "color": "red",
+            "row": 9,
+            "col": 6
+          },
+          {
+            "id": "99025c57f276",
+            "type": "king",
+            "color": "black",
+            "row": 1,
+            "col": 5
+          },
+          {
+            "id": "ddb37a0d35ba",
+            "type": "horse",
+            "color": "black",
+            "row": 11,
+            "col": 5
+          },
+          {
+            "id": "8f51bd757601",
+            "type": "rook",
+            "color": "black",
+            "row": 5,
+            "col": 5
+          },
+          {
+            "id": "876bfedab32a",
+            "type": "archer",
+            "color": "red",
+            "row": 9,
+            "col": 3
+          },
+          {
+            "id": "61b9abcc1b6c",
+            "type": "thunder",
+            "color": "red",
+            "row": 9,
+            "col": 10
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 1200000,
+          "black": 1200000
+        }
+      },
+      "savedAt": "2026-11-17T23:34:30"
+    },
+    "chapter": "破釜"
+  },
+  {
+    "id": "gen-25",
+    "title": "破釜·星射",
+    "difficulty": "advanced",
+    "description": "这题考的是射的星轨斜线（加强版可斜走三格、吃子无视阻挡）。用射完成将死。",
+    "solution": [
+      {
+        "from": {
+          "row": 3,
+          "col": 3
+        },
+        "to": {
+          "row": 0,
+          "col": 6
+        }
+      }
+    ],
+    "hints": [
+      "沿星轨斜线找射的落点",
+      "借射的斜线吃子将死"
+    ],
+    "tags": [
+      "generated",
+      "feature:archer"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "189dd2923f73",
+            "type": "king",
+            "color": "black",
+            "row": 0,
+            "col": 6
+          },
+          {
+            "id": "f78fbe816cdf",
+            "type": "king",
+            "color": "red",
+            "row": 11,
+            "col": 7
+          },
+          {
+            "id": "0ceddb48c91a",
+            "type": "archer",
+            "color": "red",
+            "row": 3,
+            "col": 3
+          },
+          {
+            "id": "3f5f84507dc6",
+            "type": "elephant",
+            "color": "red",
+            "row": 3,
+            "col": 2
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 1200000,
+          "black": 1200000
+        }
+      },
+      "savedAt": "2026-11-17T23:30:33"
+    },
+    "chapter": "破釜"
+  },
+  {
+    "id": "gen-26",
+    "title": "逐鹿·解围",
+    "difficulty": "advanced",
+    "description": "帅位告急。轮到你走，走出唯一能化解的一手，守住这一关。",
+    "solution": [
+      {
+        "from": {
+          "row": 8,
+          "col": 7
+        },
+        "to": {
+          "row": 7,
+          "col": 5
+        }
+      }
+    ],
+    "hints": [
+      "看黑方哪枚子已经形成杀势",
+      "用唯一一手解除威胁"
+    ],
+    "tags": [
+      "generated",
+      "defense"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "04ed5491cfbf",
+            "type": "king",
+            "color": "red",
+            "row": 10,
+            "col": 5
+          },
+          {
+            "id": "23a88da0d456",
+            "type": "king",
+            "color": "black",
+            "row": 1,
+            "col": 6
+          },
+          {
+            "id": "96aeec2861d1",
+            "type": "horse",
+            "color": "black",
+            "row": 7,
+            "col": 5
+          },
+          {
+            "id": "a9f7dc4e5338",
+            "type": "rook",
+            "color": "black",
+            "row": 5,
+            "col": 10
+          },
+          {
+            "id": "816650c64c86",
+            "type": "cannon",
+            "color": "red",
+            "row": 9,
+            "col": 6
+          },
+          {
+            "id": "59dd94ca8cc3",
+            "type": "horse",
+            "color": "red",
+            "row": 8,
+            "col": 7
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 1200000,
+          "black": 1200000
+        }
+      },
+      "savedAt": "2026-11-17T23:34:47"
+    },
+    "chapter": "逐鹿"
+  },
+  {
+    "id": "gen-27",
+    "title": "逐鹿·巡河",
+    "difficulty": "advanced",
+    "description": "这题考的是巡只沿横线走偶数格、吃子仅限距离 2。用巡完成将死。",
+    "solution": [
+      {
+        "from": {
+          "row": 2,
+          "col": 4
+        },
+        "to": {
+          "row": 2,
+          "col": 6
+        }
+      }
+    ],
+    "hints": [
+      "巡只能横走偶数格",
+      "找距离 2 的吃子点完成将死"
+    ],
+    "tags": [
+      "generated",
+      "feature:patrol"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "819f18b6c333",
+            "type": "king",
+            "color": "black",
+            "row": 2,
+            "col": 6
+          },
+          {
+            "id": "6dd8acbc5295",
+            "type": "king",
+            "color": "red",
+            "row": 11,
+            "col": 5
+          },
+          {
+            "id": "00bddd800afd",
+            "type": "patrol",
+            "color": "red",
+            "row": 2,
+            "col": 4
+          },
+          {
+            "id": "e4296d9c52af",
+            "type": "pawn",
+            "color": "red",
+            "row": 9,
+            "col": 2
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 1200000,
+          "black": 1200000
+        }
+      },
+      "savedAt": "2026-11-17T23:30:34"
+    },
+    "chapter": "逐鹿"
+  },
+  {
+    "id": "gen-28",
+    "title": "垓下·避杀",
+    "difficulty": "master",
+    "description": "黑方杀棋迫在眉睫。移帅走出唯一一手，把局面拉回均衡。",
+    "solution": [
+      {
+        "from": {
+          "row": 9,
+          "col": 6
+        },
+        "to": {
+          "row": 10,
+          "col": 7
+        }
+      }
+    ],
+    "hints": [
+      "先判断黑方的杀来自哪枚子",
+      "把帅移到安全处避开这一路杀"
+    ],
+    "tags": [
+      "generated",
+      "defense",
+      "equilibrium"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "f5649e733609",
+            "type": "king",
+            "color": "red",
+            "row": 9,
+            "col": 6
+          },
+          {
+            "id": "5500f352ff53",
+            "type": "king",
+            "color": "black",
+            "row": 2,
+            "col": 5
+          },
+          {
+            "id": "2b50ad284af0",
+            "type": "thunder",
+            "color": "black",
+            "row": 8,
+            "col": 6
+          },
+          {
+            "id": "66c889c64916",
+            "type": "guard",
+            "color": "black",
+            "row": 9,
+            "col": 7
+          },
+          {
+            "id": "fe6c132c637a",
+            "type": "archer",
+            "color": "red",
+            "row": 11,
+            "col": 2
+          },
+          {
+            "id": "0a50f3874e40",
+            "type": "horse",
+            "color": "red",
+            "row": 9,
+            "col": 9
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 1200000,
+          "black": 1200000
+        }
+      },
+      "savedAt": "2026-11-17T23:35:27"
+    },
+    "chapter": "垓下"
+  },
+  {
+    "id": "gen-29",
+    "title": "垓下·化解",
+    "difficulty": "master",
+    "description": "看似必败的局面，其实藏着唯一一手化解。找到了，就稳住了。",
+    "solution": [
+      {
+        "from": {
+          "row": 10,
+          "col": 6
+        },
+        "to": {
+          "row": 9,
+          "col": 7
+        }
+      }
+    ],
+    "hints": [
+      "别急着对攻，先看威胁",
+      "找出唯一能化解的一手"
+    ],
+    "tags": [
+      "generated",
+      "defense"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "72acb28da5f3",
+            "type": "king",
+            "color": "red",
+            "row": 9,
+            "col": 5
+          },
+          {
+            "id": "20a5db77d3d2",
+            "type": "king",
+            "color": "black",
+            "row": 1,
+            "col": 7
+          },
+          {
+            "id": "7febae029cd0",
+            "type": "cannon",
+            "color": "black",
+            "row": 5,
+            "col": 8
+          },
+          {
+            "id": "b7ee2c8efdf0",
+            "type": "rook",
+            "color": "black",
+            "row": 9,
+            "col": 7
+          },
+          {
+            "id": "d4744cc48324",
+            "type": "guard",
+            "color": "red",
+            "row": 10,
+            "col": 6
+          },
+          {
+            "id": "086097c6ba6d",
+            "type": "thunder",
+            "color": "red",
+            "row": 9,
+            "col": 2
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 1200000,
+          "black": 1200000
+        }
+      },
+      "savedAt": "2026-11-17T23:35:00"
+    },
+    "chapter": "垓下"
+  },
+  {
+    "id": "gen-30",
+    "title": "垓下·檑震",
+    "difficulty": "master",
+    "description": "这题考的是檑走直线或斜线、只能吃孤立的敌子。用檑完成将死。",
+    "solution": [
+      {
+        "from": {
+          "row": 2,
+          "col": 5
+        },
+        "to": {
+          "row": 1,
+          "col": 5
+        }
+      }
+    ],
+    "hints": [
+      "檑只能吃没有同色子相邻的孤立子",
+      "用檑吃孤立子完成将死"
+    ],
+    "tags": [
+      "generated",
+      "feature:thunder"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "54f9cb25abfc",
+            "type": "king",
+            "color": "black",
+            "row": 0,
+            "col": 6
+          },
+          {
+            "id": "4fe7ed9b3eee",
+            "type": "king",
+            "color": "red",
+            "row": 10,
+            "col": 7
+          },
+          {
+            "id": "8a8e197200a8",
+            "type": "thunder",
+            "color": "red",
+            "row": 2,
+            "col": 5
+          },
+          {
+            "id": "bcd9f1b299da",
+            "type": "rook",
+            "color": "red",
+            "row": 8,
+            "col": 10
+          },
+          {
+            "id": "83351f5ca751",
+            "type": "horse",
+            "color": "black",
+            "row": 3,
+            "col": 3
+          },
+          {
+            "id": "eb682c263ee6",
+            "type": "cannon",
+            "color": "black",
+            "row": 5,
+            "col": 8
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 1200000,
+          "black": 1200000
+        }
+      },
+      "savedAt": "2026-11-17T23:30:34"
+    },
+    "chapter": "垓下"
+  },
+  {
+    "id": "gen-31",
+    "title": "垓下·连环",
+    "difficulty": "master",
+    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "solution": [
+      {
+        "from": {
+          "row": 4,
+          "col": 0
+        },
+        "to": {
+          "row": 1,
+          "col": 0
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 5
+        },
+        "to": {
+          "row": 0,
+          "col": 6
+        }
+      },
+      {
+        "from": {
+          "row": 1,
+          "col": 0
+        },
+        "to": {
+          "row": 1,
+          "col": 7
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 6
+        },
+        "to": {
+          "row": 0,
+          "col": 5
+        }
+      },
+      {
+        "from": {
+          "row": 1,
+          "col": 7
+        },
+        "to": {
+          "row": 1,
+          "col": 6
+        }
+      }
+    ],
+    "hints": [
+      "第 1 手：先想将军",
+      "第 2 手：先想将军",
+      "第 3 手：收网"
+    ],
+    "tags": [
+      "generated",
+      "mate5",
+      "counter"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "web",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "web",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "7b6ff77de520",
+            "type": "king",
+            "color": "black",
+            "row": 0,
+            "col": 5
+          },
+          {
+            "id": "ac041eed2932",
+            "type": "king",
+            "color": "red",
+            "row": 11,
+            "col": 4
+          },
+          {
+            "id": "63d02d4b1f7d",
+            "type": "archer",
+            "color": "red",
+            "row": 3,
+            "col": 5
+          },
+          {
+            "id": "1e04a1832f2f",
+            "type": "rook",
+            "color": "red",
+            "row": 4,
+            "col": 0
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 600000,
+          "black": 600000
+        }
+      },
+      "savedAt": "2026-11-17T23:27:01"
+    },
+    "chapter": "垓下"
+  },
+  {
+    "id": "gen-32",
+    "title": "定鼎·挡锋",
+    "difficulty": "master",
+    "description": "锋芒已至帅前。兑掉攻子，走出唯一一手守住最后的防线。",
+    "solution": [
+      {
+        "from": {
+          "row": 11,
+          "col": 7
+        },
+        "to": {
+          "row": 9,
+          "col": 5
+        }
+      }
+    ],
+    "hints": [
+      "找黑方杀线的关键点",
+      "兑掉进攻的子，化解危机"
+    ],
+    "tags": [
+      "generated",
+      "defense"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "da50ada2661e",
+            "type": "king",
+            "color": "red",
+            "row": 10,
+            "col": 5
+          },
+          {
+            "id": "f049abed9ce2",
+            "type": "king",
+            "color": "black",
+            "row": 2,
+            "col": 5
+          },
+          {
+            "id": "ab6b9a7cb9b1",
+            "type": "horse",
+            "color": "black",
+            "row": 7,
+            "col": 8
+          },
+          {
+            "id": "59fedbe8220d",
+            "type": "rook",
+            "color": "black",
+            "row": 9,
+            "col": 5
+          },
+          {
+            "id": "f78f57227694",
+            "type": "patrol",
+            "color": "red",
+            "row": 10,
+            "col": 9
+          },
+          {
+            "id": "0488c7ce0776",
+            "type": "guard",
+            "color": "red",
+            "row": 11,
+            "col": 7
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 1200000,
+          "black": 1200000
+        }
+      },
+      "savedAt": "2026-11-17T23:35:04"
+    },
+    "chapter": "定鼎"
+  },
+  {
+    "id": "gen-33",
+    "title": "定鼎·尉卫",
+    "difficulty": "master",
+    "description": "这题考的是尉斜向任意距离、路径须无子。用尉完成将死。",
+    "solution": [
+      {
+        "from": {
+          "row": 4,
+          "col": 8
+        },
+        "to": {
+          "row": 2,
+          "col": 6
+        }
+      }
+    ],
+    "hints": [
+      "尉斜走任意距离，路径须空",
+      "用尉的斜线完成将死"
+    ],
+    "tags": [
+      "generated",
+      "feature:guard"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "desktop_complete",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:guard:12:6",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12",
+          "red:patrol:7:0",
+          "red:patrol:7:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:guard:0:6",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12",
+          "black:patrol:5:0",
+          "black:patrol:5:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "desktop_complete",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "45d8d61f19fa",
+            "type": "king",
+            "color": "black",
+            "row": 2,
+            "col": 6
+          },
+          {
+            "id": "11774779cb13",
+            "type": "king",
+            "color": "red",
+            "row": 11,
+            "col": 5
+          },
+          {
+            "id": "87b9b2faf38a",
+            "type": "guard",
+            "color": "red",
+            "row": 4,
+            "col": 8
+          },
+          {
+            "id": "5371d2a0f84e",
+            "type": "rook",
+            "color": "red",
+            "row": 6,
+            "col": 4
+          },
+          {
+            "id": "bb598fa944a8",
+            "type": "elephant",
+            "color": "red",
+            "row": 2,
+            "col": 7
+          },
+          {
+            "id": "7e9f961745cc",
+            "type": "rook",
+            "color": "black",
+            "row": 2,
+            "col": 2
+          },
+          {
+            "id": "0c405a839bf8",
+            "type": "pawn",
+            "color": "black",
+            "row": 5,
+            "col": 6
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 1200000,
+          "black": 1200000
+        }
+      },
+      "savedAt": "2026-11-17T23:30:34"
+    },
+    "chapter": "定鼎"
+  },
+  {
+    "id": "gen-34",
+    "title": "定鼎·长驱",
+    "difficulty": "master",
+    "description": "对手每步都只有唯一应法，走出唯一的四手连杀。",
+    "solution": [
+      {
+        "from": {
+          "row": 2,
+          "col": 4
+        },
+        "to": {
+          "row": 2,
+          "col": 2
+        }
+      },
+      {
+        "from": {
+          "row": 1,
+          "col": 3
+        },
+        "to": {
+          "row": 0,
+          "col": 3
+        }
+      },
+      {
+        "from": {
+          "row": 12,
+          "col": 4
+        },
+        "to": {
+          "row": 11,
+          "col": 4
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 3
+        },
+        "to": {
+          "row": 1,
+          "col": 3
+        }
+      },
+      {
+        "from": {
+          "row": 11,
+          "col": 4
+        },
+        "to": {
+          "row": 10,
+          "col": 4
+        }
+      },
+      {
+        "from": {
+          "row": 1,
+          "col": 3
+        },
+        "to": {
+          "row": 0,
+          "col": 3
+        }
+      },
+      {
+        "from": {
+          "row": 2,
+          "col": 2
+        },
+        "to": {
+          "row": 1,
+          "col": 2
+        }
+      }
+    ],
+    "hints": [
+      "第 1 手：先想将军",
+      "第 2 手：先想将军",
+      "第 3 手：继续追杀",
+      "第 4 手：收网"
+    ],
+    "tags": [
+      "generated",
+      "mate7",
+      "counter"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "web",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "web",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "00b0679091f9",
+            "type": "king",
+            "color": "black",
+            "row": 1,
+            "col": 3
+          },
+          {
+            "id": "4bcfd5eee397",
+            "type": "king",
+            "color": "red",
+            "row": 12,
+            "col": 4
+          },
+          {
+            "id": "84fe445d462f",
+            "type": "rook",
+            "color": "red",
+            "row": 2,
+            "col": 4
+          },
+          {
+            "id": "bf444ac95be4",
+            "type": "horse",
+            "color": "red",
+            "row": 3,
+            "col": 9
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 600000,
+          "black": 600000
+        }
+      },
+      "savedAt": "2026-11-17T23:26:17"
+    },
+    "chapter": "定鼎"
+  },
+  {
+    "id": "gen-35",
+    "title": "定鼎·落幕",
+    "difficulty": "master",
+    "description": "长路奔袭，步步唯一。走出这场七路连杀，为战役收官。",
+    "solution": [
+      {
+        "from": {
+          "row": 4,
+          "col": 2
+        },
+        "to": {
+          "row": 3,
+          "col": 4
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 5
+        },
+        "to": {
+          "row": 0,
+          "col": 6
+        }
+      },
+      {
+        "from": {
+          "row": 3,
+          "col": 4
+        },
+        "to": {
+          "row": 3,
+          "col": 7
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 6
+        },
+        "to": {
+          "row": 0,
+          "col": 5
+        }
+      },
+      {
+        "from": {
+          "row": 3,
+          "col": 7
+        },
+        "to": {
+          "row": 1,
+          "col": 8
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 5
+        },
+        "to": {
+          "row": 0,
+          "col": 4
+        }
+      },
+      {
+        "from": {
+          "row": 1,
+          "col": 8
+        },
+        "to": {
+          "row": 2,
+          "col": 6
+        }
+      }
+    ],
+    "hints": [
+      "第 1 手：先想将军",
+      "第 2 手：先想将军",
+      "第 3 手：继续追杀",
+      "第 4 手：收网"
+    ],
+    "tags": [
+      "generated",
+      "mate7",
+      "counter"
+    ],
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "web",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "web",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "a48d5ac663f8",
+            "type": "king",
+            "color": "black",
+            "row": 0,
+            "col": 5
+          },
+          {
+            "id": "de3bdb035071",
+            "type": "king",
+            "color": "red",
+            "row": 10,
+            "col": 3
+          },
+          {
+            "id": "8dd637aef596",
+            "type": "horse",
+            "color": "red",
+            "row": 4,
+            "col": 2
+          },
+          {
+            "id": "a445872d2b5d",
+            "type": "guard",
+            "color": "red",
+            "row": 1,
+            "col": 12
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 600000,
+          "black": 600000
+        }
+      },
+      "savedAt": "2026-11-17T23:26:22"
+    },
+    "chapter": "定鼎"
   }
 ]

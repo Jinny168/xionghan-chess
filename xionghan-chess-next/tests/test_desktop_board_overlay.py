@@ -100,14 +100,10 @@ def test_pause_overlay_stays_on_top(qt_app: QApplication) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 落子指示的时长：550ms / 16ms（原来 350ms / 25ms，肉眼只有 ~9 帧）
+# 落子指示的时长：16 帧 × 20ms = 320ms（与 web 旧树、webapp 三端同值）
 # ---------------------------------------------------------------------------
-def test_animation_duration_is_about_450ms(qt_app: QApplication) -> None:
-    """23 帧 × 20ms = 460ms：够看清落子方向，又落在单帧 20ms 预算内。
-
-    取这一档而不是 550ms/16ms，是因为实测 900×900 单帧 max 14.3ms（超 12ms 掉帧线）、
-    1470px p95 已 16.2ms —— 20ms 定时器下两个尺寸都在预算内。
-    """
+def test_animation_duration_is_about_320ms(qt_app: QApplication) -> None:
+    """16 帧 × 20ms = 320ms：三端同值，落在单帧 20ms 预算内。"""
     from xionghan_chess.desktop.ui.board_widget import (
         ANIMATION_FRAMES,
         ANIMATION_TIMER_MS,
@@ -115,8 +111,7 @@ def test_animation_duration_is_about_450ms(qt_app: QApplication) -> None:
 
     assert ANIMATION_TIMER_MS == 20
     duration = ANIMATION_FRAMES * ANIMATION_TIMER_MS
-    assert 420 <= duration <= 500, f"落子指示时长 {duration}ms 不在 460±40 内"
-    assert duration > 350, "时长必须比改前的 350ms 更久（原来只有 ~9 个可见帧）"
+    assert 280 <= duration <= 360, f"落子指示时长 {duration}ms 不在 320±40 内"
 
 
 def test_animation_stops_after_the_last_frame(qt_app: QApplication) -> None:

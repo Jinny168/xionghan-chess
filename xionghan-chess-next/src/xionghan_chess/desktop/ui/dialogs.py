@@ -55,6 +55,7 @@ from xionghan_chess.core.setup import profile_slots
 from xionghan_chess.core.storage import game_from_document
 from xionghan_chess.i18n import normalize_language, t
 
+from .. import training_store
 from ..puzzle_store import available_puzzles, install_puzzles
 from ..sandbox import build_sandbox_game, undo_sandbox_move
 from ..storage import load_game
@@ -222,6 +223,9 @@ class SettingsDialog(QDialog):
         self.legal_targets.setChecked(config.get("legal_targets", True))
         self.capture_hints = QCheckBox(t("settings.capture_hints", self.language))
         self.capture_hints.setChecked(config.get("capture_hints", True))
+        self.archer_star_hints = QCheckBox(t("settings.star_hints", self.language))
+        self.archer_star_hints.setChecked(config.get("archer_star_hints", False))
+        self.archer_star_hints.setToolTip(t("settings.star_hints_hint", self.language))
         self.taunts = QCheckBox("棋灵挑衅短语" if self.language != "en" else "AI taunts")
         self.taunts.setChecked(config.get("taunts", True))
         self.autosave = QCheckBox(t("settings.autosave_desktop", self.language))
@@ -261,6 +265,7 @@ class SettingsDialog(QDialog):
         appearance_form.addRow(t("settings.selection", self.language), self.selection_highlight)
         appearance_form.addRow(t("settings.legal_targets", self.language), self.legal_targets)
         appearance_form.addRow(t("settings.capture_hints", self.language), self.capture_hints)
+        appearance_form.addRow(t("settings.star_hints", self.language), self.archer_star_hints)
         appearance_form.addRow("棋灵挑衅" if self.language != "en" else "AI taunts", self.taunts)
 
         sound_tab = QWidget()
@@ -513,6 +518,7 @@ class SettingsDialog(QDialog):
             "selection_highlight": self.selection_highlight.isChecked(),
             "legal_targets": self.legal_targets.isChecked(),
             "capture_hints": self.capture_hints.isChecked(),
+            "archer_star_hints": self.archer_star_hints.isChecked(),
             "taunts": self.taunts.isChecked(),
             "autosave": self.autosave.isChecked(),
             "server_url": previous.get("server_url", "http://127.0.0.1:8000"),
@@ -927,10 +933,12 @@ class TrainingDialog(QDialog):
         _fit_to_content(self)
         self.selected_game = None
         self.selected_puzzle = None
+        self.config = getattr(parent, "config", None) or {}
         layout = QVBoxLayout(self)
         # 每日一题：**固定在最上方**、不随难度筛选变化。它是"今天为什么打开这个窗口"的入口，
         # 藏在难度下拉后面就失去了意义（`daily` 的连续天数也只在这条路径上更新）。
         self.started_daily = False
+        self.started_streak = False
         self.daily_puzzles = []
         self.daily_puzzle = None
         self.daily_button = QPushButton(t("desktop.daily", lang))
@@ -938,6 +946,17 @@ class TrainingDialog(QDialog):
         # 它是这个窗口的主入口，别做成和下拉框一样矮的一条（实测默认只有 20px 高）
         self.daily_button.setMinimumHeight(34)
         layout.addWidget(self.daily_button)
+        # 批次 A：连对挑战（一错即止）副入口。每日一题仍是唯一实心主操作，连对用边框按钮，
+        # 标题下带一行小字副标题"一错即止"，与既有 winStreak（对局胜局）严格区分。
+        streak_state = training_store.read(self.config)
+        best = streak_state["streak"]["best"]
+        streak_label = f"{t('training.streak', lang)} · {t('training.streakSub', lang)}"
+        if best:
+            streak_label += f" · {t('training.streakBest', lang, count=best)}"
+        self.streak_button = QPushButton(streak_label)
+        self.streak_button.clicked.connect(self.start_streak)
+        self.streak_button.setObjectName("streakEntry")  # 稳定选择器，供测试与样式定位
+        layout.addWidget(self.streak_button)
         filters = QHBoxLayout()
         self.level = QComboBox()
         self.level.addItem(t("desktop.beginner", lang), "beginner")
@@ -974,20 +993,44 @@ class TrainingDialog(QDialog):
         self.daily_puzzle = daily_quiz.pick_daily(all_puzzles, date.today())
         self.puzzles = [item for item in all_puzzles if item.difficulty == self.level.currentData()]
         self.list.clear()
+        # 批次 A：解锁状态与星级从 training_store 读（章节顺序仍从 core.CHAPTERS）。
+        state = training_store.read(self.config)
+        unlocked = state["unlocked"]
+        stars = state["stars"]
+        summaries = {row["chapter"]: row for row in training_store.summary(self.config, all_puzzles)}
         # A2：按战役章节分组。**用不可选的分组标题**而不是新加一个下拉框 ——
         # 窗口已经有一个难度筛选，再加一个"章节"会让人先想"这两个筛选项怎么叠加"。
         grouped = {}
         for puzzle in self.puzzles:
             grouped.setdefault(puzzle.chapter, []).append(puzzle)
         for chapter in sorted(grouped, key=puzzle_chapters.chapter_order):
-            label = chapter or t("desktop.drills", self.language)
+            if chapter:
+                info = summaries.get(chapter, {})
+                label = f"{chapter}　★{info.get('stars', 0)}/{info.get('max', 0)}"
+                if chapter not in unlocked:
+                    prev = self._prev_chapter(chapter)
+                    label += f"　🔒 {t('training.locked', self.language, chapter=prev)}"
+            else:
+                # 自由练习：13 条 drill，不限序、不计星、不进解锁。
+                label = f"{t('desktop.drills', self.language)}　·　{t('training.freeHint', self.language)}"
             header = QListWidgetItem(f"—— {label} ——")
             header.setFlags(Qt.ItemFlag.NoItemFlags)
             self.list.addItem(header)
+            locked = bool(chapter) and chapter not in unlocked
             for puzzle in grouped[chapter]:
-                item = QListWidgetItem(f"{puzzle.title}  ·  {puzzle.description}")
+                earned = stars.get(puzzle.id, 0)
+                rating = ("★" * earned + "☆" * (3 - earned)) if earned else ""
+                title = f"{puzzle.title}  ·  {puzzle.description}"
+                if rating:
+                    title = f"{rating}  {title}"
+                if locked:
+                    title = f"🔒 {title}"
+                item = QListWidgetItem(title)
                 # 记住 id：分组标题插入后行号不再等于 self.puzzles 的下标
                 item.setData(Qt.ItemDataRole.UserRole, puzzle.id)
+                if locked:
+                    # 锁定题不可选（flags 保持非 NoItemFlags，仍带 id，满足分组测试契约）
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEnabled)
                 self.list.addItem(item)
         if warning:
             # 自定义题库坏了不该让窗口打不开 —— 但要让人知道它被忽略了
@@ -995,6 +1038,12 @@ class TrainingDialog(QDialog):
             note.setFlags(Qt.ItemFlag.NoItemFlags)
             self.list.addItem(note)
         self._refresh_daily_button()
+
+    def _prev_chapter(self, chapter: str) -> str:
+        """前一章名（锁文案用"先走完〈前一章〉"）。"""
+        order = puzzle_chapters.CHAPTERS
+        index = order.index(chapter) if chapter in order else -1
+        return order[index - 1] if index > 0 else order[0]
 
     def _daily_record(self) -> daily_quiz.DailyRecord:
         """从主窗口的配置里读今日记录；拿不到就当空记录（第一次运行）。"""
@@ -1029,6 +1078,12 @@ class TrainingDialog(QDialog):
         self.started_daily = True
         self.accept()
 
+    def start_streak(self) -> None:
+        """连对挑战入口（一错即止）：不选题、直接 accept，由主窗口按题池开第一题。"""
+        self.started_streak = True
+        self.selected_game = None
+        self.accept()
+
     def current(self) -> object:
         """按 item 上记的 id 取题 —— 分组标题会让行号与 `self.puzzles` 失配。"""
         item = self.list.currentItem()
@@ -1047,6 +1102,9 @@ class TrainingDialog(QDialog):
 
     def start_selected(self) -> None:
         puzzle = self.current()
+        # 锁章的题不可闯（双击/回车也可能触发）：再守一道，防止绕过 disabled 状态。
+        if puzzle and puzzle.chapter and puzzle.chapter not in training_store.read(self.config)["unlocked"]:
+            return
         # S2-7 配套：除了载入局面，还要把题目本身交出去 —— 主窗口要靠它的
         # `solution` 判对错。此前只 `accept()`，解法字段在桌面端形同废纸。
         if puzzle:

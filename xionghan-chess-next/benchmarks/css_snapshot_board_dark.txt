@@ -268,6 +268,16 @@ menu@board-dark|margin|0
 .toast@board-dark|z-index|10
 .toast.show@board-dark|opacity|1
 .toast.show@board-dark|transform|translate(-50%,0)
+.toast::before@board-dark|margin-right|7px
+.toast::before@board-dark|font-weight|700
+.toast--info::before@board-dark|content|'i'
+.toast--info::before@board-dark|color|white
+.toast--success::before@board-dark|content|'✓'
+.toast--success::before@board-dark|color|#315c48
+.toast--warn::before@board-dark|content|'!'
+.toast--warn::before@board-dark|color|#c9933b
+.toast--error::before@board-dark|content|'×'
+.toast--error::before@board-dark|color|#9d2525
 .rule-options@board-dark|grid-template-columns|1fr
 .rule-options@board-dark|gap|14px
 .rule-options@board-dark|padding|14px 0

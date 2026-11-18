@@ -268,6 +268,16 @@ menu|margin|0
 .toast|z-index|10
 .toast.show|opacity|1
 .toast.show|transform|translate(-50%,0)
+.toast::before|margin-right|7px
+.toast::before|font-weight|700
+.toast--info::before|content|'i'
+.toast--info::before|color|white
+.toast--success::before|content|'✓'
+.toast--success::before|color|#315c48
+.toast--warn::before|content|'!'
+.toast--warn::before|color|#c9933b
+.toast--error::before|content|'×'
+.toast--error::before|color|#9d2525
 .rule-options|grid-template-columns|1fr
 .rule-options|gap|14px
 .rule-options|padding|14px 0

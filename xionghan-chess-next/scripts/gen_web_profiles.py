@@ -37,6 +37,7 @@ from xionghan_chess.core.profiles import (  # noqa: E402
     BLACK_NAMES,
     CLASSIC_OPTIONS,
     COMPLETE_OPTIONS,
+    LIGHT_OPTIONS,
     NEGATED_OPTIONS,
     OPTION_ALIASES,
     PROFILES,
@@ -59,15 +60,19 @@ GENERATED_BY = "scripts/gen_web_profiles.py"
 UI_META = {
     "desktop_complete": {
         "shortTitle": "完整",
-        "description": "十四种棋子全部登场，规则最完整，接近桌面原版。",
+        "description": "11 个兵种、50 枚棋子全部登场，规则最完整，接近桌面原版。",
     },
     "desktop_classic": {
         "shortTitle": "经典",
-        "description": "保留射、檑、巡，去掉甲、刺、楯，节奏更接近传统象棋。",
+        "description": "棋子与完整档完全相同，只把士、象、马、兵、将回退成传统走法，节奏更接近传统象棋。",
     },
     "web": {
         "shortTitle": "精简",
-        "description": "只有射与檑两枚特色棋子，规则最好懂，适合首次上手。",
+        "description": "只有射与檑两枚特色棋子，棋子少、局面轻，适合喜欢快节奏的玩家。",
+    },
+    "desktop_light": {
+        "shortTitle": "轻量",
+        "description": "棋子齐全，关掉入宫速胜、兵复活与三连吃子三条复杂规则，最适合首次上手。",
     },
     "traditional": {
         "shortTitle": "传统",
@@ -127,6 +132,7 @@ def payload() -> dict[str, object]:
         "COMPLETE_OPTIONS": asdict(COMPLETE_OPTIONS),
         "CLASSIC_OPTIONS": asdict(CLASSIC_OPTIONS),
         "WEB_OPTIONS": asdict(WEB_OPTIONS),
+        "LIGHT_OPTIONS": asdict(LIGHT_OPTIONS),
         "OPTION_ALIASES": dict(OPTION_ALIASES),
         "OPTION_DEPENDENCIES": option_dependencies(),
         "UI_ACTION_REQUIRES": action_requirements(),
@@ -227,7 +233,7 @@ def generated_source() -> str:
         " * 开局摆子、启用兵种）只有 Python core 一份。改规则请改 core，再跑\n"
         " *   python scripts/gen_web_profiles.py --write\n"
         " *\n"
-        " * 四套档案共用同一套走法判定，只在棋盘尺寸、初始棋子、可用棋种与\n"
+        " * 各套档案共用同一套走法判定，只在棋盘尺寸、初始棋子、可用棋种与\n"
         " * 默认开关上不同 —— 这是本项目「一套内核、多种玩法」的核心设计。\n"
         " */\n"
         "\n"
@@ -306,8 +312,8 @@ def check() -> int:
     elif default_js != expected_payload["DEFAULT_OPTIONS"]:
         problems.append("[profile-values] DEFAULT_OPTIONS 逐值分叉")
 
-    # ③ 三个 OPTIONS 与 Python 逐键值相等
-    for name in ("COMPLETE_OPTIONS", "CLASSIC_OPTIONS", "WEB_OPTIONS"):
+    # ③ 四个 OPTIONS 与 Python 逐键值相等
+    for name in ("COMPLETE_OPTIONS", "CLASSIC_OPTIONS", "WEB_OPTIONS", "LIGHT_OPTIONS"):
         if found.get(name) != expected_payload[name]:
             problems.append(f"[profile-values] {name} 与 Python 不逐键值相等")
 

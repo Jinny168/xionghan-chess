@@ -473,6 +473,21 @@ input:focus-visible {
 .meta-block dt { color: var(--ink-faint); }
 .meta-block dd { margin: 0; color: var(--ink-soft); }
 
+/* 低频信息折叠进二级入口：详情 / 更多操作，默认收起，展开不改变棋盘与侧栏宽度。 */
+.meta-details { margin: 0 0 12px; }
+.meta-details summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.meta-details summary::-webkit-details-marker { display: none; }
+.meta-details summary::before { content: '▸'; margin-right: 6px; }
+.meta-details[open] summary::before { content: '▾'; }
+.meta-details dl { margin-top: 10px; }
+.more-details { margin-bottom: 0; }
+.more-details .meta-actions { margin-top: 10px; }
+
 .meta-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1061,6 +1076,18 @@ button.ghost:hover { background: rgba(90, 70, 40, 0.13); }
   opacity: 1;
   transform: translate(-50%, 0);
 }
+
+/* 分级反馈：形状（✓ / i / ! / ×）是主线索，颜色为辅；令牌取自既有 -- 变量。 */
+.toast::before {
+  margin-right: 7px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+}
+
+.toast--info::before { content: 'i'; color: var(--ink-faint); }
+.toast--success::before { content: '✓'; color: var(--jade); }
+.toast--warn::before { content: '!'; color: var(--gold); }
+.toast--error::before { content: '×'; color: var(--seal); }
 
 /* ---------------------------------------------------------------- 响应式 */
 

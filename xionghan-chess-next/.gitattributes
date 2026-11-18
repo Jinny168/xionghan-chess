@@ -6,3 +6,7 @@ benchmarks/openings/*.json -text
 webapp/js/core/*.js text eol=lf
 webapp/js/core/profiles.manifest.json text eol=lf
 webapp/tests/fixtures/rules.json text eol=lf
+
+# EdgeOne 部署源：app.js import 闭包内全部 JS 与源逐字节对齐，强制 LF
+# （build_webapp_bundle.py::_edgeone_targets 已改为全树映射，--check 归一化比对）。
+webapp/.edgeone/assets/js/**/*.js text eol=lf

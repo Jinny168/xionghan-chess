@@ -77,15 +77,26 @@ LEGAL_DOT_RATIO = 0.13
 LEGAL_DOT_RATIO_DARK = 0.15
 LEGAL_DOT_ALPHA_LIGHT = 0.55
 LEGAL_DOT_ALPHA_DARK = 0.60
-LEGAL_DOT_DARK_RGB = (0x9F, 0xBF, 0xA8)  # #9fbfa8 浅灰绿
+LEGAL_DOT_DARK_RGB = (0x9F, 0xBF, 0xA8)  # #9fbfa8
 
-# 落子动画：460ms / 20ms = 23 帧（原来 350ms / 25ms ≈ 14 帧，肉眼只有 ~9 帧可见）。
-# 为什么不抄网页的 900ms：太拖沓。为什么不是 550/16：实测 900×900 单帧 p95 10.9ms、
-# **max 14.3ms**（超 12ms 掉帧线），1470px 更大时 p95 已 16.2ms —— 按"单帧 >12ms 就回退"
-# 的规则取 450ms/20ms 一档：预算 20ms 时两个尺寸的 p95（10.9 / 16.2）都在预算内。
+# 特色子徽记（P1-6 / VA-14）：形状线索为主，墨色沿用棋子自身 ink，零新增色值。
+# 几何与 web/webapp 已落地版本同源，不许另起一套：
+#   徽记中心在盘缘上方 0.86×r；外接半尺寸 0.26×r；线宽 0.055×r。
+# 原语按 射 > 尉 > 檑/巡 复杂度递减：射=四角星+细环，尉=双斜杠，檑=三横，巡=空心方。
+BADGE_ORBIT = 0.86
+BADGE_SIZE = 0.26
+BADGE_STROKE = 0.055
+_SPECIAL_BADGE: dict[PieceType, str] = {
+    PieceType.GUARD: "slash",
+    PieceType.ARCHER: "star",
+    PieceType.THUNDER: "bars",
+    PieceType.PATROL: "square",
+}
+
+# 落子动画：320ms / 20ms = 16 帧（与 web 旧树、webapp 三端同值；原来 460ms/23 帧）。
 # 结束即停表，不常驻定时器。
 ANIMATION_TIMER_MS = 20
-ANIMATION_FRAMES = 23
+ANIMATION_FRAMES = 16
 # 将军脉冲保持原来的 600ms 观感（24 帧 × 25ms）：换成 20ms 定时器后 = 600/20 = 30 帧。
 CHECK_PULSE_FRAMES = 30
 
@@ -116,6 +127,13 @@ LAST_MOVE_ALPHA = 64  # 64/255 ≈ .25，不到选择态不透明度（.55）的
 # 谁想"调得明显一点"就会先撞到这条断言。
 CAPTURE_MARK_ALPHA = 90  # 可吃子格（红）
 SELECTION_MARK_ALPHA = 145  # 当前选中格（金）
+
+# P1-7 射·星轨提示：经典档选中射时，画到四个斜向星位锚点的放射线 + 端点空心环。
+# 与「上一步」同色（盘线色），但严格弱一档：int(64 × 0.8) = 51 < 64 < 90 < 145。
+# 不引入新色值；这一档必须留在 64 以下，否则「恒常的上一步」就不再是全场最弱标注。
+STAR_HINT_ALPHA = int(64 * 0.8)  # 51/255
+# 端点空心环半径 = 可走点半径的一半：实心圆点仍是可落子的唯一语义，环只标"星位"。
+STAR_HINT_RING_RATIO = 0.5
 
 # P1-1 棋子投影：**径向渐变**，不是纯色椭圆。
 #
@@ -245,6 +263,51 @@ def _piece_font(radius: float, mode: str, style: str = "traditional") -> QFont:
     return font
 
 
+def _draw_special_badge(
+    painter: QPainter, piece_type: PieceType, center: QPointF, radius: float, ink: QColor
+) -> None:
+    """在特色子盘缘上方画形状徽记；普通子直接返回。墨色由调用方按棋子自身 ink 传入。"""
+    kind = _SPECIAL_BADGE.get(piece_type)
+    if kind is None:
+        return
+    bx, by = center.x(), center.y() - radius * BADGE_ORBIT
+    r = radius * BADGE_SIZE
+    pen = QPen(ink, max(1.0, radius * BADGE_STROKE))
+    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+    painter.save()
+    painter.setPen(pen)
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    if kind == "star":
+        inner = r * 0.42
+        pts = [
+            (0.0, -r), (inner, -inner), (r, 0.0), (inner, inner),
+            (0.0, r), (-inner, inner), (-r, 0.0), (-inner, -inner),
+        ]
+        path = QPainterPath()
+        path.moveTo(bx + pts[0][0], by + pts[0][1])
+        for px, py in pts[1:]:
+            path.lineTo(bx + px, by + py)
+        path.closeSubpath()
+        painter.drawPath(path)
+        painter.drawEllipse(QPointF(bx, by), r * 1.35, r * 1.35)
+    elif kind == "slash":
+        for off in (-r * 0.28, r * 0.28):
+            painter.drawLine(
+                QPointF(bx - r * 0.6 + off, by - r * 0.6 - off),
+                QPointF(bx + r * 0.6 + off, by + r * 0.6 - off),
+            )
+    elif kind == "bars":
+        for dy in (-r * 0.5, 0.0, r * 0.5):
+            painter.drawLine(
+                QPointF(bx - r * 0.6, by + dy),
+                QPointF(bx + r * 0.6, by + dy),
+            )
+    else:
+        painter.drawRect(QRectF(bx - r * 0.6, by - r * 0.6, r * 1.2, r * 1.2))
+    painter.restore()
+
+
 def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float, piece: Piece, style: str) -> None:
     """画一枚**字形**棋子（圆片 + 汉字）—— 默认 `piece_render="glyph"` 的渲染路径。
 
@@ -278,6 +341,7 @@ def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float, piece: P
         Qt.AlignmentFlag.AlignCenter,
         theme.NAMES[piece.color].get(piece.type, ""),
     )
+    _draw_special_badge(painter, piece.type, center, radius, outline)
 
 
 def draw_fallback_piece(
@@ -305,7 +369,8 @@ def draw_fallback_piece(
         painter.setPen(QPen(_color(spec["ring"] if inner_ring == "ring" else inner_ring, color), 1))
         painter.drawEllipse(center, radius * 0.82, radius * 0.82)
     painter.setFont(_piece_font(radius, "image_fallback", style))
-    painter.setPen(_color(spec["text"], color))  # type: ignore[arg-type]
+    badge_ink = _color(spec["text"], color)  # type: ignore[arg-type]
+    painter.setPen(badge_ink)
     painter.drawText(
         int(center.x() - radius),
         int(center.y() - radius),
@@ -314,6 +379,7 @@ def draw_fallback_piece(
         Qt.AlignmentFlag.AlignCenter,
         theme.NAMES[color].get(piece_type, ""),
     )
+    _draw_special_badge(painter, piece_type, center, radius, badge_ink)
 
 
 class BoardWidget(QWidget):
@@ -350,6 +416,9 @@ class BoardWidget(QWidget):
         self.show_selection = True
         self.show_legal_targets = True
         self.show_capture_hints = True
+        # P1-7：默认关闭。复盘窗自建 BoardWidget 时不调用 set_assists，
+        # 这个默认值本身就是「复盘态屏蔽」的第一道闸。
+        self.show_archer_star_hints = False
         self.animations_enabled = True
         self.language = "zh-CN"
         self.flipped = False
@@ -403,11 +472,20 @@ class BoardWidget(QWidget):
             self.background = QPixmap(str(path))
         self.update()
 
-    def set_assists(self, *, selection: bool, legal_targets: bool, capture_hints: bool, animations: bool) -> None:
+    def set_assists(
+        self,
+        *,
+        selection: bool,
+        legal_targets: bool,
+        capture_hints: bool,
+        animations: bool,
+        archer_star_hints: bool = False,
+    ) -> None:
         self.show_selection = selection
         self.show_legal_targets = legal_targets
         self.show_capture_hints = capture_hints
         self.animations_enabled = animations
+        self.show_archer_star_hints = archer_star_hints
         self.update()
 
     def animate_move(self, target: Position, capture: bool, source: Position | None = None) -> None:
@@ -463,6 +541,9 @@ class BoardWidget(QWidget):
         if rows == 13:
             self._draw_initial_position_marks(painter, left, top, cw, ch)
             self._draw_star_points(painter, left, top, cw, ch)
+        # 层级：静态星位刻线 → 星轨锚点放射线 → 射路径虚线预览 → 可走点。
+        # 星轨放在虚线之前：两者重叠时虚线在上，玩家仍读得出"实际能走到哪"。
+        self._draw_star_hints(painter, left, top, cw, ch)
         self._draw_archer_paths(painter, left, top, cw, ch)
         self._draw_marks(painter, left, top, cw, ch)
         for piece in self.game.state.pieces:
@@ -696,6 +777,80 @@ class BoardWidget(QWidget):
             painter.drawLine(
                 QPointF(left + (col + 2) * cw, top + row * ch), QPointF(left + col * cw, top + (row + 2) * ch)
             )
+
+    # ------------------------------------------------------ 射·星轨（锚点放射线）
+    def archer_star_anchor_rays(self) -> list[tuple[Position, int, int]]:
+        """四斜方向最近的星位锚点 `(锚点, 行步长, 列步长)`；无锚点的方向省略。
+
+        语义**复用 core**：`_nearest_archer_star_distance` 从 source 沿方向逐格走，
+        命中第一个星点返回距离、出盘返回 0。这里只把距离换算成坐标，绝不自己
+        判定"哪些点是星位"（星点集只有 core 一份）。私有方法全仓已在
+        `archer_rays()` 中调用；本类只读取，不触碰 core 文件。
+        """
+        if not self.game or self.selected is None:
+            return []
+        anchors: list[tuple[Position, int, int]] = []
+        for step_row, step_col in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+            distance = self.game.rules._nearest_archer_star_distance(  # noqa: SLF001
+                self.selected, step_row, step_col
+            )
+            if distance > 0:
+                anchor = Position(
+                    self.selected.row + distance * step_row,
+                    self.selected.col + distance * step_col,
+                )
+                anchors.append((anchor, step_row, step_col))
+        return anchors
+
+    def _draw_star_hints(self, painter: QPainter, left: float, top: float, cw: float, ch: float) -> None:
+        """经典档选中射时，P → 四斜向星位锚点的**放射线** + 端点空心环。
+
+        画的是放射线，**不是星点之间的网格边** —— 沿网格边会读成"射能沿网继续走"。
+
+        与桌面已有的"选中射四向虚线预览"去重（游有方修订）：
+          · 虚线端点 == 锚点（没有阻挡）→ 该方向**只画端点环，0 实线**（环被可走点遮住，近零新增）；
+          · 虚线端点 ≠ 锚点（被棋子挡住，或该方向根本没有虚线）→ 补画 P→A 实线 + 环，
+            表达"规则锚点在此，只是被挡"。
+        每个方向至多 1 线 + 1 环，故单帧上限 4 线 + 4 环。
+
+        显形条件：开关开 + 13×13 + 选中子是射 + `archer_enhanced_mode == False`。
+        场景守卫由 app 层把开关置 False 实现：复盘窗的 BoardWidget 从不调用
+        `set_assists`（默认 False），计分测验态 `configure_board()` 传 False；
+        AI 观战没有玩家选中，自然不画。
+        """
+        game = self.game
+        if not game or not self.show_archer_star_hints:
+            return
+        if game.profile.rows != 13 or game.profile.cols != 13:
+            return
+        if game.rules.options.archer_enhanced_mode:
+            return
+        if self.selected is None:
+            return
+        piece = game.state.piece_at(self.selected)
+        if piece is None or piece.type is not PieceType.ARCHER:
+            return
+        anchors = self.archer_star_anchor_rays()
+        if not anchors:
+            return
+        dashed_ends = {farthest for _source, farthest, _obstacle, _sr, _sc in self.archer_rays()}
+        cell = min(cw, ch)
+        ink = QColor(self.theme["line"])  # 盘线色，无 theme["mark"]（桌面无该键）
+        ink.setAlpha(STAR_HINT_ALPHA)
+        painter.save()
+        start = self._view_position(self.selected)
+        start_point = QPointF(left + start.col * cw, top + start.row * ch)
+        ring_radius = max(1.0, cell * self.legal_dot_ratio() * STAR_HINT_RING_RATIO)
+        for anchor, _step_row, _step_col in anchors:
+            shown = self._view_position(anchor)
+            center = QPointF(left + shown.col * cw, top + shown.row * ch)
+            if anchor not in dashed_ends:
+                painter.setPen(QPen(ink, max(1.0, cell * 0.02), Qt.PenStyle.SolidLine))
+                painter.drawLine(start_point, center)
+            painter.setPen(QPen(ink, max(1.0, cell * 0.015), Qt.PenStyle.SolidLine))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawEllipse(center, ring_radius, ring_radius)
+        painter.restore()
 
     # ---------------------------------------------------------------- 射的路径
     def archer_rays(self) -> list[tuple[Position, Position, Position | None, int, int]]:
@@ -1058,6 +1213,9 @@ class BoardWidget(QWidget):
         painter.drawPixmap(
             QRectF(center.x() - radius, center.y() - radius, radius * 2, radius * 2), artwork, QRectF(artwork.rect())
         )
+        # 徽记叠在图像之后、同一圆心/半径；helper 内部 save/restore，不带入投影状态。
+        badge_ink = QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e")
+        _draw_special_badge(painter, piece.type, center, radius, badge_ink)
         return True
 
     def _position(self, point: QPointF) -> Position | None:
