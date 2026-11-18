@@ -21,7 +21,7 @@
 | # | 验收项 | 桌面离屏证据 | web / webapp 证据 | 这张图该看什么 |
 |---|---|---|---|---|
 | M-1 | 字形与字重 | `benchmarks/visual_evidence/c5_m1_glyph_weight.png` | `benchmarks/visual_evidence/webapp_m1_glyph_weight.png`（web 旧树待补） | 同一枚子的字高 / 盘径肉眼一致；无「网页字幕感」或「桌面过粗」 |
-| M-2 | 投影柔边 | `benchmarks/visual_evidence/c5_m2_shadow_soft.png` | `benchmarks/visual_evidence/webapp_m2_shadow_soft.png`（web 旧树待补） | 浅色 classic 下放大看棋子下缘：投影重心向下、无硬边、不与棋子脱开（VA-05 的 0.55 倍差应能看出） |
+| M-2 | 投影柔边 | `benchmarks/visual_evidence/c5_m2_shadow_soft.png` | `benchmarks/visual_evidence/webapp_m2_shadow_soft.png`（web 旧树待补） | 浅色 classic + 盘边棋子 + 200% 下缘裁切：投影重心向下、无硬边、不与棋子脱开（VA-05 的 0.55 倍差应能看出） |
 | M-3 | 盘底色与纸纹 | 本轮未出图，按第 2 节手工步骤四主题各看一次 | 待补 | 无明显「塑料平涂」；暗角不压四角刻线 |
 | M-4 | 深色主题标记对比 | `benchmarks/visual_evidence/c5_m4_dark_markers.png` | `benchmarks/visual_evidence/webapp_m4_dark_markers.png`（web 旧树待补） | dark 主题下可走点不消失、可吃点不与红叉混淆（深色 0.15 放大补偿的理由） |
 | M-5 | 高 DPI / 小盘缩放 | 本轮未出图，按第 2 节手工步骤 | 待补 | 浏览器缩放 50% / 200% 或窗口拉窄到最小宽度：线宽不发虚、投影比例不失控 |
@@ -41,9 +41,9 @@
 
 ### M-2 投影柔边
 
-- 判据（TRIAD）：浅色 classic 主题，放大到 200% 观察棋子下缘；投影重心向下、无硬边、不与棋子脱开（VA-05 的 0.55 倍差应能看出）。
+- 判据（TRIAD）：浅色 classic 主题，棋子摆到盘边（下缘投影落在空处），对棋子下缘放大到 200% 裁切观察；投影重心向下、无硬边、不与棋子脱开（VA-05 的 0.55 倍差应能看出）。
 - 桌面证据：`benchmarks/visual_evidence/c5_m2_shadow_soft.png`
-- 网页证据：`benchmarks/visual_evidence/webapp_m2_shadow_soft.png`（web 旧树待补）
+- 网页证据：`benchmarks/visual_evidence/webapp_m2_shadow_soft.png`（浅色 classic + 盘边棋子 + 200% 下缘裁切；web 旧树待补）
 - 结论：☐ 通过　☐ 不通过
 - 备注 / 偏差记录：__________
 
@@ -98,6 +98,7 @@
 ## 3. 本轮证据缺口与待办
 
 - **webapp 截图已补（D2）**：Playwright 装入 `.venv`（未写入 `requirements.txt` / `pyproject.toml` 等任何依赖清单），`channel="chrome"` 复用本机 Chrome，未下载 Chromium；本地 `http.server` 托管 `webapp/`。已出 M-1 / M-2 / M-4 / M-7 四张 webapp 图。**web 旧树截图仍待补**。
+- **M-2 重拍（证据守卫）**：首版 M-2 误与 M-1 全景图逐字节相同，已按「浅色 classic + 盘边棋子 + 200% 下缘裁切」重拍；`tests/test_visual_evidence_guard.py` 只读文件校验证据图哈希两两不同、各图 >20 KB、文件名与本模板索引一致（目录缺失则 skip）。M-1 为全景开局图（看字高 / 盘径 / 字重），与 M-2 裁切图形态不同。
 - **M-7 将军标记口径**：webapp 离屏会话内临时把 `rules.inCheck` 置真以触发将军环，非真实将军局面；真人目检时应以真实将军局复核层级。
 - M-3、M-5、M-6 依赖活体主题切换 / 窗口缩放 / 动画走子，离屏脚本无法覆盖，列入真人目检步骤。
 - 离屏证据为** staging 局面**（手工摆子、个别态由脚本强制），只用于核对标记层级与形态，不作为规则正确性依据。
