@@ -1,6 +1,6 @@
 {
   "aiConfigDigest": {
-    "a": "b014d8072e5a7c7d",
+    "a": "91f67b4c9afa682a",
     "b": "0004d697df110392",
     "method": "recomputed",
     "provenance": "E2：depth/time_limit/max_nodes 由产物交叉验证与 CONFIGS 一致；root_limit 等 6 项无产物可验、无 --config-* 侧车，按默认值推断"
