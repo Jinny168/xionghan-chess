@@ -2,7 +2,7 @@
 
 网页没有 DOM 测试框架，所以这里做**静态结构断言** + **源码级兼容断言**：
 - `index.html` 的下拉项与顺序直接从 HTML 解析（这就是用户看到的东西）；
-- 老配置兼容是 JS 逻辑，用源码断言该映射存在（浏览器行为需人工验收，已在提交信息注明）。
+- 老存档缺字段的迁移是 JS 逻辑，用源码断言该兜底存在（浏览器行为需人工验收，已在提交信息注明）。
 
 为什么不用 TestClient 取页面：`/` 直接返回同一份 `index.html` 静态文件，
 解析磁盘文件与解析响应等价，且不引入服务端启动依赖。
@@ -30,10 +30,10 @@ def test_difficulty_has_three_levels_in_desktop_order() -> None:
     assert values == ["beginner", "medium", "hard"], values
 
 
-def test_background_has_no_raw_colour_option_and_defaults_to_1() -> None:
+def test_page_background_exposes_none_and_defaults_to_1() -> None:
     values = [value for value, _ in options_of("pageBackgroundSelect")]
-    assert "none" not in values, "「原色（无图片）」应删除（与桌面同口径）"
-    assert values[0] == "1", "默认背景应为 1（山水淡纹）"
+    assert "none" in values, "「无背景」必须作为可选项真正暴露在下拉里"
+    assert values[1] == "1", "默认背景项应为 1（山水淡纹）"
     # 默认选中：要么显式 selected，要么是第一个 option
     assert re.search(r'<option value="1" selected', HTML), "背景默认项应显式标记 selected"
 
@@ -43,9 +43,12 @@ def test_piece_style_has_four_options_including_glyph() -> None:
     assert values == ["traditional", "modern", "cartoon", "glyph"], values
 
 
-def test_legacy_page_background_none_maps_to_1() -> None:
-    """老配置 `pageBackground:"none"` 必须读成 `"1"`（与桌面同口径）。"""
-    assert "pageBackground==='none')app.preferences.pageBackground='1'" in APP_JS, "app.js 里缺少 none → 1 的兼容映射"
+def test_explicit_none_page_background_is_preserved_not_rewritten() -> None:
+    """显式存的 `pageBackground:"none"` 必须保留，不得被静默归一成 `"1"`；
+    只有老存档**缺字段**时才走迁移默认（`!stored.pageBackground`）。"""
+    assert "pageBackground==='none')app.preferences.pageBackground='1'" not in APP_JS, \
+        "显式 none 不得被静默改写回 1"
+    assert "if(!stored.pageBackground)" in APP_JS, "缺字段迁移路径必须保留"
 
 
 def test_play_again_is_always_clickable_and_confirms_mid_game() -> None:

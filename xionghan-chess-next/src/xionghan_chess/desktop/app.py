@@ -47,6 +47,9 @@ from xionghan_chess.desktop.snapshot_guard import should_accept_snapshot
 
 # 聊天区上限：长局只追加不清空会让内存线性涨（审计 2-1）。
 CHAT_HISTORY_LIMIT = 200
+
+# P1-5 双 AI 观战：三档调速（每手间隔毫秒），慢 / 中 / 快。
+SPECTATE_SPEED_MS = (1200, 600, 250)
 from xionghan_chess.core.game import Game, GameError
 from xionghan_chess.core.model import Color, GameState, Move, PieceType, Position, is_big_capture
 from xionghan_chess.core.profiles import RULE_VERSION, action_visible
@@ -79,7 +82,7 @@ from .storage import (
     reset_statistics,
     save_game,
 )
-from .texts import dl, dlf, set_language
+from .texts import SPECTATE_SPEED_LABELS, dl, dlf, set_language
 from .ui import theme
 from .ui.action_icons import action_icon
 from .ui.board_widget import THINKING_TICK_MS, BoardWidget
@@ -194,6 +197,16 @@ class MainWindow(QMainWindow):
         self.puzzle_scored = False
         # 连对挑战会话（一错即止）：{pool, index, used, count, threshold}；非连对态为 None。
         self.streak_session = None
+        # P1-5 双 AI 观战：纯本地演示，双方都由现有 AI worker 落子；进入前的对局整体
+        # 保留在 `_spectate_restore`，退出逐项还原，演示局写在另一个 Game 对象上，不污染原棋谱。
+        self.spectating = False
+        self._spectate_restore: Game | None = None
+        self._spectate_paused = False
+        self._spectate_step_only = False
+        self._spectate_speed = 1
+        self._spectate_timer = QTimer(self)
+        self._spectate_timer.setSingleShot(True)
+        self._spectate_timer.timeout.connect(self._spectate_fire)
         # C2：题目模式下状态栏右下角给一个「提示」按钮。桌面原先只有选题列表里那个
         # 提示按钮（开局前），进了棋局就没有任何求助入口 —— 这是它和网页端最大的体验差。
         self.hint_button = QPushButton(dl("提示"))
@@ -250,6 +263,9 @@ class MainWindow(QMainWindow):
         local_game = QAction(t("mode.local_full", lang), self)
         local_game.triggered.connect(lambda: self.start_mode("local"))
         game_menu.addAction(local_game)
+        spectate_ai = QAction(dl("双 AI 观战"), self)
+        spectate_ai.triggered.connect(self.enter_spectate)
+        game_menu.addAction(spectate_ai)
         game_menu.addSeparator()
         for title, callback, shortcut in (
             (t("menu.new", lang), self.new_game, "Ctrl+N"),
@@ -408,6 +424,22 @@ class MainWindow(QMainWindow):
         right.addWidget(side_tabs, 1)
         right.addWidget(QLabel("阵亡子力" if lang != "en" else "Captured pieces"))
         right.addWidget(self.captured)
+        # P1-5 双 AI 观战控制条：仅观战态显示；退出 / 暂停继续 / 单步 / 调速。
+        self.spectate_bar = QWidget()
+        spectate_row = QHBoxLayout(self.spectate_bar)
+        spectate_row.setContentsMargins(0, 0, 0, 0)
+        self.spectate_exit = QPushButton(dl("退出观战"))
+        self.spectate_exit.clicked.connect(self.exit_spectate)
+        self.spectate_pause_btn = QPushButton(dl("暂停"))
+        self.spectate_pause_btn.clicked.connect(self.toggle_spectate_pause)
+        self.spectate_step_btn = QPushButton(dl("单步"))
+        self.spectate_step_btn.clicked.connect(self.spectate_step)
+        self.spectate_speed_btn = QPushButton(dl("中速"))
+        self.spectate_speed_btn.clicked.connect(self.cycle_spectate_speed)
+        for button in (self.spectate_exit, self.spectate_pause_btn, self.spectate_step_btn, self.spectate_speed_btn):
+            spectate_row.addWidget(button)
+        self.spectate_bar.hide()
+        right.addWidget(self.spectate_bar)
         # 七个操作改成**纯图标 + 悬浮提示**：原来单列文字按钮每行 182×40，
         # 七行就顶到侧栏底部、非滚动不可。图标 32px 一行放四个，两行结束，
         # 说明文字退到 tooltip / accessibleName（读屏与自检都还能拿到）。
@@ -478,6 +510,9 @@ class MainWindow(QMainWindow):
         self.new_game()
 
     def human_move(self, move: Move) -> None:
+        # P1-5 观战态禁用人手落子：点 / 拖都不生效（棋盘同时处于 locked 态，双保险）。
+        if self.spectating:
+            return
         try:
             piece = self.game.state.piece_at(move.source)
             if (
@@ -853,6 +888,113 @@ class MainWindow(QMainWindow):
         self.board.locked = False
         self.refresh()
 
+    # ---- P1-5 双 AI 观战（纯本地；不引网络、不改棋谱/存档格式、不动规则） ----
+
+    def enter_spectate(self) -> None:
+        """进入双 AI 演示：原对局整体保留，演示局写在独立 Game 对象上。"""
+        if self.spectating or self.network:
+            return
+        self.cancel.set()
+        self._spectate_restore = self.game
+        self.cancel = threading.Event()
+        demo = Game(
+            self.config["profile"],
+            self.config.get("rule_options"),
+            self.config["initial_minutes"],
+            self.config.get("language", "zh-CN"),
+            self.current_setup(),
+        )
+        self.spectating = True
+        self._spectate_paused = False
+        self._spectate_step_only = False
+        self.game = demo
+        self._reset_ui_cache()
+        self.board.set_game(demo, self.session_color, True)
+        self.configure_board()
+        self.board.locked = True
+        self._reset_taunt_ledger()
+        self.refresh()
+        self._sync_spectate_controls()
+        self._spectate_schedule()
+
+    def exit_spectate(self) -> None:
+        """退出观战：还原进入前的对局对象；演示局从未写进原棋谱。"""
+        if not self.spectating:
+            return
+        self._spectate_timer.stop()
+        self.cancel.set()
+        restore = self._spectate_restore
+        self.spectating = False
+        self._spectate_paused = False
+        self._spectate_step_only = False
+        self._spectate_restore = None
+        self.cancel = threading.Event()
+        if restore is not None:
+            self.game = restore
+        self._reset_ui_cache()
+        human = Color(self.config["human_color"])
+        local = self.config.get("game_mode", "ai") == "local"
+        self.board.set_game(self.game, human, local)
+        self.configure_board()
+        self.board.locked = bool(self.network)
+        self._reset_taunt_ledger()
+        self.refresh()
+        self._sync_spectate_controls()
+
+    def _spectate_schedule(self) -> None:
+        if not self.spectating or self.game.state.finished or self.game.state.paused:
+            return
+        if self._spectate_paused:
+            return
+        self._spectate_timer.start(SPECTATE_SPEED_MS[self._spectate_speed])
+
+    def _spectate_fire(self) -> None:
+        if not self.spectating or self.game.state.finished or self._spectate_paused:
+            return
+        self.start_ai()
+
+    def _spectate_after_move(self) -> None:
+        """一手落完后的衔接：单步模式停住；否则按调速排下一手。"""
+        if not self.spectating:
+            return
+        if self._spectate_step_only:
+            self._spectate_paused = True
+            self._spectate_step_only = False
+        self._sync_spectate_controls()
+        self._spectate_schedule()
+
+    def toggle_spectate_pause(self) -> None:
+        if not self.spectating:
+            return
+        self._spectate_paused = not self._spectate_paused
+        if self._spectate_paused:
+            self._spectate_timer.stop()
+        else:
+            self._spectate_step_only = False
+            self._spectate_schedule()
+        self._sync_spectate_controls()
+
+    def spectate_step(self) -> None:
+        if not self.spectating or self.game.state.finished:
+            return
+        self._spectate_paused = False
+        self._spectate_step_only = True
+        self._spectate_schedule()
+
+    def cycle_spectate_speed(self) -> None:
+        self._spectate_speed = (self._spectate_speed + 1) % len(SPECTATE_SPEED_MS)
+        self._sync_spectate_controls()
+
+    def _sync_spectate_controls(self) -> None:
+        """观战控制条显隐与文案：暂停/继续互换，调速按钮显示当前档位。"""
+        if not hasattr(self, "spectate_bar"):
+            return
+        self.spectate_bar.setVisible(self.spectating)
+        if not self.spectating:
+            return
+        self.spectate_pause_btn.setText(dl("继续对局") if self._spectate_paused else dl("暂停"))
+        self.spectate_speed_btn.setText(dl(SPECTATE_SPEED_LABELS[self._spectate_speed]))
+
     def _ai_watchdog(self, generation: int) -> None:
         if getattr(self, "_ai_generation", 0) != generation:
             return  # 这一局已经正常结束了
@@ -893,6 +1035,7 @@ class MainWindow(QMainWindow):
             self.ai_failed(str(exc))
             return
         self._release_ai()
+        self._spectate_after_move()
 
     def _append_chat(self, text: str) -> None:
         """聊天区的**唯一**追加入口：超出上限丢最旧的一条。
@@ -1016,6 +1159,8 @@ class MainWindow(QMainWindow):
                 self.statusBar().showMessage(dlf("吃掉{names}！", names=names), 3000)
 
     def undo_move(self) -> None:
+        if self.spectating:
+            return
         if self.network:
             self.send_network("undo_request")
             return
@@ -1039,6 +1184,8 @@ class MainWindow(QMainWindow):
         self._resync_ai_eval()
 
     def toggle_pause(self) -> None:
+        if self.spectating:
+            return
         if not self.game or self.game.state.finished:
             return
         if self.network:
@@ -1062,6 +1209,8 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, dl("暂停"), str(exc))
 
     def resign_game(self) -> None:
+        if self.spectating:
+            return
         if self.network:
             self.send_network("resign")
             return
@@ -1074,6 +1223,8 @@ class MainWindow(QMainWindow):
         self.refresh()
 
     def draw_game(self) -> None:
+        if self.spectating:
+            return
         if self.network:
             self.send_network("draw_offer")
             return
