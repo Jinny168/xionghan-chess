@@ -52,6 +52,13 @@ EN: dict[str, str] = {
     "观战局域网房间": "Spectate LAN room",
     "本机对局": "Local game",
     "旁观对局": "Spectate",
+    # P1-5 双 AI 观战
+    "双 AI 观战": "Watch AI vs AI",
+    "退出观战": "Exit watch",
+    "单步": "Step",
+    "慢速": "Slow",
+    "中速": "Normal",
+    "快速": "Fast",
     "复盘": "Review",
     "当前棋局还没有棋谱": "No moves to review yet",
     "导出棋局": "Export game",
@@ -216,6 +223,10 @@ TEMPLATES: dict[str, str] = {
     "{exc}\n\n文件：{path}": "{exc}\n\nFile: {path}",
     "对局结束": "Game over",
 }
+
+
+# P1-5 双 AI 观战三档调速标签（中文原文即 key，英文走 EN 表）。
+SPECTATE_SPEED_LABELS = ("慢速", "中速", "快速")
 
 
 def set_language(language: str) -> None:
