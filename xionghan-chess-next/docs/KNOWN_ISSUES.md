@@ -80,3 +80,24 @@ transitions 19,197,323 = positionCounts 12,342,963 + 其余 transitions[] 6,854,
   `webapp/js/core/*.js` + `profiles.manifest.json` + `webapp/tests/fixtures/rules.json`
   加 `eol=lf`，从根上杜绝 CRLF 入库。重生成并提交的 manifest 其 `rulesHash` 与 LF 归一化
   哈希逐字节相等，本地 A/B/C 全过、CI 同口径通过。
+
+## 5. 桌面 `prefers-reduced-motion` 无系统级入口（未修，待办）
+
+- **现象**：桌面端读不到 Windows「在 Windows 中显示动画」开关。PySide6 6.12.0 的
+  `QStyleHints` 实测未暴露 reduced-motion / 关闭动效属性（仅 `colorScheme`、`useHoverEffects`
+  等），Qt 平台主题也读不到该系统开关。
+- **当前处置**：桌面暂以既有用户开关 `config.animations` 为准；系统级入口列为待办，
+  **不臆造一个开关充数**。注释见 `src/xionghan_chess/desktop/ui/board_widget.py` 常量段。
+- **解除条件**：待 Qt 暴露对应平台属性，或补 Windows 注册表 / 主题读取后接入。
+
+## 6. git 缺失导致可复现性守卫静默跳过（已闭环，commit `f059f04`）
+
+- **现象（已修前）**：`tests/test_baseline_meta.py` 的 `_has_commit()` 调用裸 `git`；
+  git 不在 PATH 时整文件静默 skip，7 条可复现性守卫集体缺岗，伪装成「产物依赖跳过」。
+- **修复（E0，commit `f059f04`）**：抽出 `_resolve_git()`（优先 `GIT_EXECUTABLE` 环境变量，
+  否则 `shutil.which("git")`）；git 二进制找不到时由 autouse fixture 调 `pytest.fail` 硬失败
+  （可复现性守卫是门禁，git 缺失属环境硬阻塞，应红灯暴露，不做无声 skip）；git 在但目标
+  commit 不存在（浅克隆 / 未 fetch）仍按原意 skip 并写明 commit 缺失。新增用例钉住：
+  PATH 为空且清掉 `GIT_EXECUTABLE` → 解析为 None 且调用点硬失败；`GIT_EXECUTABLE` 指向真实
+  git → 可解析、守卫正常执行。
+
