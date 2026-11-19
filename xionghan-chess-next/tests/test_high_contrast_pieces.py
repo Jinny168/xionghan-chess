@@ -84,3 +84,81 @@ def test_board_switch_does_not_change_theme_or_style(qt_app: QApplication) -> No
 def test_board_switch_default_off(qt_app: QApplication) -> None:
     board = _board()
     assert board.high_contrast is False
+
+
+# ---------------------------------------------------------------------------
+# 第二段：三端公式一致、白名单棘轮、实测脚本与偏好隔离。
+# ---------------------------------------------------------------------------
+
+from pathlib import Path  # noqa: E402
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_allowlist_entry_count_unchanged() -> None:
+    """E1 零新增色值：白名单条目数与 D 终验基线一致（139 条）。"""
+    lines = [
+        line
+        for line in (ROOT / "benchmarks" / "color_allowlist.txt").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(lines) == 139
+
+
+def test_js_mirrors_share_formula_constants() -> None:
+    """webapp / web 旧树与桌面共用同一套派生常量（目标比值、明暗阈值、步长）。"""
+    board_js = (ROOT / "webapp" / "js" / "ui" / "board.js").read_text(encoding="utf-8")
+    web_js = (ROOT / "web" / "js" / "app.js").read_text(encoding="utf-8")
+    for token in (
+        "CONTRAST_TEXT_TARGET = 4.5",
+        "CONTRAST_GRAPHIC_TARGET = 3.0",
+        "_CONTRAST_LIGHT_THRESHOLD = 0.179",
+        "_MIX_STEP = 0.05",
+    ):
+        assert token in board_js, f"webapp 缺派生常量 {token}"
+        assert token in web_js, f"web 旧树缺派生常量 {token}"
+    assert contrast.TEXT_TARGET == 4.5
+    assert contrast.GRAPHIC_TARGET == 3.0
+
+
+def test_prefs_default_off_and_isolated_from_theme() -> None:
+    """三端偏好默认关；高对比字段独立透传，不回写已选主题 / 棋子风格。"""
+    webapp = (ROOT / "webapp" / "js" / "ui" / "app.js").read_text(encoding="utf-8")
+    web = (ROOT / "web" / "js" / "app.js").read_text(encoding="utf-8")
+    assert "highContrastPieces: false" in webapp
+    assert "highContrastPieces:false" in web
+    assert "highContrast: app.prefs.highContrastPieces === true" in webapp
+    assert config.DEFAULTS["high_contrast_pieces"] is False
+
+
+def _load_measure():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "measure_contrast", ROOT / "scripts" / "measure_contrast_high_contrast.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_measure_script_text_elements_meet_target() -> None:
+    """实测脚本：棋子文本元素派生后必须达 4.5:1。"""
+    report = _load_measure().measure()
+    for endpoint, spec in report["endpoints"].items():
+        for theme_name, theme in spec["themes"].items():
+            for key, item in theme.items():
+                if isinstance(item, dict) and item["criterion"] == "text":
+                    assert item["met"], f"{endpoint}/{theme_name}/{key} 文本未达 {item['target']}:1"
+
+
+def test_graphic_gaps_flagged_with_criterion() -> None:
+    """图形元素按 3:1 判据；不达标的保留实测比值并标 met=false，不偷加色值。"""
+    report = _load_measure().measure()
+    for endpoint, spec in report["endpoints"].items():
+        for theme_name, theme in spec["themes"].items():
+            for key, item in theme.items():
+                if isinstance(item, dict) and item["criterion"] == "graphic":
+                    assert item["target"] == 3.0
+                    assert "ratio" in item
+                    assert isinstance(item["met"], bool)
