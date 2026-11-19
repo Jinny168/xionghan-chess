@@ -2,6 +2,61 @@ import { applyStaticI18n, currentLanguage, currentLocale, setLanguage, t } from 
 import { ribbonClass, CHECK_PULSE_MID } from './ribbon.js';
 
 const $ = (selector) => document.querySelector(selector);
+
+// E1 高对比棋子组：与桌面 contrast.py、webapp board.js 同一套 WCAG 派生公式。
+// 零新增色值：输出色由既有令牌按盘底混色算出，源码不写新 hex 字面量。
+const CONTRAST_TEXT_TARGET = 4.5;
+const CONTRAST_GRAPHIC_TARGET = 3.0;
+const _CONTRAST_LIGHT_THRESHOLD = 0.179;
+const _MIX_STEP = 0.05;
+
+function _channelLinear(channel) {
+  const s = channel / 255;
+  return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+}
+
+function _parseRgb(hex) {
+  let h = hex.replace('#', '');
+  if (h.length === 3) h = [...h].map((ch) => ch + ch).join('');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function relativeLuminance(hex) {
+  const [r, g, b] = _parseRgb(hex);
+  return 0.2126 * _channelLinear(r) + 0.7152 * _channelLinear(g) + 0.0722 * _channelLinear(b);
+}
+
+function contrastRatio(fg, bg) {
+  let l1 = relativeLuminance(fg);
+  let l2 = relativeLuminance(bg);
+  if (l1 < l2) { [l1, l2] = [l2, l1]; }
+  return (l1 + 0.05) / (l2 + 0.05);
+}
+
+function _mixRgb(token, target, mix) {
+  return token.map((v, i) => Math.round(v + (target[i] - v) * mix));
+}
+
+function _rgbToHex([r, g, b]) {
+  return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
+function deriveForBackground(token, background, target = CONTRAST_TEXT_TARGET) {
+  const base = contrastRatio(token, background);
+  if (base >= target) return { color: token, ratio: base, met: true, mix: 0 };
+  const darkBackground = relativeLuminance(background) <= _CONTRAST_LIGHT_THRESHOLD;
+  const targetRgb = darkBackground ? [255, 255, 255] : [0, 0, 0];
+  const tokenRgb = _parseRgb(token);
+  let best = { color: token, ratio: base, met: false, mix: 0 };
+  for (let mix = _MIX_STEP; mix <= 1 + 1e-9; mix += _MIX_STEP) {
+    const candidate = _rgbToHex(_mixRgb(tokenRgb, targetRgb, mix));
+    const ratio = contrastRatio(candidate, background);
+    if (ratio >= best.ratio) best = { color: candidate, ratio, met: ratio >= target, mix };
+    if (ratio >= target) return best;
+  }
+  return best;
+}
+
 const board = $('#board');
 const ctx = board.getContext('2d');
 const replayDialog = $('#replayDialog');
@@ -11,7 +66,7 @@ const app = {
   roomId: null, token: null, color: null, revision: 0, state: null, socket: null,
   mode: 'ai', selected: null, legal: [], capturable: [], victims: [], dragging: null,
   replayIndex: null, replaySource: null, replayTimer: null, sound: true, music: true,
-  preferences: {systemTheme:'light',font:'system',boardTheme:'classic',pageBackground:'none',boardBackground:'1',pieceStyle:'traditional',musicStyle:'fc',volume:70,animation:true,selection:true,legalTargets:true,captureHints:true,starHints:false,taunts:true,autosave:true,initialMinutes:10,countdownSeconds:30,language:'zh-CN',flipped:false},
+  preferences: {systemTheme:'light',font:'system',boardTheme:'classic',pageBackground:'none',boardBackground:'1',pieceStyle:'traditional',musicStyle:'fc',volume:70,animation:true,selection:true,legalTargets:true,captureHints:true,starHints:false,highContrastPieces:false,taunts:true,autosave:true,initialMinutes:10,countdownSeconds:30,language:'zh-CN',flipped:false},
   options: {}, profiles: new Map(), pieceImages: new Map(), animation: null, legalPromise: null, resultKey: null, reconnectTimer: null, reconnectAttempts: 0,
   // 走法语义版本：**从 /api/profiles 读**，别在这里写死第二份（2.0.0 的规则变更就是
   // 靠它拦下旧缓存网页：旧 app.js 不带这个字段 → 服务端按 1 处理 → 409 提示刷新）。
@@ -35,7 +90,7 @@ function refreshBackgroundOptions(){const selected=$('#customBackgroundSelect'),
 async function loadCustomBackgrounds(){try{for(const old of app.customBackgrounds.values())URL.revokeObjectURL(old.url);app.customBackgrounds.clear();for(const record of await backgroundRecords())app.customBackgrounds.set(record.id,{...record,url:URL.createObjectURL(record.blob)});refreshBackgroundOptions()}catch(error){console.warn('Custom backgrounds unavailable',error)}}
 function safeStorageSet(key,value){try{localStorage.setItem(key,value);return true}catch(error){queueMicrotask(()=>toast(t('toast.storage_full')==='toast.storage_full'?'本地存储空间不足，数据未保存':t('toast.storage_full'),'warn'));console.warn('Storage write failed',error);return false}}
 function persistPreferences(){safeStorageSet('xh-preferences',JSON.stringify(app.preferences));safeStorageSet('xh-sound',JSON.stringify({sound:app.sound,music:app.music}));if(app.authToken){clearTimeout(app.cloudTimer);app.cloudTimer=setTimeout(()=>{const {starHints:_omitStarHints,...syncable}=app.preferences;api('/api/me/preferences',{method:'PUT',body:JSON.stringify({preferences:syncable})}).catch(()=>{})},600)}}
-function applyPreferences(){const p=app.preferences;const dark=p.systemTheme==='dark'||(p.systemTheme==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.body.dataset.systemTheme=dark?'dark':'light';document.body.dataset.font=p.font;document.body.dataset.boardTheme=p.boardTheme;document.body.dataset.background=p.pageBackground;document.body.dataset.boardBackground=p.boardBackground;document.documentElement.style.setProperty('--page-image',backgroundUrl(p.pageBackground));document.documentElement.style.setProperty('--board-image',backgroundUrl(p.boardBackground));document.documentElement.style.setProperty('--board-line',({classic:'#6d3c11',green:'#3a6b1e',blue:'#2471a3',purple:'#7d3c98',dark:'#aaa'})[p.boardTheme]||'#6d3c11');document.documentElement.style.setProperty('--board-text',({classic:'#8b4513',green:'#2d5016',blue:'#1a5276',purple:'#6c3483',dark:'#ddd'})[p.boardTheme]||'#8b4513');$('#systemThemeSelect').value=p.systemTheme||'light';$('#fontSelect').value=p.font;$('#boardThemeSelect').value=p.boardTheme;$('#languageSelect').value=p.language||currentLanguage();$('#pageBackgroundSelect').value=p.pageBackground;$('#boardBackgroundSelect').value=p.boardBackground;$('#pieceStyleSelect').value=p.pieceStyle;$('#musicStyleSelect').value=p.musicStyle;$('#volumeSlider').value=p.volume;$('#volumeValue').textContent=`${p.volume}%`;$('#soundEnabled').checked=app.sound;$('#musicEnabled').checked=app.music;$('#animationEnabled').checked=p.animation!==false;$('#selectionEnabled').checked=p.selection!==false;$('#legalTargetsEnabled').checked=p.legalTargets!==false;$('#captureHintsEnabled').checked=p.captureHints!==false;$('#starHintsEnabled').checked=p.starHints===true;$('#tauntsEnabled').checked=p.taunts!==false;$('#autosaveEnabled').checked=p.autosave!==false;$('#initialMinutesSelect').value=String(p.initialMinutes??10);$('#countdownSecondsSelect').value=String(p.countdownSeconds??30);Object.values(sounds).forEach(a=>{a.volume=p.volume/100});if(backgroundMusic)backgroundMusic.volume=p.volume/200;syncCaptureLegend();applyStaticI18n();refreshBackgroundOptions();refreshDailyButton();draw()}
+function applyPreferences(){const p=app.preferences;const dark=p.systemTheme==='dark'||(p.systemTheme==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.body.dataset.systemTheme=dark?'dark':'light';document.body.dataset.font=p.font;document.body.dataset.boardTheme=p.boardTheme;document.body.dataset.background=p.pageBackground;document.body.dataset.boardBackground=p.boardBackground;document.documentElement.style.setProperty('--page-image',backgroundUrl(p.pageBackground));document.documentElement.style.setProperty('--board-image',backgroundUrl(p.boardBackground));document.documentElement.style.setProperty('--board-line',({classic:'#6d3c11',green:'#3a6b1e',blue:'#2471a3',purple:'#7d3c98',dark:'#aaa'})[p.boardTheme]||'#6d3c11');document.documentElement.style.setProperty('--board-text',({classic:'#8b4513',green:'#2d5016',blue:'#1a5276',purple:'#6c3483',dark:'#ddd'})[p.boardTheme]||'#8b4513');$('#systemThemeSelect').value=p.systemTheme||'light';$('#fontSelect').value=p.font;$('#boardThemeSelect').value=p.boardTheme;$('#languageSelect').value=p.language||currentLanguage();$('#pageBackgroundSelect').value=p.pageBackground;$('#boardBackgroundSelect').value=p.boardBackground;$('#pieceStyleSelect').value=p.pieceStyle;$('#musicStyleSelect').value=p.musicStyle;$('#volumeSlider').value=p.volume;$('#volumeValue').textContent=`${p.volume}%`;$('#soundEnabled').checked=app.sound;$('#musicEnabled').checked=app.music;$('#animationEnabled').checked=p.animation!==false;$('#selectionEnabled').checked=p.selection!==false;$('#legalTargetsEnabled').checked=p.legalTargets!==false;$('#captureHintsEnabled').checked=p.captureHints!==false;$('#starHintsEnabled').checked=p.starHints===true;$('#highContrastEnabled').checked=p.highContrastPieces===true;$('#tauntsEnabled').checked=p.taunts!==false;$('#autosaveEnabled').checked=p.autosave!==false;$('#initialMinutesSelect').value=String(p.initialMinutes??10);$('#countdownSecondsSelect').value=String(p.countdownSeconds??30);Object.values(sounds).forEach(a=>{a.volume=p.volume/100});if(backgroundMusic)backgroundMusic.volume=p.volume/200;syncCaptureLegend();applyStaticI18n();refreshBackgroundOptions();refreshDailyButton();draw()}
 async function loadPreferences(){try{const stored=JSON.parse(localStorage.getItem('xh-preferences')||'{}');app.preferences={...app.preferences,...stored};const legacyDifficulty={easy:'beginner',expert:'hard',master:'hard'};if(legacyDifficulty[app.preferences.difficulty])app.preferences.difficulty=legacyDifficulty[app.preferences.difficulty];if(!stored.pageBackground)app.preferences.pageBackground=stored.background||'1';// 迁移：老存档**缺** pageBackground 字段时才归一到默认 '1'；显式存了 'none' 是用户选择，保留不改写。
 if(!stored.boardBackground)app.preferences.boardBackground='1';const s=JSON.parse(localStorage.getItem('xh-sound')||'{}');if(typeof s.sound==='boolean')app.sound=s.sound;if(typeof s.music==='boolean')app.music=s.music}catch{}await loadCustomBackgrounds();applyPreferences()}
 function playSound(key){if(!app.sound)return;const audio=sounds[key];if(audio){audio.currentTime=0;audio.volume=app.preferences.volume/100;audio.play().catch(()=>{})}}
@@ -244,7 +299,7 @@ function ring(g,raw,color,size){const p=displayPosition(g,raw);ctx.beginPath();c
 const pieceAssetTypes={king:'han',rook:'che',horse:'ma',elephant:'xiang',advisor:'shi',cannon:'pao',pawn:'bing',guard:'wei',archer:'she',thunder:'lei',patrol:'xun'};
 function pieceImage(p){const suffix=pieceAssetTypes[p.type];if(!suffix)return null;const key=`${app.preferences.pieceStyle}:${p.color}:${suffix}`;if(app.pieceImages.has(key))return app.pieceImages.get(key);const image=new Image();image.onload=draw;image.onerror=()=>app.pieceImages.set(key,null);image.src=`/assets/pieces/${app.preferences.pieceStyle}/${p.color==='red'?'hong':'hei'}${suffix}.png`;app.pieceImages.set(key,image);return image}
 const BADGE_ORBIT=0.86,BADGE_SIZE=0.26,BADGE_STROKE=0.055;function specialBadge(p,x,y,r,ink){const kind={guard:'slash',archer:'star',thunder:'bars',patrol:'square'}[p.type];if(!kind)return;const bx=x,by=y-r*BADGE_ORBIT,R=r*BADGE_SIZE;ctx.save();ctx.strokeStyle=ink;ctx.lineWidth=Math.max(1,r*BADGE_STROKE);ctx.lineCap='round';ctx.lineJoin='round';if(kind==='star'){const inner=R*.42,pts=[[0,-R],[inner,-inner],[R,0],[inner,inner],[0,R],[-inner,inner],[-R,0],[-inner,-inner]];ctx.beginPath();pts.forEach((q,i)=>i===0?ctx.moveTo(bx+q[0],by+q[1]):ctx.lineTo(bx+q[0],by+q[1]));ctx.closePath();ctx.stroke();ctx.beginPath();ctx.arc(bx,by,R*1.35,0,Math.PI*2);ctx.stroke()}else if(kind==='slash'){for(const off of[-R*.28,R*.28]){ctx.beginPath();ctx.moveTo(bx-R*.6+off,by-R*.6-off);ctx.lineTo(bx+R*.6+off,by+R*.6-off);ctx.stroke()}}else if(kind==='bars'){for(const dy of[-R*.5,0,R*.5]){ctx.beginPath();ctx.moveTo(bx-R*.6,by+dy);ctx.lineTo(bx+R*.6,by+dy);ctx.stroke()}}else{ctx.strokeRect(bx-R*.6,by-R*.6,R*1.2,R*1.2)}ctx.restore()}
-function drawPiece(g,p){const shown=displayPosition(g,p),x=g.pad+shown.col*g.cw,y=g.pad+shown.row*g.ch,r=Math.min(g.cw,g.ch)*.39,img=pieceImage(p);if(img?.complete&&img.naturalWidth){const size=r*2.14;ctx.save();ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=5;ctx.shadowOffsetY=2;ctx.drawImage(img,x-size/2,y-size/2,size,size);specialBadge(p,x,y,r,p.color==='red'?'#a12424':'#292522');ctx.restore();return}ctx.save();ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=5;ctx.shadowOffsetY=2;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle='#f4d99f';ctx.fill();ctx.shadowColor='transparent';ctx.lineWidth=Math.max(2,r*.09);ctx.strokeStyle=p.color==='red'?'#a12424':'#292522';ctx.stroke();ctx.beginPath();ctx.arc(x,y,r*.82,0,Math.PI*2);ctx.lineWidth=1;ctx.stroke();ctx.fillStyle=p.color==='red'?'#a12424':'#292522';ctx.font=`bold ${r*1.15}px KaiTi`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(names[p.color][p.type],x,y+1);specialBadge(p,x,y,r,p.color==='red'?'#a12424':'#292522');ctx.restore()}
+function drawPiece(g,p){const shown=displayPosition(g,p),x=g.pad+shown.col*g.cw,y=g.pad+shown.row*g.ch,r=Math.min(g.cw,g.ch)*.39,img=pieceImage(p);const inkToken=p.color==='red'?'#a12424':'#292522';const boardBg=getComputedStyle(document.documentElement).getPropertyValue('--board-bg').trim()||'#f9e8c4';const ink=app.preferences.highContrastPieces===true?deriveForBackground(inkToken,boardBg).color:inkToken;if(img?.complete&&img.naturalWidth){const size=r*2.14;ctx.save();ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=5;ctx.shadowOffsetY=2;ctx.drawImage(img,x-size/2,y-size/2,size,size);specialBadge(p,x,y,r,ink);ctx.restore();return}ctx.save();ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=5;ctx.shadowOffsetY=2;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle='#f4d99f';ctx.fill();ctx.shadowColor='transparent';ctx.lineWidth=Math.max(2,r*.09);ctx.strokeStyle=ink;ctx.stroke();ctx.beginPath();ctx.arc(x,y,r*.82,0,Math.PI*2);ctx.lineWidth=1;ctx.stroke();ctx.fillStyle=ink;ctx.font=`bold ${r*1.15}px KaiTi`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(names[p.color][p.type],x,y+1);specialBadge(p,x,y,r,ink);ctx.restore()}
 
 async function selectOrMove(pos){
   if(!app.state||app.state.finished||app.replayIndex!==null)return;const piece=app.state.pieces.find(p=>p.row===pos.row&&p.col===pos.col);
@@ -446,7 +501,7 @@ $('#pieceStyleSelect').onchange=e=>{app.preferences.pieceStyle=e.target.value;ap
 $('#soundEnabled').onchange=e=>{app.sound=e.target.checked;$('#soundButton').textContent=app.sound?'♪':'♩';persistPreferences()};
 $('#musicEnabled').onchange=e=>{app.music=e.target.checked;persistPreferences();app.music?startMusic():stopMusic()};
 $('#volumeSlider').oninput=e=>{app.preferences.volume=Number(e.target.value);applyPreferences();persistPreferences()};
-for(const [id,key] of [['animationEnabled','animation'],['selectionEnabled','selection'],['legalTargetsEnabled','legalTargets'],['captureHintsEnabled','captureHints'],['starHintsEnabled','starHints'],['tauntsEnabled','taunts'],['autosaveEnabled','autosave']]){$(`#${id}`).onchange=e=>{app.preferences[key]=e.target.checked;persistPreferences();draw()}}
+for(const [id,key] of [['animationEnabled','animation'],['selectionEnabled','selection'],['legalTargetsEnabled','legalTargets'],['captureHintsEnabled','captureHints'],['starHintsEnabled','starHints'],['highContrastEnabled','highContrastPieces'],['tauntsEnabled','taunts'],['autosaveEnabled','autosave']]){$(`#${id}`).onchange=e=>{app.preferences[key]=e.target.checked;persistPreferences();draw()}}
 for(const [id,key] of [['initialMinutesSelect','initialMinutes'],['countdownSecondsSelect','countdownSeconds']]){$(`#${id}`).onchange=e=>{app.preferences[key]=Number(e.target.value);persistPreferences();updateClockVisuals()}}
 
 async function toggleFullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch(error){toast(error.message,'error')}}
