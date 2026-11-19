@@ -97,24 +97,22 @@ class Derived:
     mix: float
 
 
-def derive_for_background(token: str, background: str, target: float = TEXT_TARGET) -> Derived:
-    """把既有令牌派生到与盘底对比达标；不达标时保留极值并写明实测比值。
+def derive_rgb(token_rgb: tuple[int, int, int], background: str, target: float = TEXT_TARGET) -> Derived:
+    """把既有令牌的 RGB 三元组派生到与盘底对比达标；不达标保留极值并写明实测比值。
 
-    参数：
-        token: 既有令牌 hex（红/黑墨、accent、提示红等）。
-        background: 盘底 hex（主题 `board` / `paper[0]`）。
-        target: 目标对比比，文本 `TEXT_TARGET`，图形 `GRAPHIC_TARGET`。
+    与 `derive_for_background` 同一条公式；区别在入口吃 RGB 三元组（既有 rgba 提示点
+    令牌），UI 层不必为派生另写一个 hex 字面量。
     """
-    base_ratio = contrast_ratio(token, background)
+    token_hex = _rgb_hex(token_rgb)
+    base_ratio = contrast_ratio(token_hex, background)
     if base_ratio >= target:
-        return Derived(color=token, ratio=base_ratio, target=target, met=True, mix=0.0)
+        return Derived(color=token_hex, ratio=base_ratio, target=target, met=True, mix=0.0)
 
     dark_background = relative_luminance(background) <= _LIGHT_THRESHOLD
     # 浅底压黑，深底提亮到白；白/黑由通道极值给出，不是新色板条目。
     target_rgb: tuple[int, int, int] = (255, 255, 255) if dark_background else (0, 0, 0)
-    token_rgb = _parse_rgb(token)
 
-    best = Derived(color=token, ratio=base_ratio, target=target, met=False, mix=0.0)
+    best = Derived(color=token_hex, ratio=base_ratio, target=target, met=False, mix=0.0)
     mix = _MIX_STEP
     while mix <= _MIX_MAX + 1e-9:
         candidate = _mix(token_rgb, target_rgb, mix)
@@ -125,3 +123,18 @@ def derive_for_background(token: str, background: str, target: float = TEXT_TARG
             return best
         mix += _MIX_STEP
     return best
+
+
+def derive_for_background(token: str, background: str, target: float = TEXT_TARGET) -> Derived:
+    """把既有令牌派生到与盘底对比达标；不达标时保留极值并写明实测比值。
+
+    参数：
+        token: 既有令牌 hex（红/黑墨、accent、提示红等）。
+        background: 盘底 hex（主题 `board` / `paper[0]`）。
+        target: 目标对比比，文本 `TEXT_TARGET`，图形 `GRAPHIC_TARGET`。
+    """
+    return derive_rgb(_parse_rgb(token), background, target)
+
+
+def _rgb_hex(rgb: tuple[int, int, int]) -> str:
+    return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"

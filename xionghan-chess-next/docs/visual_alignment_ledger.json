@@ -251,7 +251,7 @@
       "unit": "cell",
       "compare": true,
       "verdict": "aligned",
-      "note": "三端可走点半径统一 0.13 格；桌面深色主题保留 0.15 对比度补偿（不抹平）。",
+      "note": "默认主题三端可走点半径统一 0.13 格；桌面深色主题保留 0.15 对比度补偿（不抹平）。高对比组内放大到 0.16（见 VA-16），仅开关开启时生效，不覆盖本行默认值。",
       "ends": {
         "desktop": {
           "lit": "LEGAL_DOT_RATIO = {}",
@@ -259,15 +259,14 @@
           "value": 0.13
         },
         "web": {
-          "lit": "occupied?Math.min(g.cw,g.ch)*.42:Math.min(g.cw,g.ch)*{}",
+          "lit": "legalRadius=hc?LEGAL_DOT_RATIO_HC:{}",
           "raw": 0.13,
           "value": 0.13
         },
         "webapp": {
-          "lit": "ctx.arc(x, y, cell * {}",
+          "lit": "const legalRadius = hc ? LEGAL_DOT_RATIO_HC : {};",
           "raw": 0.13,
-          "value": 0.13,
-          "index": 2
+          "value": 0.13
         }
       }
     },
@@ -277,10 +276,10 @@
       "unit": "cell",
       "compare": true,
       "verdict": "aligned",
-      "note": "三端可吃点半径统一 0.42 格；形态差异保留（桌面实心红盘 / web 半透明红盘 / webapp 红描边环），只对数值。",
+      "note": "三端可吃点半径统一 0.42 格；形态差异保留（桌面实心红盘 / web 半透明红盘 / webapp 红描边环），只对数值。高对比组内可吃点只派生颜色、半径不放大。",
       "ends": {
         "desktop": {
-          "lit": "CAPTURE_MARK_ALPHA), {})",
+          "lit": "fill_color, {}",
           "raw": 0.42,
           "value": 0.42
         },
@@ -398,6 +397,57 @@
           "lit": "const _MIX_STEP = {};",
           "raw": 0.05,
           "value": 0.05
+        }
+      }
+    },
+    {
+      "id": "VA-16",
+      "name": "高对比组可走点半径（格）",
+      "unit": "cell",
+      "compare": true,
+      "verdict": "aligned",
+      "note": "F1 高对比组内（仅 highContrastPieces 开启时）可走点半径放大一档到 0.16（授权上限 0.18 格）；默认主题仍是 VA-10 的 0.13，本行不覆盖默认值。三端同常量。",
+      "ends": {
+        "desktop": {
+          "lit": "LEGAL_DOT_RATIO_HC = {}",
+          "raw": 0.16,
+          "value": 0.16
+        },
+        "web": {
+          "lit": "const LEGAL_DOT_RATIO_HC = {};",
+          "raw": 0.16,
+          "value": 0.16
+        },
+        "webapp": {
+          "lit": "const LEGAL_DOT_RATIO_HC = {};",
+          "raw": 0.16,
+          "value": 0.16
+        }
+      }
+    },
+    {
+      "id": "VA-17",
+      "name": "高对比组图形提示判据",
+      "unit": "ratio",
+      "compare": true,
+      "verdict": "aligned",
+      "note": "F1 高对比组内可走点/可吃点按非文本图形判据派生到 3:1（WCAG 1.4.11），三端同为 GRAPHIC_TARGET=3.0；棋子墨色仍按文本 4.5:1（VA-15）。派生色由既有令牌混色算出，不新增色板条目。",
+      "ends": {
+        "desktop": {
+          "lit": "GRAPHIC_TARGET = {}",
+          "raw": 3.0,
+          "value": 3.0,
+          "file": "src/xionghan_chess/desktop/ui/contrast.py"
+        },
+        "web": {
+          "lit": "CONTRAST_GRAPHIC_TARGET = {}",
+          "raw": 3.0,
+          "value": 3.0
+        },
+        "webapp": {
+          "lit": "CONTRAST_GRAPHIC_TARGET = {}",
+          "raw": 3.0,
+          "value": 3.0
         }
       }
     }

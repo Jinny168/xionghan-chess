@@ -79,6 +79,15 @@ LEGAL_DOT_ALPHA_LIGHT = 0.55
 LEGAL_DOT_ALPHA_DARK = 0.60
 LEGAL_DOT_DARK_RGB = (0x9F, 0xBF, 0xA8)  # #9fbfa8
 
+# F1 高对比组内（仅 `high_contrast` 开启时生效，默认主题像素输出不变）：
+# 可走点/可吃点把既有提示令牌派生到图形判据 3:1（`contrast.GRAPHIC_TARGET`），
+# 派生色不透明，消除半透明与盘底合成拉低的对比；不新增色板条目。
+# 可走点半径在高对比组内放大一档到 0.16（授权上限 0.18 格）。
+LEGAL_DOT_RATIO_HC = 0.16
+# 既有可吃提示红（既有 rgba 字面量提为模块常量，供高对比派生复用）。
+CAPTURE_RING_RGB = (205, 32, 32)
+CAPTURE_FILL_RGB = (148, 30, 30)
+
 # 特色子徽记（P1-6 / VA-14）：形状线索为主，墨色沿用棋子自身 ink，零新增色值。
 # 几何与 web/webapp 已落地版本同源，不许另起一套：
 #   徽记中心在盘缘上方 0.86×r；外接半尺寸 0.26×r；线宽 0.055×r。
@@ -1018,13 +1027,28 @@ class BoardWidget(QWidget):
         for move in self.legal if self.show_legal_targets else ():
             target = self.game.state.piece_at(move.target)
             if target:
-                self._mark(painter, move.target, left, top, cw, ch, QColor(148, 30, 30, CAPTURE_MARK_ALPHA), 0.42)
+                fill_color = (
+                    self._derive_graphic(CAPTURE_FILL_RGB)
+                    if self.high_contrast
+                    else QColor(148, 30, 30, CAPTURE_MARK_ALPHA)
+                )
+                self._mark(painter, move.target, left, top, cw, ch, fill_color, 0.42)
             else:
                 self._mark(painter, move.target, left, top, cw, ch, dot_color, dot_ratio)
 
     def legal_dot_ratio(self) -> float:
-        """可走点半径：浅色四主题 0.13，深色 0.15（对比度补偿，见常量注释）。"""
+        """可走点半径：浅色四主题 0.13，深色 0.15（对比度补偿，见常量注释）。
+
+        高对比组内放大一档到 `LEGAL_DOT_RATIO_HC`（仅开关开启时，默认主题不变）。
+        """
+        if self.high_contrast:
+            return LEGAL_DOT_RATIO_HC
         return LEGAL_DOT_RATIO_DARK if self.theme_name == "dark" else LEGAL_DOT_RATIO
+
+    def _derive_graphic(self, rgb: tuple[int, int, int]) -> QColor:
+        """高对比组内把既有提示令牌派生到图形 3:1，返回不透明色。"""
+        derived = contrast.derive_rgb(rgb, self.theme["board"], contrast.GRAPHIC_TARGET)
+        return QColor(derived.color)
 
     def _piece_ink(self, color: Color) -> QColor:
         """棋子墨色（描边/文字/徽记）。
@@ -1044,7 +1068,17 @@ class BoardWidget(QWidget):
         判据是"与棋盘底色的绿通道差不低于 40"，否则 13×13 上根本看不见。
         深色主题的旧做法（深绿 `#315c48` @.72 混在 `#34302b` 上）绿差只有 +32，
         本来就不达标；换浅灰绿后约 +60。
+
+        高对比组内：既有令牌派生到图形 3:1，色不透明（消除半透明合成拉低对比），
+        仅开关开启时生效，默认主题原样。
         """
+        if self.high_contrast:
+            if self.theme_name == "dark":
+                return self._derive_graphic(LEGAL_DOT_DARK_RGB)
+            derived = contrast.derive_for_background(
+                self.theme["accent"], self.theme["board"], contrast.GRAPHIC_TARGET
+            )
+            return QColor(derived.color)
         if self.theme_name == "dark":
             color = QColor(*LEGAL_DOT_DARK_RGB)
             color.setAlphaF(LEGAL_DOT_ALPHA_DARK)
@@ -1126,13 +1160,23 @@ class BoardWidget(QWidget):
         painter.save()
         cell = min(cw, ch)
         size = cell * 0.3
-        painter.setPen(QPen(QColor(205, 32, 32, 220), max(2.5, cell * 0.055)))
+        cross_color = (
+            self._derive_graphic(CAPTURE_RING_RGB)
+            if self.high_contrast
+            else QColor(205, 32, 32, 220)
+        )
+        painter.setPen(QPen(cross_color, max(2.5, cell * 0.055)))
         for position in self.capturable:
             shown = self._view_position(position)
             x, y = left + shown.col * cw, top + shown.row * ch
             painter.drawLine(QPointF(x - size, y - size), QPointF(x + size, y + size))
             painter.drawLine(QPointF(x + size, y - size), QPointF(x - size, y + size))
-        painter.setPen(QPen(QColor(205, 32, 32, 170), max(2.0, cell * 0.04)))
+        ring_color = (
+            self._derive_graphic(CAPTURE_RING_RGB)
+            if self.high_contrast
+            else QColor(205, 32, 32, 170)
+        )
+        painter.setPen(QPen(ring_color, max(2.0, cell * 0.04)))
         for position in self.victims:
             shown = self._view_position(position)
             x, y = left + shown.col * cw, top + shown.row * ch

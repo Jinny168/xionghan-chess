@@ -9,6 +9,8 @@ const CONTRAST_TEXT_TARGET = 4.5;
 const CONTRAST_GRAPHIC_TARGET = 3.0;
 const _CONTRAST_LIGHT_THRESHOLD = 0.179;
 const _MIX_STEP = 0.05;
+// F1 高对比组内：可走点半径放大一档（授权上限 0.18 格）；仅开关开启时生效，默认主题不变。
+const LEGAL_DOT_RATIO_HC = 0.16;
 
 function _channelLinear(channel) {
   const s = channel / 255;
@@ -41,12 +43,12 @@ function _rgbToHex([r, g, b]) {
   return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
 }
 
-function deriveForBackground(token, background, target = CONTRAST_TEXT_TARGET) {
+function deriveRgb(tokenRgb, background, target = CONTRAST_TEXT_TARGET) {
+  const token = _rgbToHex(tokenRgb);
   const base = contrastRatio(token, background);
   if (base >= target) return { color: token, ratio: base, met: true, mix: 0 };
   const darkBackground = relativeLuminance(background) <= _CONTRAST_LIGHT_THRESHOLD;
   const targetRgb = darkBackground ? [255, 255, 255] : [0, 0, 0];
-  const tokenRgb = _parseRgb(token);
   let best = { color: token, ratio: base, met: false, mix: 0 };
   for (let mix = _MIX_STEP; mix <= 1 + 1e-9; mix += _MIX_STEP) {
     const candidate = _rgbToHex(_mixRgb(tokenRgb, targetRgb, mix));
@@ -55,6 +57,10 @@ function deriveForBackground(token, background, target = CONTRAST_TEXT_TARGET) {
     if (ratio >= target) return best;
   }
   return best;
+}
+
+function deriveForBackground(token, background, target = CONTRAST_TEXT_TARGET) {
+  return deriveRgb(_parseRgb(token), background, target);
 }
 
 const board = $('#board');
@@ -283,7 +289,9 @@ function cellFrame(g,raw,color){const p=displayPosition(g,raw),ix=g.cw*.05,iy=g.
 // 桌面端相反 —— 它的复盘快照自带 history 前缀，画的是「走到这一手的那一步」，
 // 与显示局面严格对应，所以那边照画。**两端语义一致（都显示当前局面的上一步），
 // 实现必然不同，别为了"统一"把其中一边改成另一种做法，那会引入错位 bug。**
-function drawHighlights(g){const last=app.replayIndex===null?app.state.history?.at(-1):null;if(last){const ink=lastMoveInk(.25);cellFrame(g,last.move.from,ink);cellFrame(g,last.move.to,ink)}if(app.state.check){const king=app.state.pieces.find(p=>p.type==='king'&&p.color===app.state.turn);if(king)ring(g,king,'rgba(196,35,35,.35)',.47)}if(app.selected&&app.preferences.selection!==false)ring(g,app.selected,'rgba(215,167,55,.55)',.48);if(app.preferences.legalTargets!==false)for(const raw of app.legal){const p=displayPosition(g,raw),occupied=app.state.pieces.some(x=>x.row===raw.row&&x.col===raw.col);ctx.beginPath();ctx.arc(g.pad+p.col*g.cw,g.pad+p.row*g.ch,occupied?Math.min(g.cw,g.ch)*.42:Math.min(g.cw,g.ch)*.13,0,Math.PI*2);ctx.fillStyle=occupied?'rgba(157,37,37,.28)':'rgba(49,92,72,.72)';ctx.fill()}}
+function currentBoardBg(){return getComputedStyle(document.documentElement).getPropertyValue('--board-bg').trim()||'#f9e8c4'}
+
+function drawHighlights(g){const last=app.replayIndex===null?app.state.history?.at(-1):null;if(last){const ink=lastMoveInk(.25);cellFrame(g,last.move.from,ink);cellFrame(g,last.move.to,ink)}if(app.state.check){const king=app.state.pieces.find(p=>p.type==='king'&&p.color===app.state.turn);if(king)ring(g,king,'rgba(196,35,35,.35)',.47)}if(app.selected&&app.preferences.selection!==false)ring(g,app.selected,'rgba(215,167,55,.55)',.48);if(app.preferences.legalTargets!==false){const hc=app.preferences.highContrastPieces===true,bg=currentBoardBg(),captureFill=hc?deriveRgb([157,37,37],bg,CONTRAST_GRAPHIC_TARGET).color:'rgba(157,37,37,.28)',legalDot=hc?deriveRgb([49,92,72],bg,CONTRAST_GRAPHIC_TARGET).color:'rgba(49,92,72,.72)',legalRadius=hc?LEGAL_DOT_RATIO_HC:0.13;for(const raw of app.legal){const p=displayPosition(g,raw),occupied=app.state.pieces.some(x=>x.row===raw.row&&x.col===raw.col);ctx.beginPath();ctx.arc(g.pad+p.col*g.cw,g.pad+p.row*g.ch,occupied?Math.min(g.cw,g.ch)*.42:Math.min(g.cw,g.ch)*legalRadius,0,Math.PI*2);ctx.fillStyle=occupied?captureFill:legalDot;ctx.fill()}}}
 // 图例常驻（零新增偏好键）：叉那一半跟 `captureHints` 走；圈那一半还要求当前档案
 // 真的开了 `pawn_three_line_capture` —— 经典/传统档里"旁吃受害"永远不会发生，
 // 显示它等于解释一个不存在的现象。判据用**静态规则**，不看盘面此刻有没有圈，
@@ -294,7 +302,7 @@ function syncCaptureLegend(){const legend=$('#captureLegend');if(!legend)return;
 // 空心圈 = 旁吃受害者（三连吃子从落点旁边的线上取子，这枚子不在任何落点上，
 // 点它会被引擎拒绝）。合并成一个集合时，红叉会出现在棋子去不了的格子上，
 // 玩家读成"落点可吃" —— 正是用户报的那个 bug。
-function drawCaptureHints(g){if(app.preferences.captureHints===false)return;const cell=Math.min(g.cw,g.ch),size=cell*.3;ctx.save();ctx.strokeStyle='rgba(205,32,32,.9)';ctx.lineWidth=Math.max(2.5,cell*.055);for(const raw of app.capturable){const p=displayPosition(g,raw),x=g.pad+p.col*g.cw,y=g.pad+p.row*g.ch;ctx.beginPath();ctx.moveTo(x-size,y-size);ctx.lineTo(x+size,y+size);ctx.moveTo(x+size,y-size);ctx.lineTo(x-size,y+size);ctx.stroke()}ctx.strokeStyle='rgba(205,32,32,.66)';ctx.lineWidth=Math.max(2,cell*.04);for(const raw of app.victims){const p=displayPosition(g,raw),x=g.pad+p.col*g.cw,y=g.pad+p.row*g.ch;ctx.beginPath();ctx.arc(x,y,cell*.34,0,Math.PI*2);ctx.stroke()}ctx.restore()}
+function drawCaptureHints(g){if(app.preferences.captureHints===false)return;const cell=Math.min(g.cw,g.ch),size=cell*.3;const hc=app.preferences.highContrastPieces===true,bg=currentBoardBg(),hcRing=hc?deriveRgb([205,32,32],bg,CONTRAST_GRAPHIC_TARGET).color:null;ctx.save();ctx.strokeStyle=hcRing||'rgba(205,32,32,.9)';ctx.lineWidth=Math.max(2.5,cell*.055);for(const raw of app.capturable){const p=displayPosition(g,raw),x=g.pad+p.col*g.cw,y=g.pad+p.row*g.ch;ctx.beginPath();ctx.moveTo(x-size,y-size);ctx.lineTo(x+size,y+size);ctx.moveTo(x+size,y-size);ctx.lineTo(x-size,y+size);ctx.stroke()}ctx.strokeStyle=hcRing||'rgba(205,32,32,.66)';ctx.lineWidth=Math.max(2,cell*.04);for(const raw of app.victims){const p=displayPosition(g,raw),x=g.pad+p.col*g.cw,y=g.pad+p.row*g.ch;ctx.beginPath();ctx.arc(x,y,cell*.34,0,Math.PI*2);ctx.stroke()}ctx.restore()}
 function ring(g,raw,color,size){const p=displayPosition(g,raw);ctx.beginPath();ctx.arc(g.pad+p.col*g.cw,g.pad+p.row*g.ch,Math.min(g.cw,g.ch)*size,0,Math.PI*2);ctx.fillStyle=color;ctx.fill()}
 const pieceAssetTypes={king:'han',rook:'che',horse:'ma',elephant:'xiang',advisor:'shi',cannon:'pao',pawn:'bing',guard:'wei',archer:'she',thunder:'lei',patrol:'xun'};
 function pieceImage(p){const suffix=pieceAssetTypes[p.type];if(!suffix)return null;const key=`${app.preferences.pieceStyle}:${p.color}:${suffix}`;if(app.pieceImages.has(key))return app.pieceImages.get(key);const image=new Image();image.onload=draw;image.onerror=()=>app.pieceImages.set(key,null);image.src=`/assets/pieces/${app.preferences.pieceStyle}/${p.color==='red'?'hong':'hei'}${suffix}.png`;app.pieceImages.set(key,image);return image}

@@ -81,12 +81,12 @@ function _rgbToHex([r, g, b]) {
   return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
 }
 
-function deriveForBackground(token, background, target = CONTRAST_TEXT_TARGET) {
+function deriveRgb(tokenRgb, background, target = CONTRAST_TEXT_TARGET) {
+  const token = _rgbToHex(tokenRgb);
   const base = contrastRatio(token, background);
   if (base >= target) return { color: token, ratio: base, met: true, mix: 0 };
   const darkBackground = relativeLuminance(background) <= _CONTRAST_LIGHT_THRESHOLD;
   const targetRgb = darkBackground ? [255, 255, 255] : [0, 0, 0];
-  const tokenRgb = _parseRgb(token);
   let best = { color: token, ratio: base, met: false, mix: 0 };
   for (let mix = _MIX_STEP; mix <= 1 + 1e-9; mix += _MIX_STEP) {
     const candidate = _rgbToHex(_mixRgb(tokenRgb, targetRgb, mix));
@@ -97,10 +97,16 @@ function deriveForBackground(token, background, target = CONTRAST_TEXT_TARGET) {
   return best;
 }
 
+function deriveForBackground(token, background, target = CONTRAST_TEXT_TARGET) {
+  return deriveRgb(_parseRgb(token), background, target);
+}
+
 // 特色子徽记（P1-6）：形状线索为主，颜色沿用棋子自身 ink；几何量写常量，不写魔法数。
 const BADGE_ORBIT = 0.86;   // 徽记中心到子心的距离（× r）
 const BADGE_SIZE = 0.26;     // 徽记外接半尺寸（× r）
 const BADGE_STROKE = 0.055;  // 徽记线宽（× r）
+// F1 高对比组内：可走点半径放大一档（授权上限 0.18 格）；仅开关开启时生效，默认主题不变。
+const LEGAL_DOT_RATIO_HC = 0.16;
 // 射 > 尉 > 檑/巡：复杂度按权重递减（星+环 / 双斜杠 / 三横 / 空心方）。
 const SPECIAL_BADGE = { guard: 'slash', archer: 'star', thunder: 'bars', patrol: 'square' };
 
@@ -471,19 +477,29 @@ export class BoardRenderer {
     const ctx = this.ctx;
     const { cell } = geom;
     const occupied = new Set(view.state.pieces.map((p) => `${p.row},${p.col}`));
+    // F1：高对比组内提示点把既有令牌派生到图形 3:1、色不透明；仅开关开启时生效。
+    const hc = view.highContrast === true;
+    const bg = theme.paper[0];
+    const ringColor = hc
+      ? deriveRgb([176, 58, 46], bg, CONTRAST_GRAPHIC_TARGET).color
+      : 'rgba(176,58,46,.85)';
+    const legalColor = hc
+      ? deriveRgb([58, 104, 72], bg, CONTRAST_GRAPHIC_TARGET).color
+      : 'rgba(58,104,72,.78)';
+    const legalRadius = hc ? LEGAL_DOT_RATIO_HC : 0.13;
     ctx.save();
     for (const target of view.legal || []) {
       const { x, y } = this.screenPos(target.row, target.col, view);
       if (occupied.has(`${target.row},${target.col}`)) {
-        ctx.strokeStyle = 'rgba(176,58,46,.85)';
+        ctx.strokeStyle = ringColor;
         ctx.lineWidth = Math.max(2, cell * 0.045);
         ctx.beginPath();
         ctx.arc(x, y, cell * 0.42, 0, Math.PI * 2);
         ctx.stroke();
       } else {
-        ctx.fillStyle = 'rgba(58,104,72,.78)';
+        ctx.fillStyle = legalColor;
         ctx.beginPath();
-        ctx.arc(x, y, cell * 0.13, 0, Math.PI * 2);
+        ctx.arc(x, y, cell * legalRadius, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = 'rgba(255,250,238,.75)';
         ctx.lineWidth = Math.max(1, cell * 0.028);
