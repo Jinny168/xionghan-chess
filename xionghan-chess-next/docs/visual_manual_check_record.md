@@ -59,6 +59,19 @@
 | `benchmarks/visual_evidence/web_m4_dark_markers.png` | dark 主题（盘底 #2c2c2c）下选中环 / 可走点 / 可吃叉 / 受害环 | 可核：深底上可见 ≥1 枚选中金环、≥1 个可走点、≥1 个落点可吃叉、≥1 个受害环；叉为实心 X、环为空心圆，形态不混；标记与盘底对比度 ≥3:1（图形标记口径）。`human-only`：标记在深底不发虚 | ☐ 通过　☐ 不通过 |
 | `benchmarks/visual_evidence/web_m7_state_layers.png` | 将军环 + 选择环 + 可走点 + 上一步起讫框四态同屏 | 可核：四类标记各 ≥1 处可见；绘制顺序 上一步框 < 可吃 < 选择 < 将军；将军环为会话内临时置 `check=true` 触发，**非真实将军局面**，需以真实将军局复核。`human-only`：四态不糊成一团 | ☐ 通过　☐ 不通过 |
 
+### 1.5 徽记开关对照（I-1，VA-14：形态保留、默认关）
+
+> 开关 `pieceBadges` / `piece_badges` 三端默认 `false`；关闭时不画星 / 杠 / 横 / 方徽记，
+> 不留环 / 星描边或半透明残影；开启后既有徽记几何口径不变（orbit 0.86 / size 0.26 /
+> stroke 0.055，徽记与邻子间隙 ≥0.06 格，由 `test_badge_clearance` 静态复算兜底）。
+
+| 证据文件名 | 应看什么 | 通过判据 | 结论 |
+|---|---|---|---|
+| `benchmarks/visual_evidence/i_default_no_badges_web.png` | web 旧树默认关初始局全景 | 可核：特色子（射 / 檑 / 尉 / 巡）盘缘上方**无**星 / 横 / 斜杠 / 空心方徽记描边，无半透明残影；盘面无吃子图例卡片。`human-only`：棋子本体文字清晰、不缺笔 | ☐ 通过　☐ 不通过 |
+| `benchmarks/visual_evidence/i_badges_on_web.png` | web 旧树开启态，200% 上缘特色子行裁切 | 可核：射=四角星+细环、檑=三条短横；徽记落在盘缘上方（0.86 r），与邻子 / 子面字形留出 ≥0.06 格间隙，不压字。`human-only`：徽记墨色沿用棋子自身 ink | ☐ 通过　☐ 不通过 |
+| `benchmarks/visual_evidence/i_default_no_badges_webapp.png` | webapp 默认关初始局全景 | 可核：特色子盘缘上方无徽记描边、无残影；与开启态对照可辨差异。`human-only`：棋子本体不受影响 | ☐ 通过　☐ 不通过 |
+| `benchmarks/visual_evidence/i_badges_on_webapp.png` | webapp 开启态初始局全景 | 可核：射=四角星+细环、尉=双短斜杠、檑=三条短横、巡=空心小方四类徽记在位；徽记在盘缘上方、不压子面字形。`human-only`：与 web 旧树 / 桌面同名口径肉眼一致 | ☐ 通过　☐ 不通过 |
+
 ## 2. 逐条执行记录
 
 ### M-1 字形与字重
@@ -122,6 +135,9 @@
   - `benchmarks/visual_evidence/c1_badge_13x13_image.png`（13×13 位图模式）
   - `benchmarks/visual_evidence/c1_badge_9x10_glyph.png`（9×10 字形模式）
   - `benchmarks/visual_evidence/c1_badge_9x10_image.png`（9×10 位图模式）
+- I-1 开关对照证据（默认关 / 开启，web 旧树 + webapp）：
+  - `benchmarks/visual_evidence/i_default_no_badges_web.png` / `i_badges_on_web.png`
+  - `benchmarks/visual_evidence/i_default_no_badges_webapp.png` / `i_badges_on_webapp.png`
 - 结论：☐ 通过　☐ 不通过
 - 备注 / 偏差记录：__________
 
