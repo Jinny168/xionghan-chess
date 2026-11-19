@@ -43,6 +43,60 @@ const THEMES = {
 const GLYPH_FONT = '"KaiTi","STKaiti","Kaiti SC","Noto Serif SC","Songti SC",serif';
 const UI_FONT = '"PingFang SC","Microsoft YaHei",system-ui,sans-serif';
 
+// E1 高对比棋子组：与桌面 `contrast.py`、`web/js/app.js` 同一套 WCAG 派生公式。
+// 零新增色值：输出色由既有令牌按盘底混色算出，源码不写新 hex 字面量。
+const CONTRAST_TEXT_TARGET = 4.5;
+const CONTRAST_GRAPHIC_TARGET = 3.0;
+const _CONTRAST_LIGHT_THRESHOLD = 0.179;
+const _MIX_STEP = 0.05;
+
+function _channelLinear(channel) {
+  const s = channel / 255;
+  return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+}
+
+function _parseRgb(hex) {
+  let h = hex.replace('#', '');
+  if (h.length === 3) h = [...h].map((ch) => ch + ch).join('');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function relativeLuminance(hex) {
+  const [r, g, b] = _parseRgb(hex);
+  return 0.2126 * _channelLinear(r) + 0.7152 * _channelLinear(g) + 0.0722 * _channelLinear(b);
+}
+
+function contrastRatio(fg, bg) {
+  let l1 = relativeLuminance(fg);
+  let l2 = relativeLuminance(bg);
+  if (l1 < l2) { [l1, l2] = [l2, l1]; }
+  return (l1 + 0.05) / (l2 + 0.05);
+}
+
+function _mixRgb(token, target, mix) {
+  return token.map((v, i) => Math.round(v + (target[i] - v) * mix));
+}
+
+function _rgbToHex([r, g, b]) {
+  return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
+function deriveForBackground(token, background, target = CONTRAST_TEXT_TARGET) {
+  const base = contrastRatio(token, background);
+  if (base >= target) return { color: token, ratio: base, met: true, mix: 0 };
+  const darkBackground = relativeLuminance(background) <= _CONTRAST_LIGHT_THRESHOLD;
+  const targetRgb = darkBackground ? [255, 255, 255] : [0, 0, 0];
+  const tokenRgb = _parseRgb(token);
+  let best = { color: token, ratio: base, met: false, mix: 0 };
+  for (let mix = _MIX_STEP; mix <= 1 + 1e-9; mix += _MIX_STEP) {
+    const candidate = _rgbToHex(_mixRgb(tokenRgb, targetRgb, mix));
+    const ratio = contrastRatio(candidate, background);
+    if (ratio >= best.ratio) best = { color: candidate, ratio, met: ratio >= target, mix };
+    if (ratio >= target) return best;
+  }
+  return best;
+}
+
 // 特色子徽记（P1-6）：形状线索为主，颜色沿用棋子自身 ink；几何量写常量，不写魔法数。
 const BADGE_ORBIT = 0.86;   // 徽记中心到子心的距离（× r）
 const BADGE_SIZE = 0.26;     // 徽记外接半尺寸（× r）
@@ -454,8 +508,12 @@ export class BoardRenderer {
     const r = cell * 0.39;
     const style = view.pieceStyle || 'traditional';
     const isRed = piece.color === 'red';
-    const ink = isRed ? '#a3271f' : '#2b2622';
-    const inkDark = isRed ? '#7d1a14' : '#171412';
+    const inkToken = isRed ? '#a3271f' : '#2b2622';
+    const inkDarkToken = isRed ? '#7d1a14' : '#171412';
+    // E1：高对比开启且非 ink 深底主题时，对既有墨令牌按盘底派生；ink 主题保留既有提亮方案。
+    const highContrast = view.highContrast === true && view.theme !== 'ink';
+    const ink = highContrast ? deriveForBackground(inkToken, theme.paper[0]).color : inkToken;
+    const inkDark = highContrast ? deriveForBackground(inkDarkToken, theme.paper[0]).color : inkDarkToken;
 
     ctx.save();
     ctx.shadowColor = theme.shadow;
