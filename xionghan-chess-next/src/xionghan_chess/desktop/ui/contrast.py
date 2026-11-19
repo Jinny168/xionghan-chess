@@ -57,7 +57,7 @@ def _parse_rgb(hex_color: str) -> tuple[int, int, int]:
     if len(h) == 3:
         h = "".join(ch * 2 for ch in h)
     if len(h) != 6:
-        raise ValueError(f"非法 hex 颜色：{hex_color!r}")
+        raise ValueError(f"invalid hex color: {hex_color!r}")
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 

@@ -7,6 +7,7 @@
   「本局出现 N 处非最佳手」「第 X 手评分下降 Y」这类陈述。
 - **离线本地**：本模块不引入任何网络 / 遥测模块（不 import requests / urllib / http）。
 - 不改棋谱格式；报告由 analysis 既有输出聚合而成，不重新跑引擎。
+- 文案走 `dl()` / `dlf()`（中文原文作 key，英文查 `texts` 词表），本模块不留裸中文字面量。
 
 ## 聚合内容
 
@@ -21,31 +22,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-# 分类标签（描述性分类，不是评判句）。
-QUALITY_LABELS = {
-    "best": "最佳",
-    "good": "良好",
-    "inaccuracy": "欠准",
-    "mistake": "失误",
-    "blunder": "严重失误",
-}
-
-# 指导 / 评判禁词：测试用正则扫描，文案不得命中。
-FORBIDDEN_PHRASES = (
-    "你应该",
-    "你错了",
-    "建议",
-    "应当",
-    "需要改进",
-    "多加练习",
-    "下一步应",
-    "最好",
-    "务必",
-    "你需要",
-)
+from ..texts import PHASE_NAMES, QUALITY_LABELS, dl, dlf
 
 _NON_BEST = ("inaccuracy", "mistake", "blunder")
-_PHASES = ("开局", "中局", "残局")
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,16 +38,16 @@ class ReviewReport:
     lines: list[str] = field(default_factory=list)
 
 
-def _phase_loss(moves: list[dict[str, Any]]) -> tuple[str, dict[str, int]] | None:
-    """按手序三分段统计失分，返回失分最多的阶段与各段失分。"""
+def _phase_loss(moves: list[dict[str, Any]]) -> tuple[int, dict[int, int]] | None:
+    """按手序三分段统计失分，返回失分最多的阶段序号与各段失分。"""
     n = len(moves)
     if n == 0:
         return None
     bounds = [0, n // 3, (2 * n) // 3, n]
-    losses: dict[str, int] = {}
-    for index, phase in enumerate(_PHASES):
+    losses: dict[int, int] = {}
+    for index, _phase in enumerate(PHASE_NAMES):
         segment = moves[bounds[index] : bounds[index + 1]]
-        losses[phase] = sum(int(m.get("scoreLoss", 0)) for m in segment)
+        losses[index] = sum(int(m.get("scoreLoss", 0)) for m in segment)
     return max(losses, key=losses.get), losses
 
 
@@ -83,14 +62,14 @@ def _curve_summary(curve: list[float]) -> dict[str, float]:
     }
 
 
-def _conclusion(moves: list[dict[str, Any]], curve: dict[str, float]) -> str:
+def _conclusion(moves: list[dict[str, Any]]) -> str:
     phase = _phase_loss(moves)
     if phase is None:
-        return "本局可复盘的手数不足，未形成阶段归纳。"
-    top_phase, losses = phase
-    if losses[top_phase] <= 0:
-        return "本局各阶段失分分布较为平均。"
-    return f"本局失分集中在{top_phase}阶段。"
+        return dl("本局可复盘的手数不足，未形成阶段归纳。")
+    top_index, losses = phase
+    if losses[top_index] <= 0:
+        return dl("本局各阶段失分分布较为平均。")
+    return dlf("本局失分集中在{phase}阶段。", phase=dl(PHASE_NAMES[top_index]))
 
 
 def build_report(result: dict[str, Any], top_n: int = 3) -> ReviewReport:
@@ -112,18 +91,19 @@ def build_report(result: dict[str, Any], top_n: int = 3) -> ReviewReport:
             "ply": int(m["ply"]),
             "notation": m.get("notation", ""),
             "quality": m.get("quality", ""),
-            "quality_label": QUALITY_LABELS.get(m.get("quality", ""), m.get("quality", "")),
+            "quality_label": dl(QUALITY_LABELS.get(m.get("quality", ""), m.get("quality", ""))),
             "score_loss": int(m.get("scoreLoss", 0)),
         }
         for m in ranked[:top_n]
     ]
 
     curve = _curve_summary(list(result.get("winRateCurve", [])))
-    conclusion = _conclusion(moves, curve)
+    conclusion = _conclusion(moves)
 
-    lines: list[str] = [f"本局共复盘 {analyzed} 手。"]
+    lines: list[str] = [dlf("本局共复盘 {ply} 手。", ply=analyzed)]
     lines.append(
-        "本局出现 {total} 处非最佳手（欠准 {a}、失误 {b}、严重失误 {c}）。".format(
+        dlf(
+            "本局出现 {total} 处非最佳手（欠准 {a}、失误 {b}、严重失误 {c}）。",
             total=mistake_total,
             a=counts["inaccuracy"],
             b=counts["mistake"],
@@ -131,10 +111,11 @@ def build_report(result: dict[str, Any], top_n: int = 3) -> ReviewReport:
         )
     )
     if key_moves:
-        lines.append("评分下降较多的手：")
+        lines.append(dl("评分下降较多的手："))
         for move in key_moves:
             lines.append(
-                "第 {ply} 手 {notation} 评分下降 {loss}（{quality}）。".format(
+                dlf(
+                    "第 {ply} 手 {notation} 评分下降 {loss}（{quality}）。",
                     ply=move["ply"],
                     notation=move["notation"],
                     loss=move["score_loss"],
@@ -142,8 +123,12 @@ def build_report(result: dict[str, Any], top_n: int = 3) -> ReviewReport:
                 )
             )
     lines.append(
-        "胜率曲线由 {start}% 走到 {end}%，区间 {min}%–{max}%。".format(
-            start=curve["start"], end=curve["end"], min=curve["min"], max=curve["max"]
+        dlf(
+            "胜率曲线由 {start}% 走到 {end}%，区间 {min}%–{max}%。",
+            start=curve["start"],
+            end=curve["end"],
+            min=curve["min"],
+            max=curve["max"],
         )
     )
     lines.append(conclusion)

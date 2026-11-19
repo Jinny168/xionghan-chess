@@ -12,9 +12,24 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from xionghan_chess.desktop import texts
 from xionghan_chess.desktop.ui import report as report_module
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# 指导 / 评判禁词：报告文案不得命中（测试侧数据，不进 src 守卫扫描范围）。
+FORBIDDEN_PHRASES = (
+    "你应该",
+    "你错了",
+    "建议",
+    "应当",
+    "需要改进",
+    "多加练习",
+    "下一步应",
+    "最好",
+    "务必",
+    "你需要",
+)
 
 
 def _result() -> dict:
@@ -49,7 +64,7 @@ def test_aggregated_numbers_match_analysis() -> None:
 def test_report_text_has_no_authoritative_phrasing() -> None:
     rep = report_module.build_report(_result())
     blob = "\n".join(rep.lines) + "\n" + rep.conclusion + "\n" + report_module.to_text(rep)
-    for phrase in report_module.FORBIDDEN_PHRASES:
+    for phrase in FORBIDDEN_PHRASES:
         assert phrase not in blob, f"报告文案命中指导/评判禁词：{phrase}"
 
 
@@ -57,7 +72,7 @@ def test_conclusion_is_descriptive_only() -> None:
     rep = report_module.build_report(_result())
     assert rep.conclusion.strip().endswith("。")
     # 归纳句只能落在阶段标签上，不出现动作指令。
-    assert any(phase in rep.conclusion for phase in report_module._PHASES)
+    assert any(phase in rep.conclusion for phase in texts.PHASE_NAMES)
 
 
 def test_report_path_has_no_network_import() -> None:
