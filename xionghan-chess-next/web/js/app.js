@@ -546,3 +546,11 @@ document.addEventListener('keydown',e=>{const key=e.key.toLowerCase(),command=e.
 
 async function restore(){try{app.preferences={...app.preferences,...JSON.parse(localStorage.getItem('xh-preferences')||'{}')}}catch{}await setLanguage(app.preferences.language||localStorage.getItem('xh-language')||'zh-CN');maybeShowOnboarding();await loadPreferences();renderSavedReplays();syncModeControls();$('#soundButton').textContent=app.sound?'♪':'♩';if(window.XionghanAndroid){document.body.classList.add('android-client');$('#serverSettingsButton').hidden=false}try{const profiles=await api('/api/profiles');app.profiles=new Map(profiles.map(profile=>[profile.id,profile]));negatedOptions=new Set(profiles[0]?.negatedOptions||[]);app.ruleVersion=profiles[0]?.ruleVersion??app.ruleVersion;await refreshAccount();const saved=JSON.parse(localStorage.getItem('xh-session'));if(saved?.roomId){const snapshot=await api(`/api/rooms/${saved.roomId}`,{headers:{'X-Room-Token':saved.token}});app.roomId=saved.roomId;app.token=saved.token;app.color=saved.color;app.spectator=!!saved.spectator;receiveSnapshot(snapshot);connect();return}}catch{}await createGame()}
 restore();
+
+// 仅离屏证据脚本使用，生产路径不启用。
+// 只有页面在本模块加载之前就把 window.__XH_DEBUG__ 置为 'offscreen'，
+// 才把离屏拍摄需要的少量成员挂到 window.__xh；其余情况一行都不挂——
+// 不新增全局、不改 DOM、不写 storage，也不进入任何 export / 公开 API 清单。
+if (window.__XH_DEBUG__ === 'offscreen') {
+  window.__xh = { app, draw, resizeBoard, geometry };
+}
