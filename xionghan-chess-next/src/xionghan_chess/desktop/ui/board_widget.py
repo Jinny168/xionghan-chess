@@ -278,9 +278,19 @@ def _piece_font(radius: float, mode: str, style: str = "traditional") -> QFont:
 
 
 def _draw_special_badge(
-    painter: QPainter, piece_type: PieceType, center: QPointF, radius: float, ink: QColor
+    painter: QPainter,
+    piece_type: PieceType,
+    center: QPointF,
+    radius: float,
+    ink: QColor,
+    enabled: bool = True,
 ) -> None:
-    """在特色子盘缘上方画形状徽记；普通子直接返回。墨色由调用方按棋子自身 ink 传入。"""
+    """在特色子盘缘上方画形状徽记；普通子直接返回。墨色由调用方按棋子自身 ink 传入。
+
+    `enabled=False`（默认关闭的徽记偏好）时直接早退：不留环/星残留描边、空占位或残影。
+    """
+    if not enabled:
+        return
     kind = _SPECIAL_BADGE.get(piece_type)
     if kind is None:
         return
@@ -329,6 +339,7 @@ def draw_piece_glyph(
     piece: Piece,
     style: str,
     ink: QColor | None = None,
+    badges: bool = True,
 ) -> None:
     """画一枚**字形**棋子（圆片 + 汉字）—— 默认 `piece_render="glyph"` 的渲染路径。
 
@@ -364,11 +375,12 @@ def draw_piece_glyph(
         Qt.AlignmentFlag.AlignCenter,
         theme.NAMES[piece.color].get(piece.type, ""),
     )
-    _draw_special_badge(painter, piece.type, center, radius, outline)
+    _draw_special_badge(painter, piece.type, center, radius, outline, badges)
 
 
 def draw_fallback_piece(
-    painter: QPainter, center: QPointF, radius: float, color: Color, piece_type: PieceType, style: str
+    painter: QPainter, center: QPointF, radius: float, color: Color, piece_type: PieceType, style: str,
+    badges: bool = True,
 ) -> None:
     """`image` 模式下**没有美术**的棋型（刺/巡）怎么画。
 
@@ -402,7 +414,7 @@ def draw_fallback_piece(
         Qt.AlignmentFlag.AlignCenter,
         theme.NAMES[color].get(piece_type, ""),
     )
-    _draw_special_badge(painter, piece_type, center, radius, badge_ink)
+    _draw_special_badge(painter, piece_type, center, radius, badge_ink, badges)
 
 
 class BoardWidget(QWidget):
@@ -446,6 +458,8 @@ class BoardWidget(QWidget):
         # E1 高对比棋子组：默认关闭。开启后只对既有墨令牌按盘底做程序化派生，
         # 不改已选主题/棋子风格；与 web / webapp 同一派生公式（见 contrast.py）。
         self.high_contrast = False
+        # 特色子形状徽记（VA-14）：默认关闭；开启能力保留。
+        self.show_badges = False
         self.language = "zh-CN"
         self.flipped = False
         self.animation_target: Position | None = None
@@ -507,6 +521,7 @@ class BoardWidget(QWidget):
         animations: bool,
         archer_star_hints: bool = False,
         high_contrast: bool = False,
+        piece_badges: bool = False,
     ) -> None:
         self.show_selection = selection
         self.show_legal_targets = legal_targets
@@ -514,6 +529,7 @@ class BoardWidget(QWidget):
         self.animations_enabled = animations
         self.show_archer_star_hints = archer_star_hints
         self.high_contrast = high_contrast
+        self.show_badges = piece_badges
         self.update()
 
     def animate_move(self, target: Position, capture: bool, source: Position | None = None) -> None:
@@ -1268,9 +1284,9 @@ class BoardWidget(QWidget):
             if self._draw_piece_image(painter, piece, center, radius):
                 return
             # 甲/刺/楯 三型没有美术：同风格底盘 + 统一字形，不留白、不报错。
-            draw_fallback_piece(painter, center, radius, piece.color, piece.type, self.piece_style)
+            draw_fallback_piece(painter, center, radius, piece.color, piece.type, self.piece_style, self.show_badges)
             return
-        draw_piece_glyph(painter, center, radius, piece, self.piece_style, self._piece_ink(piece.color))
+        draw_piece_glyph(painter, center, radius, piece, self.piece_style, self._piece_ink(piece.color), self.show_badges)
 
     def _draw_piece_image(self, painter: QPainter, piece: Piece, center: QPointF, radius: float) -> bool:
         """把棋子画成美术图；没有可用美术时返回 False，由调用方走回退分支。
@@ -1290,7 +1306,7 @@ class BoardWidget(QWidget):
         )
         # 徽记叠在图像之后、同一圆心/半径；helper 内部 save/restore，不带入投影状态。
         badge_ink = self._piece_ink(piece.color)
-        _draw_special_badge(painter, piece.type, center, radius, badge_ink)
+        _draw_special_badge(painter, piece.type, center, radius, badge_ink, self.show_badges)
         return True
 
     def _position(self, point: QPointF) -> Position | None:

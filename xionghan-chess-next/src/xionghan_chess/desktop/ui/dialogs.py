@@ -229,6 +229,8 @@ class SettingsDialog(QDialog):
         self.archer_star_hints.setToolTip(t("settings.star_hints_hint", self.language))
         self.high_contrast = QCheckBox(t("settings.high_contrast_pieces", self.language))
         self.high_contrast.setChecked(config.get("high_contrast_pieces", False))
+        self.piece_badges = QCheckBox(t("settings.piece_badges", self.language))
+        self.piece_badges.setChecked(config.get("piece_badges", False))
         self.taunts = QCheckBox("棋灵挑衅短语" if self.language != "en" else "AI taunts")
         self.taunts.setChecked(config.get("taunts", True))
         self.autosave = QCheckBox(t("settings.autosave_desktop", self.language))
@@ -270,6 +272,7 @@ class SettingsDialog(QDialog):
         appearance_form.addRow(t("settings.capture_hints", self.language), self.capture_hints)
         appearance_form.addRow(t("settings.star_hints", self.language), self.archer_star_hints)
         appearance_form.addRow(t("settings.high_contrast_pieces", self.language), self.high_contrast)
+        appearance_form.addRow(t("settings.piece_badges", self.language), self.piece_badges)
         appearance_form.addRow("棋灵挑衅" if self.language != "en" else "AI taunts", self.taunts)
 
         sound_tab = QWidget()
@@ -524,6 +527,7 @@ class SettingsDialog(QDialog):
             "capture_hints": self.capture_hints.isChecked(),
             "archer_star_hints": self.archer_star_hints.isChecked(),
             "high_contrast_pieces": self.high_contrast.isChecked(),
+            "piece_badges": self.piece_badges.isChecked(),
             "taunts": self.taunts.isChecked(),
             "autosave": self.autosave.isChecked(),
             "server_url": previous.get("server_url", "http://127.0.0.1:8000"),

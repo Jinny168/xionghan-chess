@@ -130,6 +130,7 @@
     "star_hints": "Archer star-trail hints (on selection)",
     "star_hints_hint": "Hollow ring = star point (range anchor); solid dot = legal landing square",
     "high_contrast_pieces": "High-contrast pieces (darker ink for legibility; theme unchanged)",
+    "piece_badges": "Special-piece shape badges (off by default)",
     "taunts": "AI quick chat",
     "autosave": "Auto-save finished replays",
     "autosave_desktop": "Auto-save finished replays",
@@ -347,9 +348,7 @@
     "chu_river": "Chu River",
     "han_boundary": "Han Boundary",
     "great_wall": "Great Wall",
-    "yin_mountains": "Yin Mountains",
-    "legend_capture_on_landing": "✕ capture on landing",
-    "legend_capture_away": "○ three-in-a-row capture"
+    "yin_mountains": "Yin Mountains"
   },
   "piece": {
     "king": "King",

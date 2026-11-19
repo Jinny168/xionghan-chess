@@ -585,8 +585,10 @@ export class BoardRenderer {
       ? (isRed ? '#f0a79f' : '#ddd5c5')
       : inkDark;
     ctx.fillText(glyph, x, y + r * 0.04);
-    this.drawSpecialBadge(ctx, piece.type, x, y, r,
-      view.theme === 'ink' ? (isRed ? '#f0a79f' : '#ddd5c5') : inkDark);
+    if (view.pieceBadges === true) {
+      this.drawSpecialBadge(ctx, piece.type, x, y, r,
+        view.theme === 'ink' ? (isRed ? '#f0a79f' : '#ddd5c5') : inkDark);
+    }
     ctx.restore();
 
     if (view.checkSide === piece.color && piece.type === 'king') {
