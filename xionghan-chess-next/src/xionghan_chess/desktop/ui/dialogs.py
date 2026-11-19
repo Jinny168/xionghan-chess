@@ -62,6 +62,7 @@ from ..storage import load_game
 from ..texts import difficulty_alias_hint, dl, dlf
 from . import piece_assets, theme
 from .board_widget import BoardWidget
+from .report import build_report
 from .workers import AnalysisWorker
 
 # 「棋子美术风格」下拉里的回退项：选中它 = 回到 1.7.0 的字形棋子（`piece_render="glyph"`）。
@@ -873,6 +874,9 @@ class ReplayDialog(QDialog):
             "blunder": dl("严重失误"),
         }
         lines = ["  ".join(f"{labels[key]} {value}" for key, value in result["summary"].items()), ""]
+        report = build_report(result)
+        lines.extend(report.lines)
+        lines.append("")
         lines.extend(
             dlf(
                 "{ply}. {notation}  · {quality}  · 损失 {loss}",
