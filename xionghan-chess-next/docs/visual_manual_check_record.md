@@ -50,14 +50,14 @@
 | `benchmarks/visual_evidence/c1_badge_9x10_glyph.png` | 9×10 字形模式徽记 | 同 13×13 字形口径，小尺寸下徽记仍可辨、不糊成一团 | ☐ 通过　☐ 不通过 |
 | `benchmarks/visual_evidence/c1_badge_9x10_image.png` | 9×10 位图模式徽记 | 同 13×13 位图口径，小尺寸下不压字形 | ☐ 通过　☐ 不通过 |
 
-### 1.4 web 旧树（待补，卡点见第 3 节）
+### 1.4 web 旧树
 
 | 证据文件名 | 应看什么 | 通过判据 | 结论 |
 |---|---|---|---|
-| `benchmarks/visual_evidence/web_m1_glyph_weight.png` | 同 M-1 口径（字高 / 盘径 / 字重） | 与桌面、webapp 同名图肉眼一致 | ☐ 通过　☐ 不通过 |
-| `benchmarks/visual_evidence/web_m2_shadow_soft.png` | 浅色 classic + 盘边棋子 + 200% 下缘裁切 | 同 M-2 口径；不得与 M-1 同图 | ☐ 通过　☐ 不通过 |
-| `benchmarks/visual_evidence/web_m4_dark_markers.png` | dark 主题可走点 / 可吃点 | 同 M-4 口径 | ☐ 通过　☐ 不通过 |
-| `benchmarks/visual_evidence/web_m7_state_layers.png` | 将军 + 选择 + 可走点 + 上一步四态 | 同 M-7 口径；将军标记为会话内临时置 `inCheck`，非真实将军局面 | ☐ 通过　☐ 不通过 |
+| `benchmarks/visual_evidence/web_m1_glyph_weight.png` | 13×13 初始局全景：棋子字高 / 盘径比例、字重、河界文字 | 可核：13 行 13 列格线完整；双方棋子在位；棋子圆径 ≈0.78 格；河界显示中文「长城 / 阴山」而非 i18n key。`human-only`：字高 / 字重与桌面、webapp 同名图肉眼一致，无字幕感或过粗 | ☐ 通过　☐ 不通过 |
+| `benchmarks/visual_evidence/web_m2_shadow_soft.png` | classic 浅底、盘边棋子、200% 下缘裁切的投影柔边 | 可核：取景为棋盘下缘一带（非全景）；投影偏移向下、不压相邻棋子；与 M-1 哈希互异（守卫已核）。`human-only`：投影边缘柔化无硬边、不与棋子脱开 | ☐ 通过　☐ 不通过 |
+| `benchmarks/visual_evidence/web_m4_dark_markers.png` | dark 主题（盘底 #2c2c2c）下选中环 / 可走点 / 可吃叉 / 受害环 | 可核：深底上可见 ≥1 枚选中金环、≥1 个可走点、≥1 个落点可吃叉、≥1 个受害环；叉为实心 X、环为空心圆，形态不混；标记与盘底对比度 ≥3:1（图形标记口径）。`human-only`：标记在深底不发虚 | ☐ 通过　☐ 不通过 |
+| `benchmarks/visual_evidence/web_m7_state_layers.png` | 将军环 + 选择环 + 可走点 + 上一步起讫框四态同屏 | 可核：四类标记各 ≥1 处可见；绘制顺序 上一步框 < 可吃 < 选择 < 将军；将军环为会话内临时置 `check=true` 触发，**非真实将军局面**，需以真实将军局复核。`human-only`：四态不糊成一团 | ☐ 通过　☐ 不通过 |
 
 ## 2. 逐条执行记录
 
@@ -65,7 +65,7 @@
 
 - 判据（TRIAD）：三端各开一局，同一局面截图并排；同一枚子的字高 / 盘径肉眼一致；无「网页字幕感」或「桌面过粗」。
 - 桌面证据：`benchmarks/visual_evidence/c5_m1_glyph_weight.png`
-- 网页证据：`benchmarks/visual_evidence/webapp_m1_glyph_weight.png`（web 旧树待补）
+- 网页证据：`benchmarks/visual_evidence/webapp_m1_glyph_weight.png`；web 旧树：`benchmarks/visual_evidence/web_m1_glyph_weight.png`
 - 结论：☐ 通过　☐ 不通过
 - 备注 / 偏差记录：__________
 
@@ -73,7 +73,7 @@
 
 - 判据（TRIAD）：浅色 classic 主题，棋子摆到盘边（下缘投影落在空处），对棋子下缘放大到 200% 裁切观察；投影重心向下、无硬边、不与棋子脱开（VA-05 的 0.55 倍差应能看出）。
 - 桌面证据：`benchmarks/visual_evidence/c5_m2_shadow_soft.png`
-- 网页证据：`benchmarks/visual_evidence/webapp_m2_shadow_soft.png`（浅色 classic + 盘边棋子 + 200% 下缘裁切；web 旧树待补）
+- 网页证据：`benchmarks/visual_evidence/webapp_m2_shadow_soft.png`（浅色 classic + 盘边棋子 + 200% 下缘裁切）；web 旧树：`benchmarks/visual_evidence/web_m2_shadow_soft.png`
 - 结论：☐ 通过　☐ 不通过
 - 备注 / 偏差记录：__________
 
@@ -88,7 +88,7 @@
 
 - 判据（TRIAD）：dark 主题下摆一个可走点和一个可吃点；可走点不消失、可吃点不与红叉混淆（桌面深色单独放大到 0.15 的理由）。
 - 桌面证据：`benchmarks/visual_evidence/c5_m4_dark_markers.png`
-- 网页证据：`benchmarks/visual_evidence/webapp_m4_dark_markers.png`（web 旧树待补）
+- 网页证据：`benchmarks/visual_evidence/webapp_m4_dark_markers.png`；web 旧树：`benchmarks/visual_evidence/web_m4_dark_markers.png`
 - 结论：☐ 通过　☐ 不通过
 - 备注 / 偏差记录：__________
 
@@ -110,7 +110,7 @@
 
 - 判据（TRIAD）：将军 + 选择 + 可走点 + 上一步四态同屏；层级仍是「上一步 < 可吃 < 选择 < 将军」，都亮等于都没亮视为不通过。
 - 桌面证据：`benchmarks/visual_evidence/c5_m7_state_layers.png`
-- 网页证据：`benchmarks/visual_evidence/webapp_m7_state_layers.png`（web 旧树待补；该图将军标记为离屏会话内临时把 `rules.inCheck` 置真触发，非真实将军局面）
+- 网页证据：`benchmarks/visual_evidence/webapp_m7_state_layers.png`（web 旧树：`benchmarks/visual_evidence/web_m7_state_layers.png`；两图将军标记均为离屏会话内临时把 `check` 置真触发，非真实将军局面）
 - 结论：☐ 通过　☐ 不通过
 - 备注 / 偏差记录：__________
 
@@ -128,11 +128,7 @@
 ## 3. 本轮证据缺口与待办
 
 - **webapp 截图已补（D2）**：Playwright 装入 `.venv`（未写入 `requirements.txt` / `pyproject.toml` 等任何依赖清单），`channel="chrome"` 复用本机 Chrome，未下载 Chromium；本地 `http.server` 托管 `webapp/`。已出 M-1 / M-2 / M-4 / M-7 四张 webapp 图。**web 旧树截图仍待补**（卡点见下条）。
-- **web 旧树截图（F3）卡点 —— 本轮未出图，记待办，未回灌代码批**：
-  1. `web/js/app.js` 以 `<script type="module">` 加载（`web/index.html:222`），模块作用域内的 `app / draw / legal` 未暴露到 `window`；对比 webapp 在 `webapp/js/ui/app.js:2868` 有 `window.__xh = app` 离屏钩子，web 旧树无等价入口，Playwright 离屏 `evaluate` 无法注入 staging 局面与标记数组。
-  2. 开局 `createGame()` 走 `POST /api/rooms`（服务端权威规则），可走点由 `/api/rooms/:id/legal` 拉取，后续经 `/ws/:id` 推帧；纯静态 `http.server` 托管 `web/` 无后端，首帧不出对局棋盘。
-  3. M-4 / M-7 需手工塞入 `legal / capturable / victims / selected / inCheck`，这些只由后端接口与 WebSocket 推帧填充；mock 全套后端交互超出「纯静态托管 + 截图」范围，且本证据批不允许回灌代码改动。
-  - **解锁前提（另立变更，不在本批）**：在 `web/js/app.js` 增加仅离屏使用的调试钩子（等价 webapp `window.__xh`），或起本地后端权威实例供离屏连接；满足其一后再按 1.4 节四目检点补拍 `web_m1/m2/m4/m7_*.png`。
+- **web 旧树截图（F3/H）已解锁出图**：G 批次在 `web/js/app.js` 末尾加了仅离屏使用的调试桥——只有页面在模块加载前已置 `window.__XH_DEBUG__==='offscreen'`，才挂 `window.__xh={app,draw,resizeBoard,geometry}`，生产路径不启用、不进导出清单。H 脚本 `scripts/capture_web_evidence.py` 复用 `.venv` Playwright 1.65.2、`channel="chrome"` 复用系统 Chrome（未下载 Chromium），`http.server` 只托管 `web/`（不托管 webapp），经离屏桥注入 staging 局面与标记数组，已出 `web_m1/m2/m4/m7_*.png` 四张。历史卡点（模块作用域未暴露、开局强依赖后端、标记只由接口推帧）均由该桥绕开；**注入的是 staging 局面，只核对标记层级与形态，不作规则正确性依据**。
 - **M-2 重拍（证据守卫）**：首版 M-2 误与 M-1 全景图逐字节相同，已按「浅色 classic + 盘边棋子 + 200% 下缘裁切」重拍；`tests/test_visual_evidence_guard.py` 只读文件校验证据图哈希两两不同、各图 >20 KB、文件名与本模板索引一致（目录缺失则 skip）。M-1 为全景开局图（看字高 / 盘径 / 字重），与 M-2 裁切图形态不同。
 - **M-7 将军标记口径**：webapp 离屏会话内临时把 `rules.inCheck` 置真以触发将军环，非真实将军局面；真人目检时应以真实将军局复核层级。
 - M-3、M-5、M-6 依赖活体主题切换 / 窗口缩放 / 动画走子，离屏脚本无法覆盖，列入真人目检步骤。
