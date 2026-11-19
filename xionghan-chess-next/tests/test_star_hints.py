@@ -96,7 +96,7 @@ def test_web_guards_and_wiring() -> None:
     ):
         assert snippet in WEB_APP, f"web 旧树缺少守卫/接线：{snippet}"
     assert "drawStarPoints(g)}drawStarHints(g);drawHighlights(g)" in WEB_APP
-    assert 'src="/js/star-hints.js?v=2.0.3"' in WEB_HTML
+    assert 'src="/js/star-hints.js?v=2.1.0"' in WEB_HTML
 
 
 def test_legend_wording_is_exact_on_all_ends() -> None:
