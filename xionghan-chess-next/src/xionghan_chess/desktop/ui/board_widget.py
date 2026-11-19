@@ -33,7 +33,7 @@ from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, Move, Piece, PieceType, Position
 from xionghan_chess.i18n import t
 
-from . import piece_assets, theme
+from . import contrast, piece_assets, theme
 from .board_geometry import cell_layout, point_to_position, view_position
 
 # 缺图回退（**仅 image 模式**）的配色：美术从 66 张位图反推，让回退格与位图同材质。
@@ -313,11 +313,20 @@ def _draw_special_badge(
     painter.restore()
 
 
-def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float, piece: Piece, style: str) -> None:
+def draw_piece_glyph(
+    painter: QPainter,
+    center: QPointF,
+    radius: float,
+    piece: Piece,
+    style: str,
+    ink: QColor | None = None,
+) -> None:
     """画一枚**字形**棋子（圆片 + 汉字）—— 默认 `piece_render="glyph"` 的渲染路径。
 
     1.7.0 的观感即此实现，**不要改动里面的颜色/字号/字重**：`glyph` 模式下
     62 枚棋子全都走这里，任何「顺手整洁化」都是全盘回归。
+
+    `ink` 为高对比派生墨色；缺省（None）时回退既有红/黑令牌。
     """
     if style == "modern":
         brush = QBrush(QColor("#f9e7bb"))
@@ -328,7 +337,7 @@ def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float, piece: P
         gradient.setColorAt(0, QColor("#fff0c5"))
         gradient.setColorAt(1, QColor("#d4a763"))
         brush = QBrush(gradient)
-    outline = QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e")
+    outline = ink or (QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e"))
     painter.setBrush(brush)
     painter.setPen(QPen(outline, max(2, radius * (0.13 if style == "cartoon" else 0.1))))
     painter.drawEllipse(center, radius, radius)
@@ -337,7 +346,7 @@ def draw_piece_glyph(painter: QPainter, center: QPointF, radius: float, piece: P
         painter.setPen(QPen(outline, 1))
         painter.drawEllipse(center, radius * 0.82, radius * 0.82)
     painter.setFont(_piece_font(radius, GLYPH_MODE, style))
-    painter.setPen(QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e"))
+    painter.setPen(outline)
     painter.drawText(
         int(center.x() - radius),
         int(center.y() - radius),
@@ -425,6 +434,9 @@ class BoardWidget(QWidget):
         # 这个默认值本身就是「复盘态屏蔽」的第一道闸。
         self.show_archer_star_hints = False
         self.animations_enabled = True
+        # E1 高对比棋子组：默认关闭。开启后只对既有墨令牌按盘底做程序化派生，
+        # 不改已选主题/棋子风格；与 web / webapp 同一派生公式（见 contrast.py）。
+        self.high_contrast = False
         self.language = "zh-CN"
         self.flipped = False
         self.animation_target: Position | None = None
@@ -485,12 +497,14 @@ class BoardWidget(QWidget):
         capture_hints: bool,
         animations: bool,
         archer_star_hints: bool = False,
+        high_contrast: bool = False,
     ) -> None:
         self.show_selection = selection
         self.show_legal_targets = legal_targets
         self.show_capture_hints = capture_hints
         self.animations_enabled = animations
         self.show_archer_star_hints = archer_star_hints
+        self.high_contrast = high_contrast
         self.update()
 
     def animate_move(self, target: Position, capture: bool, source: Position | None = None) -> None:
@@ -1012,6 +1026,18 @@ class BoardWidget(QWidget):
         """可走点半径：浅色四主题 0.13，深色 0.15（对比度补偿，见常量注释）。"""
         return LEGAL_DOT_RATIO_DARK if self.theme_name == "dark" else LEGAL_DOT_RATIO
 
+    def _piece_ink(self, color: Color) -> QColor:
+        """棋子墨色（描边/文字/徽记）。
+
+        关闭高对比时用既有令牌原样；开启时按当前盘底对同一令牌做程序化派生
+        （`contrast.derive_for_background`，文本判据 4.5:1），不引入新色值。
+        """
+        token = "#9a2424" if color is Color.RED else "#24211e"
+        if not self.high_contrast:
+            return QColor(token)
+        derived = contrast.derive_for_background(token, self.theme["board"], contrast.TEXT_TARGET)
+        return QColor(derived.color)
+
     def legal_dot_color(self) -> QColor:
         """可走点的颜色：浅色主题 = 该主题 accent @.55；深色 = #9fbfa8 @.60。
 
@@ -1200,7 +1226,7 @@ class BoardWidget(QWidget):
             # 甲/刺/楯 三型没有美术：同风格底盘 + 统一字形，不留白、不报错。
             draw_fallback_piece(painter, center, radius, piece.color, piece.type, self.piece_style)
             return
-        draw_piece_glyph(painter, center, radius, piece, self.piece_style)
+        draw_piece_glyph(painter, center, radius, piece, self.piece_style, self._piece_ink(piece.color))
 
     def _draw_piece_image(self, painter: QPainter, piece: Piece, center: QPointF, radius: float) -> bool:
         """把棋子画成美术图；没有可用美术时返回 False，由调用方走回退分支。
@@ -1219,7 +1245,7 @@ class BoardWidget(QWidget):
             QRectF(center.x() - radius, center.y() - radius, radius * 2, radius * 2), artwork, QRectF(artwork.rect())
         )
         # 徽记叠在图像之后、同一圆心/半径；helper 内部 save/restore，不带入投影状态。
-        badge_ink = QColor("#9a2424") if piece.color is Color.RED else QColor("#24211e")
+        badge_ink = self._piece_ink(piece.color)
         _draw_special_badge(painter, piece.type, center, radius, badge_ink)
         return True
 

@@ -1,0 +1,86 @@
+"""E1 高对比棋子组（桌面 / Python 侧）门禁。
+
+覆盖：
+- 派生纯函数：达标令牌原样返回（mix=0）；不达标令牌按盘底方向派生且比值提升；
+- 配置默认关闭；
+- 棋盘开关只叠加对比增强，不改已选主题 / 棋子风格。
+
+JS 两侧（`web/js`、`webapp/js`）的同公式断言在第二段补；本文件不做 canvas 像素基线。
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from xionghan_chess.desktop import config
+from xionghan_chess.desktop.ui import contrast
+
+pytest.importorskip("PySide6", reason="棋盘控件依赖 PySide6")
+
+from PySide6.QtWidgets import QApplication  # noqa: E402
+
+from xionghan_chess.core.game import Game  # noqa: E402
+from xionghan_chess.core.model import Color  # noqa: E402
+from xionghan_chess.desktop.ui.board_widget import BoardWidget  # noqa: E402
+
+
+def test_default_switch_is_off() -> None:
+    """开关默认关闭：老用户配置不被自动打开高对比。"""
+    assert config.DEFAULTS["high_contrast_pieces"] is False
+
+
+def test_derived_color_is_untouched_when_already_meeting_target() -> None:
+    """既有令牌在目标比值内时原样返回，不做派生（mix=0）。"""
+    derived = contrast.derive_for_background("#9a2424", "#e7c88d", contrast.TEXT_TARGET)
+    assert derived.mix == 0.0
+    assert derived.color == "#9a2424"
+    assert derived.met is True
+
+
+def test_derived_color_improves_ratio_when_below_target() -> None:
+    """对比不足时沿盘底方向派生，实测比值必须不低于原比值。"""
+    # 深底上的中灰令牌：与深底对比不足，派生向白提亮。
+    derived = contrast.derive_for_background("#6b6b6b", "#34302b", contrast.TEXT_TARGET)
+    original = contrast.contrast_ratio("#6b6b6b", "#34302b")
+    assert derived.ratio >= original
+    assert derived.mix > 0.0
+
+
+def test_graphic_target_is_lower_than_text_target() -> None:
+    """非文本图形（可走点 / 可吃点）按 3:1 判据，文本按 4.5:1。"""
+    assert contrast.GRAPHIC_TARGET < contrast.TEXT_TARGET
+
+
+@pytest.fixture(scope="module")
+def qt_app() -> QApplication:
+    app = QApplication.instance() or QApplication([])
+    return app
+
+
+def _board() -> BoardWidget:
+    game = Game("desktop_complete")
+    board = BoardWidget()
+    board.set_game(game, Color.RED, True)
+    board.set_appearance("classic", "none", "traditional", "glyph")
+    return board
+
+
+def test_board_switch_does_not_change_theme_or_style(qt_app: QApplication) -> None:
+    """切换开关不覆盖已选主题与棋子风格，只叠加对比增强。"""
+    board = _board()
+    before_theme, before_style = board.theme_name, board.piece_style
+    board.set_assists(
+        selection=True,
+        legal_targets=True,
+        capture_hints=True,
+        animations=True,
+        high_contrast=True,
+    )
+    assert board.high_contrast is True
+    assert board.theme_name == before_theme == "classic"
+    assert board.piece_style == before_style == "traditional"
+
+
+def test_board_switch_default_off(qt_app: QApplication) -> None:
+    board = _board()
+    assert board.high_contrast is False

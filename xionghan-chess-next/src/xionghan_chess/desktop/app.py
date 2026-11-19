@@ -1401,6 +1401,7 @@ class MainWindow(QMainWindow):
             # 复盘态的 BoardWidget 由 ReplayDialog 自建、从不走这里，默认值 False 即屏蔽。
             archer_star_hints=self.config.get("archer_star_hints", False)
             and getattr(self, "puzzle_session", None) is None,
+            high_contrast=self.config.get("high_contrast_pieces", False),
         )
         self.board.set_flipped(self.config.get("flipped", False))
         self.sync_capture_legend()
