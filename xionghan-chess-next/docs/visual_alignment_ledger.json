@@ -374,6 +374,32 @@
           "value": 0.26
         }
       }
+    },
+    {
+      "id": "VA-15",
+      "name": "高对比派生混色步长",
+      "unit": "ratio",
+      "compare": true,
+      "verdict": "aligned",
+      "note": "E1 高对比棋子组（默认关）：开启后棋子墨色按盘底做 WCAG 派生，混色步进三端同为 0.05（首个达标比例即停）。文本判据 4.5:1，非文本图形 3:1；只派生棋子墨色，不改已选主题/风格，不新增色板条目。可走点/可吃点沿用既有提示令牌，不在本行派生范围。",
+      "ends": {
+        "desktop": {
+          "lit": "_MIX_STEP = {}",
+          "raw": 0.05,
+          "value": 0.05,
+          "file": "src/xionghan_chess/desktop/ui/contrast.py"
+        },
+        "web": {
+          "lit": "const _MIX_STEP = {};",
+          "raw": 0.05,
+          "value": 0.05
+        },
+        "webapp": {
+          "lit": "const _MIX_STEP = {};",
+          "raw": 0.05,
+          "value": 0.05
+        }
+      }
     }
   ]
 }

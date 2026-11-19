@@ -23,6 +23,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -38,6 +40,48 @@ BOOK_COMMIT = "33e8fab"
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 
+# git 二进制缺失属环境硬阻塞：可复现性守卫必须红灯暴露，不能混进「产物依赖跳过」。
+GIT_NOT_FOUND_REASON = (
+    "缺少 git 可执行文件：可复现性守卫未执行。请把 git 加入 PATH，或设置环境变量 "
+    "GIT_EXECUTABLE 指向 git；本文件的 skip 只对应「产物缺失」或「git 对象缺失」，"
+    "不包含 git 二进制缺失。"
+)
+
+
+def _resolve_git() -> str | None:
+    """解析 git 可执行路径：优先 `GIT_EXECUTABLE`，否则在 `PATH` 里查；都没有返回 `None`。"""
+    env = os.environ.get("GIT_EXECUTABLE")
+    if env:
+        return env
+    return shutil.which("git")
+
+
+def _require_git() -> str:
+    """返回 git 路径；二进制找不到时硬失败（不静默 skip）。"""
+    git = _resolve_git()
+    if git is None:
+        pytest.fail(GIT_NOT_FOUND_REASON)
+    return git
+
+
+def _object_present(git: str) -> bool:
+    try:
+        subprocess.run(
+            [git, "cat-file", "-e", f"{BOOK_COMMIT}^{{commit}}"],
+            cwd=str(ROOT),
+            check=True,
+            capture_output=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return False
+    return True
+
+
+def _has_commit() -> bool:
+    """git 在且记录对象存在 → True。git 本身缺失时返回 False，交由 `_require_git` 硬失败。"""
+    git = _resolve_git()
+    return git is not None and _object_present(git)
+
 
 def _has_run_artifacts() -> bool:
     """标定产物是**本地运行输出**，仓库里不跟踪（`calibration_runs/` 全部 untracked）。
@@ -48,23 +92,20 @@ def _has_run_artifacts() -> bool:
     return (RUNS / f"{STEM}.jsonl").is_file() and (RUNS / f"{STEM}.report.json").is_file()
 
 
-def _has_commit() -> bool:
-    try:
-        subprocess.run(
-            ["git", "cat-file", "-e", f"{BOOK_COMMIT}^{{commit}}"],
-            cwd=str(ROOT),
-            check=True,
-            capture_output=True,
-        )
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
-    return True
-
-
+# 两条正常 skip：git 在但对象缺失（浅克隆/历史改写）、本地产物缺失。
+# git 二进制缺失不在此列 —— 由 `_require_git` fixture 硬失败，避免伪装成产物跳过。
 pytestmark = [
-    pytest.mark.skipif(not _has_commit(), reason=f"缺少 git 对象 {BOOK_COMMIT}（浅克隆或历史被改写）"),
+    pytest.mark.skipif(
+        not _has_commit(), reason=f"缺少 git 对象 {BOOK_COMMIT}（git 在但浅克隆或历史被改写）"
+    ),
     pytest.mark.skipif(not _has_run_artifacts(), reason=f"缺少本地标定产物 {STEM}（运行输出不进仓库）"),
 ]
+
+
+@pytest.fixture(autouse=True)
+def _require_git_for_reproducibility() -> str:
+    """每条守卫执行前确认 git 可用；缺失即硬失败。"""
+    return _require_git()
 
 
 def _meta() -> dict:
@@ -134,3 +175,48 @@ def test_ai_config_digest_declares_its_confidence() -> None:
     assert digest["method"] == "recomputed"
     assert digest["provenance"].startswith("E2")
     assert digest["a"] and digest["b"] and digest["a"] != digest["b"]
+
+
+def test_digest_is_anchored_to_recorded_commit_and_keeps_legacy_label() -> None:
+    """指纹必须锚定记录 commit 的旧口径，不能被当前 CONFIGS 漂移改写。
+
+    历史教训：曾有人为让「回填脚本按当前 CONFIGS 复算」变绿，把 n=64 基线的 beginner
+    指纹从 0.55 口径（`b014d8072e5a7c7d`）改成 0.18 口径 —— 等于把「当时跑的配置」抹成
+    「现在的配置」，会让新口径基线被误判成与这份旧基线配置可比。这里钉住：锚定 commit、
+    旧口径留痕说明、以及旧指纹本身，三者缺一即红。
+    """
+    meta = _meta()
+    digest = meta["aiConfigDigest"]
+    assert digest["anchorCommit"] == meta["source"]["commit"] == "33e8fab"
+    note = digest["legacyNote"]
+    assert "0.55" in note and "0.18" in note and "等价比较" in note
+    # 0.55 两层串行口径的 beginner 指纹（锚定 33e8fab 派生，脚本 --check 复算一致）。
+    assert digest["a"] == "b014d8072e5a7c7d"
+    # medium 摘要未随 D4 改动。
+    assert digest["b"] == "0004d697df110392"
+
+
+def test_resolve_git_prefers_git_executable_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`GIT_EXECUTABLE` 优先于 PATH（即便 PATH 里也能查到 git）。"""
+    monkeypatch.setenv("GIT_EXECUTABLE", r"C:\fake\git.exe")
+    assert _resolve_git() == r"C:\fake\git.exe"
+
+
+def test_resolve_git_falls_back_to_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """未设 `GIT_EXECUTABLE` 时回退到 PATH 查询，与 `shutil.which` 结果一致。"""
+    monkeypatch.delenv("GIT_EXECUTABLE", raising=False)
+    assert _resolve_git() == shutil.which("git")
+
+
+def test_missing_git_is_hard_fail_not_silent_skip(monkeypatch: pytest.MonkeyPatch) -> None:
+    """git 二进制找不到：`_resolve_git()` 返回 None，`_require_git()` 硬失败（红灯），不静默 skip。"""
+    monkeypatch.delenv("GIT_EXECUTABLE", raising=False)
+    monkeypatch.setattr(shutil, "which", lambda _name: None)
+    assert _resolve_git() is None
+    with pytest.raises(pytest.fail.Exception):
+        _require_git()
+
+
+def test_real_git_resolves_in_current_environment() -> None:
+    """本机环境应能解析到真实 git（守卫正常执行的前置）。"""
+    assert _resolve_git() is not None

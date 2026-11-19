@@ -37,17 +37,37 @@ def test_sample_disabled_returns_none_everywhere() -> None:
         assert ai._sample_weaker(game, CONFIGS[ai.difficulty]) is None
 
 
-def test_sample_disabled_matches_no_sampling_path() -> None:
-    """关闭开关后，选点必须等价于无取样路径（只返回搜索最佳着）。"""
-    game = Game("web")
-    off = ChessAI(Difficulty.BEGINNER, seed=7, sample_enabled=False)
-    moves = game.rules.legal_moves(game.state, game.state.turn)
-    _rig(off, [0, -10, -20], moves)
+def test_sample_disabled_matches_randomness_zero_path_per_move() -> None:
+    """关闭开关与「randomness=0」两条路径在 ≥20 个局面上逐着法选点相等。
 
-    # 关闭时不得从候选池挑任何非最佳着；`choose_move` 仍须给出合法着。
-    assert off._sample_weaker(game, CONFIGS[off.difficulty]) is None
-    move = off.choose_move(game)
-    assert move is not None
+    旧断言只比状态位（都返回 None），不比选点；这里同一局面、同一种子下，
+    `sample_enabled=False` 与注入 `randomness=0`（`_sampling_blocked` 直接拦下）
+    两条路径各自走完一手，逐局面比对实际取到的着法 key。
+    """
+    from dataclasses import replace
+
+    # 沿确定性着法推进，攒出 ≥20 个不同局面。
+    positions: list[Game] = []
+    game = Game("web")
+    for _ in range(20):
+        positions.append(game)
+        moves = game.rules.legal_moves(game.state, game.state.turn)
+        if not moves:
+            break
+        game = Game.from_state(
+            game.rules.apply_unchecked(game.state, moves[0]), game.options, game.setup
+        )
+    assert len(positions) >= 20
+
+    zero_cfg = replace(CONFIGS[Difficulty.BEGINNER], randomness=0.0)
+    for index, position in enumerate(positions):
+        off = ChessAI(Difficulty.BEGINNER, seed=202_611_18 + index, sample_enabled=False)
+        zero = ChessAI(Difficulty.BEGINNER, seed=202_611_18 + index, config=zero_cfg)
+        move_off = off.choose_move(position)
+        move_zero = zero.choose_move(position)
+        assert (move_off is None and move_zero is None) or (
+            move_off is not None and move_zero is not None and move_off.key() == move_zero.key()
+        ), f"局面 {index} 两条路径选点不一致"
 
 
 def test_medium_hard_never_sample_even_with_ranked_root_scores() -> None:

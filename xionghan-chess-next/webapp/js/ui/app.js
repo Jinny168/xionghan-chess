@@ -46,6 +46,8 @@ const SESSION_KEY = 'xh-web-session-v1';
 const DEFAULT_PREFS = {
   theme: 'classic',
   pieceStyle: 'traditional',
+  // E1 高对比棋子组：默认关闭。开启后只对既有墨令牌按盘底程序化派生，不改主题/风格。
+  highContrastPieces: false,
   language: 'zh-CN',
   animation: true,
   legal: true,
@@ -581,6 +583,7 @@ function render() {
     flipped: app.flipped,
     theme: app.prefs.theme,
     pieceStyle: app.prefs.pieceStyle,
+    highContrast: app.prefs.highContrastPieces === true,
     showStarHints,
     starHintAnchors,
     lastMove: isReplay ? replayLastMove() : app.lastMove,
@@ -869,6 +872,7 @@ function drawReplay() {
     flipped: app.flipped,
     theme: app.prefs.theme,
     pieceStyle: app.prefs.pieceStyle,
+    highContrast: app.prefs.highContrastPieces === true,
     lastMove: state.history?.[app.replay.index - 1]?.move || null,
     checkSide: null,
     anim: null,
@@ -2395,6 +2399,7 @@ function bindDialogs() {
   $('#optLegal').onchange = (event) => { app.prefs.legal = event.target.checked; savePrefs(); render(); };
   $('#optCapture').onchange = (event) => { app.prefs.captureHint = event.target.checked; savePrefs(); render(); };
   $('#optStarHints').onchange = (event) => { app.prefs.starHints = event.target.checked; savePrefs(); render(); };
+  $('#optHighContrast').onchange = (event) => { app.prefs.highContrastPieces = event.target.checked; savePrefs(); render(); };
   $('#optSound').onchange = (event) => {
     app.prefs.sound = event.target.checked;
     sound.setSoundEnabled(app.prefs.sound);
@@ -2612,6 +2617,7 @@ function syncSettings() {
   $('#optLegal').checked = app.prefs.legal;
   $('#optCapture').checked = app.prefs.captureHint;
   $('#optStarHints').checked = app.prefs.starHints === true;
+  $('#optHighContrast').checked = app.prefs.highContrastPieces === true;
   $('#optSound').checked = app.prefs.sound;
   const vol = $('#optVolume');
   if (vol) vol.value = String(Math.round((app.prefs.volume ?? 0.55) * 100));
@@ -2796,6 +2802,7 @@ function drawAtlas() {
     flipped: false,
     theme: app.prefs.theme,
     pieceStyle: app.prefs.pieceStyle,
+    highContrast: app.prefs.highContrastPieces === true,
     lastMove: null,
     checkSide: null,
     anim: null,

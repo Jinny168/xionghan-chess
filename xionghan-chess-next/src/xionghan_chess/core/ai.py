@@ -109,6 +109,8 @@ QUIESCENCE_NODE_LIMIT = 80
 class SearchConfig:
     depth: int
     time_limit: float
+    # 入门档软取样**触发概率**（单一事实来源 = `CONFIGS`）；0 表示该档不参与取样，
+    # `_sampling_blocked` 直接拦下。medium/hard 恒为 0。
     randomness: float
     quiescence_depth: int
     candidate_count: int
@@ -121,13 +123,6 @@ class SearchConfig:
     # 到点抛 `SearchTimeout`，理由记 `"nodes"`；墙钟到点记 `"wall"`。
     # 2.0.0 暂不启用（中局节点数无可靠测量），字段与工具保留。
     max_nodes: int | None = None
-
-
-# 入门档单层软取样的触发概率（设计常量，见 docs/AI_TIERS.md §15）。
-# 只在 beginner 路径被咨询；medium/hard 的 randomness=0 已在 `_sampling_blocked`
-# 拦下。`CONFIGS.beginner.randomness` 保留为「该档是否参与取样」的语义标记，
-# 真实软取样概率由本常量控制 —— 不新增 SearchConfig 字段，避免扰动档位快照。
-BEGINNER_SOFT_SAMPLE_PROBABILITY = 0.18
 
 
 def resolve_time_scale(instance: float | None, env: str | None) -> float:
@@ -143,12 +138,13 @@ def resolve_time_scale(instance: float | None, env: str | None) -> float:
 
 CONFIGS = {
     # B1 陪练档：弱化靠"从第 2..N 名里按概率取样"，不靠降深度/降时间。
-    #   · `randomness` 是主旋钮（概率），`sample_margin` 是水平下限（分差上限），
-    #     `candidate_count` 只影响多样性 —— 三个旋钮别混着调；
-    #   · **取样集合不含第 1 名**：包含它会让名义 0.35 的真实弱化率只剩约 28%，
+    #   · `randomness` 是入门档软取样**触发概率**（单一事实来源，0 = 不参与取样），
+    #     `sample_margin` 是水平下限（分差上限），`candidate_count` 只影响多样性 ——
+    #     三个旋钮别混着调；
+    #   · **取样集合不含第 1 名**：包含它会让名义概率的真实弱化率缩水，
     #     概率也就无法标定；
     #   · beginner 的分差放到 150（≈1.25 个兵）才够出窗口。
-    Difficulty.BEGINNER: SearchConfig(1, 2.0, 0.55, 1, 4, 6, 16, sample_margin=150),
+    Difficulty.BEGINNER: SearchConfig(1, 2.0, 0.18, 1, 4, 6, 16, sample_margin=150),
     # B′：depth 2 + 窄宽度（root3/branch3），让 d2 装进 cap 5s；低档浅而宽、中档深而窄。
     # 实测 d2@root18/b10 需 5.8–12.1s；节点≈root×branch，180→54 后中局约 3.3s。
     Difficulty.MEDIUM: SearchConfig(2, 5.0, 0.0, 2, 1, 3, 3),
@@ -424,7 +420,8 @@ class ChessAI:
     def _sample_weaker(self, game: Game, cfg: SearchConfig) -> Move | None:
         """入门档唯一一层软取样：在近优分差带内挑一手非最佳着。
 
-        设计口径见 docs/AI_TIERS.md §15。只有 beginner 路径会到这里；medium/hard
+        设计口径见 docs/AI_TIERS.md §15。触发概率直接读 `cfg.randomness`（`CONFIGS`
+        单一事实来源；0 = 该档不参与取样）。只有 beginner 路径会到这里；medium/hard
         的 `randomness=0` 已被 `_sampling_blocked` 拦在前面。取样是纯决策层行为，
         不写入 `MoveRecord` / 存档 / PGN。
 
@@ -434,7 +431,7 @@ class ChessAI:
         """
         if not self.sample_enabled or self._sampling_blocked(game, cfg):
             return None
-        if self.random.random() >= BEGINNER_SOFT_SAMPLE_PROBABILITY:
+        if self.random.random() >= cfg.randomness:
             return None
         best_score = self.root_scores[0][0]
         pool: list[tuple[float, Move]] = []

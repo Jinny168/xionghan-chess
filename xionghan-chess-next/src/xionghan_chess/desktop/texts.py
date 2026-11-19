@@ -152,6 +152,13 @@ EN: dict[str, str] = {
     "欠准": "Inaccuracy",
     "失误": "Mistake",
     "严重失误": "Blunder",
+    # E2 复盘报告阶段标签与归纳句
+    "开局": "Opening",
+    "中局": "Middlegame",
+    "残局": "Endgame",
+    "本局各阶段失分分布较为平均。": "Losses are spread fairly evenly across phases.",
+    "本局可复盘的手数不足，未形成阶段归纳。": "Not enough reviewed moves for a phase summary.",
+    "评分下降较多的手：": "Biggest score drops:",
     # ---- 训练 / 题库 ----
     "导入题库": "Import puzzles",
     "题库导入": "Puzzle import",
@@ -222,7 +229,25 @@ TEMPLATES: dict[str, str] = {
     "旧档位「大师」已并入高级": "The old “Master” tier now uses Hard",
     "{exc}\n\n文件：{path}": "{exc}\n\nFile: {path}",
     "对局结束": "Game over",
+    # E2 复盘报告模板
+    "本局共复盘 {ply} 手。": "Reviewed {ply} move(s).",
+    "本局出现 {total} 处非最佳手（欠准 {a}、失误 {b}、严重失误 {c}）。": "Non-best moves: {total} (inaccuracy {a}, mistake {b}, blunder {c}).",
+    "第 {ply} 手 {notation} 评分下降 {loss}（{quality}）。": "Move {ply} {notation}: score dropped {loss} ({quality}).",
+    "胜率曲线由 {start}% 走到 {end}%，区间 {min}%–{max}%。": "Win-rate curve: {start}% to {end}%, range {min}%–{max}%.",
+    "本局失分集中在{phase}阶段。": "Losses concentrated in the {phase} phase.",
 }
+
+# E2 复盘报告：质量分类 id → 中文标签（中文原文即 key，英文走 EN 表）。
+QUALITY_LABELS = {
+    "best": "最佳",
+    "good": "良好",
+    "inaccuracy": "欠准",
+    "mistake": "失误",
+    "blunder": "严重失误",
+}
+
+# E2 复盘报告：阶段 id → 中文阶段名。
+PHASE_NAMES = ("开局", "中局", "残局")
 
 
 # P1-5 双 AI 观战三档调速标签（中文原文即 key，英文走 EN 表）。

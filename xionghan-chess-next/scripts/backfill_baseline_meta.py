@@ -32,23 +32,32 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import subprocess
 import sys
 from collections import Counter
+from dataclasses import asdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from calibrate_levels import CONTRACT_GATES, _book_digest, _config_digest  # noqa: E402
-from level_targets import PRODUCT_TIERS  # noqa: E402
+from level_targets import Tier  # noqa: E402
 
+from xionghan_chess.core.ai import (  # noqa: E402
+    CONFIGS,
+    PUBLIC_DIFFICULTIES,
+    SearchConfig,
+)
 from xionghan_chess.core.benchmark import Opening  # noqa: E402
 
 RUNS = ROOT / "benchmarks" / "calibration_runs"
 BOOK_COMMIT = "33e8fab"
 BOOK_PATH_IN_GIT = "xionghan-chess-next/benchmarks/openings/calibration_book.json"
+AI_PATH_IN_GIT = "xionghan-chess-next/src/xionghan_chess/core/ai.py"
 # v2 旧书的 fpDigest（tech-architect 按规格算出）。身份断言用它，不用"看起来像 v2"。
 V2_BOOK_DIGEST = "4b8137b676b9327e"
 
@@ -107,10 +116,83 @@ def _blocks(rows: list[dict]) -> list[float]:
     return out
 
 
-def _default_config(level: str):
-    """`--cap-a auto` + `--max-nodes auto`（即不覆盖）时的生效配置。"""
-    tier = PRODUCT_TIERS[level]
+def _literal(node: ast.AST):
+    """取 AST 常量字面量（只允许数字/字符串/布尔/None，禁止调用或变量）。"""
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        return -_literal(node.operand)
+    raise ValueError(f"CONFIGS 参数必须是常量，得到：{ast.dump(node)}")
+
+
+def _configs_at_commit(commit: str) -> dict[str, SearchConfig]:
+    """按记录 commit 的 `ai.py` 解析当时 CONFIGS（AST，不 import 当前工作树代码）。
+
+    配置身份指纹必须反映「当时跑的是什么配置」。从 git 对象读旧源码，避免工作树当前
+    CONFIGS 漂移污染历史基线；只取常量，不在旧源码上执行搜索逻辑。
+    """
+    source = subprocess.check_output(
+        ["git", "show", f"{commit}:{AI_PATH_IN_GIT}"], cwd=str(ROOT), text=True, encoding="utf-8"
+    )
+    tree = ast.parse(source)
+    configs_node = next(
+        (
+            node.value
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Assign)
+            and any(isinstance(t, ast.Name) and t.id == "CONFIGS" for t in node.targets)
+        ),
+        None,
+    )
+    if not isinstance(configs_node, ast.Dict):
+        raise AssertionError(f"{commit} 的 ai.py 未解析到 CONFIGS 字典")
+    field_names = [field.name for field in SearchConfig.__dataclass_fields__.values()]
+    parsed: dict[str, SearchConfig] = {}
+    for key, call in zip(configs_node.keys, configs_node.values):
+        member = key.attr if isinstance(key, ast.Attribute) else None
+        if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Name) and call.func.id == "SearchConfig"):
+            raise AssertionError(f"{commit} CONFIGS 条目不是 SearchConfig 构造：{ast.dump(call)}")
+        values = dict(zip(field_names, [_literal(arg) for arg in call.args]))
+        values.update({kw.arg: _literal(kw.value) for kw in call.keywords})
+        parsed[member] = SearchConfig(**values)
+    return parsed
+
+
+def _default_config(level: str, commit: str) -> SearchConfig:
+    """记录 commit 当时的生效配置（复刻历史回填的 Tier 往返口径）。
+
+    历史回填走 `PRODUCT_TIERS[level].config(...)`：`Tier` 不搬运 `sample_margin`，经往返后
+    落回 dataclass 默认值。这里保留同一路径，指纹才可与 453efe8 回填的历史值逐位复现；
+    若直接用原始 CONFIGS 条目（带 `sample_margin=150`），digest 会对不上历史指纹。
+    """
+    raw = _configs_at_commit(commit)[level.upper()]
+    tier = Tier(
+        depth=raw.depth,
+        cap=raw.time_limit,
+        randomness=raw.randomness,
+        quiescence_depth=raw.quiescence_depth,
+        candidate_count=raw.candidate_count,
+        branch_limit=raw.branch_limit,
+        root_limit=raw.root_limit,
+        max_nodes=raw.max_nodes,
+    )
     return tier.config(cap=None, max_nodes=tier.max_nodes)
+
+
+def _config_drift_note(commit: str) -> str | None:
+    """记录 commit 配置与当前 CONFIGS 是否漂移；漂移只提示，不改历史指纹。"""
+    anchored = {level: _default_config(level, commit) for level in ("beginner", "medium")}
+    current = {difficulty.value: CONFIGS[difficulty] for difficulty in PUBLIC_DIFFICULTIES}
+    for level, old in anchored.items():
+        now = current.get(level)
+        if now is None:
+            continue
+        if asdict(old) != asdict(now):
+            return (
+                f"当前 CONFIGS 已变更（{level}: 记录 commit {commit} 为 {asdict(old)}，"
+                f"当前为 {asdict(now)}）；历史基线仍按记录 commit 计算，指纹不随当前口径改写。"
+            )
+    return None
 
 
 def backfill(stem: str, book: list[Opening]) -> dict:
@@ -184,14 +266,22 @@ def backfill(stem: str, book: list[Opening]) -> dict:
             "blockScoreDistribution": {str(key): count for key, count in sorted(distribution.items())},
         },
         "aiConfigDigest": {
-            "a": _config_digest("beginner", _default_config("beginner")),
-            "b": _config_digest("medium", _default_config("medium")),
+            "a": _config_digest("beginner", _default_config("beginner", BOOK_COMMIT)),
+            "b": _config_digest("medium", _default_config("medium", BOOK_COMMIT)),
             "method": "recomputed",
+            # 指纹锚定记录 commit（`anchorCommit`）的 ai.py 派生，不随工作树当前 CONFIGS 漂移。
+            "anchorCommit": BOOK_COMMIT,
             # 输入可信度与计算方法**分开记**：能确定"配置就是 CONFIGS 默认值"才算 E1。
             # 实测可验的只有 depth / time_limit / max_nodes 三项（来自产物行为），
             # 其余 6 项（含 root_limit）没有任何产物能验，也没有机器写的 config 侧车。
-            "provenance": "E2：depth/time_limit/max_nodes 由产物交叉验证与 CONFIGS 一致；"
-            "root_limit 等 6 项无产物可验、无 --config-* 侧车，按默认值推断",
+            "provenance": "E2：depth/time_limit/max_nodes 由产物交叉验证与记录 commit 的 CONFIGS 一致；"
+            "root_limit 等 6 项无产物可验、无 --config-* 侧车，按默认值推断；"
+            "指纹按 anchorCommit 源码派生，不按当前工作树 CONFIGS 复算",
+            # 旧口径留痕：本基线跑的是 §15 之前的入门档（randomness=0.55 两层串行），
+            # 已被 D4 单层软取样（randomness=0.18）取代。跨口径基线在 compare_baselines 里
+            # 必须判 IDENTITY_CONFIG（不可比），不得把这份指纹当成新口径基线的可比身份。
+            "legacyNote": "本 run 为 §15 之前口径：beginner randomness=0.55 两层串行；"
+            "已由 D4 单层软取样（randomness=0.18）取代；本基线不与新口径基线做配置等价比较",
         },
         "verification": {
             "wins_losses_draws": [wins, losses, draws],
@@ -214,6 +304,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     book = _book_from_git()
+    drift = _config_drift_note(BOOK_COMMIT)
+    if drift:
+        print(f"提示：{drift}")
     for stem in TARGETS:
         payload = backfill(stem, book)
         target = RUNS / f"{stem}.meta.json"
@@ -223,7 +316,8 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
             stored = json.loads(target.read_text(encoding="utf-8"))
             if stored != payload:
-                print(f"不一致：{target}（sidecar 与当前数据/代码算出的不符，需重新回填）")
+                print(f"不一致：{target}（sidecar 与记录 commit {BOOK_COMMIT} 派生值不符；"
+                      f"历史指纹不得按当前 CONFIGS 改写，需核对锚定源码而非静默覆盖）")
                 return 1
             print(f"一致：{target}")
             continue
