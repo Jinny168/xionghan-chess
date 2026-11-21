@@ -310,12 +310,19 @@ def test_g6_gate_sets_not_empty() -> None:
     assert LE5, "G4 候选（3/5ply mate）为空"
 
 
+# G7 判据：题名里「数字 + 手」的字面（如「围杀·2 手」「连环·3 手」）＝手数编码，禁止。
+# 用正则而非「含手字」——只抓手数编码（数字+手），不抓「星轨射手」这类"射手"构词。
+# 范围＝mate2/3/5/7 杀题集（与 G1~G4 一致；扩到全库是后续批次的事）。
+TITLE_HAND_RE = re.compile(r"[0-9一二三四五六七八九十]+\s*手")
+
+
 def test_g7_title_has_no_hand_count() -> None:
-    """G7：题名不得编码手数（title 不含「手」字）。
+    """G7：杀题题名不得编码手数（title 不含「数字+手」字面）。
 
     历史教训：手数写进题名，重生成一次就变假话（mate7→mate5 已改过两次题名）。手数只准
-    出现在 description 里、且必须与事实一致（G5 守卫）。范围 = MATE 认证集（mate3 老题名
-    另见回报，不在本批改）。
+    出现在 description 里、且必须与事实一致（G5 守卫）。**判据用「数字+手」正则而非「含手」**：
+    只抓手数编码，不抓「星轨射手」这类"射手"构词（它不含"数字+手"，自然通过）。
+    范围＝mate2/3/5/7 杀题集。
     """
-    offenders = [f"{p.id}:{p.title}" for p in MATE if "手" in p.title]
-    assert not offenders, "题名含「手」（不许编码手数）：" + ", ".join(offenders)
+    offenders = [f"{p.id}:{p.title}" for p in MATE if TITLE_HAND_RE.search(p.title)]
+    assert not offenders, "杀题题名编码了手数（数字+手），禁止：" + ", ".join(offenders)
