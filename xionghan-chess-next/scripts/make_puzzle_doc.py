@@ -16,11 +16,29 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from xionghan_chess.core.model import Move, Position  # noqa: E402
 from xionghan_chess.core.puzzles import load_puzzles  # noqa: E402
+from xionghan_chess.core.storage import game_from_document  # noqa: E402
 
 DOC = ROOT / "docs" / "PUZZLE_LIBRARY.md"
 LEVELS = ["beginner", "advanced", "master"]
 LEVEL_NAMES = {"beginner": "入门", "advanced": "进阶", "master": "大师"}
+# 末手类型的显示名（从真实走完 solution 后的 state.result_reason 映射，不手写）。
+END_LABELS = {
+    "checkmate": "将死",
+    "stalemate": "困毙",
+    "king_captured": "吃王",
+    "palace_invasion": "入宫胜",
+    None: "未终局",
+}
+
+
+def _end_reason(puzzle) -> str | None:
+    """按真实加载路径走完 solution，读末手类型；守题不终局返回 None。"""
+    game = game_from_document(puzzle.document)
+    for step in puzzle.solution:
+        game.move(Move(Position(step.source.row, step.source.col), Position(step.target.row, step.target.col)))
+    return game.state.result_reason
 
 
 def render() -> str:
@@ -64,6 +82,9 @@ def render() -> str:
         f"| **合计** | **{total_ply.get(3, 0)}** | **{total_ply.get(5, 0)}** "
         f"| **{total_ply.get(7, 0)}** | **{len(real)}** |"
     )
+    lines.append("")
+    lines.append("> 说明：上表只按 3/5/7 ply 分列；**1 手题（走法练习 drill、守题、特色子题）不计入本表**，")
+    lines.append("> 因此三列之和小于「合计」。")
 
     lines += ["", "## 分档清单", ""]
     for level in LEVELS:
@@ -71,12 +92,14 @@ def render() -> str:
         lines += [
             f"### {LEVEL_NAMES[level]}（{level}）· {len(rows)} 条",
             "",
-            "| id | 标题 | ply | 解方手数 |",
-            "|---|---|---|---|",
+            "| id | 标题 | ply | 解方手数 | 末手类型 |",
+            "|---|---|---|---|---|",
         ]
         for puzzle in rows:
             plies = len(puzzle.solution)
-            lines.append(f"| `{puzzle.id}` | {puzzle.title} | {plies} | {(plies + 1) // 2} |")
+            reason = _end_reason(puzzle)
+            end_label = END_LABELS.get(reason, str(reason))
+            lines.append(f"| `{puzzle.id}` | {puzzle.title} | {plies} | {(plies + 1) // 2} | {end_label} |")
         lines.append("")
 
     lines += [
