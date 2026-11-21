@@ -174,8 +174,14 @@ def test_g2_no_shorter_forced_win() -> None:
 
 def test_g3_last_move_matches_promise() -> None:
     """G3：末手类型与文案承诺一致 —— 文案含「连杀」→ 末手必须 checkmate；含「无路可走」
-    → 末手必须 stalemate。D9 的 6 道老题（说连杀实为困毙）就是被这条挡住的。"""
+    → 末手必须 stalemate。D9 的老题（说连杀实为困毙）就是被这条挡住的。"""
     assert PROMISED_END, "G6：没有承诺末手类型的题"
+    # 既有 mate 题必须至少含一个承诺关键词，否则 G3 对它无法判断（会静默漏检）。
+    # 将来谁写出一道既不提「连杀」也不提「无路可走」的 mate 题，这条会先红，逼先修文案。
+    assert not NO_KEYWORD_END, (
+        "这些 mate 题既没说「连杀」也没说「无路可走」，G3 无法判断末手类型，须先修文案："
+        + ", ".join(p.id for p in NO_KEYWORD_END)
+    )
     mismatches: list[str] = []
     for puzzle in PROMISED_END:
         reason = _play(puzzle).state.result_reason
@@ -236,21 +242,36 @@ def _ind_black_lost(eng, state) -> bool:
     return not eng.has_any_legal_move(state, Color.BLACK)
 
 
-def _ind_forced_win(eng, state, plies: int) -> bool:
-    """独立实现的「红方 plies 内强制取胜」：红走一手，黑所有应手都应能被红更强取胜。"""
+def _ind_poskey(state) -> tuple:
+    """独立实现自己的局面签名（不复用生成器），只用于本自写的记忆化。"""
+    return (state.turn.value, tuple(sorted((p.type.value, p.color.value, p.position.row, p.position.col) for p in state.pieces)))
+
+
+def _ind_forced_win(eng, state, plies: int, memo: dict) -> bool:
+    """独立实现的「红方 plies 内强制取胜」：红走一手，黑所有应手都应能被红更强取胜。
+
+    带本函数自写的 `memo`（(签名, plies)→bool）——纯性能优化，不引用生成器任何代码，独立性不变。
+    """
+    key = (_ind_poskey(state), plies)
+    if key in memo:
+        return memo[key]
+    result = False
     for move in eng.legal_moves(state, Color.RED):
         nxt = eng.apply_unchecked(state, move)
         if _ind_black_lost(eng, nxt):
-            return True
+            result = True
+            break
         if plies <= 1:
             continue
         replies = eng.legal_moves(nxt, Color.BLACK)
-        if replies and all(_ind_forced_win(eng, eng.apply_unchecked(nxt, r), plies - 2) for r in replies):
-            return True
-    return False
+        if replies and all(_ind_forced_win(eng, eng.apply_unchecked(nxt, r), plies - 2, memo) for r in replies):
+            result = True
+            break
+    memo[key] = result
+    return result
 
 
-def _ind_winning_red_moves(eng, state, plies: int) -> list[Move]:
+def _ind_winning_red_moves(eng, state, plies: int, memo: dict) -> list[Move]:
     out: list[Move] = []
     for move in eng.legal_moves(state, Color.RED):
         nxt = eng.apply_unchecked(state, move)
@@ -258,33 +279,39 @@ def _ind_winning_red_moves(eng, state, plies: int) -> list[Move]:
             out.append(move)
         elif plies > 1:
             replies = eng.legal_moves(nxt, Color.BLACK)
-            if replies and all(_ind_forced_win(eng, eng.apply_unchecked(nxt, r), plies - 2) for r in replies):
+            if replies and all(_ind_forced_win(eng, eng.apply_unchecked(nxt, r), plies - 2, memo) for r in replies):
                 out.append(move)
         if len(out) >= 2:
             break
     return out
 
 
-def test_g4_independent_gen31_unique() -> None:
-    """G4 的**独立实现**（不复用生成器）：对 gen-31 自己枚举/递归，验证每红节点致胜着法恰 1。
-    这条与生成器搜索互不引用，防止"生成器判据写错、测试跟着错"的一致性地错。"""
-    puzzle = next((p for p in MATE if p.id == "gen-31"), None)
-    assert puzzle is not None, "缺 gen-31"
+@pytest.mark.parametrize("pid", ["gen-04", "gen-02", "gen-31", "gen-13"])
+def test_g4_independent_unique(pid: str) -> None:
+    """G4 的**独立实现**（不复用生成器 `_unique_line`）：2×2 覆盖 {3ply,5ply}×{将死,困毙}。
+
+    gen-04(3ply/将死) · gen-02(3ply/困毙) · gen-31(5ply/将死) · gen-13(5ply/困毙)。
+    自己枚举/递归（`_ind_*`），与生成器的强制胜搜索互不引用——防止"生成器判据写错、门禁跟着
+    一致地错"。原先只有 5ply+将死一格的独立兜底，现补齐另外三格。
+    """
+    puzzle = next((p for p in MATE if p.id == pid), None)
+    assert puzzle is not None, f"缺 {pid}"
     game = game_from_document(puzzle.document)
     eng, state = game.rules, game.state
     moves = _solution_moves(puzzle)
     plies = len(moves)
+    memo: dict = {}
     for index, move in enumerate(moves):
         remaining = plies - index
         if index % 2 == 0:
-            wins = _ind_winning_red_moves(eng, state, remaining)
-            assert len(wins) == 1, f"gen-31 第 {index + 1} 红节点独立枚举出 {len(wins)} 个致胜着法（应恰 1）"
-            assert wins[0].key() == move.key(), f"gen-31 第 {index + 1} 红节点唯一致胜着法 != solution"
+            wins = _ind_winning_red_moves(eng, state, remaining, memo)
+            assert len(wins) == 1, f"{pid} 第 {index + 1} 红节点独立枚举出 {len(wins)} 个致胜着法（应恰 1）"
+            assert wins[0].key() == move.key(), f"{pid} 第 {index + 1} 红节点唯一致胜着法 != solution"
         else:
             replies = eng.legal_moves(state, Color.BLACK)
-            assert len(replies) == 1 and replies[0].key() == move.key(), f"gen-31 第 {index + 1} 黑节点应手不唯一"
+            assert len(replies) == 1 and replies[0].key() == move.key(), f"{pid} 第 {index + 1} 黑节点应手不唯一"
         state = eng.apply_unchecked(state, move)
-    assert eng.checkmate(state, Color.BLACK), "gen-31 承诺连杀，末手必须真将死"
+    assert _ind_black_lost(eng, state), f"{pid} 末手不是强制取胜（独立判定，末手类型由 G3 另判）"
 
 
 def test_g5_description_numbers() -> None:
@@ -311,18 +338,17 @@ def test_g6_gate_sets_not_empty() -> None:
 
 
 # G7 判据：题名里「数字 + 手」的字面（如「围杀·2 手」「连环·3 手」）＝手数编码，禁止。
-# 用正则而非「含手字」——只抓手数编码（数字+手），不抓「星轨射手」这类"射手"构词。
-# 范围＝mate2/3/5/7 杀题集（与 G1~G4 一致；扩到全库是后续批次的事）。
+# 判据用正则「数字+手」而非「含手字」：**只抓手数编码，天然不误伤「射手」这类构词**
+# （"射手"里「手」前没有数字），所以可放心扩到**全库**，把所有系列都纳入防护。
 TITLE_HAND_RE = re.compile(r"[0-9一二三四五六七八九十]+\s*手")
 
 
 def test_g7_title_has_no_hand_count() -> None:
-    """G7：杀题题名不得编码手数（title 不含「数字+手」字面）。
+    """G7：任何题的题名不得编码手数（title 不含「数字+手」字面）。范围＝全库 GENERATED。
 
     历史教训：手数写进题名，重生成一次就变假话（mate7→mate5 已改过两次题名）。手数只准
-    出现在 description 里、且必须与事实一致（G5 守卫）。**判据用「数字+手」正则而非「含手」**：
-    只抓手数编码，不抓「星轨射手」这类"射手"构词（它不含"数字+手"，自然通过）。
-    范围＝mate2/3/5/7 杀题集。
+    出现在 description 里、且必须与事实一致（G5 守卫）。因为「数字+手」正则天然不匹配
+    「星轨射手」这类构词，所以覆盖全库不会误伤它。
     """
-    offenders = [f"{p.id}:{p.title}" for p in MATE if TITLE_HAND_RE.search(p.title)]
-    assert not offenders, "杀题题名编码了手数（数字+手），禁止：" + ", ".join(offenders)
+    offenders = [f"{p.id}:{p.title}" for p in GENERATED if TITLE_HAND_RE.search(p.title)]
+    assert not offenders, "题名编码了手数（数字+手），禁止：" + ", ".join(offenders)
