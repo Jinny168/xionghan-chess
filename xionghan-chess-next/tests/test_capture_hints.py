@@ -22,6 +22,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -186,18 +189,85 @@ def test_desktop_direct_capture_still_lands_in_capturable(qt_app: QApplication) 
 
 
 # ---------------------------------------------------------------------------
-# 图例判据（桌面端；网页/离线同构，谓词一致）
+# 图例移除判据（桌面 / web 旧树 / webapp / android offline 同口径）
 #
-# 图例是**常驻**的（零新增偏好键）。两半的显示条件必须分开：
-#   叉 = 落点可吃   → 跟 `capture_hints` 走；
-#   圈 = 三连旁吃   → 还要求本档案真开了 `pawn_three_line_capture`。
-# 后者不能用"盘面此刻有没有圈"来判 —— 那会让图例随选子忽隐忽现。
+# 吃子图例（✕ 落点可吃 / ○ 三连旁吃）已按主理人拍板**彻底删除**：语言包键、DOM 节点、
+# `syncCaptureLegend` 逻辑及调用点、`.capture-legend` 样式全部清除；`captureHints` 只保留
+# 「盘面叉/环标记」职责，不再联动图例。下面断言这些键/节点/函数/样式在代码与资源目录零残留。
 # ---------------------------------------------------------------------------
-def test_desktop_capture_legend_follows_preference_and_profile(
-    qt_app: QApplication, monkeypatch, tmp_path
-) -> None:
-    """叉那一半跟偏好走；圈那一半只在开了三连的档案里出现。"""
-    monkeypatch.setenv("APPDATA", str(tmp_path))  # 与 test_desktop_action_visibility 同款隔离
+ROOT = Path(__file__).resolve().parents[1]
+
+# 关键词命中即视为残留：图例节点 id、语言包键、图例函数名、图例 CSS 类、图例文案。
+LEGEND_PATTERNS = (
+    "captureLegend",
+    "capture-legend",
+    "legendOnLanding",
+    "legendAway",
+    "legend_capture_on_landing",
+    "legend_capture_away",
+    "syncCaptureLegend",
+    "sync_capture_legend",
+)
+
+# 受扫的代码与资源目录（不含 docs 历史叙述、benchmarks 快照产物、scripts 注释）。
+LEGEND_SCAN_FILES = [
+    "web/index.html",
+    "web/js/app.js",
+    "web/js/i18n.js",
+    "web/css/app.css",
+    "webapp/index.html",
+    "webapp/js/ui/app.js",
+    "webapp/js/ui/board.js",
+    "webapp/js/i18n.js",
+    "android/Resources/assets/offline/index.html",
+    "android/Resources/assets/offline/offline.js",
+    "android/Resources/assets/offline/offline-locales.js",
+    "android/Resources/assets/offline/offline.css",
+    "src/xionghan_chess/desktop/app.py",
+    "src/xionghan_chess/desktop/texts.py",
+]
+
+
+def test_capture_legend_fully_removed_on_all_ends() -> None:
+    """代码与资源目录不得残留图例的节点/键/函数/样式。"""
+    for rel in LEGEND_SCAN_FILES:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        for pattern in LEGEND_PATTERNS:
+            assert pattern not in text, f"{rel} 残留吃子图例标识：{pattern}"
+
+    # 语言包键必须在 web 旧树中英两侧同步删干净（对等守卫之外再核一次字面量）。
+    for locale in ("zh-CN", "en"):
+        bundle = json.loads((ROOT / "locales" / f"{locale}.json").read_text(encoding="utf-8"))
+        board = bundle.get("board", {})
+        assert "legend_capture_on_landing" not in board
+        assert "legend_capture_away" not in board
+
+    # 桌面文案表不再保留两条图例裸文案。
+    from xionghan_chess.desktop import texts as desktop_texts
+
+    assert "✕ 落点可吃" not in desktop_texts.EN
+    assert "○ 三连旁吃" not in desktop_texts.EN
+
+
+def test_offline_locales_zh_en_keys_stay_paired() -> None:
+    """android offline 语言包中英键集对等：删图例键后两侧必须同步删干净。"""
+    import re
+
+    locales = (
+        ROOT / "android" / "Resources" / "assets" / "offline" / "offline-locales.js"
+    ).read_text(encoding="utf-8")
+    zh_start = locales.index("'zh-CN': {")
+    en_start = locales.index("  en: {")
+    zh_block, en_block = locales[zh_start:en_start], locales[en_start:]
+    key_re = re.compile(r"^\s{4}(\w+):", re.M)
+    assert set(key_re.findall(zh_block)) == set(key_re.findall(en_block)), (
+        "offline 语言包中英键集不齐：图例键必须两侧同步删除"
+    )
+
+
+def test_desktop_has_no_legend_widget_or_method(qt_app: QApplication, monkeypatch, tmp_path) -> None:
+    """桌面 MainWindow 不再持有图例控件与图例同步方法；盘面提示偏好保留。"""
+    monkeypatch.setenv("APPDATA", str(tmp_path))
     from xionghan_chess.desktop import app as app_module
     from xionghan_chess.desktop import config as settings
 
@@ -206,26 +276,10 @@ def test_desktop_capture_legend_follows_preference_and_profile(
 
     window = app_module.MainWindow()
     try:
-        legend = window.capture_legend
-        assert legend.objectName() == "captureLegend"
-
-        # 完整模式：三连是开的 → 两半都显示
-        window.board.game = Game("desktop_complete")
-        window.config["capture_hints"] = True
-        window.sync_capture_legend()
-        assert not legend.isHidden(), "capture_hints 开着时图例应当常显"
-        assert "落点可吃" in legend.text()
-        assert "三连旁吃" in legend.text(), "完整模式开了三连，圈那一半必须显示"
-
-        # 经典模式：三连是关的 → 只留叉那一半
-        window.board.game = Game("desktop_classic")
-        window.sync_capture_legend()
-        assert "落点可吃" in legend.text()
-        assert "三连旁吃" not in legend.text(), "经典模式里旁吃不可能发生，不该解释它"
-
-        # 关掉吃子提示 → 整条图例隐藏
-        window.config["capture_hints"] = False
-        window.sync_capture_legend()
-        assert legend.isHidden(), "capture_hints 关掉后图例不该还挂着"
+        assert not hasattr(window, "capture_legend"), "图例控件已移除，不应再挂 capture_legend"
+        assert not hasattr(window, "sync_capture_legend"), "图例同步方法已移除"
+        # `capture_hints` 偏好仍在：它只负责盘面叉/环标记，职责保留。
+        assert "capture_hints" in settings.DEFAULTS
     finally:
         window.close()
+

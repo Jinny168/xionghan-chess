@@ -130,6 +130,7 @@
     "star_hints": "射·星轨提示（选中射显形）",
     "star_hints_hint": "空心环＝星位（射程锚点），实心圆点＝可落子",
     "high_contrast_pieces": "高对比棋子组（加深墨色提升可读，不改主题）",
+    "piece_badges": "特色子形状徽记（默认关闭）",
     "taunts": "AI 快捷语",
     "autosave": "结束后自动保存棋谱",
     "autosave_desktop": "对局结束后自动保存棋谱",
@@ -347,9 +348,7 @@
     "chu_river": "楚  河",
     "han_boundary": "汉  界",
     "great_wall": "长 城",
-    "yin_mountains": "阴 山",
-    "legend_capture_on_landing": "✕ 落点可吃",
-    "legend_capture_away": "○ 三连旁吃"
+    "yin_mountains": "阴 山"
   },
   "piece": {
     "king": "主帅",

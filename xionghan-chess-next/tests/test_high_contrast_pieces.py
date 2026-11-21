@@ -162,3 +162,38 @@ def test_graphic_gaps_flagged_with_criterion() -> None:
                     assert item["target"] == 3.0
                     assert "ratio" in item
                     assert isinstance(item["met"], bool)
+
+
+def test_graphic_after_meets_graphic_target() -> None:
+    """F1：高对比组内提示点派生 + 提不透明后，图形判据 3:1 全部达标。
+
+    before（默认主题半透明合成）允许不达标准并保留差值；after（高对比派生后）
+    必须 met=true 且比值 ≥ 3.0。
+    """
+    report = _load_measure().measure()
+    gaps: list[str] = []
+    for endpoint, spec in report["endpoints"].items():
+        for theme_name, theme in spec["themes"].items():
+            for key, item in theme.items():
+                if isinstance(item, dict) and item["criterion"] == "graphic":
+                    after = item["after"]
+                    if not after["met"] or after["ratio"] < 3.0:
+                        gaps.append(f"{endpoint}/{theme_name}/{key}={after['ratio']}")
+                    # 派生后比值不得低于 before 现状。
+                    assert after["ratio"] >= item["before"]["ratio"], (
+                        f"{endpoint}/{theme_name}/{key} 派生后比值倒退："
+                        f"before={item['before']['ratio']} after={after['ratio']}"
+                    )
+    assert not gaps, f"高对比组图形提示点未达 3:1: {', '.join(gaps)}"
+
+
+def test_hc_dot_radius_constant_shared() -> None:
+    """F1：高对比组可走点半径三端同为 0.16（授权上限 0.18 格）。"""
+    board_js = (ROOT / "webapp" / "js" / "ui" / "board.js").read_text(encoding="utf-8")
+    web_js = (ROOT / "web" / "js" / "app.js").read_text(encoding="utf-8")
+    desktop_src = (
+        ROOT / "src" / "xionghan_chess" / "desktop" / "ui" / "board_widget.py"
+    ).read_text(encoding="utf-8")
+    assert "LEGAL_DOT_RATIO_HC = 0.16" in desktop_src
+    assert "const LEGAL_DOT_RATIO_HC = 0.16;" in board_js
+    assert "const LEGAL_DOT_RATIO_HC = 0.16;" in web_js

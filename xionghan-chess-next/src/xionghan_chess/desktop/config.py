@@ -111,6 +111,9 @@ DEFAULTS: dict[str, Any] = {
     # 高对比棋子组（E1）：默认关闭。开启后只对既有令牌做程序化派生以提升对比，
     # 不改已选主题/棋子风格；纯新增键，不 bump schema_version，不进云同步映射。
     "high_contrast_pieces": False,
+    # 特色子形状徽记（VA-14）：默认关闭。棋子本身有文字称呼，不再用图形重复标识；
+    # 开启能力保留（用户可自行打开）。纯新增键，不 bump schema_version，不进云同步映射。
+    "piece_badges": False,
     # P1-7：选中经典档「射」时显示到星位锚点的放射线。纯新增键，不 bump
     # 配置文件 schema 版本（旧配置由 `{**DEFAULTS, **data}` 补默认值）；也不进云同步映射。
     "archer_star_hints": False,

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#781f1f">
   <title>匈汉象棋</title>
   <link rel="icon" href="/assets/icon.png">
-  <link rel="stylesheet" href="/css/app.css?v=2.0.3">
+  <link rel="stylesheet" href="/css/app.css?v=2.1.1">
 </head>
 <body>
   <header class="topbar">
@@ -61,12 +61,6 @@
         <div class="avatar">汗</div><div><strong>黑方</strong><span id="blackStatus">等待落座</span></div>
         <time id="blackClock">20:00</time>
       </section>
-      <!-- 图例常驻、零新增偏好键：叉=落点可吃（captureHints 开即显示），圈=三连旁吃（只有该档案
-           开了 pawn_three_line_capture 才可能出现，否则等于解释一个不存在的现象）。
-           判据用**静态规则**，不看"盘面此刻有没有圈" —— 否则图例会随选子忽隐忽现。 -->
-      <p class="capture-legend" id="captureLegend" hidden>
-        <span id="captureLegendOnLanding"></span><span id="captureLegendAway"></span>
-      </p>
       <section class="captured-panel"><h2>黑方损失</h2><div id="blackCaptured" class="captured"></div></section>
       <section class="mode-panel">
         <label>模式<select id="modeSelect"><option value="ai">人机对战</option><option value="local">双人同机</option><option value="online">网络对战</option></select></label>
@@ -161,6 +155,7 @@
           <label class="check-label"><input type="checkbox" id="captureHintsEnabled" checked>提示可吃棋子</label>
           <label class="check-label" id="starHintsLabel"><input type="checkbox" id="starHintsEnabled">射·星轨提示</label>
           <label class="check-label"><input type="checkbox" id="highContrastEnabled">高对比棋子组</label>
+          <label class="check-label"><input type="checkbox" id="pieceBadgesEnabled">特色子形状徽记（默认关闭）</label>
           <label class="check-label"><input type="checkbox" id="tauntsEnabled" checked>棋灵挑衅短语</label>
           <label class="check-label"><input type="checkbox" id="autosaveEnabled" checked>结束后自动保存棋谱</label>
         </fieldset>
@@ -218,8 +213,8 @@
   <dialog id="aboutDialog" class="text-dialog"><div class="dialog-title"><h2>关于匈汉象棋</h2><button class="icon-button" data-close-dialog="aboutDialog">×</button></div><div class="text-dialog-body"><p><strong id="aboutVersion">版本 —</strong></p><p>匈汉象棋是一款采用 13 × 13 扩展棋盘、融合匈奴与东汉文化元素的中国象棋创新变体，在传统象棋核心博弈结构上加入特色棋子与可配置规则。</p><h3>当前版本</h3><ul><li>Windows、Web 与 Android 三端支持。</li><li>共享 Python 规则、AI、联机协议和 <code>.xhgame</code> 棋谱格式。</li><li>支持账号云同步、等量让子、观战、棋盘翻转、AI 分析和分级训练。</li></ul><h3>开发信息</h3><p>开发者：靳中原<br>项目主页：<a href="https://github.com/Jinny168/xionghan-chess" target="_blank" rel="noreferrer">github.com/Jinny168/xionghan-chess</a><br>反馈邮箱：2741526119@qq.com</p><p>感谢原项目积累的规则、素材、菜单设计和玩家反馈，也感谢开源社区提供的开发工具与音频资源。</p></div></dialog>
   <div id="streakBanner" role="status" hidden style="position:fixed;right:18px;bottom:18px;z-index:20;max-width:min(340px,86vw);padding:14px 16px;border:1px solid var(--line-strong);background:var(--surface,#fffaf0);color:var(--ink);box-shadow:var(--shadow);font-size:13px;line-height:1.7"><pre id="streakBannerBody" style="margin:0 0 10px;white-space:pre-line;font:inherit"></pre><button id="streakAgainButton" class="primary">再来一局</button></div>
   <div id="toast" class="toast" role="status"></div>
-  <script src="/js/star-hints.js?v=2.0.3"></script>
-  <script type="module" src="/js/app.js?v=2.0.3"></script>
+  <script src="/js/star-hints.js?v=2.1.1"></script>
+  <script type="module" src="/js/app.js?v=2.1.1"></script>
   <script type="module">
     import { openAtlas } from './js/atlas.js';
     document.getElementById('atlasButton').addEventListener('click', () => openAtlas());

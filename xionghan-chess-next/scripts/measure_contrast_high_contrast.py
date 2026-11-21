@@ -9,7 +9,9 @@
   再对盘底算对比比。
 - 判据：棋子描边/文字属文本，目标 `TEXT_TARGET = 4.5:1`；可走点 / 可吃点属
   非文本图形，目标 `GRAPHIC_TARGET = 3:1`（WCAG 1.4.11）。
-- 高对比开启：棋子墨色经 `derive_for_background` 派生；提示点不派生（既有令牌）。
+- 高对比开启：棋子墨色经 `derive_for_background` 派生；提示点在高对比组内经
+  `derive_rgb` 派生到图形 3:1 并提为不透明。脚本同时输出 **before**（默认主题
+  半透明合成现状）与 **after**（高对比组派生不透明）两组比值。
 
 输出：一行 JSON（stdout 最后一行），含三端每类元素的实测比值、目标、是否达标、
 派生 mix。禁止把数字手写进报告——以本脚本输出为准。
@@ -33,6 +35,7 @@ from xionghan_chess.desktop.ui.contrast import (  # noqa: E402
     TEXT_TARGET,
     contrast_ratio,
     derive_for_background,
+    derive_rgb,
 )
 
 # ---------------------------------------------------------------------------
@@ -171,39 +174,48 @@ def measure() -> dict[str, object]:
                     "criterion": "text",
                 }
 
-            # 可走点（空点圆盘）：非文本图形 3:1。
+            # 可走点（空点圆盘）/ 可吃点：非文本图形 3:1。
+            # before = 默认主题半透明与盘底合成现状；after = 高对比组派生到 3:1 且不透明。
             legal = theme["legal"]
-            legal_hex = _composite(legal["rgb"], legal["alpha"], background)
-            theme_out["legal_dot"] = {
-                "composite": legal_hex,
-                "ratio": round(contrast_ratio(legal_hex, background), 2),
-                "target": GRAPHIC_TARGET,
-                "met": contrast_ratio(legal_hex, background) >= GRAPHIC_TARGET,
-                "criterion": "graphic",
-            }
+            theme_out["legal_dot"] = _graphic(legal["rgb"], legal["alpha"], background)
 
-            # 可吃点：红描边环（受害盘若存在同测）。
             ring = theme["capture_ring"]
-            ring_hex = _composite(ring["rgb"], ring["alpha"], background)
-            entry: dict[str, object] = {
-                "composite": ring_hex,
-                "ratio": round(contrast_ratio(ring_hex, background), 2),
-                "target": GRAPHIC_TARGET,
-                "met": contrast_ratio(ring_hex, background) >= GRAPHIC_TARGET,
-                "criterion": "graphic",
-            }
+            entry = _graphic(ring["rgb"], ring["alpha"], background)
             if "capture_fill" in theme:
                 fill = theme["capture_fill"]
-                fill_hex = _composite(fill["rgb"], fill["alpha"], background)
-                entry["fill_composite"] = fill_hex
-                entry["fill_ratio"] = round(contrast_ratio(fill_hex, background), 2)
-                entry["fill_met"] = contrast_ratio(fill_hex, background) >= GRAPHIC_TARGET
+                entry["fill"] = _graphic(fill["rgb"], fill["alpha"], background)
             theme_out["capture_hint"] = entry
 
             endpoint_out["themes"][theme_name] = theme_out
         report["endpoints"][endpoint] = endpoint_out
 
     return report
+
+
+def _graphic(rgb: list[int], alpha: float, background: str) -> dict[str, object]:
+    """图形提示点的 before（半透明合成现状）/ after（高对比派生不透明）对比比。"""
+    before_hex = _composite(rgb, alpha, background)
+    before_ratio = contrast_ratio(before_hex, background)
+    after = derive_rgb(tuple(rgb), background, GRAPHIC_TARGET)
+    after_ratio = contrast_ratio(after.color, background)
+    return {
+        "before": {
+            "color": before_hex,
+            "ratio": round(before_ratio, 2),
+            "met": before_ratio >= GRAPHIC_TARGET,
+        },
+        "after": {
+            "color": after.color,
+            "ratio": round(after_ratio, 2),
+            "met": after.met,
+            "mix": round(after.mix, 2),
+        },
+        # 顶层字段指向 after（高对比派生后），供既有门禁读取。
+        "ratio": round(after_ratio, 2),
+        "met": after.met,
+        "target": GRAPHIC_TARGET,
+        "criterion": "graphic",
+    }
 
 
 def _print_table(report: dict[str, object]) -> None:
@@ -213,9 +225,18 @@ def _print_table(report: dict[str, object]) -> None:
             for key, item in theme.items():
                 if not isinstance(item, dict):
                     continue
-                ratio = item.get("derived_ratio") or item.get("ratio")
-                flag = "OK " if item["met"] else "GAP"
-                print(f"  {flag} {key:14s} ratio={ratio:<5} target={item['target']} ({item['criterion']})")
+                if item["criterion"] == "graphic" and "before" in item:
+                    b = item["before"]
+                    a = item["after"]
+                    flag = "OK " if item["met"] else "GAP"
+                    print(
+                        f"  {flag} {key:14s} before={b['ratio']:<5} after={a['ratio']:<5} "
+                        f"target={item['target']} ({item['criterion']})"
+                    )
+                else:
+                    ratio = item.get("derived_ratio") or item.get("ratio")
+                    flag = "OK " if item["met"] else "GAP"
+                    print(f"  {flag} {key:14s} ratio={ratio:<5} target={item['target']} ({item['criterion']})")
 
 
 def main() -> int:

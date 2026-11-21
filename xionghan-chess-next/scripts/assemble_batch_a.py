@@ -34,6 +34,7 @@ from xionghan_chess.core.model import (  # noqa: E402
     Color,
     GameState,
     Move,
+    PieceType,
     Position,
 )
 from xionghan_chess.core.storage import game_from_document  # noqa: E402
@@ -148,15 +149,34 @@ def verify_feature(doc: dict, solution: list[dict], feature: str) -> tuple[bool,
     return ok, f"将死着法数={len(mates)} (需=1), 首着子力={mover_type} (需={feature})"
 
 
+def _black_lost(game: Game, state: GameState) -> bool:
+    """红方刚走完（state.turn 为黑）：黑王被吃 或 黑方无合法应手（将死/困毙）。"""
+    if not any(p.type is PieceType.KING and p.color is BLACK for p in state.pieces):
+        return True
+    return not game.rules.has_any_legal_move(state, BLACK)
+
+
 def verify_mate(doc: dict, solution: list[dict]) -> tuple[bool, str]:
     game = _game(doc)
+    # C1：根局面合法（未终局、黑方未受将、黑方有应手）。gen-35 旧烂题就是根局面黑已被将。
+    if game.state.finished:
+        return False, "根局面已是终局"
+    if game.rules.in_check(game.state, BLACK):
+        return False, "根局面黑方已被将军（非法）"
+    if not game.rules.has_any_legal_move(game.state, BLACK):
+        return False, "根局面黑方无合法应手"
+    # C2 必要部分：红方任一合法首着不得立刻终局（吃王/困毙/无应手都算更短解）。
+    for move in game.rules.legal_moves(game.state, RED):
+        if _black_lost(game, game.rules.apply_unchecked(game.state, move)):
+            return False, f"首着 {move.key()} 立刻终局（更短解，破坏连杀承诺）"
     for i, step in enumerate(solution):
         mv = Move(Position(step["from"]["row"], step["from"]["col"]), Position(step["to"]["row"], step["to"]["col"]))
         if not game.rules.is_legal(game.state, mv):
             return False, f"第 {i+1} 步不合法"
         game.move(mv)
-    ok = game.state.finished
-    return ok, f"末手将死={ok}"
+    # 困毙（finished=True 但没将军）不能冒充将死；与 tests/test_generated_puzzles.py 同口径。
+    ok = game.rules.checkmate(game.state, BLACK)
+    return ok, f"根局面合法、无一手终局；末手将死={ok}"
 
 
 def load_json(path: Path) -> list[dict]:

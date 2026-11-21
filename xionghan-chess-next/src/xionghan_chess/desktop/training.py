@@ -227,3 +227,28 @@ class StreakSession:
 STREAK_END_WRONG = "wrong"
 STREAK_END_SKIP = "skip"
 STREAK_END_EXHAUSTED = "exhausted"
+
+
+def streak_end_lines(count: int, prev_best: int) -> list[tuple[str, int | None]]:
+    """连对结束页的文案骨架（三端口径一致的行为口径）。
+
+    返回 ``[(键名后缀, count 参数), ...]``，app 层再补 ``training.`` 前缀翻译成人话。
+    这条纯函数是三端结束页的**可测口径**：
+
+    - 破纪录（count > prev_best）只出 streakRecord，**绝不再出 streakGap**；
+      旧实现在破纪录时仍算出 gap=1 再补一句"还差 1 题破纪录"，自相矛盾；
+    - 未破纪录出 streakNoRecord + streakGap，gap = max(1, prev_best - count + 1)；
+    - count == 0 同样出 streakNoRecord（与 web / webapp 一致），不再静默跳过。
+
+    ``prev_best`` 必须是本轮开始前读到的历史最高（web/webapp 的 previousBest），
+    不能拿更新后的 best —— 否则破纪录判定永远为真。
+    """
+    lines: list[tuple[str, int | None]] = [("streakRound", count)]
+    if count > prev_best:
+        lines.append(("streakRecord", count - prev_best))
+    else:
+        lines.append(("streakNoRecord", None))
+        lines.append(("streakGap", max(1, prev_best - count + 1)))
+    lines.append(("streakKept", None))
+    lines.append(("streakPractice", None))
+    return lines

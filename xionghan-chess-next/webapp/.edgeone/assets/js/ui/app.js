@@ -48,6 +48,8 @@ const DEFAULT_PREFS = {
   pieceStyle: 'traditional',
   // E1 高对比棋子组：默认关闭。开启后只对既有墨令牌按盘底程序化派生，不改主题/风格。
   highContrastPieces: false,
+  // VA-14 特色子形状徽记：默认关闭（棋子本身有文字称呼）；开启能力保留。
+  pieceBadges: false,
   language: 'zh-CN',
   animation: true,
   legal: true,
@@ -584,6 +586,7 @@ function render() {
     theme: app.prefs.theme,
     pieceStyle: app.prefs.pieceStyle,
     highContrast: app.prefs.highContrastPieces === true,
+    pieceBadges: app.prefs.pieceBadges === true,
     showStarHints,
     starHintAnchors,
     lastMove: isReplay ? replayLastMove() : app.lastMove,
@@ -873,6 +876,7 @@ function drawReplay() {
     theme: app.prefs.theme,
     pieceStyle: app.prefs.pieceStyle,
     highContrast: app.prefs.highContrastPieces === true,
+    pieceBadges: app.prefs.pieceBadges === true,
     lastMove: state.history?.[app.replay.index - 1]?.move || null,
     checkSide: null,
     anim: null,
@@ -2400,6 +2404,7 @@ function bindDialogs() {
   $('#optCapture').onchange = (event) => { app.prefs.captureHint = event.target.checked; savePrefs(); render(); };
   $('#optStarHints').onchange = (event) => { app.prefs.starHints = event.target.checked; savePrefs(); render(); };
   $('#optHighContrast').onchange = (event) => { app.prefs.highContrastPieces = event.target.checked; savePrefs(); render(); };
+  $('#optPieceBadges').onchange = (event) => { app.prefs.pieceBadges = event.target.checked; savePrefs(); render(); };
   $('#optSound').onchange = (event) => {
     app.prefs.sound = event.target.checked;
     sound.setSoundEnabled(app.prefs.sound);
@@ -2618,6 +2623,7 @@ function syncSettings() {
   $('#optCapture').checked = app.prefs.captureHint;
   $('#optStarHints').checked = app.prefs.starHints === true;
   $('#optHighContrast').checked = app.prefs.highContrastPieces === true;
+  $('#optPieceBadges').checked = app.prefs.pieceBadges === true;
   $('#optSound').checked = app.prefs.sound;
   const vol = $('#optVolume');
   if (vol) vol.value = String(Math.round((app.prefs.volume ?? 0.55) * 100));
@@ -2803,6 +2809,7 @@ function drawAtlas() {
     theme: app.prefs.theme,
     pieceStyle: app.prefs.pieceStyle,
     highContrast: app.prefs.highContrastPieces === true,
+    pieceBadges: app.prefs.pieceBadges === true,
     lastMove: null,
     checkSide: null,
     anim: null,

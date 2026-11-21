@@ -12383,52 +12383,52 @@
     "solution": [
       {
         "from": {
-          "row": 4,
-          "col": 0
+          "row": 2,
+          "col": 11
         },
         "to": {
           "row": 1,
-          "col": 0
+          "col": 10
         }
       },
       {
         "from": {
           "row": 0,
-          "col": 5
+          "col": 9
         },
         "to": {
           "row": 0,
-          "col": 6
+          "col": 8
         }
       },
       {
         "from": {
           "row": 1,
-          "col": 0
+          "col": 10
         },
         "to": {
           "row": 1,
+          "col": 9
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 8
+        },
+        "to": {
+          "row": 0,
           "col": 7
         }
       },
       {
         "from": {
-          "row": 0,
-          "col": 6
-        },
-        "to": {
-          "row": 0,
-          "col": 5
-        }
-      },
-      {
-        "from": {
           "row": 1,
-          "col": 7
+          "col": 9
         },
         "to": {
           "row": 1,
-          "col": 6
+          "col": 8
         }
       }
     ],
@@ -12539,32 +12539,32 @@
         "turn": "red",
         "pieces": [
           {
-            "id": "7b6ff77de520",
+            "id": "bff00c9693ec",
             "type": "king",
             "color": "black",
             "row": 0,
-            "col": 5
+            "col": 9
           },
           {
-            "id": "ac041eed2932",
+            "id": "63710dd83225",
             "type": "king",
             "color": "red",
-            "row": 11,
-            "col": 4
+            "row": 12,
+            "col": 6
           },
           {
-            "id": "63d02d4b1f7d",
-            "type": "archer",
+            "id": "98ffa9835fb9",
+            "type": "advisor",
             "color": "red",
-            "row": 3,
-            "col": 5
+            "row": 2,
+            "col": 11
           },
           {
-            "id": "1e04a1832f2f",
-            "type": "rook",
+            "id": "65d12b8633fd",
+            "type": "horse",
             "color": "red",
-            "row": 4,
-            "col": 0
+            "row": 5,
+            "col": 3
           }
         ],
         "history": [],
@@ -12582,11 +12582,13 @@
         "paused": false,
         "pausedBy": null,
         "clocksMs": {
-          "red": 600000,
-          "black": 600000
-        }
+          "red": 1200000,
+          "black": 1200000
+        },
+        "positionCounts": {}
       },
-      "savedAt": "2026-11-17T23:27:01"
+      "snapshots": [],
+      "savedAt": "2026-11-21T15:50:38"
     },
     "chapter": "垓下"
   },
@@ -12987,88 +12989,67 @@
     "id": "gen-34",
     "title": "定鼎·长驱",
     "difficulty": "master",
-    "description": "对手每步都只有唯一应法，走出唯一的四手连杀。",
+    "description": "对手每步都只有唯一应法，走出唯一的三手连杀。",
     "solution": [
       {
         "from": {
-          "row": 2,
-          "col": 4
+          "row": 4,
+          "col": 3
         },
         "to": {
-          "row": 2,
-          "col": 2
-        }
-      },
-      {
-        "from": {
           "row": 1,
-          "col": 3
-        },
-        "to": {
-          "row": 0,
-          "col": 3
-        }
-      },
-      {
-        "from": {
-          "row": 12,
-          "col": 4
-        },
-        "to": {
-          "row": 11,
-          "col": 4
+          "col": 6
         }
       },
       {
         "from": {
           "row": 0,
-          "col": 3
-        },
-        "to": {
-          "row": 1,
-          "col": 3
-        }
-      },
-      {
-        "from": {
-          "row": 11,
-          "col": 4
-        },
-        "to": {
-          "row": 10,
-          "col": 4
-        }
-      },
-      {
-        "from": {
-          "row": 1,
-          "col": 3
+          "col": 7
         },
         "to": {
           "row": 0,
-          "col": 3
+          "col": 8
         }
       },
       {
         "from": {
-          "row": 2,
-          "col": 2
+          "row": 1,
+          "col": 6
         },
         "to": {
           "row": 1,
-          "col": 2
+          "col": 9
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 8
+        },
+        "to": {
+          "row": 0,
+          "col": 7
+        }
+      },
+      {
+        "from": {
+          "row": 1,
+          "col": 9
+        },
+        "to": {
+          "row": 1,
+          "col": 8
         }
       }
     ],
     "hints": [
       "第 1 手：先想将军",
       "第 2 手：先想将军",
-      "第 3 手：继续追杀",
-      "第 4 手：收网"
+      "第 3 手：收网"
     ],
     "tags": [
       "generated",
-      "mate7",
+      "mate5",
       "counter"
     ],
     "document": {
@@ -13168,32 +13149,39 @@
         "turn": "red",
         "pieces": [
           {
-            "id": "00b0679091f9",
+            "id": "39b343809d8f",
             "type": "king",
             "color": "black",
-            "row": 1,
+            "row": 0,
+            "col": 7
+          },
+          {
+            "id": "2d8853e38524",
+            "type": "king",
+            "color": "red",
+            "row": 11,
+            "col": 6
+          },
+          {
+            "id": "9454f706d6f8",
+            "type": "thunder",
+            "color": "red",
+            "row": 4,
             "col": 3
           },
           {
-            "id": "4bcfd5eee397",
-            "type": "king",
+            "id": "550b0faf716e",
+            "type": "archer",
             "color": "red",
-            "row": 12,
-            "col": 4
+            "row": 0,
+            "col": 10
           },
           {
-            "id": "84fe445d462f",
-            "type": "rook",
-            "color": "red",
-            "row": 2,
-            "col": 4
-          },
-          {
-            "id": "bf444ac95be4",
-            "type": "horse",
-            "color": "red",
+            "id": "fdc84e6dbb87",
+            "type": "elephant",
+            "color": "black",
             "row": 3,
-            "col": 9
+            "col": 2
           }
         ],
         "history": [],
@@ -13211,11 +13199,11 @@
         "paused": false,
         "pausedBy": null,
         "clocksMs": {
-          "red": 600000,
-          "black": 600000
+          "red": 1200000,
+          "black": 1200000
         }
       },
-      "savedAt": "2026-11-17T23:26:17"
+      "savedAt": "2026-11-21T20:18:37"
     },
     "chapter": "定鼎"
   },
@@ -13223,88 +13211,67 @@
     "id": "gen-35",
     "title": "定鼎·落幕",
     "difficulty": "master",
-    "description": "长路奔袭，步步唯一。走出这场七路连杀，为战役收官。",
+    "description": "对手每步都只有唯一应法，走出唯一的三手连杀。",
     "solution": [
       {
         "from": {
-          "row": 4,
+          "row": 1,
+          "col": 5
+        },
+        "to": {
+          "row": 1,
+          "col": 2
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 3
+        },
+        "to": {
+          "row": 0,
+          "col": 4
+        }
+      },
+      {
+        "from": {
+          "row": 1,
           "col": 2
         },
         "to": {
-          "row": 3,
-          "col": 4
-        }
-      },
-      {
-        "from": {
-          "row": 0,
-          "col": 5
-        },
-        "to": {
-          "row": 0,
-          "col": 6
-        }
-      },
-      {
-        "from": {
-          "row": 3,
-          "col": 4
-        },
-        "to": {
-          "row": 3,
-          "col": 7
-        }
-      },
-      {
-        "from": {
-          "row": 0,
-          "col": 6
-        },
-        "to": {
-          "row": 0,
-          "col": 5
-        }
-      },
-      {
-        "from": {
-          "row": 3,
-          "col": 7
-        },
-        "to": {
           "row": 1,
-          "col": 8
+          "col": 3
         }
       },
       {
         "from": {
           "row": 0,
-          "col": 5
+          "col": 4
         },
         "to": {
           "row": 0,
-          "col": 4
+          "col": 5
         }
       },
       {
         "from": {
           "row": 1,
-          "col": 8
+          "col": 3
         },
         "to": {
-          "row": 2,
-          "col": 6
+          "row": 1,
+          "col": 4
         }
       }
     ],
     "hints": [
       "第 1 手：先想将军",
       "第 2 手：先想将军",
-      "第 3 手：继续追杀",
-      "第 4 手：收网"
+      "第 3 手：收网"
     ],
     "tags": [
       "generated",
-      "mate7",
+      "mate5",
       "counter"
     ],
     "document": {
@@ -13404,32 +13371,32 @@
         "turn": "red",
         "pieces": [
           {
-            "id": "a48d5ac663f8",
+            "id": "37f0f2dc5ab4",
             "type": "king",
             "color": "black",
             "row": 0,
-            "col": 5
-          },
-          {
-            "id": "de3bdb035071",
-            "type": "king",
-            "color": "red",
-            "row": 10,
             "col": 3
           },
           {
-            "id": "8dd637aef596",
-            "type": "horse",
+            "id": "2f6d7243e9fd",
+            "type": "king",
             "color": "red",
-            "row": 4,
-            "col": 2
+            "row": 12,
+            "col": 6
           },
           {
-            "id": "a445872d2b5d",
-            "type": "guard",
+            "id": "f861833477ee",
+            "type": "thunder",
             "color": "red",
             "row": 1,
-            "col": 12
+            "col": 5
+          },
+          {
+            "id": "65dfceeb3019",
+            "type": "archer",
+            "color": "red",
+            "row": 0,
+            "col": 4
           }
         ],
         "history": [],
@@ -13447,11 +13414,11 @@
         "paused": false,
         "pausedBy": null,
         "clocksMs": {
-          "red": 600000,
-          "black": 600000
+          "red": 1200000,
+          "black": 1200000
         }
       },
-      "savedAt": "2026-11-17T23:26:22"
+      "savedAt": "2026-11-21T20:20:37"
     },
     "chapter": "定鼎"
   }

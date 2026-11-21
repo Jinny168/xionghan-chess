@@ -214,11 +214,6 @@ class MainWindow(QMainWindow):
         self.hint_button.clicked.connect(self.show_puzzle_hint)
         self.hint_button.hide()
         self.statusBar().addPermanentWidget(self.hint_button)
-        # 吃子图例：常驻、零新增偏好键。自绘棋盘没有 DOM，放状态栏 permanent widget
-        # （不画在棋盘上：那会吃掉一格视觉空间，且翻转/缩放都要重算坐标）。
-        self.capture_legend = QLabel()
-        self.capture_legend.setObjectName("captureLegend")
-        self.statusBar().addPermanentWidget(self.capture_legend)
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
         QTimer.singleShot(0, self.maybe_show_onboarding)
         icon_path = theme.resource("icon.ico")
@@ -655,19 +650,16 @@ class MainWindow(QMainWindow):
         if run is None:
             return
         count = run.count
-        best = training_store.record_streak_best(self.config, count)
+        prev_best = getattr(self, "_streak_prev_best", 0)
+        # 仍要写回历史最高（只增不减）；文案口径改用轮次开始前的 prev_best，与
+        # web / webapp 的 previousBest 对齐。
+        training_store.record_streak_best(self.config, count)
         save_config(self.config)
         lang = self.config.get("language", "zh-CN")
-        lines = [t("training.streakRound", lang, count=count)]
-        if count > 0 and count >= best and count > getattr(self, "_streak_prev_best", 0):
-            lines.append(t("training.streakRecord", lang, count=count - getattr(self, "_streak_prev_best", 0)))
-        elif count > 0:
-            lines.append(t("training.streakNoRecord", lang))
-        gap = best - count + 1
-        if gap > 0:
-            lines.append(t("training.streakGap", lang, count=gap))
-        lines.append(t("training.streakKept", lang))
-        lines.append(t("training.streakPractice", lang))
+        lines = [
+            t(f"training.{key}", lang, **({"count": n} if n is not None else {}))
+            for key, n in puzzle_judge.streak_end_lines(count, prev_best)
+        ]
         self.streak_timer.stop()
         self.streak_session = None
         self.puzzle_session = None
@@ -1402,32 +1394,9 @@ class MainWindow(QMainWindow):
             archer_star_hints=self.config.get("archer_star_hints", False)
             and getattr(self, "puzzle_session", None) is None,
             high_contrast=self.config.get("high_contrast_pieces", False),
+            piece_badges=self.config.get("piece_badges", False),
         )
         self.board.set_flipped(self.config.get("flipped", False))
-        self.sync_capture_legend()
-
-    def sync_capture_legend(self) -> None:
-        """图例：叉那一半跟 `capture_hints` 走；圈那一半还要求本档案真开了三连。
-
-        圈=「三连旁吃」的受害者标记。经典/传统档里 `pawn_three_line_capture` 是关的，
-        旁吃永远不会发生，显示那半句等于解释一个不存在的现象。判据用**静态规则**
-        （档案选项），不看盘面此刻有没有圈 —— 否则图例会随选子忽隐忽现。
-
-        与网页端 `syncCaptureLegend()` 同构；改了任意一端记得对一眼另一端。
-        """
-        label = getattr(self, "capture_legend", None)
-        if label is None:
-            return
-        if not self.config.get("capture_hints", True):
-            label.hide()
-            return
-        game = getattr(self.board, "game", None)
-        three_line = bool(game is not None and game.rules.options.pawn_three_line_capture)
-        text = dl("✕ 落点可吃")
-        if three_line:
-            text = f"{text}　{dl('○ 三连旁吃')}"
-        label.setText(text)
-        label.show()
 
     def current_setup(self) -> dict[str, object]:
         selected = self.config.get("setup_slots", {}).get(self.config["profile"], {})
