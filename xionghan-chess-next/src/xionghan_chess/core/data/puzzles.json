@@ -6375,9 +6375,9 @@
   },
   {
     "id": "gen-01",
-    "title": "围杀·2 手 01",
+    "title": "围杀 01",
     "difficulty": "beginner",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "走出唯一的两手连杀。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -6568,9 +6568,9 @@
   },
   {
     "id": "gen-02",
-    "title": "围杀·2 手 02",
+    "title": "围杀 02",
     "difficulty": "beginner",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "对手每步都只有唯一应法，两手之内把他逼到无路可走——这也是赢。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -6761,9 +6761,9 @@
   },
   {
     "id": "gen-03",
-    "title": "围杀·2 手 03",
+    "title": "围杀 03",
     "difficulty": "beginner",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "对手每步都只有唯一应法，两手之内把他逼到无路可走——这也是赢。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -6954,9 +6954,9 @@
   },
   {
     "id": "gen-04",
-    "title": "围杀·2 手 04",
+    "title": "围杀 04",
     "difficulty": "beginner",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "走出唯一的两手连杀。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -7147,9 +7147,9 @@
   },
   {
     "id": "gen-05",
-    "title": "围杀·2 手 05",
+    "title": "围杀 05",
     "difficulty": "beginner",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "对手每步都只有唯一应法，两手之内把他逼到无路可走——这也是赢。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -7340,9 +7340,9 @@
   },
   {
     "id": "gen-06",
-    "title": "围杀·2 手 06",
+    "title": "围杀 06",
     "difficulty": "advanced",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "走出唯一的两手连杀。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -7533,9 +7533,9 @@
   },
   {
     "id": "gen-07",
-    "title": "围杀·2 手 07",
+    "title": "围杀 07",
     "difficulty": "advanced",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "对手每步都只有唯一应法，两手之内把他逼到无路可走——这也是赢。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -7726,9 +7726,9 @@
   },
   {
     "id": "gen-08",
-    "title": "围杀·2 手 08",
+    "title": "围杀 08",
     "difficulty": "beginner",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "走出唯一的两手连杀。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -7912,9 +7912,9 @@
   },
   {
     "id": "gen-09",
-    "title": "围杀·2 手 09",
+    "title": "围杀 09",
     "difficulty": "beginner",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "对手每步都只有唯一应法，两手之内把他逼到无路可走——这也是赢。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -8098,9 +8098,9 @@
   },
   {
     "id": "gen-10",
-    "title": "围杀·2 手 10",
+    "title": "围杀 10",
     "difficulty": "advanced",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "对手每步都只有唯一应法，两手之内把他逼到无路可走——这也是赢。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -8284,9 +8284,9 @@
   },
   {
     "id": "gen-11",
-    "title": "围杀·2 手 11",
+    "title": "围杀 11",
     "difficulty": "beginner",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "对手每步都只有唯一应法，两手之内把他逼到无路可走——这也是赢。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -8477,9 +8477,9 @@
   },
   {
     "id": "gen-12",
-    "title": "围杀·2 手 12",
+    "title": "围杀 12",
     "difficulty": "beginner",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "走出唯一的两手连杀。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,

@@ -20,19 +20,15 @@ from xionghan_chess.desktop import training
 
 ROOT = Path(__file__).resolve().parents[1]
 GENERATED = [item for item in load_puzzles() if item.id.startswith("gen-")]
-# 杀题：承诺「连杀 / 无路可走」的 mate5/mate7。门禁按**行为与承诺**圈定，不再按 counter 标签
-# （D8/D9 漏网就是因为旧门禁只看 counter：gen-18 有更短杀、6 道老题是困毙却无门禁）。
-MATE = [p for p in GENERATED if "mate5" in p.tags or "mate7" in p.tags]
-# G4 步步唯一性的圈定 = counter 题 + 所有 description 含「唯一」的 mate 题。
-# 注意 counter 必须显式纳入：gen-34/35 是 counter，但文案「只有一条通向三手连杀」不含「唯一」二字。
-UNIQUE_MATE = [p for p in MATE if "唯一" in p.description or "counter" in p.tags]
-FIVE_PLY = [p for p in UNIQUE_MATE if len(p.solution) <= 5]
-SEVEN_PLY = [p for p in UNIQUE_MATE if len(p.solution) >= 7]
+# 杀题全集：mate2|mate3|mate5|mate7 标签的全部题（围杀/连环/长算/垭下定鼎三大系列）。
+# 门禁按**行为与承诺**圈定，**无白名单、无例外**——D8/D9 漏网就是因为旧门禁只看 counter。
+MATED = ("mate2", "mate3", "mate5", "mate7")
+MATE = [p for p in GENERATED if any(t in MATED for t in p.tags)]
+LE5 = [p for p in MATE if len(p.solution) <= 5]  # 3/5 ply，G4 穷举
+GT5 = [p for p in MATE if len(p.solution) >= 7]  # 7 ply，G4 slow+预算（当前应为空）
 # 文案里承诺了末手类型（连杀→将死 / 无路可走→困毙）的 mate 题 —— G3 圈定。
-# 注意：本批严格门禁（G1~G7）范围 = mate5/mate7 认证集（MATE）；gen-01~12 的 mate3 老题
-# 存在同类「连杀却困毙 / 非唯一」问题，但不在本批处置清单内，另行回报，不在此悄悄豁免或扩改。
 PROMISED_END = [p for p in MATE if "连杀" in p.description or "无路可走" in p.description]
-# 承诺末手类型、但两个关键词都不含的题（G3 不表态，只回报列出）——当前 MATE 内应为空。
+# 承诺末手类型、但两个关键词都不含的题（G3 不表态，只回报列出）——应为空。
 NO_KEYWORD_END = [p for p in MATE if "连杀" not in p.description and "无路可走" not in p.description]
 
 _MATELIB = None
@@ -208,8 +204,8 @@ def _check_unique(puzzle, lib, *, deadline: float | None = None) -> None:
 def test_g4_unique_forced_line_five_ply() -> None:
     """G4（5 ply 穷举）：每红节点致胜着法恰 1、每黑节点应手恰 1。7 ply 见下面的 slow 版。"""
     lib = _matelib()
-    assert FIVE_PLY, "G6：没有 5 ply 承诺唯一的题"
-    for puzzle in FIVE_PLY:
+    assert LE5, "G6：没有 3/5 ply mate 题"
+    for puzzle in LE5:
         _check_unique(puzzle, lib)
 
 
@@ -219,10 +215,10 @@ def test_g4_unique_forced_line_seven_ply() -> None:
     （项目纪律：不许静默跳过）。**当前全库已无 7 ply 题**（mate7 全部退役为 5 ply），此分支是
     为将来谁再加 mate7 时的保护——新增 mate7 必然触发它。"""
     lib = _matelib()
-    if not SEVEN_PLY:
+    if not GT5:
         pytest.skip("当前无 7 ply 题，G4 7ply 分支为未来 mate7 保护（本轮无题可选）")
     timed_out: list[str] = []
-    for puzzle in SEVEN_PLY:
+    for puzzle in GT5:
         try:
             _check_unique(puzzle, lib, deadline=time.monotonic() + 20)
         except lib._Budget:
@@ -311,7 +307,7 @@ def test_g6_gate_sets_not_empty() -> None:
     """G6：G2/G3/G4 各自的候选集必须非空，否则空跑假绿。"""
     assert MATE, "G2 候选（mate5/mate7）为空"
     assert PROMISED_END, "G3 候选（承诺末手类型）为空"
-    assert UNIQUE_MATE and FIVE_PLY, "G4 候选（承诺唯一 5ply）为空"
+    assert LE5, "G4 候选（3/5ply mate）为空"
 
 
 def test_g7_title_has_no_hand_count() -> None:
