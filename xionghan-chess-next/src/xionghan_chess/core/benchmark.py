@@ -11,7 +11,8 @@ from .ai import CONFIGS, VALUES, ChessAI, Difficulty, SearchConfig
 from .ai_see import static_exchange_score
 from .game import Game
 from .mcts import MCTS
-from .model import Color
+from .model import Color, GameState, Move
+from .rules import RulesEngine
 
 # 单步耗时判据的容差与上限。
 #
@@ -67,9 +68,45 @@ def _has_hanging_capture(game: Game, color: Color) -> bool:
     return bool(_hanging_victim_ids(game, color))
 
 
-def _has_mate_in_one(game: Game, color: Color) -> bool:
-    """漏杀判定占位：mate-in-1 枚举成本高，先保留字段与接口。"""
-    return False
+def mate_in_one_moves(rules: RulesEngine, state: GameState, color: Color) -> list[Move]:
+    """走子前局面下，该方所有「一步将死对手」的着法。空列表 = 无一步杀。
+
+    返回**列表**而非 bool，调用点必须显式回答"有没有杀着”“我走的是不是其中一步”，
+    语义无法再被误用（旧 `_has_mate_in_one` 恒 `return False` 的占位正是 D7 漏杀判据失效之因）。
+    入参显式注入 `rules`，不从 `state` 反查引擎。
+    """
+    mates: list[Move] = []
+    for candidate in rules.legal_moves(state, color):
+        if rules.checkmate(rules.apply_unchecked(state, candidate), color.opponent):
+            mates.append(candidate)
+    return mates
+
+
+def _classify_blunder(game: Game, move: Move) -> tuple[str | None, set[str]]:
+    """判定并执行一手棋，返回 (低级失误类型, 走子后对手可白吃子的 id 集合)。
+
+    优先级 **hang > missed_capture > missed_mate**（漏杀只在"不漏吃、不送子"时才记）。
+    漏杀用**走子前**局面枚举一步杀（`mate_in_one_moves`），再判实际着法是否落在杀着集合里——
+    "有一步杀却没走"即记，哪怕这手也能赢但更慢（定义所然）；无一步杀只有 mate-in-2/3 的非最短
+    赢法**不记**（判据只认 mate-in-1，不判"是否最短"）。抽出本函数是为了让测试打真实代码。
+    """
+    mover_color = game.state.turn
+    before_free = _free_capture_keys(game, mover_color)
+    missed_capture = bool(before_free) and move.key() not in before_free
+    mate_moves = mate_in_one_moves(game.rules, game.state, mover_color)
+    missed_mate = bool(mate_moves) and move.key() not in {m.key() for m in mate_moves}
+    game.move(move)
+    blunder: str | None = None
+    if missed_capture and not _free_capture_keys(game, mover_color):
+        # "走完消失了"才算漏吃；仍能下回合吃的不算。
+        blunder = "missed_capture"
+    # 显式 `if blunder is None`：漏吃优先，不漏吃才轮到漏杀（不许漏杀覆盖漏吃）。
+    if blunder is None and missed_mate:
+        blunder = "missed_mate"
+    hung_ids = _hanging_victim_ids(game, game.state.turn)
+    if hung_ids:  # 送子最高优先，无条件硬覆盖。
+        blunder = "hang"
+    return blunder, hung_ids
 
 
 # 开局书里的一条：`Game(profile)` 走 `build_position(profile, seed, plies)` 生成。
@@ -394,20 +431,9 @@ def benchmark_match(
                 break
             mover_color = game.state.turn
             eval_before = engine._evaluate(game, mover_color) if engine is not None else 0.0
-            before_free = _free_capture_keys(game, mover_color)
-            missed_capture = bool(before_free) and move.key() not in before_free
-            game.move(move)
-            if missed_capture and not _free_capture_keys(game, mover_color):
-                # "走完消失了"才算漏吃；仍能下回合吃的不算。
-                blunder = "missed_capture"
-            else:
-                blunder = None
-            if _has_mate_in_one(game, mover_color):
-                blunder = blunder or "missed_mate"
-            hung_ids = _hanging_victim_ids(game, game.state.turn)
+            # 一手棋的失误分类（漏杀用走子前局面枚举）与走子都在这里完成。
+            blunder, hung_ids = _classify_blunder(game, move)
             hang = bool(hung_ids)
-            if hang:
-                blunder = "hang"
             avoidable_here = False
             if hang and abs(eval_before) <= 300:
                 new_ids = hung_ids - seen_hung[side]
