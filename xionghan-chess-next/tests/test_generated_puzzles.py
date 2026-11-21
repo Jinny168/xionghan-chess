@@ -7,29 +7,59 @@
 from __future__ import annotations
 
 import importlib.util
+import re
+import time
 from pathlib import Path
 
-from xionghan_chess.core.model import Color, Move, Position
+import pytest
+
+from xionghan_chess.core.model import Color, Move, PieceType, Position
 from xionghan_chess.core.puzzles import load_puzzles
 from xionghan_chess.core.storage import game_from_document
 from xionghan_chess.desktop import training
 
 ROOT = Path(__file__).resolve().parents[1]
 GENERATED = [item for item in load_puzzles() if item.id.startswith("gen-")]
-COUNTER = [item for item in GENERATED if "counter" in item.tags]
+# 杀题：承诺「连杀 / 无路可走」的 mate5/mate7。门禁按**行为与承诺**圈定，不再按 counter 标签
+# （D8/D9 漏网就是因为旧门禁只看 counter：gen-18 有更短杀、6 道老题是困毙却无门禁）。
+MATE = [p for p in GENERATED if "mate5" in p.tags or "mate7" in p.tags]
+# G4 步步唯一性的圈定 = counter 题 + 所有 description 含「唯一」的 mate 题。
+# 注意 counter 必须显式纳入：gen-34/35 是 counter，但文案「只有一条通向三手连杀」不含「唯一」二字。
+UNIQUE_MATE = [p for p in MATE if "唯一" in p.description or "counter" in p.tags]
+FIVE_PLY = [p for p in UNIQUE_MATE if len(p.solution) <= 5]
+SEVEN_PLY = [p for p in UNIQUE_MATE if len(p.solution) >= 7]
+# 文案里承诺了末手类型（连杀→将死 / 无路可走→困毙）的 mate 题 —— G3 圈定。
+# 注意：本批严格门禁（G1~G7）范围 = mate5/mate7 认证集（MATE）；gen-01~12 的 mate3 老题
+# 存在同类「连杀却困毙 / 非唯一」问题，但不在本批处置清单内，另行回报，不在此悄悄豁免或扩改。
+PROMISED_END = [p for p in MATE if "连杀" in p.description or "无路可走" in p.description]
+# 承诺末手类型、但两个关键词都不含的题（G3 不表态，只回报列出）——当前 MATE 内应为空。
+NO_KEYWORD_END = [p for p in MATE if "连杀" not in p.description and "无路可走" not in p.description]
+
+_MATELIB = None
 
 
 def _matelib():
-    """加载出题器的强制胜搜索（与生成器同口径，避免测试另写一套判据漂移）。"""
-    spec = importlib.util.spec_from_file_location("gen_forced_mate_puzzles", ROOT / "scripts" / "gen_forced_mate_puzzles.py")
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    """加载出题器的强制胜搜索（与生成器同口径；只加载一次，模块级缓存）。"""
+    global _MATELIB
+    if _MATELIB is None:
+        spec = importlib.util.spec_from_file_location("gen_forced_mate_puzzles", ROOT / "scripts" / "gen_forced_mate_puzzles.py")
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+        _MATELIB = module
+    return _MATELIB
 
 
 def _solution_moves(puzzle) -> list[Move]:
     return [Move(Position(s.source.row, s.source.col), Position(s.target.row, s.target.col)) for s in puzzle.solution]
+
+
+def _play(puzzle):
+    """按真实加载路径走完 solution，返回终局 Game（末手类型看 state.result_reason）。"""
+    game = game_from_document(puzzle.document)
+    for move in _solution_moves(puzzle):
+        game.move(move)
+    return game
 
 
 def test_generated_puzzles_exist() -> None:
@@ -72,15 +102,17 @@ def test_every_generated_puzzle_can_be_played_to_the_end() -> None:
 
 
 def test_generated_puzzle_mix_matches_the_plan() -> None:
-    """批次 A 后 35 条的配比：难度 beginner 9 / advanced 12 / master 14；
-    ply 覆盖 1/3/5/7（新增守题与特色子题为 1 ply 单步）。"""
+    """35 条配比：难度 beginner 9 / advanced 12 / master 14；ply 覆盖 1/3/5。
+
+    E1 起**全库无 7 ply 题**——mate7 档位在稀疏残局里无法真实成立「唯一强制线」（必带 5 ply
+    更短胜），已全部退役为 5 ply。故 ply 集合不再含 7。"""
     from collections import Counter
 
     levels = Counter(item.difficulty for item in GENERATED)
     plies = Counter(len(item.solution) for item in GENERATED)
     assert levels == {"beginner": 9, "advanced": 12, "master": 14}, levels
     assert sum(plies.values()) == 35
-    assert set(plies) == {1, 3, 5, 7}, plies
+    assert set(plies) == {1, 3, 5}, plies
     assert all(len(item.solution) % 2 == 1 for item in GENERATED)
 
 
@@ -111,65 +143,183 @@ def test_generated_puzzles_declare_hands_not_plies() -> None:
         assert len(puzzle.solution) % 2 == 1, f"{puzzle.id} 解法长度必须是奇数"
 
 
-# ---- D6：长算「连杀」题（counter）的三道真实性门禁 ----------------------------
-# 困毙（stalemate）在本作算走方胜，但 counter 题承诺的是**连杀**，所以困毙同样
-# 不能算「更短解」或末手 —— 下面「黑方无合法应手」一律含困毙与吃王，一视同仁。
+# ============================================================================
+# 杀题真实性门禁 G1~G6（按**行为与承诺**圈定，不按 counter 标签 —— D8/D9 漏网正因旧门
+# 只看 counter）。困毙（stalemate）在本作算走方胜，但只有**承诺困毙**的题才算它；承诺
+# 「连杀」的题末手必须是真将死。下面「黑方无合法应手」一律含困毙与吃王，一视同仁。
+# ============================================================================
 
 
-def test_counter_puzzles_root_position_is_legal() -> None:
-    """C1：根局面合法 —— 未终局、黑方没被将军、黑方至少有 1 个合法应手。
-
-    gen-35 原来的烂题根局面 `in_check(BLACK)=True`（轮到红走却黑被将），红方首着白吃王。
-    """
-    assert COUNTER, "没有 counter 题，门禁失去意义"
-    for puzzle in COUNTER:
+def test_g1_root_position_is_legal() -> None:
+    """G1：所有 mate5/mate7 题根局面合法 —— 未终局、黑方未被将、黑方有合法应手。"""
+    assert MATE, "G6：没有 mate 题，门禁失去意义"
+    for puzzle in MATE:
         game = game_from_document(puzzle.document)
         assert not game.state.finished, f"{puzzle.id} 根局面已是终局"
         assert not game.rules.in_check(game.state, Color.BLACK), f"{puzzle.id} 根局面黑方已被将军（非法）"
         assert game.rules.has_any_legal_move(game.state, Color.BLACK), f"{puzzle.id} 根局面黑方无合法应手"
 
 
-def test_counter_puzzles_have_no_immediate_finish() -> None:
-    """C2 必要部分：红方**任一**合法首着都不会立刻终局（吃王 / 黑无应手 / 困毙都算立刻终止）。
-
-    gen-35 原来首着 `1,10-0,10` 一手吃黑王，就是被这条挡住的那类烂题。
-    """
+def test_g2_no_shorter_forced_win() -> None:
+    """G2：所有 mate 题无更短强制胜。更短深度通用取 `for k in range(1, ply, 2)`（5ply→1,3；
+    7ply→1,3,5；含吃王与困毙）。D8 三道（gen-18/21/22）就是被这条抓出的——玩家走对首着后
+    还能找到更快赢法。"""
     lib = _matelib()
-    for puzzle in COUNTER:
+    assert MATE, "G6：没有 mate 题"
+    for puzzle in MATE:
         game = game_from_document(puzzle.document)
-        for move in game.rules.legal_moves(game.state, Color.RED):
-            nxt = game.rules.apply_unchecked(game.state, move)
-            assert not lib._black_lost(game.rules, nxt), (
-                f"{puzzle.id} 首着 {move.key()} 让黑方立刻无应手/被吃王 —— 更短解，破坏连杀承诺"
+        plies = len(puzzle.solution)
+        cache: dict = {}
+        for k in range(1, plies, 2):
+            assert not lib._forced_win(game.rules, game.state, k, king_only=False, cache=cache), (
+                f"{puzzle.id} 存在 {k} ply 强制胜（比声明的 {plies} ply 更短）"
             )
 
 
-def test_counter_puzzles_unique_forced_line() -> None:
-    """C3：正解线路上**每一个红方节点**致胜着法恰 1、每个黑方节点应手恰 1、末手真将死。
+def test_g3_last_move_matches_promise() -> None:
+    """G3：末手类型与文案承诺一致 —— 文案含「连杀」→ 末手必须 checkmate；含「无路可走」
+    → 末手必须 stalemate。D9 的 6 道老题（说连杀实为困毙）就是被这条挡住的。"""
+    assert PROMISED_END, "G6：没有承诺末手类型的题"
+    mismatches: list[str] = []
+    for puzzle in PROMISED_END:
+        reason = _play(puzzle).state.result_reason
+        if "连杀" in puzzle.description and reason != "checkmate":
+            mismatches.append(f"{puzzle.id} 承诺连杀但末手={reason}（应 checkmate）")
+        if "无路可走" in puzzle.description and reason != "stalemate":
+            mismatches.append(f"{puzzle.id} 承诺无路可走但末手={reason}（应 stalemate）")
+    assert not mismatches, "末手与文案不符：\n" + "\n".join(mismatches)
 
-    gen-34 原来的第 2 个红方节点有 48 个旁支致胜着法（如红帅平移 `12,8-11,8` 完全不将军
-    也能赢），「唯一四手连杀」是假的。这条是 QA 第 3 轮复签的硬判据。
+
+def _check_unique(puzzle, lib, *, deadline: float | None = None) -> None:
+    """G4：直接复用生成器的 `_unique_line`（**b 口径同源**，C3 与 G4 共用一个实现）。
+
+    b 口径 = 每红节点"走完黑方任意应手都输"的红着恰 1；每黑节点应手恰 1；末手强制取胜
+    （将死/困毙/吃王任一）。末手**类型**由 G3 按文案断言——G4 只管"唯一 + 取胜"。
     """
+    game = game_from_document(puzzle.document)
+    plies = len(puzzle.solution)
+    line = lib._unique_line(game.rules, game.state, plies, cache={}, deadline=deadline)
+    assert line is not None, f"{puzzle.id} 非唯一强制线（某红节点致胜着法≠1 / 黑应手≠1 / 末手非取胜）"
+    assert [m.key() for m in line] == [m.key() for m in _solution_moves(puzzle)], (
+        f"{puzzle.id} 唯一强制线与 solution 不一致：{[m.key() for m in line]}"
+    )
+
+
+def test_g4_unique_forced_line_five_ply() -> None:
+    """G4（5 ply 穷举）：每红节点致胜着法恰 1、每黑节点应手恰 1。7 ply 见下面的 slow 版。"""
     lib = _matelib()
-    for puzzle in COUNTER:
-        game = game_from_document(puzzle.document)
-        eng = game.rules
-        state = game.state
-        moves = _solution_moves(puzzle)
-        plies = len(moves)
-        for index, move in enumerate(moves):
-            remaining = plies - index
-            if index % 2 == 0:  # 红方节点
-                wins = lib._winning_red_moves(eng, state, remaining, max_need=2)
-                assert len(wins) == 1, (
-                    f"{puzzle.id} 第 {index + 1} 手（红方节点）有 {len(wins)} 个致胜着法，不唯一"
-                )
-                assert wins[0].key() == move.key(), (
-                    f"{puzzle.id} 第 {index + 1} 手唯一致胜着法 {wins[0].key()} != solution {move.key()}"
-                )
-            else:  # 黑方节点
-                replies = eng.legal_moves(state, Color.BLACK)
-                assert len(replies) == 1, f"{puzzle.id} 第 {index + 1} 手（黑方节点）有 {len(replies)} 个应手"
-                assert replies[0].key() == move.key(), f"{puzzle.id} 第 {index + 1} 手黑应手 != solution"
-            state = eng.apply_unchecked(state, move)
-        assert eng.checkmate(state, Color.BLACK), f"{puzzle.id} 末手不是真将死（困毙不算连杀）"
+    assert FIVE_PLY, "G6：没有 5 ply 承诺唯一的题"
+    for puzzle in FIVE_PLY:
+        _check_unique(puzzle, lib)
+
+
+@pytest.mark.slow
+def test_g4_unique_forced_line_seven_ply() -> None:
+    """G4（7 ply）：唯一性穷举是 PSPACE 级指数搜索，单题**20 秒预算**，超预算显式 skip 并点名
+    （项目纪律：不许静默跳过）。**当前全库已无 7 ply 题**（mate7 全部退役为 5 ply），此分支是
+    为将来谁再加 mate7 时的保护——新增 mate7 必然触发它。"""
+    lib = _matelib()
+    if not SEVEN_PLY:
+        pytest.skip("当前无 7 ply 题，G4 7ply 分支为未来 mate7 保护（本轮无题可选）")
+    timed_out: list[str] = []
+    for puzzle in SEVEN_PLY:
+        try:
+            _check_unique(puzzle, lib, deadline=time.monotonic() + 20)
+        except lib._Budget:
+            timed_out.append(puzzle.id)
+    if timed_out:
+        pytest.skip("7 ply 唯一性穷举超 20s 预算（指数爆炸），跳过并点名：" + ", ".join(timed_out))
+
+
+# ---- G4 独立实现（QA 要求：不复用生成器搜索，避免"一致地错"）------------------
+
+
+def _ind_black_lost(eng, state) -> bool:
+    if not any(p.type is PieceType.KING and p.color is Color.BLACK for p in state.pieces):
+        return True
+    return not eng.has_any_legal_move(state, Color.BLACK)
+
+
+def _ind_forced_win(eng, state, plies: int) -> bool:
+    """独立实现的「红方 plies 内强制取胜」：红走一手，黑所有应手都应能被红更强取胜。"""
+    for move in eng.legal_moves(state, Color.RED):
+        nxt = eng.apply_unchecked(state, move)
+        if _ind_black_lost(eng, nxt):
+            return True
+        if plies <= 1:
+            continue
+        replies = eng.legal_moves(nxt, Color.BLACK)
+        if replies and all(_ind_forced_win(eng, eng.apply_unchecked(nxt, r), plies - 2) for r in replies):
+            return True
+    return False
+
+
+def _ind_winning_red_moves(eng, state, plies: int) -> list[Move]:
+    out: list[Move] = []
+    for move in eng.legal_moves(state, Color.RED):
+        nxt = eng.apply_unchecked(state, move)
+        if _ind_black_lost(eng, nxt):
+            out.append(move)
+        elif plies > 1:
+            replies = eng.legal_moves(nxt, Color.BLACK)
+            if replies and all(_ind_forced_win(eng, eng.apply_unchecked(nxt, r), plies - 2) for r in replies):
+                out.append(move)
+        if len(out) >= 2:
+            break
+    return out
+
+
+def test_g4_independent_gen31_unique() -> None:
+    """G4 的**独立实现**（不复用生成器）：对 gen-31 自己枚举/递归，验证每红节点致胜着法恰 1。
+    这条与生成器搜索互不引用，防止"生成器判据写错、测试跟着错"的一致性地错。"""
+    puzzle = next((p for p in MATE if p.id == "gen-31"), None)
+    assert puzzle is not None, "缺 gen-31"
+    game = game_from_document(puzzle.document)
+    eng, state = game.rules, game.state
+    moves = _solution_moves(puzzle)
+    plies = len(moves)
+    for index, move in enumerate(moves):
+        remaining = plies - index
+        if index % 2 == 0:
+            wins = _ind_winning_red_moves(eng, state, remaining)
+            assert len(wins) == 1, f"gen-31 第 {index + 1} 红节点独立枚举出 {len(wins)} 个致胜着法（应恰 1）"
+            assert wins[0].key() == move.key(), f"gen-31 第 {index + 1} 红节点唯一致胜着法 != solution"
+        else:
+            replies = eng.legal_moves(state, Color.BLACK)
+            assert len(replies) == 1 and replies[0].key() == move.key(), f"gen-31 第 {index + 1} 黑节点应手不唯一"
+        state = eng.apply_unchecked(state, move)
+    assert eng.checkmate(state, Color.BLACK), "gen-31 承诺连杀，末手必须真将死"
+
+
+def test_g5_description_numbers() -> None:
+    """G5：文案里的手数必须等于 `(len(solution)+1)//2`；「四十余着」必须 40<=首着数<50。"""
+    hand_map = {"一": 1, "两": 2, "三": 3, "四": 4, "五": 5}
+    for puzzle in GENERATED:
+        if not puzzle.description:
+            continue
+        need = (len(puzzle.solution) + 1) // 2
+        for match in re.finditer(r"([一二三四五])手", puzzle.description):
+            said = hand_map[match.group(1)]
+            assert said == need, f"{puzzle.id} 文案说「{match.group(0)}」但实际是 {need} 手（{len(puzzle.solution)} ply）"
+        if "四十余着" in puzzle.description:
+            game = game_from_document(puzzle.document)
+            first_moves = len(game.rules.legal_moves(game.state, Color.RED))
+            assert 40 <= first_moves < 50, f"{puzzle.id} 文案说「四十余着」但根局面首着数={first_moves}，不在 [40,50)"
+
+
+def test_g6_gate_sets_not_empty() -> None:
+    """G6：G2/G3/G4 各自的候选集必须非空，否则空跑假绿。"""
+    assert MATE, "G2 候选（mate5/mate7）为空"
+    assert PROMISED_END, "G3 候选（承诺末手类型）为空"
+    assert UNIQUE_MATE and FIVE_PLY, "G4 候选（承诺唯一 5ply）为空"
+
+
+def test_g7_title_has_no_hand_count() -> None:
+    """G7：题名不得编码手数（title 不含「手」字）。
+
+    历史教训：手数写进题名，重生成一次就变假话（mate7→mate5 已改过两次题名）。手数只准
+    出现在 description 里、且必须与事实一致（G5 守卫）。范围 = MATE 认证集（mate3 老题名
+    另见回报，不在本批改）。
+    """
+    offenders = [f"{p.id}:{p.title}" for p in MATE if "手" in p.title]
+    assert not offenders, "题名含「手」（不许编码手数）：" + ", ".join(offenders)

@@ -8663,9 +8663,9 @@
   },
   {
     "id": "gen-13",
-    "title": "连环·3 手 13",
+    "title": "连环 13",
     "difficulty": "advanced",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "对手每步都只有唯一应法，三手之内把他逼到无路可走——这也是赢。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -8877,12 +8877,13 @@
   },
   {
     "id": "gen-14",
-    "title": "连环·3 手 14",
+    "title": "连环 14",
     "difficulty": "advanced",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "走出唯一的三手连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -8898,8 +8899,7 @@
         "horse_straight_three_move_only": false,
         "archer_enhanced_mode": true,
         "pawn_fast_move_before_enemy_territory": true,
-        "pawn_backward_at_base": true,
-        "pawn_full_movement_at_base": true,
+        "pawn_backward_at_base": false,
         "pawn_resurrection": true,
         "pawn_promotion": true,
         "pawn_charge": true,
@@ -8977,32 +8977,39 @@
         "turn": "red",
         "pieces": [
           {
-            "id": "d580ec27a54d",
+            "id": "1a5f9682378b",
             "type": "king",
             "color": "black",
             "row": 0,
-            "col": 4
+            "col": 7
           },
           {
-            "id": "5ff9142d3253",
+            "id": "d2d3e7583338",
             "type": "king",
             "color": "red",
             "row": 12,
-            "col": 3
+            "col": 10
           },
           {
-            "id": "393cb6ed00d1",
-            "type": "thunder",
-            "color": "red",
-            "row": 4,
-            "col": 9
-          },
-          {
-            "id": "881d35a2ad6e",
+            "id": "36774215804a",
             "type": "archer",
             "color": "red",
+            "row": 3,
+            "col": 7
+          },
+          {
+            "id": "eaddc894b8e5",
+            "type": "advisor",
+            "color": "red",
+            "row": 0,
+            "col": 5
+          },
+          {
+            "id": "6ccb1abca59d",
+            "type": "elephant",
+            "color": "black",
             "row": 1,
-            "col": 11
+            "col": 0
           }
         ],
         "history": [],
@@ -9013,74 +9020,75 @@
         "winner": null,
         "resultReason": null,
         "draw": false,
+        "finished": false,
         "pendingDrawOffer": null,
         "pendingUndoOffer": null,
         "pendingRestartOffer": null,
         "paused": false,
         "pausedBy": null,
         "clocksMs": {
-          "red": 1199994,
+          "red": 1200000,
           "black": 1200000
         }
       },
-      "savedAt": "2026-11-02T19:52:24"
+      "savedAt": "2026-11-21T22:02:25"
     },
     "solution": [
       {
         "from": {
-          "row": 4,
+          "row": 0,
+          "col": 5
+        },
+        "to": {
+          "row": 1,
+          "col": 6
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 7
+        },
+        "to": {
+          "row": 0,
+          "col": 8
+        }
+      },
+      {
+        "from": {
+          "row": 1,
+          "col": 6
+        },
+        "to": {
+          "row": 1,
+          "col": 7
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 8
+        },
+        "to": {
+          "row": 0,
           "col": 9
-        },
-        "to": {
-          "row": 1,
-          "col": 6
-        }
-      },
-      {
-        "from": {
-          "row": 0,
-          "col": 4
-        },
-        "to": {
-          "row": 1,
-          "col": 4
         }
       },
       {
         "from": {
           "row": 1,
-          "col": 6
-        },
-        "to": {
-          "row": 2,
-          "col": 5
-        }
-      },
-      {
-        "from": {
-          "row": 1,
-          "col": 4
-        },
-        "to": {
-          "row": 0,
-          "col": 4
-        }
-      },
-      {
-        "from": {
-          "row": 2,
-          "col": 5
+          "col": 7
         },
         "to": {
           "row": 1,
-          "col": 5
+          "col": 8
         }
       }
     ],
     "hints": [
       "第 1 手：先想将军",
       "第 2 手：先想将军",
-      "第 3 手：先想将军"
+      "第 3 手：收网"
     ],
     "tags": [
       "calibrated",
@@ -9091,9 +9099,9 @@
   },
   {
     "id": "gen-15",
-    "title": "连环·3 手 15",
+    "title": "连环 15",
     "difficulty": "advanced",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "对手每步都只有唯一应法，三手之内把他逼到无路可走——这也是赢。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -9305,9 +9313,9 @@
   },
   {
     "id": "gen-16",
-    "title": "连环·3 手 16",
+    "title": "连环 16",
     "difficulty": "master",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "对手每步都只有唯一应法，三手之内把他逼到无路可走——这也是赢。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -9519,9 +9527,9 @@
   },
   {
     "id": "gen-17",
-    "title": "连环·3 手 17",
+    "title": "连环 17",
     "difficulty": "master",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "走出唯一的三手连杀。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -9726,12 +9734,13 @@
   },
   {
     "id": "gen-18",
-    "title": "连环·3 手 18",
+    "title": "连环 18",
     "difficulty": "advanced",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "走出唯一的三手连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -9747,8 +9756,7 @@
         "horse_straight_three_move_only": false,
         "archer_enhanced_mode": true,
         "pawn_fast_move_before_enemy_territory": true,
-        "pawn_backward_at_base": true,
-        "pawn_full_movement_at_base": true,
+        "pawn_backward_at_base": false,
         "pawn_resurrection": true,
         "pawn_promotion": true,
         "pawn_charge": true,
@@ -9826,32 +9834,32 @@
         "turn": "red",
         "pieces": [
           {
-            "id": "b889bab9fd0b",
+            "id": "66fabc7cee9d",
             "type": "king",
             "color": "black",
             "row": 0,
-            "col": 5
+            "col": 6
           },
           {
-            "id": "aeb53219e272",
+            "id": "2fc57b757a62",
             "type": "king",
             "color": "red",
-            "row": 11,
-            "col": 3
+            "row": 12,
+            "col": 9
           },
           {
-            "id": "49ef4886a23a",
-            "type": "cannon",
+            "id": "699fa4edfb47",
+            "type": "advisor",
             "color": "red",
-            "row": 2,
+            "row": 0,
             "col": 4
           },
           {
-            "id": "b63d4ec2f369",
-            "type": "rook",
+            "id": "881f69d0f820",
+            "type": "advisor",
             "color": "red",
-            "row": 1,
-            "col": 8
+            "row": 5,
+            "col": 5
           }
         ],
         "history": [],
@@ -9862,23 +9870,44 @@
         "winner": null,
         "resultReason": null,
         "draw": false,
+        "finished": false,
         "pendingDrawOffer": null,
         "pendingUndoOffer": null,
         "pendingRestartOffer": null,
         "paused": false,
         "pausedBy": null,
         "clocksMs": {
-          "red": 1199995,
+          "red": 1200000,
           "black": 1200000
         }
       },
-      "savedAt": "2026-11-02T19:52:32"
+      "savedAt": "2026-11-21T22:02:33"
     },
     "solution": [
       {
         "from": {
+          "row": 0,
+          "col": 4
+        },
+        "to": {
           "row": 1,
-          "col": 8
+          "col": 5
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 6
+        },
+        "to": {
+          "row": 0,
+          "col": 7
+        }
+      },
+      {
+        "from": {
+          "row": 1,
+          "col": 5
         },
         "to": {
           "row": 1,
@@ -9888,48 +9917,28 @@
       {
         "from": {
           "row": 0,
-          "col": 5
+          "col": 7
         },
         "to": {
           "row": 0,
-          "col": 4
+          "col": 8
         }
       },
       {
         "from": {
-          "row": 2,
-          "col": 4
+          "row": 1,
+          "col": 6
         },
         "to": {
-          "row": 2,
-          "col": 0
-        }
-      },
-      {
-        "from": {
-          "row": 0,
-          "col": 4
-        },
-        "to": {
-          "row": 0,
-          "col": 5
-        }
-      },
-      {
-        "from": {
-          "row": 11,
-          "col": 3
-        },
-        "to": {
-          "row": 11,
-          "col": 4
+          "row": 1,
+          "col": 7
         }
       }
     ],
     "hints": [
       "第 1 手：先想将军",
       "第 2 手：先想将军",
-      "第 3 手：先想将军"
+      "第 3 手：收网"
     ],
     "tags": [
       "calibrated",
@@ -9940,9 +9949,9 @@
   },
   {
     "id": "gen-19",
-    "title": "连环·3 手 19",
+    "title": "连环 19",
     "difficulty": "master",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "对手每步都只有唯一应法，三手之内把他逼到无路可走——这也是赢。",
     "document": {
       "formatVersion": 1,
       "positionKeyVersion": 3,
@@ -10154,12 +10163,13 @@
   },
   {
     "id": "gen-20",
-    "title": "长算·4 手 20",
+    "title": "连环 20",
     "difficulty": "master",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "走出唯一的三手连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -10175,8 +10185,7 @@
         "horse_straight_three_move_only": false,
         "archer_enhanced_mode": true,
         "pawn_fast_move_before_enemy_territory": true,
-        "pawn_backward_at_base": true,
-        "pawn_full_movement_at_base": true,
+        "pawn_backward_at_base": false,
         "pawn_resurrection": true,
         "pawn_promotion": true,
         "pawn_charge": true,
@@ -10254,267 +10263,247 @@
         "turn": "red",
         "pieces": [
           {
-            "id": "492a72f6f987",
+            "id": "dbd1859fbc77",
             "type": "king",
             "color": "black",
             "row": 0,
-            "col": 3
+            "col": 2
           },
           {
-            "id": "ec5de8de1c75",
+            "id": "36ad2d755303",
+            "type": "king",
+            "color": "red",
+            "row": 11,
+            "col": 7
+          },
+          {
+            "id": "49d61a19cf1c",
+            "type": "advisor",
+            "color": "red",
+            "row": 2,
+            "col": 4
+          },
+          {
+            "id": "1c82ed4dd24d",
+            "type": "elephant",
+            "color": "red",
+            "row": 3,
+            "col": 10
+          }
+        ],
+        "history": [],
+        "captured": {
+          "red": [],
+          "black": []
+        },
+        "winner": null,
+        "resultReason": null,
+        "draw": false,
+        "finished": false,
+        "pendingDrawOffer": null,
+        "pendingUndoOffer": null,
+        "pendingRestartOffer": null,
+        "paused": false,
+        "pausedBy": null,
+        "clocksMs": {
+          "red": 1200000,
+          "black": 1200000
+        }
+      },
+      "savedAt": "2026-11-21T22:02:41"
+    },
+    "solution": [
+      {
+        "from": {
+          "row": 2,
+          "col": 4
+        },
+        "to": {
+          "row": 1,
+          "col": 3
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 2
+        },
+        "to": {
+          "row": 0,
+          "col": 1
+        }
+      },
+      {
+        "from": {
+          "row": 1,
+          "col": 3
+        },
+        "to": {
+          "row": 1,
+          "col": 2
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 1
+        },
+        "to": {
+          "row": 0,
+          "col": 0
+        }
+      },
+      {
+        "from": {
+          "row": 1,
+          "col": 2
+        },
+        "to": {
+          "row": 1,
+          "col": 1
+        }
+      }
+    ],
+    "hints": [
+      "第 1 手：先想将军",
+      "第 2 手：先想将军",
+      "第 3 手：收网"
+    ],
+    "tags": [
+      "calibrated",
+      "generated",
+      "mate5"
+    ],
+    "chapter": "定鼎"
+  },
+  {
+    "id": "gen-21",
+    "title": "连环 21",
+    "difficulty": "master",
+    "description": "走出唯一的三手连杀。",
+    "document": {
+      "formatVersion": 1,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
+      "profileId": "web",
+      "options": {
+        "king_can_leave_palace": true,
+        "king_diagonal_in_palace": true,
+        "king_lose_diagonal_outside_palace": true,
+        "invasion_victory": true,
+        "advisor_can_leave_palace": true,
+        "advisor_gain_straight_outside_palace": true,
+        "elephant_can_cross_river": true,
+        "elephant_gain_jump_two_enemy_territory": true,
+        "horse_straight_three": true,
+        "horse_blocked_by_leg": false,
+        "horse_straight_three_move_only": false,
+        "archer_enhanced_mode": true,
+        "pawn_fast_move_before_enemy_territory": true,
+        "pawn_backward_at_base": false,
+        "pawn_resurrection": true,
+        "pawn_promotion": true,
+        "pawn_charge": true,
+        "pawn_three_line_capture": true,
+        "enforce_self_check": true,
+        "threefold_draw": true,
+        "no_progress_draw_plies": 120,
+        "rook_appear": true,
+        "horse_appear": true,
+        "elephant_appear": true,
+        "advisor_appear": true,
+        "king_appear": true,
+        "cannon_appear": true,
+        "pawn_appear": true,
+        "guard_appear": true,
+        "archer_appear": true,
+        "thunder_appear": true,
+        "patrol_appear": true
+      },
+      "setup": {
+        "firstMove": "red",
+        "resolvedFirstMove": "red",
+        "redSlots": [
+          "red:archer:12:0",
+          "red:thunder:12:4",
+          "red:thunder:12:8",
+          "red:archer:12:12",
+          "red:rook:11:2",
+          "red:horse:11:3",
+          "red:elephant:11:4",
+          "red:advisor:11:5",
+          "red:king:11:6",
+          "red:advisor:11:7",
+          "red:elephant:11:8",
+          "red:horse:11:9",
+          "red:rook:11:10",
+          "red:cannon:9:1",
+          "red:cannon:9:11",
+          "red:pawn:8:0",
+          "red:pawn:8:2",
+          "red:pawn:8:4",
+          "red:pawn:8:6",
+          "red:pawn:8:8",
+          "red:pawn:8:10",
+          "red:pawn:8:12"
+        ],
+        "blackSlots": [
+          "black:archer:0:0",
+          "black:thunder:0:4",
+          "black:thunder:0:8",
+          "black:archer:0:12",
+          "black:rook:1:2",
+          "black:horse:1:3",
+          "black:elephant:1:4",
+          "black:advisor:1:5",
+          "black:king:1:6",
+          "black:advisor:1:7",
+          "black:elephant:1:8",
+          "black:horse:1:9",
+          "black:rook:1:10",
+          "black:cannon:3:1",
+          "black:cannon:3:11",
+          "black:pawn:4:0",
+          "black:pawn:4:2",
+          "black:pawn:4:4",
+          "black:pawn:4:6",
+          "black:pawn:4:8",
+          "black:pawn:4:10",
+          "black:pawn:4:12"
+        ],
+        "handicap": false
+      },
+      "state": {
+        "profileId": "web",
+        "turn": "red",
+        "pieces": [
+          {
+            "id": "175d1073c231",
+            "type": "king",
+            "color": "black",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "id": "abee8160d3b8",
             "type": "king",
             "color": "red",
             "row": 12,
             "col": 5
           },
           {
-            "id": "02ad6c277b39",
-            "type": "thunder",
+            "id": "05f305580b61",
+            "type": "advisor",
             "color": "red",
-            "row": 5,
-            "col": 4
-          },
-          {
-            "id": "5b67f8bc86e3",
-            "type": "patrol",
-            "color": "red",
-            "row": 2,
-            "col": 9
-          }
-        ],
-        "history": [],
-        "captured": {
-          "red": [],
-          "black": []
-        },
-        "winner": null,
-        "resultReason": null,
-        "draw": false,
-        "pendingDrawOffer": null,
-        "pendingUndoOffer": null,
-        "pendingRestartOffer": null,
-        "paused": false,
-        "pausedBy": null,
-        "clocksMs": {
-          "red": 1199995,
-          "black": 1200000
-        }
-      },
-      "savedAt": "2026-11-02T19:53:33"
-    },
-    "solution": [
-      {
-        "from": {
-          "row": 5,
-          "col": 4
-        },
-        "to": {
-          "row": 1,
-          "col": 4
-        }
-      },
-      {
-        "from": {
-          "row": 0,
-          "col": 3
-        },
-        "to": {
-          "row": 0,
-          "col": 2
-        }
-      },
-      {
-        "from": {
-          "row": 1,
-          "col": 4
-        },
-        "to": {
-          "row": 1,
-          "col": 1
-        }
-      },
-      {
-        "from": {
-          "row": 0,
-          "col": 2
-        },
-        "to": {
-          "row": 0,
-          "col": 3
-        }
-      },
-      {
-        "from": {
-          "row": 1,
-          "col": 1
-        },
-        "to": {
-          "row": 1,
-          "col": 2
-        }
-      },
-      {
-        "from": {
-          "row": 0,
-          "col": 3
-        },
-        "to": {
-          "row": 0,
-          "col": 4
-        }
-      },
-      {
-        "from": {
-          "row": 1,
-          "col": 2
-        },
-        "to": {
-          "row": 1,
-          "col": 3
-        }
-      }
-    ],
-    "hints": [
-      "第 1 手：先想将军",
-      "第 2 手：先想将军",
-      "第 3 手：先想将军",
-      "第 4 手：先想将军"
-    ],
-    "tags": [
-      "calibrated",
-      "generated",
-      "mate7"
-    ],
-    "chapter": "定鼎"
-  },
-  {
-    "id": "gen-21",
-    "title": "长算·4 手 21",
-    "difficulty": "master",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
-    "document": {
-      "formatVersion": 1,
-      "positionKeyVersion": 3,
-      "profileId": "web",
-      "options": {
-        "king_can_leave_palace": true,
-        "king_diagonal_in_palace": true,
-        "king_lose_diagonal_outside_palace": true,
-        "invasion_victory": true,
-        "advisor_can_leave_palace": true,
-        "advisor_gain_straight_outside_palace": true,
-        "elephant_can_cross_river": true,
-        "elephant_gain_jump_two_enemy_territory": true,
-        "horse_straight_three": true,
-        "horse_blocked_by_leg": false,
-        "horse_straight_three_move_only": false,
-        "archer_enhanced_mode": true,
-        "pawn_fast_move_before_enemy_territory": true,
-        "pawn_backward_at_base": true,
-        "pawn_full_movement_at_base": true,
-        "pawn_resurrection": true,
-        "pawn_promotion": true,
-        "pawn_charge": true,
-        "pawn_three_line_capture": true,
-        "enforce_self_check": true,
-        "threefold_draw": true,
-        "no_progress_draw_plies": 120,
-        "rook_appear": true,
-        "horse_appear": true,
-        "elephant_appear": true,
-        "advisor_appear": true,
-        "king_appear": true,
-        "cannon_appear": true,
-        "pawn_appear": true,
-        "guard_appear": true,
-        "archer_appear": true,
-        "thunder_appear": true,
-        "patrol_appear": true
-      },
-      "setup": {
-        "firstMove": "red",
-        "resolvedFirstMove": "red",
-        "redSlots": [
-          "red:archer:12:0",
-          "red:thunder:12:4",
-          "red:thunder:12:8",
-          "red:archer:12:12",
-          "red:rook:11:2",
-          "red:horse:11:3",
-          "red:elephant:11:4",
-          "red:advisor:11:5",
-          "red:king:11:6",
-          "red:advisor:11:7",
-          "red:elephant:11:8",
-          "red:horse:11:9",
-          "red:rook:11:10",
-          "red:cannon:9:1",
-          "red:cannon:9:11",
-          "red:pawn:8:0",
-          "red:pawn:8:2",
-          "red:pawn:8:4",
-          "red:pawn:8:6",
-          "red:pawn:8:8",
-          "red:pawn:8:10",
-          "red:pawn:8:12"
-        ],
-        "blackSlots": [
-          "black:archer:0:0",
-          "black:thunder:0:4",
-          "black:thunder:0:8",
-          "black:archer:0:12",
-          "black:rook:1:2",
-          "black:horse:1:3",
-          "black:elephant:1:4",
-          "black:advisor:1:5",
-          "black:king:1:6",
-          "black:advisor:1:7",
-          "black:elephant:1:8",
-          "black:horse:1:9",
-          "black:rook:1:10",
-          "black:cannon:3:1",
-          "black:cannon:3:11",
-          "black:pawn:4:0",
-          "black:pawn:4:2",
-          "black:pawn:4:4",
-          "black:pawn:4:6",
-          "black:pawn:4:8",
-          "black:pawn:4:10",
-          "black:pawn:4:12"
-        ],
-        "handicap": false
-      },
-      "state": {
-        "profileId": "web",
-        "turn": "red",
-        "pieces": [
-          {
-            "id": "6df843d14b1e",
-            "type": "king",
-            "color": "black",
             "row": 0,
-            "col": 6
-          },
-          {
-            "id": "4d59e304dd77",
-            "type": "king",
-            "color": "red",
-            "row": 11,
-            "col": 5
-          },
-          {
-            "id": "c8bb67f6e9b3",
-            "type": "rook",
-            "color": "red",
-            "row": 3,
             "col": 4
           },
           {
-            "id": "35ed293490d6",
-            "type": "archer",
+            "id": "652c50d99290",
+            "type": "horse",
             "color": "red",
-            "row": 5,
-            "col": 1
+            "row": 4,
+            "col": 8
           }
         ],
         "history": [],
@@ -10525,111 +10514,92 @@
         "winner": null,
         "resultReason": null,
         "draw": false,
+        "finished": false,
         "pendingDrawOffer": null,
         "pendingUndoOffer": null,
         "pendingRestartOffer": null,
         "paused": false,
         "pausedBy": null,
         "clocksMs": {
-          "red": 1199995,
+          "red": 1200000,
           "black": 1200000
         }
       },
-      "savedAt": "2026-11-02T19:53:43"
+      "savedAt": "2026-11-21T21:44:00"
     },
     "solution": [
       {
         "from": {
-          "row": 3,
+          "row": 0,
           "col": 4
         },
         "to": {
           "row": 1,
-          "col": 4
+          "col": 3
         }
       },
       {
         "from": {
           "row": 0,
-          "col": 6
+          "col": 2
         },
         "to": {
           "row": 0,
-          "col": 7
-        }
-      },
-      {
-        "from": {
-          "row": 11,
-          "col": 5
-        },
-        "to": {
-          "row": 10,
-          "col": 6
-        }
-      },
-      {
-        "from": {
-          "row": 0,
-          "col": 7
-        },
-        "to": {
-          "row": 0,
-          "col": 8
+          "col": 1
         }
       },
       {
         "from": {
           "row": 1,
-          "col": 4
+          "col": 3
         },
         "to": {
           "row": 1,
-          "col": 9
+          "col": 2
         }
       },
       {
         "from": {
           "row": 0,
-          "col": 8
+          "col": 1
         },
         "to": {
           "row": 0,
-          "col": 7
+          "col": 0
         }
       },
       {
         "from": {
           "row": 1,
-          "col": 9
+          "col": 2
         },
         "to": {
           "row": 1,
-          "col": 8
+          "col": 1
         }
       }
     ],
     "hints": [
       "第 1 手：先想将军",
       "第 2 手：先想将军",
-      "第 3 手：先想将军",
-      "第 4 手：先想将军"
+      "第 3 手：收网"
     ],
     "tags": [
       "calibrated",
       "generated",
-      "mate7"
+      "mate5"
     ],
     "chapter": "定鼎"
   },
   {
     "id": "gen-22",
-    "title": "长算·4 手 22",
+    "title": "连环 22",
     "difficulty": "master",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "走出唯一的三手连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -10645,8 +10615,7 @@
         "horse_straight_three_move_only": false,
         "archer_enhanced_mode": true,
         "pawn_fast_move_before_enemy_territory": true,
-        "pawn_backward_at_base": true,
-        "pawn_full_movement_at_base": true,
+        "pawn_backward_at_base": false,
         "pawn_resurrection": true,
         "pawn_promotion": true,
         "pawn_charge": true,
@@ -10724,32 +10693,32 @@
         "turn": "red",
         "pieces": [
           {
-            "id": "fb7392facdd5",
+            "id": "5165b0711035",
             "type": "king",
             "color": "black",
             "row": 0,
-            "col": 6
-          },
-          {
-            "id": "f723c118f358",
-            "type": "king",
-            "color": "red",
-            "row": 10,
             "col": 5
           },
           {
-            "id": "119a0578a134",
-            "type": "cannon",
+            "id": "5ddb20ca3d96",
+            "type": "king",
             "color": "red",
-            "row": 1,
-            "col": 10
+            "row": 12,
+            "col": 2
           },
           {
-            "id": "81987be9690b",
-            "type": "rook",
+            "id": "f2ea3b9cc567",
+            "type": "advisor",
             "color": "red",
-            "row": 5,
-            "col": 4
+            "row": 7,
+            "col": 3
+          },
+          {
+            "id": "ba75ff4243a4",
+            "type": "advisor",
+            "color": "red",
+            "row": 0,
+            "col": 7
           }
         ],
         "history": [],
@@ -10760,100 +10729,80 @@
         "winner": null,
         "resultReason": null,
         "draw": false,
+        "finished": false,
         "pendingDrawOffer": null,
         "pendingUndoOffer": null,
         "pendingRestartOffer": null,
         "paused": false,
         "pausedBy": null,
         "clocksMs": {
-          "red": 1199995,
+          "red": 1200000,
           "black": 1200000
         }
       },
-      "savedAt": "2026-11-02T19:53:50"
+      "savedAt": "2026-11-21T22:02:51"
     },
     "solution": [
       {
         "from": {
-          "row": 5,
-          "col": 4
+          "row": 0,
+          "col": 7
         },
         "to": {
           "row": 1,
-          "col": 4
-        }
-      },
-      {
-        "from": {
-          "row": 0,
           "col": 6
-        },
-        "to": {
-          "row": 0,
-          "col": 7
         }
       },
       {
         "from": {
-          "row": 10,
+          "row": 0,
           "col": 5
         },
         "to": {
-          "row": 9,
-          "col": 6
-        }
-      },
-      {
-        "from": {
           "row": 0,
-          "col": 7
-        },
-        "to": {
-          "row": 0,
-          "col": 8
+          "col": 4
         }
       },
       {
         "from": {
           "row": 1,
+          "col": 6
+        },
+        "to": {
+          "row": 1,
+          "col": 5
+        }
+      },
+      {
+        "from": {
+          "row": 0,
           "col": 4
         },
         "to": {
-          "row": 1,
-          "col": 9
-        }
-      },
-      {
-        "from": {
           "row": 0,
-          "col": 8
-        },
-        "to": {
-          "row": 0,
-          "col": 7
+          "col": 3
         }
       },
       {
         "from": {
           "row": 1,
-          "col": 9
+          "col": 5
         },
         "to": {
           "row": 1,
-          "col": 8
+          "col": 4
         }
       }
     ],
     "hints": [
       "第 1 手：先想将军",
       "第 2 手：先想将军",
-      "第 3 手：先想将军",
-      "第 4 手：先想将军"
+      "第 3 手：收网"
     ],
     "tags": [
       "calibrated",
       "generated",
-      "mate7"
+      "mate5"
     ],
     "chapter": "定鼎"
   },
@@ -12379,7 +12328,7 @@
     "id": "gen-31",
     "title": "垓下·连环",
     "difficulty": "master",
-    "description": "对手每步都只有唯一应法，走出唯一的连杀。",
+    "description": "走出唯一的三手连杀。",
     "solution": [
       {
         "from": {
@@ -12989,7 +12938,7 @@
     "id": "gen-34",
     "title": "定鼎·长驱",
     "difficulty": "master",
-    "description": "对手每步都只有唯一应法，走出唯一的三手连杀。",
+    "description": "开局四十余着皆可走，只有一条通向三手连杀。",
     "solution": [
       {
         "from": {
@@ -13211,7 +13160,7 @@
     "id": "gen-35",
     "title": "定鼎·落幕",
     "difficulty": "master",
-    "description": "对手每步都只有唯一应法，走出唯一的三手连杀。",
+    "description": "最后一战：三手连杀，一线到底。走完它，天下就此定鼎。",
     "solution": [
       {
         "from": {
