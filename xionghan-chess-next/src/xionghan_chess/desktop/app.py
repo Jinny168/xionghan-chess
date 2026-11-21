@@ -650,19 +650,16 @@ class MainWindow(QMainWindow):
         if run is None:
             return
         count = run.count
-        best = training_store.record_streak_best(self.config, count)
+        prev_best = getattr(self, "_streak_prev_best", 0)
+        # 仍要写回历史最高（只增不减）；文案口径改用轮次开始前的 prev_best，与
+        # web / webapp 的 previousBest 对齐。
+        training_store.record_streak_best(self.config, count)
         save_config(self.config)
         lang = self.config.get("language", "zh-CN")
-        lines = [t("training.streakRound", lang, count=count)]
-        if count > 0 and count >= best and count > getattr(self, "_streak_prev_best", 0):
-            lines.append(t("training.streakRecord", lang, count=count - getattr(self, "_streak_prev_best", 0)))
-        elif count > 0:
-            lines.append(t("training.streakNoRecord", lang))
-        gap = best - count + 1
-        if gap > 0:
-            lines.append(t("training.streakGap", lang, count=gap))
-        lines.append(t("training.streakKept", lang))
-        lines.append(t("training.streakPractice", lang))
+        lines = [
+            t(f"training.{key}", lang, **({"count": n} if n is not None else {}))
+            for key, n in puzzle_judge.streak_end_lines(count, prev_best)
+        ]
         self.streak_timer.stop()
         self.streak_session = None
         self.puzzle_session = None

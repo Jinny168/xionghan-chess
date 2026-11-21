@@ -155,7 +155,8 @@ def verify_mate(doc: dict, solution: list[dict]) -> tuple[bool, str]:
         if not game.rules.is_legal(game.state, mv):
             return False, f"第 {i+1} 步不合法"
         game.move(mv)
-    ok = game.state.finished
+    # 困毙（finished=True 但没将军）不能冒充将死；与 tests/test_generated_puzzles.py 同口径。
+    ok = game.rules.checkmate(game.state, BLACK)
     return ok, f"末手将死={ok}"
 
 

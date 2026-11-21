@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from xionghan_chess.core.model import Color
 from xionghan_chess.core.puzzles import load_puzzles
 from xionghan_chess.core.storage import game_from_document
 from xionghan_chess.desktop import training
@@ -40,6 +41,14 @@ def test_every_generated_puzzle_can_be_played_to_the_end() -> None:
         is_defense = {"defense", "equilibrium"} & set(puzzle.tags)
         if is_defense:
             assert not game.state.finished, f"{puzzle.id} 守题解完却成了将死 —— 判据②被破坏"
+        elif "counter" in puzzle.tags:
+            # 长算「连杀」题（gen-31/34/35）承诺末手真将死。困毙（stalemate）同样会
+            # finished=True 但没将军，拿它冒充连杀就是 D1 的假绿 —— 必须按引擎的
+            # checkmate 判据收紧。老 `calibrated` 题是另一套口径（stalemate 即胜），
+            # 不在本批次范围，仍只要求 finished。
+            assert game.rules.checkmate(game.state, Color.BLACK), (
+                f"{puzzle.id} 解完后黑方未被将死 —— 末手不是连杀（困毙不算）"
+            )
         else:
             assert game.state.finished, f"{puzzle.id} 解完后局面没有结束 —— 末手不是杀棋"
 

@@ -7,7 +7,8 @@
  *
  * 命名纪律：
  * - 「坚持天数」= 每日一题的连续天数，存在 xh-daily，别碰；
- * - 「连对题数」= 连对挑战（一错即止）的成绩，单位题，存在 xh-training.streak.best；
+ * - 「连对题数」= 连对挑战（一错即止）的成绩，单位题，存在 xh-web-prefs-v1 的
+ *   training 分区（app.prefs.training.streak.best；web 旧树另存 xh-training）；
  * - Storm 已砍，不建任何 storm 函数 / 字段。
  */
 
