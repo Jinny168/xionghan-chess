@@ -344,11 +344,15 @@ TITLE_HAND_RE = re.compile(r"[0-9一二三四五六七八九十]+\s*手")
 
 
 def test_g7_title_has_no_hand_count() -> None:
-    """G7：任何题的题名不得编码手数（title 不含「数字+手」字面）。范围＝全库 GENERATED。
+    """G7：任何题的题名不得编码手数（title 不含「数字+手」字面）。**范围＝全库 48 道。**
 
     历史教训：手数写进题名，重生成一次就变假话（mate7→mate5 已改过两次题名）。手数只准
     出现在 description 里、且必须与事实一致（G5 守卫）。因为「数字+手」正则天然不匹配
     「星轨射手」这类构词，所以覆盖全库不会误伤它。
+
+    **G7 查全库 48 道**（`load_puzzles()`），因为"题名不含手数"这条规矩对 drill 同样适用；
+    `GENERATED` 只含 gen-*（35 道），若用它会让 13 道 drill（如 `beginner-forward-01`）失守。
     """
-    offenders = [f"{p.id}:{p.title}" for p in GENERATED if TITLE_HAND_RE.search(p.title)]
+    all_puzzles = load_puzzles()
+    offenders = [f"{p.id}:{p.title}" for p in all_puzzles if TITLE_HAND_RE.search(p.title)]
     assert not offenders, "题名编码了手数（数字+手），禁止：" + ", ".join(offenders)
