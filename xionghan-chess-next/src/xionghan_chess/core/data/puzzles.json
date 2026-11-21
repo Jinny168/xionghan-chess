@@ -6380,7 +6380,8 @@
     "description": "走出唯一的两手连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -6396,8 +6397,7 @@
         "horse_straight_three_move_only": false,
         "archer_enhanced_mode": true,
         "pawn_fast_move_before_enemy_territory": true,
-        "pawn_backward_at_base": true,
-        "pawn_full_movement_at_base": true,
+        "pawn_backward_at_base": false,
         "pawn_resurrection": true,
         "pawn_promotion": true,
         "pawn_charge": true,
@@ -6475,31 +6475,38 @@
         "turn": "red",
         "pieces": [
           {
-            "id": "69b172bbe2eb",
+            "id": "b3f17386a6a3",
             "type": "king",
             "color": "black",
-            "row": 1,
-            "col": 4
+            "row": 0,
+            "col": 6
           },
           {
-            "id": "b5d7d5059858",
+            "id": "f8a77e4c51fc",
             "type": "king",
             "color": "red",
-            "row": 11,
+            "row": 12,
+            "col": 8
+          },
+          {
+            "id": "8e876768d24c",
+            "type": "elephant",
+            "color": "red",
+            "row": 4,
+            "col": 12
+          },
+          {
+            "id": "cfedacebaf05",
+            "type": "advisor",
+            "color": "red",
+            "row": 2,
             "col": 5
           },
           {
-            "id": "8d487723a11a",
-            "type": "thunder",
-            "color": "red",
-            "row": 4,
-            "col": 3
-          },
-          {
-            "id": "fb0c4136469b",
-            "type": "thunder",
-            "color": "red",
-            "row": 1,
+            "id": "5110df23a1af",
+            "type": "pawn",
+            "color": "black",
+            "row": 3,
             "col": 10
           }
         ],
@@ -6511,53 +6518,54 @@
         "winner": null,
         "resultReason": null,
         "draw": false,
+        "finished": false,
         "pendingDrawOffer": null,
         "pendingUndoOffer": null,
         "pendingRestartOffer": null,
         "paused": false,
         "pausedBy": null,
         "clocksMs": {
-          "red": 1199992,
+          "red": 1200000,
           "black": 1200000
         }
       },
-      "savedAt": "2026-11-02T17:50:42"
+      "savedAt": "2026-11-21T22:26:34"
     },
     "solution": [
       {
         "from": {
-          "row": 4,
-          "col": 3
+          "row": 2,
+          "col": 5
         },
         "to": {
-          "row": 2,
-          "col": 3
+          "row": 1,
+          "col": 5
         }
       },
       {
         "from": {
-          "row": 1,
-          "col": 4
+          "row": 0,
+          "col": 6
         },
         "to": {
           "row": 0,
-          "col": 4
+          "col": 7
         }
       },
       {
         "from": {
-          "row": 2,
-          "col": 3
+          "row": 1,
+          "col": 5
         },
         "to": {
           "row": 1,
-          "col": 3
+          "col": 6
         }
       }
     ],
     "hints": [
       "第 1 手：先想将军",
-      "第 2 手：先想将军"
+      "第 2 手：收网"
     ],
     "tags": [
       "calibrated",
@@ -7535,10 +7543,11 @@
     "id": "gen-07",
     "title": "围杀 07",
     "difficulty": "advanced",
-    "description": "对手每步都只有唯一应法，两手之内把他逼到无路可走——这也是赢。",
+    "description": "走出唯一的两手连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -7554,8 +7563,7 @@
         "horse_straight_three_move_only": false,
         "archer_enhanced_mode": true,
         "pawn_fast_move_before_enemy_territory": true,
-        "pawn_backward_at_base": true,
-        "pawn_full_movement_at_base": true,
+        "pawn_backward_at_base": false,
         "pawn_resurrection": true,
         "pawn_promotion": true,
         "pawn_charge": true,
@@ -7633,32 +7641,39 @@
         "turn": "red",
         "pieces": [
           {
-            "id": "9452eb014705",
+            "id": "7bb34a0cc82d",
             "type": "king",
             "color": "black",
-            "row": 1,
-            "col": 3
+            "row": 0,
+            "col": 11
           },
           {
-            "id": "d7e16ad092f0",
+            "id": "3a607940cf60",
             "type": "king",
             "color": "red",
             "row": 12,
+            "col": 10
+          },
+          {
+            "id": "dfc7dca02a40",
+            "type": "advisor",
+            "color": "red",
+            "row": 2,
+            "col": 10
+          },
+          {
+            "id": "f08703f281d4",
+            "type": "elephant",
+            "color": "red",
+            "row": 7,
             "col": 6
           },
           {
-            "id": "bf65f3ea033b",
-            "type": "rook",
-            "color": "red",
-            "row": 0,
-            "col": 2
-          },
-          {
-            "id": "3f0cff8c872f",
-            "type": "horse",
-            "color": "red",
-            "row": 5,
-            "col": 3
+            "id": "3be42b1912b8",
+            "type": "elephant",
+            "color": "black",
+            "row": 3,
+            "col": 10
           }
         ],
         "history": [],
@@ -7669,53 +7684,54 @@
         "winner": null,
         "resultReason": null,
         "draw": false,
+        "finished": false,
         "pendingDrawOffer": null,
         "pendingUndoOffer": null,
         "pendingRestartOffer": null,
         "paused": false,
         "pausedBy": null,
         "clocksMs": {
-          "red": 1199996,
+          "red": 1200000,
           "black": 1200000
         }
       },
-      "savedAt": "2026-11-02T17:50:50"
+      "savedAt": "2026-11-21T22:26:41"
     },
     "solution": [
       {
         "from": {
-          "row": 12,
-          "col": 6
+          "row": 2,
+          "col": 10
         },
         "to": {
-          "row": 12,
-          "col": 5
+          "row": 1,
+          "col": 10
+        }
+      },
+      {
+        "from": {
+          "row": 0,
+          "col": 11
+        },
+        "to": {
+          "row": 0,
+          "col": 12
         }
       },
       {
         "from": {
           "row": 1,
-          "col": 3
+          "col": 10
         },
         "to": {
           "row": 1,
-          "col": 4
-        }
-      },
-      {
-        "from": {
-          "row": 5,
-          "col": 3
-        },
-        "to": {
-          "row": 3,
-          "col": 2
+          "col": 11
         }
       }
     ],
     "hints": [
       "第 1 手：先想将军",
-      "第 2 手：先想将军"
+      "第 2 手：收网"
     ],
     "tags": [
       "calibrated",
@@ -8286,10 +8302,11 @@
     "id": "gen-11",
     "title": "围杀 11",
     "difficulty": "beginner",
-    "description": "对手每步都只有唯一应法，两手之内把他逼到无路可走——这也是赢。",
+    "description": "走出唯一的两手连杀。",
     "document": {
       "formatVersion": 1,
-      "positionKeyVersion": 3,
+      "positionKeyVersion": 4,
+      "ruleVersion": 3,
       "profileId": "web",
       "options": {
         "king_can_leave_palace": true,
@@ -8305,8 +8322,7 @@
         "horse_straight_three_move_only": false,
         "archer_enhanced_mode": true,
         "pawn_fast_move_before_enemy_territory": true,
-        "pawn_backward_at_base": true,
-        "pawn_full_movement_at_base": true,
+        "pawn_backward_at_base": false,
         "pawn_resurrection": true,
         "pawn_promotion": true,
         "pawn_charge": true,
@@ -8384,32 +8400,32 @@
         "turn": "red",
         "pieces": [
           {
-            "id": "2cf01ae95886",
+            "id": "4820a700b0a4",
             "type": "king",
             "color": "black",
-            "row": 0,
-            "col": 3
+            "row": 1,
+            "col": 11
           },
           {
-            "id": "28a33ad0198d",
+            "id": "0fd19cddb249",
             "type": "king",
             "color": "red",
-            "row": 11,
-            "col": 5
+            "row": 12,
+            "col": 10
           },
           {
-            "id": "34bd4e8125c8",
+            "id": "f051a1e8a1d8",
+            "type": "advisor",
+            "color": "red",
+            "row": 3,
+            "col": 11
+          },
+          {
+            "id": "108fb915b840",
             "type": "horse",
             "color": "red",
-            "row": 2,
-            "col": 7
-          },
-          {
-            "id": "9ac535d07452",
-            "type": "thunder",
-            "color": "red",
-            "row": 1,
-            "col": 5
+            "row": 7,
+            "col": 9
           }
         ],
         "history": [],
@@ -8420,53 +8436,54 @@
         "winner": null,
         "resultReason": null,
         "draw": false,
+        "finished": false,
         "pendingDrawOffer": null,
         "pendingUndoOffer": null,
         "pendingRestartOffer": null,
         "paused": false,
         "pausedBy": null,
         "clocksMs": {
-          "red": 1199994,
+          "red": 1200000,
           "black": 1200000
         }
       },
-      "savedAt": "2026-11-02T17:50:57"
+      "savedAt": "2026-11-21T22:26:44"
     },
     "solution": [
       {
         "from": {
-          "row": 1,
-          "col": 5
+          "row": 3,
+          "col": 11
         },
         "to": {
-          "row": 1,
-          "col": 2
+          "row": 2,
+          "col": 12
         }
       },
       {
         "from": {
-          "row": 0,
-          "col": 3
+          "row": 1,
+          "col": 11
         },
         "to": {
           "row": 0,
-          "col": 4
+          "col": 11
         }
       },
       {
         "from": {
           "row": 2,
-          "col": 7
+          "col": 12
         },
         "to": {
-          "row": 0,
-          "col": 6
+          "row": 1,
+          "col": 12
         }
       }
     ],
     "hints": [
       "第 1 手：先想将军",
-      "第 2 手：先想将军"
+      "第 2 手：收网"
     ],
     "tags": [
       "calibrated",

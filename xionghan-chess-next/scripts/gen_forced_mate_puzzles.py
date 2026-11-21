@@ -523,11 +523,11 @@ def _apply_candidates() -> int:
     return 0
 
 
-def _regen(ids: list[str], seed: int) -> int:
+def _regen(ids: list[str], seed: int, ply: int = 5) -> int:
     """按指定 seed 搜新鲜 5ply 合规候选，外科手术替换 ids（保留 id/标题/难度/tags/章节）。"""
     desc_map = {"gen-18": "走出唯一的三手连杀。"}  # 其余保留原 description
     # light=True：排除兵、首着≤30，保证重生成题能被 G4 的 b 口径穷举在预算内验证（防 gen-22 那种 50s）。
-    found, stats = search(5, tries=200000, seed=seed, want=len(ids), deadline_s=1800, light=True, max_red_moves=30)
+    found, stats = search(ply, tries=200000, seed=seed, want=len(ids), deadline_s=1800, light=True, max_red_moves=30)
     print(f"regen 搜索统计 {stats}；命中 {len(found)} 条", flush=True)
     if len(found) < len(ids):
         print(f"只搜到 {len(found)} 条，不足 {len(ids)}，失败（不硬凑）")
@@ -562,7 +562,8 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="校验题库现有 counter 题（C1/C2/C3）")
     parser.add_argument("--write", action="store_true", help="搜索并生成 build/cand_mate7.json")
     parser.add_argument("--apply", action="store_true", help="把候选写入 gen-34/gen-35")
-    parser.add_argument("--regen-ids", metavar="IDS", help="逗号分隔的题 id，按 --seed 搜新鲜 5ply 候选替换")
+    parser.add_argument("--regen-ids", metavar="IDS", help="逗号分隔的题 id，按 --seed/--regen-ply 搜新鲜候选替换")
+    parser.add_argument("--regen-ply", type=int, default=5, help="--regen-ids 的 ply（默认 5；退役 mate7；3=两手）")
     parser.add_argument("--seed", type=int, default=424242, help="--regen-ids 的搜索种子")
     args = parser.parse_args()
     if args.check:
@@ -572,7 +573,7 @@ def main() -> int:
     if args.apply:
         return _apply_candidates()
     if args.regen_ids:
-        return _regen([x.strip() for x in args.regen_ids.split(",") if x.strip()], args.seed)
+        return _regen([x.strip() for x in args.regen_ids.split(",") if x.strip()], args.seed, args.regen_ply)
     parser.print_help()
     return 0
 
