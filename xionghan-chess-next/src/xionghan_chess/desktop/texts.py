@@ -210,6 +210,8 @@ TEMPLATES: dict[str, str] = {
     # P0-2 常规对局提示：`{move}` 是既有记谱函数的输出（Game.notation）
     "提示：{move}": "Hint: {move}",
     "提示算不出来：{detail}": "Could not compute a hint: {detail}",
+    # G2c：调用方没给 on_error 的请求，失败一律落到 FeedbackBar（不再弹模态）
+    "网络请求失败：{detail}": "Network request failed: {detail}",
     "棋局已保存：{path}": "Game saved: {path}",
     "已载入：{path}": "Loaded: {path}",
     "当前版本 {version}，最新版本 {latest}": "Current {version}, latest {latest}",

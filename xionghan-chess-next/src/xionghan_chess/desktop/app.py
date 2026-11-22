@@ -206,7 +206,16 @@ class MainWindow(QMainWindow):
         self._hint_request_id = 0
         self._hint_plies: int | None = None
         # 在飞的 HintWorker 强引用（见 `show_move_hint`：不保住它，回调会静默丢失）
+        # TODO(G2c 未决)：这是**单槽**，连发两次提示时旧引用被顶掉（旧 worker 的回调
+        # 靠 request_id 守卫兜住不画错局面，但保活本身会丢）。为何能丢见
+        # `_discard_http_worker` 的说明 —— HttpWorker 纯 functor 单连接必失效，
+        # HintWorker 同型却在真事件循环里能到达，机制未收敛。本轮不动。
         self._hint_worker: HintWorker | None = None
+        # G2c：在飞的 HTTP worker。**保活到回调落地**，落地即摘除（set 用 `discard`，
+        # 幂等且不抛 ValueError）。见 `_request_json_async` / `_discard_http_worker`。
+        self._pending_http: set[HttpWorker] = set()
+        # 已落地、等本轮信号派发结束才真正释放的 worker（原因见 `_discard_http_worker`）。
+        self._landed_http: list[HttpWorker] = []
         # P0-4：本次选中是否是「射星轨一次性引导」临时打开的开关
         self._star_intro_temp = False
         self._spectate_restore: Game | None = None
@@ -2025,15 +2034,84 @@ class MainWindow(QMainWindow):
 
         on_done(data) / on_error(message) 都经 Signal 回到 **GUI 线程**执行
         （跨线程发射 + AutoConnection，Qt 官方语义）。用法与 start_ai 同一模式。
+
+        ## G2c：为什么必须把 worker 保活到回调落地
+
+        PySide6 里连到 **functor**（lambda / 局部闭包 / 普通函数）的连接，其注册挂在
+        **sender 的 Python 侧**。`self.pool.start(worker)` 之后本函数返回，`worker` 的
+        Python 包装失去最后一个强引用 —— 注册随之消失，**回调静默不到达**（不报错、
+        不打日志、也没有异常）。修复前实测：建了房不进房、加了房不进房、检查更新点了
+        没反应、网络失败连提示都没有 —— 四条链路成对失效。
+
+        修法（方案 1：只保活，不重构回调路由）：把 worker 放进 `_pending_http`，
+        等它真的落地再摘掉。**不改任何调用点的 `on_done`/`on_error` 契约** ——
+        机制没收敛的时候，改得越少越对；方案 2（重构成 QObject 路由）要改 5 个调用点，
+        漏一处就是一个新的静默失效。
         """
         worker = HttpWorker(url, payload, method, token)
+        # 先登记再启动：`pool.start` 一返回 worker 就可能在另一个线程里跑完了，
+        # 反过来写会留下一个"已发请求但没登记"的窗口。
+        self._pending_http.add(worker)
+        # 清理**先连**、用户回调**后连**：Qt 按连接顺序派发，用户回调抛异常会中断
+        # 后续派发 —— 清理排后面就会被永久跳过（worker 长住表里 = 无上限增长）。
+        worker.signals.finished.connect(self._discard_http_worker)
+        worker.signals.failed.connect(self._discard_http_worker)
         if on_done is not None:
             worker.signals.finished.connect(on_done)
         if on_error is not None:
             worker.signals.failed.connect(on_error)
         else:
-            worker.signals.failed.connect(lambda message: QMessageBox.warning(self, dl("网络请求失败"), str(message)))
+            # 默认失败回调**也必须是 bound method**：原来这里是 lambda，
+            # 它自己和整条链路一起静默失效，等于"网络失败什么都不显示"。
+            worker.signals.failed.connect(self._report_request_failure)
         self.pool.start(worker)
+
+    def _discard_http_worker(self, *_payload: object) -> None:
+        """G2c：worker 落地后把它从保活集合里摘掉。
+
+        四条约束同时成立，缺一条就等于没修（前三条是设计，第四条是实测踩出来的）：
+
+        1. **必须是 bound method**。连到 QObject 的 bound method 时，连接注册挂在
+           **receiver**（本窗口）上，窗口活着就一直在；lambda / 闭包挂在 sender 的
+           Python 包装上，包装一扔就没了 —— 用 lambda 做清理等于没写；
+        2. **必须连在用户回调之前**（见 `_request_json_async` 注释）；
+        3. **自己绝不抛异常**。清理是收尾动作，它炸了会把用户回调一起带走；
+        4. **不许在信号派发中途释放最后一个强引用**。这是实测出来的坑：直接
+           `self._pending_http.discard(worker)` 看似天经地义，但本槽是**第一个**连接的
+           槽 —— 它一跑完，worker 的 Python 包装引用计数归零、`signals` 随之销毁，
+           Qt 接着派发**后序**的槽（用户回调）就落在一个已死的 sender 上，静默不执行。
+           症状与"没修"一模一样（实测：IO 跑了、清理跑了、`on_done` 仍 0 次）。
+           所以这里只**标记落地**，真正摘除交给 `_sweep_http_workers`（下一轮事件循环）。
+
+        用 `self.sender()` 认领是哪一个：`finished`/`failed` 只带载荷、不带 worker 本身，
+        而 sender 就是那个 worker 的 `signals`。在飞请求是常数级，线性扫一遍即可。
+        """
+        try:
+            sender = self.sender()
+            for worker in self._pending_http:
+                if worker.signals is sender:
+                    self._landed_http.append(worker)
+                    break
+            # 只挂一次扫描：本槽会被多次调用（每个 worker 一次），重复挂定时器没意义。
+            if len(self._landed_http) == 1:
+                QTimer.singleShot(0, self._sweep_http_workers)
+        except Exception:  # noqa: BLE001 —— 清理不许影响调用方
+            pass
+
+    def _sweep_http_workers(self) -> None:
+        """G2c：本轮信号派发已结束，现在才可以真正放掉落地的 worker。"""
+        for worker in self._landed_http:
+            self._pending_http.discard(worker)
+        self._landed_http.clear()
+
+    def _report_request_failure(self, message: object) -> None:
+        """G2c：请求失败又没有专门 `on_error` 时的默认出口。
+
+        从模态 `QMessageBox` 改成 FeedbackBar 的 **error** 级：网络失败是「该被看见
+        但不该打断」的典型 —— 玩家正在看棋谱时弹一个必须点确定的框，比让他晚两秒知道
+        更烦人。必须点确定的留给「保存/载入失败」那种**阻断型**流程。
+        """
+        self.notify(dlf("网络请求失败：{detail}", detail=str(message)), "error", 8000)
 
     def create_online(self) -> None:
         base = self.server_base()
@@ -2629,6 +2707,10 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event: object) -> None:
         self.cancel.set()
         self.close_network()
+        # G2c：窗口要走就别再替在飞请求保活 —— 放到这里，进程退出前也不留悬挂引用。
+        # `_landed_http` 一并清：那些 worker 已经落地，只是还欠一次扫描。
+        self._pending_http.clear()
+        self._landed_http.clear()
         self.audio.stop()
         save_config(self.config)
         super().closeEvent(event)
