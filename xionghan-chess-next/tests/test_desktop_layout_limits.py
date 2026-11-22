@@ -100,12 +100,19 @@ def test_action_buttons_are_compact_icons(window: MainWindow) -> None:
     buttons = [getattr(window, name) for name in names]
     for button in buttons:
         assert button.text() == "", "图标按钮不该有文字"
+    # **隐藏按钮不参与栅格断言**（如开局没有可复活兵卒时的 `resurrect`）：
+    # 隐藏 widget 不参与布局，但 `width()` 仍返回父容器宽度（实测 640 vs 可见的 64），
+    # 拿它去算"同一栅格宽度一致 / 两行高度"必然假红。这是**测试脆弱**，不是 UI 缺陷 ——
+    # 别为此放宽 44 / 50 这些真实契约的阈值。
+    shown = [button for button in buttons if button.isVisible()]
+    assert len(shown) >= 6, f"可见按钮只剩 {len(shown)} 个 —— 过滤把样本吃光了，栅格断言会变成空转"
+    for button in shown:
         assert button.height() <= 44, f"按钮过高：{button.height()}"
         assert button.width() >= 50, f"按钮太窄，没铺满容器：{button.width()}px"
-    widths = {button.width() for button in buttons}
+    widths = {button.width() for button in shown}
     assert max(widths) - min(widths) <= 2, f"同一栅格里按钮宽度不一致：{widths}"
     # 两行：每行实测 37（QSS padding 撑高），加 12 间距，留 2px 余量
-    top = min(b.y() for b in buttons)
-    bottom = max(b.y() + b.height() for b in buttons)
+    top = min(b.y() for b in shown)
+    bottom = max(b.y() + b.height() for b in shown)
     block_height = bottom - top
     assert block_height <= 37 * 2 + 12 + 2, f"操作区高 {block_height}px，超过两行"
