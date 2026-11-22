@@ -205,7 +205,7 @@ S=过强 / A=强 / B=中 / C=弱 / D=近死子
 
 | 项 | 说明 | 成本 | 来源 |
 |---|---|---|---|
-| E0 | C-2 开关完整性守卫：断言 `RuleOptions`（33 字段）在三端全覆盖或有豁免 | 0.5 人日 | 柯（已在册） |
+| E0 | C-2 开关完整性守卫：断言 `RuleOptions`（32 字段）在三端全覆盖或有豁免 | 0.5 人日 | 柯（已在册） |
 | E1 | **跨 web 树产物一致性守卫**（由"序列化单一来源守卫"扩围）：`.xhgame` 与两族 JS `loadGameDocument` 对拍；`webapp/dist/index.html`、`online/public/index.html`、`webapp/js/core` ↔ `online/core` 逐字一致；补 `web/` ↔ `webapp/` 功能对账 | 0.5–1 人日 | 柯（勘误后扩围） |
 | E2 | JS 镜像语义不变量门禁：perft fingerprint / 开局构造断言，专治"一致地错" | 并入 C-5 | 柯（与 QA 协调） |
 
