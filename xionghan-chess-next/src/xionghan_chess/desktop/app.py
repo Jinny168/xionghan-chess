@@ -214,8 +214,6 @@ class MainWindow(QMainWindow):
         # G2c：在飞的 HTTP worker。**保活到回调落地**，落地即摘除（set 用 `discard`，
         # 幂等且不抛 ValueError）。见 `_request_json_async` / `_discard_http_worker`。
         self._pending_http: set[HttpWorker] = set()
-        # 已落地、等本轮信号派发结束才真正释放的 worker（原因见 `_discard_http_worker`）。
-        self._landed_http: list[HttpWorker] = []
         # P0-4：本次选中是否是「射星轨一次性引导」临时打开的开关
         self._star_intro_temp = False
         self._spectate_restore: Game | None = None
@@ -2047,15 +2045,14 @@ class MainWindow(QMainWindow):
         等它真的落地再摘掉。**不改任何调用点的 `on_done`/`on_error` 契约** ——
         机制没收敛的时候，改得越少越对；方案 2（重构成 QObject 路由）要改 5 个调用点，
         漏一处就是一个新的静默失效。
+
+        连接顺序是**契约的一部分**（见 `_discard_http_worker`）：用户回调在前，
+        清理槽在**最后**。
         """
         worker = HttpWorker(url, payload, method, token)
         # 先登记再启动：`pool.start` 一返回 worker 就可能在另一个线程里跑完了，
         # 反过来写会留下一个"已发请求但没登记"的窗口。
         self._pending_http.add(worker)
-        # 清理**先连**、用户回调**后连**：Qt 按连接顺序派发，用户回调抛异常会中断
-        # 后续派发 —— 清理排后面就会被永久跳过（worker 长住表里 = 无上限增长）。
-        worker.signals.finished.connect(self._discard_http_worker)
-        worker.signals.failed.connect(self._discard_http_worker)
         if on_done is not None:
             worker.signals.finished.connect(on_done)
         if on_error is not None:
@@ -2064,24 +2061,30 @@ class MainWindow(QMainWindow):
             # 默认失败回调**也必须是 bound method**：原来这里是 lambda，
             # 它自己和整条链路一起静默失效，等于"网络失败什么都不显示"。
             worker.signals.failed.connect(self._report_request_failure)
+        # 清理**最后连**：它释放最后一个强引用，排在前面的槽才有活的 sender 可用。
+        worker.signals.finished.connect(self._discard_http_worker)
+        worker.signals.failed.connect(self._discard_http_worker)
         self.pool.start(worker)
 
     def _discard_http_worker(self, *_payload: object) -> None:
         """G2c：worker 落地后把它从保活集合里摘掉。
 
-        四条约束同时成立，缺一条就等于没修（前三条是设计，第四条是实测踩出来的）：
+        三条设计约束 + 一条实测约束：
 
         1. **必须是 bound method**。连到 QObject 的 bound method 时，连接注册挂在
            **receiver**（本窗口）上，窗口活着就一直在；lambda / 闭包挂在 sender 的
            Python 包装上，包装一扔就没了 —— 用 lambda 做清理等于没写；
-        2. **必须连在用户回调之前**（见 `_request_json_async` 注释）；
-        3. **自己绝不抛异常**。清理是收尾动作，它炸了会把用户回调一起带走；
-        4. **不许在信号派发中途释放最后一个强引用**。这是实测出来的坑：直接
-           `self._pending_http.discard(worker)` 看似天经地义，但本槽是**第一个**连接的
-           槽 —— 它一跑完，worker 的 Python 包装引用计数归零、`signals` 随之销毁，
-           Qt 接着派发**后序**的槽（用户回调）就落在一个已死的 sender 上，静默不执行。
-           症状与"没修"一模一样（实测：IO 跑了、清理跑了、`on_done` 仍 0 次）。
-           所以这里只**标记落地**，真正摘除交给 `_sweep_http_workers`（下一轮事件循环）。
+        2. **自己绝不抛异常**。清理是收尾动作，不该因为一个异常改变请求的结局
+           （整段包在 try/except 里，失败也不改变"这条请求已经结束"的事实）；
+        3. **必须连在用户回调之后（最后一个）**。本槽一跑完就把 worker 的最后一个
+           强引用放掉，Python 包装析构、`signals` 随之销毁 —— **凡在它之后仍需
+           sender 的槽都会掉**（实测：清理先连 + 立即 discard → 用户回调 0 次，
+           与"完全没修"逐字相同的症状；QA 在独立 worktree 复现 5/5）；
+        4. **不需要把释放 defer 到下一轮事件循环**。跨线程信号是**一条连接一个
+           queued 事件**，一条槽抛异常不会吃掉下一条事件 —— 所以"用户回调抛异常会
+           跳过清理"不成立（实测：用户回调抛 `RuntimeError`，`_pending_http` 照样
+           排空）。排最后就够了，加 `QTimer.singleShot(0, ...)` 只是多一层没人需要的
+           时序复杂度。
 
         用 `self.sender()` 认领是哪一个：`finished`/`failed` 只带载荷、不带 worker 本身，
         而 sender 就是那个 worker 的 `signals`。在飞请求是常数级，线性扫一遍即可。
@@ -2090,19 +2093,10 @@ class MainWindow(QMainWindow):
             sender = self.sender()
             for worker in self._pending_http:
                 if worker.signals is sender:
-                    self._landed_http.append(worker)
-                    break
-            # 只挂一次扫描：本槽会被多次调用（每个 worker 一次），重复挂定时器没意义。
-            if len(self._landed_http) == 1:
-                QTimer.singleShot(0, self._sweep_http_workers)
+                    self._pending_http.discard(worker)
+                    return
         except Exception:  # noqa: BLE001 —— 清理不许影响调用方
             pass
-
-    def _sweep_http_workers(self) -> None:
-        """G2c：本轮信号派发已结束，现在才可以真正放掉落地的 worker。"""
-        for worker in self._landed_http:
-            self._pending_http.discard(worker)
-        self._landed_http.clear()
 
     def _report_request_failure(self, message: object) -> None:
         """G2c：请求失败又没有专门 `on_error` 时的默认出口。
@@ -2256,6 +2250,11 @@ class MainWindow(QMainWindow):
             # 在玩家还没读完时就抽走。timeout=0 → 一直显示，直到「网络已恢复」那条
             # success 把它顶掉（恢复消息照常 5s 自动消失）。
             # 注意：**不是**新增常驻指示 —— 复用的就是同一条反馈条，不碰 banner、不碰侧栏。
+            # 口径（team-lead G2c 裁定）：**不得新增常驻信息；既有常驻恢复为常驻不算新增**。
+            # 全桌面端共 3 条 timeout=0（本条 / 「自动重连失败，请重新加入房间」/
+            # 「网络中断，正在重连 (n/N)」），三者在 `git show efeb61c` 原文里都是
+            # showMessage 无 timeout，属恢复迁移前语义；且互相顶替，同时只显示 1 条。
+            # 下一个人请勿按「只能有一条常驻」砍掉另外两条。
             self.notify("网络已断开" if lang != "en" else "Network disconnected", "error", 0)
             return
         if self.network_reconnect_attempts >= net.MAX_RECONNECT_ATTEMPTS:
@@ -2708,9 +2707,7 @@ class MainWindow(QMainWindow):
         self.cancel.set()
         self.close_network()
         # G2c：窗口要走就别再替在飞请求保活 —— 放到这里，进程退出前也不留悬挂引用。
-        # `_landed_http` 一并清：那些 worker 已经落地，只是还欠一次扫描。
         self._pending_http.clear()
-        self._landed_http.clear()
         self.audio.stop()
         save_config(self.config)
         super().closeEvent(event)

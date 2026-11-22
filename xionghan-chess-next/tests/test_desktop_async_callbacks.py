@@ -170,7 +170,7 @@ def test_create_online_callback_reaches_gui(window, monkeypatch: pytest.MonkeyPa
     assert opened[0][1]["roomId"] == "ABCD"
     assert box.calls[0][0] == "information"
     assert "ABCD" in box.calls[0][2], "房间号没进提示文案，玩家拿不到房号"
-    assert _pending(window) == [], "请求已落地，登记表里还留着 worker"
+    assert _spin(lambda: _pending(window) == []), "请求已落地，登记表里还留着 worker"
 
 
 def test_join_online_callback_reaches_gui(window, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -195,7 +195,7 @@ def test_join_online_callback_reaches_gui(window, monkeypatch: pytest.MonkeyPatc
 
     assert arrived, "加房回调在真实事件循环里丢了：open_network 一次都没被调用"
     assert opened[0][1]["roomId"] == "ABCD"
-    assert _pending(window) == [], "请求已落地，登记表里还留着 worker"
+    assert _spin(lambda: _pending(window) == []), "请求已落地，登记表里还留着 worker"
 
 
 def test_failure_callbacks_reach_gui(window, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -215,7 +215,7 @@ def test_failure_callbacks_reach_gui(window, monkeypatch: pytest.MonkeyPatch) ->
     assert arrived, "检查更新失败的回调没到达：玩家点了菜单，什么都不会发生"
     assert box.calls[0][0] == "warning"
     assert "检查更新失败" in box.calls[0][1]
-    assert _pending(window) == [], "失败请求落地后登记表没清空"
+    assert _spin(lambda: _pending(window) == []), "失败请求落地后登记表没清空"
 
     # 分支 B：没给 on_error → 走默认失败回调（P1-10 通道，error 级）
     window.feedback.clear()
@@ -224,7 +224,7 @@ def test_failure_callbacks_reach_gui(window, monkeypatch: pytest.MonkeyPatch) ->
     assert shown, "默认失败回调没到达：网络请求失败时界面一片安静"
     assert window.feedback.current_level == "error", "网络失败应当被当成 error 级反馈"
     assert window.feedback.current_timeout_ms != 0, "网络失败提示不该常驻（会话没结束）"
-    assert _pending(window) == [], "默认失败分支跑完登记表没清空"
+    assert _spin(lambda: _pending(window) == []), "默认失败分支跑完登记表没清空"
 
 
 def test_pending_requests_never_leak(window, monkeypatch: pytest.MonkeyPatch) -> None:
