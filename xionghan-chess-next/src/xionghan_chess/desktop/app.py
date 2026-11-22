@@ -683,7 +683,8 @@ class MainWindow(QMainWindow):
         # —— 不报错、不回调。实测矩阵：保 worker 或保 `signals` → 回调到达；只保 callable 或
         # 只保 SignalInstance → 不到达；换成 QObject 的 bound method 接收者则不受影响。
         # 本处真事件循环下不保也能到达（见 docs 注释与 G2b 报告），但代价为零，显式保命。
-        # 相关既有风险：`_request_json_async` 的回调全是闭包/lambda（G2b 已上报，待裁决）。
+        # `_request_json_async` 的同型风险（回调全是闭包/lambda）已由那边的 `_pending_http`
+        # 保活解决 —— 闭包连接在 worker 的 Python 包装释放后会失效，所以必须有人持有 worker。
         self._hint_worker = worker
         self.pool.start(worker)
 
