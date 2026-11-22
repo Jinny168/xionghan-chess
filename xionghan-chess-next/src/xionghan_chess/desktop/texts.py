@@ -28,6 +28,11 @@ _LANGUAGE = "zh-CN"
 EN: dict[str, str] = {
     # ---- 菜单 / 主界面 ----
     "残局与排局训练": "Endgame & set-play drills",
+    # 2.2.0 轻量模式预设：老用户的一次性提示（不改用户档位）
+    "新增「轻量模式」预设：保留「射」等增强走法，只关掉入侵取胜、兵卒复活、三线吃子三条额外规则，更适合上手。可在设置里切换。": (
+        "New “Light mode” preset: keeps enhanced moves like the archer, and only turns off the three extra rules — "
+        "invasion victory, pawn resurrection, and three-line capture. Easier to pick up; switch in Settings."
+    ),
     # D4 首跑引导（状态栏横幅）
     "① 选对手：右侧面板有人机 / 双人 / 联机": "① Pick an opponent: AI / two players / online (right panel)",
     "② 走一步：点自己的棋子，再点落点": "② Move: click your piece, then its destination",

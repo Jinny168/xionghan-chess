@@ -234,6 +234,7 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(self.hint_button)
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
         QTimer.singleShot(0, self.maybe_show_onboarding)
+        QTimer.singleShot(0, self.maybe_introduce_light_profile)
         icon_path = theme.resource("icon.ico")
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
@@ -613,6 +614,37 @@ class MainWindow(QMainWindow):
         )
         self.statusBar().showMessage(text, 15000)
         self.config["onboarded"] = True
+        save_config(self.config)
+
+    def maybe_introduce_light_profile(self) -> None:
+        """老用户一次性告知「轻量模式」预设已上线 —— 只提示，**不改档位**。
+
+        为什么不把 `desktop_complete` 自动迁到 `desktop_light`：
+
+        1. 项目原则是「用户的选择不再被静默替换」，自动改档违背它；
+        2. 设置窗口保存的是 `rule_options` **全量键**，只改 profile 会被那批存量键
+           压掉，产出一个「看起来换了档、规则却没变」的静默无效结果。
+
+        题目态与观战态**分开判**：这是两件不同的事，合成一个布尔会让以后想单独
+        调整其中一条的人无从下手。
+        """
+        if self.config.get("profile") != "desktop_complete":
+            return
+        if self.config.get("light_profile_intro_shown", False):
+            return
+        if self.puzzle_session is not None:
+            return
+        if self.spectating:
+            return
+        self.notify(
+            dl(
+                "新增「轻量模式」预设：保留「射」等增强走法，只关掉入侵取胜、兵卒复活、"
+                "三线吃子三条额外规则，更适合上手。可在设置里切换。"
+            ),
+            "info",
+            15000,
+        )
+        self.config["light_profile_intro_shown"] = True
         save_config(self.config)
 
     def show_puzzle_hint(self) -> None:

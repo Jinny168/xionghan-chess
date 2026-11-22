@@ -142,6 +142,9 @@ DEFAULTS: dict[str, Any] = {
     "training": {},
     # 首跑引导是否已看过（D4）。纯新增键，不 bump schema_version。
     "onboarded": False,
+    # 2.2.0 新增「轻量模式」预设：老用户的 profile **不自动迁移**，只在启动时提示一次。
+    # 纯新增键，不 bump schema_version；不进云同步映射（本地一次性提示）。
+    "light_profile_intro_shown": False,
 }
 
 # S1-9：这些键改变「规则 / 对局结构」，改了就必然要重开一局。
