@@ -82,6 +82,8 @@ EN: dict[str, str] = {
     "还没轮到你": "Not your turn yet",
     "这一步没算出推荐着法": "No suggestion for this position",
     "这一步": "this move",
+    # P0-4 首次选中「射」时的一次性星轨引导
+    "射的星位决定它能打多远": "An archer's star points decide how far it can strike",
     # ---- 对局操作 ----
     "认输": "Resign",
     "确认认输并结束当前对局？": "Resign and end this game?",

@@ -117,6 +117,9 @@ DEFAULTS: dict[str, Any] = {
     # P1-7：选中经典档「射」时显示到星位锚点的放射线。纯新增键，不 bump
     # 配置文件 schema 版本（旧配置由 `{**DEFAULTS, **data}` 补默认值）；也不进云同步映射。
     "archer_star_hints": False,
+    # P0-4：首次选中「射」时**自动开一次**星轨提示的引导是否已经看过。纯新增键，
+    # 不 bump schema_version；不进云同步映射（本地一次性引导，不该跨设备同步）。
+    "archer_star_intro_shown": False,
     "taunts": True,
     "countdown_seconds": 30,
     "autosave": True,

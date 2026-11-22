@@ -207,6 +207,8 @@ class MainWindow(QMainWindow):
         self._hint_plies: int | None = None
         # 在飞的 HintWorker 强引用（见 `show_move_hint`：不保住它，回调会静默丢失）
         self._hint_worker: HintWorker | None = None
+        # P0-4：本次选中是否是「射星轨一次性引导」临时打开的开关
+        self._star_intro_temp = False
         self._spectate_restore: Game | None = None
         self._spectate_paused = False
         self._spectate_step_only = False
@@ -391,6 +393,8 @@ class MainWindow(QMainWindow):
         self.board = BoardWidget()
         self.board.move_requested.connect(self.human_move)
         self.board.piece_selected.connect(lambda: self.audio.play("select"))
+        # P0-4：首次选中「射」时自动开一次星轨提示（与上面那条播声音互不影响）
+        self.board.piece_selected.connect(self._maybe_star_intro)
         self._board_host = _SquareHost(self.board)
         split.addWidget(self._board_host)
         side_inner = QWidget()
@@ -700,6 +704,58 @@ class MainWindow(QMainWindow):
         self._hint_plies = plies
         self.board.update()
         self.notify(dlf("提示：{move}", move=text), "info", 6000)
+
+    def _maybe_star_intro(self) -> None:
+        """P0-4：首次选中「射」时，**只对这一次选中**打开星轨提示并解释一句。
+
+        为什么是"一次性引导"而不是默认打开：星轨是理解「射」的强辅助，但常驻会盖住
+        盘面（P1-7 已把它默认关闭、并按题态统一屏蔽）。新手恰恰不会去设置里找这个开关，
+        所以第一次选中「射」时替他开一次 —— 看见一次就懂了，之后由他自己决定。
+
+        触发条件**逐条独立判断**（观战与题目态分开判，不合并成一个布尔）：合并之后
+        一旦将来只想放开其中一个场景，就得先把这个布尔拆开，等于埋一个必踩的坑。
+        """
+        state = self.board.game.state if self.board.game else None
+        selected = self.board.selected
+        piece = state.piece_at(selected) if state and selected else None
+        is_archer = piece is not None and piece.type is PieceType.ARCHER
+        if self._star_intro_temp and not is_archer:
+            # 上一次引导还开着、这次点了别的子：先收回，再把开关交还给用户设置。
+            self._restore_star_intro()
+        if not is_archer or self._star_intro_temp:
+            return
+        if self.config.get("archer_star_intro_shown", False):
+            return
+        # 用户自己已经开了星轨 —— 没有什么可引导的，更不能把开关从他手里抢走。
+        if self.board.show_archer_star_hints:
+            return
+        if self.spectating:
+            return
+        if self.puzzle_session is not None:
+            return
+        self._star_intro_temp = True
+        self.board.show_archer_star_hints = True
+        self.board.update()
+        self.notify(dl("射的星位决定它能打多远"), "info", 8000)
+        self.config["archer_star_intro_shown"] = True
+        save_config(self.config)
+
+    def _restore_star_intro(self) -> None:
+        """收回一次性打开的星轨提示：**只在本次是临时开启时**动手。
+
+        `_star_intro_temp` 为 False 时什么都不做 —— 用户自己开的开关不许被这里关掉，
+        这条是 P1-7「不替用户关辅助」的延伸。
+        """
+        if not self._star_intro_temp:
+            return
+        self._star_intro_temp = False
+        self.board.show_archer_star_hints = False
+        self.board.update()
+
+    def _restore_star_intro_if_deselected(self) -> None:
+        """取消选中（点空白格）时收回引导 —— 棋盘没有 `deselect` 信号，只能按状态判。"""
+        if self._star_intro_temp and self.board.selected is None:
+            self._restore_star_intro()
 
     def _record_daily_start(self) -> None:
         """打开每日题时惰性归零：昨天没做完就断在这里，不写定时任务。"""
@@ -1490,6 +1546,9 @@ class MainWindow(QMainWindow):
         self.notify(prefix + message, "warn", 10000)
 
     def configure_board(self) -> None:
+        # 星轨的临时引导态在每次重配棋盘时归零：下面会按 config 重新推导开关，
+        # 留着一个 True 会让"恢复原值"在之后误关用户自己开的辅助。
+        self._star_intro_temp = False
         self.board.language = self.config.get("language", "zh-CN")
         self.board.set_appearance(
             self.config.get("theme", "classic"),
@@ -2247,6 +2306,7 @@ class MainWindow(QMainWindow):
         lang = self.config.get("language", "zh-CN")
         history_key = tuple(record.notation for record in state.history)
         self._drop_stale_hint(state)
+        self._restore_star_intro_if_deselected()
         self._update_banner(state, lang)
         self._pulse_check_if_needed(state)
         self._update_player_labels(state, lang)
