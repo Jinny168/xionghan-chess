@@ -2540,6 +2540,8 @@ function bindDialogs() {
       const data = JSON.parse(await file.text());
       app.game = gameFromDocument(data, getLanguage());
       app.unlimited = true;
+      // 导入棋谱就是换棋谱：旧分析按 ply 下标寻址，留着会贴到这份棋谱上。
+      resetAnalysis();
       app.lastMove = app.game.state.history.at(-1)?.move || null;
       clearSelection();
       closeReplay();
