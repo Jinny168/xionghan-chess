@@ -177,6 +177,8 @@ class MainWindow(QMainWindow):
         self.audio = DesktopAudio()
         self._stats_recorded = False
         self._autosaved = False
+        # 自动存档失败只在**首次**提示：失败后会每 250ms 重试，不能每轮都刷一次反馈条。
+        self._autosave_notify_failed = False
         self._shown_result = False
         self._play_again_pending = False
         self._reset_taunt_ledger()
@@ -529,6 +531,7 @@ class MainWindow(QMainWindow):
         self.board.locked = False
         self._stats_recorded = False
         self._autosaved = False
+        self._autosave_notify_failed = False
         self.refresh()
         self._reset_taunt_ledger()
         if not local and self.game.state.turn is not human:
@@ -2342,6 +2345,7 @@ class MainWindow(QMainWindow):
         if not self.game.state.history:
             self._stats_recorded = False
             self._autosaved = False
+            self._autosave_notify_failed = False
         lang = self.config.get("language", "zh-CN")
         self.statusBar().showMessage(
             f"{'房间' if lang != 'en' else 'Room'} {snapshot['roomId']} · {'状态版本' if lang != 'en' else 'revision'} {self.revision}"
@@ -2671,12 +2675,21 @@ class MainWindow(QMainWindow):
         if self.config.get("autosave", True) and not self._autosaved:
             try:
                 path = autosave_game(self.game)
+            except Exception as exc:
+                # 不只要捕 OSError：序列化层的 TypeError/ValueError 同样会穿出定时器槽，
+                # 产生与战绩落盘同型的 250ms 报错循环。失败**不**置位 `_autosaved` ——
+                # 磁盘短暂占用这类问题是可恢复的，下一轮应当重试。
+                # 但重试每 250ms 一次，所以提示只发一次，避免反馈条刷屏。
+                if not self._autosave_notify_failed:
+                    self._autosave_notify_failed = True
+                    self.notify(
+                        ("自动保存失败：" if lang != "en" else "Auto-save failed: ") + f"{exc}", "error", 8000
+                    )
+            else:
+                self._autosaved = True
                 self.notify(
                     ("棋谱已自动保存：" if lang != "en" else "Replay auto-saved: ") + f"{path}", "success", 8000
                 )
-            except OSError as exc:
-                self.notify(("自动保存失败：" if lang != "en" else "Auto-save failed: ") + f"{exc}", "error", 8000)
-            self._autosaved = True
         if not self._shown_result:
             self._shown_result = True
             winner = (
