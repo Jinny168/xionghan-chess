@@ -2659,7 +2659,14 @@ class MainWindow(QMainWindow):
             self._shown_result = False
             return
         if not self._stats_recorded:
-            record_result(self.game, self.session_color.value)
+            try:
+                record_result(self.game, self.session_color.value)
+            except Exception as exc:
+                # 本函数跑在 250ms 定时器槽上：异常穿出 refresh() 会让哨兵保持 False，
+                # 于是每 250ms 重试一次并抛一次，同时把后面的结果弹窗整段饿死 ——
+                # 用户看到的只是「终局什么都不发生」。与自动存档那段同型处理：
+                # 失败也要置位（不再重试），并留一条可见的 error 反馈。
+                self.notify(dlf("战绩保存失败：{detail}", detail=str(exc)), "error", 8000)
             self._stats_recorded = True
         if self.config.get("autosave", True) and not self._autosaved:
             try:

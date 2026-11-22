@@ -167,7 +167,17 @@ EN: dict[str, str] = {
     "残局": "Endgame",
     "本局各阶段失分分布较为平均。": "Losses are spread fairly evenly across phases.",
     "本局可复盘的手数不足，未形成阶段归纳。": "Not enough reviewed moves for a phase summary.",
-    "评分下降较多的手：": "Biggest score drops:",
+    # P0-1 呈现轻量非权威：只给档位与相对走势，不给分值（措辞与 webapp 的同名文案对齐）
+    "档位较低的手：": "Lower-graded moves:",
+    "走势样本不足，未作归纳": "Not enough samples for a trend summary",
+    "中段一度吃紧后转好": "Tight in the middle, then recovered",
+    "中段一度吃紧，末段仍未回到开局局面": "Tight in the middle, still below the opening position",
+    "开局之后逐步转入吃紧": "Gradually tighter after the opening",
+    "整体逐步转为宽松": "Gradually more comfortable overall",
+    "整体大致保持平稳": "Broadly steady throughout",
+    "浅层参考：依据本机浅层搜索，仅供参考。": "Shallow reference: based on a local shallow search, for reference only.",
+    "逐手档位（浅层参考）：": "Per-move grades (shallow reference):",
+    "沙盘不可用": "Sandbox unavailable",
     # ---- 训练 / 题库 ----
     "导入题库": "Import puzzles",
     "题库导入": "Puzzle import",
@@ -231,10 +241,12 @@ TEMPLATES: dict[str, str] = {
     "已导入 {added} 条题目{suffix}。当前自定义题库共 {total} 条。": "Imported {added} puzzle(s){suffix}. Custom bank now has {total}.",
     "没有新增题目（{skipped} 条 id 已存在）。": "Nothing new added ({skipped} id(s) already exist).",
     "，{skipped} 条已存在跳过": ", {skipped} skipped as duplicates",
+    # 终局副作用失败：写盘异常 / 题面与解法对不上，都必须让玩家看见
+    "战绩保存失败：{detail}": "Could not save statistics: {detail}",
     "自动重连失败，请重新加入房间": "Reconnect failed, please rejoin the room",
     "网络中断，正在重连": "Connection lost, reconnecting",
     "{profile} · {plies} 手": "{profile} · {plies} moves",
-    "{ply}. {notation}  · {quality}  · 损失 {loss}": "{ply}. {notation}  · {quality}  · loss {loss}",
+    "{ply}. {notation} · {quality}": "{ply}. {notation} · {quality}",
     "第 {step} / {total} 步 · {notation}": "Move {step} / {total} · {notation}",
     "背景 {index}": "Background {index}",
     "未知档位「{name}」，已回落到默认": "Unknown level “{name}” — reverted to the default",
@@ -246,8 +258,12 @@ TEMPLATES: dict[str, str] = {
     # E2 复盘报告模板
     "本局共复盘 {ply} 手。": "Reviewed {ply} move(s).",
     "本局出现 {total} 处非最佳手（欠准 {a}、失误 {b}、严重失误 {c}）。": "Non-best moves: {total} (inaccuracy {a}, mistake {b}, blunder {c}).",
-    "第 {ply} 手 {notation} 评分下降 {loss}（{quality}）。": "Move {ply} {notation}: score dropped {loss} ({quality}).",
-    "胜率曲线由 {start}% 走到 {end}%，区间 {min}%–{max}%。": "Win-rate curve: {start}% to {end}%, range {min}%–{max}%.",
+    # P0-1：关键手只报档位，不报分值
+    "第 {ply} 手 {notation} · {quality}。": "Move {ply} {notation} · {quality}.",
+    "胜率走势：{trend}。": "Win-rate trend: {trend}.",
+    # 满上限提示，措辞与 webapp 的 analysis.capped 一致
+    "（仅分析前 {n} 手）": "(first {n} plies only)",
+    "无法构造沙盘：{reason}": "Could not build the sandbox: {reason}",
     "本局失分集中在{phase}阶段。": "Losses concentrated in the {phase} phase.",
 }
 
