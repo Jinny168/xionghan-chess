@@ -218,6 +218,25 @@ def _as_int(value: Any, default: int, low: int, high: int) -> int:
     return max(low, min(high, number))
 
 
+def _coerce_numeric(data: dict[str, Any]) -> dict[str, Any]:
+    """把数值型配置键收敛到合法类型与范围（幂等，只碰数值键）。
+
+    原先是 `_migrate_v0` 的一次性动作。但 `migrate()` 对 `schema_version == CONFIG_VERSION`
+    的配置根本不进迁移循环 —— 手改坏的 v2 文件里 `"sound_volume": "loud"` 会原样进内存，
+    `audio.py` 的 `int(...)` 在 `MainWindow.__init__` 抛 ValueError，表现为**启动期崩溃**。
+    所以同一个收敛也要在 `load_config()` 末尾无条件再跑一次。
+
+    刻意只处理数值键：字符串 / 布尔键（`theme` / `language` / `sound` …）的语义由各自
+    的归一逻辑负责，不能在这里被顺手改写。
+    """
+    result = dict(data)
+    result["initial_minutes"] = _as_int(result.get("initial_minutes"), DEFAULTS["initial_minutes"], 1, 180)
+    result["sound_volume"] = _as_int(result.get("sound_volume"), 70, 0, 100)
+    result["music_volume"] = _as_int(result.get("music_volume"), 40, 0, 100)
+    result["countdown_seconds"] = _as_int(result.get("countdown_seconds"), 30, 0, 600)
+    return result
+
+
 def _migrate_v0(data: dict[str, Any]) -> dict[str, Any]:
     """0 -> 1：把「没版本号时代」的配置收敛到合法类型与范围。
 
@@ -227,11 +246,7 @@ def _migrate_v0(data: dict[str, Any]) -> dict[str, Any]:
     （v1 -> v2 是这条原则的**有意例外**，理由见 `_migrate_v1` —— 那里删的是
     「对应选项已被产品删除」和「当年默认值被写进配置」两类键，不是用户的数据。）
     """
-    result = dict(data)
-    result["initial_minutes"] = _as_int(result.get("initial_minutes"), DEFAULTS["initial_minutes"], 1, 180)
-    result["sound_volume"] = _as_int(result.get("sound_volume"), 70, 0, 100)
-    result["music_volume"] = _as_int(result.get("music_volume"), 40, 0, 100)
-    result["countdown_seconds"] = _as_int(result.get("countdown_seconds"), 30, 0, 600)
+    result = _coerce_numeric(data)
     for key in ("rule_options", "setup_slots"):
         if not isinstance(result.get(key), dict):
             result[key] = {}
@@ -276,6 +291,14 @@ _MIGRATIONS: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {
 }
 
 
+def _schema_version(data: dict[str, Any]) -> int:
+    """读取 `schema_version`；缺失或坏值一律按 0（「没版本号时代」）处理。"""
+    try:
+        return int(data.get("schema_version", 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 def migrate(data: dict[str, Any]) -> tuple[dict[str, Any], bool]:
     """按 `schema_version` 顺序迁移，返回 (结果, 是否改动过)。
 
@@ -283,10 +306,7 @@ def migrate(data: dict[str, Any]) -> tuple[dict[str, Any], bool]:
     旧版本不该自作主张改它（读到的未知键会在合并时保留）。
     """
     raw_version = data.get("schema_version", 0)
-    try:
-        version = int(raw_version)
-    except (TypeError, ValueError):
-        version = 0
+    version = _schema_version(data)
     if version > CONFIG_VERSION:
         return dict(data), False
 
@@ -337,6 +357,12 @@ def load_config() -> dict[str, Any]:
         return dict(DEFAULTS)
     migrated, changed = migrate(raw)
     merged = {**DEFAULTS, **migrated}
+    # 数值键的收敛必须**在迁移之后**再无条件跑一次：v2 配置不进迁移循环，坏值会原样
+    # 进内存（`audio.py` 的 `int(config["sound_volume"])` 直接抛 ValueError，启动期崩溃）。
+    # 但更高版本的配置仍按原样放行（降级保护），且收敛不置 `changed` ——
+    # 读盘不该因为「值被夹紧」而写盘。
+    if _schema_version(raw) <= CONFIG_VERSION:
+        merged = _coerce_numeric(merged)
     style, render = _normalize_piece_style(merged.get("piece_style"), merged.get("piece_render"))
     if (merged.get("piece_style"), merged.get("piece_render")) != (style, render):
         merged["piece_style"], merged["piece_render"] = style, render

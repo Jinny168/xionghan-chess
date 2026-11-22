@@ -481,3 +481,56 @@ def test_oversized_log_is_rotated(isolated_appdata) -> None:
     target.write_bytes(b"x" * (crashlog.CRASH_LOG_LIMIT_BYTES + 1))
     crashlog._truncate_if_oversized(target)
     assert not target.exists()
+
+
+# --------------------------------------------------------------------------- #
+# v2 配置的手改坏值：不迁移也必须收敛（否则 audio.py 启动期 int("loud") 崩溃）
+# --------------------------------------------------------------------------- #
+
+
+def test_v2_config_with_bad_numbers_is_converged(isolated_appdata) -> None:
+    """`schema_version == 2` 不进迁移循环，但数值键仍要收敛。
+
+    回归的是一条真实启动崩溃：`audio.py` 里 `int(config.get("sound_volume", 70))`
+    遇到手改的 `"loud"` 抛 ValueError，发生在 `MainWindow.__init__`。
+    """
+    path = desktop_config.config_path()
+    _write_config(
+        path,
+        {"schema_version": desktop_config.CONFIG_VERSION, "initial_minutes": "abc", "sound_volume": "loud"},
+    )
+    loaded = desktop_config.load_config()
+    assert loaded["initial_minutes"] == desktop_config.DEFAULTS["initial_minutes"] == 10
+    assert loaded["sound_volume"] == desktop_config.DEFAULTS["sound_volume"] == 70
+    assert isinstance(loaded["initial_minutes"], int)
+    assert isinstance(loaded["sound_volume"], int)
+    assert desktop_config.load_config() == loaded, "收敛必须幂等"
+
+
+def test_v2_bad_numbers_do_not_touch_other_keys(isolated_appdata) -> None:
+    """收敛只碰数值键：字符串 / 布尔键的语义不能被顺手改写。"""
+    path = desktop_config.config_path()
+    _write_config(
+        path,
+        {
+            "schema_version": desktop_config.CONFIG_VERSION,
+            "sound_volume": "loud",
+            "theme": "dark",
+            "sound": False,
+            "language": "en",
+        },
+    )
+    loaded = desktop_config.load_config()
+    assert loaded["sound_volume"] == 70
+    assert loaded["theme"] == "dark"
+    assert loaded["sound"] is False
+    assert loaded["language"] == "en"
+
+
+def test_v2_bad_numbers_are_converged_without_rewriting_the_file(isolated_appdata) -> None:
+    """收敛是**读时**行为：不因为夹紧而写盘（只读目录在加载时不该出错）。"""
+    path = desktop_config.config_path()
+    _write_config(path, {"schema_version": desktop_config.CONFIG_VERSION, "sound_volume": "loud"})
+    before = path.read_text(encoding="utf-8")
+    assert desktop_config.load_config()["sound_volume"] == 70
+    assert path.read_text(encoding="utf-8") == before
