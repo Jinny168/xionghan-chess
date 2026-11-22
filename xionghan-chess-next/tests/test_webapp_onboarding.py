@@ -65,6 +65,49 @@ def test_onboarding_has_no_telemetry() -> None:
         assert token not in body, f"引导不得引入网络/采集: {token}"
 
 
+def test_onboarding_try_scope_wraps_only_storage_access() -> None:
+    """`try { ... }` 只许包两行存储访问，不许把整个函数体吞进去。
+
+    为什么这条重要：当前实现是对的 —— 隐私模式下 `localStorage` 连读都会抛，
+    只包「读 + 写」两行，存储不可用时当"已访问过"，而 DOM 创建、定时器、落子
+    检测都留在 try 外，逻辑 bug 仍会照常暴露。但这个"只包存储，不包逻辑"的
+    边界没有任何守卫：将来有人图省事把整个函数体包进 try，全部引导逻辑的异常
+    都会被静默吞掉，既有测试仍会全绿（它们只查键名与调用点）。所以这里直接对
+    源码结构断言 try 块的内容，把边界钉死。
+    """
+    body = _function_body(_read(APP_JS), "maybeShowOnboarding")
+    start = body.index("try {")
+    brace = body.index("{", start)
+    depth = 0
+    for index in range(brace, len(body)):
+        if body[index] == "{":
+            depth += 1
+        elif body[index] == "}":
+            depth -= 1
+            if depth == 0:
+                end = index + 1
+                break
+    else:  # pragma: no cover - 源码不配平时才会走到
+        raise AssertionError("maybeShowOnboarding 的 try 块花括号未配平")
+
+    block = body[start:end]
+    code_lines = [
+        line.strip()
+        for line in block.splitlines()
+        if line.strip() and not line.strip().startswith("//")
+    ]
+    # 去掉 `try {` 与收尾 `}`，块内只应剩两行真实语句。
+    statements = [line for line in code_lines if line not in ("try {", "}")]
+    assert len(statements) == 2, (
+        "try 块内只应有两行存储访问（读 + 写），实际为：\n  " + "\n  ".join(statements)
+    )
+    assert statements[0] == "visited = localStorage.getItem('xh-web-visited');"
+    assert statements[1] == "localStorage.setItem('xh-web-visited', '1');"
+    # 逻辑符号一律不得出现在 try 块内（出现即说明整段逻辑被包进去了）。
+    for token in ("const steps", "setTimeout", "startPlies", "$(`#toast`)", "if ("):
+        assert token not in block, f"引导逻辑 `{token}` 被包进了 try 块，异常会被静默吞掉"
+
+
 def test_first_run_picks_light_profile_without_changing_default() -> None:
     """新用户首次落点=轻量档；系统默认不动（老用户回家路径不变）。"""
     source = _read(APP_JS)
