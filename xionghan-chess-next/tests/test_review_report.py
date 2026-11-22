@@ -12,6 +12,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 from xionghan_chess.desktop import texts
 from xionghan_chess.desktop.ui import report as report_module
 
@@ -88,3 +90,35 @@ def test_empty_result_does_not_raise() -> None:
     assert rep.mistake_total == 0
     assert rep.key_moves == []
     assert rep.conclusion
+
+
+@pytest.mark.parametrize(
+    ("curve", "expected"),
+    [
+        # 无中段凹陷、起终点基本持平
+        ([50.0, 51.0, 50.0, 49.0, 50.0], "整体大致保持平稳"),
+        # 容差边界：中段只回落 4 点，不构成"吃紧"（把 _TREND_EPS 调小会红）
+        ([50.0, 48.0, 46.0, 49.0, 51.0], "整体大致保持平稳"),
+        # 中段凹陷超过容差，末段回到开局附近
+        ([50.0, 45.0, 30.0, 28.0, 40.0, 50.0], "中段一度吃紧后转好"),
+        # 无凹陷、单调下行
+        ([50.0, 48.0, 46.0, 44.0, 42.0, 40.0], "开局之后逐步转入吃紧"),
+        # 中段凹陷且末段仍低于开局
+        ([50.0, 45.0, 30.0, 28.0, 40.0, 42.0], "中段一度吃紧，末段仍未回到开局局面"),
+        # 无凹陷、单调上行
+        ([40.0, 42.0, 44.0, 46.0, 48.0, 50.0], "整体逐步转为宽松"),
+        # 一个点不足以谈走势
+        ([50.0], "走势样本不足，未作归纳"),
+    ],
+)
+def test_trend_phrase_matches_curve_shape(curve: list[float], expected: str) -> None:
+    """`_TREND_EPS` 决定措辞分支，必须被钉住：呈现面没有百分比可复核。
+
+    文字准确性完全压在阈值上，用户又无法自己验算，所以这里直接把六种曲线形状
+    与断言到的那句话对齐；调阈值或改判定顺序，至少有一条会红。
+    """
+    report = report_module.build_report(
+        {"analyzedPlies": 0, "summary": {}, "moves": [], "winRateCurve": curve}
+    )
+    trend_lines = [line for line in report.lines if line.startswith("胜率走势：")]
+    assert trend_lines == [f"胜率走势：{expected}。"], f"曲线 {curve} 选错了措辞"
