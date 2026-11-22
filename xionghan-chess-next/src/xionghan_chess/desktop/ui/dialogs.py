@@ -847,8 +847,9 @@ class ReplayDialog(QDialog):
         self.sandbox_hint.setText(text)
 
     def show_analysis(self) -> None:
-        # 阶段0 S0-C：analyze_game(40 ply) 原先在 GUI 线程同步跑，复盘窗直接冻结。
-        # 移到线程池，完成后经 Signal 回到 GUI 线程弹结果。
+        # 阶段0 S0-C：analyze_game 原先在 GUI 线程同步跑，复盘窗直接冻结。
+        # 移到线程池，完成后经 Signal 回到 GUI 线程弹结果；手数上限见
+        # workers.ANALYSIS_PLY_CAP（与 web/webapp 同值）。
         game = Game.from_state(self.snapshots[-1].clone(), self.options)
         game._snapshots = [item.to_dict() for item in self.snapshots[:-1]]
         worker = AnalysisWorker(game, self._analysis_cancel)
@@ -877,7 +878,12 @@ class ReplayDialog(QDialog):
             "mistake": dl("失误"),
             "blunder": dl("严重失误"),
         }
-        lines = ["  ".join(f"{labels[key]} {value}" for key, value in result["summary"].items()), ""]
+        lines = ["  ".join(f"{labels[key]} {value}" for key, value in result["summary"].items())]
+        # webapp 同口径：满上限时补一句「（仅分析前 N 手）」，不让玩家以为全谱都看过了。
+        capped = int(result.get("cappedPlies", 0))
+        if capped:
+            lines.append(dlf("（仅分析前 {n} 手）", n=capped))
+        lines.append("")
         report = build_report(result)
         lines.extend(report.lines)
         lines.append("")

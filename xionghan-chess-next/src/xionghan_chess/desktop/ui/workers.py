@@ -7,7 +7,7 @@ Widget** —— 因此可以被无显示环境（CI offscreen）安全导入与�
 - `AIWorker`      —— AI 搜索（长任务；实测 HARD 1.481s，而 refresh tick 仅 1.28ms）
 - `HintWorker`    —— 常规对局的下一步提示（同一条搜索，但**只回着法、不落子**）
 - `HttpWorker`    —— 建连 / 云同步的阻塞 HTTP（原在 GUI 线程跑，最长冻结 15s）
-- `AnalysisWorker`—— 复盘分析（40 ply；原在 GUI 线程同步跑）
+- `AnalysisWorker`—— 复盘分析（≤120 ply；原在 GUI 线程同步跑）
 
 它们都通过 `signals.finished/failed` 把结果送回 GUI 线程（跨线程发射 +
 AutoConnection，Qt 官方语义）。
@@ -23,6 +23,11 @@ from xionghan_chess.core.ai import ChessAI, Difficulty
 from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.game import Game
 from xionghan_chess.desktop import net
+
+# 复盘分析的手数上限。**须与 web / webapp 同值**：`webapp/js/ui/app.js` 的
+# `const CAP = 120`，web 侧同口径。三端一旦漂移，同一盘棋在桌面与网页会拿到
+# 不同深度的点评（而用户无从比较，只会觉得"哪边不准"）。
+ANALYSIS_PLY_CAP = 120
 
 
 class WorkerSignals(QObject):
@@ -117,6 +122,11 @@ class AnalysisWorker(QRunnable):
 
     def run(self) -> None:
         try:
-            self.signals.finished.emit(analyze_game(self.game, Difficulty.BEGINNER, 40, self.cancel))
+            result = analyze_game(self.game, Difficulty.BEGINNER, ANALYSIS_PLY_CAP, self.cancel)
+            # 棋谱比上限长时，把"只分析了前 N 手"随载荷交给 GUI 提示（webapp 同口径）。
+            plies = len(self.game.state.history)
+            if plies > ANALYSIS_PLY_CAP:
+                result = dict(result, cappedPlies=ANALYSIS_PLY_CAP)
+            self.signals.finished.emit(result)
         except Exception as exc:  # noqa: BLE001
             self.signals.failed.emit(str(exc))
