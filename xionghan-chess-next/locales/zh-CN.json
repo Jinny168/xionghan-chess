@@ -611,5 +611,12 @@
     "streakKept": "最高记录保留",
     "streakPractice": "这只是练习，不影响你的进度",
     "streakAgain": "再来一局"
+  },
+  "analysis": {
+    "best": "最佳",
+    "good": "良好",
+    "inaccuracy": "欠准",
+    "mistake": "失误",
+    "blunder": "严重失误"
   }
 }

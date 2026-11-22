@@ -611,5 +611,12 @@
     "streakKept": "Your best record is kept",
     "streakPractice": "This is just practice; your progress is unaffected",
     "streakAgain": "Play again"
+  },
+  "analysis": {
+    "best": "Best",
+    "good": "Good",
+    "inaccuracy": "Inaccuracy",
+    "mistake": "Mistake",
+    "blunder": "Blunder"
   }
 }
