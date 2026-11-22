@@ -1167,10 +1167,9 @@ class MainWindow(QMainWindow):
 
     def finish_ai(self, result: tuple[Move | None, threading.Event]) -> None:
         move, cancel = result
-        # 读条必须在**每个出口**停掉并归零：成功 / move is None / 取消都一样，
-        # 否则取消后条会一直往前爬（预算耗尽了也不会自己归零）。
-        # 读条必须在**每个出口**停掉：取消路径甚至不进入下面的解锁分支，
-        # 少这一行就会出现"取消后条还在爬"（有回归用例盯着）。
+        # 读条必须在**每个出口**停掉并归零（成功 / move is None / 取消都一样），
+        # 否则条会一直往前爬（预算耗尽也不会自己归零）。
+        # 取消路径不进下面的解锁分支，所以这一行不可省（有回归用例盯着）。
         self._end_thinking()
         if cancel.is_set():
             return
