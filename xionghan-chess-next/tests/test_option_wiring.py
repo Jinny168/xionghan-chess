@@ -352,3 +352,57 @@ def test_three_fronts_read_the_shared_action_table() -> None:
 
     service = (ROOT / "src" / "xionghan_chess" / "service" / "app.py").read_text(encoding="utf-8")
     assert '"actionRequirements": action_requirements()' in service, "接口没有下发动作依赖表"
+
+
+# --- 文档里的字段数（防「33 字段」这类数字再漂）------------------------------
+#
+# 只守**一种**表述：同一行里 `RuleOptions` 之后紧跟的「N 字段 / N 个字段」。
+# 刻意不泛化成「文档里所有数字」——人日、行号、「8 项投稿字段」这类数字
+# 各有各的语境，全判红只会让门禁变成噪声，红了没人信、也没人修。
+#
+# 扫描范围：docs/**/*.md + README.md。本文件不扫（否则就是自己守自己）。
+
+_FIELD_COUNT_RE = re.compile(r"RuleOptions[^\n]{0,40}?(\d+)\s*个?\s*字段")
+
+# 显式豁免：历史实测记录。数字是**当时的证据**，改成现值等于篡改历史，
+# 所以保留原数字，由正文的更正注记指明现值。
+# 按 (路径, 数字) 登记：那句要是被改成别的数字，门禁照样红 ——
+# 不靠"正则恰好没匹配到"来静默放行；反过来，条目再也命中不到也会红（见下面的 stale 断言）。
+_FIELD_COUNT_EXEMPT: dict[tuple[str, int], str] = {
+    ("docs/IMPROVEMENT_PLAN.md", 33): (
+        "C-2 立项时的手测证据，原文已注明「后续删至 32」；改数字等于篡改历史证据"
+    ),
+}
+
+
+def test_doc_rule_options_field_counts_match_code() -> None:
+    """文档里描述 `RuleOptions` 字段数的地方必须等于真实字段数。"""
+    actual = len(fields(RuleOptions))
+    paths = sorted((ROOT / "docs").rglob("*.md")) + [ROOT / "README.md"]
+
+    problems: list[str] = []
+    seen = 0
+    hit_exempt: set[tuple[str, int]] = set()
+    for path in paths:
+        rel = path.relative_to(ROOT).as_posix()
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for match in _FIELD_COUNT_RE.finditer(line):
+                number = int(match.group(1))
+                seen += 1
+                if (rel, number) in _FIELD_COUNT_EXEMPT:
+                    hit_exempt.add((rel, number))
+                    continue
+                if number != actual:
+                    problems.append(f"{rel}:{lineno} 写着 {number} 字段（实际 {actual}）：{match.group(0)}")
+
+    assert not problems, (
+        "文档里的 RuleOptions 字段数与代码不一致：\n  "
+        + "\n  ".join(problems)
+        + f"\n→ 描述当前实现的，改成 {actual}；历史实测记录的，在正文加更正注记后"
+        "登记进 _FIELD_COUNT_EXEMPT（必须写理由）。"
+    )
+    # 门禁自检：正则一条都匹配不到 = 表述全变了、门禁已失效，必须红。
+    assert seen, "没有匹配到任何「RuleOptions…N 字段」表述，门禁已失效，请检查正则"
+    # 豁免表不能留死条目：那句被删/被改写后，豁免必须跟着删，否则是静默漏网的温床。
+    stale = set(_FIELD_COUNT_EXEMPT) - hit_exempt
+    assert not stale, f"以下豁免条目已不再命中，应删除：{sorted(stale)}"
