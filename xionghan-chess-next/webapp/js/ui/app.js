@@ -2163,8 +2163,22 @@ function toast(message, level = 'info') {
 // 不采集不上报。播完自动收起；玩家自行落子（历史变长）也立即收起，避免遮挡对局。
 // 注意：不把"点棋子"当跳过信号——第②步正是鼓励玩家点棋子看亮点，点一下就消失会教 incomplete。
 function maybeShowOnboarding() {
-  if (localStorage.getItem('xh-web-visited')) return;
-  localStorage.setItem('xh-web-visited', '1');
+  // 隐私模式 / 禁用 Cookie / 配额耗尽时，localStorage 连读都会抛。它在 boot() 里被裸调，
+  // boot 无 try、又在顶层调用，于是异常一路逃到全局。实际损害有两条：
+  // ① 顶层未捕获异常（控制台报错，后续排查容易被带偏）；
+  // ② 紧跟其后的 service worker 注册被整段跳过 —— PWA 离线能力失效，用户无感知。
+  // 界面本身不受影响：body.classList.add('ready') 与 app.started 都在它之前完成，
+  // 不是白屏；抛点也在这两行存储访问里，任何 DOM 创建之前，不会留半截遮罩。
+  // 所以只包存储访问，存储不可用即当"已访问过"处理（引导是锦上添花，不该打断 boot）；
+  // 不包整个函数体，否则真正的逻辑 bug 也会被一起吞掉。
+  let visited;
+  try {
+    visited = localStorage.getItem('xh-web-visited');
+    localStorage.setItem('xh-web-visited', '1');
+  } catch {
+    return;
+  }
+  if (visited) return;
   const steps = ['onboard.step1', 'onboard.step2', 'onboard.step3'];
   const timers = [];
   let idx = 0;
