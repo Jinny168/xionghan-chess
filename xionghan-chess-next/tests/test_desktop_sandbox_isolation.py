@@ -20,7 +20,7 @@ import pytest  # noqa: E402
 
 pytest.importorskip("PySide6", reason="桌面端沙盘 GUI 用例依赖 PySide6")
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
 
 from xionghan_chess.core.game import Game  # noqa: E402
 from xionghan_chess.core.model import Color  # noqa: E402
@@ -29,6 +29,7 @@ from xionghan_chess.desktop.sandbox import (  # noqa: E402
     build_sandbox_game,
     undo_sandbox_move,
 )
+from xionghan_chess.desktop.ui import dialogs as dialogs_module  # noqa: E402
 from xionghan_chess.desktop.ui.dialogs import ReplayDialog  # noqa: E402
 
 
@@ -152,6 +153,37 @@ def test_replay_scrub_blocked_while_sandbox_active(qt_app: QApplication) -> None
     assert isinstance(dialog.board.game, Game) and dialog.board.game is not sandbox
     assert dialog.board.interactive is False
     assert dialog.slider.isEnabled() and dialog.moves.isEnabled()
+    dialog.close()
+
+
+def test_sandbox_build_failure_tells_the_user(monkeypatch, qt_app: QApplication) -> None:
+    """副本构造失败要说明原因（修前是静默 `return None`：点沙盘标签毫无反应）。
+
+    隔离语义不变：失败时既不留 active 沙盘，也不把权威 Game 塞给棋盘。
+    """
+    game = _played_game(3)
+    dialog = ReplayDialog(game, {"language": "zh-CN"})
+    authoritative = dialog.board.game
+
+    warnings: list[tuple[str, str]] = []
+
+    def fake_warning(_parent, title: str, text: str) -> None:
+        warnings.append((title, text))
+
+    def boom(_game: Game) -> Game:
+        raise RuntimeError("局面对不上规则集")
+
+    monkeypatch.setattr(dialogs_module, "build_sandbox_game", boom)
+    monkeypatch.setattr(QMessageBox, "warning", fake_warning)
+
+    dialog.tabs.setCurrentIndex(1)  # 进入沙盘标签 → _sandbox_enter
+
+    assert warnings, "沙盘构造失败必须给用户可见提示"
+    title, text = warnings[-1]
+    assert title and "局面对不上规则集" in text, f"提示里缺失败原因：{text}"
+    assert dialog._sandbox_game is None
+    assert not dialog._sandbox_active
+    assert dialog.board.game is authoritative, "构造失败后棋盘不得指向别处"
     dialog.close()
 
 

@@ -740,12 +740,27 @@ class ReplayDialog(QDialog):
         return bool(timer is not None and timer.isActive())
 
     def _sandbox_source(self) -> Game | None:
-        """G5：只从 `snapshots[-1]` 取源，构造失败即禁用；绝不把权威 Game 交出去。"""
+        """G5：只从 `snapshots[-1]` 取源，绝不把权威 Game 交出去。
+
+        构造失败时异常**上抛给调用方**：沙盘起不来必须说清原因，静默置灰等于把
+        "点了没反应"留给玩家。隔离语义不变 —— 这里产出的始终是 `clone()` 副本。
+        """
         if not self.snapshots:
             return None
+        return Game.from_state(self.snapshots[-1].clone(), self.options, setup=self.setup)
+
+    def _sandbox_build_failed(self, exc: Exception) -> None:
+        """沙盘副本构造失败：把原因告诉用户，并把状态行还给"进入沙盘"提示。"""
+        QMessageBox.warning(self, dl("沙盘不可用"), dlf("无法构造沙盘：{reason}", reason=exc))
+        self._refresh_sandbox_status()
+
+    def _build_sandbox(self) -> Game | None:
+        """取当前回看节点的沙盘副本；失败时告警并返回 None（绝不返回权威 Game）。"""
         try:
-            return Game.from_state(self.snapshots[-1].clone(), self.options, setup=self.setup)
-        except Exception:
+            source = self._sandbox_source()
+            return None if source is None else build_sandbox_game(source)
+        except Exception as exc:  # noqa: BLE001 —— 只读副本构造，失败必须说明原因
+            self._sandbox_build_failed(exc)
             return None
 
     def _on_sandbox_tab(self, index: int) -> None:
@@ -758,11 +773,11 @@ class ReplayDialog(QDialog):
         if self._sandbox_active or self._ai_thinking():
             self._refresh_sandbox_status()
             return
-        source = self._sandbox_source()
-        if source is None:
+        sandbox = self._build_sandbox()
+        if sandbox is None:
             self._refresh_sandbox_status()
             return
-        self._sandbox_game = build_sandbox_game(source)
+        self._sandbox_game = sandbox
         self._sandbox_active = True
         authoritative = getattr(self.parent(), "game", None)
         self._sandbox_source_history = len(authoritative.state.history) if authoritative else None
@@ -799,10 +814,10 @@ class ReplayDialog(QDialog):
     def _sandbox_reset(self) -> None:
         if not self._sandbox_active:
             return
-        source = self._sandbox_source()
-        if source is None:
-            return
-        self._sandbox_game = build_sandbox_game(source)
+        sandbox = self._build_sandbox()
+        if sandbox is None:
+            return  # 构造失败时保持当前沙盘不动（_build_sandbox 已提示原因）
+        self._sandbox_game = sandbox
         self.board.set_game(self._sandbox_game, Color.RED, True)
         self.board.interactive = True
         self._refresh_sandbox_status()
