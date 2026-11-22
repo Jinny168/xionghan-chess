@@ -83,6 +83,39 @@ py -3.11 -m venv .venv
 - Android 为 .NET 9 原生客户端，签名 APK 由 `android/XionghanChessAndroid.csproj` 生成，详细步骤见 [docs/ANDROID.md](docs/ANDROID.md)。
 - 每个脚本在输出带版本号文件的同时，会另生成一份不带版本号的别名文件，便于“最新版”分发。
 
+### Web 规则产物链（顺序不可颠倒）
+
+`webapp/` 静态前端与 `online/` 联机端的派生产物由同一条链生成，**只此一种合法顺序**；颠倒任何一步都会被下游断言拦下：
+
+```powershell
+# S1 生成：从 Python core/profiles.py 重写 profiles.js + manifest
+python scripts/gen_web_profiles.py --write
+# S2 校验：只读比对，不写盘
+python scripts/gen_web_profiles.py --check
+# S3 打包：同步 dist / online / .edgeone 五类派生产物
+python scripts/build_webapp_bundle.py
+# S4 校验：重算后逐字节比对
+python scripts/build_webapp_bundle.py --check
+# S5 生成：导出 JS 黄金用例（两份 rules.json）
+python scripts/gen_rule_fixtures.py --write
+# S6 验签：JS 端逐局面比对 fixtures
+node webapp/tests/verify-rules.mjs
+```
+
+**为什么 bundle（S3/S4）必须先于 fixtures（S5）。** `gen_rule_fixtures.py` 会把 `sourceDigest` 写进 fixtures 头部：按固定顺序拼接下面 5 个文件的字节、追加 `RULE_VERSION`，再取 sha256：
+
+```text
+webapp/js/core/profiles.js
+webapp/js/core/rules.js
+online/core/profiles.js
+online/core/rules.js
+online/public/index.html
+```
+
+后三项都是 S3 的打包产物（`online/**` 不入库）。`verify-rules.mjs` 启动时会从磁盘重算同一个 digest 与 fixtures 头部比对；顺序倒过来（先 fixtures 后 bundle）时它拿到的是旧 bundle 的字节，重算值不等，直接 `fail('build-order')` 拒收。
+
+**`--write` 与 `--check` 的分工。** `--write` 只用于本地重生成或整链复现；唯一源目录 `webapp/js/core/`（`profiles.js` 由生成器产出、`rules.js` 是手写内核并由 manifest 的 `rulesHash` 锁定）在门禁里**只跑 `--check`，绝不先跑 `--write`** —— 先写再查等于自己给自己发证，抓不到 tracked 文件与 Python 常量的漂移。CI 的 PR 门禁因此对唯一源只跑 `--check` 版（`profiles --check → bundle → bundle --check → 主 pytest → verifier`），完整 `--write` 重生成放在 slow job。
+
 ## 三、目录结构
 
 ```text
