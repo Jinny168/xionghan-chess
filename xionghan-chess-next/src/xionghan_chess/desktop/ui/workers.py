@@ -24,9 +24,11 @@ from xionghan_chess.core.analysis import analyze_game
 from xionghan_chess.core.game import Game
 from xionghan_chess.desktop import net
 
-# 复盘分析的手数上限。**须与 web / webapp 同值**：`webapp/js/ui/app.js` 的
-# `const CAP = 120`，web 侧同口径。三端一旦漂移，同一盘棋在桌面与网页会拿到
-# 不同深度的点评（而用户无从比较，只会觉得"哪边不准"）。
+# 复盘分析的手数上限。与 webapp 同值：`webapp/js/ui/app.js` 的 `const CAP = 120`
+# （两端都只分析前 N 手，并在**真被截断**时提示用户）。注意 web 服务端尚未对齐 ——
+# `src/xionghan_chess/service/app.py` 的 `/api/analysis` 调 `analyze_game(game, difficulty)`
+# 走的是默认 `max_plies=200`，且 web 端没有 capped 提示；同一盘 >120 手的棋，
+# 桌面 / webapp 看 120 手、web 看 200 手。此处只如实记录，服务端行为留待后续对齐。
 ANALYSIS_PLY_CAP = 120
 
 
