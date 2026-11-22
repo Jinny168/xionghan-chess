@@ -86,6 +86,7 @@ from .texts import SPECTATE_SPEED_LABELS, dl, dlf, set_language
 from .ui import theme
 from .ui.action_icons import action_icon
 from .ui.board_widget import THINKING_TICK_MS, BoardWidget
+from .ui.collapsible import CollapsibleBox
 from .ui.dialogs import (
     GLYPH_STYLE_DATA,
     DocumentDialog,
@@ -423,8 +424,13 @@ class MainWindow(QMainWindow):
         side_tabs.addTab(record_page, t("panel.moves", lang))
         side_tabs.addTab(chat_page, t("panel.chat", lang))
         right.addWidget(side_tabs, 1)
-        right.addWidget(QLabel("阵亡子力" if lang != "en" else "Captured pieces"))
-        right.addWidget(self.captured)
+        # P1-11：低频信息（阵亡子力）收进折叠框、默认收起 —— 首屏把垂直空间让给棋谱。
+        # 标题就地复用原来那行小标题（不重复出现两次），文案走 i18n。
+        # ⚠️ 折叠**不改任何尺寸**：侧栏仍是 330（见 `self.side` 的 min/max），
+        # 棋盘尺寸由 `_SquareHost` 按剩余空间算 —— 谁在这里动宽度，谁就挤小棋盘。
+        self.captured_box = CollapsibleBox(dl("阵亡子力"))
+        self.captured_box.add_widget(self.captured)
+        right.addWidget(self.captured_box)
         # P1-5 双 AI 观战控制条：仅观战态显示；退出 / 暂停继续 / 单步 / 调速。
         self.spectate_bar = QWidget()
         spectate_row = QHBoxLayout(self.spectate_bar)

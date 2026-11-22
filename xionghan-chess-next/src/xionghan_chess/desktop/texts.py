@@ -72,6 +72,8 @@ EN: dict[str, str] = {
     "翻转": "Flip",
     "红方": "Red",
     "黑方": "Black",
+    # P1-11 侧栏折叠框标题（原来是一行裸 QLabel 小标题）
+    "阵亡子力": "Captured pieces",
     # ---- 对局操作 ----
     "认输": "Resign",
     "确认认输并结束当前对局？": "Resign and end this game?",
