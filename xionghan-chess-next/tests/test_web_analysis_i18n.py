@@ -43,6 +43,74 @@ def test_render_analysis_takes_labels_from_catalog() -> None:
         assert f"t('analysis.{quality}')" in body, f"renderAnalysis 未从词表取 analysis.{quality}"
 
 
+SET_TEXT_RE = re.compile(
+    r"""setText\(\s*(['"])(?P<selector>.+?)\1\s*,\s*'(?P<key>[^']+)'\s*\)"""
+)
+
+
+def _balanced_body(source: str, signature: str) -> str:
+    """从 `signature` 起按花括号配平截取函数体（比找 `\\nfunction ` 稳，不受 export 影响）。"""
+    start = source.index(signature)
+    brace = source.index("{", start)
+    depth = 0
+    for index in range(brace, len(source)):
+        char = source[index]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return source[start : index + 1]
+    raise AssertionError(f"函数 {signature} 的花括号未配平")
+
+
+def _lookup(catalog: object, dotted: str) -> object | None:
+    node = catalog
+    for part in dotted.split("."):
+        if not isinstance(node, dict) or part not in node:
+            return None
+        node = node[part]
+    return node
+
+
+def test_apply_static_i18n_keys_all_exist_in_both_locales() -> None:
+    """`applyStaticI18n` 里登记的每个 setText key，必须在 zh / en 两份语言包里查得到。
+
+    背景：`#analysisDialog .dialog-title h2` 曾登记成 `dialog.analysis_title`，而该键
+    只存在于 `desktop` 分组下。`t()` 的兜底是 `?? key`，于是标题直接渲染成裸键
+    `dialog.analysis_title`；`applyStaticI18n()` 每次 boot 都跑，连中文界面也从
+    「AI 棋局分析」退化成裸键。三个既有测试全绿却行为错误 —— 根因是「登记了不存在
+    的 key」这类错误当时零门禁。
+    """
+    body = _balanced_body(_read("web/js/i18n.js"), "function applyStaticI18n(")
+    matched = list(SET_TEXT_RE.finditer(body))
+    keys = [match.group("key") for match in matched]
+
+    # 防呆：正则一旦失效（改写法、换引号），keys 会退化成空列表而测试假绿。
+    assert len(matched) >= 45, (
+        f"只从 applyStaticI18n 里解析出 {len(matched)} 条 setText 字面量，远少于预期"
+        "（应 >= 45）—— 正则可能失效了，先修 SET_TEXT_RE"
+    )
+
+    catalogs = {name: json.loads(_read(f"locales/{name}")) for name in ("zh-CN.json", "en.json")}
+    missing_zh: list[str] = []
+    missing_en: list[str] = []
+    for key in keys:
+        if _lookup(catalogs["zh-CN.json"], key) is None:
+            missing_zh.append(key)
+        if _lookup(catalogs["en.json"], key) is None:
+            missing_en.append(key)
+
+    only_zh = set(missing_zh) - set(missing_en)
+    only_en = set(missing_en) - set(missing_zh)
+    both = set(missing_zh) & set(missing_en)
+    assert not only_zh and not only_en and not both, (
+        "applyStaticI18n 登记的语言包 key 不存在（界面会显示裸键）："
+        f"仅 zh-CN 缺={sorted(only_zh)}；仅 en 缺={sorted(only_en)}；"
+        f"两边都缺={sorted(both)}"
+    )
+
+
 def test_both_locales_carry_the_five_quality_labels() -> None:
     for locale in ("zh-CN.json", "en.json"):
         catalog = json.loads(_read(f"locales/{locale}"))
