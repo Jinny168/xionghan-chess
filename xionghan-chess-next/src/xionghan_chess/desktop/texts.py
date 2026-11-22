@@ -74,6 +74,14 @@ EN: dict[str, str] = {
     "黑方": "Black",
     # P1-11 侧栏折叠框标题（原来是一行裸 QLabel 小标题）
     "阵亡子力": "Captured pieces",
+    # P0-2 常规对局的下一步提示（只高亮，不落子）
+    "提示下一步": "Suggest a move",
+    "算一步推荐着法，不替你落子": "Compute a suggested move — it will not play it for you",
+    "观战中不能提示": "No hints while watching a game",
+    "这局已经结束": "This game is already over",
+    "还没轮到你": "Not your turn yet",
+    "这一步没算出推荐着法": "No suggestion for this position",
+    "这一步": "this move",
     # ---- 对局操作 ----
     "认输": "Resign",
     "确认认输并结束当前对局？": "Resign and end this game?",
@@ -197,6 +205,9 @@ EN: dict[str, str] = {
 TEMPLATES: dict[str, str] = {
     "吃掉{names}！": "Captured: {names}!",
     "先看这一枚：{name}": "Look at this piece: {name}",
+    # P0-2 常规对局提示：`{move}` 是既有记谱函数的输出（Game.notation）
+    "提示：{move}": "Hint: {move}",
+    "提示算不出来：{detail}": "Could not compute a hint: {detail}",
     "棋局已保存：{path}": "Game saved: {path}",
     "已载入：{path}": "Loaded: {path}",
     "当前版本 {version}，最新版本 {latest}": "Current {version}, latest {latest}",

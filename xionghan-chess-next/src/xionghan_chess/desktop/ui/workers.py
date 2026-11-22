@@ -5,6 +5,7 @@ Widget** —— 因此可以被无显示环境（CI offscreen）安全导入与�
 
 现状：
 - `AIWorker`      —— AI 搜索（长任务；实测 HARD 1.481s，而 refresh tick 仅 1.28ms）
+- `HintWorker`    —— 常规对局的下一步提示（同一条搜索，但**只回着法、不落子**）
 - `HttpWorker`    —— 建连 / 云同步的阻塞 HTTP（原在 GUI 线程跑，最长冻结 15s）
 - `AnalysisWorker`—— 复盘分析（40 ply；原在 GUI 线程同步跑）
 
@@ -51,6 +52,31 @@ class AIWorker(QRunnable):
             self.signals.finished.emit((self.ai.choose_move(self.game, self.cancel), self.cancel))
         except Exception as exc:  # noqa: BLE001 —— 必须把任何失败转成信号回到 GUI 线程
             self.signals.failed.emit((str(exc), self.cancel))
+
+
+class HintWorker(QRunnable):
+    """常规对局的「下一步提示」（P0-2）：纯本地算一步推荐着法，**不落子**。
+
+    为什么不复用 `AIWorker`：
+    - `AIWorker.finished` 在 app 层**连着落子**（那是 AI 的回合）；提示只回一个着法，
+      由调用方决定怎么展示。复用等于按一下提示就替玩家走了一步。
+    - 载荷语义也不同：这里只发 `Move | None`，不带 cancel 事件 —— 提示被取消就是
+      "没有结果"，没有"取消后如何收尾"这层语义。
+    克隆棋盘的理由与 `AIWorker` 一致：搜索期间 GUI 线程可能继续改 `Game`。
+    """
+
+    def __init__(self, game: Game, cancel: threading.Event | None = None) -> None:
+        super().__init__()
+        self.game = Game.from_state(game.state.clone(), game.options)
+        self.ai = ChessAI(Difficulty.BEGINNER)
+        self.cancel = cancel
+        self.signals = WorkerSignals()
+
+    def run(self) -> None:
+        try:
+            self.signals.finished.emit(self.ai.choose_move(self.game, self.cancel))
+        except Exception as exc:  # noqa: BLE001 —— 失败也要回到 GUI 线程，不能静默
+            self.signals.failed.emit(str(exc))
 
 
 def http_json_blocking(url: str, payload: dict | None = None, method: str = "GET", token: str = "") -> object:

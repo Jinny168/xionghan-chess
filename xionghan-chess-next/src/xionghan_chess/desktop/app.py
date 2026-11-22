@@ -98,7 +98,7 @@ from .ui.dialogs import (
 )
 from .ui.feedback import DEFAULT_LEVEL, DEFAULT_TIMEOUT_MS, FeedbackBar
 from .ui.piece_atlas import PieceAtlasDialog
-from .ui.workers import AIWorker, HttpWorker
+from .ui.workers import AIWorker, HintWorker, HttpWorker
 
 
 def build_result_dialog(
@@ -202,6 +202,11 @@ class MainWindow(QMainWindow):
         # P1-5 双 AI 观战：纯本地演示，双方都由现有 AI worker 落子；进入前的对局整体
         # 保留在 `_spectate_restore`，退出逐项还原，演示局写在另一个 Game 对象上，不污染原棋谱。
         self.spectating = False
+        # P0-2 常规对局提示：请求号（丢弃过期结果）+ 发请求时的棋谱长度（判局面是否变了）
+        self._hint_request_id = 0
+        self._hint_plies: int | None = None
+        # 在飞的 HintWorker 强引用（见 `show_move_hint`：不保住它，回调会静默丢失）
+        self._hint_worker: HintWorker | None = None
         self._spectate_restore: Game | None = None
         self._spectate_paused = False
         self._spectate_step_only = False
@@ -273,6 +278,13 @@ class MainWindow(QMainWindow):
             action.triggered.connect(callback)
             action.setShortcut(QKeySequence(shortcut))
             game_menu.addAction(action)
+        # P0-2 常规对局的下一步提示。快捷键 `Ctrl+H`：与既有 Ctrl+R/F/N/Z/P/S/O/,、
+        # Ctrl+Shift+R/D/P、F1、F11 全都不冲突（`tests/test_desktop_shortcuts.py` 会再核一遍）。
+        self.hint_action = QAction(dl("提示下一步"), self)
+        self.hint_action.setShortcut(QKeySequence("Ctrl+H"))
+        self.hint_action.setToolTip(dl("算一步推荐着法，不替你落子"))
+        self.hint_action.triggered.connect(self.show_move_hint)
+        game_menu.addAction(self.hint_action)
         game_menu.addSeparator()
         # 第四列 `attr` 给需要留引用的项：菜单项与侧栏按钮共用同一条显隐判据
         # （`UI_ACTION_REQUIRES`）—— 只藏按钮却留下菜单项，等于把"点了会报错"的
@@ -616,6 +628,78 @@ class MainWindow(QMainWindow):
             message = text or (dl("没有更多提示") if not english else "No more hints")
             self.hint_button.setText(dl("提示") if not english else "Hint")
         self.statusBar().showMessage(message, 10000)
+
+    # ---- P0-2 常规对局的下一步提示（只高亮，不落子）----
+
+    def show_move_hint(self) -> None:
+        """算一步推荐着法并**高亮**它——绝不替玩家落子。
+
+        为什么只高亮不落子：提示是"瞄一眼"的动作，落子仍由玩家点第二下完成
+        （推荐着法就在 `board.legal` 里，点落点即落子，点别处即取消）。这样棋谱上
+        什么都没发生，"我在下棋"的主体感也保住了。
+
+        题目模式**不串线**：那条路径有自己的两段式提示（`show_puzzle_hint`），
+        计分态还要整块屏蔽提示 —— 混进来等于给计分题开挂。
+        """
+        if self.spectating:
+            self.notify(dl("观战中不能提示"), "warn", 5000)
+            return
+        if not self.game or self.game.state.finished:
+            self.notify(dl("这局已经结束"), "warn", 5000)
+            return
+        if self.puzzle_session is not None:
+            self.show_puzzle_hint()
+            return
+        # 双人同机（local）两边都是人，谁的点都能提示；人机/联机只有自己那回合才该有。
+        if self.config.get("game_mode", "ai") != "local" and self.game.state.turn is not self.session_color:
+            self.notify(dl("还没轮到你"), "warn", 5000)
+            return
+        self._hint_request_id += 1
+        request_id = self._hint_request_id
+        plies = len(self.game.state.history)
+        worker = HintWorker(self.game, self.cancel)
+        worker.signals.finished.connect(
+            lambda move, rid=request_id, count=plies: self._apply_move_hint(rid, count, move)
+        )
+        worker.signals.failed.connect(
+            lambda detail: self.notify(dlf("提示算不出来：{detail}", detail=detail), "error", 6000)
+        )
+        # ⚠️ **必须**留一个强引用：`QThreadPool.start()` 之后 worker 的 Python 包装一旦被回收，
+        # 它身上的 `signals` 子对象跟着销毁，连接会**静默失效**（实测：不保引用 → 回调永不到达，
+        # 也不报错）。AI 那条路径靠 bound method + 全局竞态侥幸躲过；这里显式保命。
+        self._hint_worker = worker
+        self.pool.start(worker)
+
+    def _apply_move_hint(self, request_id: int, plies: int, move: Move | None) -> None:
+        """提示结果回到 GUI 线程：**先验过期，再画**。
+
+        两条过期判据：
+        - 请求号变了 —— 玩家又按了一次提示，这条已经没人等了；
+        - 棋谱长度变了 —— 搜索期间玩家落了子 / AI 应了着 / 换过局。
+        不验就会把慢一拍的搜索结果画到一个**已经不存在的局面**上。
+        """
+        if request_id != self._hint_request_id:
+            return
+        # 结果已落地：放开 worker 的强引用（下一条请求会重新持有）。
+        self._hint_worker = None
+        if not self.game or self.game.state.finished or len(self.game.state.history) != plies:
+            return
+        if move is None:
+            self.notify(dl("这一步没算出推荐着法"), "info", 5000)
+            return
+        piece = self.game.state.piece_at(move.source)
+        # 走法描述复用既有记谱函数（`Game.notation`，棋谱列表同一套），不另写一份格式化。
+        captured = self.game.rules.captured_by_move(self.game.state, move)
+        text = self.game.notation(piece, move, captured) if piece else dl("这一步")
+        self.board.selected = move.source
+        self.board.legal = [move]
+        # 落点可吃 / 旁吃受害者的红叉一并清空：这里只承诺"推荐这一步"，
+        # 不重算吃子语义；留着上一次选中态的红叉会指到与提示无关的格子上。
+        self.board.capturable = set()
+        self.board.victims = set()
+        self._hint_plies = plies
+        self.board.update()
+        self.notify(dlf("提示：{move}", move=text), "info", 6000)
 
     def _record_daily_start(self) -> None:
         """打开每日题时惰性归零：昨天没做完就断在这里，不写定时任务。"""
@@ -2162,6 +2246,7 @@ class MainWindow(QMainWindow):
         state = self.game.state
         lang = self.config.get("language", "zh-CN")
         history_key = tuple(record.notation for record in state.history)
+        self._drop_stale_hint(state)
         self._update_banner(state, lang)
         self._pulse_check_if_needed(state)
         self._update_player_labels(state, lang)
@@ -2171,6 +2256,24 @@ class MainWindow(QMainWindow):
         self._update_board_if_needed(state, history_key)
         self._update_controls(state, lang)
         self._settle_finished(state, lang)
+
+    def _drop_stale_hint(self, state: GameState) -> None:
+        """棋谱一旦变长，就撤掉提示留下的高亮。
+
+        `_apply_move_hint` 把推荐着法放进了 `board.legal` —— 那是**活的**落子通道：
+        玩家点落点会真的走那一步。所以局面一变（AI 应着、悔棋、换局），这条高亮
+        必须立刻作废，否则点下去就是一步非法棋 + 一个「非法走棋」弹框。
+        """
+        if self._hint_plies is None:
+            return
+        if len(state.history) == self._hint_plies:
+            return
+        self._hint_plies = None
+        self.board.selected = None
+        self.board.legal = []
+        self.board.capturable = set()
+        self.board.victims = set()
+        self.board.update()
 
     def _update_banner(self, state: GameState, lang: str) -> None:
         # 优先级**写死**：终局 > 暂停 > 将军 > 行棋。
