@@ -668,9 +668,12 @@ class MainWindow(QMainWindow):
         worker.signals.failed.connect(
             lambda detail: self.notify(dlf("提示算不出来：{detail}", detail=detail), "error", 6000)
         )
-        # ⚠️ **必须**留一个强引用：`QThreadPool.start()` 之后 worker 的 Python 包装一旦被回收，
-        # 它身上的 `signals` 子对象跟着销毁，连接会**静默失效**（实测：不保引用 → 回调永不到达，
-        # 也不报错）。AI 那条路径靠 bound method + 全局竞态侥幸躲过；这里显式保命。
+        # 留一个强引用（**防御性**，不是已证实的故障修复）：PySide6 里 functor 连接
+        # （lambda / 闭包 / 普通函数）的投递路径在 sender 的 Python 包装被释放后可能**静默失效**
+        # —— 不报错、不回调。实测矩阵：保 worker 或保 `signals` → 回调到达；只保 callable 或
+        # 只保 SignalInstance → 不到达；换成 QObject 的 bound method 接收者则不受影响。
+        # 本处真事件循环下不保也能到达（见 docs 注释与 G2b 报告），但代价为零，显式保命。
+        # 相关既有风险：`_request_json_async` 的回调全是闭包/lambda（G2b 已上报，待裁决）。
         self._hint_worker = worker
         self.pool.start(worker)
 
