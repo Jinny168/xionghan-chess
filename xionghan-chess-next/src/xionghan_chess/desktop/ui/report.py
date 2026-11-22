@@ -2,9 +2,13 @@
 
 ## 口径
 
+- **轻量非权威（P0-1）**：**不显示精确分值、不用仪表盘/进度条**。呈现面只有
+  文字档位（最佳 / 良好 / 欠准 / 失误 / 严重失误）与相对走势描述，并附
+  「浅层参考」中性标注。`score`/`scoreLoss`/`winRate` 仍是数据（`key_moves`、
+  `curve` 照旧带出），只是不写进给用户看的文案。
 - **非权威**：只做归纳描述，不给训练计划或指导句式。文案里不出现
   「你应该 / 你错了 / 建议 / 应当」这类评判或引导句；统一用
-  「本局出现 N 处非最佳手」「第 X 手评分下降 Y」这类陈述。
+  「本局出现 N 处非最佳手」「第 X 手 · 着法 · 档位」这类陈述。
 - **离线本地**：本模块不引入任何网络 / 遥测模块（不 import requests / urllib / http）。
 - 不改棋谱格式；报告由 analysis 既有输出聚合而成，不重新跑引擎。
 - 文案走 `dl()` / `dlf()`（中文原文作 key，英文查 `texts` 词表），本模块不留裸中文字面量。
@@ -12,8 +16,8 @@
 ## 聚合内容
 
 - 失误数：`inaccuracy + mistake + blunder`（`best`/`good` 不计入）；
-- 关键手：按 `scoreLoss` 降序取前 N 手；
-- 局面曲线：胜率曲线的起点 / 终点 / 区间 / 三段失分集中阶段；
+- 关键手：按 `scoreLoss` 降序取前 N 手（排序用分值，呈现只用档位）；
+- 局面曲线：仍聚合起点 / 终点 / 区间（仅用于相对走势归纳，不上屏）；
 - 结论段：只归纳失分集中在哪个阶段，不给改进建议。
 """
 
@@ -25,6 +29,9 @@ from typing import Any
 from ..texts import PHASE_NAMES, QUALITY_LABELS, dl, dlf
 
 _NON_BEST = ("inaccuracy", "mistake", "blunder")
+
+# 走势描述的判定容差（胜率点差）：只用来决定措辞，绝不写进任何文案。
+_TREND_EPS = 5.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +79,29 @@ def _conclusion(moves: list[dict[str, Any]]) -> str:
     return dlf("本局失分集中在{phase}阶段。", phase=dl(PHASE_NAMES[top_index]))
 
 
+def _trend_phrase(points: list[float]) -> str:
+    """把胜率曲线概括成相对走势：只给方向，不给百分比与点数。
+
+    P0-1 要求呈现轻量非权威，所以这里刻意不输出任何数字 —— 判定用的
+    `_TREND_EPS` 只影响选哪一句措辞。曲线本身仍留在 `ReviewReport.curve` 里
+    供以后的分析使用。
+    """
+    if len(points) < 2:
+        return dl("走势样本不足，未作归纳")
+    start, end = float(points[0]), float(points[-1])
+    inner = [float(v) for v in points[1:-1]]
+    dipped = bool(inner) and min(inner) < min(start, end) - _TREND_EPS
+    if dipped and end >= start:
+        return dl("中段一度吃紧后转好")
+    if dipped:
+        return dl("中段一度吃紧，末段仍未回到开局局面")
+    if end < start - _TREND_EPS:
+        return dl("开局之后逐步转入吃紧")
+    if end > start + _TREND_EPS:
+        return dl("整体逐步转为宽松")
+    return dl("整体大致保持平稳")
+
+
 def build_report(result: dict[str, Any], top_n: int = 3) -> ReviewReport:
     """从 `analyze_game` 输出聚合复盘报告。"""
     moves = list(result.get("moves", []))
@@ -97,7 +127,8 @@ def build_report(result: dict[str, Any], top_n: int = 3) -> ReviewReport:
         for m in ranked[:top_n]
     ]
 
-    curve = _curve_summary(list(result.get("winRateCurve", [])))
+    curve_points = [float(v) for v in result.get("winRateCurve", [])]
+    curve = _curve_summary(curve_points)
     conclusion = _conclusion(moves)
 
     lines: list[str] = [dlf("本局共复盘 {ply} 手。", ply=analyzed)]
@@ -111,27 +142,21 @@ def build_report(result: dict[str, Any], top_n: int = 3) -> ReviewReport:
         )
     )
     if key_moves:
-        lines.append(dl("评分下降较多的手："))
+        lines.append(dl("失分较多的手："))
         for move in key_moves:
             lines.append(
                 dlf(
-                    "第 {ply} 手 {notation} 评分下降 {loss}（{quality}）。",
+                    "第 {ply} 手 {notation} · {quality}。",
                     ply=move["ply"],
                     notation=move["notation"],
-                    loss=move["score_loss"],
                     quality=move["quality_label"],
                 )
             )
-    lines.append(
-        dlf(
-            "胜率曲线由 {start}% 走到 {end}%，区间 {min}%–{max}%。",
-            start=curve["start"],
-            end=curve["end"],
-            min=curve["min"],
-            max=curve["max"],
-        )
-    )
+    lines.append(dlf("胜率走势：{trend}。", trend=_trend_phrase(curve_points)))
     lines.append(conclusion)
+    # 「浅层参考」措辞与 web / webapp 同一句（webapp i18n: analysis.shallow /
+    # analysis.shallowHint），不另造说法。
+    lines.append(dl("浅层参考：依据本机浅层搜索，仅供参考。"))
 
     return ReviewReport(
         analyzed_plies=analyzed,

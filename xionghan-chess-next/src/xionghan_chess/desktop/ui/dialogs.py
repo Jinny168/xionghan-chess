@@ -881,13 +881,14 @@ class ReplayDialog(QDialog):
         report = build_report(result)
         lines.extend(report.lines)
         lines.append("")
+        # 呈现轻量非权威（P0-1）：逐手只留档位，不显示分值。
+        lines.append(dl("逐手档位（浅层参考）："))
         lines.extend(
             dlf(
-                "{ply}. {notation}  · {quality}  · 损失 {loss}",
+                "{ply}. {notation} · {quality}",
                 ply=item["ply"],
                 notation=item["notation"],
                 quality=labels[item["quality"]],
-                loss=item["scoreLoss"],
             )
             for item in result["moves"]
         )
