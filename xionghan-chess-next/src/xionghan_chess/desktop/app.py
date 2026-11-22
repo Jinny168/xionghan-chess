@@ -2170,7 +2170,12 @@ class MainWindow(QMainWindow):
         lang = self.config.get("language", "zh-CN")
         # S1-1：终止条件判定下沉到 net.should_reconnect（纯函数，已被单测覆盖三种终止码）
         if not net.should_reconnect(code, self.network_closing, self.room_id):
-            self.notify("网络已断开" if lang != "en" else "Network disconnected", "error", 8000)
+            # 终止分支（会话已结束/不可重连的 close code）**不给超时**：迁移前这条是
+            # statusBar 的常驻消息，改成 4–8 秒自动消失等于把"你现在掉线了"这件事
+            # 在玩家还没读完时就抽走。timeout=0 → 一直显示，直到「网络已恢复」那条
+            # success 把它顶掉（恢复消息照常 5s 自动消失）。
+            # 注意：**不是**新增常驻指示 —— 复用的就是同一条反馈条，不碰 banner、不碰侧栏。
+            self.notify("网络已断开" if lang != "en" else "Network disconnected", "error", 0)
             return
         if self.network_reconnect_attempts >= net.MAX_RECONNECT_ATTEMPTS:
             self.notify(
