@@ -3,7 +3,8 @@
 隐私模式、Cookie 被禁、配额耗尽时 `localStorage.setItem` 会抛。原先五处
 （偏好 / 战绩 / 已解习题 / 存档 / 棋谱库）都是裸 `catch {}` 直接吞掉，最刺眼的
 是棋谱库：`writeLibrary` 静默失败后 `saveToLibrary` 照样弹「本局已存入棋谱库」，
-用户以为存上了，重开才发现没了 —— 假成功比报错更糟。
+用户以为存上了，重开才发现没了 —— 假成功比报错更糟。后来云同步恢复的
+`applySnapshot`（library / stats / solved 三处回写）也是同型裸 setItem，一并收口。
 
 口径：
 1. 五个写点全部走 `safeSet`，且函数体内不得再出现裸 `localStorage.setItem`；
@@ -20,7 +21,8 @@ APP_JS = ROOT / "webapp" / "js" / "ui" / "app.js"
 I18N = ROOT / "webapp" / "js" / "i18n.js"
 
 # 写点 → 所在函数（都是「写失败 = 数据丢了」的地方；读取点的 catch 不在本口径内）
-WRITE_SITES = ("savePrefs", "saveStats", "markSolved", "saveSession", "writeLibrary")
+# `applySnapshot`：云端同步恢复时整批回写 library/stats/solved，写失败同样得让用户知道。
+WRITE_SITES = ("savePrefs", "saveStats", "markSolved", "saveSession", "writeLibrary", "applySnapshot")
 
 
 def _source() -> str:

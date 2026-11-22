@@ -155,6 +155,9 @@ const app = {
 };
 
 const SOLVED_KEY = 'xh-web-puzzle-solved';
+// 分析手数上限，与桌面 `ANALYSIS_PLY_CAP` 同值。只有**确实被截断**时（`> CAP`）
+// 才提示「仅分析前 N 手」—— 恰好 120 手是全覆盖，提示反而是假警报。
+const CAP = 120;
 
 let board;
 let replayBoard;
@@ -842,7 +845,6 @@ function runAnalysis() {
     analysisFailed();
     return;
   }
-  const CAP = 120;
   const total = Math.min(history.length, CAP);
   const replay = app.game.publicState().replay;
   const states = replay.slice(0, total);
@@ -885,7 +887,7 @@ function finishAnalysis(results) {
     inaccuracy: stats.inaccuracy,
     mistake: stats.mistake,
     blunder: stats.blunder,
-  })}${results.length >= 120 ? ` ${t('analysis.capped', { n: 120 })}` : ''}`;
+  })}${results.length > CAP ? ` ${t('analysis.capped', { n: CAP })}` : ''}`;
 
   drawReplay();
 }
@@ -1146,9 +1148,9 @@ function applySnapshot(snap) {
     }
     savePrefs();
   }
-  if (Array.isArray(snap.library)) localStorage.setItem('xh-web-library', JSON.stringify(snap.library.slice(0, 12)));
-  if (snap.stats) localStorage.setItem('xh-web-stats', JSON.stringify(snap.stats));
-  if (Array.isArray(snap.solved)) localStorage.setItem('xh-web-puzzle-solved', JSON.stringify(snap.solved));
+  if (Array.isArray(snap.library)) safeSet('xh-web-library', JSON.stringify(snap.library.slice(0, 12)));
+  if (snap.stats) safeSet('xh-web-stats', JSON.stringify(snap.stats));
+  if (Array.isArray(snap.solved)) safeSet('xh-web-puzzle-solved', JSON.stringify(snap.solved));
   return true;
 }
 
