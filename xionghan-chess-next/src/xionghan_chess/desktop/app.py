@@ -2181,18 +2181,23 @@ class MainWindow(QMainWindow):
             self.notify("网络已断开" if lang != "en" else "Network disconnected", "error", 0)
             return
         if self.network_reconnect_attempts >= net.MAX_RECONNECT_ATTEMPTS:
+            # 同上：迁移前这条也是**无 timeout** 的 statusBar 消息（放弃重连 = 终态，
+            # 玩家必须知道"得重新加入房间"，不该 8 秒后就消失）。
             self.notify(
                 "自动重连失败，请重新加入房间" if lang != "en" else "Reconnect failed; join the room again",
                 "error",
-                8000,
+                0,
             )
             return
         delay = net.reconnect_delay(self.network_reconnect_attempts)
         self.network_reconnect_attempts += 1
+        # 迁移前同样是**无 timeout**：状态栏一直显示"正在重连 (n/N)"，直到连上
+        # （被「网络已恢复」顶掉）或放弃（被上面那条终态 error 顶掉）。逐次重连时
+        # 后一条会覆盖前一条，所以常驻不会堆积。
         self.notify(
             f"{'网络中断，正在重连' if lang != 'en' else 'Disconnected, reconnecting'} ({self.network_reconnect_attempts}/{net.MAX_RECONNECT_ATTEMPTS})",
             "warn",
-            6000,
+            0,
         )
         QTimer.singleShot(delay, self._connect_network)
 
