@@ -96,13 +96,27 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_allowlist_entry_count_unchanged() -> None:
-    """E1 零新增色值：白名单条目数与 D 终验基线一致（139 条）。"""
+    """白名单棘轮：**令牌定义**可按功能增长，散落在渲染代码里的裸色一条都不许新增。
+
+    基线演进：
+      139 条（total）＝ D 终验封板值 —— E1「零新增色值」那一批的承诺。
+      148 条（total）＝ G2b P1-10 反馈层 +9，**全部**是 `ui/theme.py` 的令牌定义
+        （success / warn / info 三对 light+dark 的背景与前景；WCAG 实测比值写在
+        `theme.py` 的 `_SUCCESS`/`_WARN`/`_INFO` 注释里，4.5:1 是下限，实际 7.4–11.7）。
+    这条守卫的**实质**是"非主题条目不许涨"：theme.py 是色板本身，往里面加一个经过
+    审校、写明对比度的令牌是正常设计动作；真正要拦住的是颜色散落进控件渲染代码。
+    所以下面把它拆成两条数：非主题条目 99（不变）与主题条目 49（+9）。
+    """
     lines = [
         line
         for line in (ROOT / "benchmarks" / "color_allowlist.txt").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-    assert len(lines) == 139
+    theme_lines = [line for line in lines if "desktop/ui/theme.py" in line]
+    other_lines = [line for line in lines if "desktop/ui/theme.py" not in line]
+    assert len(other_lines) == 99, f"theme.py 之外出现新裸色：{len(other_lines)} 条（基线 99）"
+    assert len(theme_lines) == 49, f"主题令牌条目 {len(theme_lines)} 条（基线 49）"
+    assert len(lines) == 148
 
 
 def test_js_mirrors_share_formula_constants() -> None:
