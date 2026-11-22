@@ -9,6 +9,15 @@
 1. 生成物与数据源一致（改题库后忘了重新生成会红）；
 2. 每个 document 都能被离线引擎**载入**，且解法首着在该引擎下**合法**；
 3. 离线题库的 id 集合与 Python 题库完全一致（不多不少）。
+
+三条基线纪律（踩过坑，别再重复）：
+1. 唯一基线是 tracked 的 `android/Resources/assets/offline/offline-puzzles.js`；
+2. `android/obj/**` 下的同名文件是 APK 构建残留（实测 13 条题、11 月 9 日），
+   **不作基线**，也不能据此判断正式产物落后；
+3. `--check` 的判据是「重算文本 == 现文件文本」逐字节相等，所以它只证明
+   「产物与生成器一致」，**不证明「产物是对的」** —— `_stable_ids` 曾把同一枚
+   棋子编成两个 id（`endgame-elephant-eye-01` / `endgame-advisor-palace-01`），
+   当时 `--check` 全绿。一致性归 `--check`，正确性归本文件的逐项断言。
 """
 
 from __future__ import annotations
