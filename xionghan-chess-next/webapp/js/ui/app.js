@@ -282,7 +282,7 @@ function startGame({ silent = false } = {}) {
   if (typeof stopStreakTimer === 'function') stopStreakTimer();
   app.streakRun = null;
   if (typeof hideStreakBanner === 'function') hideStreakBanner();
-  app.analysis = null;
+  resetAnalysis();
   stopPolling();
   app.online = null;
   clearSelection();
@@ -794,6 +794,17 @@ function tickClock() {
 
 /* ---------------------------------------------------------------- 复盘 */
 
+/** 换局 / 重开 / 加载棋谱时统一作废逐手分析。
+ *
+ * 分析结果按 ply 下标寻址（`app.analysis[index]`），换了棋谱还留着，就会把
+ * 上一局的档位底色贴到新局面的第 N 手上 —— 显示的错信息，还不报错。
+ * 同时递增 `analysisId`：在途 worker 的结果回来时 id 已对不上，不会补写进来。
+ */
+function resetAnalysis() {
+  app.analysisId += 1;
+  app.analysis = null;
+}
+
 function updateAnalysisProgress({ done, total }) {
   const box = $('#analysisProgress');
   box.hidden = false;
@@ -828,8 +839,7 @@ function runAnalysis() {
     notation: record.notation,
   }));
 
-  app.analysisId += 1;
-  app.analysis = null;
+  resetAnalysis();
   $('#analysisSummary').hidden = true;
   updateAnalysisProgress({ done: 0, total });
 
@@ -1403,7 +1413,7 @@ function enterOnline(data, color) {
   app.humanColor = color;
   app.flipped = color === 'black';
   app.puzzle = null;
-  app.analysis = null;
+  resetAnalysis();
   app.unlimited = true;
   hideDialog('dlgOnline');
   applyRemote(data, true);
@@ -1968,6 +1978,8 @@ function startPuzzle(data, { scored = false, streak = false } = {}) {
 
   app.game = game;
   app.unlimited = true;
+  // 换到一道题就是换了棋谱：上一局的分析不能留着贴到这道题的着法上。
+  resetAnalysis();
   // scored=true：计分态（每日/连对），屏蔽文字提示、不计星；
   // scored=false：章节闯关，文字提示可用且计入星级。
   app.puzzle = { data, step: 0, scored, streak, misses: 0, hints: 0, consecutiveMisses: 0 };
@@ -2101,6 +2113,8 @@ function restoreSession() {
     app.unlimited = !app.minutes;
     const last = app.game.state.history.at(-1);
     app.lastMove = last ? last.move : null;
+    // 读档就是换棋谱：上次会话残留的分析结果一律作废。
+    resetAnalysis();
     render();
     return true;
   } catch {
@@ -2307,7 +2321,7 @@ function useEntry(entry, thenReplay) {
   app.game = buildFromEntry(entry);
   app.unlimited = true;
   app.puzzle = null;
-  app.analysis = null;
+  resetAnalysis();
   app.lastMove = app.game.state.history.at(-1)?.move || null;
   clearSelection();
   hideDialog('dlgLibrary');
