@@ -617,6 +617,9 @@
     "good": "良好",
     "inaccuracy": "欠准",
     "mistake": "失误",
-    "blunder": "严重失误"
+    "blunder": "严重失误",
+    "loading": "正在逐步分析棋局...",
+    "shallow": "浅层参考",
+    "shallow_hint": "依据本机浅层搜索，仅供参考"
   }
 }

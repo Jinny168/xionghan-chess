@@ -143,6 +143,12 @@ export function applyStaticI18n() {
   setText('#helpDialog .dialog-title h2', 'dialog.help_title');
   setText('#rulesDialog .dialog-title h2', 'dialog.rules_title');
   setText('#aboutDialog .dialog-title h2', 'dialog.about_title');
+  // 分析弹窗：标题 + 加载态 + 「浅层参考」折叠标注，四处原文都留在 HTML 里当 zh 默认，
+  // 登记后切换语言才会跟着走（英文界面此前一直是中文）。
+  setText('#analysisDialog .dialog-title h2', 'dialog.analysis_title');
+  setText('#analysisLoading', 'analysis.loading');
+  setText('#analysisNoteToggle', 'analysis.shallow');
+  setText('#analysisNoteHelper', 'analysis.shallow_hint');
   setText('.replay-header strong', 'dialog.replay_title');
   setText('#resultRestart', 'dialog.result_restart');
   const thinking = document.getElementById('thinking');
