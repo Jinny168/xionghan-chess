@@ -56,7 +56,7 @@ src/xionghan_chess/desktop/ui/theme.py:#fff9ed:1
 src/xionghan_chess/desktop/ui/theme.py:#ffffff:1
 web/css/app.css:#1e2021:1
 web/css/app.css:#28231f:1
-web/css/app.css:#282b2d:2
+web/css/app.css:#282b2d:3
 web/css/app.css:#292522:1
 web/css/app.css:#2c2926:2
 web/css/app.css:#315c48:1
@@ -65,7 +65,7 @@ web/css/app.css:#34383a:1
 web/css/app.css:#410002:1
 web/css/app.css:#554b40:1
 web/css/app.css:#5f5145:1
-web/css/app.css:#675748:2
+web/css/app.css:#675748:3
 web/css/app.css:#695b4c:1
 web/css/app.css:#6f6558:2
 web/css/app.css:#704d35:2
@@ -87,7 +87,7 @@ web/css/app.css:#b69a72:1
 web/css/app.css:#b79159:1
 web/css/app.css:#b99a6b:1
 web/css/app.css:#c0904f:1
-web/css/app.css:#c6beb1:1
+web/css/app.css:#c6beb1:2
 web/css/app.css:#d8c7a4:1
 web/css/app.css:#d8cbb8:1
 web/css/app.css:#e4bd75:2

@@ -221,7 +221,7 @@ function renderMeta(snapshot){
   $('#pauseButton').disabled=app.state.finished;$('#pauseButton').textContent=app.state.paused?`▶ ${t('action.resume')}`:`Ⅱ ${t('action.pause')}`;
 }
 function showResult(){const winner=app.state.winner,key=`${app.roomId}:${winner||'draw'}:${app.state.resultReason}:${app.state.history.length}`,reason=t(`result.${app.state.resultReason}`);$('#resultMark').textContent=winner?(winner==='red'?'漢':'汗'):t('common.draw');$('#resultTitle').textContent=winner?t('result.victory',{color:t(`common.${winner}`)}):t('result.draw');$('#resultText').textContent=reason.startsWith('result.')?t('result.ended'):reason;if(app.resultKey!==key){playSound(app.mode==='local'||winner===app.color?'win':'lose');recordFinishedGame(key);app.resultKey=key}if(!$('#resultDialog').open)$('#resultDialog').showModal()}
-function syncModeControls(){const mode=$('#modeSelect').value;$('#difficultyRow').hidden=mode!=='ai';$('#colorRow').hidden=mode==='local';$('#joinRow').hidden=mode!=='online';$('#connectionText').textContent=mode==='local'?t('status.local_sync'):(mode==='ai'?t('status.ai'):t('status.online'))}
+function syncModeControls(){const mode=$('#modeSelect').value;$('#difficultyRow').hidden=mode!=='ai';$('#colorRow').hidden=mode==='local';$('#joinRow').hidden=mode!=='online';$('#roomDetails').hidden=mode!=='online';$('#connectionText').textContent=mode==='local'?t('status.local_sync'):(mode==='ai'?t('status.ai'):t('status.online'))}
 function canControl(piece){return !app.spectator&&piece&&!app.state.paused&&piece.color===app.state.turn&&(app.mode==='local'||piece.color===app.color)}
 
 function resizeBoard(){const rect=board.parentElement.getBoundingClientRect();if(rect.width<2||rect.height<2)return;const dpr=Math.min(devicePixelRatio||1,2),width=Math.max(1,Math.floor(rect.width*dpr)),height=Math.max(1,Math.floor(rect.height*dpr));if(board.width!==width)board.width=width;if(board.height!==height)board.height=height;board.style.width=`${rect.width}px`;board.style.height=`${rect.height}px`;draw()}
@@ -442,6 +442,9 @@ $('#resurrectButton').onclick=()=>{const cols=app.state?.profile?.cols||13;const
 const home=(app.state?.profile?.pawnHomeSquares||[]).find(square=>square.col===col);if(!home)return toast(t('toast.resurrect_col'),'warn');send('resurrect',{row:home.row,col})};
 $('#profileSelect').onchange=()=>{const profile=app.profiles.get($('#profileSelect').value);app.options={...(profile?.options||{})}};
 $('#modeSelect').onchange=syncModeControls;
+// 折叠块开合会改变 record-panel 可用高度；details 关闭时 #moveList 的 scrollHeight 可能为 0，
+// 补一次滚动到底，避免棋谱停在错位（唯一实打实的回归点）。
+for(const id of ['capturedDetails','roomDetails']){$(`#${id}`).addEventListener('toggle',()=>{const list=$('#moveList');list.scrollTop=list.scrollHeight})}
 $('#moveList').onclick=e=>{const li=e.target.closest('li');if(!li)return;openReplay();setReplayIndex(Number(li.dataset.index)+1)};
 $('#copyRoomButton').onclick=async()=>{if(app.roomId){await navigator.clipboard.writeText(app.roomId);toast(t('toast.room_copied'),'success')}};
 $('#spectateButton').onclick=spectateGame;

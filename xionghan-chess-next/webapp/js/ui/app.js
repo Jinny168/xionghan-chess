@@ -9,7 +9,7 @@ import { Game, gameFromDocument, gameToDocument, GameError, slotId } from '../co
 import {
   getProfile, mergeOptions, PROFILES, PROFILE_ORDER, RED_NAMES, BLACK_NAMES, pieceEnabled,
 } from '../core/profiles.js';
-import { makePiece, stateFromDict, stateToDict, createState } from '../core/model.js';
+import { makePiece, stateFromDict, stateToDict, moveFromDict, createState } from '../core/model.js';
 import { RulesEngine } from '../core/rules.js';
 import { suggestMove, evaluate, DIFFICULTIES } from '../core/ai.js';
 import { PUZZLES } from '../data/puzzles.js';
@@ -134,6 +134,10 @@ const app = {
   replay: { open: false, index: 0, states: [], timer: null },
   pendingPromotion: null,
   requestId: 0,
+  // 常规对局提示：独立请求序号（不能复用 requestId，否则会被 AI 落子请求顶掉）。
+  hintRequestId: 0,
+  hintPending: false,
+  hintHistoryLength: 0,
   worker: null,
   clockTimer: 0,
   lastMove: null,
@@ -477,6 +481,20 @@ function initWorker() {
         if (data.id === app.analysisId) analysisFailed();
         return;
       }
+      if (data.type === 'hint' || data.type === 'hint-error') {
+        // 提示与 AI 落子各用独立序号，互不顶掉；只认最后一次提示请求。
+        if (data.id !== app.hintRequestId) return;
+        app.hintPending = false;
+        $('#thinking').hidden = true;
+        if (data.error || !data.move) {
+          toast(t('toast.noHint'), 'warn');
+          return;
+        }
+        // 请求后局面已变（玩家已落子/悔棋/载入）→ 丢弃结果，否则提示会指错位置。
+        if (!app.game || app.game.state.history.length !== app.hintHistoryLength) return;
+        applyHintResult({ move: moveFromDict(data.move) });
+        return;
+      }
       if (data.id !== app.requestId) return;
       app.thinking = false;
       $('#thinking').hidden = true;
@@ -675,7 +693,7 @@ function updateHud(state, checkSide) {
   $$('.toolbar [data-act="undo"]').forEach((b) => { b.disabled = inPuzzle || inOnline || !app.game.canUndo(1) || isReplay; });
   // 章节闯关（scored=false）提示按钮可用；计分态（每日/连对，scored=true）禁用。
   const puzzleHintBlocked = inPuzzle && Boolean(app.puzzle.scored);
-  $$('.toolbar [data-act="hint"]').forEach((b) => { b.disabled = puzzleHintBlocked || !canAct || !isHumanTurn(); });
+  $$('.toolbar [data-act="hint"]').forEach((b) => { b.disabled = puzzleHintBlocked || !canAct || !isHumanTurn() || app.hintPending; });
   $$('.toolbar [data-act="resign"]').forEach((b) => { b.disabled = !canAct; });
   $$('.toolbar [data-act="pause"]').forEach((b) => {
     b.disabled = isOver(state) || isReplay || inPuzzle || inOnline;
@@ -987,8 +1005,27 @@ function undo() {
   }
 }
 
+function applyHintResult(result) {
+  if (!result.move || !app.game) return;
+  const moving = app.game.state.pieces.find(
+    (p) => p.row === result.move.source.row && p.col === result.move.source.col,
+  );
+  if (!moving) return;
+  selectPiece(moving);
+  app.legal = [result.move];
+  render();
+  toast(t('toast.hint', { move: app.game.notation(moving, result.move, []) }));
+  // 沿用既有 2.6s 自动清除，不新增绘制代码。
+  setTimeout(() => {
+    if (app.selected && app.legal.length === 1 && app.legal[0] === result.move) {
+      clearSelection();
+      render();
+    }
+  }, 2600);
+}
+
 function hint() {
-  if (!app.game || app.thinking) return;
+  if (!app.game || app.thinking || app.hintPending) return;
   if (app.puzzle) {
     // 计分态（每日一题 / 连对挑战）屏蔽一切文字提示；章节闯关可用且计入星级。
     // 星轨几何层由 render() 的 `&& !app.puzzle` 守卫统一屏蔽，与 scored 无关，勿改。
@@ -999,31 +1036,41 @@ function hint() {
     toast(t('puzzle.hint', { hint: text }));
     return;
   }
-  app.thinking = true;
-  $('#thinking').hidden = false;
+  const state = app.game.state;
+  const id = ++app.hintRequestId;
+  app.hintPending = true;
+  app.hintHistoryLength = state.history.length;
+  const thinkingEl = $('#thinking');
+  thinkingEl.hidden = false;
+  thinkingEl.setAttribute('aria-label', t('status.hintThinking'));
+  thinkingEl.title = t('status.hintThinking');
+  const finish = () => { app.hintPending = false; thinkingEl.hidden = true; };
+
+  if (app.worker) {
+    // 纯本地 worker：与 AI 落子共用搜索逻辑，但独立 id，不触发 commitMove。
+    app.worker.postMessage({
+      type: 'hint',
+      id,
+      state: stateToDict(state),
+      profileId: app.game.profile.id,
+      options: app.game.options,
+      difficulty: 'easy',
+      timeMs: 250,
+      depth: 2,
+    });
+    return;
+  }
+  // 无 worker 时的同步兜底，同样只用 250ms 预算。
   setTimeout(() => {
-    const result = suggestMove(app.game.state, app.game.rules, 600);
-    app.thinking = false;
-    $('#thinking').hidden = true;
+    if (id !== app.hintRequestId) return;
+    const result = suggestMove(app.game.state, app.game.rules, 250);
+    finish();
+    if (!app.game || app.game.state.history.length !== app.hintHistoryLength) return;
     if (!result.move) {
       toast(t('toast.noHint'), 'warn');
       return;
     }
-    const moving = app.game.state.pieces.find(
-      (p) => p.row === result.move.source.row && p.col === result.move.source.col,
-    );
-    if (moving) {
-      selectPiece(moving);
-      app.legal = [result.move];
-      render();
-      toast(t('toast.hint', { move: app.game.notation(moving, result.move, []) }));
-      setTimeout(() => {
-        if (app.selected && app.legal.length === 1 && app.legal[0] === result.move) {
-          clearSelection();
-          render();
-        }
-      }, 2600);
-    }
+    applyHintResult(result);
   }, 30);
 }
 

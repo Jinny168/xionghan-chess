@@ -56,6 +56,25 @@ self.onmessage = (event) => {
     }
     return;
   }
+  if (event.data && event.data.type === 'hint') {
+    const { id, state, profileId, options, difficulty = 'easy', timeMs = 250, depth = 2 } = event.data;
+    try {
+      const profile = getProfile(profileId);
+      const merged = mergeOptions(profile.options, options);
+      const game = new Game(profile, merged, { state: stateFromDict(state) });
+      const result = chooseMove(game.state, game.rules, difficulty, { timeMs, depth });
+      // 只回结果给 UI 高亮；绝不在这里落子——落子只属于主线程的 AI 分支。
+      self.postMessage({
+        id,
+        type: 'hint',
+        move: result.move ? moveToDict(result.move) : null,
+        meta: { depth: result.depth, nodes: result.nodes, elapsed: result.elapsed, score: result.score },
+      });
+    } catch (error) {
+      self.postMessage({ id, type: 'hint-error', error: error.message || String(error) });
+    }
+    return;
+  }
   const { id, state, profileId, options, difficulty, timeMs, depth } = event.data;
   try {
     const profile = getProfile(profileId);

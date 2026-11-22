@@ -61,7 +61,6 @@
         <div class="avatar">汗</div><div><strong>黑方</strong><span id="blackStatus">等待落座</span></div>
         <time id="blackClock">20:00</time>
       </section>
-      <section class="captured-panel"><h2>黑方损失</h2><div id="blackCaptured" class="captured"></div></section>
       <section class="mode-panel">
         <label>模式<select id="modeSelect"><option value="ai">人机对战</option><option value="local">双人同机</option><option value="online">网络对战</option></select></label>
         <label>规则档案<select id="profileSelect"><option value="web">精简模式</option><option value="desktop_light">轻量模式</option><option value="desktop_classic">经典模式</option><option value="desktop_complete">完整模式</option><option value="traditional">传统象棋</option></select></label>
@@ -109,8 +108,13 @@
           <div class="chat-input-row"><input id="chatInput" maxlength="80" placeholder="输入聊天内容"><button id="sendChatButton">发送</button></div>
         </div>
       </section>
-      <section class="captured-panel"><h2>红方损失</h2><div id="redCaptured" class="captured"></div></section>
-      <section class="room-card"><span>房间</span><strong id="roomCode">离线</strong><span id="spectatorCount">0 人观战</span><button class="icon-button" id="copyRoomButton" title="复制房间号">⧉</button></section>
+      <details class="side-details" id="capturedDetails"><summary>双方损失</summary>
+        <section class="captured-panel"><h2>红方损失</h2><div id="redCaptured" class="captured"></div></section>
+        <section class="captured-panel"><h2>黑方损失</h2><div id="blackCaptured" class="captured"></div></section>
+      </details>
+      <details class="side-details" id="roomDetails"><summary>房间</summary>
+        <section class="room-card"><span>房间</span><strong id="roomCode">离线</strong><span id="spectatorCount">0 人观战</span><button class="icon-button" id="copyRoomButton" title="复制房间号">⧉</button></section>
+      </details>
     </aside>
   </main>
 
