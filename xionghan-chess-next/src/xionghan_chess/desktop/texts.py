@@ -249,7 +249,10 @@ TEMPLATES: dict[str, str] = {
     # 终局副作用失败：写盘异常 / 题面与解法对不上，都必须让玩家看见
     "战绩保存失败：{detail}": "Could not save statistics: {detail}",
     "这一手没能退回：{detail}": "Could not take that move back: {detail}",
-    "对手应着无法落子，本题已中止：{detail}": "Opponent reply could not be played; puzzle aborted: {detail}",
+    "对手应着无法落子，本题已中止：{detail}。可从训练列表重新选题。": (
+        "Opponent reply could not be played; puzzle aborted: {detail}. "
+        "You can pick another puzzle from the training list."
+    ),
     "自动重连失败，请重新加入房间": "Reconnect failed, please rejoin the room",
     "网络中断，正在重连": "Connection lost, reconnecting",
     "{profile} · {plies} 手": "{profile} · {plies} moves",

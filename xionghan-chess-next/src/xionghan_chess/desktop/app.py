@@ -1003,7 +1003,11 @@ class MainWindow(QMainWindow):
                 # 对手应着落不下去 = 题面与解法对不上（题库坏 / 规则变了）。若照旧
                 # `advance_auto()`，游标会越过这一手，之后玩家每一手都必判错而题面
                 # 看起来还正常 —— 必须中止本题，别把错位的题留在屏幕上。
-                self.notify(dlf("对手应着无法落子，本题已中止：{detail}", detail=str(exc)), "error", 8000)
+                self.notify(
+                    dlf("对手应着无法落子，本题已中止：{detail}。可从训练列表重新选题。", detail=str(exc)),
+                    "error",
+                    8000,
+                )
                 if self.streak_session is not None:
                     self.streak_timer.stop()
                     training_store.record_streak_best(self.config, self.streak_session.count)

@@ -65,6 +65,15 @@ class _AutoReplySession:
         self.advanced += 1
 
 
+class _FakeStreak:
+    """连对会话的最小替身：只需要一个已挣到的连对数。"""
+
+    count = 4
+
+    def on_wrong(self) -> None:
+        self.count = 0
+
+
 @pytest.fixture(scope="module")
 def qt_app() -> QApplication:
     return QApplication.instance() or QApplication([])
@@ -116,11 +125,27 @@ def test_auto_reply_failure_aborts_puzzle_instead_of_desyncing(window, monkeypat
     monkeypatch.setattr(window.game, "move", fail_move)
     session = _AutoReplySession()
     window.puzzle_session = session
-    window.puzzle_is_daily = False
-    window.puzzle_scored = False
+    # 每日题 + 连对态都铺上：中止路径既不能把作废题算成「今日已完成」，
+    # 也必须保住已经挣到的最高连对。
+    window.puzzle_is_daily = True
+    window.puzzle_scored = True
+    daily_solves: list[int] = []
+    monkeypatch.setattr(window, "_record_daily_solve", lambda puzzle: daily_solves.append(1))
+    streak_bests: list[int] = []
+    monkeypatch.setattr(
+        appmod.training_store,
+        "record_streak_best",
+        lambda config, count: streak_bests.append(count) or count,
+    )
+    window.streak_session = _FakeStreak()
 
     assert window._judge_puzzle(_PLAYER_MOVE) is False
     assert session.advanced == 0, "对手应着失败后仍推进了游标 —— 之后每一手都会判错"
     assert window.puzzle_session is None, "题面已与解法错位，应当中止本题"
     assert window.hint_button.isVisible() is False
-    assert any(level == "error" for _, level in notes), f"中止本题没有 error 提示：{notes}"
+    errors = [text for text, level in notes if level == "error"]
+    assert errors, f"中止本题没有 error 提示：{notes}"
+    assert "本题已中止" in errors[0] and "重新选题" in errors[0], f"提示没告诉玩家下一步：{errors[0]}"
+    assert daily_solves == [], "作废的题不能计入「今日已完成」"
+    assert streak_bests == [_FakeStreak.count], "中止前应保留已挣到的最高连对"
+    assert window.streak_session is None
