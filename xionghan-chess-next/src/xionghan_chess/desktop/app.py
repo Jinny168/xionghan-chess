@@ -95,6 +95,7 @@ from .ui.dialogs import (
     SettingsDialog,
     TrainingDialog,
 )
+from .ui.feedback import DEFAULT_LEVEL, DEFAULT_TIMEOUT_MS, FeedbackBar
 from .ui.piece_atlas import PieceAtlasDialog
 from .ui.workers import AIWorker, HttpWorker
 
@@ -367,6 +368,11 @@ class MainWindow(QMainWindow):
         self.banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.banner.setObjectName("banner")
         layout.addWidget(self.banner)
+        # P1-10：反馈条插在横幅与棋盘之间 —— 横幅说"现在轮到谁"（常驻状态），
+        # 反馈条说"刚才发生了一件事"（一次性）。两者上下相邻但语义不同，
+        # 玩家一眼就能分清哪个会自己消失。无消息时整体隐藏，不占高度。
+        self.feedback = FeedbackBar(str(self.config.get("theme", "classic")))
+        layout.addWidget(self.feedback)
         split = QSplitter()
         layout.addWidget(split, 1)
         self.board = BoardWidget()
@@ -782,8 +788,10 @@ class MainWindow(QMainWindow):
                     f"({session.attempts} misses · {session._hints_shown} hints)"
                 ),
             )
-            self.statusBar().showMessage(
-                "训练完成，可继续自由对弈" if not english else "Training complete; free play resumed", 8000
+            self.notify(
+                "训练完成，可继续自由对弈" if not english else "Training complete; free play resumed",
+                "success",
+                8000,
             )
             return True
         # 交替序列：玩家走对之后，对手的被迫应着由程序**自动落**（不判分、不提示）。
@@ -995,8 +1003,10 @@ class MainWindow(QMainWindow):
         # 先置取消位：迟到的 worker 结果会在 `finish_ai` 里被丢弃，不会在超时后又走一步。
         self.cancel.set()
         self._release_ai()
-        self.statusBar().showMessage(
-            "AI 思考超时，已解除锁定" if self.config.get("language") != "en" else "AI timed out, board unlocked", 6000
+        self.notify(
+            "AI 思考超时，已解除锁定" if self.config.get("language") != "en" else "AI timed out, board unlocked",
+            "warn",
+            6000,
         )
 
     def finish_ai(self, result: tuple[Move | None, threading.Event]) -> None:
@@ -1352,6 +1362,16 @@ class MainWindow(QMainWindow):
         self._stats_recorded, self._autosaved, self._shown_result = sentinels
         self.refresh()
 
+    def notify(self, text: str, level: str = DEFAULT_LEVEL, timeout_ms: int = DEFAULT_TIMEOUT_MS) -> None:
+        """P1-10：把一条「需要被看见」的反馈送进 `FeedbackBar`。
+
+        与 `statusBar().showMessage()` 的分工（同一条消息**只走一边**）：
+        - 需要玩家立刻知情并调整行为的（保存失败 / 断线 / 重连 / 超时 / 已保存）→ 这里；
+        - 顺带说一句、错过也无所谓的（吃子播报 / 房间号 / 样式切换 / 首跑引导）→ statusBar。
+        后者留在状态栏不是偷懒：把吃一个子也染成黄色横幅，等于教玩家忽略这块区域。
+        """
+        self.feedback.show_message(text, level, timeout_ms)
+
     def apply_appearance(self) -> None:
         if not hasattr(self, "board"):
             return
@@ -1362,6 +1382,9 @@ class MainWindow(QMainWindow):
         font = theme.FONT_CHOICES.get(self.config.get("font", "system"), theme.UI_FONT)
         QApplication.instance().setFont(QFont(font, 10))
         self.configure_board()
+        if hasattr(self, "feedback"):
+            # 换主题时反馈条自己重取配色 —— 它不缓存颜色，只缓存"主题名"。
+            self.feedback.set_theme(str(self.config.get("theme", "classic")))
         text = "#f3ead7" if self.config.get("theme") == "dark" else "#211b17"
         hover = "#4a433b" if self.config.get("theme") == "dark" else "#f1dfbf"
         self.setStyleSheet(
@@ -1374,7 +1397,7 @@ class MainWindow(QMainWindow):
         不弹模态框：音效缺失不影响下棋，打断对局比听不到提示音更糟。
         """
         prefix = "音效不可用：" if self.config.get("language", "zh-CN") != "en" else "Audio unavailable: "
-        self.statusBar().showMessage(prefix + message, 10000)
+        self.notify(prefix + message, "warn", 10000)
 
     def configure_board(self) -> None:
         self.board.language = self.config.get("language", "zh-CN")
@@ -1497,7 +1520,7 @@ class MainWindow(QMainWindow):
             path += ".xhgame"
         try:
             save_game(self.game, path)
-            self.statusBar().showMessage(dlf("棋局已保存：{path}", path=path), 5000)
+            self.notify(dlf("棋局已保存：{path}", path=path), "success", 5000)
         except Exception as exc:
             QMessageBox.warning(self, dl("导出失败"), str(exc))
 
@@ -1531,7 +1554,7 @@ class MainWindow(QMainWindow):
             self._stats_recorded = game.state.finished
             self._autosaved = game.state.finished
             self.refresh()
-            self.statusBar().showMessage(dlf("已载入：{path}", path=path), 5000)
+            self.notify(dlf("已载入：{path}", path=path), "success", 5000)
         except Exception as exc:
             QMessageBox.warning(self, dl("导入失败"), str(exc))
 
@@ -1987,7 +2010,7 @@ class MainWindow(QMainWindow):
         socket.sendTextMessage(net.encode_auth(self.token))
         self.network_reconnect_attempts = 0
         lang = self.config.get("language", "zh-CN")
-        self.statusBar().showMessage("网络已恢复" if lang != "en" else "Network restored", 5000)
+        self.notify("网络已恢复" if lang != "en" else "Network restored", "success", 5000)
 
     def _network_disconnected(self, socket: QWebSocket) -> None:
         if socket is not self.network:
@@ -1998,17 +2021,21 @@ class MainWindow(QMainWindow):
         lang = self.config.get("language", "zh-CN")
         # S1-1：终止条件判定下沉到 net.should_reconnect（纯函数，已被单测覆盖三种终止码）
         if not net.should_reconnect(code, self.network_closing, self.room_id):
-            self.statusBar().showMessage("网络已断开" if lang != "en" else "Network disconnected")
+            self.notify("网络已断开" if lang != "en" else "Network disconnected", "error", 8000)
             return
         if self.network_reconnect_attempts >= net.MAX_RECONNECT_ATTEMPTS:
-            self.statusBar().showMessage(
-                "自动重连失败，请重新加入房间" if lang != "en" else "Reconnect failed; join the room again"
+            self.notify(
+                "自动重连失败，请重新加入房间" if lang != "en" else "Reconnect failed; join the room again",
+                "error",
+                8000,
             )
             return
         delay = net.reconnect_delay(self.network_reconnect_attempts)
         self.network_reconnect_attempts += 1
-        self.statusBar().showMessage(
-            f"{'网络中断，正在重连' if lang != 'en' else 'Disconnected, reconnecting'} ({self.network_reconnect_attempts}/{net.MAX_RECONNECT_ATTEMPTS})"
+        self.notify(
+            f"{'网络中断，正在重连' if lang != 'en' else 'Disconnected, reconnecting'} ({self.network_reconnect_attempts}/{net.MAX_RECONNECT_ATTEMPTS})",
+            "warn",
+            6000,
         )
         QTimer.singleShot(delay, self._connect_network)
 
@@ -2378,13 +2405,11 @@ class MainWindow(QMainWindow):
         if self.config.get("autosave", True) and not self._autosaved:
             try:
                 path = autosave_game(self.game)
-                self.statusBar().showMessage(
-                    ("棋谱已自动保存：" if lang != "en" else "Replay auto-saved: ") + f"{path}", 8000
+                self.notify(
+                    ("棋谱已自动保存：" if lang != "en" else "Replay auto-saved: ") + f"{path}", "success", 8000
                 )
             except OSError as exc:
-                self.statusBar().showMessage(
-                    ("自动保存失败：" if lang != "en" else "Auto-save failed: ") + f"{exc}", 8000
-                )
+                self.notify(("自动保存失败：" if lang != "en" else "Auto-save failed: ") + f"{exc}", "error", 8000)
             self._autosaved = True
         if not self._shown_result:
             self._shown_result = True
