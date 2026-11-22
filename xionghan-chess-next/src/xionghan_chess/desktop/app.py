@@ -1261,7 +1261,8 @@ class MainWindow(QMainWindow):
 
     def ai_failed(self, result: object) -> None:
         message, cancel = result if isinstance(result, tuple) else (str(result), self.cancel)
-        self._end_thinking()
+        # 取消路径不会走到 `_release_ai`，所以读条必须在这行早退前单独停一次
+        # （与 `finish_ai` 同一条纪律）。正常路径由 `_release_ai` 再收尾，重复调用是幂等的。
         self._end_thinking()
         if cancel.is_set():
             return
