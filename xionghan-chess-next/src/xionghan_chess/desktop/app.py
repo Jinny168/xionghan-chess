@@ -893,10 +893,13 @@ class MainWindow(QMainWindow):
         if verdict == puzzle_judge.VERDICT_WRONG:
             # `Game.move` 在落子前压栈，所以 undo(1) 正好回到题面；多步题也只退一手，
             # 已解出的前几手保留。
+            undone = True
             try:
                 self.game.undo(1)
-            except GameError:
-                pass
+            except GameError as exc:
+                # 退不回去时**不能**再弹「棋已退回」—— 提示会与盘面事实相反。
+                undone = False
+                self.notify(dlf("这一手没能退回：{detail}", detail=str(exc)), "warn", 8000)
             self.board.set_game(self.game, self.game.state.turn, True)
             self.board.locked = False
             # 连对挑战：一错即止，不弹"再想想"，直接结束本轮。
@@ -907,12 +910,15 @@ class MainWindow(QMainWindow):
             hint = session.next_hint()
             self._maybe_soft_hint(session)
             detail = ((dl("提示：") + hint) if hint else "") if not english else (("Hint: " + hint) if hint else "")
-            QMessageBox.information(
-                self,
-                "再想想" if not english else "Not quite",
-                ("这不是正解，棋已退回。\n" if not english else "That is not the solution; the move was taken back.\n")
-                + detail,
-            )
+            if undone:
+                lead = "这不是正解，棋已退回。\n" if not english else "That is not the solution; the move was taken back.\n"
+            else:
+                lead = (
+                    "这不是正解，但这一手没能退回，请手动悔棋。\n"
+                    if not english
+                    else "That is not the solution, and the move could not be taken back — please undo manually.\n"
+                )
+            QMessageBox.information(self, "再想想" if not english else "Not quite", lead + detail)
             self.refresh()
             return False
         if verdict == puzzle_judge.VERDICT_SOLVED:
@@ -960,8 +966,22 @@ class MainWindow(QMainWindow):
         if reply is not None:
             try:
                 self.game.move(reply)
-            except GameError:
-                pass
+            except GameError as exc:
+                # 对手应着落不下去 = 题面与解法对不上（题库坏 / 规则变了）。若照旧
+                # `advance_auto()`，游标会越过这一手，之后玩家每一手都必判错而题面
+                # 看起来还正常 —— 必须中止本题，别把错位的题留在屏幕上。
+                self.notify(dlf("对手应着无法落子，本题已中止：{detail}", detail=str(exc)), "error", 8000)
+                if self.streak_session is not None:
+                    self.streak_timer.stop()
+                    training_store.record_streak_best(self.config, self.streak_session.count)
+                    save_config(self.config)
+                    self.streak_session = None
+                self.puzzle_session = None
+                self.puzzle_is_daily = False
+                self.puzzle_scored = False
+                self.hint_button.hide()
+                self.refresh()
+                return False
             session.advance_auto()
             self.board.set_game(self.game, self.game.state.turn, True)
             self.board.locked = False

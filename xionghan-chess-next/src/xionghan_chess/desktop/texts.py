@@ -168,7 +168,7 @@ EN: dict[str, str] = {
     "本局各阶段失分分布较为平均。": "Losses are spread fairly evenly across phases.",
     "本局可复盘的手数不足，未形成阶段归纳。": "Not enough reviewed moves for a phase summary.",
     # P0-1 呈现轻量非权威：只给档位与相对走势，不给分值（措辞与 webapp 的同名文案对齐）
-    "档位较低的手：": "Lower-graded moves:",
+    "失分较多的手：": "Moves with heavier losses:",
     "走势样本不足，未作归纳": "Not enough samples for a trend summary",
     "中段一度吃紧后转好": "Tight in the middle, then recovered",
     "中段一度吃紧，末段仍未回到开局局面": "Tight in the middle, still below the opening position",
@@ -243,6 +243,8 @@ TEMPLATES: dict[str, str] = {
     "，{skipped} 条已存在跳过": ", {skipped} skipped as duplicates",
     # 终局副作用失败：写盘异常 / 题面与解法对不上，都必须让玩家看见
     "战绩保存失败：{detail}": "Could not save statistics: {detail}",
+    "这一手没能退回：{detail}": "Could not take that move back: {detail}",
+    "对手应着无法落子，本题已中止：{detail}": "Opponent reply could not be played; puzzle aborted: {detail}",
     "自动重连失败，请重新加入房间": "Reconnect failed, please rejoin the room",
     "网络中断，正在重连": "Connection lost, reconnecting",
     "{profile} · {plies} 手": "{profile} · {plies} moves",
