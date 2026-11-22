@@ -180,12 +180,26 @@ function loadPrefs() {
   }
 }
 
-function savePrefs() {
+// 存储写失败不再静默：隐私模式、Cookie 被禁或配额耗尽时 setItem 会抛，
+// 裸 catch 吞掉之后用户以为存上了，刷新/重开才发现进度没了。
+// 同一 session、同一个键只提示一次 —— 设置页滑块连续拖动会反复调 savePrefs。
+const storageWarned = new Set();
+function safeSet(key, value) {
   try {
-    localStorage.setItem(PREFS_KEY, JSON.stringify(app.prefs));
-  } catch {
-    /* 隐私模式下忽略 */
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    if (!storageWarned.has(key)) {
+      storageWarned.add(key);
+      toast(t('toast.storageFailed'), 'warn');
+    }
+    console.warn('[storage] write failed', key, error);
+    return false;
   }
+}
+
+function savePrefs() {
+  safeSet(PREFS_KEY, JSON.stringify(app.prefs));
 }
 
 // 新用户首次落点 = 轻量档（P0-4 收尾 / G3 痛点）。只首访生效：
@@ -1591,11 +1605,7 @@ function loadStats() {
 }
 
 function saveStats(stats) {
-  try {
-    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
-  } catch {
-    /* 忽略 */
-  }
+  safeSet(STATS_KEY, JSON.stringify(stats));
 }
 
 function recordStats() {
@@ -1787,11 +1797,7 @@ function solvedIds() {
 function markSolved(id) {
   const set = solvedIds();
   set.add(id);
-  try {
-    localStorage.setItem(SOLVED_KEY, JSON.stringify([...set]));
-  } catch {
-    /* 忽略 */
-  }
+  safeSet(SOLVED_KEY, JSON.stringify([...set]));
 }
 
 // 每日一题：题目只由本地日期决定（ui/daily.js 的算法与 core/daily.py 逐日对拍等价），
@@ -2080,18 +2086,14 @@ function resetStats() {
 
 function saveSession() {
   if (!app.game) return;
-  try {
-    const payload = {
-      document: gameToDocument(app.game),
-      minutes: app.minutes,
-      mode: app.mode,
-      humanColor: app.humanColor,
-      difficulty: app.difficulty,
-    };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
-  } catch {
-    /* 忽略容量问题 */
-  }
+  const payload = {
+    document: gameToDocument(app.game),
+    minutes: app.minutes,
+    mode: app.mode,
+    humanColor: app.humanColor,
+    difficulty: app.difficulty,
+  };
+  safeSet(SESSION_KEY, JSON.stringify(payload));
 }
 
 function restoreSession() {
@@ -2271,11 +2273,7 @@ function loadLibrary() {
 }
 
 function writeLibrary(list) {
-  try {
-    localStorage.setItem(LIB_KEY, JSON.stringify(list.slice(0, LIB_MAX)));
-  } catch {
-    /* 容量不足时忽略 */
-  }
+  return safeSet(LIB_KEY, JSON.stringify(list.slice(0, LIB_MAX)));
 }
 
 function saveToLibrary() {
@@ -2299,8 +2297,7 @@ function saveToLibrary() {
   };
   const list = loadLibrary();
   list.unshift(entry);
-  writeLibrary(list);
-  toast(t('library.saved'), 'success');
+  if (writeLibrary(list)) toast(t('library.saved'), 'success');
 }
 
 function buildFromEntry(entry) {

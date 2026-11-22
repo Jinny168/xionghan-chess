@@ -225,6 +225,7 @@ const zh = {
   'toast.soundOff': '音效已关闭',
   'toast.promotion': '兵卒到底，请选择升变棋子',
   'toast.saved': '已保存到本机',
+  'toast.storageFailed': '本地存储写入失败，这局进度可能没保存下来',
 
   'atlas.title': '棋子图谱',
   'atlas.subtitle': '点亮棋子，看它在这张棋盘上究竟能走到哪里',
@@ -562,6 +563,7 @@ const en = {
   'toast.soundOff': 'Sound off',
   'toast.promotion': 'Choose a promotion piece',
   'toast.saved': 'Saved locally',
+  'toast.storageFailed': 'Local storage write failed — this game may not be saved',
 
   'atlas.title': 'Piece atlas',
   'atlas.subtitle': 'Tap a piece to see every square it can reach on this board',

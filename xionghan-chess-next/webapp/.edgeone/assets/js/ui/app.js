@@ -180,12 +180,26 @@ function loadPrefs() {
   }
 }
 
-function savePrefs() {
+// 存储写失败不再静默：隐私模式、Cookie 被禁或配额耗尽时 setItem 会抛，
+// 裸 catch 吞掉之后用户以为存上了，刷新/重开才发现进度没了。
+// 同一 session、同一个键只提示一次 —— 设置页滑块连续拖动会反复调 savePrefs。
+const storageWarned = new Set();
+function safeSet(key, value) {
   try {
-    localStorage.setItem(PREFS_KEY, JSON.stringify(app.prefs));
-  } catch {
-    /* 隐私模式下忽略 */
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    if (!storageWarned.has(key)) {
+      storageWarned.add(key);
+      toast(t('toast.storageFailed'), 'warn');
+    }
+    console.warn('[storage] write failed', key, error);
+    return false;
   }
+}
+
+function savePrefs() {
+  safeSet(PREFS_KEY, JSON.stringify(app.prefs));
 }
 
 // 新用户首次落点 = 轻量档（P0-4 收尾 / G3 痛点）。只首访生效：
@@ -282,7 +296,7 @@ function startGame({ silent = false } = {}) {
   if (typeof stopStreakTimer === 'function') stopStreakTimer();
   app.streakRun = null;
   if (typeof hideStreakBanner === 'function') hideStreakBanner();
-  app.analysis = null;
+  resetAnalysis();
   stopPolling();
   app.online = null;
   clearSelection();
@@ -794,6 +808,17 @@ function tickClock() {
 
 /* ---------------------------------------------------------------- 复盘 */
 
+/** 换局 / 重开 / 加载棋谱时统一作废逐手分析。
+ *
+ * 分析结果按 ply 下标寻址（`app.analysis[index]`），换了棋谱还留着，就会把
+ * 上一局的档位底色贴到新局面的第 N 手上 —— 显示的错信息，还不报错。
+ * 同时递增 `analysisId`：在途 worker 的结果回来时 id 已对不上，不会补写进来。
+ */
+function resetAnalysis() {
+  app.analysisId += 1;
+  app.analysis = null;
+}
+
 function updateAnalysisProgress({ done, total }) {
   const box = $('#analysisProgress');
   box.hidden = false;
@@ -828,8 +853,7 @@ function runAnalysis() {
     notation: record.notation,
   }));
 
-  app.analysisId += 1;
-  app.analysis = null;
+  resetAnalysis();
   $('#analysisSummary').hidden = true;
   updateAnalysisProgress({ done: 0, total });
 
@@ -1403,7 +1427,7 @@ function enterOnline(data, color) {
   app.humanColor = color;
   app.flipped = color === 'black';
   app.puzzle = null;
-  app.analysis = null;
+  resetAnalysis();
   app.unlimited = true;
   hideDialog('dlgOnline');
   applyRemote(data, true);
@@ -1581,11 +1605,7 @@ function loadStats() {
 }
 
 function saveStats(stats) {
-  try {
-    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
-  } catch {
-    /* 忽略 */
-  }
+  safeSet(STATS_KEY, JSON.stringify(stats));
 }
 
 function recordStats() {
@@ -1777,11 +1797,7 @@ function solvedIds() {
 function markSolved(id) {
   const set = solvedIds();
   set.add(id);
-  try {
-    localStorage.setItem(SOLVED_KEY, JSON.stringify([...set]));
-  } catch {
-    /* 忽略 */
-  }
+  safeSet(SOLVED_KEY, JSON.stringify([...set]));
 }
 
 // 每日一题：题目只由本地日期决定（ui/daily.js 的算法与 core/daily.py 逐日对拍等价），
@@ -1968,6 +1984,8 @@ function startPuzzle(data, { scored = false, streak = false } = {}) {
 
   app.game = game;
   app.unlimited = true;
+  // 换到一道题就是换了棋谱：上一局的分析不能留着贴到这道题的着法上。
+  resetAnalysis();
   // scored=true：计分态（每日/连对），屏蔽文字提示、不计星；
   // scored=false：章节闯关，文字提示可用且计入星级。
   app.puzzle = { data, step: 0, scored, streak, misses: 0, hints: 0, consecutiveMisses: 0 };
@@ -2068,18 +2086,14 @@ function resetStats() {
 
 function saveSession() {
   if (!app.game) return;
-  try {
-    const payload = {
-      document: gameToDocument(app.game),
-      minutes: app.minutes,
-      mode: app.mode,
-      humanColor: app.humanColor,
-      difficulty: app.difficulty,
-    };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
-  } catch {
-    /* 忽略容量问题 */
-  }
+  const payload = {
+    document: gameToDocument(app.game),
+    minutes: app.minutes,
+    mode: app.mode,
+    humanColor: app.humanColor,
+    difficulty: app.difficulty,
+  };
+  safeSet(SESSION_KEY, JSON.stringify(payload));
 }
 
 function restoreSession() {
@@ -2101,6 +2115,8 @@ function restoreSession() {
     app.unlimited = !app.minutes;
     const last = app.game.state.history.at(-1);
     app.lastMove = last ? last.move : null;
+    // 读档就是换棋谱：上次会话残留的分析结果一律作废。
+    resetAnalysis();
     render();
     return true;
   } catch {
@@ -2257,11 +2273,7 @@ function loadLibrary() {
 }
 
 function writeLibrary(list) {
-  try {
-    localStorage.setItem(LIB_KEY, JSON.stringify(list.slice(0, LIB_MAX)));
-  } catch {
-    /* 容量不足时忽略 */
-  }
+  return safeSet(LIB_KEY, JSON.stringify(list.slice(0, LIB_MAX)));
 }
 
 function saveToLibrary() {
@@ -2285,8 +2297,7 @@ function saveToLibrary() {
   };
   const list = loadLibrary();
   list.unshift(entry);
-  writeLibrary(list);
-  toast(t('library.saved'), 'success');
+  if (writeLibrary(list)) toast(t('library.saved'), 'success');
 }
 
 function buildFromEntry(entry) {
@@ -2307,7 +2318,7 @@ function useEntry(entry, thenReplay) {
   app.game = buildFromEntry(entry);
   app.unlimited = true;
   app.puzzle = null;
-  app.analysis = null;
+  resetAnalysis();
   app.lastMove = app.game.state.history.at(-1)?.move || null;
   clearSelection();
   hideDialog('dlgLibrary');
