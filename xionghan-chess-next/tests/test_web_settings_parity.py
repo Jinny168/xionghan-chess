@@ -103,3 +103,18 @@ def test_initial_minutes_defaults_to_ten_on_both_ends() -> None:
     # 以后加"不限时=0"或从别处同步进 0 时就会被悄悄改成 10。
     assert "p.initialMinutes??10" in APP_JS, "app.js 读取偏好时应使用 ?? 兜底"
     assert "p.initialMinutes||" not in APP_JS, "app.js 里不该再用 || 兜底（0 会被误判为空值）"
+
+
+def test_system_theme_change_listener() -> None:
+    """**这是文本守卫**：断言 web 旧树注册了系统亮暗 `change` 监听、且只在 `auto` 档重算。
+
+    **运行时正确性以浏览器切系统主题的人工验收为准**——本测试只守"代码还在"，不冒充
+    运行时判据。显式 light/dark 偏好不该被系统切换覆盖，故回调用 `app.preferences.systemTheme==='auto'`
+    把住；新增后缀兜底 `addListener` 兼容老浏览器。
+    """
+    assert "function watchSystemTheme()" in APP_JS, "缺少系统主题监听函数 watchSystemTheme"
+    assert "matchMedia('(prefers-color-scheme: dark)')" in APP_JS, "未监听 prefers-color-scheme: dark"
+    assert "addEventListener('change'" in APP_JS, "缺少 change 事件监听"
+    assert "addListener(" in APP_JS, "缺少老浏览器 addListener 兜底"
+    assert "app.preferences.systemTheme==='auto'" in APP_JS, "回调缺少 auto 档判断（显式 light/dark 不应被覆盖）"
+    assert "watchSystemTheme();" in APP_JS, "启动流程未调用 watchSystemTheme"

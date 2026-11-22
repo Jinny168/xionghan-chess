@@ -80,7 +80,7 @@ CONFIG_VERSION = 2
 
 DEFAULTS: dict[str, Any] = {
     "schema_version": CONFIG_VERSION,
-    "profile": "desktop_complete",
+    "profile": "desktop_light",
     "language": "zh-CN",
     "game_mode": "ai",
     "difficulty": "medium",
