@@ -107,7 +107,7 @@ def piece_option_groups() -> dict[str, list[str]]:
 
 | 端 | 文件:函数 | 改动 | 不变的部分 |
 |---|---|---|---|
-| 桌面① | `src/xionghan_chess/desktop/ui/piece_atlas.py` 模块级 `PIECE_OPTION_KEYS`(:91-115) | **删除整块常量**；使用处改为 `from xionghan_chess.core.profiles import piece_option_groups` 并按 `PieceType` 取值 | 该文件的说明文本/图谱逻辑不动 |
+| 桌面① | `src/xionghan_chess/desktop/ui/piece_atlas.py` 模块级 `PIECE_OPTION_KEYS`(:91-115)，**两个消费点**：`_switches_section`(:543，可写开关)、`_rule_state_row`(:755，只读状态行)；`:533` 为文档字符串 | **删除整块常量**；两处消费点都改为 `from xionghan_chess.core.profiles import piece_option_groups` 并按 `PieceType` 取值；`:533` 文档字符串一并改写 | 该文件的图谱逻辑不动；**两处必须同源改**，否则桌面图谱页读硬编码、设置页读 core，形成同一端两处分叉 |
 | 桌面② | `src/xionghan_chess/desktop/ui/dialogs.py::SettingsDialog.__init__`（`piece_definitions` :308-352，消费点 :356 的 `for kind, (title_key, description_key, rules)`） | **删掉每个三元组的第 3 项 rules**；循环改为 `for kind, (title_key, description_key) in ...`，`rules` 从 `piece_option_groups().get(kind.value, ())` 取 | 11 个 GroupBox 的标题/说明/登场复选框、`:437` `_update_piece_availability`、`:477` `_apply_dependency` 全部保留 |
 | Web 旧树 | `web/js/app.js` 模块级 `pieceRuleKeys`(:145-151)；消费点 `openSettings` 附近 `:491` | **删除 `pieceRuleKeys` 字面量**；`:491` 改为 `const groups = profile?.pieceOptionGroups`，`rules=(groups?.[kind]||[]).map(...)`；`:486` 的 `profile` 已存在，无需新增请求 | `:487` 常规规则区、`no_progress_draw_plies` 下拉、`:494` `optionDependencies` 置灰不变 |
 | Webapp 离线 PWA | `webapp/js/ui/app.js` — **不改** | 无分组触点（`RULE_LABELS` 扁平渲染 :79/:2421） | — |
@@ -316,3 +316,206 @@ animations_on = config["animations"] and not system_reduced
 | **C · 桌面 reduced-motion** | **本轮不做接入**；但**前提翻转**：Qt 6.12 原生有 `QStyleHints.accessibility().motionPreference()`（实测可读、`motionPreferenceChanged` 存在），Windows 插件已实现。**解除条件**：Windows 真机 A/B 验证开关切换能改变返回值并触发信号 → 通过后按 §3.3 低成本接入（0.25–0.5 人日） | 真机 A/B 验证；接入时沿用 Web/Webapp「系统偏好为独立否决项、不写回用户配置」口径 | 当前仅有 offscreen 实测（恒 `NoPreference`），缺 Windows 真机证据；`KNOWN_ISSUES.md:84-91` / `board_widget.py:112-115` 的旧结论需在下轮一并更正 | 架构（本文）→ QA：Windows 真机 A/B（必须有开/关两态截图或输出）→ 通过后主程序接入 + 更新 KNOWN_ISSUES |
 
 **全局约束复核**：三项均不触碰走法语义，`RULE_VERSION` 保持 3，不重生成 24MB fixtures；本轮只新建本文件、只用一个显式路径提交（`git add docs/ARCH_DECISIONS_2026-11-23.md`），不 amend、不推送、不用 `-a/-A/stash`，不纳入 `.workbuddy/memory/MEMORY.md` 及任何 untracked 产物。
+
+---
+
+## 补记（C-1 前提精度）：语义等价物 `PIECE_OPTION_KEYS` 与「部分落地」复核
+
+调度方后续补核：原任务说「`PIECE_OPTION_GROUPS` 全仓零命中 → 未做」字面成立，但存在**语义等价物**。本节按实读代码复核，结论：**C-1 未在任何程度上落地**，三份硬编码全部健在；但需更正两处措辞精度。
+
+**精确取证（HEAD `d41aca3`，逐行实读）：**
+
+```
+$ grep -rn "PIECE_OPTION_KEYS\|pieceRuleKeys\|piece_definitions" --include="*.py" --include="*.js" src/ web/ webapp/js android/Resources/
+src/xionghan_chess/desktop/ui/dialogs.py:308:        piece_definitions = {
+src/xionghan_chess/desktop/ui/dialogs.py:356:        for kind, (title_key, description_key, rules) in piece_definitions.items():
+src/xionghan_chess/desktop/ui/piece_atlas.py:91:PIECE_OPTION_KEYS: dict[PieceType, tuple[str, ...]] = {
+src/xionghan_chess/desktop/ui/piece_atlas.py:533:        - 只放**单子**开关（`PIECE_OPTION_KEYS`）...
+src/xionghan_chess/desktop/ui/piece_atlas.py:543:        keys = [key for key in PIECE_OPTION_KEYS.get(self.kind, ()) if hasattr(options, key)]
+src/xionghan_chess/desktop/ui/piece_atlas.py:755:        rows += [(t(f"rule.{key}_short", self.language), key) for key in PIECE_OPTION_KEYS.get(self.kind, ())]
+web/js/app.js:145:const pieceRuleKeys={
+web/js/app.js:491:  ...(pieceRuleKeys[kind]||[]).map(...)
+$ grep -rn "pieceOptionGroups\|piece_option_groups\|PIECE_OPTION_GROUPS" --include="*.py" --include="*.js" src/ web/ webapp/js
+（0 命中 → core 无定义、API 无字段）
+```
+
+**两处更正：**
+
+1. **§0 表格第 2 行措辞更正**：`PIECE_OPTION_GROUPS` 零命中属实，但语义等价物 **`PIECE_OPTION_KEYS` 确实存在**，且不是「一份」而是 **1 个模块常量 + 2 个消费点**（`piece_atlas.py:543` `_switches_section` 可写开关、`piece_atlas.py:755` `_rule_state_row` 只读状态行；`:533` 是文档字符串）。§1.3 桌面①行已据此写全为「删除常量 + 改 `:543`/`:755` 两处读取」——这两个消费点必须一并改为读 core，否则桌面图谱页会保留硬编码读取而设置页改了源，形成「同一端两处读不同源」的新分叉。
+2. **「`king4|horse3|elephant2|archer1` 旧键名 grep 零命中」的口径说明**：计划文档（`IMPROVEMENT_PLAN.md:96`）里 `king4 · horse3 · elephant2 · advisor2 · pawn7 · archer1` 是**分组形状的计数描述**（「king 组 4 个键」），不是源码里的字面标识符。真实代码里分组以**开关键数组**形式存在（`dialogs.py:309-351`、`piece_atlas.py:92-115`、`app.js:146-150`），所以按 `king4` 这种 token 去 grep 必然零命中，**不能据此推断分组已删除或已上移**。逐键实比结果仍是 §1.1 的 6 组 / 18 键、三份一致。
+
+**「还剩什么没做」精确清单（C-1 完全未落地）：** ① core 无 `PIECE_OPTION_GROUPS` / `piece_option_groups()`（0 命中）；② `/api/profiles` 无 `pieceOptionGroups` 字段（`service/app.py:239-269` 全字段已逐行核对，无此项）；③ 桌面 2 处 + Web 1 处硬编码仍在；④ C-2 守卫仍读三份硬编码（`test_option_wiring.py:120-201`），未改为读 core。**结论不变**：§1 全节方案照旧执行，只是桌面①的改动点从 1 处扩展为 3 处（常量定义 + 2 个消费点）。
+
+---
+
+## D. 承接产品裁决的实现规格
+
+> 来源：`docs/PRODUCT_DECISIONS_2026-11-23.md`（commit `1a04b82`，游有方，状态「裁决建议，未实施」）。本节只出**技术落地规格**，不实现、不改源码/测试/版本源。裁决原文按项目纪律逐字引用；引用块之外是我的架构裁定。
+> 基线同前文：`d41aca3` 起手核对，本文 commit 时 HEAD 已含 `1a04b82`。
+
+### D. 裁决原文（关键段逐字照贴）
+
+**A 项裁决原文 · A-1**
+
+> **统一到 120 手。** Web 服务端按 120 手分析，Web 客户端补「真被截断才出现」的覆盖提示；桌面与 Webapp 行为与文案不改。
+
+**A 项裁决原文 · A-3 首段**
+
+> **不采用分层；并且判定既有「按端分层验收，不承诺全端同深度」口径不适用于本项。**
+>
+> - 该口径出处 `docs/ITERATION_PLAN_ROUND_NEXT.md:216` 的 P0-1 行，成本/风险栏逐字为「**按端分层验收，不承诺全端同深度**」。它讲的是**呈现深度/搜索深度/展示丰富度**可按端不同（例如某端先只有档位、另一端后续再加走势说明）。
+> - 本项分歧是**覆盖面**：哪些手被分析、哪些手会产生档位结论。这是数据集层面的不同，不是深度层面的不同。用"深度"口径去豁免"覆盖面"差异，等于允许三端对每个具体着法给出不同事实。
+
+**A 项裁决原文 · A-4 文案与落点**
+
+> - 中文：`（仅分析前 {n} 手，浅层参考；未分析的手不判断好坏）`
+> - English: `(First {n} plies only — a shallow reference; later moves are not judged.)`
+>
+> 落点约束：`{n}` 必须来自单一上限常量，不得写死 `120`；文案替换既有 `analysis.capped` 的值，保持三端同一句；`web/js/i18n.js` 目前**没有** `analysis.capped` 键（`:149-151` 只有 shallow/shallow_hint），需由实现方补上。生成物（`webapp/dist/`、`online/public/`、`webapp/.edgeone/assets/`）不得手工编辑，随构建重生成。
+
+**A 项裁决原文 · A-5 不作为**
+
+> - 不碰 AI `CONFIGS` / 搜索预算 / 难度映射（`core/ai.py`）。改覆盖面不等于改深度；`CONFIGS` 一动会牵动 K5 胜率与新手采样率口径（`.workbuddy/memory/2026-11-18.md:130`）。
+> - 不 bump `RULE_VERSION`（当前 3）、不改 `core/rules.py` / `core/profiles.py` 走法语义、不改棋谱格式。这是复盘呈现覆盖面，不是规则语义。
+> - 不改 `quality_for_loss` 阈值、`scoreLoss` / `winRate` 计算（`core/analysis.py:69-108`）。口径对齐时最容易"顺手调档位"，那会把一次一致性修复变成一次未评审的平衡变更。
+> - 不改 `core/benchmark.py:307` 的 `max_plies=240`（评测口径，与复盘呈现正交）。
+
+**B 项裁决原文 · B-1**
+
+> **判定为同类缺陷，不是可辩护的有意设计。**
+>
+> 准确表述是：**代码层面是有意实现，产品前提是错误的**。`3ada66a` 的提交说明逐字写着「`piece_render == "glyph"` 的老配置 → `piece_style = "glyph"`（**老配置优先**，哪怕旧文件里还留着 `piece_style="cartoon"` 的美术偏好）」，说明这个分支是写进去的；但它依赖的前提——"cartoon 只是记忆位"——对 1.6.x 老用户不成立。前提不成立的有意实现，落到用户身上就是静默替换。
+
+**B 项裁决原文 · B-3 主处置与兜底**
+
+> 1. **主处置：自动保留偏好（属"撤销错误改写"，不是迁移）。**
+>    - 判据：加载时 `piece_render` 键**缺失**（真正的 1.6.x 存量）且 `piece_style` ∈ {`traditional`, `modern`, `cartoon`} → 视为用户显式选择，**保留 `piece_style` 原值**，并派生 `piece_render="image"`。棋盘、设置下拉、图谱三处回到用户当初看到的样子，一次提示都不必发——因为用户眼前没有发生任何新变化。
+>    - 已有 `piece_render` 键的 2.x 配置一律维持现状：用户当下明确选过 glyph 就写 glyph，明确选过某风格就写 image；不为"召回记忆"额外改写任何值。
+>    - 不 bump `CONFIG_VERSION` / `schema_version`：这是纠错分支，不是新 schema 迁移；沿用 `{**DEFAULTS, **data}` 补默认的既有机制。
+>    - 不得采用"保留 `piece_style=cartoon` 但渲染 glyph"的中间态：那会产生「设置显示 A、棋盘/图谱为 B」，违反 `e2ccd78^:docs/QA_PIECE_ATLAS.md:89` 的 B-3 验收原文「任何时刻不得「设置显示 A、棋盘/图谱为 B」」。
+>
+> 2. **兜底：仅当无法原样保留（原值已被旧版本落盘冲掉、或该风格资源缺失而必须回退）时，一次性提示，不自动替用户改。** 机制与轻量档一致：本地标记键（如 `piece_style_intro_shown`，只提示一次、落盘、不进云同步映射），提示后原值/回退态照实保留，用户可在设置里自行改。
+
+**B 项裁决原文 · B-4 新键策略（7 条，标题逐字）**
+
+> 1. **规则类键**：一律进 `rule_options`，由 `RuleOptions.merged()` 的白名单/别名表裁决；不在 `config` 顶层另开第二份定义
+> 2. **纯新增偏好键**：`DEFAULTS` 声明默认值，**不 bump `schema_version` / `CONFIG_VERSION`**，由 `{**DEFAULTS, **data}` 补缺
+> 3. **用户显式选择过的存在值**：**只补缺、不改写**。缺键才写默认值；有值且合法 → 原样保留；非法/未知值 → 不静默改成默认，按第 5 条处理。判据是"这个值是不是用户选的"，**不是**"新键的默认值看起来更合理"。特别注意：由新键自动补出来的默认值**不构成用户意图**（本项正是栽在这里）。
+> 4. **派生字段**（如 `piece_render` 由 `piece_style` 派生）：可以重算派生值，但**不得用派生逻辑回写覆盖源值**；派生结果与源值冲突时，优先保留用户可见的一致性（三处一致：棋盘 / 设置 / 图谱），必要时按第 5 条提示。
+> 5. **确实需要改变用户可见状态**：走一次性提示 + 本地标记键，不改用户值、不自动迁移、不进云同步映射（零采集）。
+> 6. **已下线/已移除的 UI 选项**：移除入口 ≠ 改写存量值。存量值要么继续被尊重，要么明确回落并提示
+> 7. **一次性引导/提示标记**：纯本地，不进云同步映射，不 bump schema
+
+### D-A. A 项（分析覆盖面 200→120）的落地规格
+
+**D-A.0 现状取证（逐条可核对）：**
+
+| 端 | 上限来源 | 证据 |
+|---|---|---|
+| 服务端 | `analyze_game(..., max_plies: int = 200)`，`/api/analysis` 不传 → 走 200 | `core/analysis.py:45-50`；`service/app.py:706-712`（`:710` `analyze_game(game, request.difficulty)`）；`AnalyzeRequest` 只有 `document`+`difficulty`（`app.py:213-215`） |
+| 桌面 | `ANALYSIS_PLY_CAP = 120`，真截断时注入 `cappedPlies` | `desktop/ui/workers.py:32,127,130-131`；提示 `dialogs.py:897-900` |
+| Webapp | `const CAP = 120`，`results.length > CAP` 才提示 | `webapp/js/ui/app.js:158-160,890`；文案 `webapp/js/i18n.js:321,659` |
+| Web 旧树 | 无本地上限、无 `analysis.capped` 键 | `web/js/app.js:324-325`；`web/js/i18n.js:149-151` |
+
+**D-A.1 `{n}`「单一上限常量」放哪一层——裁定：放 `core/analysis.py`，其余两端「派生」而非「另立」**
+
+三个现状常量是独立字面量，但**只有 `core/analysis.py` 是服务端与桌面共同 import 的层**（`service/app.py:29` `from xionghan_chess.core.analysis import analyze_game`；桌面 `workers.py` 亦 import `analyze_game`）。收敛方案：
+
+| 步骤 | 动作 | 依据 / 理由 |
+|---|---|---|
+| ① 唯一真源 | 在 `core/analysis.py` 定义模块常量 `ANALYSIS_PLY_CAP = 120`（紧邻 `analyze_game`），把 `analyze_game` 的 `max_plies: int = 200` 改为 `max_plies: int = ANALYSIS_PLY_CAP` | 服务端与桌面都从这一处取；与 `DEFAULT_INITIAL_MINUTES`(`game.py:26`)、`RULE_VERSION`(`profiles.py:29`) 同范式 |
+| ② 服务端 | `service/app.py::analysis` 显式传 `ANALYSIS_PLY_CAP`：`analyze_game(game, request.difficulty, ANALYSIS_PLY_CAP)`；并把 `AnalyzeRequest` **保持两字段不变** | 显式传参让上限在调用点可见、可测；**不动请求模型**是下面 D-A.2 契约判断的关键 |
+| ③ 桌面 | `workers.py:32` 删除本地 `ANALYSIS_PLY_CAP = 120`，改为 `from xionghan_chess.core.analysis import ANALYSIS_PLY_CAP`；`:127/:130-131` 调用与 `cappedPlies` 注入不变 | 消灭第二份字面量；行为零变化（值仍 120） |
+| ④ Webapp | `webapp/js/ui/app.js:160` 的 `const CAP = 120` **保留**（JS 离线端无法 import Python），但加一条 codegen 守卫：让 `gen_web_profiles.py::payload()` 增加 `"ANALYSIS_PLY_CAP": ANALYSIS_PLY_CAP` 下发到 `webapp/js/core/profiles.js`，`app.js` 从该模块取值替代本地常量；`gen_web_profiles.py --check` 现成的 8 条读回断言（`:287-360`）已能防「JS 常量漂移」，无需新机制 | 真正让三端共用一个数；`profiles.js` 本就是 core→JS 的下发载体（`:1-5`）。若排期不允许碰 codegen，退路是加一条 Python 测试断言 JS 文本里的 `const CAP` 等于 core 常量（照 `test_default_minutes_single_source.py` 范式），但它只能「漂移即红」、不能「自动同源」——首选仍是 codegen |
+
+**D-A.2 为什么这不牵动第 2 节（原任务 B）的 service 契约判断**
+
+第 2 节裁定的是**建房请求默认值**：`Room.initial_minutes` 改引用 `DEFAULT_INITIAL_MINUTES`，HTTP 契约面是 `CreateRoomRequest`（`service/app.py:149`）。A 项改的是**分析函数默认上限**与**`/api/analysis` 的调用实参**，落在 `AnalyzeRequest`（`app.py:213-215`，两字段，无 `max_plies`）与 `analyze_game`（`core/analysis.py:45-50`）。两者是**不同端点、不同请求模型、不同常量**：
+
+- A 项不新增/不删除 `AnalyzeRequest` 字段（步骤②只改调用实参），因此**不产生新的 HTTP 契约字段**，与第 2 节「`Room` 是内部 dataclass、契约在请求模型」的判据互不交叉；
+- A 项不碰 `CreateRoomRequest` / `Room` / `DEFAULT_INITIAL_MINUTES` / `desktop/config.py:129` 的任何一行，建房口径（用户侧 10 分钟）原样保留；
+- 若实现时有人「顺手」给 `AnalyzeRequest` 加 `max_plies` 让客户端传 → 那才会产生契约面变更，且会让上限重新变成「客户端可覆盖的三份值」，**明令禁止**。裁定：`max_plies` 不作为请求字段，服务端单点持有。
+
+**D-A.3 Web 补 `analysis.capped` 键：bundle/fixtures 要不要重生成、按什么顺序**
+
+先给结论：**`web/` 旧树不在 S1–S6 产物链上，补它的 i18n 键不触发任何 bundle/fixtures 重生成。** 依据：
+
+- S1–S6 的输入是 `webapp/js/core/profiles.js`、`rules.js`、`online/core/*`、`online/public/index.html`（`README.md:86-103`；`gen_rule_fixtures.py:87-96` 的 `SOURCE_DIGEST_FILES` 五个文件），**不含 `web/js/i18n.js`**。`web/` 是服务端直托的旧树（`service/app.py` 的 `WEB_DIR`），改它不涉及任何 codegen 产物。
+- 产品裁决自己也在「与调度方判断不一致」第 3 条区分了「受控 `web/`」与「未跟踪生成树 `online/public/`」；后者 `:6292/:7023` 已有本地分析 `const CAP=120` 与提示，但**不调 `/api/analysis`**（走本地 worker），不是分歧方，**不得手改**。
+
+Web 侧完整改动清单（供实现方）：
+
+| 位置 | 动作 | 备注 |
+|---|---|---|
+| `web/js/i18n.js` | 在 `analysis` 段补 `analysis.capped` 两语言键值；在静态文案登记处（`:149-151` 附近）加一行 `setText(...)` 指向提示节点 | 键名/文案逐字照 A-4 裁决；`t(key, params)` 已支持插值（`:25`） |
+| `web/js/app.js::renderAnalysis`(:325) | 用 `result.analyzedPlies` 与上限比较，真截断才渲染该提示；`{n}` 取服务端下发的上限值 | 上限来源见下 |
+| `service/app.py::analysis` 响应 | 在 `analyze_game` 返回字典里带 `plyCap`（值 = `ANALYSIS_PLY_CAP`），Web 用 `result.plyCap` 插值 | **响应多一个键是加法式兼容**，老客户端忽略即可；不改请求模型 |
+
+顺序裁定：若实现方**同时**执行了 D-A.1 步骤④（`gen_web_profiles.py` 加 `ANALYSIS_PLY_CAP` 下发），则 `profiles.js` 变了，必须按 `README.md:90-103` 的**固定顺序**跑 `S1 --write → S2 --check → S3 → S4 --check → S5 --write → S6`，因为 `gen_rule_fixtures.py:87-96` 的 `sourceDigest` 把 `profiles.js` 与 bundle 产物纳入哈希，乱序会被 `verify-rules.mjs` 的 `build-order` 拦下。**这与第 1 节 A 项的禁令是两回事**：C-1 不动 core 规则口径所以禁跑 S1–S6；A 项若改 codegen 下发常量则**必须**重跑全链。若步骤④走「测试断言」退路，则不改产物、不跑 S1–S6。
+
+### D-B. B 项（棋子美术偏好）的落地规格
+
+**D-B.0 现状取证：**
+
+- `config.py:97` `DEFAULTS["piece_style"]="glyph"`；`:99-100` `DEFAULTS["piece_render"]="glyph"`，注释逐字「新增键不 bump CONFIG_VERSION：`{**DEFAULTS, **data}` 会自动给旧配置补上默认值」。
+- `migrate()`(`:305-323`) 的迁移循环**既不读也不写** `piece_style`/`piece_render`，只处理 `schema_version`；`migrated` 与 `raw` 在这两个键上等价。
+- `load_config()`:356 读原始 `raw`；`:361` `migrated, changed = migrate(raw)`；`:362` `merged = {**DEFAULTS, **migrated}` ← **此处把缺失的 `piece_render` 补成 `"glyph"`**；`:369` 调 `_normalize_piece_style(merged.get("piece_style"), merged.get("piece_render"))`；`:340-341` `render=="glyph"` → 无条件返回 `("glyph","glyph")`；`:370-372` 不一致 → 改 `merged` 且 `changed=True`；`:377-383` `changed` 为真 → `save_config(merged)` 落盘。
+- `save_config()`(`:387-388`) 是整份 `json.dumps` 覆盖写。
+
+**D-B.1 精确判据插入点与「写回还是只改内存」裁定**
+
+**插入点：`config.py:362` 与 `:369` 之间**（`merged` 已补全、但 `_normalize_piece_style` 尚未调用之前）。**判据必须以原始 `raw` 为准，不能用 `merged`**——这是整项最容易踩的坑：`:362` 已经把 `piece_render` 补成 `"glyph"`，若判据写成 `"piece_render" not in merged`，则**任何配置都判定为「键缺失」**，把全体 2.x 用户也卷进来。同样不要用 `migrated`（它虽在本键上与 `raw` 等价，但语义上是「迁移后」，与裁决「加载时键缺失」的原始含义不符）。
+
+伪规格（只描述判据与动作，不写实现代码）：
+
+```
+在 :362 后、:369 前插入：
+  IF ("piece_render" NOT IN raw) AND (raw.get("piece_style") IN {"traditional","modern","cartoon"}):
+      # 1.6.x 存量：程序补出的 render="glyph" 不代表用户意图
+      merged["piece_style"]  = raw["piece_style"]     # 原样保留用户显式选择
+      merged["piece_render"] = "image"                # 派生：三套美术均为 image
+      跳过后面对这两键的 _normalize_piece_style 调用（否则 :340 又把 render 改回 glyph）
+  ELSE:
+      保留 :369-372 现有 _normalize_piece_style 逻辑，一个字不改
+```
+
+**判据为真时：改内存 + 必须写回（`changed = True`）。** 理由：
+- 写回的是**被程序自己补错的派生字段** `piece_render`（`glyph → image`），而**用户选的 `piece_style=cartoon` 被原样保留**——改的是程序的错，不是用户的选择，不违反「用户选择不被静默替换」；
+- 写回让纠错成为**一次性动作**：落盘后 `raw` 带 `piece_render="image"`，下次启动走 ELSE 分支（2.x 现状口径），不会每次都重判；
+- 不写回则每次启动都要重判，且内存值与磁盘值长期不一致，违背裁决 B-4.3「有值且合法 → 原样保留」；
+- 落盘沿用 `save_config(merged)` 既有机制，**不 bump `CONFIG_VERSION`/`schema_version`**（裁决 B-3.1 明令），`raw` 里的 `schema_version` 由 `migrate()` 照旧处理。
+- 注意 `changed` 只在**该纠错分支或既有归一化分支真的改了值**时置真；`_coerce_numeric`(:367-368) 刻意不置 `changed`（:365-366 注释），此设计不动。
+
+**D-B.2 两套判据的边界（这是实现最容易错的地方）：**
+
+| 判据 | 触发条件（看 `raw`） | 动作 | 用户可见效果 |
+|---|---|---|---|
+| 纠错（1.6.x 存量） | `"piece_render" not in raw` **且** `piece_style ∈ {traditional, modern, cartoon}` | 保留 style 原值，派生 render=image，写回 | 棋盘/下拉/图谱三处回到用户当初看到的风格；**不提示** |
+| 现状（2.x 配置） | `"piece_render" in raw` | 走原 `_normalize_piece_style`：明确 glyph→glyph，明确风格→image | 执行用户当下选择；不为「召回记忆」改写任何值 |
+| 无法原样保留（兜底） | 原值已被旧版本落盘冲掉，或该风格资源缺失（`piece_assets.preload` 返回 0，参照 `tests/test_desktop_piece_settings.py:97-104`） | 一次性提示 + 本地标记键 `piece_style_intro_shown`，不改用户值、不进云同步映射 | 照 B-3.2 文案；用户可自行到设置改 |
+
+边界的三个易错点，写进实现验收：
+1. **不能看 `merged` 判缺失**（`:362` 已补键，会把 2.x 全卷入纠错分支）——必须在 `:362` 之前缓存 `raw` 的键存在性，或用 `raw` 直接判；
+2. **「选过 glyph 又想召回 cartoon 记忆」的 2.x 用户**不可能命中纠错分支：1.7+ 的四值互斥（`tests/test_desktop_piece_settings.py:80-83`「选了书法字形就等于 style=glyph，不再保留旧美术偏好」）会在他选 glyph 时把 `piece_style` 写成 `"glyph"`，而纠错判据的 style 白名单**不含 `glyph`**——这正是裁决 B-1 第 4 条「记忆位只对另一类人成立、而这类人不会被命中」的代码级落点；
+3. **禁止中间态**：纠错分支把 render 改成 image 时，style 必须同步保持为三套美术之一，不得出现「style=cartoon 但 render=glyph」（棋盘与下拉不一致），这是 `e2ccd78^:docs/QA_PIECE_ATLAS.md:89` B-3 验收原文的红线。
+
+**D-B.3 回归门禁（供 QA）：** `tests/test_desktop_piece_settings.py` 现有 4 条（`:66/:75/:87/:97`）覆盖下拉/互斥/资源缺失，**不覆盖加载时纠错**；须补：① 造一份 `{"schema_version":2, "piece_style":"cartoon"}`（无 `piece_render`）→ `load_config()` 返回 `cartoon/image` 且磁盘回写；② 同一份再读一次 → 仍 `cartoon/image` 且不重复提示；③ `{"piece_style":"glyph","piece_render":"glyph"}` → 维持 glyph/glyph；④ 资源缺失时走兜底提示且标记键只提示一次。参照 `test_desktop_config.py:71-82` 的「老配置不被覆盖」写法。
+
+### D. 对产品裁决的技术异议
+
+以下不是反对裁决，是实现前必须澄清的技术事实，按纪律如实写入：
+
+1. **A-4「替换既有 `analysis.capped` 的值、保持三端同一句」的措辞与代码不符。** 实测只有 Webapp 有该键（`webapp/js/i18n.js:321,659`）；**桌面根本没有**——它在 `dialogs.py:897-900` 用 `dlf("（仅分析前 {n} 手）", n=capped)` **硬编码中文模板**，走 `texts.py:332` 的 `dlf()` 而非 `t()`，`locales/*.json` 的 `analysis` 段（`zh-CN.json:615-624` / `en.json:615-624`）无 `capped` 键。因此「替换既有值」对桌面不适用：要实现裁决的**新文案**（含「浅层参考；未分析的手不判断好坏」），必须在 `locales` 两语加 `analysis.capped` 键、并把 `dialogs.py:900` 改为读该键——这已超出「文案替换」，是一次**文案键新增 + 桌面调用点改造**。同样 Web 旧树也是新增键（裁决 A-4 已承认）。**净效果：三端都要动文案落点，不是「桌面与 Webapp 不改」**——裁决 A-1 的「桌面与 Webapp 行为与文案不改」与 A-4 的「保持三端同一句」在桌面侧互相矛盾（桌面现文案与新文案不同）。请主理人明确：桌面是保持现值（则三端不同句），还是改新值（则「桌面文案不改」不成立）。架构侧建议**改新值**以兑现 A-4，但需主理人裁定消除 A-1 的字面冲突。
+2. **A-4「文案替换」若落到 Webapp 与 `online/public` 会触发重生成链。** Webapp 文案在 `webapp/js/i18n.js`（S 链源文件），改它就要按 S1→S6 全链重生成 `webapp/dist/`、`online/public/`、`webapp/.edgeone/assets/`（裁决明令这些生成物不得手改）。若裁决真的要求「三端同一句」且桌面/Webapp 文案都要换成 A-4 新句，则 **S1–S6 重跑不可避免**，与「桌面与 Webapp 文案不改」再次冲突。架构侧建议：把「同一句」的落点理解为**语义同一**（都提示真截断、都标浅层参考），允许各端沿用既有键名与本地措辞，则 Webapp 不改、不触发重生成；只有 Web 新增键、桌面文案按主理人裁定处理。
+3. **D-A.1 步骤④（codegen 下发上限到 Webapp）的成本可能被低估。** 它不是「加一个字段」那么简单：`gen_web_profiles.py` 的 8 条读回断言（`:287-360`）是按固定 payload 键集写的，新增顶层 `ANALYSIS_PLY_CAP` 会让 `check()` 的「产物逐字节 == generated_source()」(①) 与 manifest hash(末尾) 双双变化，必须整套 `--write → --check` 并重跑 S1–S6；且 `webapp/js/ui/app.js:160` 改为 import 后，bundle 的内嵌模块文本也变（S3/S4）。**若排期紧，建议走 D-A.1 的退路**（Python 测试断言 JS 常量 == core 常量），成本从「全链重生成」降为「一条测试」，代价是不自动同源。这是排期与自治度的取舍，需主理人拍板。
+4. **B-3 兜底「风格资源缺失时回退」的判据在本仓可测但不完备。** `tests/test_desktop_piece_settings.py:97-104` 用 monkeypatch `piece_assets.preload` 返回 0 来模拟缺失，说明测试能覆盖；但生产路径里「资源缺失」的真实返回值与判据（是 0？是 None？是文件存在性？）我未在本次取证中确认（`preload` 实现未读）。实现方须先读 `piece_assets.preload` 的真实签名与返回值，再定兜底触发条件——**不要照抄测试里的 monkeypatch 值当生产判据**。
+5. **B 项纠错分支与「不 bump schema」的边界要说清。** 裁决 B-3.1 不 bump `CONFIG_VERSION`，但纠错会**改写磁盘内容**（`piece_render: glyph → image`）。这与 `migrate()` 的「`schema_version` 未变则不写盘」(`:323`, `changed = raw_version != CONFIG_VERSION`) 是两套不同的写盘理由。实现时 `changed` 必须由**纠错分支独立置真**，不能依赖 `migrate()` 的返回值——否则 `raw_version == CONFIG_VERSION` 的 1.6.x 残留（若存在）会 `changed=False`，纠错只改内存不落盘。已在 D-B.1 写明，此处作为风险提示。
+
+**D 节汇总：**
+
+| 项 | 裁定 | 关键落点 | 阻塞 / 需裁定 | 责任角色 |
+|---|---|---|---|---|
+| A 分析覆盖面 | 统一 120；上限常量唯一真源放 `core/analysis.py`，服务端显式传参，桌面 import，Webapp codegen（或退路测试守卫） | `core/analysis.py:45-50`+新常量、`service/app.py:710`、`workers.py:32`、`web/js/i18n.js`、`web/js/app.js:325` | 异议 1/2（桌面文案是否改、S 链是否重跑）需主理人裁定；若走 codegen 则 S1–S6 全链 | 主理人裁定 → 主程序 → QA 同谱三端核对 |
+| B 棋子偏好 | 1.6.x 存量（看 `raw` 键缺失）保留 style + 派生 image + 写回；2.x 现状；兜底一次性提示 | `config.py:362` 与 `:369` 之间插入判据，`raw` 为准；`:369-372` ELSE 分支不动 | 异议 4（资源缺失判据未实测）须实现前读 `piece_assets.preload`；异议 5（写盘理由独立于 migrate） | 主程序定判据 → QA 补 4 条回归 |
+
+> 本节与前文一样：只出规格，不实现、不改源码/测试/版本源；生成物不得手改。
