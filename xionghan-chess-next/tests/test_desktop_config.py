@@ -667,12 +667,20 @@ def test_legacy_correction_is_rewritten_and_survives_restart(isolated_appdata, m
     assert path.read_text(encoding="utf-8") == after_first, "第二次启动不该再改磁盘"
 
 
-def test_newer_schema_version_leaves_piece_style_alone(isolated_appdata) -> None:
-    """高版本配置原样放行：未来 schema 即便缺 `piece_render`，也不纠错、不回写。
+def test_newer_schema_version_leaves_piece_style_alone(isolated_appdata, monkeypatch) -> None:
+    """高版本仅对 style/render 放行，不纠错、不回写；其它字段仍走既有收敛。
 
     与 `test_newer_schema_version_is_left_alone` 同一条降级保护（`migrate():313` /
     `_coerce_numeric` 调用点 `:367`）。未来版本若真移除 `piece_render` 键，纠错分支
     与原归一化分支都会改写并回写这份配置 —— 不可逆的数据损坏。
+
+    样例构造：只给 `schema_version > CONFIG_VERSION` + `piece_style="cartoon"`，
+    **故意不带 `background` 等其它键**，让它们由 DEFAULTS 补成合法值（`background="1"`），
+    这样唯一无守卫的后续分支 `_normalize_background` 拿到 `"1"` 原样返回、不会置 `changed`。
+    实测：`migrate()` 返回 `changed=False`、`:367` 跳过 `_coerce_numeric`、
+    `_normalize_background("1") == "1"`、`save_config` 零调用 —— 「不回写」不是其它
+    归一化偶然没触发。注意：这只放行 style/render；若高版本配置自带会被收敛的坏值
+    （如 `background="none"`），其它字段仍按既有规则收敛并回写，本用例不覆盖那种输入。
     """
     path = desktop_config.config_path()
     original = {
@@ -681,7 +689,16 @@ def test_newer_schema_version_leaves_piece_style_alone(isolated_appdata) -> None
     }
     _write_config(path, original)
 
+    writes: list[dict] = []
+    real_save = desktop_config.save_config
+
+    def spy_save(data: dict) -> None:
+        writes.append(data)
+        real_save(data)
+
+    monkeypatch.setattr(desktop_config, "save_config", spy_save)
     loaded = desktop_config.load_config()
     assert loaded["piece_style"] == "cartoon", "高版本里用户选的美术偏好不能被旧版本改写"
     assert loaded["piece_render"] == "glyph", "只留 DEFAULTS 补的默认值，不派生 image"
+    assert writes == [], "任何归一化分支都不该因这份高版本配置置 changed 并回写"
     assert json.loads(path.read_text(encoding="utf-8")) == original, "高版本配置不该被回写"
