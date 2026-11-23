@@ -76,3 +76,24 @@ web/js/i18n.js:26    const template = lookup(activeCatalog, key) ?? lookup(zhCat
 - 桌面 `desktop/ui/workers.py:32` 删本地字面量、import 同一常量；
 - Webapp `const CAP = 120` **保持不动**，由一条 Python 测试断言 JS 常量与 core 相等；
 - 不跑 S1–S6、不重生成 24 MB fixtures、不 bump `RULE_VERSION`、不碰 AI `CONFIGS`。
+
+## 补充：Web 侧光补词表键不会产生可见提示（游有方发现的实现缺口）
+
+`b307c68` 只纠正了「词表在哪」，但 Web 旧树**没有承载提示的 DOM 节点，也没有渲染调用**：
+
+- `web/index.html:173` 的 `#analysisContent` 只有 `#analysisMoveList` 与 `#analysisNote`，无 capped 节点；
+- `web/js/app.js:325` `renderAnalysis(result)` 只渲染逐手列表，无汇总行、`analysis.capped` 全树零命中。
+
+只加 locales 键会让 `t('analysis.capped')` 有值却无人调用 —— A-1 的「Web 客户端补『真被截断才出现』的覆盖提示」等于没落地。实施必须同时做到：
+
+1. **截断判据用服务端实际结果**：`result.analyzedPlies < app.state.history.length`
+   （`core/analysis.py:89` 已返回 `analyzedPlies`），**不要客户端硬编码 120**，避免第二轮漂移；
+2. 截断时显示 `t('analysis.capped', { n: <实际分析手数> })`，未截断时不显示 —— 沿用 Webapp 的
+   `> CAP` 口径，**恰好等于上限不误报**；
+3. 文案值逐字用现有同句：中文「（仅分析前 {n} 手）」/ 英文 `(first {n} plies only)`；
+4. **禁止**把 capped 节点挂到 `web/js/i18n.js` 的 `setText` 登记上 —— `setText` 调 `t(key)` **不带 params**，
+   `{n}` 会被原样显示成字面量（`t()` 兜底 `params[name] ?? \`{${name}}\``）。应由 `renderAnalysis`
+   每次带参写入；若要求语言切换即时生效，在 `setLanguage` 后对已打开的弹窗重跑渲染。
+
+验收须包含一条真渲染断言：构造「截断 / 恰好等于上限 / 未截断」三种结果，确认提示只在第一种出现，
+且 `{n}` 被替换成数字而非字面量。
