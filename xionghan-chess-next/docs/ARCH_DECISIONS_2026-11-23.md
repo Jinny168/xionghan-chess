@@ -350,8 +350,9 @@ $ grep -rn "pieceOptionGroups\|piece_option_groups\|PIECE_OPTION_GROUPS" --inclu
 
 ## D. 承接产品裁决的实现规格
 
-> 来源：`docs/PRODUCT_DECISIONS_2026-11-23.md`（commit `1a04b82`，游有方，状态「裁决建议，未实施」）。本节只出**技术落地规格**，不实现、不改源码/测试/版本源。裁决原文按项目纪律逐字引用；引用块之外是我的架构裁定。
-> 基线同前文：`d41aca3` 起手核对，本文 commit 时 HEAD 已含 `1a04b82`。
+> 来源：`docs/PRODUCT_DECISIONS_2026-11-23.md`（原裁决 commit `1a04b82`；**补裁 commit `94289e4`**，游有方，状态「裁决建议，未实施」）。本节只出**技术落地规格**，不实现、不改源码/测试/版本源。裁决原文与补裁原文按项目纪律逐字引用；引用块之外是我的架构裁定。
+> 基线同前文：`d41aca3` 起手核对；补裁核验时 HEAD 为 `ac5e11f`（本文前两笔架构 commit），本次更新时 HEAD 已含 `94289e4`。
+> **效力顺序**：补裁覆盖原裁决的 A-4 文案与落点（A-4 新句撤回、A-1 原文维持、A-2/A-3/A-5 与任务 B 不变）。下文凡涉及截断提示文案，一律以补裁为准；原 A-4 原文块保留存档但不作为落地文案。
 
 ### D. 裁决原文（关键段逐字照贴）
 
@@ -372,6 +373,8 @@ $ grep -rn "pieceOptionGroups\|piece_option_groups\|PIECE_OPTION_GROUPS" --inclu
 > - English: `(First {n} plies only — a shallow reference; later moves are not judged.)`
 >
 > 落点约束：`{n}` 必须来自单一上限常量，不得写死 `120`；文案替换既有 `analysis.capped` 的值，保持三端同一句；`web/js/i18n.js` 目前**没有** `analysis.capped` 键（`:149-151` 只有 shallow/shallow_hint），需由实现方补上。生成物（`webapp/dist/`、`online/public/`、`webapp/.edgeone/assets/`）不得手工编辑，随构建重生成。
+
+> ⚠️ **上方 A-4 已被补裁 `94289e4` 局部覆盖**：新句撤回、落点改为「Web 新增同值键、三端沿用现有句」。补裁原文见本节末「补裁原文块」。此处保留仅为存档，不得据此实现。
 
 **A 项裁决原文 · A-5 不作为**
 
@@ -406,6 +409,35 @@ $ grep -rn "pieceOptionGroups\|piece_option_groups\|PIECE_OPTION_GROUPS" --inclu
 > 6. **已下线/已移除的 UI 选项**：移除入口 ≠ 改写存量值。存量值要么继续被尊重，要么明确回落并提示
 > 7. **一次性引导/提示标记**：纯本地，不进云同步映射，不 bump schema
 
+**补裁原文块（commit `94289e4`，逐字照贴——覆盖上面 A-4 的文案与落点）**
+
+> ### 补-1 采用哪一句：**保留现有三端同句，撤回 A-4 新句**
+>
+> 最终文案（中英各一，逐字）：
+>
+> - 中文：`（仅分析前 {n} 手）`
+> - English: `(first {n} plies only)`
+>
+> 原 A-4 的两条新句 `（仅分析前 {n} 手，浅层参考；未分析的手不判断好坏）` / `(First {n} plies only — a shallow reference; later moves are not judged.)` **撤回，不再作为待落地文案**。
+
+> ### 补-2 A-1 是否需要替换：**不需要，原文维持**
+>
+> A-1 原文「**统一到 120 手。** Web 服务端按 120 手分析，Web 客户端补「真被截断才出现」的覆盖提示；桌面与 Webapp 行为与文案不改。」**逐字有效**，无需替换。
+>
+> 为消除今后被误读的空间，在 A-1 后**追加**（不是替换）以下澄清段，可直接粘贴：
+>
+> > 澄清：此处「文案不改」指桌面与 Webapp 沿用当前逐字同值的截断句——中文「（仅分析前 {n} 手）」、英文 `(first {n} plies only)`（桌面 `dialogs.py:900` + `texts.py:275`；Webapp `webapp/js/i18n.js:321,659`）。Web 旧树没有该键，由实现方新增同值键；三端承载机制不同但字面同一句。
+
+> ### 补-3 A-4 落点约束的处理：**改为「Web 新增同值键」**
+>
+> 其中「文案替换既有 `analysis.capped` 的值」**撤销**，替换为以下整段（其余约束——`{n}` 来源、生成物不得手改——继续有效）：
+>
+> > 落点约束：`{n}` 必须来自单一上限常量，不得写死 `120`；三端截断句沿用当前逐字同值的现有句——中文「（仅分析前 {n} 手）」、英文 `(first {n} plies only)`——桌面与 Webapp 文案**不改**；`web/js/i18n.js` 目前没有 `analysis.capped` 键（`:149-151` 只有 shallow/shallow_hint），由实现方**新增**该键并写入与桌面/Webapp 逐字相同的值。本轮不改桌面 `texts.py` / `locales`、不改 Webapp i18n，因此**不触发 S1–S6 重生成**；生成物（`webapp/dist/`、`online/public/`、`webapp/.edgeone/assets/`）不得手工编辑，也不必随本项重生成。
+
+> ### 补-4 对架构侧意见的评价（含一处落点更正）
+>
+> 3. **一处需要更正的落点（否则实现方会改错文件）。** 架构异议 1 写「必须在 `locales` 两语加 `analysis.capped` 键、并把 `dialogs.py:900` 改为读该键」。实测桌面翻译走 `texts.py` 的 `dlf()` / `TEMPLATES`（`:222,275,329-338`），**不读 `locales`**（`locales/zh-CN.json:615-624` 本就没有 `capped` 键，这是设计如此，不是漏配）。若将来主理人另行裁定要换桌面文案，正确落点是 `dialogs.py:900` 的调用点 + `texts.py:275` 的 `TEMPLATES` 条目，而不是 locales。**本轮二者都不动。**
+
 ### D-A. A 项（分析覆盖面 200→120）的落地规格
 
 **D-A.0 现状取证（逐条可核对）：**
@@ -415,7 +447,7 @@ $ grep -rn "pieceOptionGroups\|piece_option_groups\|PIECE_OPTION_GROUPS" --inclu
 | 服务端 | `analyze_game(..., max_plies: int = 200)`，`/api/analysis` 不传 → 走 200 | `core/analysis.py:45-50`；`service/app.py:706-712`（`:710` `analyze_game(game, request.difficulty)`）；`AnalyzeRequest` 只有 `document`+`difficulty`（`app.py:213-215`） |
 | 桌面 | `ANALYSIS_PLY_CAP = 120`，真截断时注入 `cappedPlies` | `desktop/ui/workers.py:32,127,130-131`；提示 `dialogs.py:897-900` |
 | Webapp | `const CAP = 120`，`results.length > CAP` 才提示 | `webapp/js/ui/app.js:158-160,890`；文案 `webapp/js/i18n.js:321,659` |
-| Web 旧树 | 无本地上限、无 `analysis.capped` 键 | `web/js/app.js:324-325`；`web/js/i18n.js:149-151` |
+| Web 旧树 | 无本地上限、无 `analysis.capped` 键 → 实现方**新增同值键** | `web/js/app.js:324-325`；`web/js/i18n.js:149-151`；补裁 `94289e4` 补-3 |
 
 **D-A.1 `{n}`「单一上限常量」放哪一层——裁定：放 `core/analysis.py`，其余两端「派生」而非「另立」**
 
@@ -447,7 +479,7 @@ Web 侧完整改动清单（供实现方）：
 
 | 位置 | 动作 | 备注 |
 |---|---|---|
-| `web/js/i18n.js` | 在 `analysis` 段补 `analysis.capped` 两语言键值；在静态文案登记处（`:149-151` 附近）加一行 `setText(...)` 指向提示节点 | 键名/文案逐字照 A-4 裁决；`t(key, params)` 已支持插值（`:25`） |
+| `web/js/i18n.js` | 在 `analysis` 段**新增** `analysis.capped` 两语言键；在静态文案登记处（`:149-151` 附近）加一行 `setText(...)` 指向提示节点 | **文案逐字照补裁 `94289e4` 补-1 的现有同句**：中文 `（仅分析前 {n} 手）`、英文 `(first {n} plies only)`——与桌面 `texts.py:275`、Webapp `webapp/js/i18n.js:321,659` 逐字同值；**不是**原 A-4 已撤回的新句。`t(key, params)` 已支持插值（`:25`） |
 | `web/js/app.js::renderAnalysis`(:325) | 用 `result.analyzedPlies` 与上限比较，真截断才渲染该提示；`{n}` 取服务端下发的上限值 | 上限来源见下 |
 | `service/app.py::analysis` 响应 | 在 `analyze_game` 返回字典里带 `plyCap`（值 = `ANALYSIS_PLY_CAP`），Web 用 `result.plyCap` 插值 | **响应多一个键是加法式兼容**，老客户端忽略即可；不改请求模型 |
 
@@ -503,10 +535,10 @@ Web 侧完整改动清单（供实现方）：
 
 ### D. 对产品裁决的技术异议
 
-以下不是反对裁决，是实现前必须澄清的技术事实，按纪律如实写入：
+以下不是反对裁决，是实现前必须澄清的技术事实，按纪律如实写入。**异议 1/2 已由补裁 `94289e4` 裁定并消解，保留原文存档、状态改为「已裁定」；异议 3/4/5 仍开放。**
 
-1. **A-4「替换既有 `analysis.capped` 的值、保持三端同一句」的措辞与代码不符。** 实测只有 Webapp 有该键（`webapp/js/i18n.js:321,659`）；**桌面根本没有**——它在 `dialogs.py:897-900` 用 `dlf("（仅分析前 {n} 手）", n=capped)` **硬编码中文模板**，走 `texts.py:332` 的 `dlf()` 而非 `t()`，`locales/*.json` 的 `analysis` 段（`zh-CN.json:615-624` / `en.json:615-624`）无 `capped` 键。因此「替换既有值」对桌面不适用：要实现裁决的**新文案**（含「浅层参考；未分析的手不判断好坏」），必须在 `locales` 两语加 `analysis.capped` 键、并把 `dialogs.py:900` 改为读该键——这已超出「文案替换」，是一次**文案键新增 + 桌面调用点改造**。同样 Web 旧树也是新增键（裁决 A-4 已承认）。**净效果：三端都要动文案落点，不是「桌面与 Webapp 不改」**——裁决 A-1 的「桌面与 Webapp 行为与文案不改」与 A-4 的「保持三端同一句」在桌面侧互相矛盾（桌面现文案与新文案不同）。请主理人明确：桌面是保持现值（则三端不同句），还是改新值（则「桌面文案不改」不成立）。架构侧建议**改新值**以兑现 A-4，但需主理人裁定消除 A-1 的字面冲突。
-2. **A-4「文案替换」若落到 Webapp 与 `online/public` 会触发重生成链。** Webapp 文案在 `webapp/js/i18n.js`（S 链源文件），改它就要按 S1→S6 全链重生成 `webapp/dist/`、`online/public/`、`webapp/.edgeone/assets/`（裁决明令这些生成物不得手改）。若裁决真的要求「三端同一句」且桌面/Webapp 文案都要换成 A-4 新句，则 **S1–S6 重跑不可避免**，与「桌面与 Webapp 文案不改」再次冲突。架构侧建议：把「同一句」的落点理解为**语义同一**（都提示真截断、都标浅层参考），允许各端沿用既有键名与本地措辞，则 Webapp 不改、不触发重生成；只有 Web 新增键、桌面文案按主理人裁定处理。
+1. ~~**A-4「替换既有 `analysis.capped` 的值、保持三端同一句」的措辞与代码不符。**~~ → **✅ 已裁定（补裁 `94289e4` 补-1/补-2）**：原异议成立——原 A-4 新句与 A-1「桌面与 Webapp 文案不改」字面冲突，实测只有 Webapp 有 `analysis.capped` 键（`webapp/js/i18n.js:321,659`），桌面走 `dlf()`→`texts.py:275` 不读 `locales`。**裁定结果**：撤回 A-4 新句，**三端沿用现有逐字同句** `（仅分析前 {n} 手）` / `(first {n} plies only)`；桌面与 Webapp 文案一律不改，只有 Web 旧树新增同值键；「浅层参考」由三端常驻标注承担（桌面 `report.py:159` / Web `index.html:173` / Webapp `analysis.shallow`）。**我原异议里写的「必须在 locales 两语加键、把 `dialogs.py:900` 改为读该键」是错的，已按补裁补-4 更正**：桌面承载机制是 `texts.py:222,275,329-338` 的 `TEMPLATES` + `dlf()`，`locales` 本就无此键（设计如此，非漏配）；若将来另有裁定要换桌面文案，正确落点是 `dialogs.py:900` 调用点 + `texts.py:275` 模板条目，**本轮二者都不动**。
+2. ~~**A-4「文案替换」若落到 Webapp 与 `online/public` 会触发重生成链。**~~ → **✅ 已裁定（补裁 `94289e4` 补-3/补-4.2）**：方向成立但**本轮不再发生**——保留现有句后 Webapp 零改动，`webapp/js/i18n.js` 不碰 ⇒ **不触发 S1–S6、不碰任何生成物**；我在 D-A.3 关于「`web/` 不在 S 链、补它的键不触发重生成」的判断同时成立、照用。补裁明确：这条成本被完全避免，不需要实现方在「换三端文案」与「跑全链重生成」间二选一。
 3. **D-A.1 步骤④（codegen 下发上限到 Webapp）的成本可能被低估。** 它不是「加一个字段」那么简单：`gen_web_profiles.py` 的 8 条读回断言（`:287-360`）是按固定 payload 键集写的，新增顶层 `ANALYSIS_PLY_CAP` 会让 `check()` 的「产物逐字节 == generated_source()」(①) 与 manifest hash(末尾) 双双变化，必须整套 `--write → --check` 并重跑 S1–S6；且 `webapp/js/ui/app.js:160` 改为 import 后，bundle 的内嵌模块文本也变（S3/S4）。**若排期紧，建议走 D-A.1 的退路**（Python 测试断言 JS 常量 == core 常量），成本从「全链重生成」降为「一条测试」，代价是不自动同源。这是排期与自治度的取舍，需主理人拍板。
 4. **B-3 兜底「风格资源缺失时回退」的判据在本仓可测但不完备。** `tests/test_desktop_piece_settings.py:97-104` 用 monkeypatch `piece_assets.preload` 返回 0 来模拟缺失，说明测试能覆盖；但生产路径里「资源缺失」的真实返回值与判据（是 0？是 None？是文件存在性？）我未在本次取证中确认（`preload` 实现未读）。实现方须先读 `piece_assets.preload` 的真实签名与返回值，再定兜底触发条件——**不要照抄测试里的 monkeypatch 值当生产判据**。
 5. **B 项纠错分支与「不 bump schema」的边界要说清。** 裁决 B-3.1 不 bump `CONFIG_VERSION`，但纠错会**改写磁盘内容**（`piece_render: glyph → image`）。这与 `migrate()` 的「`schema_version` 未变则不写盘」(`:323`, `changed = raw_version != CONFIG_VERSION`) 是两套不同的写盘理由。实现时 `changed` 必须由**纠错分支独立置真**，不能依赖 `migrate()` 的返回值——否则 `raw_version == CONFIG_VERSION` 的 1.6.x 残留（若存在）会 `changed=False`，纠错只改内存不落盘。已在 D-B.1 写明，此处作为风险提示。
@@ -515,7 +547,7 @@ Web 侧完整改动清单（供实现方）：
 
 | 项 | 裁定 | 关键落点 | 阻塞 / 需裁定 | 责任角色 |
 |---|---|---|---|---|
-| A 分析覆盖面 | 统一 120；上限常量唯一真源放 `core/analysis.py`，服务端显式传参，桌面 import，Webapp codegen（或退路测试守卫） | `core/analysis.py:45-50`+新常量、`service/app.py:710`、`workers.py:32`、`web/js/i18n.js`、`web/js/app.js:325` | 异议 1/2（桌面文案是否改、S 链是否重跑）需主理人裁定；若走 codegen 则 S1–S6 全链 | 主理人裁定 → 主程序 → QA 同谱三端核对 |
+| A 分析覆盖面 | 统一 120；上限常量唯一真源放 `core/analysis.py`，服务端显式传参，桌面 import，Webapp codegen（或退路测试守卫）；**文案三端沿用现有同句，只给 Web 旧树补 `analysis.capped` 同值键**（补裁 `94289e4`） | `core/analysis.py:45-50`+新常量、`service/app.py:710`、`workers.py:32`、`web/js/i18n.js`、`web/js/app.js:325`；桌面 `dialogs.py:900`+`texts.py:275` 与 Webapp `i18n.js:321,659` **均不动** | 异议 1/2 **已由补裁消解**（不再有桌面文案改动与 S 链重跑）；仅异议 3（codegen vs 测试守卫）仍由主理人按排期定；走 codegen 才需 S1–S6 全链 | 主理人排期 → 主程序 → QA 同谱三端核对 |
 | B 棋子偏好 | 1.6.x 存量（看 `raw` 键缺失）保留 style + 派生 image + 写回；2.x 现状；兜底一次性提示 | `config.py:362` 与 `:369` 之间插入判据，`raw` 为准；`:369-372` ELSE 分支不动 | 异议 4（资源缺失判据未实测）须实现前读 `piece_assets.preload`；异议 5（写盘理由独立于 migrate） | 主程序定判据 → QA 补 4 条回归 |
 
 > 本节与前文一样：只出规格，不实现、不改源码/测试/版本源；生成物不得手改。
