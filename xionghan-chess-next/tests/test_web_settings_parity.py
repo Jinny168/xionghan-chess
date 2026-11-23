@@ -58,14 +58,13 @@ def test_play_again_is_always_clickable_and_confirms_mid_game() -> None:
 
 
 def test_pawn_switches_are_exposed_in_web_rule_options() -> None:
-    """P2：兵的两个开关必须在网页规则分组里（与桌面 `dialogs.py` 的兵组一致）。"""
-    start = APP_JS.find("pawn:[")
-    assert start >= 0, "app.js 里找不到 pawn 的开关分组"
-    end = APP_JS.find("]", start)
-    block = APP_JS[start:end]
-    keys = re.findall(r"'([a-z_]+)'", block)
+    """P2：兵的两个开关必须在共享分组里（三端同源，Web 读下发的这份）。"""
+    from xionghan_chess.core.profiles import piece_option_groups
+
+    keys = piece_option_groups()["pawn"]
     assert "pawn_charge" in keys, f"缺少「过长城后可直冲」开关：{keys}"
     assert "pawn_three_line_capture" in keys, f"缺少「两兵夹一敌子」开关：{keys}"
+    assert "pieceOptionGroups" in APP_JS, "Web 没有消费 /api/profiles 下发的棋子分组"
 
 
 def test_pawn_switches_default_to_off() -> None:
