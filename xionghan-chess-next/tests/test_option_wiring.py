@@ -12,25 +12,29 @@ AI / 对拍 / 存档全都照常工作——但用户在三个设置界面里根
 豁免表是白名单，不是垃圾桶：每条都要求给出判据（见 `EXEMPT`），
 并把理由写进注释与 `reason` 字段，供 review 时逐条质疑。
 
-## 「三端分组」的取法
+## 「棋子分组」的取法
 
-1. 桌面①：`desktop/ui/piece_atlas.py::PIECE_OPTION_KEYS` —— 直接 import。
-2. 桌面②：`desktop/ui/dialogs.py` 里 `SettingsDialog` 的 `piece_definitions` ——
-   它是 `__init__` 内的**局部字面量**（跟着界面布局一起写，刻意不抽模块常量），
-   无法 import，故用 `ast` 从源码解析出真实的字面量再求值。
-   *不硬编码副本*：数据仍只有源码一份，解析只是读它。
-3. 网页：`web/js/app.js::pieceRuleKeys` —— 同样只从源码解析，不复制粘贴。
+唯一源是 `core/profiles.py::PIECE_OPTION_GROUPS`（`piece_option_groups()` 是它的
+JSON 友好视图）。三端不再各自携带分组字面量：
+1. 桌面两处直接 import core 的 `PIECE_OPTION_GROUPS`；
+2. 网页读 `/api/profiles` 下发的 `pieceOptionGroups`（老服务端降级为扁平规则区，
+   **不复制硬编码 fallback**）；
+3. 服务端下发该字段。
 
-## 「内容完全一致」的含义
+因此本文件只从 core 读分组（`core_groups()`），另用源码门禁守"三端不再出现分组字面量"。
+反向验证也依赖这一点：往任一端抄回一份硬编码，源码门禁立刻红。
 
-三端的分组必须**键集合相同、挂载的棋子分组也相同**（6 组 / 18 键：
+## 「分组形状」的含义
+
+共享分组必须是**键集合相同、挂载的棋子分组也相同**（6 组 / 18 键：
 king 4 · horse 3 · elephant 2 · advisor 2 · pawn 6 · archer 1）。
 只比键集合不够——把「马的别腿」挂到「兵」下面，键集合照样是全的，但界面是错的。
+一致性不再靠"三端各读一份再比对"，而靠"只有一份 + 源码门禁禁止抄回第二份"。
 
 ## 加规则开关的代价（故意的）
 
 `EXPECTED_GROUP_KEYS` 是**定稿指纹**：以后新增一个 `RuleOptions` 字段，
-除了改三端分组，还必须同时更新这份指纹。这是刻意设计——
+除了改 core 分组，还必须同时更新这份指纹。这是刻意设计——
 它拦的是"三端一起漏"这种连一致性检查都过不了的情形（三端同时删掉某组，
 一致性照样通过，但用户丢了功能）。
 指纹里写着 18 个键与它们的归属，改它就是一次显式的产品变更声明，不该顺手改。
@@ -38,7 +42,6 @@ king 4 · horse 3 · elephant 2 · advisor 2 · pawn 6 · archer 1）。
 
 from __future__ import annotations
 
-import ast
 import json
 import re
 from dataclasses import fields
@@ -48,8 +51,13 @@ from xionghan_chess.core.model import PieceType
 from xionghan_chess.core.profiles import RuleOptions
 
 ROOT = Path(__file__).resolve().parents[1]
+ATLAS_PY = ROOT / "src" / "xionghan_chess" / "desktop" / "ui" / "piece_atlas.py"
 DIALOGS_PY = ROOT / "src" / "xionghan_chess" / "desktop" / "ui" / "dialogs.py"
+CORE_PY = ROOT / "src" / "xionghan_chess" / "core" / "profiles.py"
+SERVICE_PY = ROOT / "src" / "xionghan_chess" / "service" / "app.py"
 APP_JS = ROOT / "web" / "js" / "app.js"
+WEBAPP_JS = ROOT / "webapp" / "js" / "ui" / "app.js"
+OFFLINE_JS = ROOT / "android" / "Resources" / "assets" / "offline" / "offline.js"
 LOCALES = ROOT / "locales"
 
 
@@ -114,91 +122,23 @@ def _all_fields() -> set[str]:
     return {field.name for field in fields(RuleOptions)}
 
 
-# --- 三端分组读取 ---------------------------------------------------------
+# --- 分组读取（core 是唯一源）---------------------------------------------
 
 
-def desktop_atlas_groups() -> dict[str, frozenset[str]]:
-    """桌面①：`piece_atlas.py::PIECE_OPTION_KEYS`（import 真身，不复制）。"""
-    from xionghan_chess.desktop.ui.piece_atlas import PIECE_OPTION_KEYS
+def core_groups() -> dict[str, frozenset[str]]:
+    """棋子分组的唯一源：`core/profiles.py::piece_option_groups()`。
 
-    return {kind.value: frozenset(keys) for kind, keys in PIECE_OPTION_KEYS.items() if keys}
-
-
-def _eval_dict_node(node: ast.AST):
-    """把 `piece_definitions` 的字面量求值成 Python 对象（只支持它用到的四类节点）。"""
-    if isinstance(node, ast.Dict):
-        return {_eval_dict_node(k): _eval_dict_node(v) for k, v in zip(node.keys, node.values)}
-    if isinstance(node, ast.Tuple):
-        return tuple(_eval_dict_node(elt) for elt in node.elts)
-    if isinstance(node, ast.Constant):
-        return node.value
-    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "PieceType":
-        return getattr(PieceType, node.attr)
-    raise AssertionError(
-        f"`piece_definitions` 里出现了守卫不认识的写法：{ast.dump(node)[:120]}"
-        "（若确实需要，请扩展 _eval_dict_node 而不是把副本抄进测试）"
-    )
-
-
-def _find_named_literal(tree: ast.AST, name: str) -> ast.AST | None:
-    """找 `name = {...}`（赋值）或 `f(name={...})`（关键字实参）的字面量节点。"""
-    for node in ast.walk(tree):
-        if isinstance(node, ast.keyword) and node.arg == name:
-            return node.value
-        if isinstance(node, ast.Assign) and len(node.targets) == 1:
-            target = node.targets[0]
-            if isinstance(target, ast.Name) and target.id == name:
-                return node.value
-    return None
-
-
-def desktop_dialog_groups() -> dict[str, frozenset[str]]:
-    """桌面②：`dialogs.py` 里 `SettingsDialog(piece_definitions=...)` 的 rules 元组。
-
-    它是构造函数内的局部字面量，import 不到，所以从源码 AST 里取**同一份数据**求值。
+    Step 1 守卫先行时 core 里还没有这个函数 ⇒ 调用即 ImportError，所有依赖分组的
+    断言全红。这正是「守卫有效」的证明：产品代码未动，守卫就已经不答应了。
     """
-    tree = ast.parse(DIALOGS_PY.read_text(encoding="utf-8"), filename=str(DIALOGS_PY))
-    node = _find_named_literal(tree, "piece_definitions")
-    assert node is not None, "`dialogs.py` 里找不到 `piece_definitions = {...}` 字面量"
-    definitions = _eval_dict_node(node)
-    assert isinstance(definitions, dict) and definitions, "`piece_definitions` 解析结果为空"
-    groups: dict[str, frozenset[str]] = {}
-    for kind, definition in definitions.items():
-        assert isinstance(kind, PieceType), f"分组键应为 PieceType，实际是 {kind!r}"
-        assert len(definition) == 3, f"{kind.value} 的条目应为 (标题, 说明, rules)，实际 {definition!r}"
-        rules = definition[2]
-        if rules:
-            groups[kind.value] = frozenset(rules)
-    return groups
+    from xionghan_chess.core.profiles import piece_option_groups
+
+    return {kind: frozenset(keys) for kind, keys in piece_option_groups().items() if keys}
 
 
-def _js_object_body(source: str, name: str) -> str:
-    """取 `const <name>={ ... }` 的花括号内部（按括号配平，不靠 `find(']')`）。"""
-    match = re.search(rf"const\s+{re.escape(name)}\s*=\s*\{{", source)
-    assert match, f"app.js 里找不到 `const {name}={{`"
-    depth = 1
-    index = match.end()
-    while index < len(source) and depth:
-        char = source[index]
-        if char == "{":
-            depth += 1
-        elif char == "}":
-            depth -= 1
-        index += 1
-    assert depth == 0, f"app.js 里 `{name}` 的花括号没有配平"
-    return source[match.end() : index - 1]
-
-
-def web_groups() -> dict[str, frozenset[str]]:
-    """网页：`app.js::pieceRuleKeys`（只解析源码，不复制副本）。"""
-    body = _js_object_body(APP_JS.read_text(encoding="utf-8"), "pieceRuleKeys")
-    groups: dict[str, frozenset[str]] = {}
-    for kind, inner in re.findall(r"([A-Za-z]+)\s*:\s*\[([^\]]*)\]", body):
-        keys = frozenset(re.findall(r"'([A-Za-z0-9_]+)'", inner))
-        if keys:
-            groups[kind] = keys
-    assert groups, "app.js 的 pieceRuleKeys 解析结果为空"
-    return groups
+def grouped_keys() -> set[str]:
+    """所有非空分组里的键全集（仍按棋子逐组比的地方用 `core_groups()`）。"""
+    return {key for keys in core_groups().values() for key in keys}
 
 
 # --- 断言 ----------------------------------------------------------------
@@ -206,18 +146,14 @@ def web_groups() -> dict[str, frozenset[str]]:
 
 def test_every_rule_option_is_grouped_or_explicitly_exempt() -> None:
     """核心守卫：新加的 `RuleOptions` 字段必须进分组，否则必须进带理由的豁免表。"""
-    grouped: set[str] = set()
-    for groups in (desktop_atlas_groups(), desktop_dialog_groups(), web_groups()):
-        for keys in groups.values():
-            grouped |= keys
+    grouped = grouped_keys()
 
     exempt = set(EXEMPT)
     unknown = _all_fields() - grouped - exempt
     assert not unknown, (
         "以下规则开关没有被任何一端的设置界面覆盖，也没有登记豁免理由：\n"
         f"  {sorted(unknown)}\n"
-        "→ 若它是某枚棋子的规则，请加进三处分组"
-        "（piece_atlas.PIECE_OPTION_KEYS / dialogs.piece_definitions / app.js pieceRuleKeys）；\n"
+        "→ 若它是某枚棋子的规则，请加进 core/profiles.py 的 PIECE_OPTION_GROUPS；\n"
         "→ 若它是全局规则、登场开关或数值项，请在 tests/test_option_wiring.py 的 EXEMPT 里写明判据。"
     )
 
@@ -230,10 +166,7 @@ def test_exemptions_are_not_stale() -> None:
 
 def test_exemptions_do_not_overlap_groups() -> None:
     """同一个键不能既是"已覆盖"又是"豁免"——那说明豁免表在掩盖漏接。"""
-    grouped: set[str] = set()
-    for groups in (desktop_atlas_groups(), desktop_dialog_groups(), web_groups()):
-        for keys in groups.values():
-            grouped |= keys
+    grouped = grouped_keys()
     overlap = grouped & set(EXEMPT)
     assert not overlap, f"这些键已在分组里，豁免表应删除：{sorted(overlap)}"
 
@@ -257,34 +190,58 @@ def test_all_exemptions_are_accounted_for_by_known_categories() -> None:
     )
 
 
-def test_three_ends_have_identical_grouping() -> None:
-    """三端分组必须完全一致（键集合 + 挂载分组），否则某端用户少/多了开关。"""
-    atlas = desktop_atlas_groups()
-    dialog = desktop_dialog_groups()
-    web = web_groups()
-    assert atlas == dialog, (
-        f"桌面两处分组不一致：仅 atlas {atlas.keys() - dialog.keys()} / 仅 dialog {dialog.keys() - atlas.keys()}"
-    )
-    assert atlas == web, f"桌面与网页分组不一致：仅桌面 {set(atlas) - set(web)} / 仅网页 {set(web) - set(atlas)}"
+def test_three_ends_read_shared_grouping_without_local_literals() -> None:
+    """三端不再各持一份分组字面量，而是引用 core 的共享表。
+
+    断言"消费方式"而非"某行代码长什么样"：谁把分组抄回任一端，这条立刻红。
+    - 桌面图谱 / 桌面设置：import `PIECE_OPTION_GROUPS`；
+    - Web：读 `/api/profiles` 下发的 `pieceOptionGroups`；
+    - 服务端：下发该字段。
+    """
+    atlas = ATLAS_PY.read_text(encoding="utf-8")
+    assert "PIECE_OPTION_KEYS" not in atlas, "桌面图谱仍带着 PIECE_OPTION_KEYS 硬编码分组"
+    assert "PIECE_OPTION_GROUPS" in atlas, "桌面图谱没有引用 core 的共享分组表"
+
+    dialog = DIALOGS_PY.read_text(encoding="utf-8")
+    assert "piece_definitions = {" not in dialog, "桌面设置仍带着 piece_definitions 分组字面量"
+    assert "PIECE_OPTION_GROUPS" in dialog, "桌面设置没有引用 core 的共享分组表"
+
+    web = APP_JS.read_text(encoding="utf-8")
+    assert "const pieceRuleKeys" not in web, "Web 不得再出现 `const pieceRuleKeys` 硬编码分组"
+    assert "pieceOptionGroups" in web, "Web 没有消费 /api/profiles 下发的分组表"
+
+    service = SERVICE_PY.read_text(encoding="utf-8")
+    assert '"pieceOptionGroups": piece_option_groups()' in service, "接口没有下发棋子分组表"
+
+    core = CORE_PY.read_text(encoding="utf-8")
+    assert "PIECE_OPTION_GROUPS" in core and "def piece_option_groups(" in core, "core 没有定义共享分组表"
+
+
+def test_offline_ends_have_no_grouping_names() -> None:
+    """离线端（Android offline.js / webapp UI）只做扁平规则区，不得出现分组名。
+
+    防止有人"顺手补一份"让离线端成为第四份真相 —— 那正是 C-1 要消灭的东西。
+    """
+    for path in (OFFLINE_JS, WEBAPP_JS):
+        source = path.read_text(encoding="utf-8")
+        for name in ("pieceOptionGroups", "PIECE_OPTION_GROUPS", "pieceRuleKeys", "PIECE_OPTION_KEYS"):
+            assert name not in source, f"离线端 {path.relative_to(ROOT)} 不应出现分组名 {name}"
 
 
 def test_grouping_matches_the_frozen_fingerprint() -> None:
     """三端一致还不够：三端一起漏掉某组也能过一致性检查，所以留一份定稿指纹。"""
-    atlas = {kind: keys for kind, keys in desktop_atlas_groups().items()}
-    assert atlas == EXPECTED_GROUP_KEYS, (
-        "三端棋子分组与定稿指纹不符（若是有意的产品变更，请同步更新 EXPECTED_GROUP_KEYS并说明用户侧的变化）"
+    shared = core_groups()
+    assert shared == EXPECTED_GROUP_KEYS, (
+        "core 共享分组与定稿指纹不符（若是有意的产品变更，请同步更新 EXPECTED_GROUP_KEYS并说明用户侧的变化）"
     )
-    total = sum(len(keys) for keys in atlas.values())
-    assert len(atlas) == 6 and total == 18, f"定稿形状应为 6 组 / 18 键，实际 {len(atlas)} 组 / {total} 键"
+    total = sum(len(keys) for keys in shared.values())
+    assert len(shared) == 6 and total == 18, f"定稿形状应为 6 组 / 18 键，实际 {len(shared)} 组 / {total} 键"
 
 
 def test_grouped_keys_are_real_rule_fields() -> None:
     """分组里的键必须是 `RuleOptions` 真字段，防拼错后静默变成死复选框。"""
     known = _all_fields()
-    grouped: set[str] = set()
-    for groups in (desktop_atlas_groups(), desktop_dialog_groups(), web_groups()):
-        for keys in groups.values():
-            grouped |= keys
+    grouped = grouped_keys()
     bogus = sorted(grouped - known)
     assert not bogus, f"分组里出现了不存在的规则键（疑似拼错）：{bogus}"
 
@@ -301,10 +258,7 @@ def _rule_section(language: str) -> dict[str, str]:
 
 def test_both_locales_cover_every_grouped_key_in_long_and_short_form() -> None:
     """每个进界面的开关都必须有长/短两版文案 —— 缺了用户会直接看到 `rule.xxx` 原文。"""
-    grouped: set[str] = set()
-    for groups in (desktop_atlas_groups(), desktop_dialog_groups(), web_groups()):
-        for keys in groups.values():
-            grouped |= keys
+    grouped = grouped_keys()
 
     problems: list[str] = []
     for language in ("zh-CN", "en"):
