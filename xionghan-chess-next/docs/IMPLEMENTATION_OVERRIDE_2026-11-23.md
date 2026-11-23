@@ -55,3 +55,24 @@ web/js/i18n.js:26    const template = lookup(activeCatalog, key) ?? lookup(zhCat
 
 验收必须包含一条「真取词」断言，而不是只读源码：像 `fix-naked-key` 那样真 import / 真跑
 `setLanguage()`，确认 `t('analysis.capped', {n: 120})` 在中英两侧都返回文案而不是裸键。
+
+## 裁定：分析上限的「单一常量」走测试断言，不走 codegen
+
+针对架构文档 D 节开放异议 3（codegen 下发上限到 Webapp vs 测试断言退路），主理人裁定：
+
+**走测试断言退路。** 本轮不把上限下发到 `profiles.js`，不触发 S1–S6 全链。
+
+理由：
+1. 本次修复目标是**覆盖面统一到 120**，不是建立跨端单一常量源。codegen 会改 `profiles.js`，
+   连带 8 条读回断言、manifest 与内嵌模块全变 —— 为一个常量引入整条产物链的回归面，
+   与「小而美、傻瓜式」相悖。
+2. 项目已有可维护的同类范式：`tests/test_default_minutes_single_source.py` 即「漂移即红」而非
+   「自动同源」。（该测试本轮正被补上漏掉的第五处，说明范式本身可修、可演进。）
+3. 架构文档自评 codegen 步骤成本「可能被低估」。
+
+最终落地口径：
+- `core/analysis.py` 定义 `ANALYSIS_PLY_CAP = 120` 并作为 `analyze_game` 默认值；
+- 服务端 `service/app.py:710` 显式传该常量（`AnalyzeRequest` 字段不变，禁止让客户端传 `max_plies`）；
+- 桌面 `desktop/ui/workers.py:32` 删本地字面量、import 同一常量；
+- Webapp `const CAP = 120` **保持不动**，由一条 Python 测试断言 JS 常量与 core 相等；
+- 不跑 S1–S6、不重生成 24 MB fixtures、不 bump `RULE_VERSION`、不碰 AI `CONFIGS`。
