@@ -20,7 +20,7 @@
 
 另有口径澄清：`IMPROVEMENT_PLAN.md:96` 写「`PIECE_OPTION_GROUPS` 三处一致」，这是立项时的措辞；实际落地的 C-2 守卫守的是**三份硬编码彼此一致 + 定稿指纹**，不是某个叫 `PIECE_OPTION_GROUPS` 的对象。下文按实际代码说话。
 
-**批次后追加的前提更正（见后文）**：④ C-1 语义等价物 `PIECE_OPTION_KEYS` 有 2 个消费点、桌面①改动点应为 3 处（见「补记」节）；⑤ 产品裁决 A-1/A-4 截断句冲突，经游有方补裁 `94289e4` 撤回新句、三端沿用现有同句（见 §D 异议 1）；⑥ Web 补键落点经主理人 `b307c68` 更正为 `locales/*.json` 而非 `web/js/i18n.js`（见 §D 异议 6）。这三处均晚于本表成稿，按纪律不回改原表、在此登记。
+**批次后追加的前提更正（见后文）**：④ C-1 语义等价物 `PIECE_OPTION_KEYS` 有 2 个消费点、桌面①改动点应为 3 处（见「补记」节）；⑤ 产品裁决 A-1/A-4 截断句冲突，经游有方补裁 `94289e4` 撤回新句、三端沿用现有同句（见 §D 异议 1）；⑥ Web 补键落点经主理人 `b307c68` 更正为 `locales/*.json` 而非 `web/js/i18n.js`（见 §D 异议 6）；⑦ **Web 截断提示的显示节点与判据**（游有方同步，主理人 `7bd0416` 同口径）：`web/index.html:173` 无 capped 节点、`renderAnalysis` 无汇总渲染、`setText` 不带 params 会把 `{n}` 显示成字面量——我原 D-A.3 写「加 setText 登记」是错的，已更正为在 `renderAnalysis` 内带参写 `t('analysis.capped',{n: result.analyzedPlies})`、判真截断用 `analyzedPlies < history.length`（见 §D 异议 7）；⑧ **分析上限单一常量走测试断言退路**（主理人 `9f240d3` 裁定异议 3）：Webapp `const CAP` 不动、不跑 S1–S6、不重生成 fixtures。这五处均晚于本表成稿，按纪律不回改原表、在此登记。
 
 ---
 
@@ -354,7 +354,7 @@ $ grep -rn "pieceOptionGroups\|piece_option_groups\|PIECE_OPTION_GROUPS" --inclu
 
 > 来源：`docs/PRODUCT_DECISIONS_2026-11-23.md`（原裁决 commit `1a04b82`；**补裁 commit `94289e4`**，游有方，状态「裁决建议，未实施」）。本节只出**技术落地规格**，不实现、不改源码/测试/版本源。裁决原文与补裁原文按项目纪律逐字引用；引用块之外是我的架构裁定。
 > 基线同前文：`d41aca3` 起手核对；补裁核验时 HEAD 为 `ac5e11f`（本文前两笔架构 commit），本次更新时 HEAD 已含 `94289e4`。
-> **效力顺序**：补裁 `94289e4` 覆盖原裁决的 A-4 文案与落点（A-4 新句撤回、A-1 原文维持、A-2/A-3/A-5 与任务 B 不变）；主理人 `b307c68`《实施落点更正》进一步覆盖 Web 补键的**文件落点**（从 `web/js/i18n.js` 更正为 `locales/*.json`），方向不变。下文凡涉及截断提示文案与 Web 补键落点，一律以这两笔覆盖为准；原 A-4 原文块与补裁里「补 `web/js/i18n.js`」的表述保留存档但**不是最终落点**。
+> **效力顺序**：补裁 `94289e4` 覆盖原裁决的 A-4 文案与落点（A-4 新句撤回、A-1 原文维持、A-2/A-3/A-5 与任务 B 不变）；主理人 `b307c68`《实施落点更正》覆盖 Web 补键的**文件落点**（`web/js/i18n.js` → `locales/*.json`）；主理人 `9f240d3` 裁定异议 3（上限走**测试断言退路**，Webapp `const CAP` 不动、不跑 S1–S6）；游有方 `2026-11-23` 同步、主理人 `7bd0416` 确认 Web **显示节点与带参渲染**规格（我原规格疏漏，已认领）。四笔均不改方向，只纠偏。下文凡涉及截断提示与上限口径，一律以这四笔覆盖为准；原 A-4 原文块、补裁里「补 `web/js/i18n.js`」与我原「加 `setText` 登记 / 响应加 `plyCap` / 首选 codegen」的写法保留存档但**不是最终落地规格**。
 
 ### D. 裁决原文（关键段逐字照贴）
 
@@ -460,7 +460,7 @@ $ grep -rn "pieceOptionGroups\|piece_option_groups\|PIECE_OPTION_GROUPS" --inclu
 | ① 唯一真源 | 在 `core/analysis.py` 定义模块常量 `ANALYSIS_PLY_CAP = 120`（紧邻 `analyze_game`），把 `analyze_game` 的 `max_plies: int = 200` 改为 `max_plies: int = ANALYSIS_PLY_CAP` | 服务端与桌面都从这一处取；与 `DEFAULT_INITIAL_MINUTES`(`game.py:26`)、`RULE_VERSION`(`profiles.py:29`) 同范式 |
 | ② 服务端 | `service/app.py::analysis` 显式传 `ANALYSIS_PLY_CAP`：`analyze_game(game, request.difficulty, ANALYSIS_PLY_CAP)`；并把 `AnalyzeRequest` **保持两字段不变** | 显式传参让上限在调用点可见、可测；**不动请求模型**是下面 D-A.2 契约判断的关键 |
 | ③ 桌面 | `workers.py:32` 删除本地 `ANALYSIS_PLY_CAP = 120`，改为 `from xionghan_chess.core.analysis import ANALYSIS_PLY_CAP`；`:127/:130-131` 调用与 `cappedPlies` 注入不变 | 消灭第二份字面量；行为零变化（值仍 120） |
-| ④ Webapp | `webapp/js/ui/app.js:160` 的 `const CAP = 120` **保留**（JS 离线端无法 import Python），但加一条 codegen 守卫：让 `gen_web_profiles.py::payload()` 增加 `"ANALYSIS_PLY_CAP": ANALYSIS_PLY_CAP` 下发到 `webapp/js/core/profiles.js`，`app.js` 从该模块取值替代本地常量；`gen_web_profiles.py --check` 现成的 8 条读回断言（`:287-360`）已能防「JS 常量漂移」，无需新机制 | 真正让三端共用一个数；`profiles.js` 本就是 core→JS 的下发载体（`:1-5`）。若排期不允许碰 codegen，退路是加一条 Python 测试断言 JS 文本里的 `const CAP` 等于 core 常量（照 `test_default_minutes_single_source.py` 范式），但它只能「漂移即红」、不能「自动同源」——首选仍是 codegen |
+| ④ Webapp | `webapp/js/ui/app.js:160` 的 `const CAP = 120` **保持不动**（JS 离线端无法 import Python）；加一条 Python 测试断言该 JS 常量与 core 的 `ANALYSIS_PLY_CAP` 相等（照 `test_default_minutes_single_source.py` 范式） | **✅ 主理人 `9f240d3` 已裁定走此退路，不走 codegen**：`profiles.js` 不碰、S1–S6 不跑、24MB fixtures 不重生成。代价是「漂移即红」而非「自动同源」，主理人判定可接受（修复目标是覆盖面统一，不是建跨端常量源）。原「首选 codegen」写法存档但不作为落地规格 |
 
 **D-A.2 为什么这不牵动第 2 节（原任务 B）的 service 契约判断**
 
@@ -482,11 +482,12 @@ Web 侧完整改动清单（供实现方）：
 | 位置 | 动作 | 备注 |
 |---|---|---|
 | `locales/zh-CN.json` + `locales/en.json` 的 `analysis` 段（`:615` 附近） | **真正补键的落点**：两语各新增 `capped` 键（主理人 `b307c68` 覆盖更正） | **文案逐字照补裁 `94289e4` 补-1 的现有同句**：中文 `（仅分析前 {n} 手）`、英文 `(first {n} plies only)`——与桌面 `texts.py:275`、Webapp `webapp/js/i18n.js:321,659` 逐字同值。**关键依据**：`web/js/i18n.js:19-27` 的 `fetchCatalog()` 从 `/locales/{lang}.json`（`service/app.py:759` 挂载）加载 catalog，`t()` 查 catalog 后 `?? key` 兜底——在 `web/js/i18n.js` 里加键值**没有读取者**，界面会显示裸键（与 2.2.1 修掉的 `fix-naked-key` 同类缺陷） |
-| `web/js/i18n.js`（仅登记，不补词） | 仅当提示节点需要随语言切换时，在 `:149-151` 附近加一行 `setText(选择器, 'analysis.capped')` | 这是**把 DOM 节点登记到键**，不是加文案；不写键值。`t(key, params)` 的插值在 `:25-27`，无需额外机制 |
-| `web/js/app.js::renderAnalysis`(:325) | 用 `result.analyzedPlies` 与上限比较，真截断才渲染该提示；`{n}` 取服务端下发的上限值 | 上限来源见下 |
-| `service/app.py::analysis` 响应 | 在 `analyze_game` 返回字典里带 `plyCap`（值 = `ANALYSIS_PLY_CAP`），Web 用 `result.plyCap` 插值 | **响应多一个键是加法式兼容**，老客户端忽略即可；不改请求模型 |
+| `web/index.html:173` 的 `#analysisContent` | **新增一个 capped 显示节点**（现只有 `#analysisMoveList` + `#analysisNote`「浅层参考」常驻，**没有任何截断节点**——这是只补 locales 不会有人可见提示的根因） | 新增节点放在 `#analysisContent` 内；**不挂 `setText` 登记**，理由见下行 |
+| `web/js/i18n.js`（**只加 `t()` 调用，不加 `setText` 登记**） | ⚠️ **禁止**在 `:149-151` 加 `setText(选择器, 'analysis.capped')`：`setText` 在 `:55-57` 调用的是 `t(key)` **不带 params**，会把 `{n}` 原样显示成字面量（游有方实读指出，我原规格此处写错，已认领更正）。正确做法是在 `renderAnalysis` 内用 `t('analysis.capped', {n: ...})` **带参**写入节点 | `t(key, params)` 的插值在 `:25-27`；`setText`/`setAttr`/`setOption`(`:55-66`) 都是无参静态登记，只适合无变量文案 |
+| `web/js/app.js::renderAnalysis`(:325) | 判真截断：`result.analyzedPlies < app.state.history.length`（`analyzedPlies` 来自 `core/analysis.py:89` 返回）；仅此时向新节点写入 `t('analysis.capped', {n: result.analyzedPlies})`；否则节点留空/隐藏 | **`n` 取实际分析手数（`result.analyzedPlies`），不是上限常量**——这样恰好分析到上限时 `analyzedPlies == history.length`，不误报。判据用返回值与棋盘历史比，不依赖前端另持一份上限，天然满足 A-4「`{n}` 不写死 120」。此项由游有方 `2026-11-23` 同步、实读确认 |
+| `service/app.py::analysis` 响应 | **本项不需新增响应字段**：`analyze_game` 已返回 `analyzedPlies`(`core/analysis.py:89`)，Web 用它判截断、取 `n` 即可 | 我原建议加 `plyCap` 字段属多余——判真截断用 `analyzedPlies < history.length` 已足够，且 `n` 应为**实际分析手数**而非上限常量（否则恰好分析 120 手时会误报）。少改一处响应面，保持加法式兼容与请求模型不变 |
 
-顺序裁定：若实现方**同时**执行了 D-A.1 步骤④（`gen_web_profiles.py` 加 `ANALYSIS_PLY_CAP` 下发），则 `profiles.js` 变了，必须按 `README.md:90-103` 的**固定顺序**跑 `S1 --write → S2 --check → S3 → S4 --check → S5 --write → S6`，因为 `gen_rule_fixtures.py:87-96` 的 `sourceDigest` 把 `profiles.js` 与 bundle 产物纳入哈希，乱序会被 `verify-rules.mjs` 的 `build-order` 拦下。**这与第 1 节 A 项的禁令是两回事**：C-1 不动 core 规则口径所以禁跑 S1–S6；A 项若改 codegen 下发常量则**必须**重跑全链。若步骤④走「测试断言」退路，则不改产物、不跑 S1–S6。
+顺序裁定（**已定案**）：D-A.1 步骤④由主理人 `9f240d3` 裁定走**测试断言退路**——`profiles.js` 不碰、`Webapp const CAP` 不动、只加一条 Python 断言 JS 常量 == core 常量。因此**本项不跑 S1–S6、不重生成 fixtures**。存档说明（不是本轮动作）：若当初走 codegen 下发，则 `profiles.js` 变了必须按 `README.md:90-103` 固定顺序 `S1 --write → S2 --check → S3 → S4 --check → S5 --write → S6`（`gen_rule_fixtures.py:87-96` 的 `sourceDigest` 含 profiles.js 与 bundle 产物，乱序被 `build-order` 拦）；这条仅说明「C-1 禁跑全链」与「codegen 必跑全链」是两回事，本轮不适用。
 
 ### D-B. B 项（棋子美术偏好）的落地规格
 
@@ -538,21 +539,22 @@ Web 侧完整改动清单（供实现方）：
 
 ### D. 对产品裁决的技术异议
 
-以下不是反对裁决，是实现前必须澄清的技术事实，按纪律如实写入。**异议 1/2 已由补裁 `94289e4` 裁定并消解，保留原文存档、状态改为「已裁定」；异议 3/4/5 仍开放。**
+以下不是反对裁决，是实现前必须澄清的技术事实，按纪律如实写入。**异议 1/2 已由补裁 `94289e4` 消解、异议 3 已由主理人 `9f240d3` 裁定（走测试断言退路，不走 codegen 全链）、异议 6/7 已由主理人 `b307c68`/`7bd0416` 覆盖确认；保留原文存档、状态改为「已裁定」。仅异议 4/5 为实现方须先读源码的风险提示。**
 
 1. ~~**A-4「替换既有 `analysis.capped` 的值、保持三端同一句」的措辞与代码不符。**~~ → **✅ 已裁定（补裁 `94289e4` 补-1/补-2）**：原异议成立——原 A-4 新句与 A-1「桌面与 Webapp 文案不改」字面冲突，实测只有 Webapp 有 `analysis.capped` 键（`webapp/js/i18n.js:321,659`），桌面走 `dlf()`→`texts.py:275` 不读 `locales`。**裁定结果**：撤回 A-4 新句，**三端沿用现有逐字同句** `（仅分析前 {n} 手）` / `(first {n} plies only)`；桌面与 Webapp 文案一律不改，只有 Web 旧树新增同值键；「浅层参考」由三端常驻标注承担（桌面 `report.py:159` / Web `index.html:173` / Webapp `analysis.shallow`）。**我原异议里写的「必须在 locales 两语加键、把 `dialogs.py:900` 改为读该键」是错的，已按补裁补-4 更正**：桌面承载机制是 `texts.py:222,275,329-338` 的 `TEMPLATES` + `dlf()`，`locales` 本就无此键（设计如此，非漏配）；若将来另有裁定要换桌面文案，正确落点是 `dialogs.py:900` 调用点 + `texts.py:275` 模板条目，**本轮二者都不动**。
 2. ~~**A-4「文案替换」若落到 Webapp 与 `online/public` 会触发重生成链。**~~ → **✅ 已裁定（补裁 `94289e4` 补-3/补-4.2）**：方向成立但**本轮不再发生**——保留现有句后 Webapp 零改动，`webapp/js/i18n.js` 不碰 ⇒ **不触发 S1–S6、不碰任何生成物**；我在 D-A.3 关于「Web 侧补键不在 S 链、不触发重生成」的判断同时成立、照用。补裁明确：这条成本被完全避免，不需要实现方在「换三端文案」与「跑全链重生成」间二选一。
    **追加落点更正（主理人 `b307c68`，见本节第 6 条）**：补裁说的「在 `web/js/i18n.js` 补键」本身落错了文件——该文件 `t()` 从 `/locales/{lang}.json` 取词（`:19-27`），不持词表；正确落点是 `locales/zh-CN.json` + `locales/en.json` 的 `analysis` 段。两处（web 与 locales）都不在 S 链，重生成结论不变。
-3. **D-A.1 步骤④（codegen 下发上限到 Webapp）的成本可能被低估。** 它不是「加一个字段」那么简单：`gen_web_profiles.py` 的 8 条读回断言（`:287-360`）是按固定 payload 键集写的，新增顶层 `ANALYSIS_PLY_CAP` 会让 `check()` 的「产物逐字节 == generated_source()」(①) 与 manifest hash(末尾) 双双变化，必须整套 `--write → --check` 并重跑 S1–S6；且 `webapp/js/ui/app.js:160` 改为 import 后，bundle 的内嵌模块文本也变（S3/S4）。**若排期紧，建议走 D-A.1 的退路**（Python 测试断言 JS 常量 == core 常量），成本从「全链重生成」降为「一条测试」，代价是不自动同源。这是排期与自治度的取舍，需主理人拍板。
+3. ~~**D-A.1 步骤④（codegen 下发上限到 Webapp）的成本可能被低估。**~~ → **✅ 已裁定（主理人 `9f240d3`）：走测试断言退路，不走 codegen 全链。** 原异议成立——`gen_web_profiles.py` 的 8 条读回断言（`:287-360`）按固定 payload 键集写，新增顶层 `ANALYSIS_PLY_CAP` 会让「产物逐字节 == generated_source()」(①) 与 manifest hash 双双变化，必须整套 `--write → --check` 并重跑 S1–S6；`webapp/js/ui/app.js:160` 改 import 后 bundle 内嵌模块文本也变（S3/S4）。**裁定结果**：本轮不把上限下发到 `profiles.js`、不触发 S1–S6；`core/analysis.py` 定义 `ANALYSIS_PLY_CAP=120` 作 `analyze_game` 默认值、`service/app.py:710` 显式传该常量（`AnalyzeRequest` 字段不变、禁止客户端传 `max_plies`）、桌面 `workers.py:32` 删字面量改 import 同一常量、**Webapp `const CAP=120` 保持不动**，由一条 Python 测试断言 JS 常量与 core 相等（同 `test_default_minutes_single_source.py` 的「漂移即红」范式）。代价是「不自动同源」，主理人按「修复覆盖面统一而非建跨端常量源、避免为一款常量引入整条产物链回归面」判定可接受。
 4. **B-3 兜底「风格资源缺失时回退」的判据在本仓可测但不完备。** `tests/test_desktop_piece_settings.py:97-104` 用 monkeypatch `piece_assets.preload` 返回 0 来模拟缺失，说明测试能覆盖；但生产路径里「资源缺失」的真实返回值与判据（是 0？是 None？是文件存在性？）我未在本次取证中确认（`preload` 实现未读）。实现方须先读 `piece_assets.preload` 的真实签名与返回值，再定兜底触发条件——**不要照抄测试里的 monkeypatch 值当生产判据**。
 5. **B 项纠错分支与「不 bump schema」的边界要说清。** 裁决 B-3.1 不 bump `CONFIG_VERSION`，但纠错会**改写磁盘内容**（`piece_render: glyph → image`）。这与 `migrate()` 的「`schema_version` 未变则不写盘」(`:323`, `changed = raw_version != CONFIG_VERSION`) 是两套不同的写盘理由。实现时 `changed` 必须由**纠错分支独立置真**，不能依赖 `migrate()` 的返回值——否则 `raw_version == CONFIG_VERSION` 的 1.6.x 残留（若存在）会 `changed=False`，纠错只改内存不落盘。已在 D-B.1 写明，此处作为风险提示。
 6. **⚠️ 第三处前提更正（主理人 `b307c68` 覆盖，已并入 D-A.3）：Web 补键的文件落点从 `web/js/i18n.js` 更正为 `locales/*.json`。** 这是批次内第二次落点更正：游有方补裁 `94289e4` 先纠正了「桌面不读 locales、走 `texts.py`」，主理人 `b307c68` 再纠正「Web 也不在 `web/js/i18n.js` 持词、走 `locales`」。技术依据实读确认：`web/js/i18n.js:19-27` 的 `fetchCatalog()` 从 `/locales/{lang}.json`（`service/app.py:759` 挂载）加载 catalog，`t()` 查 catalog 后 `?? key` 兜底；`:145-151` 的 `setText` 只做 DOM 节点登记、不持文案。若按补裁原话在 `web/js/i18n.js` 加键值，无任何读取者，`t('analysis.capped')` 仍走兜底显示裸键——与 2.2.1 的 `fix-naked-key` 同类缺陷。我此前 D-A.3 表格写「在 `web/js/i18n.js` 的 analysis 段新增键」已按此更正。两处落点（web/js 登记行、locales 词表）都不在 S1–S6 链，重生成结论不变。
+7. **⚠️ 第四处前提更正（游有方 `2026-11-23` 同步，我原规格的疏漏，已认领并并入 D-A.3）：Web 侧「补键」不等于「有可见提示」。** 我原 D-A.3 只写了补 locales 词表 + 「在 `:149-151` 加一行 `setText` 指向提示节点」，三处实读证明不够：`web/index.html:173` 的 `#analysisContent` 只有 `#analysisMoveList` 和 `#analysisNote`（浅层参考常驻），**没有 capped 节点**；`web/js/app.js:325` 的 `renderAnalysis` 只渲染逐手列表，**没有汇总/截断渲染**；`web/js/i18n.js:55-57` 的 `setText(selector,key)` 调用 `t(key)`**不带 params**，照我原规格挂登记会把 `{n}` 原样显示成字面量。更正规格：在 `#analysisContent` 新增节点（不挂 setText），`renderAnalysis` 内以 `result.analyzedPlies < app.state.history.length` 判真截断、带参写 `t('analysis.capped', {n: result.analyzedPlies})`；`n` 取**实际分析手数**而非上限（恰好等于上限不误报，也免去服务端新增 `plyCap` 字段）。我原建议的 `service/app.py` 响应加 `plyCap` 一并撤回。此项只改规格文档、不碰源码。
 
 **D 节汇总：**
 
 | 项 | 裁定 | 关键落点 | 阻塞 / 需裁定 | 责任角色 |
 |---|---|---|---|---|
-| A 分析覆盖面 | 统一 120；上限常量唯一真源放 `core/analysis.py`，服务端显式传参，桌面 import，Webapp codegen（或退路测试守卫）；**文案三端沿用现有同句，只给 Web 旧树补 `analysis.capped` 同值键**（补裁 `94289e4`），**落点为 `locales/*.json`**（主理人 `b307c68`） | `core/analysis.py:45-50`+新常量、`service/app.py:710`、`workers.py:32`、`locales/zh-CN.json`/`en.json` 的 `analysis` 段、`web/js/app.js:325`；桌面 `dialogs.py:900`+`texts.py:275` 与 Webapp `i18n.js:321,659` **均不动**；`web/js/i18n.js` 仅必要时加 `setText` 登记行 | 异议 1/2 **已由补裁消解**（不再有桌面文案改动与 S 链重跑）；异议 6（Web 落点）**已由主理人覆盖更正**；仅异议 3（codegen vs 测试守卫）仍由主理人按排期定；走 codegen 才需 S1–S6 全链 | 主理人排期 → 主程序 → QA 同谱三端核对（含 `fix-naked-key` 式真取词断言） |
+| A 分析覆盖面 | 统一 120；上限常量唯一真源放 `core/analysis.py`，服务端显式传参，桌面 import，**Webapp `const CAP` 不动 + 一条测试断言防漂（主理人 `9f240d3` 裁定，不走 codegen 全链）**；**文案三端沿用现有同句，Web 旧树补 `analysis.capped` 同值键于 `locales/*.json`**（补裁 `94289e4` + 主理人 `b307c68`），**并新增显示节点 + `renderAnalysis` 带参渲染才有人可见提示**（游有方同步，异议 7） | `core/analysis.py:45-50`+新常量、`service/app.py:710`、`workers.py:32`、`locales/zh-CN.json`/`en.json` 的 `analysis` 段、`web/index.html:173` 新增节点、`web/js/app.js:325` 带参 `t('analysis.capped',{n: analyzedPlies})`；桌面 `dialogs.py:900`+`texts.py:275` 与 Webapp `i18n.js:321,659` **均不动**；**`web/js/i18n.js` 不挂 setText 登记**（会把 `{n}` 显示成字面量） | 异议 1/2 补裁消解、异议 3 **测试断言已裁定（`9f240d3`）**、异议 6 落点主理人覆盖（`b307c68`）、异议 7 显示节点/判据已认领更正（`7bd0416`）；**全部已裁定，无开放异议**；不跑 S1–S6、不重生成 fixtures | 主理人排期 → 主程序 → QA 同谱三端核对（含「真截断才显示、恰好上限不误报、中英 `{n}` 非字面量」断言） |
 | B 棋子偏好 | 1.6.x 存量（看 `raw` 键缺失）保留 style + 派生 image + 写回；2.x 现状；兜底一次性提示 | `config.py:362` 与 `:369` 之间插入判据，`raw` 为准；`:369-372` ELSE 分支不动 | 异议 4（资源缺失判据未实测）须实现前读 `piece_assets.preload`；异议 5（写盘理由独立于 migrate） | 主程序定判据 → QA 补 4 条回归 |
 
 > 本节与前文一样：只出规格，不实现、不改源码/测试/版本源；生成物不得手改。
