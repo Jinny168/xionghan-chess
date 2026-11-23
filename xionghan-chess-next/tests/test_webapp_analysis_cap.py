@@ -1,11 +1,13 @@
 """webapp：分析上限提示的边界（恰好 120 手不得报「只看了前 N 手」）。
 
-`runAnalysis` 只分析前 `CAP` 手（`Math.min(history.length, CAP)`），`finishAnalysis`
-在结果被**截断**时补一句「（仅分析前 N 手）」。原先条件是 `results.length >= 120`：
-恰好 120 手时全部棋谱都已分析，却照样提示，用户会以为后半盘被跳过了。
+`runAnalysis` 只分析前 `CAP` 手（`Math.min(history.length, CAP)`），worker 一状态
+一结果，`results.length` 恒 <= CAP —— 旧判据 `results.length > CAP` 永远为假，
+真被截断的棋局也拿不到提示。现改为在 `Math.min` 之前用**原始** `history.length`
+置 `app.analysisTruncated`，`finishAnalysis` 凭该标志补一句「（仅分析前 N 手）」。
 
 桌面侧的口径是 `plies > ANALYSIS_PLY_CAP`（`>`，不是 `>=`）。两端必须一致，
 且 `120` 只能有一个来源（`const CAP = 120`），改上限时提示文案跟着走。
+真执行、换局作废与反向验证由 tests/test_webapp_capped_flag.py 承担。
 """
 
 from __future__ import annotations
@@ -44,13 +46,25 @@ def test_cap_is_declared_once_at_module_scope() -> None:
 
 
 def test_capped_hint_only_fires_when_really_truncated() -> None:
-    body = _function_body(_source(), "finishAnalysis")
-    match = re.search(r"results\.length\s*(>=?)\s*CAP", body)
-    assert match, "finishAnalysis 里找不到基于 CAP 的截断判断"
+    source = _source()
+    run = _function_body(source, "runAnalysis")
+    body = _function_body(source, "finishAnalysis")
+    reset = _function_body(source, "resetAnalysis")
+
+    # 判据必须来自原始 history（Math.min 之前），不能是被截过的 results.length。
+    match = re.search(r"const truncated = history\.length\s*(>=?)\s*CAP;", run)
+    assert match, "runAnalysis 里找不到基于原始 history 的截断判据"
     operator = match.group(1)
     assert operator == ">", (
-        f"截断判断用了 `{operator} CAP`：恰好 {_cap()} 手时全部已分析，不该提示截断"
+        f"截断判据用了 `{operator} CAP`：恰好 {_cap()} 手时全部已分析，不该提示截断"
     )
+    assert run.index(match.group(0)) < run.index("const total = Math.min(history.length, CAP);"), (
+        "截断标志必须在 Math.min 之前判定"
+    )
+    assert "app.analysisTruncated = truncated;" in run
+    assert "app.analysisTruncated = false;" in reset, "换局必须连同标志一并作废"
+    assert "app.analysisTruncated ?" in body, "finishAnalysis 必须凭标志决定是否提示"
+    assert not re.search(r"results\.length\s*>=?\s*CAP", body), "不得再用恒假的 results.length 判据"
     assert "t('analysis.capped', { n: CAP })" in body, "提示文案里的手数必须来自 CAP，不得硬编码 120"
 
     # 边界真值表（用源码里解析出的 CAP，而不是另写一份 120）。
