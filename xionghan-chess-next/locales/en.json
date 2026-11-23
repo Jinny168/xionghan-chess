@@ -620,6 +620,7 @@
     "blunder": "Blunder",
     "loading": "Analyzing the game move by move...",
     "shallow": "Shallow reference",
-    "shallow_hint": "Based on a shallow on-device search, for reference only"
+    "shallow_hint": "Based on a shallow on-device search, for reference only",
+    "capped": "(first {n} plies only)"
   }
 }
