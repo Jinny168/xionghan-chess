@@ -18,6 +18,7 @@ from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+from xionghan_chess.desktop import app as app_module  # noqa: E402
 from xionghan_chess.desktop import config as settings  # noqa: E402
 from xionghan_chess.desktop.app import MainWindow  # noqa: E402
 
@@ -30,6 +31,9 @@ def qt_app() -> QApplication:
 @pytest.fixture()
 def window(qt_app, monkeypatch):
     monkeypatch.setattr(settings, "save_config", lambda *_a, **_k: None)
+    # app.py 在导入期 `from .config import save_config` 直接绑定了自己的名字，
+    # closeEvent 写盘走的是那一份 —— 只 patch config 模块挡不住真实写盘。
+    monkeypatch.setattr(app_module, "save_config", lambda *_a, **_k: None)
     win = MainWindow()
     win.show()
     qt_app.processEvents()
@@ -102,6 +106,11 @@ def test_ctrl_z_in_the_chat_box_does_not_move_the_board(window) -> None:
     这里是**行为断言**：如果窗口级快捷键抢走了按键，历史会少一步。
     """
     _play_one_move(window)
+    # AI 落子是异步的：_play_one_move 里的 processEvents() 可能赶不上 finished 信号，
+    # 于是 AI 那步会在基线之后才落到 game 上，history 从 1 变 2，被误判成
+    # 「Ctrl+Z 把棋盘悔了」。先等 AI 落定，基线才稳。
+    while window.board.locked:
+        QApplication.instance().processEvents()
     history_before = len(window.game.state.history)
     window.chat_input.setText("测试文字")
     window.chat_input.setFocus()
