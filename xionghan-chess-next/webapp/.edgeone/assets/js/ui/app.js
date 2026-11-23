@@ -151,6 +151,8 @@ const app = {
   streakRun: null,
   analysis: null,
   analysisId: 0,
+  // 本次分析是否因原始 history 超过 CAP 被截断；换局随 resetAnalysis 一并作废。
+  analysisTruncated: false,
   online: null,
 };
 
@@ -820,6 +822,8 @@ function tickClock() {
 function resetAnalysis() {
   app.analysisId += 1;
   app.analysis = null;
+  // 标志随 analysisId 一起作废，避免上一局的 true 贴到新局。
+  app.analysisTruncated = false;
 }
 
 function updateAnalysisProgress({ done, total }) {
@@ -845,6 +849,8 @@ function runAnalysis() {
     analysisFailed();
     return;
   }
+  // 截断与否只看原始 history 长度：results.length 恒 ≤ CAP，拿它判定会恒假。
+  const truncated = history.length > CAP;
   const total = Math.min(history.length, CAP);
   const replay = app.game.publicState().replay;
   const states = replay.slice(0, total);
@@ -856,6 +862,8 @@ function runAnalysis() {
   }));
 
   resetAnalysis();
+  // 必须在 resetAnalysis 之后置位：先作废上一局，再记录本次是否被截断。
+  app.analysisTruncated = truncated;
   $('#analysisSummary').hidden = true;
   updateAnalysisProgress({ done: 0, total });
 
@@ -887,7 +895,7 @@ function finishAnalysis(results) {
     inaccuracy: stats.inaccuracy,
     mistake: stats.mistake,
     blunder: stats.blunder,
-  })}${results.length > CAP ? ` ${t('analysis.capped', { n: CAP })}` : ''}`;
+  })}${app.analysisTruncated ? ` ${t('analysis.capped', { n: CAP })}` : ''}`;
 
   drawReplay();
 }
