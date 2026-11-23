@@ -203,8 +203,9 @@ def test_three_ends_read_shared_grouping_without_local_literals() -> None:
     assert "PIECE_OPTION_GROUPS" in atlas, "桌面图谱没有引用 core 的共享分组表"
 
     dialog = DIALOGS_PY.read_text(encoding="utf-8")
-    assert "piece_definitions = {" not in dialog, "桌面设置仍带着 piece_definitions 分组字面量"
     assert "PIECE_OPTION_GROUPS" in dialog, "桌面设置没有引用 core 的共享分组表"
+    hardcoded = sorted(key for key in grouped_keys() if f'"{key}"' in dialog)
+    assert not hardcoded, f"桌面设置仍带着硬编码的规则开关键：{hardcoded}"
 
     web = APP_JS.read_text(encoding="utf-8")
     assert "const pieceRuleKeys" not in web, "Web 不得再出现 `const pieceRuleKeys` 硬编码分组"

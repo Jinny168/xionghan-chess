@@ -50,7 +50,14 @@ from xionghan_chess.core import puzzles as puzzle_chapters
 from xionghan_chess.core.ai import PUBLIC_DIFFICULTIES, normalize_difficulty
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, Move, PieceType
-from xionghan_chess.core.profiles import OPTION_DEPENDS_ON, PROFILES, display_value, profile_rule_values, stored_value
+from xionghan_chess.core.profiles import (
+    OPTION_DEPENDS_ON,
+    PIECE_OPTION_GROUPS,
+    PROFILES,
+    display_value,
+    profile_rule_values,
+    stored_value,
+)
 from xionghan_chess.core.setup import profile_slots
 from xionghan_chess.core.storage import game_from_document
 from xionghan_chess.i18n import normalize_language, t
@@ -305,55 +312,25 @@ class SettingsDialog(QDialog):
             general_layout.addWidget(check)
         rule_layout.addWidget(general)
 
+        # 这里只留展示元数据（标题 / 说明键）；规则开关键来自 core 的共享分组表。
         piece_definitions = {
-            PieceType.KING: (
-                "piece.king_label",
-                "piece_rule.king_long",
-                (
-                    "king_can_leave_palace",
-                    "king_diagonal_in_palace",
-                    "king_lose_diagonal_outside_palace",
-                    "invasion_victory",
-                ),
-            ),
-            PieceType.ROOK: ("piece.rook_label", "piece_rule.rook_long", ()),
-            PieceType.HORSE: (
-                "piece.horse_label",
-                "piece_rule.horse_long",
-                ("horse_blocked_by_leg", "horse_straight_three", "horse_straight_three_move_only"),
-            ),
-            PieceType.ELEPHANT: (
-                "piece.elephant_label",
-                "piece_rule.elephant_long",
-                ("elephant_can_cross_river", "elephant_gain_jump_two_enemy_territory"),
-            ),
-            PieceType.ADVISOR: (
-                "piece.advisor_label",
-                "piece_rule.advisor_long",
-                ("advisor_can_leave_palace", "advisor_gain_straight_outside_palace"),
-            ),
-            PieceType.CANNON: ("piece.cannon_label", "piece_rule.cannon_long", ()),
-            PieceType.PAWN: (
-                "piece.pawn_label",
-                "piece_rule.pawn_long",
-                (
-                    "pawn_fast_move_before_enemy_territory",
-                    "pawn_charge",
-                    "pawn_three_line_capture",
-                    "pawn_backward_at_base",
-                    "pawn_resurrection",
-                    "pawn_promotion",
-                ),
-            ),
-            PieceType.GUARD: ("piece.guard_label", "piece_rule.guard_long", ()),
-            PieceType.ARCHER: ("piece.archer_label", "piece_rule.archer_long", ("archer_enhanced_mode",)),
-            PieceType.THUNDER: ("piece.thunder_label", "piece_rule.thunder_long", ()),
-            PieceType.PATROL: ("piece.patrol_label", "piece_rule.patrol_long", ()),
+            PieceType.KING: ("piece.king_label", "piece_rule.king_long"),
+            PieceType.ROOK: ("piece.rook_label", "piece_rule.rook_long"),
+            PieceType.HORSE: ("piece.horse_label", "piece_rule.horse_long"),
+            PieceType.ELEPHANT: ("piece.elephant_label", "piece_rule.elephant_long"),
+            PieceType.ADVISOR: ("piece.advisor_label", "piece_rule.advisor_long"),
+            PieceType.CANNON: ("piece.cannon_label", "piece_rule.cannon_long"),
+            PieceType.PAWN: ("piece.pawn_label", "piece_rule.pawn_long"),
+            PieceType.GUARD: ("piece.guard_label", "piece_rule.guard_long"),
+            PieceType.ARCHER: ("piece.archer_label", "piece_rule.archer_long"),
+            PieceType.THUNDER: ("piece.thunder_label", "piece_rule.thunder_long"),
+            PieceType.PATROL: ("piece.patrol_label", "piece_rule.patrol_long"),
         }
         content = QWidget()
         content_layout = QVBoxLayout(content)
         self.piece_groups = {}
-        for kind, (title_key, description_key, rules) in piece_definitions.items():
+        for kind, (title_key, description_key) in piece_definitions.items():
+            rules = PIECE_OPTION_GROUPS.get(kind, ())
             group = QGroupBox(t(title_key, self.language))
             group_layout = QVBoxLayout(group)
             self.piece_groups[kind] = group

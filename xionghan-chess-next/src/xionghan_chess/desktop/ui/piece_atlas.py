@@ -54,7 +54,14 @@ from PySide6.QtWidgets import (
 
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, Piece, PieceType, Position
-from xionghan_chess.core.profiles import OPTION_DEPENDS_ON, PROFILES, display_value, profile_rule_values, stored_value
+from xionghan_chess.core.profiles import (
+    OPTION_DEPENDS_ON,
+    PIECE_OPTION_GROUPS,
+    PROFILES,
+    display_value,
+    profile_rule_values,
+    stored_value,
+)
 from xionghan_chess.core.rules import RulesEngine
 from xionghan_chess.i18n import normalize_language, t
 
@@ -86,33 +93,6 @@ SPECIAL_KINDS: tuple[PieceType, ...] = (
     PieceType.THUNDER,
     PieceType.PATROL,
 )
-
-# 每型在该档案下会影响它的规则开关（与 `SettingsDialog` 的棋子分组成员一致）。
-PIECE_OPTION_KEYS: dict[PieceType, tuple[str, ...]] = {
-    PieceType.KING: (
-        "king_can_leave_palace",
-        "king_diagonal_in_palace",
-        "king_lose_diagonal_outside_palace",
-        "invasion_victory",
-    ),
-    PieceType.ROOK: (),
-    PieceType.HORSE: ("horse_blocked_by_leg", "horse_straight_three", "horse_straight_three_move_only"),
-    PieceType.ELEPHANT: ("elephant_can_cross_river", "elephant_gain_jump_two_enemy_territory"),
-    PieceType.ADVISOR: ("advisor_can_leave_palace", "advisor_gain_straight_outside_palace"),
-    PieceType.CANNON: (),
-    PieceType.PAWN: (
-        "pawn_fast_move_before_enemy_territory",
-        "pawn_charge",
-        "pawn_three_line_capture",
-        "pawn_backward_at_base",
-        "pawn_resurrection",
-        "pawn_promotion",
-    ),
-    PieceType.GUARD: (),
-    PieceType.ARCHER: ("archer_enhanced_mode",),
-    PieceType.THUNDER: (),
-    PieceType.PATROL: (),
-}
 
 # 缩略图逻辑边长：**单值 72**，这里给的是**盘径**（图片已裁掉留白）。
 # 曾经有 80 的大窗档，但 80×2（200% DPI）÷ 源盘径 137 = **1.17× 上采样**，
@@ -530,7 +510,7 @@ class PieceAtlasDialog(QDialog):
     def _switches_section(self) -> QWidget:
         """右栏「本子开关」：**可写**，勾选即写 config 并提示重开。
 
-        - 只放**单子**开关（`PIECE_OPTION_KEYS`），`*_appear` 与全局开关（禁送将/和棋/长将）不在这里；
+        - 只放**单子**开关（core 的 `PIECE_OPTION_GROUPS`），`*_appear` 与全局开关（禁送将/和棋/长将）不在这里；
         - 立即写 `config["rule_options"]` 并落盘，然后问「现在重开 / 稍后」。
         """
         box = QFrame()
@@ -540,7 +520,7 @@ class PieceAtlasDialog(QDialog):
         layout.addWidget(self._heading(t("desktop.atlas_switch_title", self.language)))
 
         options = self.rules.options
-        keys = [key for key in PIECE_OPTION_KEYS.get(self.kind, ()) if hasattr(options, key)]
+        keys = [key for key in PIECE_OPTION_GROUPS.get(self.kind, ()) if hasattr(options, key)]
         if not keys:
             hint = QLabel(t("desktop.atlas_switch_none", self.language))
             hint.setWordWrap(True)
@@ -752,7 +732,7 @@ class PieceAtlasDialog(QDialog):
         layout.addWidget(self._heading(t("desktop.atlas_rule_state", self.language)))
         values = profile_rule_values(self.profile.id, self.config.get("rule_options"))
         rows = [(t("settings.piece_appear", self.language), f"{self.kind.value}_appear")]
-        rows += [(t(f"rule.{key}_short", self.language), key) for key in PIECE_OPTION_KEYS.get(self.kind, ())]
+        rows += [(t(f"rule.{key}_short", self.language), key) for key in PIECE_OPTION_GROUPS.get(self.kind, ())]
         for label, key in rows:
             line = QHBoxLayout()
             line.addWidget(QLabel(label))
