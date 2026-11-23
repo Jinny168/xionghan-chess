@@ -665,3 +665,23 @@ def test_legacy_correction_is_rewritten_and_survives_restart(isolated_appdata, m
     assert second == first, "重启前后配置必须一致"
     assert len(second_calls) == 1, "第二次启动应走 2.x 现状路径"
     assert path.read_text(encoding="utf-8") == after_first, "第二次启动不该再改磁盘"
+
+
+def test_newer_schema_version_leaves_piece_style_alone(isolated_appdata) -> None:
+    """高版本配置原样放行：未来 schema 即便缺 `piece_render`，也不纠错、不回写。
+
+    与 `test_newer_schema_version_is_left_alone` 同一条降级保护（`migrate():313` /
+    `_coerce_numeric` 调用点 `:367`）。未来版本若真移除 `piece_render` 键，纠错分支
+    与原归一化分支都会改写并回写这份配置 —— 不可逆的数据损坏。
+    """
+    path = desktop_config.config_path()
+    original = {
+        "schema_version": desktop_config.CONFIG_VERSION + 1,
+        "piece_style": "cartoon",  # 无 piece_render：纠错判据的另两个条件都命中
+    }
+    _write_config(path, original)
+
+    loaded = desktop_config.load_config()
+    assert loaded["piece_style"] == "cartoon", "高版本里用户选的美术偏好不能被旧版本改写"
+    assert loaded["piece_render"] == "glyph", "只留 DEFAULTS 补的默认值，不派生 image"
+    assert json.loads(path.read_text(encoding="utf-8")) == original, "高版本配置不该被回写"
