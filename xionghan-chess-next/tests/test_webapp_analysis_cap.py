@@ -46,6 +46,8 @@ def test_cap_is_declared_once_at_module_scope() -> None:
 
 
 def test_capped_hint_only_fires_when_really_truncated() -> None:
+    # 原断言守的是恒假判据 `results.length > CAP`（results.length 恒 <= CAP），
+    # 已于本次修复替换；真行为验证见 test_webapp_capped_flag.py。
     source = _source()
     run = _function_body(source, "runAnalysis")
     body = _function_body(source, "finishAnalysis")
