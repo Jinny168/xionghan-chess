@@ -1,5 +1,16 @@
 # 人工目检执行记录（M-1 … M-7）
 
+> ## 状态：已废弃（2026-11-23 用户裁定）
+>
+> **真人目检作为视觉验收手段已取消。** 本文件与 `benchmarks/visual_evidence/` 的 20 张 PNG 保留存档，
+> 不再执行勾选、不再填写结论栏。视觉层继续由自动门禁
+> （`tests/test_visual_alignment_triad.py` + `docs/visual_alignment_ledger.json`）守卫；
+> **渲染结果层不再有人工验收结论**，报告时不得写成「目检通过」或「三端观感已人工确认」。
+>
+> 同批裁定废弃的还有 K5 人工试玩（`docs/K5_PLAYTEST_RECORD.md`）。
+>
+> ---
+
 > 本文件是**待真人逐条打勾**的空模板。自动门禁（`tests/test_visual_alignment_triad.py`）只钉代码片段与数值；
 > 渲染结果层（字形、投影、对比、层级）按 TRIAD 第 3 节口径**仅人工验收**，不引入 canvas 像素基线（字体 / DPR / 抗锯齿三处非确定）。
 >
