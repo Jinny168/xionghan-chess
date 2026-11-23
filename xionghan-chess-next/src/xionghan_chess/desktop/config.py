@@ -366,10 +366,24 @@ def load_config() -> dict[str, Any]:
     # 读盘不该因为「值被夹紧」而写盘。
     if _schema_version(raw) <= CONFIG_VERSION:
         merged = _coerce_numeric(merged)
-    style, render = _normalize_piece_style(merged.get("piece_style"), merged.get("piece_render"))
-    if (merged.get("piece_style"), merged.get("piece_render")) != (style, render):
-        merged["piece_style"], merged["piece_render"] = style, render
+
+    # B 项（棋子美术偏好）纠错：1.6.x 的 `piece_render` 是 1.7.0 新增键，由 :362 的
+    # `{**DEFAULTS, **migrated}` 程序补出 `"glyph"` —— 那不是用户的选择；而当时的
+    # `piece_style` 是真实生效、被持久化且被云同步的可见选择（三套美术之一）。
+    # 判据必须看**原始 raw**：merged 在 :362 已把键补全，用 merged 判「键缺失」
+    # 会把全体 2.x 用户都卷进纠错分支。
+    if "piece_render" not in raw and raw.get("piece_style") in ("traditional", "modern", "cartoon"):
+        merged["piece_style"] = raw["piece_style"]  # 原样保留用户显式选择
+        merged["piece_render"] = "image"  # 派生：三套美术都走 image（不留 style=cartoon/render=glyph 中间态）
+        # 改的是程序自己补错的派生字段，写回让纠错一次性、下次启动走 2.x 现状路径。
+        # changed 独立置真，不依赖 migrate() 的「版本未变则不写盘」返回值。
         changed = True
+    else:
+        # 2.x 配置（含「先选美术、再主动切回字形」的四值互斥用户）：原逻辑一字不改。
+        style, render = _normalize_piece_style(merged.get("piece_style"), merged.get("piece_render"))
+        if (merged.get("piece_style"), merged.get("piece_render")) != (style, render):
+            merged["piece_style"], merged["piece_render"] = style, render
+            changed = True
     background = _normalize_background(merged.get("background"))
     if merged.get("background") != background:
         merged["background"] = background

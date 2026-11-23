@@ -534,3 +534,134 @@ def test_v2_bad_numbers_are_converged_without_rewriting_the_file(isolated_appdat
     before = path.read_text(encoding="utf-8")
     assert desktop_config.load_config()["sound_volume"] == 70
     assert path.read_text(encoding="utf-8") == before
+
+
+# --------------------------------------------------------------------------- #
+# B 项：1.6.x 棋子美术偏好的加载时纠错（cartoon 不能被静默改回 glyph）
+# --------------------------------------------------------------------------- #
+
+
+def _write_legacy_config(path: Path, style: str) -> None:
+    """1.6.x 存量的真实形状：有 `piece_style`，**没有** `piece_render`。"""
+    _write_config(path, {"schema_version": desktop_config.CONFIG_VERSION, "piece_style": style})
+
+
+def _assert_three_places_consistent(config: dict, style: str) -> None:
+    """棋盘 / 设置 / 图谱三处都读这两个键，必须指向同一套美术。
+
+    - 棋盘：`board_widget.py:499,1283` 按 `piece_render` 选图片路径、`piece_style` 选美术；
+    - 设置：`dialogs.py:207-210` 下拉当前项读 `piece_style`，`:424-425` 按 `piece_render`
+      决定落在「书法字形」回退项还是三套美术之一；
+    - 图谱：`piece_atlas.py:475` 的「使用中」直接比 `config["piece_style"] == choice`。
+    """
+    assert config["piece_style"] == style
+    assert config["piece_render"] == "image"
+    # `QA_PIECE_ATLAS.md:89` 红线：不得出现「设置显示 A、棋盘/图谱为 B」的中间态
+    assert (config["piece_style"], config["piece_render"]) != (style, "glyph")
+
+
+def test_legacy_cartoon_choice_is_preserved_with_image_render(isolated_appdata) -> None:
+    """1.6.x 显式选过 cartoon 的用户：升级后仍是 cartoon/image，三处一致。
+
+    选 cartoon 被改回 glyph 是「1.7.0 程序补 `piece_render` 默认」+「1.7.1 把补出的
+    值当用户意图」叠加的结果；这条把这组配置钉成回归守卫。
+    """
+    path = desktop_config.config_path()
+    _write_legacy_config(path, "cartoon")
+
+    loaded = desktop_config.load_config()
+    _assert_three_places_consistent(loaded, "cartoon")
+
+    on_disk = json.loads(path.read_text(encoding="utf-8"))
+    _assert_three_places_consistent(on_disk, "cartoon")
+
+
+@pytest.mark.parametrize("style", ["traditional", "modern", "cartoon"])
+def test_legacy_art_style_whitelist(isolated_appdata, style: str) -> None:
+    """三套美术都在白名单内；白名单外的 `glyph` / 未知值不进纠错。"""
+    _write_legacy_config(desktop_config.config_path(), style)
+    _assert_three_places_consistent(desktop_config.load_config(), style)
+
+
+def test_explicit_glyph_render_stays_glyph(isolated_appdata) -> None:
+    """2.x 明确选字形：`piece_render="glyph"` 键存在 → 原逻辑，glyph/glyph 不变且不回写。"""
+    path = desktop_config.config_path()
+    original = {"schema_version": desktop_config.CONFIG_VERSION, "piece_style": "glyph", "piece_render": "glyph"}
+    _write_config(path, original)
+
+    loaded = desktop_config.load_config()
+    assert (loaded["piece_style"], loaded["piece_render"]) == ("glyph", "glyph")
+    assert json.loads(path.read_text(encoding="utf-8")) == original, "值没变就不该回写"
+
+
+def test_v2_explicit_image_style_is_untouched(isolated_appdata) -> None:
+    """2.x 选过风格：`piece_render="image"` + `piece_style="cartoon"` → 原样保留。"""
+    path = desktop_config.config_path()
+    original = {"schema_version": desktop_config.CONFIG_VERSION, "piece_style": "cartoon", "piece_render": "image"}
+    _write_config(path, original)
+
+    loaded = desktop_config.load_config()
+    _assert_three_places_consistent(loaded, "cartoon")
+    assert json.loads(path.read_text(encoding="utf-8")) == original, "现状路径不该回写"
+
+
+def test_user_who_switched_back_to_glyph_is_not_corrected(isolated_appdata, monkeypatch) -> None:
+    """「先 cartoon、再主动切回字形」→ 四值互斥写成 `piece_style="glyph"`，不在白名单。
+
+    裁决 B-1 第 4 条的代码级落点：该用户当下的选择就是字形，纠错不应命中。
+    互斥契约见 `tests/test_desktop_piece_settings.py:80-83`。
+    """
+    path = desktop_config.config_path()
+    _write_config(
+        path,
+        {
+            "schema_version": desktop_config.CONFIG_VERSION,
+            "piece_style": "glyph",
+            "piece_render": "glyph",
+            "theme": "dark",  # 一个真实 2.x 用户配置的其他键，确认不被顺手改掉
+        },
+    )
+    calls: list[tuple[object, object]] = []
+    real = desktop_config._normalize_piece_style
+
+    def spy(style: object, render: object) -> tuple[str, str]:
+        calls.append((style, render))
+        return real(style, render)
+
+    monkeypatch.setattr(desktop_config, "_normalize_piece_style", spy)
+    loaded = desktop_config.load_config()
+    assert (loaded["piece_style"], loaded["piece_render"]) == ("glyph", "glyph")
+    assert loaded["theme"] == "dark"
+    assert len(calls) == 1, "应走 2.x 现状分支，而不是纠错分支"
+
+
+def test_legacy_correction_is_rewritten_and_survives_restart(isolated_appdata, monkeypatch) -> None:
+    """纠错必须落盘；第二次启动读到带 `piece_render` 的磁盘值，走现状路径、不再重判。"""
+    path = desktop_config.config_path()
+    _write_legacy_config(path, "cartoon")
+
+    real = desktop_config._normalize_piece_style
+    first_calls: list[tuple[object, object]] = []
+
+    def spy_first(style: object, render: object) -> tuple[str, str]:
+        first_calls.append((style, render))
+        return real(style, render)
+
+    monkeypatch.setattr(desktop_config, "_normalize_piece_style", spy_first)
+    first = desktop_config.load_config()
+    assert first_calls == [], "1.6.x 存量应跳过 _normalize_piece_style（否则 :340 又改回 glyph）"
+    _assert_three_places_consistent(first, "cartoon")
+    after_first = path.read_text(encoding="utf-8")
+    assert json.loads(after_first)["piece_render"] == "image", "纠错必须回写，不能只改内存"
+
+    second_calls: list[tuple[object, object]] = []
+
+    def spy_second(style: object, render: object) -> tuple[str, str]:
+        second_calls.append((style, render))
+        return real(style, render)
+
+    monkeypatch.setattr(desktop_config, "_normalize_piece_style", spy_second)
+    second = desktop_config.load_config()
+    assert second == first, "重启前后配置必须一致"
+    assert len(second_calls) == 1, "第二次启动应走 2.x 现状路径"
+    assert path.read_text(encoding="utf-8") == after_first, "第二次启动不该再改磁盘"
