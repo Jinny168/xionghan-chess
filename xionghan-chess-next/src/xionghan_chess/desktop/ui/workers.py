@@ -20,16 +20,14 @@ import threading
 from PySide6.QtCore import QObject, QRunnable, Signal
 
 from xionghan_chess.core.ai import ChessAI, Difficulty
-from xionghan_chess.core.analysis import analyze_game
+from xionghan_chess.core.analysis import ANALYSIS_PLY_CAP, analyze_game
 from xionghan_chess.core.game import Game
 from xionghan_chess.desktop import net
 
-# 复盘分析的手数上限。与 webapp 同值：`webapp/js/ui/app.js` 的 `const CAP = 120`
-# （两端都只分析前 N 手，并在**真被截断**时提示用户）。注意 web 服务端尚未对齐 ——
-# `src/xionghan_chess/service/app.py` 的 `/api/analysis` 调 `analyze_game(game, difficulty)`
-# 走的是默认 `max_plies=200`，且 web 端没有 capped 提示；同一盘 >120 手的棋，
-# 桌面 / webapp 看 120 手、web 看 200 手。此处只如实记录，服务端行为留待后续对齐。
-ANALYSIS_PLY_CAP = 120
+# 复盘分析的手数上限从 core.analysis 导入（唯一真源），与 webapp 的
+# `webapp/js/ui/app.js:const CAP = 120` 及 web 服务端 `/api/analysis` 的显式实参同值：
+# 三端统一到 120，都只分析前 N 手，并在**真被截断**时提示用户。
+# web 服务端原先走默认的 200 手且没有 capped 提示，现已对齐；此处不再保留第二份字面量。
 
 
 class WorkerSignals(QObject):

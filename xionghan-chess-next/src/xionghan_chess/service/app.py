@@ -26,7 +26,7 @@ from pydantic import BaseModel, BeforeValidator, Field, ValidationError
 from xionghan_chess import __version__
 from xionghan_chess.core import daily as daily_quiz
 from xionghan_chess.core.ai import Difficulty, as_public_difficulty
-from xionghan_chess.core.analysis import analyze_game
+from xionghan_chess.core.analysis import ANALYSIS_PLY_CAP, analyze_game
 from xionghan_chess.core.avatars import normalize_avatar
 from xionghan_chess.core.game import DEFAULT_INITIAL_MINUTES, GameError
 from xionghan_chess.core.model import Color, PieceType, Position
@@ -707,7 +707,7 @@ async def delete_cloud_game(game_id: int, authorization: str | None = Header(Non
 async def analysis(request: AnalyzeRequest) -> dict[str, Any]:
     try:
         game = game_from_document(request.document)
-        return await asyncio.to_thread(analyze_game, game, request.difficulty)
+        return await asyncio.to_thread(analyze_game, game, request.difficulty, ANALYSIS_PLY_CAP)
     except (ValueError, KeyError, TypeError) as exc:
         raise HTTPException(400, str(exc)) from exc
 
