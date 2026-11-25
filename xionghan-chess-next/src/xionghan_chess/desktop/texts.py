@@ -28,6 +28,11 @@ _LANGUAGE = "zh-CN"
 EN: dict[str, str] = {
     # ---- 菜单 / 主界面 ----
     "残局与排局训练": "Endgame & set-play drills",
+    # 2.2.0 轻量模式预设：老用户的一次性提示（不改用户档位）
+    "新增「轻量模式」预设：保留「射」等增强走法，只关掉入侵取胜、兵卒复活、三线吃子三条额外规则，更适合上手。可在设置里切换。": (
+        "New “Light mode” preset: keeps enhanced moves like the archer, and only turns off the three extra rules — "
+        "invasion victory, pawn resurrection, and three-line capture. Easier to pick up; switch in Settings."
+    ),
     # D4 首跑引导（状态栏横幅）
     "① 选对手：右侧面板有人机 / 双人 / 联机": "① Pick an opponent: AI / two players / online (right panel)",
     "② 走一步：点自己的棋子，再点落点": "② Move: click your piece, then its destination",
@@ -72,6 +77,18 @@ EN: dict[str, str] = {
     "翻转": "Flip",
     "红方": "Red",
     "黑方": "Black",
+    # P1-11 侧栏折叠框标题（原来是一行裸 QLabel 小标题）
+    "阵亡子力": "Captured pieces",
+    # P0-2 常规对局的下一步提示（只高亮，不落子）
+    "提示下一步": "Suggest a move",
+    "算一步推荐着法，不替你落子": "Compute a suggested move — it will not play it for you",
+    "观战中不能提示": "No hints while watching a game",
+    "这局已经结束": "This game is already over",
+    "还没轮到你": "Not your turn yet",
+    "这一步没算出推荐着法": "No suggestion for this position",
+    "这一步": "this move",
+    # P0-4 首次选中「射」时的一次性星轨引导
+    "射的星位决定它能打多远": "An archer's star points decide how far it can strike",
     # ---- 对局操作 ----
     "认输": "Resign",
     "确认认输并结束当前对局？": "Resign and end this game?",
@@ -155,7 +172,17 @@ EN: dict[str, str] = {
     "残局": "Endgame",
     "本局各阶段失分分布较为平均。": "Losses are spread fairly evenly across phases.",
     "本局可复盘的手数不足，未形成阶段归纳。": "Not enough reviewed moves for a phase summary.",
-    "评分下降较多的手：": "Biggest score drops:",
+    # P0-1 呈现轻量非权威：只给档位与相对走势，不给分值（措辞与 webapp 的同名文案对齐）
+    "失分较多的手：": "Moves with heavier losses:",
+    "走势样本不足，未作归纳": "Not enough samples for a trend summary",
+    "中段一度吃紧后转好": "Tight in the middle, then recovered",
+    "中段一度吃紧，末段仍未回到开局局面": "Tight in the middle, still below the opening position",
+    "开局之后逐步转入吃紧": "Gradually tighter after the opening",
+    "整体逐步转为宽松": "Gradually more comfortable overall",
+    "整体大致保持平稳": "Broadly steady throughout",
+    "浅层参考：依据本机浅层搜索，仅供参考。": "Shallow reference: based on a local shallow search, for reference only.",
+    "逐手档位（浅层参考）：": "Per-move grades (shallow reference):",
+    "沙盘不可用": "Sandbox unavailable",
     # ---- 训练 / 题库 ----
     "导入题库": "Import puzzles",
     "题库导入": "Puzzle import",
@@ -195,6 +222,11 @@ EN: dict[str, str] = {
 TEMPLATES: dict[str, str] = {
     "吃掉{names}！": "Captured: {names}!",
     "先看这一枚：{name}": "Look at this piece: {name}",
+    # P0-2 常规对局提示：`{move}` 是既有记谱函数的输出（Game.notation）
+    "提示：{move}": "Hint: {move}",
+    "提示算不出来：{detail}": "Could not compute a hint: {detail}",
+    # G2c：调用方没给 on_error 的请求，失败一律落到 FeedbackBar（不再弹模态）
+    "网络请求失败：{detail}": "Network request failed: {detail}",
     "棋局已保存：{path}": "Game saved: {path}",
     "已载入：{path}": "Loaded: {path}",
     "当前版本 {version}，最新版本 {latest}": "Current {version}, latest {latest}",
@@ -214,10 +246,17 @@ TEMPLATES: dict[str, str] = {
     "已导入 {added} 条题目{suffix}。当前自定义题库共 {total} 条。": "Imported {added} puzzle(s){suffix}. Custom bank now has {total}.",
     "没有新增题目（{skipped} 条 id 已存在）。": "Nothing new added ({skipped} id(s) already exist).",
     "，{skipped} 条已存在跳过": ", {skipped} skipped as duplicates",
+    # 终局副作用失败：写盘异常 / 题面与解法对不上，都必须让玩家看见
+    "战绩保存失败：{detail}": "Could not save statistics: {detail}",
+    "这一手没能退回：{detail}": "Could not take that move back: {detail}",
+    "对手应着无法落子，本题已中止：{detail}。可从训练列表重新选题。": (
+        "Opponent reply could not be played; puzzle aborted: {detail}. "
+        "You can pick another puzzle from the training list."
+    ),
     "自动重连失败，请重新加入房间": "Reconnect failed, please rejoin the room",
     "网络中断，正在重连": "Connection lost, reconnecting",
     "{profile} · {plies} 手": "{profile} · {plies} moves",
-    "{ply}. {notation}  · {quality}  · 损失 {loss}": "{ply}. {notation}  · {quality}  · loss {loss}",
+    "{ply}. {notation} · {quality}": "{ply}. {notation} · {quality}",
     "第 {step} / {total} 步 · {notation}": "Move {step} / {total} · {notation}",
     "背景 {index}": "Background {index}",
     "未知档位「{name}」，已回落到默认": "Unknown level “{name}” — reverted to the default",
@@ -229,8 +268,12 @@ TEMPLATES: dict[str, str] = {
     # E2 复盘报告模板
     "本局共复盘 {ply} 手。": "Reviewed {ply} move(s).",
     "本局出现 {total} 处非最佳手（欠准 {a}、失误 {b}、严重失误 {c}）。": "Non-best moves: {total} (inaccuracy {a}, mistake {b}, blunder {c}).",
-    "第 {ply} 手 {notation} 评分下降 {loss}（{quality}）。": "Move {ply} {notation}: score dropped {loss} ({quality}).",
-    "胜率曲线由 {start}% 走到 {end}%，区间 {min}%–{max}%。": "Win-rate curve: {start}% to {end}%, range {min}%–{max}%.",
+    # P0-1：关键手只报档位，不报分值
+    "第 {ply} 手 {notation} · {quality}。": "Move {ply} {notation} · {quality}.",
+    "胜率走势：{trend}。": "Win-rate trend: {trend}.",
+    # 满上限提示，措辞与 webapp 的 analysis.capped 一致
+    "（仅分析前 {n} 手）": "(first {n} plies only)",
+    "无法构造沙盘：{reason}": "Could not build the sandbox: {reason}",
     "本局失分集中在{phase}阶段。": "Losses concentrated in the {phase} phase.",
 }
 

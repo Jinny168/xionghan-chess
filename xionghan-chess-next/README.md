@@ -2,11 +2,11 @@
 
 在 13×13 扩展棋盘上展开、融合匈奴与东汉历史文化元素的中国象棋变体。Windows 桌面端、Web 端与 Android 端共享同一套 Python 规则、AI、联机协议和 `.xhgame` 棋谱格式；对局既可以在本机单机进行，也可以连接自建的 FastAPI 服务进行在线对战。
 
-- **当前版本**：2.1.1（唯一来源：`src/xionghan_chess/__init__.py` 的 `__version__`；`pyproject.toml` 的 version 是动态读取它）
+- **当前版本**：2.2.2（唯一来源：`src/xionghan_chess/__init__.py` 的 `__version__`；`pyproject.toml` 的 version 是动态读取它）
 - 棋子行棋规则：[docs/PIECE_RULES.md](docs/PIECE_RULES.md)；对局与胜负规则：[docs/RULES.md](docs/RULES.md)
 - 玩家操作与常见问题：[HELP.md](src/xionghan_chess/desktop/resources/docs/HELP.md)
 
-> 本目录 `xionghan-chess-next/` 是当前唯一的正式实现。仓库根目录下的 `desktop/`、`web/`、`docker/` 是**已退役的历史代码线**（目录名沿用当年的"2.0 计划"，与当前版本号 2.1.1 无关），不在本项目的构建与运行范围内。
+> 本目录 `xionghan-chess-next/` 是当前唯一的正式实现。仓库根目录下的 `desktop/`、`web/`、`docker/` 是**已退役的历史代码线**（目录名沿用当年的"2.0 计划"，与当前版本号 2.2.2 无关），不在本项目的构建与运行范围内。
 
 ## 一、快速开始
 
@@ -65,7 +65,7 @@ py -3.11 -m venv .venv
 内置题库、棋谱回放、本地棋谱库与棋子图谱。
 
 - 详细架构与功能：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- 三档 AI 与标定结论：[docs/AI_TIERS.md](docs/AI_TIERS.md)（三档参数、S4 重标定、K1–K5 契约、K4 出带未认证、K5 待人工试玩）
+- 三档 AI 与标定结论：[docs/AI_TIERS.md](docs/AI_TIERS.md)（三档参数、S4 重标定、K1–K5 契约、K4 出带未认证、K5 未测且人工试玩已裁定废弃，不作入门档已验收声明）
 - 全部文档索引：[docs/README.md](docs/README.md)
 
 ## 二、三端构建
@@ -82,6 +82,39 @@ py -3.11 -m venv .venv
 - Web 发布包内含 `web/`、`locales/`、`src/xionghan_chess/{core,service}` 等运行所需文件，解压后在服务器上启动 uvicorn 即可对外提供服务。
 - Android 为 .NET 9 原生客户端，签名 APK 由 `android/XionghanChessAndroid.csproj` 生成，详细步骤见 [docs/ANDROID.md](docs/ANDROID.md)。
 - 每个脚本在输出带版本号文件的同时，会另生成一份不带版本号的别名文件，便于“最新版”分发。
+
+### Web 规则产物链（顺序不可颠倒）
+
+`webapp/` 静态前端与 `online/` 联机端的派生产物由同一条链生成，**只此一种合法顺序**；颠倒任何一步都会被下游断言拦下：
+
+```powershell
+# S1 生成：从 Python core/profiles.py 重写 profiles.js + manifest
+python scripts/gen_web_profiles.py --write
+# S2 校验：只读比对，不写盘
+python scripts/gen_web_profiles.py --check
+# S3 打包：同步 dist / online / .edgeone 五类派生产物
+python scripts/build_webapp_bundle.py
+# S4 校验：重算后逐字节比对
+python scripts/build_webapp_bundle.py --check
+# S5 生成：导出 JS 黄金用例（两份 rules.json）
+python scripts/gen_rule_fixtures.py --write
+# S6 验签：JS 端逐局面比对 fixtures
+node webapp/tests/verify-rules.mjs
+```
+
+**为什么 bundle（S3/S4）必须先于 fixtures（S5）。** `gen_rule_fixtures.py` 会把 `sourceDigest` 写进 fixtures 头部：按固定顺序拼接下面 5 个文件的字节、追加 `RULE_VERSION`，再取 sha256：
+
+```text
+webapp/js/core/profiles.js
+webapp/js/core/rules.js
+online/core/profiles.js
+online/core/rules.js
+online/public/index.html
+```
+
+后三项都是 S3 的打包产物（`online/**` 不入库）。`verify-rules.mjs` 启动时会从磁盘重算同一个 digest 与 fixtures 头部比对；顺序倒过来（先 fixtures 后 bundle）时它拿到的是旧 bundle 的字节，重算值不等，直接 `fail('build-order')` 拒收。
+
+**`--write` 与 `--check` 的分工。** `--write` 只用于本地重生成或整链复现；唯一源目录 `webapp/js/core/`（`profiles.js` 由生成器产出、`rules.js` 是手写内核并由 manifest 的 `rulesHash` 锁定）在门禁里**只跑 `--check`，绝不先跑 `--write`** —— 先写再查等于自己给自己发证，抓不到 tracked 文件与 Python 常量的漂移。CI 的 PR 门禁因此对唯一源只跑 `--check` 版（`profiles --check → bundle → bundle --check → 主 pytest → verifier`），完整 `--write` 重生成放在 slow job。
 
 ## 三、目录结构
 
@@ -125,7 +158,7 @@ xionghan-chess-next/
 - **Web 端不独立承载规则**：浏览器端是服务端规则的投影，合法走法、AI 与终局判定都发生在 Python 服务内，因此 Web 端必须连着服务端才能下棋。
 - **Android 端内置离线规则镜像**：APK 内置一份 `offline.js` 规则，用于“双人同机”离线对局；该镜像需要与 Python 核心规则保持一致（由跨引擎对拍测试守护）。
 - **AI 对外三档**：`beginner`（上限 2.0 s）· `medium`（上限 5.0 s）· `hard`（上限 12.0 s）。典型耗时由 `core/ai.py` 的 `EXPECTED_MOVE_SECONDS` 给出：**0.7 / 3.0 / 7.0 s**（桌面读条与看门狗读同一组常量，改数值只改一处）；文案承诺的是上限而非典型值。
-- **内部档位**：`easy` / `expert` / `master` 保留配置与 locale 键，仅用于旧存档兼容与 benchmark（`master` 走 MCTS，不对玩家提供）；旧配置自动映射 `easy→medium`、`expert/master→hard`。
+- **内部档位**：`easy` / `expert` / `master` 保留配置与 locale 键，仅用于旧存档兼容与 benchmark（`master` 走 MCTS，不对玩家提供）；旧配置自动映射 `easy→beginner`、`expert/master→hard`。
 - **档位验收现状（不要把未达标写成已达标）**：n=64 对拍**已执行**——得分率点估计 **入门 0.2109 / 中级 0.7891**，中级一侧**出设计带 `[0.65, 0.75]`，`contractPass=false`，不可认证**；**K3-a 计数在预授权区间内，但「最长连续送子 ≤2 手」未达标（实测 3–4 手）**；**K5（新手首次上手的人工试玩）未测**。详见 [docs/AI_TIERS.md](docs/AI_TIERS.md)。
 - **内置题解规模有限**：题解集尚小，仍在补充中。
 

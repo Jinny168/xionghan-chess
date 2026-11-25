@@ -66,3 +66,17 @@ _artifacts/
 # ruff / mypy 工具缓存（S2-3）
 .ruff_cache/
 .mypy_cache/
+
+# 环境配置：含 wbpk publishable key 与 resourceId（模板 cloud-config.example.json 已入库）
+xionghan-chess-next/online/cloud-config.json
+
+# 证据批与工具临时产物（不入库）
+# 证据批产物不入库（2026-11-18 用户裁定）
+xionghan-chess-next/benchmarks/calibration_runs/
+xionghan-chess-next/benchmarks/visual_evidence/
+xionghan-chess-next/webapp/screenshots/
+xionghan-chess-next/.playwright-cli/
+xionghan-chess-next/.pw-profile/
+xionghan-chess-next/.contest/
+*.genie
+xionghan-chess-next/xhs/

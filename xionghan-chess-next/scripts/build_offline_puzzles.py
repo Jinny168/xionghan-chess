@@ -35,26 +35,47 @@ HEADER = """'use strict';
 """
 
 
-def _stable_ids(value: object, counter: list[int] | None = None) -> object:
-    """给棋子重编稳定 id。
+def _stable_ids(value: object) -> object:
+    """给棋子重编稳定 id，并保住**身份一致性**。
 
     原题目里 `piece.id` 是每次构造 `Game` 时随机生成的（老 9 条题没有内联
     document，加载器会现建一局），直接导出会让每次产物都不同、`--check` 永远
-    失败。这里按遍历顺序重编 `p0001…`：结构不变时编号就不变，两端的规则只要求
-    id 唯一且稳定，不要求它是随机值。
+    失败。这里把原 id 重编成 `p0001…`，交付两条契约：
+
+    1. **确定性**：同一份 `puzzles.json` 重生成的编号逐字一致（遍历顺序不变，
+       编号就不变）；
+    2. **身份一致性**：同一个原 id 在 document 内任意位置出现，必须映射到
+       **同一个**新 id。被吃的子会同时出现在 `state.captured`（阵亡池，升变 /
+       复活按 id 删除）与 `history[].captured`（着法记录）里，两处是同一实体；
+       若逐次递增而不记忆，它会被拆成两个身份 —— 这正是
+       `endgame-elephant-eye-01` / `endgame-advisor-palace-01` 的历史缺陷。
+
+    只用原 id 当键是安全的：当前题库里重复的原 id 全部来自同一实体的多处出现
+    （type/color/row/col 逐字相同），不存在不同棋子共用 id。若将来出现后者，
+    回归测试 `test_piece_ids_keep_identity_across_duplicate_occurrences` 的
+    backward 检查会红，届时再按上下文分域。
     """
-    if counter is None:
-        counter = [0]
-    if isinstance(value, dict):
-        if {"id", "type", "color", "row", "col"} <= set(value):
-            counter[0] += 1
-            normalized = {"id": f"p{counter[0]:04d}"}
-            normalized.update({k: _stable_ids(v, counter) for k, v in value.items() if k != "id"})
-            return normalized
-        return {k: _stable_ids(v, counter) for k, v in value.items()}
-    if isinstance(value, list):
-        return [_stable_ids(item, counter) for item in value]
-    return value
+    counter = [0]
+    memo: dict[str, str] = {}
+
+    def walk(node: object) -> object:
+        if isinstance(node, dict):
+            if {"id", "type", "color", "row", "col"} <= set(node):
+                original = str(node["id"])
+                assigned = memo.get(original)
+                if assigned is None:
+                    counter[0] += 1
+                    assigned = f"p{counter[0]:04d}"
+                    memo[original] = assigned
+                normalized = {"id": assigned}
+                normalized.update({k: walk(v) for k, v in node.items() if k != "id"})
+                return normalized
+            return {k: walk(v) for k, v in node.items()}
+        if isinstance(node, list):
+            return [walk(item) for item in node]
+        return node
+
+    return walk(value)
 
 
 def build_payload() -> list[dict]:

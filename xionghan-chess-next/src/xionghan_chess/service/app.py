@@ -26,7 +26,7 @@ from pydantic import BaseModel, BeforeValidator, Field, ValidationError
 from xionghan_chess import __version__
 from xionghan_chess.core import daily as daily_quiz
 from xionghan_chess.core.ai import Difficulty, as_public_difficulty
-from xionghan_chess.core.analysis import analyze_game
+from xionghan_chess.core.analysis import ANALYSIS_PLY_CAP, analyze_game
 from xionghan_chess.core.avatars import normalize_avatar
 from xionghan_chess.core.game import DEFAULT_INITIAL_MINUTES, GameError
 from xionghan_chess.core.model import Color, PieceType, Position
@@ -36,6 +36,7 @@ from xionghan_chess.core.profiles import (
     RULE_VERSION,
     action_requirements,
     option_dependencies,
+    piece_option_groups,
 )
 from xionghan_chess.core.protocol import Envelope, MessageType
 from xionghan_chess.core.puzzles import load_puzzles, puzzle_by_id
@@ -255,6 +256,9 @@ async def profiles() -> list[dict[str, Any]]:
             # 规则依赖：子键要成立必须先开启的上游键。三端 UI 用它把"上游关掉后
             # 必然无意义"的开关置灰，避免用户以为设了有用（引擎侧本来就有 and 守卫）。
             "optionDependencies": option_dependencies(),
+            # 棋子 → 规则开关分组：三端设置页的分组都来自 core 这一份。
+            # 与 optionDependencies 同层下发；老客户端忽略多出来的键即可。
+            "pieceOptionGroups": piece_option_groups(),
             # 反向呈现的开关（存储 True = 削弱）：前端勾选状态要取反，
             # 保证"勾选 = 增强"这条约定在三端一致。
             "negatedOptions": sorted(NEGATED_OPTIONS),
@@ -707,7 +711,7 @@ async def delete_cloud_game(game_id: int, authorization: str | None = Header(Non
 async def analysis(request: AnalyzeRequest) -> dict[str, Any]:
     try:
         game = game_from_document(request.document)
-        return await asyncio.to_thread(analyze_game, game, request.difficulty)
+        return await asyncio.to_thread(analyze_game, game, request.difficulty, ANALYSIS_PLY_CAP)
     except (ValueError, KeyError, TypeError) as exc:
         raise HTTPException(400, str(exc)) from exc
 

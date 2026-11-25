@@ -58,7 +58,7 @@ class Room:
     id: str
     game: Game
     mode: str
-    initial_minutes: int = 20
+    initial_minutes: int = DEFAULT_INITIAL_MINUTES
     seats: dict[Color, PlayerSeat] = field(default_factory=dict)
     sockets: dict[str, WebSocket] = field(default_factory=dict)
     spectators: dict[str, Spectator] = field(default_factory=dict)
@@ -254,7 +254,7 @@ class RoomManager:
             if len(self.rooms) >= self.max_rooms:
                 raise GameError(t("error.room_limit", language))
             room_id = self._room_id()
-            remaining = max(game.state.clocks_ms.values(), default=20 * 60_000)
+            remaining = max(game.state.clocks_ms.values(), default=DEFAULT_INITIAL_MINUTES * 60_000)
             initial_minutes = max(1, (remaining + 59_999) // 60_000)
             room = Room(
                 room_id, game, mode, initial_minutes=initial_minutes, ai_difficulty=difficulty, language=language

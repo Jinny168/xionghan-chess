@@ -9,7 +9,7 @@ import { Game, gameFromDocument, gameToDocument, GameError, slotId } from '../co
 import {
   getProfile, mergeOptions, PROFILES, PROFILE_ORDER, RED_NAMES, BLACK_NAMES, pieceEnabled,
 } from '../core/profiles.js';
-import { makePiece, stateFromDict, stateToDict, createState } from '../core/model.js';
+import { makePiece, stateFromDict, stateToDict, moveFromDict, createState } from '../core/model.js';
 import { RulesEngine } from '../core/rules.js';
 import { suggestMove, evaluate, DIFFICULTIES } from '../core/ai.js';
 import { PUZZLES } from '../data/puzzles.js';
@@ -134,6 +134,10 @@ const app = {
   replay: { open: false, index: 0, states: [], timer: null },
   pendingPromotion: null,
   requestId: 0,
+  // 常规对局提示：独立请求序号（不能复用 requestId，否则会被 AI 落子请求顶掉）。
+  hintRequestId: 0,
+  hintPending: false,
+  hintHistoryLength: 0,
   worker: null,
   clockTimer: 0,
   lastMove: null,
@@ -147,10 +151,15 @@ const app = {
   streakRun: null,
   analysis: null,
   analysisId: 0,
+  // 本次分析是否因原始 history 超过 CAP 被截断；换局随 resetAnalysis 一并作废。
+  analysisTruncated: false,
   online: null,
 };
 
 const SOLVED_KEY = 'xh-web-puzzle-solved';
+// 分析手数上限，与桌面 `ANALYSIS_PLY_CAP` 同值。只有**确实被截断**时（`> CAP`）
+// 才提示「仅分析前 N 手」—— 恰好 120 手是全覆盖，提示反而是假警报。
+const CAP = 120;
 
 let board;
 let replayBoard;
@@ -176,12 +185,26 @@ function loadPrefs() {
   }
 }
 
-function savePrefs() {
+// 存储写失败不再静默：隐私模式、Cookie 被禁或配额耗尽时 setItem 会抛，
+// 裸 catch 吞掉之后用户以为存上了，刷新/重开才发现进度没了。
+// 同一 session、同一个键只提示一次 —— 设置页滑块连续拖动会反复调 savePrefs。
+const storageWarned = new Set();
+function safeSet(key, value) {
   try {
-    localStorage.setItem(PREFS_KEY, JSON.stringify(app.prefs));
-  } catch {
-    /* 隐私模式下忽略 */
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    if (!storageWarned.has(key)) {
+      storageWarned.add(key);
+      toast(t('toast.storageFailed'), 'warn');
+    }
+    console.warn('[storage] write failed', key, error);
+    return false;
   }
+}
+
+function savePrefs() {
+  safeSet(PREFS_KEY, JSON.stringify(app.prefs));
 }
 
 // 新用户首次落点 = 轻量档（P0-4 收尾 / G3 痛点）。只首访生效：
@@ -278,7 +301,7 @@ function startGame({ silent = false } = {}) {
   if (typeof stopStreakTimer === 'function') stopStreakTimer();
   app.streakRun = null;
   if (typeof hideStreakBanner === 'function') hideStreakBanner();
-  app.analysis = null;
+  resetAnalysis();
   stopPolling();
   app.online = null;
   clearSelection();
@@ -475,6 +498,20 @@ function initWorker() {
       }
       if (data.type === 'analyze-error') {
         if (data.id === app.analysisId) analysisFailed();
+        return;
+      }
+      if (data.type === 'hint' || data.type === 'hint-error') {
+        // 提示与 AI 落子各用独立序号，互不顶掉；只认最后一次提示请求。
+        if (data.id !== app.hintRequestId) return;
+        app.hintPending = false;
+        $('#thinking').hidden = true;
+        if (data.error || !data.move) {
+          toast(t('toast.noHint'), 'warn');
+          return;
+        }
+        // 请求后局面已变（玩家已落子/悔棋/载入）→ 丢弃结果，否则提示会指错位置。
+        if (!app.game || app.game.state.history.length !== app.hintHistoryLength) return;
+        applyHintResult({ move: moveFromDict(data.move) });
         return;
       }
       if (data.id !== app.requestId) return;
@@ -675,7 +712,7 @@ function updateHud(state, checkSide) {
   $$('.toolbar [data-act="undo"]').forEach((b) => { b.disabled = inPuzzle || inOnline || !app.game.canUndo(1) || isReplay; });
   // 章节闯关（scored=false）提示按钮可用；计分态（每日/连对，scored=true）禁用。
   const puzzleHintBlocked = inPuzzle && Boolean(app.puzzle.scored);
-  $$('.toolbar [data-act="hint"]').forEach((b) => { b.disabled = puzzleHintBlocked || !canAct || !isHumanTurn(); });
+  $$('.toolbar [data-act="hint"]').forEach((b) => { b.disabled = puzzleHintBlocked || !canAct || !isHumanTurn() || app.hintPending; });
   $$('.toolbar [data-act="resign"]').forEach((b) => { b.disabled = !canAct; });
   $$('.toolbar [data-act="pause"]').forEach((b) => {
     b.disabled = isOver(state) || isReplay || inPuzzle || inOnline;
@@ -776,6 +813,19 @@ function tickClock() {
 
 /* ---------------------------------------------------------------- 复盘 */
 
+/** 换局 / 重开 / 加载棋谱时统一作废逐手分析。
+ *
+ * 分析结果按 ply 下标寻址（`app.analysis[index]`），换了棋谱还留着，就会把
+ * 上一局的档位底色贴到新局面的第 N 手上 —— 显示的错信息，还不报错。
+ * 同时递增 `analysisId`：在途 worker 的结果回来时 id 已对不上，不会补写进来。
+ */
+function resetAnalysis() {
+  app.analysisId += 1;
+  app.analysis = null;
+  // 标志随 analysisId 一起作废，避免上一局的 true 贴到新局。
+  app.analysisTruncated = false;
+}
+
 function updateAnalysisProgress({ done, total }) {
   const box = $('#analysisProgress');
   box.hidden = false;
@@ -799,7 +849,8 @@ function runAnalysis() {
     analysisFailed();
     return;
   }
-  const CAP = 120;
+  // 截断与否只看原始 history 长度：results.length 恒 ≤ CAP，拿它判定会恒假。
+  const truncated = history.length > CAP;
   const total = Math.min(history.length, CAP);
   const replay = app.game.publicState().replay;
   const states = replay.slice(0, total);
@@ -810,8 +861,9 @@ function runAnalysis() {
     notation: record.notation,
   }));
 
-  app.analysisId += 1;
-  app.analysis = null;
+  resetAnalysis();
+  // 必须在 resetAnalysis 之后置位：先作废上一局，再记录本次是否被截断。
+  app.analysisTruncated = truncated;
   $('#analysisSummary').hidden = true;
   updateAnalysisProgress({ done: 0, total });
 
@@ -843,7 +895,7 @@ function finishAnalysis(results) {
     inaccuracy: stats.inaccuracy,
     mistake: stats.mistake,
     blunder: stats.blunder,
-  })}${results.length >= 120 ? ` ${t('analysis.capped', { n: 120 })}` : ''}`;
+  })}${app.analysisTruncated ? ` ${t('analysis.capped', { n: CAP })}` : ''}`;
 
   drawReplay();
 }
@@ -987,8 +1039,27 @@ function undo() {
   }
 }
 
+function applyHintResult(result) {
+  if (!result.move || !app.game) return;
+  const moving = app.game.state.pieces.find(
+    (p) => p.row === result.move.source.row && p.col === result.move.source.col,
+  );
+  if (!moving) return;
+  selectPiece(moving);
+  app.legal = [result.move];
+  render();
+  toast(t('toast.hint', { move: app.game.notation(moving, result.move, []) }));
+  // 沿用既有 2.6s 自动清除，不新增绘制代码。
+  setTimeout(() => {
+    if (app.selected && app.legal.length === 1 && app.legal[0] === result.move) {
+      clearSelection();
+      render();
+    }
+  }, 2600);
+}
+
 function hint() {
-  if (!app.game || app.thinking) return;
+  if (!app.game || app.thinking || app.hintPending) return;
   if (app.puzzle) {
     // 计分态（每日一题 / 连对挑战）屏蔽一切文字提示；章节闯关可用且计入星级。
     // 星轨几何层由 render() 的 `&& !app.puzzle` 守卫统一屏蔽，与 scored 无关，勿改。
@@ -999,31 +1070,41 @@ function hint() {
     toast(t('puzzle.hint', { hint: text }));
     return;
   }
-  app.thinking = true;
-  $('#thinking').hidden = false;
+  const state = app.game.state;
+  const id = ++app.hintRequestId;
+  app.hintPending = true;
+  app.hintHistoryLength = state.history.length;
+  const thinkingEl = $('#thinking');
+  thinkingEl.hidden = false;
+  thinkingEl.setAttribute('aria-label', t('status.hintThinking'));
+  thinkingEl.title = t('status.hintThinking');
+  const finish = () => { app.hintPending = false; thinkingEl.hidden = true; };
+
+  if (app.worker) {
+    // 纯本地 worker：与 AI 落子共用搜索逻辑，但独立 id，不触发 commitMove。
+    app.worker.postMessage({
+      type: 'hint',
+      id,
+      state: stateToDict(state),
+      profileId: app.game.profile.id,
+      options: app.game.options,
+      difficulty: 'easy',
+      timeMs: 250,
+      depth: 2,
+    });
+    return;
+  }
+  // 无 worker 时的同步兜底，同样只用 250ms 预算。
   setTimeout(() => {
-    const result = suggestMove(app.game.state, app.game.rules, 600);
-    app.thinking = false;
-    $('#thinking').hidden = true;
+    if (id !== app.hintRequestId) return;
+    const result = suggestMove(app.game.state, app.game.rules, 250);
+    finish();
+    if (!app.game || app.game.state.history.length !== app.hintHistoryLength) return;
     if (!result.move) {
       toast(t('toast.noHint'), 'warn');
       return;
     }
-    const moving = app.game.state.pieces.find(
-      (p) => p.row === result.move.source.row && p.col === result.move.source.col,
-    );
-    if (moving) {
-      selectPiece(moving);
-      app.legal = [result.move];
-      render();
-      toast(t('toast.hint', { move: app.game.notation(moving, result.move, []) }));
-      setTimeout(() => {
-        if (app.selected && app.legal.length === 1 && app.legal[0] === result.move) {
-          clearSelection();
-          render();
-        }
-      }, 2600);
-    }
+    applyHintResult(result);
   }, 30);
 }
 
@@ -1075,9 +1156,9 @@ function applySnapshot(snap) {
     }
     savePrefs();
   }
-  if (Array.isArray(snap.library)) localStorage.setItem('xh-web-library', JSON.stringify(snap.library.slice(0, 12)));
-  if (snap.stats) localStorage.setItem('xh-web-stats', JSON.stringify(snap.stats));
-  if (Array.isArray(snap.solved)) localStorage.setItem('xh-web-puzzle-solved', JSON.stringify(snap.solved));
+  if (Array.isArray(snap.library)) safeSet('xh-web-library', JSON.stringify(snap.library.slice(0, 12)));
+  if (snap.stats) safeSet('xh-web-stats', JSON.stringify(snap.stats));
+  if (Array.isArray(snap.solved)) safeSet('xh-web-puzzle-solved', JSON.stringify(snap.solved));
   return true;
 }
 
@@ -1356,7 +1437,7 @@ function enterOnline(data, color) {
   app.humanColor = color;
   app.flipped = color === 'black';
   app.puzzle = null;
-  app.analysis = null;
+  resetAnalysis();
   app.unlimited = true;
   hideDialog('dlgOnline');
   applyRemote(data, true);
@@ -1534,11 +1615,7 @@ function loadStats() {
 }
 
 function saveStats(stats) {
-  try {
-    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
-  } catch {
-    /* 忽略 */
-  }
+  safeSet(STATS_KEY, JSON.stringify(stats));
 }
 
 function recordStats() {
@@ -1730,11 +1807,7 @@ function solvedIds() {
 function markSolved(id) {
   const set = solvedIds();
   set.add(id);
-  try {
-    localStorage.setItem(SOLVED_KEY, JSON.stringify([...set]));
-  } catch {
-    /* 忽略 */
-  }
+  safeSet(SOLVED_KEY, JSON.stringify([...set]));
 }
 
 // 每日一题：题目只由本地日期决定（ui/daily.js 的算法与 core/daily.py 逐日对拍等价），
@@ -1921,6 +1994,8 @@ function startPuzzle(data, { scored = false, streak = false } = {}) {
 
   app.game = game;
   app.unlimited = true;
+  // 换到一道题就是换了棋谱：上一局的分析不能留着贴到这道题的着法上。
+  resetAnalysis();
   // scored=true：计分态（每日/连对），屏蔽文字提示、不计星；
   // scored=false：章节闯关，文字提示可用且计入星级。
   app.puzzle = { data, step: 0, scored, streak, misses: 0, hints: 0, consecutiveMisses: 0 };
@@ -2021,18 +2096,14 @@ function resetStats() {
 
 function saveSession() {
   if (!app.game) return;
-  try {
-    const payload = {
-      document: gameToDocument(app.game),
-      minutes: app.minutes,
-      mode: app.mode,
-      humanColor: app.humanColor,
-      difficulty: app.difficulty,
-    };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
-  } catch {
-    /* 忽略容量问题 */
-  }
+  const payload = {
+    document: gameToDocument(app.game),
+    minutes: app.minutes,
+    mode: app.mode,
+    humanColor: app.humanColor,
+    difficulty: app.difficulty,
+  };
+  safeSet(SESSION_KEY, JSON.stringify(payload));
 }
 
 function restoreSession() {
@@ -2054,6 +2125,8 @@ function restoreSession() {
     app.unlimited = !app.minutes;
     const last = app.game.state.history.at(-1);
     app.lastMove = last ? last.move : null;
+    // 读档就是换棋谱：上次会话残留的分析结果一律作废。
+    resetAnalysis();
     render();
     return true;
   } catch {
@@ -2100,8 +2173,22 @@ function toast(message, level = 'info') {
 // 不采集不上报。播完自动收起；玩家自行落子（历史变长）也立即收起，避免遮挡对局。
 // 注意：不把"点棋子"当跳过信号——第②步正是鼓励玩家点棋子看亮点，点一下就消失会教 incomplete。
 function maybeShowOnboarding() {
-  if (localStorage.getItem('xh-web-visited')) return;
-  localStorage.setItem('xh-web-visited', '1');
+  // 隐私模式 / 禁用 Cookie / 配额耗尽时，localStorage 连读都会抛。它在 boot() 里被裸调，
+  // boot 无 try、又在顶层调用，于是异常一路逃到全局。实际损害有两条：
+  // ① 顶层未捕获异常（控制台报错，后续排查容易被带偏）；
+  // ② 紧跟其后的 service worker 注册被整段跳过 —— PWA 离线能力失效，用户无感知。
+  // 界面本身不受影响：body.classList.add('ready') 与 app.started 都在它之前完成，
+  // 不是白屏；抛点也在这两行存储访问里，任何 DOM 创建之前，不会留半截遮罩。
+  // 所以只包存储访问，存储不可用即当"已访问过"处理（引导是锦上添花，不该打断 boot）；
+  // 不包整个函数体，否则真正的逻辑 bug 也会被一起吞掉。
+  let visited;
+  try {
+    visited = localStorage.getItem('xh-web-visited');
+    localStorage.setItem('xh-web-visited', '1');
+  } catch {
+    return;
+  }
+  if (visited) return;
   const steps = ['onboard.step1', 'onboard.step2', 'onboard.step3'];
   const timers = [];
   let idx = 0;
@@ -2210,11 +2297,7 @@ function loadLibrary() {
 }
 
 function writeLibrary(list) {
-  try {
-    localStorage.setItem(LIB_KEY, JSON.stringify(list.slice(0, LIB_MAX)));
-  } catch {
-    /* 容量不足时忽略 */
-  }
+  return safeSet(LIB_KEY, JSON.stringify(list.slice(0, LIB_MAX)));
 }
 
 function saveToLibrary() {
@@ -2238,8 +2321,7 @@ function saveToLibrary() {
   };
   const list = loadLibrary();
   list.unshift(entry);
-  writeLibrary(list);
-  toast(t('library.saved'), 'success');
+  if (writeLibrary(list)) toast(t('library.saved'), 'success');
 }
 
 function buildFromEntry(entry) {
@@ -2260,7 +2342,7 @@ function useEntry(entry, thenReplay) {
   app.game = buildFromEntry(entry);
   app.unlimited = true;
   app.puzzle = null;
-  app.analysis = null;
+  resetAnalysis();
   app.lastMove = app.game.state.history.at(-1)?.move || null;
   clearSelection();
   hideDialog('dlgLibrary');
@@ -2482,6 +2564,8 @@ function bindDialogs() {
       const data = JSON.parse(await file.text());
       app.game = gameFromDocument(data, getLanguage());
       app.unlimited = true;
+      // 导入棋谱就是换棋谱：旧分析按 ply 下标寻址，留着会贴到这份棋谱上。
+      resetAnalysis();
       app.lastMove = app.game.state.history.at(-1)?.move || null;
       clearSelection();
       closeReplay();

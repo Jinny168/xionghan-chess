@@ -80,7 +80,7 @@ CONFIG_VERSION = 2
 
 DEFAULTS: dict[str, Any] = {
     "schema_version": CONFIG_VERSION,
-    "profile": "desktop_complete",
+    "profile": "desktop_light",
     "language": "zh-CN",
     "game_mode": "ai",
     "difficulty": "medium",
@@ -117,6 +117,9 @@ DEFAULTS: dict[str, Any] = {
     # P1-7：选中经典档「射」时显示到星位锚点的放射线。纯新增键，不 bump
     # 配置文件 schema 版本（旧配置由 `{**DEFAULTS, **data}` 补默认值）；也不进云同步映射。
     "archer_star_hints": False,
+    # P0-4：首次选中「射」时**自动开一次**星轨提示的引导是否已经看过。纯新增键，
+    # 不 bump schema_version；不进云同步映射（本地一次性引导，不该跨设备同步）。
+    "archer_star_intro_shown": False,
     "taunts": True,
     "countdown_seconds": 30,
     "autosave": True,
@@ -139,6 +142,9 @@ DEFAULTS: dict[str, Any] = {
     "training": {},
     # 首跑引导是否已看过（D4）。纯新增键，不 bump schema_version。
     "onboarded": False,
+    # 2.2.0 新增「轻量模式」预设：老用户的 profile **不自动迁移**，只在启动时提示一次。
+    # 纯新增键，不 bump schema_version；不进云同步映射（本地一次性提示）。
+    "light_profile_intro_shown": False,
 }
 
 # S1-9：这些键改变「规则 / 对局结构」，改了就必然要重开一局。
@@ -215,6 +221,25 @@ def _as_int(value: Any, default: int, low: int, high: int) -> int:
     return max(low, min(high, number))
 
 
+def _coerce_numeric(data: dict[str, Any]) -> dict[str, Any]:
+    """把数值型配置键收敛到合法类型与范围（幂等，只碰数值键）。
+
+    原先是 `_migrate_v0` 的一次性动作。但 `migrate()` 对 `schema_version == CONFIG_VERSION`
+    的配置根本不进迁移循环 —— 手改坏的 v2 文件里 `"sound_volume": "loud"` 会原样进内存，
+    `audio.py` 的 `int(...)` 在 `MainWindow.__init__` 抛 ValueError，表现为**启动期崩溃**。
+    所以同一个收敛也要在 `load_config()` 末尾无条件再跑一次。
+
+    刻意只处理数值键：字符串 / 布尔键（`theme` / `language` / `sound` …）的语义由各自
+    的归一逻辑负责，不能在这里被顺手改写。
+    """
+    result = dict(data)
+    result["initial_minutes"] = _as_int(result.get("initial_minutes"), DEFAULTS["initial_minutes"], 1, 180)
+    result["sound_volume"] = _as_int(result.get("sound_volume"), 70, 0, 100)
+    result["music_volume"] = _as_int(result.get("music_volume"), 40, 0, 100)
+    result["countdown_seconds"] = _as_int(result.get("countdown_seconds"), 30, 0, 600)
+    return result
+
+
 def _migrate_v0(data: dict[str, Any]) -> dict[str, Any]:
     """0 -> 1：把「没版本号时代」的配置收敛到合法类型与范围。
 
@@ -224,11 +249,7 @@ def _migrate_v0(data: dict[str, Any]) -> dict[str, Any]:
     （v1 -> v2 是这条原则的**有意例外**，理由见 `_migrate_v1` —— 那里删的是
     「对应选项已被产品删除」和「当年默认值被写进配置」两类键，不是用户的数据。）
     """
-    result = dict(data)
-    result["initial_minutes"] = _as_int(result.get("initial_minutes"), DEFAULTS["initial_minutes"], 1, 180)
-    result["sound_volume"] = _as_int(result.get("sound_volume"), 70, 0, 100)
-    result["music_volume"] = _as_int(result.get("music_volume"), 40, 0, 100)
-    result["countdown_seconds"] = _as_int(result.get("countdown_seconds"), 30, 0, 600)
+    result = _coerce_numeric(data)
     for key in ("rule_options", "setup_slots"):
         if not isinstance(result.get(key), dict):
             result[key] = {}
@@ -273,6 +294,14 @@ _MIGRATIONS: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {
 }
 
 
+def _schema_version(data: dict[str, Any]) -> int:
+    """读取 `schema_version`；缺失或坏值一律按 0（「没版本号时代」）处理。"""
+    try:
+        return int(data.get("schema_version", 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 def migrate(data: dict[str, Any]) -> tuple[dict[str, Any], bool]:
     """按 `schema_version` 顺序迁移，返回 (结果, 是否改动过)。
 
@@ -280,10 +309,7 @@ def migrate(data: dict[str, Any]) -> tuple[dict[str, Any], bool]:
     旧版本不该自作主张改它（读到的未知键会在合并时保留）。
     """
     raw_version = data.get("schema_version", 0)
-    try:
-        version = int(raw_version)
-    except (TypeError, ValueError):
-        version = 0
+    version = _schema_version(data)
     if version > CONFIG_VERSION:
         return dict(data), False
 
@@ -334,10 +360,36 @@ def load_config() -> dict[str, Any]:
         return dict(DEFAULTS)
     migrated, changed = migrate(raw)
     merged = {**DEFAULTS, **migrated}
-    style, render = _normalize_piece_style(merged.get("piece_style"), merged.get("piece_render"))
-    if (merged.get("piece_style"), merged.get("piece_render")) != (style, render):
-        merged["piece_style"], merged["piece_render"] = style, render
+    # 数值键的收敛必须**在迁移之后**再无条件跑一次：v2 配置不进迁移循环，坏值会原样
+    # 进内存（`audio.py` 的 `int(config["sound_volume"])` 直接抛 ValueError，启动期崩溃）。
+    # 但更高版本的配置仍按原样放行（降级保护），且收敛不置 `changed` ——
+    # 读盘不该因为「值被夹紧」而写盘。
+    if _schema_version(raw) <= CONFIG_VERSION:
+        merged = _coerce_numeric(merged)
+
+    # B 项（棋子美术偏好）纠错：1.6.x 的 `piece_render` 是 1.7.0 新增键，由 :362 的
+    # `{**DEFAULTS, **migrated}` 程序补出 `"glyph"` —— 那不是用户的选择；而当时的
+    # `piece_style` 是真实生效、被持久化且被云同步的可见选择（三套美术之一）。
+    # 判据必须看**原始 raw**：merged 在 :362 已把键补全，用 merged 判「键缺失」
+    # 会把全体 2.x 用户都卷进纠错分支。
+    # 高版本放行沿用 :367 / migrate():313 同一判据：未来 schema 写过的文件不许旧版本纠错并回写。
+    if (
+        _schema_version(raw) <= CONFIG_VERSION
+        and "piece_render" not in raw
+        and raw.get("piece_style") in ("traditional", "modern", "cartoon")
+    ):
+        merged["piece_style"] = raw["piece_style"]  # 原样保留用户显式选择
+        merged["piece_render"] = "image"  # 派生：三套美术都走 image（不留 style=cartoon/render=glyph 中间态）
+        # 改的是程序自己补错的派生字段，写回让纠错一次性、下次启动走 2.x 现状路径。
+        # changed 独立置真，不依赖 migrate() 的「版本未变则不写盘」返回值。
         changed = True
+    elif _schema_version(raw) <= CONFIG_VERSION:
+        # 2.x 配置（含「先选美术、再主动切回字形」的四值互斥用户）：原逻辑一字不改。
+        # 这里同样要放行高版本：否则 :340 会把高版本里的美术偏好当成老配置改写并回写。
+        style, render = _normalize_piece_style(merged.get("piece_style"), merged.get("piece_render"))
+        if (merged.get("piece_style"), merged.get("piece_render")) != (style, render):
+            merged["piece_style"], merged["piece_render"] = style, render
+            changed = True
     background = _normalize_background(merged.get("background"))
     if merged.get("background") != background:
         merged["background"] = background

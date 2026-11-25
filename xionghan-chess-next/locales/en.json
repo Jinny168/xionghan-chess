@@ -591,9 +591,9 @@
     "daily_solved": "{count}-day streak",
     "drills": "Drills",
     "onboard_title": "Getting started",
-    "onboard_1": "1. Pick an opponent: AI, two players, or online (top bar).",
-    "onboard_2": "2. Move: click your piece, then its destination.",
-    "onboard_3": "3. Stuck? Training has a daily puzzle and a step-by-step hint.",
+    "onboard_1": "1. Tap one of your own pieces.",
+    "onboard_2": "2. Lit squares show where it can move.",
+    "onboard_3": "3. Tap a lit square to move.",
     "onboard_cta": "Start",
     "locked": "Finish 〈{chapter}〉 first",
     "freeHint": "Pick whichever piece you want to practice",
@@ -611,5 +611,16 @@
     "streakKept": "Your best record is kept",
     "streakPractice": "This is just practice; your progress is unaffected",
     "streakAgain": "Play again"
+  },
+  "analysis": {
+    "best": "Best",
+    "good": "Good",
+    "inaccuracy": "Inaccuracy",
+    "mistake": "Mistake",
+    "blunder": "Blunder",
+    "loading": "Analyzing the game move by move...",
+    "shallow": "Shallow reference",
+    "shallow_hint": "Based on a shallow on-device search, for reference only",
+    "capped": "(first {n} plies only)"
   }
 }

@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+from xionghan_chess import __version__
+
 ROOT = Path(__file__).resolve().parents[1]
 WEBAPP_APP = (ROOT / "webapp" / "js" / "ui" / "app.js").read_text(encoding="utf-8")
 WEBAPP_BOARD = (ROOT / "webapp" / "js" / "ui" / "board.js").read_text(encoding="utf-8")
@@ -96,7 +98,14 @@ def test_web_guards_and_wiring() -> None:
     ):
         assert snippet in WEB_APP, f"web 旧树缺少守卫/接线：{snippet}"
     assert "drawStarPoints(g)}drawStarHints(g);drawHighlights(g)" in WEB_APP
-    assert 'src="/js/star-hints.js?v=2.1.1"' in WEB_HTML
+    # 缓存戳从 `__version__` 派生，不再手写字面量 —— 手写的版本号每升一次版就红一次
+    # （2.1.1 → 2.2.0 时它红过一次，就是这个原因）。判据本身没放宽：拆成"标签在不在"
+    # 与"戳等不等于当前版本"两条，失败信息能直接区分是缺标签还是戳过期。
+    stamp = re.search(r'src="/js/star-hints\.js\?v=([^"]+)"', WEB_HTML)
+    assert stamp is not None, "web 旧树缺少 star-hints.js 的引入标签"
+    assert stamp.group(1) == __version__, (
+        f"star-hints.js 的缓存戳是 {stamp.group(1)}，应为 __version__ = {__version__}"
+    )
 
 
 def test_legend_wording_is_exact_on_all_ends() -> None:

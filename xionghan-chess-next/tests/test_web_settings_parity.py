@@ -58,14 +58,13 @@ def test_play_again_is_always_clickable_and_confirms_mid_game() -> None:
 
 
 def test_pawn_switches_are_exposed_in_web_rule_options() -> None:
-    """P2：兵的两个开关必须在网页规则分组里（与桌面 `dialogs.py` 的兵组一致）。"""
-    start = APP_JS.find("pawn:[")
-    assert start >= 0, "app.js 里找不到 pawn 的开关分组"
-    end = APP_JS.find("]", start)
-    block = APP_JS[start:end]
-    keys = re.findall(r"'([a-z_]+)'", block)
+    """P2：兵的两个开关必须在共享分组里（三端同源，Web 读下发的这份）。"""
+    from xionghan_chess.core.profiles import piece_option_groups
+
+    keys = piece_option_groups()["pawn"]
     assert "pawn_charge" in keys, f"缺少「过长城后可直冲」开关：{keys}"
     assert "pawn_three_line_capture" in keys, f"缺少「两兵夹一敌子」开关：{keys}"
+    assert "pieceOptionGroups" in APP_JS, "Web 没有消费 /api/profiles 下发的棋子分组"
 
 
 def test_pawn_switches_default_to_off() -> None:
@@ -103,3 +102,18 @@ def test_initial_minutes_defaults_to_ten_on_both_ends() -> None:
     # 以后加"不限时=0"或从别处同步进 0 时就会被悄悄改成 10。
     assert "p.initialMinutes??10" in APP_JS, "app.js 读取偏好时应使用 ?? 兜底"
     assert "p.initialMinutes||" not in APP_JS, "app.js 里不该再用 || 兜底（0 会被误判为空值）"
+
+
+def test_system_theme_change_listener() -> None:
+    """**这是文本守卫**：断言 web 旧树注册了系统亮暗 `change` 监听、且只在 `auto` 档重算。
+
+    **运行时正确性以浏览器切系统主题的人工验收为准**——本测试只守"代码还在"，不冒充
+    运行时判据。显式 light/dark 偏好不该被系统切换覆盖，故回调用 `app.preferences.systemTheme==='auto'`
+    把住；新增后缀兜底 `addListener` 兼容老浏览器。
+    """
+    assert "function watchSystemTheme()" in APP_JS, "缺少系统主题监听函数 watchSystemTheme"
+    assert "matchMedia('(prefers-color-scheme: dark)')" in APP_JS, "未监听 prefers-color-scheme: dark"
+    assert "addEventListener('change'" in APP_JS, "缺少 change 事件监听"
+    assert "addListener(" in APP_JS, "缺少老浏览器 addListener 兜底"
+    assert "app.preferences.systemTheme==='auto'" in APP_JS, "回调缺少 auto 档判断（显式 light/dark 不应被覆盖）"
+    assert "watchSystemTheme();" in APP_JS, "启动流程未调用 watchSystemTheme"

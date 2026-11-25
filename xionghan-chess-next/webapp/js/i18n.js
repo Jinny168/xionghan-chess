@@ -156,9 +156,9 @@ const zh = {
   'profile.desktop_light': '轻量模式',
   'profile.traditional': '传统象棋',
 
-  'onboard.step1': '这是尉，斜着走',
+  'onboard.step1': '先点一枚己方棋子',
   'onboard.step2': '点一下棋子，亮点就是能走的地方',
-  'onboard.step3': '点亮点落子',
+  'onboard.step3': '点亮点，棋子就落过去',
 
   'puzzle.daily': '每日一题',
   'puzzle.daily_done': '今日已完成',
@@ -173,6 +173,7 @@ const zh = {
   'status.paused': '对局暂停',
   'status.finished': '对局结束',
   'status.thinking': '棋灵思考中…',
+  'status.hintThinking': '提示思考中…',
   'status.yourTurn': '轮到你走',
   'status.opponentTurn': '等待对方',
   'status.selectPiece': '点选一枚棋子',
@@ -224,6 +225,7 @@ const zh = {
   'toast.soundOff': '音效已关闭',
   'toast.promotion': '兵卒到底，请选择升变棋子',
   'toast.saved': '已保存到本机',
+  'toast.storageFailed': '本地存储写入失败，这局进度可能没保存下来',
 
   'atlas.title': '棋子图谱',
   'atlas.subtitle': '点亮棋子，看它在这张棋盘上究竟能走到哪里',
@@ -492,9 +494,9 @@ const en = {
   'profile.desktop_light': 'Light',
   'profile.traditional': 'Xiangqi',
 
-  'onboard.step1': 'This is the Guard — it moves diagonally',
-  'onboard.step2': 'Tap a piece: lit squares are where it can go',
-  'onboard.step3': 'Tap a lit square to move',
+  'onboard.step1': 'Tap one of your own pieces.',
+  'onboard.step2': 'Lit squares show where it can move.',
+  'onboard.step3': 'Tap a lit square to move.',
 
   'puzzle.daily': 'Daily Puzzle',
   'puzzle.daily_done': 'Done today',
@@ -509,6 +511,7 @@ const en = {
   'status.paused': 'Paused',
   'status.finished': 'Game over',
   'status.thinking': 'Engine thinking…',
+  'status.hintThinking': 'Thinking about a hint…',
   'status.yourTurn': 'Your move',
   'status.opponentTurn': 'Waiting',
   'status.selectPiece': 'Pick a piece',
@@ -560,6 +563,7 @@ const en = {
   'toast.soundOff': 'Sound off',
   'toast.promotion': 'Choose a promotion piece',
   'toast.saved': 'Saved locally',
+  'toast.storageFailed': 'Local storage write failed — this game may not be saved',
 
   'atlas.title': 'Piece atlas',
   'atlas.subtitle': 'Tap a piece to see every square it can reach on this board',

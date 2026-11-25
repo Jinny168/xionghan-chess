@@ -14,7 +14,7 @@ import inspect
 from xionghan_chess.core.game import DEFAULT_INITIAL_MINUTES, Game
 from xionghan_chess.desktop.config import DEFAULTS
 from xionghan_chess.service.app import CreateRoomRequest
-from xionghan_chess.service.rooms import RoomManager
+from xionghan_chess.service.rooms import Room, RoomManager
 
 
 def test_constant_is_the_agreed_value() -> None:
@@ -27,6 +27,7 @@ def test_every_default_reads_the_same_constant() -> None:
         "桌面 DEFAULTS": DEFAULTS["initial_minutes"],
         "API CreateRoomRequest": CreateRoomRequest.model_fields["initial_minutes"].default,
         "RoomManager.create": inspect.signature(RoomManager.create).parameters["initial_minutes"].default,
+        "Room.initial_minutes": inspect.signature(Room).parameters["initial_minutes"].default,
     }
     for name, value in sources.items():
         assert value == DEFAULT_INITIAL_MINUTES, (

@@ -788,6 +788,27 @@ body[data-system-theme="dark"] button,body[data-system-theme="dark"] select,body
 body[data-system-theme="dark"] .brand p,body[data-system-theme="dark"] span,body[data-system-theme="dark"] small,body[data-system-theme="dark"] .dialog-note@board-dark|color|#c6beb1
 @media(max-width:760px)@board-dark|.handicap-columns{grid-template-columns|1fr}.piece-slot-list{max-height:30vh}.analysis-summary{grid-template-columns:repeat(3,1fr)}.analysis-moves{grid-template-columns:1fr}.puzzle-list{grid-template-columns:1fr 1fr}.feature-dialog{width:100vw
 @media(max-width:760px)@board-dark|max-height|100vh}.room-card #spectatorCount{display:none}
+.side-details@board-dark|background|rgba(255,250,240,.91)
+.side-details@board-dark|border|1px solid rgba(89,66,46,.28)
+.side-details@board-dark|box-shadow|0 5px 20px rgba(35,24,14,.08)
+.side-details>summary@board-dark|cursor|pointer
+.side-details>summary@board-dark|padding|10px 12px
+.side-details>summary@board-dark|font-size|14px
+.side-details>summary@board-dark|font-weight|700
+.side-details>summary@board-dark|color|#675748
+.side-details>summary@board-dark|list-style|none
+.side-details>summary::-webkit-details-marker@board-dark|display|none
+.side-details summary::before@board-dark|content|'▸'
+.side-details summary::before@board-dark|margin-right|6px
+.side-details[open] summary::before@board-dark|content|'▾'
+.side-details .captured-panel,.side-details .room-card@board-dark|border|0
+.side-details .captured-panel,.side-details .room-card@board-dark|box-shadow|none
+.side-details .captured-panel,.side-details .room-card@board-dark|background|transparent
+.side-details .captured-panel h2@board-dark|margin-top|0
+body[data-system-theme="dark"] .side-details@board-dark|background|#282b2d
+body[data-system-theme="dark"] .side-details@board-dark|border-color|#b5935e
+body[data-system-theme="dark"] .side-details@board-dark|color|#211b17
+body[data-system-theme="dark"] .side-details>summary@board-dark|color|#c6beb1
 .player-panel .avatar.custom-avatar@board-dark|background-color|#2c2926
 .player-panel .avatar.custom-avatar@board-dark|background-position|center
 .player-panel .avatar.custom-avatar@board-dark|background-size|cover

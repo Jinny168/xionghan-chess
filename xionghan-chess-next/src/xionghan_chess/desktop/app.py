@@ -86,6 +86,7 @@ from .texts import SPECTATE_SPEED_LABELS, dl, dlf, set_language
 from .ui import theme
 from .ui.action_icons import action_icon
 from .ui.board_widget import THINKING_TICK_MS, BoardWidget
+from .ui.collapsible import CollapsibleBox
 from .ui.dialogs import (
     GLYPH_STYLE_DATA,
     DocumentDialog,
@@ -95,8 +96,9 @@ from .ui.dialogs import (
     SettingsDialog,
     TrainingDialog,
 )
+from .ui.feedback import DEFAULT_LEVEL, DEFAULT_TIMEOUT_MS, FeedbackBar
 from .ui.piece_atlas import PieceAtlasDialog
-from .ui.workers import AIWorker, HttpWorker
+from .ui.workers import AIWorker, HintWorker, HttpWorker
 
 
 def build_result_dialog(
@@ -175,6 +177,8 @@ class MainWindow(QMainWindow):
         self.audio = DesktopAudio()
         self._stats_recorded = False
         self._autosaved = False
+        # 自动存档失败只在**首次**提示：失败后会每 250ms 重试，不能每轮都刷一次反馈条。
+        self._autosave_notify_failed = False
         self._shown_result = False
         self._play_again_pending = False
         self._reset_taunt_ledger()
@@ -200,6 +204,20 @@ class MainWindow(QMainWindow):
         # P1-5 双 AI 观战：纯本地演示，双方都由现有 AI worker 落子；进入前的对局整体
         # 保留在 `_spectate_restore`，退出逐项还原，演示局写在另一个 Game 对象上，不污染原棋谱。
         self.spectating = False
+        # P0-2 常规对局提示：请求号（丢弃过期结果）+ 发请求时的棋谱长度（判局面是否变了）
+        self._hint_request_id = 0
+        self._hint_plies: int | None = None
+        # 在飞的 HintWorker 强引用（见 `show_move_hint`：不保住它，回调会静默丢失）
+        # TODO(G2c 未决)：这是**单槽**，连发两次提示时旧引用被顶掉（旧 worker 的回调
+        # 靠 request_id 守卫兜住不画错局面，但保活本身会丢）。为何能丢见
+        # `_discard_http_worker` 的说明 —— HttpWorker 纯 functor 单连接必失效，
+        # HintWorker 同型却在真事件循环里能到达，机制未收敛。本轮不动。
+        self._hint_worker: HintWorker | None = None
+        # G2c：在飞的 HTTP worker。**保活到回调落地**，落地即摘除（set 用 `discard`，
+        # 幂等且不抛 ValueError）。见 `_request_json_async` / `_discard_http_worker`。
+        self._pending_http: set[HttpWorker] = set()
+        # P0-4：本次选中是否是「射星轨一次性引导」临时打开的开关
+        self._star_intro_temp = False
         self._spectate_restore: Game | None = None
         self._spectate_paused = False
         self._spectate_step_only = False
@@ -216,6 +234,7 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(self.hint_button)
         self.setWindowTitle(t("app.name", self.config.get("language", "zh-CN")))
         QTimer.singleShot(0, self.maybe_show_onboarding)
+        QTimer.singleShot(0, self.maybe_introduce_light_profile)
         icon_path = theme.resource("icon.ico")
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
@@ -271,6 +290,13 @@ class MainWindow(QMainWindow):
             action.triggered.connect(callback)
             action.setShortcut(QKeySequence(shortcut))
             game_menu.addAction(action)
+        # P0-2 常规对局的下一步提示。快捷键 `Ctrl+H`：与既有 Ctrl+R/F/N/Z/P/S/O/,、
+        # Ctrl+Shift+R/D/P、F1、F11 全都不冲突（`tests/test_desktop_shortcuts.py` 会再核一遍）。
+        self.hint_action = QAction(dl("提示下一步"), self)
+        self.hint_action.setShortcut(QKeySequence("Ctrl+H"))
+        self.hint_action.setToolTip(dl("算一步推荐着法，不替你落子"))
+        self.hint_action.triggered.connect(self.show_move_hint)
+        game_menu.addAction(self.hint_action)
         game_menu.addSeparator()
         # 第四列 `attr` 给需要留引用的项：菜单项与侧栏按钮共用同一条显隐判据
         # （`UI_ACTION_REQUIRES`）—— 只藏按钮却留下菜单项，等于把"点了会报错"的
@@ -367,11 +393,18 @@ class MainWindow(QMainWindow):
         self.banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.banner.setObjectName("banner")
         layout.addWidget(self.banner)
+        # P1-10：反馈条插在横幅与棋盘之间 —— 横幅说"现在轮到谁"（常驻状态），
+        # 反馈条说"刚才发生了一件事"（一次性）。两者上下相邻但语义不同，
+        # 玩家一眼就能分清哪个会自己消失。无消息时整体隐藏，不占高度。
+        self.feedback = FeedbackBar(str(self.config.get("theme", "classic")))
+        layout.addWidget(self.feedback)
         split = QSplitter()
         layout.addWidget(split, 1)
         self.board = BoardWidget()
         self.board.move_requested.connect(self.human_move)
         self.board.piece_selected.connect(lambda: self.audio.play("select"))
+        # P0-4：首次选中「射」时自动开一次星轨提示（与上面那条播声音互不影响）
+        self.board.piece_selected.connect(self._maybe_star_intro)
         self._board_host = _SquareHost(self.board)
         split.addWidget(self._board_host)
         side_inner = QWidget()
@@ -417,8 +450,13 @@ class MainWindow(QMainWindow):
         side_tabs.addTab(record_page, t("panel.moves", lang))
         side_tabs.addTab(chat_page, t("panel.chat", lang))
         right.addWidget(side_tabs, 1)
-        right.addWidget(QLabel("阵亡子力" if lang != "en" else "Captured pieces"))
-        right.addWidget(self.captured)
+        # P1-11：低频信息（阵亡子力）收进折叠框、默认收起 —— 首屏把垂直空间让给棋谱。
+        # 标题就地复用原来那行小标题（不重复出现两次），文案走 i18n。
+        # ⚠️ 折叠**不改任何尺寸**：侧栏仍是 330（见 `self.side` 的 min/max），
+        # 棋盘尺寸由 `_SquareHost` 按剩余空间算 —— 谁在这里动宽度，谁就挤小棋盘。
+        self.captured_box = CollapsibleBox(dl("阵亡子力"))
+        self.captured_box.add_widget(self.captured)
+        right.addWidget(self.captured_box)
         # P1-5 双 AI 观战控制条：仅观战态显示；退出 / 暂停继续 / 单步 / 调速。
         self.spectate_bar = QWidget()
         spectate_row = QHBoxLayout(self.spectate_bar)
@@ -494,6 +532,7 @@ class MainWindow(QMainWindow):
         self.board.locked = False
         self._stats_recorded = False
         self._autosaved = False
+        self._autosave_notify_failed = False
         self.refresh()
         self._reset_taunt_ledger()
         if not local and self.game.state.turn is not human:
@@ -577,6 +616,37 @@ class MainWindow(QMainWindow):
         self.config["onboarded"] = True
         save_config(self.config)
 
+    def maybe_introduce_light_profile(self) -> None:
+        """老用户一次性告知「轻量模式」预设已上线 —— 只提示，**不改档位**。
+
+        为什么不把 `desktop_complete` 自动迁到 `desktop_light`：
+
+        1. 项目原则是「用户的选择不再被静默替换」，自动改档违背它；
+        2. 设置窗口保存的是 `rule_options` **全量键**，只改 profile 会被那批存量键
+           压掉，产出一个「看起来换了档、规则却没变」的静默无效结果。
+
+        题目态与观战态**分开判**：这是两件不同的事，合成一个布尔会让以后想单独
+        调整其中一条的人无从下手。
+        """
+        if self.config.get("profile") != "desktop_complete":
+            return
+        if self.config.get("light_profile_intro_shown", False):
+            return
+        if self.puzzle_session is not None:
+            return
+        if self.spectating:
+            return
+        self.notify(
+            dl(
+                "新增「轻量模式」预设：保留「射」等增强走法，只关掉入侵取胜、兵卒复活、"
+                "三线吃子三条额外规则，更适合上手。可在设置里切换。"
+            ),
+            "info",
+            15000,
+        )
+        self.config["light_profile_intro_shown"] = True
+        save_config(self.config)
+
     def show_puzzle_hint(self) -> None:
         """两段式提示：第一次说用哪枚子，第二次说怎么走。
 
@@ -604,6 +674,134 @@ class MainWindow(QMainWindow):
             message = text or (dl("没有更多提示") if not english else "No more hints")
             self.hint_button.setText(dl("提示") if not english else "Hint")
         self.statusBar().showMessage(message, 10000)
+
+    # ---- P0-2 常规对局的下一步提示（只高亮，不落子）----
+
+    def show_move_hint(self) -> None:
+        """算一步推荐着法并**高亮**它——绝不替玩家落子。
+
+        为什么只高亮不落子：提示是"瞄一眼"的动作，落子仍由玩家点第二下完成
+        （推荐着法就在 `board.legal` 里，点落点即落子，点别处即取消）。这样棋谱上
+        什么都没发生，"我在下棋"的主体感也保住了。
+
+        题目模式**不串线**：那条路径有自己的两段式提示（`show_puzzle_hint`），
+        计分态还要整块屏蔽提示 —— 混进来等于给计分题开挂。
+        """
+        if self.spectating:
+            self.notify(dl("观战中不能提示"), "warn", 5000)
+            return
+        if not self.game or self.game.state.finished:
+            self.notify(dl("这局已经结束"), "warn", 5000)
+            return
+        if self.puzzle_session is not None:
+            self.show_puzzle_hint()
+            return
+        # 双人同机（local）两边都是人，谁的点都能提示；人机/联机只有自己那回合才该有。
+        if self.config.get("game_mode", "ai") != "local" and self.game.state.turn is not self.session_color:
+            self.notify(dl("还没轮到你"), "warn", 5000)
+            return
+        self._hint_request_id += 1
+        request_id = self._hint_request_id
+        plies = len(self.game.state.history)
+        worker = HintWorker(self.game, self.cancel)
+        worker.signals.finished.connect(
+            lambda move, rid=request_id, count=plies: self._apply_move_hint(rid, count, move)
+        )
+        worker.signals.failed.connect(
+            lambda detail: self.notify(dlf("提示算不出来：{detail}", detail=detail), "error", 6000)
+        )
+        # 留一个强引用（**防御性**，不是已证实的故障修复）：PySide6 里 functor 连接
+        # （lambda / 闭包 / 普通函数）的投递路径在 sender 的 Python 包装被释放后可能**静默失效**
+        # —— 不报错、不回调。实测矩阵：保 worker 或保 `signals` → 回调到达；只保 callable 或
+        # 只保 SignalInstance → 不到达；换成 QObject 的 bound method 接收者则不受影响。
+        # 本处真事件循环下不保也能到达（见 docs 注释与 G2b 报告），但代价为零，显式保命。
+        # `_request_json_async` 的同型风险（回调全是闭包/lambda）已由那边的 `_pending_http`
+        # 保活解决 —— 闭包连接在 worker 的 Python 包装释放后会失效，所以必须有人持有 worker。
+        self._hint_worker = worker
+        self.pool.start(worker)
+
+    def _apply_move_hint(self, request_id: int, plies: int, move: Move | None) -> None:
+        """提示结果回到 GUI 线程：**先验过期，再画**。
+
+        两条过期判据：
+        - 请求号变了 —— 玩家又按了一次提示，这条已经没人等了；
+        - 棋谱长度变了 —— 搜索期间玩家落了子 / AI 应了着 / 换过局。
+        不验就会把慢一拍的搜索结果画到一个**已经不存在的局面**上。
+        """
+        if request_id != self._hint_request_id:
+            return
+        # 结果已落地：放开 worker 的强引用（下一条请求会重新持有）。
+        self._hint_worker = None
+        if not self.game or self.game.state.finished or len(self.game.state.history) != plies:
+            return
+        if move is None:
+            self.notify(dl("这一步没算出推荐着法"), "info", 5000)
+            return
+        piece = self.game.state.piece_at(move.source)
+        # 走法描述复用既有记谱函数（`Game.notation`，棋谱列表同一套），不另写一份格式化。
+        captured = self.game.rules.captured_by_move(self.game.state, move)
+        text = self.game.notation(piece, move, captured) if piece else dl("这一步")
+        self.board.selected = move.source
+        self.board.legal = [move]
+        # 落点可吃 / 旁吃受害者的红叉一并清空：这里只承诺"推荐这一步"，
+        # 不重算吃子语义；留着上一次选中态的红叉会指到与提示无关的格子上。
+        self.board.capturable = set()
+        self.board.victims = set()
+        self._hint_plies = plies
+        self.board.update()
+        self.notify(dlf("提示：{move}", move=text), "info", 6000)
+
+    def _maybe_star_intro(self) -> None:
+        """P0-4：首次选中「射」时，**只对这一次选中**打开星轨提示并解释一句。
+
+        为什么是"一次性引导"而不是默认打开：星轨是理解「射」的强辅助，但常驻会盖住
+        盘面（P1-7 已把它默认关闭、并按题态统一屏蔽）。新手恰恰不会去设置里找这个开关，
+        所以第一次选中「射」时替他开一次 —— 看见一次就懂了，之后由他自己决定。
+
+        触发条件**逐条独立判断**（观战与题目态分开判，不合并成一个布尔）：合并之后
+        一旦将来只想放开其中一个场景，就得先把这个布尔拆开，等于埋一个必踩的坑。
+        """
+        state = self.board.game.state if self.board.game else None
+        selected = self.board.selected
+        piece = state.piece_at(selected) if state and selected else None
+        is_archer = piece is not None and piece.type is PieceType.ARCHER
+        if self._star_intro_temp and not is_archer:
+            # 上一次引导还开着、这次点了别的子：先收回，再把开关交还给用户设置。
+            self._restore_star_intro()
+        if not is_archer or self._star_intro_temp:
+            return
+        if self.config.get("archer_star_intro_shown", False):
+            return
+        # 用户自己已经开了星轨 —— 没有什么可引导的，更不能把开关从他手里抢走。
+        if self.board.show_archer_star_hints:
+            return
+        if self.spectating:
+            return
+        if self.puzzle_session is not None:
+            return
+        self._star_intro_temp = True
+        self.board.show_archer_star_hints = True
+        self.board.update()
+        self.notify(dl("射的星位决定它能打多远"), "info", 8000)
+        self.config["archer_star_intro_shown"] = True
+        save_config(self.config)
+
+    def _restore_star_intro(self) -> None:
+        """收回一次性打开的星轨提示：**只在本次是临时开启时**动手。
+
+        `_star_intro_temp` 为 False 时什么都不做 —— 用户自己开的开关不许被这里关掉，
+        这条是 P1-7「不替用户关辅助」的延伸。
+        """
+        if not self._star_intro_temp:
+            return
+        self._star_intro_temp = False
+        self.board.show_archer_star_hints = False
+        self.board.update()
+
+    def _restore_star_intro_if_deselected(self) -> None:
+        """取消选中（点空白格）时收回引导 —— 棋盘没有 `deselect` 信号，只能按状态判。"""
+        if self._star_intro_temp and self.board.selected is None:
+            self._restore_star_intro()
 
     def _record_daily_start(self) -> None:
         """打开每日题时惰性归零：昨天没做完就断在这里，不写定时任务。"""
@@ -728,10 +926,13 @@ class MainWindow(QMainWindow):
         if verdict == puzzle_judge.VERDICT_WRONG:
             # `Game.move` 在落子前压栈，所以 undo(1) 正好回到题面；多步题也只退一手，
             # 已解出的前几手保留。
+            undone = True
             try:
                 self.game.undo(1)
-            except GameError:
-                pass
+            except GameError as exc:
+                # 退不回去时**不能**再弹「棋已退回」—— 提示会与盘面事实相反。
+                undone = False
+                self.notify(dlf("这一手没能退回：{detail}", detail=str(exc)), "warn", 8000)
             self.board.set_game(self.game, self.game.state.turn, True)
             self.board.locked = False
             # 连对挑战：一错即止，不弹"再想想"，直接结束本轮。
@@ -742,12 +943,15 @@ class MainWindow(QMainWindow):
             hint = session.next_hint()
             self._maybe_soft_hint(session)
             detail = ((dl("提示：") + hint) if hint else "") if not english else (("Hint: " + hint) if hint else "")
-            QMessageBox.information(
-                self,
-                "再想想" if not english else "Not quite",
-                ("这不是正解，棋已退回。\n" if not english else "That is not the solution; the move was taken back.\n")
-                + detail,
-            )
+            if undone:
+                lead = "这不是正解，棋已退回。\n" if not english else "That is not the solution; the move was taken back.\n"
+            else:
+                lead = (
+                    "这不是正解，但这一手没能退回，请手动悔棋。\n"
+                    if not english
+                    else "That is not the solution, and the move could not be taken back — please undo manually.\n"
+                )
+            QMessageBox.information(self, "再想想" if not english else "Not quite", lead + detail)
             self.refresh()
             return False
         if verdict == puzzle_judge.VERDICT_SOLVED:
@@ -782,8 +986,10 @@ class MainWindow(QMainWindow):
                     f"({session.attempts} misses · {session._hints_shown} hints)"
                 ),
             )
-            self.statusBar().showMessage(
-                "训练完成，可继续自由对弈" if not english else "Training complete; free play resumed", 8000
+            self.notify(
+                "训练完成，可继续自由对弈" if not english else "Training complete; free play resumed",
+                "success",
+                8000,
             )
             return True
         # 交替序列：玩家走对之后，对手的被迫应着由程序**自动落**（不判分、不提示）。
@@ -793,8 +999,26 @@ class MainWindow(QMainWindow):
         if reply is not None:
             try:
                 self.game.move(reply)
-            except GameError:
-                pass
+            except GameError as exc:
+                # 对手应着落不下去 = 题面与解法对不上（题库坏 / 规则变了）。若照旧
+                # `advance_auto()`，游标会越过这一手，之后玩家每一手都必判错而题面
+                # 看起来还正常 —— 必须中止本题，别把错位的题留在屏幕上。
+                self.notify(
+                    dlf("对手应着无法落子，本题已中止：{detail}。可从训练列表重新选题。", detail=str(exc)),
+                    "error",
+                    8000,
+                )
+                if self.streak_session is not None:
+                    self.streak_timer.stop()
+                    training_store.record_streak_best(self.config, self.streak_session.count)
+                    save_config(self.config)
+                    self.streak_session = None
+                self.puzzle_session = None
+                self.puzzle_is_daily = False
+                self.puzzle_scored = False
+                self.hint_button.hide()
+                self.refresh()
+                return False
             session.advance_auto()
             self.board.set_game(self.game, self.game.state.turn, True)
             self.board.locked = False
@@ -995,16 +1219,17 @@ class MainWindow(QMainWindow):
         # 先置取消位：迟到的 worker 结果会在 `finish_ai` 里被丢弃，不会在超时后又走一步。
         self.cancel.set()
         self._release_ai()
-        self.statusBar().showMessage(
-            "AI 思考超时，已解除锁定" if self.config.get("language") != "en" else "AI timed out, board unlocked", 6000
+        self.notify(
+            "AI 思考超时，已解除锁定" if self.config.get("language") != "en" else "AI timed out, board unlocked",
+            "warn",
+            6000,
         )
 
     def finish_ai(self, result: tuple[Move | None, threading.Event]) -> None:
         move, cancel = result
-        # 读条必须在**每个出口**停掉并归零：成功 / move is None / 取消都一样，
-        # 否则取消后条会一直往前爬（预算耗尽了也不会自己归零）。
-        # 读条必须在**每个出口**停掉：取消路径甚至不进入下面的解锁分支，
-        # 少这一行就会出现"取消后条还在爬"（有回归用例盯着）。
+        # 读条必须在**每个出口**停掉并归零（成功 / move is None / 取消都一样），
+        # 否则条会一直往前爬（预算耗尽也不会自己归零）。
+        # 取消路径不进下面的解锁分支，所以这一行不可省（有回归用例盯着）。
         self._end_thinking()
         if cancel.is_set():
             return
@@ -1095,7 +1320,8 @@ class MainWindow(QMainWindow):
 
     def ai_failed(self, result: object) -> None:
         message, cancel = result if isinstance(result, tuple) else (str(result), self.cancel)
-        self._end_thinking()
+        # 取消路径不会走到 `_release_ai`，所以读条必须在这行早退前单独停一次
+        # （与 `finish_ai` 同一条纪律）。正常路径由 `_release_ai` 再收尾，重复调用是幂等的。
         self._end_thinking()
         if cancel.is_set():
             return
@@ -1352,6 +1578,16 @@ class MainWindow(QMainWindow):
         self._stats_recorded, self._autosaved, self._shown_result = sentinels
         self.refresh()
 
+    def notify(self, text: str, level: str = DEFAULT_LEVEL, timeout_ms: int = DEFAULT_TIMEOUT_MS) -> None:
+        """P1-10：把一条「需要被看见」的反馈送进 `FeedbackBar`。
+
+        与 `statusBar().showMessage()` 的分工（同一条消息**只走一边**）：
+        - 需要玩家立刻知情并调整行为的（保存失败 / 断线 / 重连 / 超时 / 已保存）→ 这里；
+        - 顺带说一句、错过也无所谓的（吃子播报 / 房间号 / 样式切换 / 首跑引导）→ statusBar。
+        后者留在状态栏不是偷懒：把吃一个子也染成黄色横幅，等于教玩家忽略这块区域。
+        """
+        self.feedback.show_message(text, level, timeout_ms)
+
     def apply_appearance(self) -> None:
         if not hasattr(self, "board"):
             return
@@ -1362,6 +1598,9 @@ class MainWindow(QMainWindow):
         font = theme.FONT_CHOICES.get(self.config.get("font", "system"), theme.UI_FONT)
         QApplication.instance().setFont(QFont(font, 10))
         self.configure_board()
+        if hasattr(self, "feedback"):
+            # 换主题时反馈条自己重取配色 —— 它不缓存颜色，只缓存"主题名"。
+            self.feedback.set_theme(str(self.config.get("theme", "classic")))
         text = "#f3ead7" if self.config.get("theme") == "dark" else "#211b17"
         hover = "#4a433b" if self.config.get("theme") == "dark" else "#f1dfbf"
         self.setStyleSheet(
@@ -1374,9 +1613,12 @@ class MainWindow(QMainWindow):
         不弹模态框：音效缺失不影响下棋，打断对局比听不到提示音更糟。
         """
         prefix = "音效不可用：" if self.config.get("language", "zh-CN") != "en" else "Audio unavailable: "
-        self.statusBar().showMessage(prefix + message, 10000)
+        self.notify(prefix + message, "warn", 10000)
 
     def configure_board(self) -> None:
+        # 星轨的临时引导态在每次重配棋盘时归零：下面会按 config 重新推导开关，
+        # 留着一个 True 会让"恢复原值"在之后误关用户自己开的辅助。
+        self._star_intro_temp = False
         self.board.language = self.config.get("language", "zh-CN")
         self.board.set_appearance(
             self.config.get("theme", "classic"),
@@ -1497,7 +1739,7 @@ class MainWindow(QMainWindow):
             path += ".xhgame"
         try:
             save_game(self.game, path)
-            self.statusBar().showMessage(dlf("棋局已保存：{path}", path=path), 5000)
+            self.notify(dlf("棋局已保存：{path}", path=path), "success", 5000)
         except Exception as exc:
             QMessageBox.warning(self, dl("导出失败"), str(exc))
 
@@ -1531,7 +1773,7 @@ class MainWindow(QMainWindow):
             self._stats_recorded = game.state.finished
             self._autosaved = game.state.finished
             self.refresh()
-            self.statusBar().showMessage(dlf("已载入：{path}", path=path), 5000)
+            self.notify(dlf("已载入：{path}", path=path), "success", 5000)
         except Exception as exc:
             QMessageBox.warning(self, dl("导入失败"), str(exc))
 
@@ -1850,15 +2092,80 @@ class MainWindow(QMainWindow):
 
         on_done(data) / on_error(message) 都经 Signal 回到 **GUI 线程**执行
         （跨线程发射 + AutoConnection，Qt 官方语义）。用法与 start_ai 同一模式。
+
+        ## G2c：为什么必须把 worker 保活到回调落地
+
+        PySide6 里连到 **functor**（lambda / 局部闭包 / 普通函数）的连接，其注册挂在
+        **sender 的 Python 侧**。`self.pool.start(worker)` 之后本函数返回，`worker` 的
+        Python 包装失去最后一个强引用 —— 注册随之消失，**回调静默不到达**（不报错、
+        不打日志、也没有异常）。修复前实测：建了房不进房、加了房不进房、检查更新点了
+        没反应、网络失败连提示都没有 —— 四条链路成对失效。
+
+        修法（方案 1：只保活，不重构回调路由）：把 worker 放进 `_pending_http`，
+        等它真的落地再摘掉。**不改任何调用点的 `on_done`/`on_error` 契约** ——
+        机制没收敛的时候，改得越少越对；方案 2（重构成 QObject 路由）要改 5 个调用点，
+        漏一处就是一个新的静默失效。
+
+        连接顺序是**契约的一部分**（见 `_discard_http_worker`）：用户回调在前，
+        清理槽在**最后**。
         """
         worker = HttpWorker(url, payload, method, token)
+        # 先登记再启动：`pool.start` 一返回 worker 就可能在另一个线程里跑完了，
+        # 反过来写会留下一个"已发请求但没登记"的窗口。
+        self._pending_http.add(worker)
         if on_done is not None:
             worker.signals.finished.connect(on_done)
         if on_error is not None:
             worker.signals.failed.connect(on_error)
         else:
-            worker.signals.failed.connect(lambda message: QMessageBox.warning(self, dl("网络请求失败"), str(message)))
+            # 默认失败回调**也必须是 bound method**：原来这里是 lambda，
+            # 它自己和整条链路一起静默失效，等于"网络失败什么都不显示"。
+            worker.signals.failed.connect(self._report_request_failure)
+        # 清理**最后连**：它释放最后一个强引用，排在前面的槽才有活的 sender 可用。
+        worker.signals.finished.connect(self._discard_http_worker)
+        worker.signals.failed.connect(self._discard_http_worker)
         self.pool.start(worker)
+
+    def _discard_http_worker(self, *_payload: object) -> None:
+        """G2c：worker 落地后把它从保活集合里摘掉。
+
+        三条设计约束 + 一条实测约束：
+
+        1. **必须是 bound method**。连到 QObject 的 bound method 时，连接注册挂在
+           **receiver**（本窗口）上，窗口活着就一直在；lambda / 闭包挂在 sender 的
+           Python 包装上，包装一扔就没了 —— 用 lambda 做清理等于没写；
+        2. **自己绝不抛异常**。清理是收尾动作，不该因为一个异常改变请求的结局
+           （整段包在 try/except 里，失败也不改变"这条请求已经结束"的事实）；
+        3. **必须连在用户回调之后（最后一个）**。本槽一跑完就把 worker 的最后一个
+           强引用放掉，Python 包装析构、`signals` 随之销毁 —— **凡在它之后仍需
+           sender 的槽都会掉**（实测：清理先连 + 立即 discard → 用户回调 0 次，
+           与"完全没修"逐字相同的症状；QA 在独立 worktree 复现 5/5）；
+        4. **不需要把释放 defer 到下一轮事件循环**。跨线程信号是**一条连接一个
+           queued 事件**，一条槽抛异常不会吃掉下一条事件 —— 所以"用户回调抛异常会
+           跳过清理"不成立（实测：用户回调抛 `RuntimeError`，`_pending_http` 照样
+           排空）。排最后就够了，加 `QTimer.singleShot(0, ...)` 只是多一层没人需要的
+           时序复杂度。
+
+        用 `self.sender()` 认领是哪一个：`finished`/`failed` 只带载荷、不带 worker 本身，
+        而 sender 就是那个 worker 的 `signals`。在飞请求是常数级，线性扫一遍即可。
+        """
+        try:
+            sender = self.sender()
+            for worker in self._pending_http:
+                if worker.signals is sender:
+                    self._pending_http.discard(worker)
+                    return
+        except Exception:  # noqa: BLE001 —— 清理不许影响调用方
+            pass
+
+    def _report_request_failure(self, message: object) -> None:
+        """G2c：请求失败又没有专门 `on_error` 时的默认出口。
+
+        从模态 `QMessageBox` 改成 FeedbackBar 的 **error** 级：网络失败是「该被看见
+        但不该打断」的典型 —— 玩家正在看棋谱时弹一个必须点确定的框，比让他晚两秒知道
+        更烦人。必须点确定的留给「保存/载入失败」那种**阻断型**流程。
+        """
+        self.notify(dlf("网络请求失败：{detail}", detail=str(message)), "error", 8000)
 
     def create_online(self) -> None:
         base = self.server_base()
@@ -1987,7 +2294,7 @@ class MainWindow(QMainWindow):
         socket.sendTextMessage(net.encode_auth(self.token))
         self.network_reconnect_attempts = 0
         lang = self.config.get("language", "zh-CN")
-        self.statusBar().showMessage("网络已恢复" if lang != "en" else "Network restored", 5000)
+        self.notify("网络已恢复" if lang != "en" else "Network restored", "success", 5000)
 
     def _network_disconnected(self, socket: QWebSocket) -> None:
         if socket is not self.network:
@@ -1998,17 +2305,36 @@ class MainWindow(QMainWindow):
         lang = self.config.get("language", "zh-CN")
         # S1-1：终止条件判定下沉到 net.should_reconnect（纯函数，已被单测覆盖三种终止码）
         if not net.should_reconnect(code, self.network_closing, self.room_id):
-            self.statusBar().showMessage("网络已断开" if lang != "en" else "Network disconnected")
+            # 终止分支（会话已结束/不可重连的 close code）**不给超时**：迁移前这条是
+            # statusBar 的常驻消息，改成 4–8 秒自动消失等于把"你现在掉线了"这件事
+            # 在玩家还没读完时就抽走。timeout=0 → 一直显示，直到「网络已恢复」那条
+            # success 把它顶掉（恢复消息照常 5s 自动消失）。
+            # 注意：**不是**新增常驻指示 —— 复用的就是同一条反馈条，不碰 banner、不碰侧栏。
+            # 口径（team-lead G2c 裁定）：**不得新增常驻信息；既有常驻恢复为常驻不算新增**。
+            # 全桌面端共 3 条 timeout=0（本条 / 「自动重连失败，请重新加入房间」/
+            # 「网络中断，正在重连 (n/N)」），三者在 `git show efeb61c` 原文里都是
+            # showMessage 无 timeout，属恢复迁移前语义；且互相顶替，同时只显示 1 条。
+            # 下一个人请勿按「只能有一条常驻」砍掉另外两条。
+            self.notify("网络已断开" if lang != "en" else "Network disconnected", "error", 0)
             return
         if self.network_reconnect_attempts >= net.MAX_RECONNECT_ATTEMPTS:
-            self.statusBar().showMessage(
-                "自动重连失败，请重新加入房间" if lang != "en" else "Reconnect failed; join the room again"
+            # 同上：迁移前这条也是**无 timeout** 的 statusBar 消息（放弃重连 = 终态，
+            # 玩家必须知道"得重新加入房间"，不该 8 秒后就消失）。
+            self.notify(
+                "自动重连失败，请重新加入房间" if lang != "en" else "Reconnect failed; join the room again",
+                "error",
+                0,
             )
             return
         delay = net.reconnect_delay(self.network_reconnect_attempts)
         self.network_reconnect_attempts += 1
-        self.statusBar().showMessage(
-            f"{'网络中断，正在重连' if lang != 'en' else 'Disconnected, reconnecting'} ({self.network_reconnect_attempts}/{net.MAX_RECONNECT_ATTEMPTS})"
+        # 迁移前同样是**无 timeout**：状态栏一直显示"正在重连 (n/N)"，直到连上
+        # （被「网络已恢复」顶掉）或放弃（被上面那条终态 error 顶掉）。逐次重连时
+        # 后一条会覆盖前一条，所以常驻不会堆积。
+        self.notify(
+            f"{'网络中断，正在重连' if lang != 'en' else 'Disconnected, reconnecting'} ({self.network_reconnect_attempts}/{net.MAX_RECONNECT_ATTEMPTS})",
+            "warn",
+            0,
         )
         QTimer.singleShot(delay, self._connect_network)
 
@@ -2076,6 +2402,7 @@ class MainWindow(QMainWindow):
         if not self.game.state.history:
             self._stats_recorded = False
             self._autosaved = False
+            self._autosave_notify_failed = False
         lang = self.config.get("language", "zh-CN")
         self.statusBar().showMessage(
             f"{'房间' if lang != 'en' else 'Room'} {snapshot['roomId']} · {'状态版本' if lang != 'en' else 'revision'} {self.revision}"
@@ -2129,6 +2456,8 @@ class MainWindow(QMainWindow):
         state = self.game.state
         lang = self.config.get("language", "zh-CN")
         history_key = tuple(record.notation for record in state.history)
+        self._drop_stale_hint(state)
+        self._restore_star_intro_if_deselected()
         self._update_banner(state, lang)
         self._pulse_check_if_needed(state)
         self._update_player_labels(state, lang)
@@ -2138,6 +2467,24 @@ class MainWindow(QMainWindow):
         self._update_board_if_needed(state, history_key)
         self._update_controls(state, lang)
         self._settle_finished(state, lang)
+
+    def _drop_stale_hint(self, state: GameState) -> None:
+        """棋谱一旦变长，就撤掉提示留下的高亮。
+
+        `_apply_move_hint` 把推荐着法放进了 `board.legal` —— 那是**活的**落子通道：
+        玩家点落点会真的走那一步。所以局面一变（AI 应着、悔棋、换局），这条高亮
+        必须立刻作废，否则点下去就是一步非法棋 + 一个「非法走棋」弹框。
+        """
+        if self._hint_plies is None:
+            return
+        if len(state.history) == self._hint_plies:
+            return
+        self._hint_plies = None
+        self.board.selected = None
+        self.board.legal = []
+        self.board.capturable = set()
+        self.board.victims = set()
+        self.board.update()
 
     def _update_banner(self, state: GameState, lang: str) -> None:
         # 优先级**写死**：终局 > 暂停 > 将军 > 行棋。
@@ -2373,19 +2720,33 @@ class MainWindow(QMainWindow):
             self._shown_result = False
             return
         if not self._stats_recorded:
-            record_result(self.game, self.session_color.value)
+            try:
+                record_result(self.game, self.session_color.value)
+            except Exception as exc:
+                # 本函数跑在 250ms 定时器槽上：异常穿出 refresh() 会让哨兵保持 False，
+                # 于是每 250ms 重试一次并抛一次，同时把后面的结果弹窗整段饿死 ——
+                # 用户看到的只是「终局什么都不发生」。与自动存档那段同型处理：
+                # 失败也要置位（不再重试），并留一条可见的 error 反馈。
+                self.notify(dlf("战绩保存失败：{detail}", detail=str(exc)), "error", 8000)
             self._stats_recorded = True
         if self.config.get("autosave", True) and not self._autosaved:
             try:
                 path = autosave_game(self.game)
-                self.statusBar().showMessage(
-                    ("棋谱已自动保存：" if lang != "en" else "Replay auto-saved: ") + f"{path}", 8000
+            except Exception as exc:
+                # 不只要捕 OSError：序列化层的 TypeError/ValueError 同样会穿出定时器槽，
+                # 产生与战绩落盘同型的 250ms 报错循环。失败**不**置位 `_autosaved` ——
+                # 磁盘短暂占用这类问题是可恢复的，下一轮应当重试。
+                # 但重试每 250ms 一次，所以提示只发一次，避免反馈条刷屏。
+                if not self._autosave_notify_failed:
+                    self._autosave_notify_failed = True
+                    self.notify(
+                        ("自动保存失败：" if lang != "en" else "Auto-save failed: ") + f"{exc}", "error", 8000
+                    )
+            else:
+                self._autosaved = True
+                self.notify(
+                    ("棋谱已自动保存：" if lang != "en" else "Replay auto-saved: ") + f"{path}", "success", 8000
                 )
-            except OSError as exc:
-                self.statusBar().showMessage(
-                    ("自动保存失败：" if lang != "en" else "Auto-save failed: ") + f"{exc}", 8000
-                )
-            self._autosaved = True
         if not self._shown_result:
             self._shown_result = True
             winner = (
@@ -2422,6 +2783,8 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event: object) -> None:
         self.cancel.set()
         self.close_network()
+        # G2c：窗口要走就别再替在飞请求保活 —— 放到这里，进程退出前也不留悬挂引用。
+        self._pending_http.clear()
         self.audio.stop()
         save_config(self.config)
         super().closeEvent(event)

@@ -106,3 +106,34 @@ def test_missing_style_resources_disable_that_option(qt_app: QApplication, monke
     assert not model.item(index).isEnabled(), "缺资源的风格必须灰显"
     assert model.item(dialog.piece_style.findData("traditional")).isEnabled()
     dialog.deleteLater()
+
+
+def test_legacy_cartoon_choice_shows_consistently_after_load(
+    qt_app: QApplication, monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """1.6.x 存量经 `load_config()` 纠错后，设置下拉与 `value()` 都落在 cartoon/image。
+
+    「三处一致」中设置的这一处由真实 Dialog 读真实 `load_config()` 结果验证；棋盘
+    与图谱读同两个键（`board_widget.py:499,1283`、`piece_atlas.py:475`），配置层断言
+    见 `tests/test_desktop_config.py` 的 B 项小节。
+    """
+    import json
+
+    from xionghan_chess.desktop import config as desktop_config
+
+    settings = tmp_path / "settings.json"
+    monkeypatch.setattr(desktop_config, "config_path", lambda: settings)
+    settings.write_text(
+        json.dumps({"schema_version": desktop_config.CONFIG_VERSION, "piece_style": "cartoon"}),
+        encoding="utf-8",
+    )
+
+    loaded = desktop_config.load_config()
+    assert (loaded["piece_style"], loaded["piece_render"]) == ("cartoon", "image")
+
+    parent = _Parent(loaded)
+    dialog = SettingsDialog(loaded, parent)
+    assert dialog.piece_style.currentData() == "cartoon", "下拉应显示用户当初选的 cartoon"
+    value = dialog.value()
+    assert (value["piece_style"], value["piece_render"]) == ("cartoon", "image"), "不得出现设置 A / 棋盘 B 的中间态"
+    dialog.deleteLater()

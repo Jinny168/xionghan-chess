@@ -40,8 +40,11 @@ def test_watchdog_unlocks_a_stuck_ai(window, qt_app) -> None:
     qt_app.processEvents()
 
     assert window.board.locked is False, "看门狗没有解除锁定"
-    message = window.statusBar().currentMessage()
+    # P1-10：这条从状态栏迁到了语义反馈条（warn 级）—— 棋盘为什么突然能动了，
+    # 是玩家必须知情的事，不该和吃子播报挤在同一条灰字里。
+    message = window.feedback.current_text
     assert "超时" in message or "timed out" in message, message
+    assert window.feedback.current_level == "warn", message
 
 
 def test_watchdog_ignores_stale_generation(window) -> None:

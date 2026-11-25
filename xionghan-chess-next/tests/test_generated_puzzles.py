@@ -340,7 +340,7 @@ def test_g6_gate_sets_not_empty() -> None:
 # G7 判据：题名里「数字 + 手」的字面（如「围杀·2 手」「连环·3 手」）＝手数编码，禁止。
 # 判据用正则「数字+手」而非「含手字」：**只抓手数编码，天然不误伤「射手」这类构词**
 # （"射手"里「手」前没有数字），所以可放心扩到**全库**，把所有系列都纳入防护。
-TITLE_HAND_RE = re.compile(r"[0-9一二三四五六七八九十]+\s*手")
+TITLE_HAND_RE = re.compile(r"[0-9一二两三四五六七八九十廿卅]+\s*手")
 
 
 def test_g7_title_has_no_hand_count() -> None:
@@ -356,3 +356,17 @@ def test_g7_title_has_no_hand_count() -> None:
     all_puzzles = load_puzzles()
     offenders = [f"{p.id}:{p.title}" for p in all_puzzles if TITLE_HAND_RE.search(p.title)]
     assert not offenders, "题名编码了手数（数字+手），禁止：" + ", ".join(offenders)
+
+
+# G7 正则自身的正负样本自测：以后谁改正则改坏了，这里先红，不必等 QA 手试。
+# （字符类与同文件 G5 的 hand_map{一,两,三,四,五} + 廿/卅 对齐。）
+@pytest.mark.parametrize("title", ["围杀·两手", "围杀·三手", "围杀·2 手", "走法练习·三手", "檑·廿手"])
+def test_g7_regex_catches_hand_count(title: str) -> None:
+    """正样本：这些是手数编码，必须被 G7 正则抓到。"""
+    assert TITLE_HAND_RE.search(title), f"应抓到但没抓：{title}"
+
+
+@pytest.mark.parametrize("title", ["星轨射手", "垓下·连环", "连环 13", "定鼎·长驱"])
+def test_g7_regex_ignores_non_hand_titles(title: str) -> None:
+    """负样本：这些不含手数编码，G7 正则不得误抓（如"射手"是构词，不是手数）。"""
+    assert not TITLE_HAND_RE.search(title), f"不该抓却抓了：{title}"

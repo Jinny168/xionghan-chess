@@ -188,6 +188,49 @@ def action_requirements() -> dict[str, list[str]]:
     return {action: list(parents) for action, parents in UI_ACTION_REQUIRES.items()}
 
 
+# 棋子 → 规则开关键分组。三端设置界面过去各持一份（piece_atlas.PIECE_OPTION_KEYS /
+# dialogs.piece_definitions / app.js pieceRuleKeys），逐键实比 6 组 / 18 键全一致，
+# 但新增开关时任何一端都可能漏改。这里上移为唯一源：
+#   - 桌面两处直接 import `PIECE_OPTION_GROUPS`；
+#   - `piece_option_groups()` 是它的 JSON 友好视图，`/api/profiles` 下发给 Web。
+#
+# 11 型全列（含 5 个空组）：桌面设置要为每个兵种建 GroupBox，空组由各端本地的
+# PieceType 全集生成，不下发也够用 —— `piece_option_groups()` 因此只输出非空组。
+#
+# 故意**不收** i18n 键（`piece.king_label` / `piece_rule.king_long` 之类）：那是展示
+# 元数据，不是规则口径，按 `gen_web_profiles.py` 的约定 core 不持有它。
+PIECE_OPTION_GROUPS: dict[PieceType, tuple[str, ...]] = {
+    PieceType.KING: (
+        "king_can_leave_palace",
+        "king_diagonal_in_palace",
+        "king_lose_diagonal_outside_palace",
+        "invasion_victory",
+    ),
+    PieceType.ROOK: (),
+    PieceType.HORSE: ("horse_blocked_by_leg", "horse_straight_three", "horse_straight_three_move_only"),
+    PieceType.ELEPHANT: ("elephant_can_cross_river", "elephant_gain_jump_two_enemy_territory"),
+    PieceType.ADVISOR: ("advisor_can_leave_palace", "advisor_gain_straight_outside_palace"),
+    PieceType.CANNON: (),
+    PieceType.PAWN: (
+        "pawn_fast_move_before_enemy_territory",
+        "pawn_charge",
+        "pawn_three_line_capture",
+        "pawn_backward_at_base",
+        "pawn_resurrection",
+        "pawn_promotion",
+    ),
+    PieceType.GUARD: (),
+    PieceType.ARCHER: ("archer_enhanced_mode",),
+    PieceType.THUNDER: (),
+    PieceType.PATROL: (),
+}
+
+
+def piece_option_groups() -> dict[str, list[str]]:
+    """给三端 UI 用的棋子分组表（JSON 友好：list 而不是 tuple，空组不下发）。"""
+    return {kind.value: list(keys) for kind, keys in PIECE_OPTION_GROUPS.items() if keys}
+
+
 # 反向呈现的开关：**存储值 True 表示"削弱"**，界面勾选必须表示"增强"。
 #
 # 判据：这个键的 True 是否在描述"少了一种能力"。三条都符合 ——

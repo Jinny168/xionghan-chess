@@ -50,7 +50,14 @@ from xionghan_chess.core import puzzles as puzzle_chapters
 from xionghan_chess.core.ai import PUBLIC_DIFFICULTIES, normalize_difficulty
 from xionghan_chess.core.game import Game
 from xionghan_chess.core.model import Color, GameState, Move, PieceType
-from xionghan_chess.core.profiles import OPTION_DEPENDS_ON, PROFILES, display_value, profile_rule_values, stored_value
+from xionghan_chess.core.profiles import (
+    OPTION_DEPENDS_ON,
+    PIECE_OPTION_GROUPS,
+    PROFILES,
+    display_value,
+    profile_rule_values,
+    stored_value,
+)
 from xionghan_chess.core.setup import profile_slots
 from xionghan_chess.core.storage import game_from_document
 from xionghan_chess.i18n import normalize_language, t
@@ -305,55 +312,25 @@ class SettingsDialog(QDialog):
             general_layout.addWidget(check)
         rule_layout.addWidget(general)
 
+        # 这里只留展示元数据（标题 / 说明键）；规则开关键来自 core 的共享分组表。
         piece_definitions = {
-            PieceType.KING: (
-                "piece.king_label",
-                "piece_rule.king_long",
-                (
-                    "king_can_leave_palace",
-                    "king_diagonal_in_palace",
-                    "king_lose_diagonal_outside_palace",
-                    "invasion_victory",
-                ),
-            ),
-            PieceType.ROOK: ("piece.rook_label", "piece_rule.rook_long", ()),
-            PieceType.HORSE: (
-                "piece.horse_label",
-                "piece_rule.horse_long",
-                ("horse_blocked_by_leg", "horse_straight_three", "horse_straight_three_move_only"),
-            ),
-            PieceType.ELEPHANT: (
-                "piece.elephant_label",
-                "piece_rule.elephant_long",
-                ("elephant_can_cross_river", "elephant_gain_jump_two_enemy_territory"),
-            ),
-            PieceType.ADVISOR: (
-                "piece.advisor_label",
-                "piece_rule.advisor_long",
-                ("advisor_can_leave_palace", "advisor_gain_straight_outside_palace"),
-            ),
-            PieceType.CANNON: ("piece.cannon_label", "piece_rule.cannon_long", ()),
-            PieceType.PAWN: (
-                "piece.pawn_label",
-                "piece_rule.pawn_long",
-                (
-                    "pawn_fast_move_before_enemy_territory",
-                    "pawn_charge",
-                    "pawn_three_line_capture",
-                    "pawn_backward_at_base",
-                    "pawn_resurrection",
-                    "pawn_promotion",
-                ),
-            ),
-            PieceType.GUARD: ("piece.guard_label", "piece_rule.guard_long", ()),
-            PieceType.ARCHER: ("piece.archer_label", "piece_rule.archer_long", ("archer_enhanced_mode",)),
-            PieceType.THUNDER: ("piece.thunder_label", "piece_rule.thunder_long", ()),
-            PieceType.PATROL: ("piece.patrol_label", "piece_rule.patrol_long", ()),
+            PieceType.KING: ("piece.king_label", "piece_rule.king_long"),
+            PieceType.ROOK: ("piece.rook_label", "piece_rule.rook_long"),
+            PieceType.HORSE: ("piece.horse_label", "piece_rule.horse_long"),
+            PieceType.ELEPHANT: ("piece.elephant_label", "piece_rule.elephant_long"),
+            PieceType.ADVISOR: ("piece.advisor_label", "piece_rule.advisor_long"),
+            PieceType.CANNON: ("piece.cannon_label", "piece_rule.cannon_long"),
+            PieceType.PAWN: ("piece.pawn_label", "piece_rule.pawn_long"),
+            PieceType.GUARD: ("piece.guard_label", "piece_rule.guard_long"),
+            PieceType.ARCHER: ("piece.archer_label", "piece_rule.archer_long"),
+            PieceType.THUNDER: ("piece.thunder_label", "piece_rule.thunder_long"),
+            PieceType.PATROL: ("piece.patrol_label", "piece_rule.patrol_long"),
         }
         content = QWidget()
         content_layout = QVBoxLayout(content)
         self.piece_groups = {}
-        for kind, (title_key, description_key, rules) in piece_definitions.items():
+        for kind, (title_key, description_key) in piece_definitions.items():
+            rules = PIECE_OPTION_GROUPS.get(kind, ())
             group = QGroupBox(t(title_key, self.language))
             group_layout = QVBoxLayout(group)
             self.piece_groups[kind] = group
@@ -740,12 +717,27 @@ class ReplayDialog(QDialog):
         return bool(timer is not None and timer.isActive())
 
     def _sandbox_source(self) -> Game | None:
-        """G5：只从 `snapshots[-1]` 取源，构造失败即禁用；绝不把权威 Game 交出去。"""
+        """G5：只从 `snapshots[-1]` 取源，绝不把权威 Game 交出去。
+
+        构造失败时异常**上抛给调用方**：沙盘起不来必须说清原因，静默置灰等于把
+        "点了没反应"留给玩家。隔离语义不变 —— 这里产出的始终是 `clone()` 副本。
+        """
         if not self.snapshots:
             return None
+        return Game.from_state(self.snapshots[-1].clone(), self.options, setup=self.setup)
+
+    def _sandbox_build_failed(self, exc: Exception) -> None:
+        """沙盘副本构造失败：把原因告诉用户，并把状态行还给"进入沙盘"提示。"""
+        QMessageBox.warning(self, dl("沙盘不可用"), dlf("无法构造沙盘：{reason}", reason=exc))
+        self._refresh_sandbox_status()
+
+    def _build_sandbox(self) -> Game | None:
+        """取当前回看节点的沙盘副本；失败时告警并返回 None（绝不返回权威 Game）。"""
         try:
-            return Game.from_state(self.snapshots[-1].clone(), self.options, setup=self.setup)
-        except Exception:
+            source = self._sandbox_source()
+            return None if source is None else build_sandbox_game(source)
+        except Exception as exc:  # noqa: BLE001 —— 只读副本构造，失败必须说明原因
+            self._sandbox_build_failed(exc)
             return None
 
     def _on_sandbox_tab(self, index: int) -> None:
@@ -758,11 +750,11 @@ class ReplayDialog(QDialog):
         if self._sandbox_active or self._ai_thinking():
             self._refresh_sandbox_status()
             return
-        source = self._sandbox_source()
-        if source is None:
+        sandbox = self._build_sandbox()
+        if sandbox is None:
             self._refresh_sandbox_status()
             return
-        self._sandbox_game = build_sandbox_game(source)
+        self._sandbox_game = sandbox
         self._sandbox_active = True
         authoritative = getattr(self.parent(), "game", None)
         self._sandbox_source_history = len(authoritative.state.history) if authoritative else None
@@ -799,10 +791,10 @@ class ReplayDialog(QDialog):
     def _sandbox_reset(self) -> None:
         if not self._sandbox_active:
             return
-        source = self._sandbox_source()
-        if source is None:
-            return
-        self._sandbox_game = build_sandbox_game(source)
+        sandbox = self._build_sandbox()
+        if sandbox is None:
+            return  # 构造失败时保持当前沙盘不动（_build_sandbox 已提示原因）
+        self._sandbox_game = sandbox
         self.board.set_game(self._sandbox_game, Color.RED, True)
         self.board.interactive = True
         self._refresh_sandbox_status()
@@ -847,8 +839,9 @@ class ReplayDialog(QDialog):
         self.sandbox_hint.setText(text)
 
     def show_analysis(self) -> None:
-        # 阶段0 S0-C：analyze_game(40 ply) 原先在 GUI 线程同步跑，复盘窗直接冻结。
-        # 移到线程池，完成后经 Signal 回到 GUI 线程弹结果。
+        # 阶段0 S0-C：analyze_game 原先在 GUI 线程同步跑，复盘窗直接冻结。
+        # 移到线程池，完成后经 Signal 回到 GUI 线程弹结果；手数上限见
+        # workers.ANALYSIS_PLY_CAP（与 web/webapp 同值）。
         game = Game.from_state(self.snapshots[-1].clone(), self.options)
         game._snapshots = [item.to_dict() for item in self.snapshots[:-1]]
         worker = AnalysisWorker(game, self._analysis_cancel)
@@ -877,17 +870,23 @@ class ReplayDialog(QDialog):
             "mistake": dl("失误"),
             "blunder": dl("严重失误"),
         }
-        lines = ["  ".join(f"{labels[key]} {value}" for key, value in result["summary"].items()), ""]
+        lines = ["  ".join(f"{labels[key]} {value}" for key, value in result["summary"].items())]
+        # webapp 同口径：满上限时补一句「（仅分析前 N 手）」，不让玩家以为全谱都看过了。
+        capped = int(result.get("cappedPlies", 0))
+        if capped:
+            lines.append(dlf("（仅分析前 {n} 手）", n=capped))
+        lines.append("")
         report = build_report(result)
         lines.extend(report.lines)
         lines.append("")
+        # 呈现轻量非权威（P0-1）：逐手只留档位，不显示分值。
+        lines.append(dl("逐手档位（浅层参考）："))
         lines.extend(
             dlf(
-                "{ply}. {notation}  · {quality}  · 损失 {loss}",
+                "{ply}. {notation} · {quality}",
                 ply=item["ply"],
                 notation=item["notation"],
                 quality=labels[item["quality"]],
-                loss=item["scoreLoss"],
             )
             for item in result["moves"]
         )

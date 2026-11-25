@@ -42,10 +42,16 @@ def move_dict(move: Move | None) -> dict[str, Any] | None:
     }
 
 
+# 复盘分析手数上限：三端（桌面 / Webapp / web 服务端）统一到 120 的唯一真源。
+# 服务端显式传它、桌面 import 它；Webapp 的 `const CAP = 120` 由测试断言防漂，
+# 不另立第二份可覆盖值。
+ANALYSIS_PLY_CAP = 120
+
+
 def analyze_game(
     game: Game,
     difficulty: Difficulty | str = Difficulty.BEGINNER,
-    max_plies: int = 200,
+    max_plies: int = ANALYSIS_PLY_CAP,
     cancel: threading.Event | None = None,
 ) -> dict[str, Any]:
     """逐手复盘。`cancel` 被置位时**在下一手开始前**退出，返回已完成的部分。

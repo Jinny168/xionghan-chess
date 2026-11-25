@@ -93,7 +93,7 @@
 
 | 编号 | 改进 | 优先级 | 预期效果 | 实现要点 |
 |---|---|---|---|---|
-| **C-2** | **开关完整性守卫**（测试） | **P0（前置）** | 把"漏改一处"从**运行期静默**变成**提交即红** | 断言 `dataclasses.fields(RuleOptions)`（实测 **33 字段**）每个字段都出现在三端 UI 覆盖或显式豁免表；`PIECE_OPTION_GROUPS` 三处一致；locales 覆盖 `rule.<key>` + `_short`。**0.5 人日**。证据：三份硬编码分组今天内容**完全一致**（6 组 / 19 键同形：king4·horse3·elephant2·advisor2·pawn7·archer1），说明它靠人工同步，漏改即静默漂移 → **守卫必须先于删硬编码落地** |
+| **C-2** | **开关完整性守卫**（测试） | **P0（前置）** | 把"漏改一处"从**运行期静默**变成**提交即红** | 断言 `dataclasses.fields(RuleOptions)`（立项时实测 **33 字段**；后续删至 32，见 `core/profiles.py`）每个字段都出现在三端 UI 覆盖或显式豁免表；`PIECE_OPTION_GROUPS` 三处一致；locales 覆盖 `rule.<key>` + `_short`。**0.5 人日**。证据：三份硬编码分组今天内容**完全一致**（立项时为 6 组 / 19 键同形：king4·horse3·elephant2·advisor2·pawn7·archer1；后续 pawn 由 7 变 6，现为 6 组 / 18 键，见 `tests/test_option_wiring.py` 定稿指纹），说明它靠人工同步，漏改即静默漂移 → **守卫必须先于删硬编码落地** |
 | C-1 | 棋子→开关分组上移 `core` 并下发 | P1 | 新增开关触点 7 → 4，消除三端漂移 | `profiles.py` 加 `PIECE_OPTION_GROUPS`；`/api/profiles` 增字段；两端删硬编码（现 3 份：`piece_atlas.py:65`、`dialogs.py:171`、`app.js:72`）。1.0 人日。**依赖 C-2 先行** |
 | C-3 | 视觉令牌单一来源（`design_tokens.json`） | P1 | 配色改一处生效，两端天然一致 | 桌面读、web 生成 `:root{}`；用既有 `css_snapshot.py` / `theme_pixel_baseline.py` 验回归，**不新建度量**。1.5 人日 |
 | C-4 | 性能基准统一入口 | P2 | 性能类改进有同一把尺 | `scripts/bench_all.py` **只做聚合**（启动/legal_moves/position_key/渲染），复用 `test_performance.py` 口径。0.5 人日 |

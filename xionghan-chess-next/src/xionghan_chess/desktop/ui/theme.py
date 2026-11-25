@@ -165,12 +165,32 @@ _BANNER = {"light": ("#7f1d1d", "#ffffff"), "dark": ("#f2b8b5", "#410002")}
 _DANGER = {"light": "#7f1d1d", "dark": "#f2b8b5"}
 _SECONDARY = {"light": "#5c5048", "dark": "#c6beb1"}
 _DISABLED = {"light": ("#7d7368", "#f0e9dc"), "dark": ("#948a7d", "#2f2a24")}
+
+# P1-10 桌面反馈层的三级色（第四级 error **复用** `_BANNER`，不另造第五套红）。
+#
+# 为什么 error 复用 banner：同一个界面里出现两种红，玩家读不出"哪个更严重"；
+# 而 banner 那套红已经在将军/终局场景里建立了"要立刻看"的语义。
+#
+# 实测对比比（WCAG 2.x；口径 `(L_亮+0.05)/(L_暗+0.05)`，正文基准 4.5:1，
+# 测量方法 `ui/contrast.py:contrast_ratio(fg, bg)`，同进程同公式：
+#     success 浅色 7.92:1 ｜ 深色 11.71:1
+#     warn    浅色 7.41:1 ｜ 深色 10.63:1
+#     info    浅色 8.57:1 ｜ 深色 10.81:1
+#     error   浅色 10.02:1 ｜ 深色 10.03:1（即 banner）
+# 三对都落在 AAA（≥7:1），因为反馈条是**一次性读一句就走**的文字，不留重读机会。
+_SUCCESS = {"light": ("#1f5c3a", "#ffffff"), "dark": ("#a6e3bd", "#00210f")}
+_WARN = {"light": ("#7a4b00", "#ffffff"), "dark": ("#f6c877", "#2a1c00")}
+_INFO = {"light": ("#1d4f7a", "#ffffff"), "dark": ("#a8d3f0", "#0b1d2b")}
+
 for _name, _palette in THEMES.items():
     _mode = "dark" if _name == "dark" else "light"
     _palette["banner_bg"], _palette["banner_fg"] = _BANNER[_mode]
     _palette["danger"] = _DANGER[_mode]
     _palette["secondary"] = _SECONDARY[_mode]
     _palette["disabled_fg"], _palette["disabled_bg"] = _DISABLED[_mode]
+    _palette["success_bg"], _palette["success_fg"] = _SUCCESS[_mode]
+    _palette["warn_bg"], _palette["warn_fg"] = _WARN[_mode]
+    _palette["info_bg"], _palette["info_fg"] = _INFO[_mode]
 
 
 # 缩略图/角标画在**固定浅色美术底**上，不随主题走

@@ -1,5 +1,13 @@
 # 三种对弈模式：定义、实现对照与验收清单
 
+> **口径说明（2026-11-25）**：本文标题与 §1 的「三种模式」是**规则语义 / 定义**口径；对外实际是
+> **5 个档案**（`src/xionghan_chess/core/profiles.py`）：`desktop_complete` 完整、`desktop_classic`
+> 经典、`web` 精简（减子 22 枚 + 规则同完整）、`desktop_light` 轻量（全子 + 关三条规则：将入宫获胜 /
+> 兵复活 / 兵三连吃）、`traditional` 传统 9×10。**规则语义集是 3 套**（`COMPLETE` / `CLASSIC` /
+> `LIGHT`，`WEB_OPTIONS = COMPLETE_OPTIONS` 复用）。**「精简」≠「轻量」**：22 枚子属 `web` 精简档，
+> **新装默认是 `desktop_light` 轻量档（全子）**。历史 CHANGELOG 把新装默认称作「精简」的措辞与代码
+> 不一，以代码为准；详见 `docs/PLAY_GAP_2026-11-25.md` N-2 与 `docs/ITERATION_PLAN_2026-11-25.md` §2 F-1。
+
 > 本文是三种 13×13 模式的**定义文件**。规则细节见 `PIECE_RULES.md`；
 > 这里只回答"每种模式有什么棋子、开哪些规则、棋子是什么强度"。
 > 实现基线：`src/xionghan_chess/core/profiles.py` 的 `COMPLETE_OPTIONS` / `CLASSIC_OPTIONS` / `WEB_OPTIONS`；

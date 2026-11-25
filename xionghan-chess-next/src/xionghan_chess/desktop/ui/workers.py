@@ -5,8 +5,9 @@ Widget** —— 因此可以被无显示环境（CI offscreen）安全导入与�
 
 现状：
 - `AIWorker`      —— AI 搜索（长任务；实测 HARD 1.481s，而 refresh tick 仅 1.28ms）
+- `HintWorker`    —— 常规对局的下一步提示（同一条搜索，但**只回着法、不落子**）
 - `HttpWorker`    —— 建连 / 云同步的阻塞 HTTP（原在 GUI 线程跑，最长冻结 15s）
-- `AnalysisWorker`—— 复盘分析（40 ply；原在 GUI 线程同步跑）
+- `AnalysisWorker`—— 复盘分析（≤120 ply；原在 GUI 线程同步跑）
 
 它们都通过 `signals.finished/failed` 把结果送回 GUI 线程（跨线程发射 +
 AutoConnection，Qt 官方语义）。
@@ -19,9 +20,14 @@ import threading
 from PySide6.QtCore import QObject, QRunnable, Signal
 
 from xionghan_chess.core.ai import ChessAI, Difficulty
-from xionghan_chess.core.analysis import analyze_game
+from xionghan_chess.core.analysis import ANALYSIS_PLY_CAP, analyze_game
 from xionghan_chess.core.game import Game
 from xionghan_chess.desktop import net
+
+# 复盘分析的手数上限从 core.analysis 导入（唯一真源），与 webapp 的
+# `webapp/js/ui/app.js:const CAP = 120` 及 web 服务端 `/api/analysis` 的显式实参同值：
+# 三端统一到 120，都只分析前 N 手，并在**真被截断**时提示用户。
+# web 服务端原先走默认的 200 手且没有 capped 提示，现已对齐；此处不再保留第二份字面量。
 
 
 class WorkerSignals(QObject):
@@ -51,6 +57,31 @@ class AIWorker(QRunnable):
             self.signals.finished.emit((self.ai.choose_move(self.game, self.cancel), self.cancel))
         except Exception as exc:  # noqa: BLE001 —— 必须把任何失败转成信号回到 GUI 线程
             self.signals.failed.emit((str(exc), self.cancel))
+
+
+class HintWorker(QRunnable):
+    """常规对局的「下一步提示」（P0-2）：纯本地算一步推荐着法，**不落子**。
+
+    为什么不复用 `AIWorker`：
+    - `AIWorker.finished` 在 app 层**连着落子**（那是 AI 的回合）；提示只回一个着法，
+      由调用方决定怎么展示。复用等于按一下提示就替玩家走了一步。
+    - 载荷语义也不同：这里只发 `Move | None`，不带 cancel 事件 —— 提示被取消就是
+      "没有结果"，没有"取消后如何收尾"这层语义。
+    克隆棋盘的理由与 `AIWorker` 一致：搜索期间 GUI 线程可能继续改 `Game`。
+    """
+
+    def __init__(self, game: Game, cancel: threading.Event | None = None) -> None:
+        super().__init__()
+        self.game = Game.from_state(game.state.clone(), game.options)
+        self.ai = ChessAI(Difficulty.BEGINNER)
+        self.cancel = cancel
+        self.signals = WorkerSignals()
+
+    def run(self) -> None:
+        try:
+            self.signals.finished.emit(self.ai.choose_move(self.game, self.cancel))
+        except Exception as exc:  # noqa: BLE001 —— 失败也要回到 GUI 线程，不能静默
+            self.signals.failed.emit(str(exc))
 
 
 def http_json_blocking(url: str, payload: dict | None = None, method: str = "GET", token: str = "") -> object:
@@ -91,6 +122,11 @@ class AnalysisWorker(QRunnable):
 
     def run(self) -> None:
         try:
-            self.signals.finished.emit(analyze_game(self.game, Difficulty.BEGINNER, 40, self.cancel))
+            result = analyze_game(self.game, Difficulty.BEGINNER, ANALYSIS_PLY_CAP, self.cancel)
+            # 棋谱比上限长时，把"只分析了前 N 手"随载荷交给 GUI 提示（webapp 同口径）。
+            plies = len(self.game.state.history)
+            if plies > ANALYSIS_PLY_CAP:
+                result = dict(result, cappedPlies=ANALYSIS_PLY_CAP)
+            self.signals.finished.emit(result)
         except Exception as exc:  # noqa: BLE001
             self.signals.failed.emit(str(exc))

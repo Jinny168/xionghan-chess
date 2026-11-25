@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#781f1f">
   <title>匈汉象棋</title>
   <link rel="icon" href="/assets/icon.png">
-  <link rel="stylesheet" href="/css/app.css?v=2.1.1">
+  <link rel="stylesheet" href="/css/app.css?v=2.2.2">
 </head>
 <body>
   <header class="topbar">
@@ -61,7 +61,6 @@
         <div class="avatar">汗</div><div><strong>黑方</strong><span id="blackStatus">等待落座</span></div>
         <time id="blackClock">20:00</time>
       </section>
-      <section class="captured-panel"><h2>黑方损失</h2><div id="blackCaptured" class="captured"></div></section>
       <section class="mode-panel">
         <label>模式<select id="modeSelect"><option value="ai">人机对战</option><option value="local">双人同机</option><option value="online">网络对战</option></select></label>
         <label>规则档案<select id="profileSelect"><option value="web">精简模式</option><option value="desktop_light">轻量模式</option><option value="desktop_classic">经典模式</option><option value="desktop_complete">完整模式</option><option value="traditional">传统象棋</option></select></label>
@@ -109,8 +108,13 @@
           <div class="chat-input-row"><input id="chatInput" maxlength="80" placeholder="输入聊天内容"><button id="sendChatButton">发送</button></div>
         </div>
       </section>
-      <section class="captured-panel"><h2>红方损失</h2><div id="redCaptured" class="captured"></div></section>
-      <section class="room-card"><span>房间</span><strong id="roomCode">离线</strong><span id="spectatorCount">0 人观战</span><button class="icon-button" id="copyRoomButton" title="复制房间号">⧉</button></section>
+      <details class="side-details" id="capturedDetails"><summary>双方损失</summary>
+        <section class="captured-panel"><h2>红方损失</h2><div id="redCaptured" class="captured"></div></section>
+        <section class="captured-panel"><h2>黑方损失</h2><div id="blackCaptured" class="captured"></div></section>
+      </details>
+      <details class="side-details" id="roomDetails"><summary>房间</summary>
+        <section class="room-card"><span>房间</span><strong id="roomCode">离线</strong><span id="spectatorCount">0 人观战</span><button class="icon-button" id="copyRoomButton" title="复制房间号">⧉</button></section>
+      </details>
     </aside>
   </main>
 
@@ -166,7 +170,7 @@
   </dialog>
   <dialog id="handicapDialog" class="feature-dialog"><div class="dialog-title"><h2>登场棋子配置</h2><button class="icon-button" data-close-dialog="handicapDialog">×</button></div><p class="dialog-note">双方登场数量必须相同，主帅固定登场。</p><div class="handicap-columns"><fieldset><legend>红方 <output id="redPieceCount"></output></legend><div id="redPieceSlots" class="piece-slot-list"></div></fieldset><fieldset><legend>黑方 <output id="blackPieceCount"></output></legend><div id="blackPieceSlots" class="piece-slot-list"></div></fieldset></div><menu><button id="resetHandicapButton">全部登场</button><button id="applyHandicapButton" class="primary">应用</button></menu></dialog>
   <dialog id="accountDialog" class="feature-dialog"><div class="dialog-title"><h2>账号与云同步</h2><button class="icon-button" data-close-dialog="accountDialog">×</button></div><div id="accountGuest"><label>用户名<input id="accountUsername" maxlength="32" autocomplete="username"></label><label>密码<input id="accountPassword" type="password" minlength="8" autocomplete="current-password"></label><label>显示名称<input id="accountDisplayName" maxlength="32"></label><div class="dialog-actions"><button id="loginButton" class="primary">登录</button><button id="registerButton">注册</button></div></div><div id="accountProfile" hidden><div class="account-summary"><strong id="accountName"></strong><span>三端数据已连接</span></div><label>显示名称<input id="profileDisplayName" maxlength="32"></label><label>头像 URL<input id="profileAvatarUrl" maxlength="500" type="url" placeholder="https://..."></label><div class="dialog-actions"><button id="saveProfileButton" class="primary">保存资料</button><button id="cloudSaveButton">上传当前棋局</button><button id="syncPreferencesButton">同步偏好</button><button id="logoutButton">退出登录</button></div><h3>云端棋谱</h3><div id="cloudGameList" class="cloud-game-list"></div></div></dialog>
-  <dialog id="analysisDialog" class="feature-dialog analysis-dialog"><div class="dialog-title"><h2>AI 棋局分析</h2><button class="icon-button" data-close-dialog="analysisDialog">×</button></div><div id="analysisLoading" class="analysis-loading">正在逐步分析棋局...</div><div id="analysisContent" hidden><div id="analysisMoveList" class="analysis-moves"></div><p id="analysisNote" style="font-size:12px;color:#776653;margin:10px 0 0"><button type="button" id="analysisNoteToggle" style="border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer" aria-expanded="false" aria-controls="analysisNoteHelper">浅层参考</button><span id="analysisNoteHelper" hidden>依据本机浅层搜索，仅供参考</span></p></div></dialog>
+  <dialog id="analysisDialog" class="feature-dialog analysis-dialog"><div class="dialog-title"><h2>AI 棋局分析</h2><button class="icon-button" data-close-dialog="analysisDialog">×</button></div><div id="analysisLoading" class="analysis-loading">正在逐步分析棋局...</div><div id="analysisContent" hidden><div id="analysisMoveList" class="analysis-moves"></div><p id="analysisCapped" style="font-size:12px;color:#776653;margin:8px 0 0" hidden></p><p id="analysisNote" style="font-size:12px;color:#776653;margin:10px 0 0"><button type="button" id="analysisNoteToggle" style="border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer" aria-expanded="false" aria-controls="analysisNoteHelper">浅层参考</button><span id="analysisNoteHelper" hidden>依据本机浅层搜索，仅供参考</span></p></div></dialog>
   <dialog id="trainingDialog" class="feature-dialog training-dialog"><div class="dialog-title"><h2>残局与排局训练</h2><button class="icon-button" data-close-dialog="trainingDialog">×</button></div><div class="training-filters"><button id="dailyPuzzleButton" class="primary">每日一题</button><button id="streakPuzzleButton" data-streak-start>连对挑战</button><button data-puzzle-level="beginner" class="active">入门</button><button data-puzzle-level="advanced">进阶</button><button data-puzzle-level="master">大师</button><button id="importPuzzleButton">导入题库</button><input id="puzzleFileInput" type="file" accept=".json" hidden></div><div id="puzzleList" class="puzzle-list"></div><div id="puzzleDetail" hidden><div id="puzzleInfo"></div><div class="dialog-actions"><button id="puzzleStartButton" class="primary">开始训练</button><button id="puzzleHintButton">步骤提示</button><button id="streakSkipButton" hidden>跳过本题</button><button id="puzzleReviewButton">习题复盘</button></div></div></dialog>
   <dialog id="onboardDialog" class="feature-dialog onboard-dialog">
     <div class="dialog-title"><h2 id="onboardTitle">怎么开始</h2>
@@ -205,7 +209,7 @@
     <h3>开始对局</h3><p>可选择人机对战、双人同机或网络对战。双人同机模式会按当前轮次自动允许红黑双方在同一设备操作。</p>
     <h3>基本操作</h3><ol><li>点击或拖拽棋子完成走棋。</li><li>可在设置中分别控制选中高亮、合法落点与吃子提示。</li><li>暂停会同步停止三端计时，继续后恢复当前方计时。</li></ol>
     <h3>棋谱与复盘</h3><p>使用“文件”菜单保存、导出或读取 <code>.xhgame</code> 棋局。复盘窗口支持跳转、逐步查看、自动播放和本地棋谱库。</p>
-    <h3>规则提示</h3><ul><li>射默认使用弱化星轨移动，加强选项可扩展其能力。</li><li>斜向路径必须逐段通过夹逼检查，仕、士、相、象等同样适用。</li><li>兵卒进入敌境前可快速行军，最大一步抵达敌境边缘。</li></ul>
+    <h3>规则提示</h3><ul><li>经典档不是标准象棋：它仍有尉/射/檑/巡与「将入敌九宫即胜」，但相、马、兵的走法回到传统口径。</li><li>两个主帅不能在没有棋子遮挡的同一条线上照面；走成照面等于把自己送将，这一步会被拦下。</li><li>射默认使用弱化星轨移动，加强选项可扩展其能力。</li><li>斜向路径必须逐段通过夹逼检查，仕、士、相、象等同样适用。</li><li>兵卒进入敌境前可快速行军，最大一步抵达敌境边缘。</li></ul>
     <h3>快捷键</h3><p><code>Ctrl+N</code> 新建，<code>Ctrl+O</code> 读取，<code>Ctrl+S</code> 导出，<code>Ctrl+Z</code> 悔棋，<code>Ctrl+R</code> 复盘，<code>F11</code> 全屏。</p>
     <h3>反馈支持</h3><p><a href="https://github.com/Jinny168/xionghan-chess/issues" target="_blank" rel="noreferrer">GitHub Issues</a> · 2741526119@qq.com</p>
   </div></dialog>
@@ -213,8 +217,8 @@
   <dialog id="aboutDialog" class="text-dialog"><div class="dialog-title"><h2>关于匈汉象棋</h2><button class="icon-button" data-close-dialog="aboutDialog">×</button></div><div class="text-dialog-body"><p><strong id="aboutVersion">版本 —</strong></p><p>匈汉象棋是一款采用 13 × 13 扩展棋盘、融合匈奴与东汉文化元素的中国象棋创新变体，在传统象棋核心博弈结构上加入特色棋子与可配置规则。</p><h3>当前版本</h3><ul><li>Windows、Web 与 Android 三端支持。</li><li>共享 Python 规则、AI、联机协议和 <code>.xhgame</code> 棋谱格式。</li><li>支持账号云同步、等量让子、观战、棋盘翻转、AI 分析和分级训练。</li></ul><h3>开发信息</h3><p>开发者：靳中原<br>项目主页：<a href="https://github.com/Jinny168/xionghan-chess" target="_blank" rel="noreferrer">github.com/Jinny168/xionghan-chess</a><br>反馈邮箱：2741526119@qq.com</p><p>感谢原项目积累的规则、素材、菜单设计和玩家反馈，也感谢开源社区提供的开发工具与音频资源。</p></div></dialog>
   <div id="streakBanner" role="status" hidden style="position:fixed;right:18px;bottom:18px;z-index:20;max-width:min(340px,86vw);padding:14px 16px;border:1px solid var(--line-strong);background:var(--surface,#fffaf0);color:var(--ink);box-shadow:var(--shadow);font-size:13px;line-height:1.7"><pre id="streakBannerBody" style="margin:0 0 10px;white-space:pre-line;font:inherit"></pre><button id="streakAgainButton" class="primary">再来一局</button></div>
   <div id="toast" class="toast" role="status"></div>
-  <script src="/js/star-hints.js?v=2.1.1"></script>
-  <script type="module" src="/js/app.js?v=2.1.1"></script>
+  <script src="/js/star-hints.js?v=2.2.2"></script>
+  <script type="module" src="/js/app.js?v=2.2.2"></script>
   <script type="module">
     import { openAtlas } from './js/atlas.js';
     document.getElementById('atlasButton').addEventListener('click', () => openAtlas());

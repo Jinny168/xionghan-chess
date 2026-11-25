@@ -1,7 +1,7 @@
 # 文档索引
 
 > 索引本身不是权威内容，只负责指路。**archive 组为历史快照，只读不改，不代表当前实现。**
-> 最后核对日期：2026-11-11，对应 HEAD `4d88879`。
+> 最后核对日期：2026-11-25，对应 HEAD `be1264a`。
 
 ## current · 维护中（可更新）
 
@@ -33,8 +33,11 @@
 | [ANDROID.md](ANDROID.md) | Android 客户端 | ✅ 权威 |
 | [WEBSOCKET_PROTOCOL.md](WEBSOCKET_PROTOCOL.md) | WebSocket 协议契约（现行，随服务端实现更新） | ✅ 权威 |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | 常见问题 | ✅ 权威 |
-| [CHANGELOG_2.1.1.md](CHANGELOG_2.1.1.md) | 最近一份更新日志（当前 `__version__` = 2.1.1） | ✅ 当前 |
-| [CHANGELOG_2.1.0.md](CHANGELOG_2.1.0.md) | 上一版更新日志（2.1.0，批次 A–E） | 参考 |
+| [CHANGELOG_2.2.2.md](CHANGELOG_2.2.2.md) | 最近一份更新日志（当前 `__version__` = 2.2.2） | ✅ 当前 |
+| [CHANGELOG_2.2.1.md](CHANGELOG_2.2.1.md) | 上一版更新日志（2.2.1） | 参考 |
+| [CHANGELOG_2.2.0.md](CHANGELOG_2.2.0.md) | 历史更新日志（2.2.0） | 参考 |
+| [CHANGELOG_2.1.1.md](CHANGELOG_2.1.1.md) | 历史更新日志（2.1.1，批 I） | 参考 |
+| [CHANGELOG_2.1.0.md](CHANGELOG_2.1.0.md) | 历史更新日志（2.1.0，批次 A–E） | 参考 |
 | [CHANGELOG_1.8.2.md](CHANGELOG_1.8.2.md) | 历史更新日志（1.8.2） | 参考 |
 
 ## ui · 界面与体验

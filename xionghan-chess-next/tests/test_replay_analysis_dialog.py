@@ -24,6 +24,7 @@ from PySide6.QtCore import QThreadPool  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from xionghan_chess.core.game import Game  # noqa: E402
+from xionghan_chess.desktop.ui import workers as workers_module  # noqa: E402
 from xionghan_chess.desktop.ui.dialogs import ReplayDialog  # noqa: E402
 from xionghan_chess.desktop.ui.workers import AnalysisWorker  # noqa: E402
 
@@ -81,3 +82,57 @@ def test_no_qmainwindow_only_api_in_qdialog_classes() -> None:
     )
     offenders = [f"{name}:{token}" for name, body in classes for token in banned if token in body]
     assert not offenders, "QDialog 里误用了 QMainWindow-only API：" + "；".join(offenders)
+
+
+# ── 分析手数上限：三端同值，且封顶时要有可见提示 ─────────────────────────────
+
+
+def _played(plies: int) -> Game:
+    game = Game()
+    for index in range(plies):
+        moves = game.rules.legal_moves(game.state)
+        game.move(moves[index % len(moves)])
+    return game
+
+
+def test_analysis_cap_matches_web_and_webapp() -> None:
+    """桌面从 40 提到 120：与 webapp 的 `const CAP = 120` 同值，不许再漂。"""
+    assert workers_module.ANALYSIS_PLY_CAP == 120
+    webapp = (ROOT / "webapp" / "js" / "ui" / "app.js").read_text(encoding="utf-8")
+    assert "const CAP = 120;" in webapp, "webapp 的上限变了：桌面常量要跟着同步"
+
+
+def test_analysis_worker_flags_capped_game(monkeypatch) -> None:
+    """棋谱长于上限时，载荷要带 `cappedPlies`，否则界面无法提示"只看了前 N 手"。"""
+    monkeypatch.setattr(workers_module, "ANALYSIS_PLY_CAP", 4)
+    monkeypatch.setattr(
+        workers_module,
+        "analyze_game",
+        lambda game, difficulty, cap, cancel: {"analyzedPlies": cap, "summary": {}, "moves": []},
+    )
+    received: list[object] = []
+    worker = AnalysisWorker(_played(6))
+    worker.signals.finished.connect(received.append)
+    worker.run()
+
+    assert received, "worker 没有发出结果"
+    payload = received[-1]
+    assert isinstance(payload, dict)
+    assert payload["cappedPlies"] == 4
+
+
+def test_analysis_worker_omits_cap_flag_for_short_game(monkeypatch) -> None:
+    """没触顶时不加标记：短棋局不该出现"仅分析前 N 手"。"""
+    monkeypatch.setattr(
+        workers_module,
+        "analyze_game",
+        lambda game, difficulty, cap, cancel: {"analyzedPlies": 2, "summary": {}, "moves": []},
+    )
+    received: list[object] = []
+    worker = AnalysisWorker(_played(2))
+    worker.signals.finished.connect(received.append)
+    worker.run()
+
+    payload = received[-1]
+    assert isinstance(payload, dict)
+    assert "cappedPlies" not in payload
