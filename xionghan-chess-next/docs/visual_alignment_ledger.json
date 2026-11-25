@@ -148,7 +148,7 @@
       "unit": "mix",
       "compare": false,
       "verdict": "form",
-      "note": "桌面：ObjectBounding 径向渐变（外径 1.30r、无硬边）；web 旧树：canvas 固定 blur 5px + offsetY 2px（**不随格子缩放**，小盘或高 DPI 下投影比例失控）；webapp：blur 0.42r、offsetY 0.14r（随尺寸缩放）。",
+      "note": "桌面：ObjectBounding 径向渐变（外径 1.30r、无硬边）；web 旧树：canvas 固定 blur 5px + offsetY 2px（**不随格子缩放**，小盘或高 DPI 下投影比例失控）；webapp：blur 0.42r、offsetY 0.10r（随尺寸缩放）。",
       "ends": {
         "desktop": {
           "lit": "PIECE_SHADOW_RATIO = {}",

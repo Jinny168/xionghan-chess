@@ -65,7 +65,7 @@ py -3.11 -m venv .venv
 内置题库、棋谱回放、本地棋谱库与棋子图谱。
 
 - 详细架构与功能：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- 三档 AI 与标定结论：[docs/AI_TIERS.md](docs/AI_TIERS.md)（三档参数、S4 重标定、K1–K5 契约、K4 出带未认证、K5 待人工试玩）
+- 三档 AI 与标定结论：[docs/AI_TIERS.md](docs/AI_TIERS.md)（三档参数、S4 重标定、K1–K5 契约、K4 出带未认证、K5 人工试玩已于 2026-11-23 裁定废弃、仍为「未测」，见 [docs/K5_PLAYTEST_RECORD.md](docs/K5_PLAYTEST_RECORD.md) 顶部）
 - 全部文档索引：[docs/README.md](docs/README.md)
 
 ## 二、三端构建
@@ -158,7 +158,7 @@ xionghan-chess-next/
 - **Web 端不独立承载规则**：浏览器端是服务端规则的投影，合法走法、AI 与终局判定都发生在 Python 服务内，因此 Web 端必须连着服务端才能下棋。
 - **Android 端内置离线规则镜像**：APK 内置一份 `offline.js` 规则，用于“双人同机”离线对局；该镜像需要与 Python 核心规则保持一致（由跨引擎对拍测试守护）。
 - **AI 对外三档**：`beginner`（上限 2.0 s）· `medium`（上限 5.0 s）· `hard`（上限 12.0 s）。典型耗时由 `core/ai.py` 的 `EXPECTED_MOVE_SECONDS` 给出：**0.7 / 3.0 / 7.0 s**（桌面读条与看门狗读同一组常量，改数值只改一处）；文案承诺的是上限而非典型值。
-- **内部档位**：`easy` / `expert` / `master` 保留配置与 locale 键，仅用于旧存档兼容与 benchmark（`master` 走 MCTS，不对玩家提供）；旧配置自动映射 `easy→medium`、`expert/master→hard`。
+- **内部档位**：`easy` / `expert` / `master` 保留配置与 locale 键，仅用于旧存档兼容与 benchmark（`master` 走 MCTS，不对玩家提供）；旧配置自动映射 `easy→beginner`、`expert/master→hard`。
 - **档位验收现状（不要把未达标写成已达标）**：n=64 对拍**已执行**——得分率点估计 **入门 0.2109 / 中级 0.7891**，中级一侧**出设计带 `[0.65, 0.75]`，`contractPass=false`，不可认证**；**K3-a 计数在预授权区间内，但「最长连续送子 ≤2 手」未达标（实测 3–4 手）**；**K5（新手首次上手的人工试玩）未测**。详见 [docs/AI_TIERS.md](docs/AI_TIERS.md)。
 - **内置题解规模有限**：题解集尚小，仍在补充中。
 

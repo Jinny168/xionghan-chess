@@ -81,14 +81,19 @@ transitions 19,197,323 = positionCounts 12,342,963 + 其余 transitions[] 6,854,
   加 `eol=lf`，从根上杜绝 CRLF 入库。重生成并提交的 manifest 其 `rulesHash` 与 LF 归一化
   哈希逐字节相等，本地 A/B/C 全过、CI 同口径通过。
 
-## 5. 桌面 `prefers-reduced-motion` 无系统级入口（未修，待办）
+## 5. 桌面 `prefers-reduced-motion` 系统级入口（API 可用，桌面未接入；本轮裁定不做）
 
-- **现象**：桌面端读不到 Windows「在 Windows 中显示动画」开关。PySide6 6.12.0 的
-  `QStyleHints` 实测未暴露 reduced-motion / 关闭动效属性（仅 `colorScheme`、`useHoverEffects`
-  等），Qt 平台主题也读不到该系统开关。
-- **当前处置**：桌面暂以既有用户开关 `config.animations` 为准；系统级入口列为待办，
-  **不臆造一个开关充数**。注释见 `src/xionghan_chess/desktop/ui/board_widget.py` 常量段。
-- **解除条件**：待 Qt 暴露对应平台属性，或补 Windows 注册表 / 主题读取后接入。
+- **口径更正（2026-11-25）**：原记载「`QStyleHints` 实测未暴露 reduced-motion 属性」已过期，该结论现已不成立。
+  PySide6 / Qt 6.12.0 实测：`app.styleHints().accessibility()` 返回 `QAccessibilityHints`，
+  其公开成员含 `motionPreference()`（枚举 `NoPreference` / `ReducedMotion`）与
+  `motionPreferenceChanged` 信号，Windows 平台插件已实现。证据见 `docs/ARCH_GAP_2026-11-25.md` §6.1。
+- **当前处置**：**桌面尚未接入**。桌面仍以既有用户开关 `config.animations` 为准，
+  **不臆造一个开关充数**；注释见 `src/xionghan_chess/desktop/ui/board_widget.py` 常量段。
+- **本轮裁定**：不做接入（见 `docs/ITERATION_PLAN_2026-11-25.md` §0 / §3）。缺的是 **Windows 真机 A/B**：
+  offscreen 环境下 `motionPreference()` 恒为 `NoPreference`；需在真机开/关「在 Windows 中显示动画」
+  各读一次，确认返回值与变更信号后再决定是否接入。
+- **解除条件**：拿到 Windows 真机 A/B 证据（开/关两态输出）后再评估接入；接入时沿用
+  Web/Webapp「系统偏好为独立否决项、不写回用户配置」口径。
 
 ## 6. git 缺失导致可复现性守卫静默跳过（已闭环，commit `f059f04`）
 
