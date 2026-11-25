@@ -65,7 +65,7 @@ py -3.11 -m venv .venv
 内置题库、棋谱回放、本地棋谱库与棋子图谱。
 
 - 详细架构与功能：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- 三档 AI 与标定结论：[docs/AI_TIERS.md](docs/AI_TIERS.md)（三档参数、S4 重标定、K1–K5 契约、K4 出带未认证、K5 人工试玩已于 2026-11-23 裁定废弃、仍为「未测」，见 [docs/K5_PLAYTEST_RECORD.md](docs/K5_PLAYTEST_RECORD.md) 顶部）
+- 三档 AI 与标定结论：[docs/AI_TIERS.md](docs/AI_TIERS.md)（三档参数、S4 重标定、K1–K5 契约、K4 出带未认证、K5 未测且人工试玩已裁定废弃，不作入门档已验收声明）
 - 全部文档索引：[docs/README.md](docs/README.md)
 
 ## 二、三端构建

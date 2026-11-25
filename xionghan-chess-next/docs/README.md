@@ -1,14 +1,14 @@
 # 文档索引
 
 > 索引本身不是权威内容，只负责指路。**archive 组为历史快照，只读不改，不代表当前实现。**
-> 最后核对日期：2026-11-25，对应 HEAD `fc2affb`。
+> 最后核对日期：2026-11-25，对应 HEAD `be1264a`。
 
 ## current · 维护中（可更新）
 
 | 文件 | 用途 | 是否权威 |
 |---|---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 架构与功能说明（含三档 AI、WASM 结论、离线数据 codegen） | ✅ 维护中 |
-| [AI_TIERS.md](AI_TIERS.md) | 三档参数、S4 重标定、K1–K5 契约（K5 人工试玩已于 2026-11-23 裁定废弃，仍为「未测」，见 [K5_PLAYTEST_RECORD.md](K5_PLAYTEST_RECORD.md) 顶部）、标定纪律（判定 v2） | ✅ 维护中 |
+| [AI_TIERS.md](AI_TIERS.md) | 三档参数、S4 重标定、K1–K5 契约、标定纪律（判定 v2） | ✅ 维护中 |
 | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | 已知问题与未完成实测登记 | ✅ 维护中 |
 | [WASM_DECISION.md](WASM_DECISION.md) | WASM 可行性结论、证据与重开条件 | ✅ 维护中 |
 | [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md) | 对标基准与改进计划（S1–S5 路线图载体） | ✅ 维护中 |
