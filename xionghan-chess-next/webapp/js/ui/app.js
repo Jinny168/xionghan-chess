@@ -17,6 +17,7 @@ import * as net from '../net.js';
 import * as cloud from './cloud.js';
 import { BoardRenderer } from './board.js';
 import { archerAnchorRays } from './star_hints.js';
+import { withExplanation, hintAt } from './puzzle_explanation.js';
 import { resolveRemoteOptions } from './remote-options.js';
 import { pickDaily, todayLocal, readRecord, saveRecord, lazyStreak, solveToday } from './daily.js';
 import * as sound from './sound.js';
@@ -1065,8 +1066,8 @@ function hint() {
     // 星轨几何层由 render() 的 `&& !app.puzzle` 守卫统一屏蔽，与 scored 无关，勿改。
     if (app.puzzle.scored) return;
     app.puzzle.hints = (app.puzzle.hints || 0) + 1; // 章节闯关：文字提示计入扣分
-    const list = app.puzzle.data.hints || [];
-    const text = list[Math.min(app.puzzle.step, list.length - 1)] || app.puzzle.data.desc;
+    // hints 在开题时已追加解析作为最后一条；这里只揭示，不额外增加提醒次数。
+    const text = hintAt(app.puzzle.data.hints, app.puzzle.step, app.puzzle.data.desc);
     toast(t('puzzle.hint', { hint: text }));
     return;
   }
@@ -1998,7 +1999,11 @@ function startPuzzle(data, { scored = false, streak = false } = {}) {
   resetAnalysis();
   // scored=true：计分态（每日/连对），屏蔽文字提示、不计星；
   // scored=false：章节闯关，文字提示可用且计入星级。
-  app.puzzle = { data, step: 0, scored, streak, misses: 0, hints: 0, consecutiveMisses: 0 };
+  // 解析跟在原有 hints 之后：扣分仍按 app.puzzle.hints 计，与追加条数无关。
+  app.puzzle = {
+    data: { ...data, hints: withExplanation(data.hints, data.id) },
+    step: 0, scored, streak, misses: 0, hints: 0, consecutiveMisses: 0,
+  };
   app.humanColor = data.turn || game.state.turn;
   app.flipped = app.humanColor === 'black';
   app.anim = null;

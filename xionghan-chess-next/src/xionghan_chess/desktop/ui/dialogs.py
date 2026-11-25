@@ -46,6 +46,7 @@ from PySide6.QtWidgets import (
 )
 
 from xionghan_chess.core import daily as daily_quiz
+from xionghan_chess.core import puzzle_explanations as explanations
 from xionghan_chess.core import puzzles as puzzle_chapters
 from xionghan_chess.core.ai import PUBLIC_DIFFICULTIES, normalize_difficulty
 from xionghan_chess.core.game import Game
@@ -1105,10 +1106,18 @@ class TrainingDialog(QDialog):
 
     def show_hint(self) -> None:
         puzzle = self.current()
+        parts: list[str] = []
+        if puzzle and puzzle.hints:
+            parts.append(puzzle.hints[0])
+        if puzzle:
+            # 解析跟在原有指路提示之后，作为最后一条；drill 没有解析就不追加。
+            explanation = explanations.hint_for(puzzle.id)
+            if explanation:
+                parts.append(explanation)
         QMessageBox.information(
             self,
             t("desktop.hint", self.language),
-            puzzle.hints[0] if puzzle and puzzle.hints else t("desktop.select_puzzle", self.language),
+            "\n\n".join(parts) if parts else t("desktop.select_puzzle", self.language),
         )
 
     def start_selected(self) -> None:
