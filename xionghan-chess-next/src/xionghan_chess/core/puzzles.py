@@ -14,6 +14,17 @@ from .storage import game_document, game_from_document
 # 空串表示"不入章"（走法练习），列表里单独归档在后面。
 CHAPTERS: tuple[str, ...] = ("揭竿", "破釜", "逐鹿", "垓下", "定鼎")
 
+# 训练主题筛选用的受控题库标签。
+# 这些字符串要**逐字**匹配题库 JSON 的 tags 字段（历史数据里就是中文棋子名/规则名），
+# 属于数据键而不是界面文案：任何语言下都不能跟着界面翻译，也不走 dl()。
+# 桌面 UI 只读这张表，不再自带一份中文字面量。
+PUZZLE_THEME_TAGS: dict[str, tuple[str, ...]] = {
+    "archer": ("射",),
+    "theme_pawn_resurrection": ("兵复活",),
+    "palace_rush": ("入宫速胜", "入宫"),
+    "triple_capture": ("三连吃",),
+}
+
 
 def chapter_order(name: str) -> int:
     """排序用：已知章节按 CHAPTERS 顺序，未知/空串排在最后。"""

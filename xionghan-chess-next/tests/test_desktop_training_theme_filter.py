@@ -80,7 +80,7 @@ def test_defense_theme_reuses_training_progress_recognizer(qt_app: QApplication)
 def test_theme_without_puzzles_shows_explicit_empty_state(qt_app: QApplication) -> None:
     """后续批次的专题标签还没补进题库时，给空态而不是静默空白列表。"""
     parent, dialog = _dialog()
-    dialog.theme.setCurrentIndex(dialog.theme.findData("pawn_resurrection"))
+    dialog.theme.setCurrentIndex(dialog.theme.findData("theme_pawn_resurrection"))
 
     assert dialog.puzzles == []
     notes = [dialog.list.item(i) for i in range(dialog.list.count())]

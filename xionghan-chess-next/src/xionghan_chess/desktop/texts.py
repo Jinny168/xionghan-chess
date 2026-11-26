@@ -189,7 +189,6 @@ EN: dict[str, str] = {
     "点档位标签：从该手之前的局面试走，不写回棋谱": (
         "Click a grade tag to try from the position before that move; nothing is written back to the record"
     ),
-    "第 {ply} 手 · {quality} · 试走": "Move {ply} · {quality} · try",
     "从该手之前的局面试走；不写回棋谱": "Try from the position before this move; nothing is written back",
     "该手之前局面无法构造沙盘，暂不可试走": "The position before this move cannot be sandboxed, so trial is disabled",
     # ---- 训练 / 题库 ----
@@ -212,9 +211,6 @@ EN: dict[str, str] = {
     "主题与难度二选一：选主题后难度不限；改回难度会清空主题": (
         "Theme and difficulty are one choice at a time: picking a theme drops the difficulty filter; "
         "picking a difficulty clears the theme"
-    ),
-    "题库暂无「{theme}」主题的题；切回「全部主题」可看全部题目": (
-        "No puzzles tagged “{theme}” yet; switch back to “All themes” to see everything"
     ),
     # ---- 音效 ----
     "部分音效无法播放：": "Some sounds could not play: ",
@@ -301,6 +297,26 @@ TEMPLATES: dict[str, str] = {
     "（仅分析前 {n} 手）": "(first {n} plies only)",
     "无法构造沙盘：{reason}": "Could not build the sandbox: {reason}",
     "本局失分集中在{phase}阶段。": "Losses concentrated in the {phase} phase.",
+    # 复盘关键手试走按钮（dlf 的 key 必须在 TEMPLATES，放 EN 表不会被查到）
+    "第 {ply} 手 · {quality} · 试走": "Move {ply} · {quality} · try",
+    # 训练主题空态：{theme} 是已翻译的主题名
+    "题库暂无「{theme}」主题的题；切回「全部主题」可看全部题目": (
+        "No puzzles tagged “{theme}” yet; switch back to “All themes” to see everything"
+    ),
+}
+
+# 训练主题下拉的**原文**标签（中文原文即 dl() 的 key，英文走 EN 表）。
+# 放在这里而不是 dialogs.py：`test_desktop_texts` 禁止 UI 模块出现裸中文字面量，
+# 而下拉必须在 `addItem` 时按当前语言调 dl()（模块导入时的语言未必是最终语言），
+# 所以 UI 只持有这里的 key。它们是文案源，不是题库标签，别和 PUZZLE_THEME_TAGS 混用。
+TRAINING_THEME_LABELS: dict[str, str] = {
+    "all": "全部主题",
+    "siege": "围杀",
+    "defense": "守和",
+    "archer": "射星轨",
+    "theme_pawn_resurrection": "兵复活",
+    "palace_rush": "入宫速胜",
+    "triple_capture": "三连吃",
 }
 
 # E2 复盘报告：质量分类 id → 中文标签（中文原文即 key，英文走 EN 表）。

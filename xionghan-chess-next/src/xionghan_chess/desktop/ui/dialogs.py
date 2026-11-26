@@ -68,7 +68,7 @@ from .. import training_store
 from ..puzzle_store import available_puzzles, install_puzzles
 from ..sandbox import build_sandbox_game, undo_sandbox_move
 from ..storage import load_game
-from ..texts import difficulty_alias_hint, dl, dlf
+from ..texts import TRAINING_THEME_LABELS, difficulty_alias_hint, dl, dlf
 from . import piece_assets, theme
 from .board_widget import BoardWidget
 from .report import build_report
@@ -82,13 +82,13 @@ GLYPH_STYLE_DATA = "glyph"  # 四值之一，见 config.PIECE_STYLES
 # 而是选主题就把难度切到「全部难度」，选回具体难度就把主题清空。
 TRAINING_THEME_ALL = "all"
 TRAINING_THEMES: tuple[tuple[str, str], ...] = (
-    (TRAINING_THEME_ALL, "全部主题"),
-    ("siege", "围杀"),
-    ("defense", "守和"),
-    ("archer", "射星轨"),
-    ("pawn_resurrection", "兵复活"),
-    ("palace_rush", "入宫速胜"),
-    ("triple_capture", "三连吃"),
+    (TRAINING_THEME_ALL, TRAINING_THEME_LABELS["all"]),
+    ("siege", TRAINING_THEME_LABELS["siege"]),
+    ("defense", TRAINING_THEME_LABELS["defense"]),
+    ("archer", TRAINING_THEME_LABELS["archer"]),
+    ("theme_pawn_resurrection", TRAINING_THEME_LABELS["theme_pawn_resurrection"]),
+    ("palace_rush", TRAINING_THEME_LABELS["palace_rush"]),
+    ("triple_capture", TRAINING_THEME_LABELS["triple_capture"]),
 )
 
 
@@ -109,14 +109,14 @@ def puzzle_matches_theme(puzzle: object, theme: str) -> bool:
         return any(tag.startswith("mate") for tag in tags) or "counter" in tags
     if theme == "defense":
         return is_defense_puzzle(puzzle)
+    # 标签是题库里的**数据键**（core/puzzles.py::PUZZLE_THEME_TAGS），
+    # 与界面语言无关：英文模式下也按原值匹配，不能跟着下拉文案翻译。
     if theme == "archer":
-        return "射" in tags or (is_feature_puzzle(puzzle) and "feature:archer" in tags)
+        return puzzle_chapters.PUZZLE_THEME_TAGS["archer"][0] in tags or (
+            is_feature_puzzle(puzzle) and "feature:archer" in tags
+        )
     # 后三项目前只预留受控标签；后续补题时按同一口径落 tag，界面代码不用再改。
-    expected = {
-        "pawn_resurrection": ("兵复活",),
-        "palace_rush": ("入宫速胜", "入宫"),
-        "triple_capture": ("三连吃",),
-    }.get(theme, ())
+    expected = puzzle_chapters.PUZZLE_THEME_TAGS.get(theme, ())
     return any(tag in tags for tag in expected)
 
 
