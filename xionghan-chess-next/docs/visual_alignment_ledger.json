@@ -127,14 +127,18 @@
       "unit": "ratio",
       "compare": true,
       "verdict": "aligned",
-      "note": "桌面与 webapp 投影纵向偏移统一 0.10 r；web 旧树写死 2px（见 VA-06），不可比、单列形态项。",
+      "note": "三端投影纵向偏移统一 0.10 r；web 旧树本轮由写死 2px 改为按 r 派生，投影实现形态差见 VA-06。",
       "ends": {
         "desktop": {
           "lit": "PIECE_SHADOW_OFFSET = {}",
           "raw": 0.10,
           "value": 0.10
         },
-        "web": null,
+        "web": {
+          "lit": "ctx.shadowOffsetY=r*{}",
+          "raw": 0.10,
+          "value": 0.10
+        },
         "webapp": {
           "lit": "ctx.shadowOffsetY = r * {}",
           "raw": 0.10,
@@ -148,7 +152,7 @@
       "unit": "mix",
       "compare": false,
       "verdict": "form",
-      "note": "桌面：ObjectBounding 径向渐变（外径 1.30r、无硬边）；web 旧树：canvas 固定 blur 5px + offsetY 2px（**不随格子缩放**，小盘或高 DPI 下投影比例失控）；webapp：blur 0.42r、offsetY 0.10r（随尺寸缩放）。",
+      "note": "桌面：ObjectBounding 径向渐变（外径 1.30r、无硬边）；web 旧树与 webapp：canvas 阴影 blur 0.42r + offsetY 0.10r，随棋子半径缩放。web 旧树本轮由固定 5px/2px 收敛为 r 派生（缺陷已销账）；桌面渐变与两棵 canvas 阴影的形态差保留（同 VA-11 先例），不收敛形态。",
       "ends": {
         "desktop": {
           "lit": "PIECE_SHADOW_RATIO = {}",
@@ -156,8 +160,9 @@
           "value": 1.3
         },
         "web": {
-          "lit": "ctx.shadowBlur=5",
-          "value": null
+          "lit": "ctx.shadowBlur=r*{}",
+          "raw": 0.42,
+          "value": 0.42
         },
         "webapp": {
           "lit": "ctx.shadowBlur = r * {}",
