@@ -185,6 +185,13 @@ EN: dict[str, str] = {
     "浅层参考：依据本机浅层搜索，仅供参考。": "Shallow reference: based on a local shallow search, for reference only.",
     "逐手档位（浅层参考）：": "Per-move grades (shallow reference):",
     "沙盘不可用": "Sandbox unavailable",
+    "关键手试走（浅层参考）": "Try key moves (shallow reference)",
+    "点档位标签：从该手之前的局面试走，不写回棋谱": (
+        "Click a grade tag to try from the position before that move; nothing is written back to the record"
+    ),
+    "第 {ply} 手 · {quality} · 试走": "Move {ply} · {quality} · try",
+    "从该手之前的局面试走；不写回棋谱": "Try from the position before this move; nothing is written back",
+    "该手之前局面无法构造沙盘，暂不可试走": "The position before this move cannot be sandboxed, so trial is disabled",
     # ---- 训练 / 题库 ----
     "导入题库": "Import puzzles",
     "题库导入": "Puzzle import",

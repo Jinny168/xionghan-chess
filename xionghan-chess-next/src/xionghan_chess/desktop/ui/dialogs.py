@@ -676,6 +676,9 @@ class ReplayDialog(QDialog):
         self._sandbox_active = False
         self._sandbox_game: Game | None = None
         self._sandbox_source_history: int | None = None
+        self._sandbox_trial = False  # 关键手试走：只走一步看看，不提供沙盘内悔棋
+        self._sandbox_source_step = -1
+        self._key_move_buttons: list[QPushButton] = []
         layout = QVBoxLayout(self)
         self.info = QLabel()
         self.info.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -718,6 +721,16 @@ class ReplayDialog(QDialog):
         self.tabs.addTab(sandbox_panel, t("desktop.sandbox_tab", self.language))
         self.tabs.currentChanged.connect(self._on_sandbox_tab)
         side_layout.addWidget(self.tabs, 1)
+        # 分析完成后才填这组档位标签：点它以该手**之前**的局面进沙盘试走。
+        self.key_move_panel = QGroupBox(dl("关键手试走（浅层参考）"))
+        key_panel_layout = QVBoxLayout(self.key_move_panel)
+        key_hint = QLabel(dl("点档位标签：从该手之前的局面试走，不写回棋谱"))
+        key_hint.setWordWrap(True)
+        key_panel_layout.addWidget(key_hint)
+        self._key_move_layout = QVBoxLayout()
+        key_panel_layout.addLayout(self._key_move_layout)
+        self.key_move_panel.setVisible(False)
+        side_layout.addWidget(self.key_move_panel)
         split.addWidget(side)
         split.setSizes([700, 230])
         controls = QHBoxLayout()
@@ -768,28 +781,37 @@ class ReplayDialog(QDialog):
         timer = getattr(self.parent(), "thinking_timer", None)
         return bool(timer is not None and timer.isActive())
 
-    def _sandbox_source(self) -> Game | None:
-        """G5：只从 `snapshots[-1]` 取源，绝不把权威 Game 交出去。
+    def _sandbox_source(self, step: int = -1) -> Game | None:
+        """G5：从指定快照取源（默认最后节点），绝不把权威 Game 交出去。
 
-        构造失败时异常**上抛给调用方**：沙盘起不来必须说清原因，静默置灰等于把
-        "点了没反应"留给玩家。隔离语义不变 —— 这里产出的始终是 `clone()` 副本。
+        关键手试走传 `ply - 1`：复盘快照 `step` 是"第 step 手走完之后"，所以
+        "该手之前"就是前一格。这里只选源，真正的沙盘仍由 `build_sandbox_game()`
+        统一构造 —— 不为历史局面另开一条构造路径。
         """
         if not self.snapshots:
             return None
-        return Game.from_state(self.snapshots[-1].clone(), self.options, setup=self.setup)
+        index = step if step >= 0 else len(self.snapshots) + step
+        if index < 0 or index >= len(self.snapshots):
+            return None
+        return Game.from_state(self.snapshots[index].clone(), self.options, setup=self.setup)
 
     def _sandbox_build_failed(self, exc: Exception) -> None:
         """沙盘副本构造失败：把原因告诉用户，并把状态行还给"进入沙盘"提示。"""
         QMessageBox.warning(self, dl("沙盘不可用"), dlf("无法构造沙盘：{reason}", reason=exc))
         self._refresh_sandbox_status()
 
-    def _build_sandbox(self) -> Game | None:
-        """取当前回看节点的沙盘副本；失败时告警并返回 None（绝不返回权威 Game）。"""
+    def _build_sandbox(self, step: int = -1, *, silent: bool = False) -> Game | None:
+        """按既有 `build_sandbox_game()` 路径造副本；失败时返回 None。
+
+        `silent=True` 只用于给关键手入口做可达性预检：构造不了的条目要灰掉，
+        不能在分析刚结束时连弹几个警告框。
+        """
         try:
-            source = self._sandbox_source()
+            source = self._sandbox_source(step)
             return None if source is None else build_sandbox_game(source)
         except Exception as exc:  # noqa: BLE001 —— 只读副本构造，失败必须说明原因
-            self._sandbox_build_failed(exc)
+            if not silent:
+                self._sandbox_build_failed(exc)
             return None
 
     def _on_sandbox_tab(self, index: int) -> None:
@@ -797,6 +819,27 @@ class ReplayDialog(QDialog):
             self._sandbox_enter()
         else:
             self._sandbox_exit()
+
+    def _activate_sandbox(self, sandbox: Game, *, step: int, trial: bool) -> None:
+        """唯一的"棋盘改指向沙盘"入口；普通沙盘与关键手试走只差 trial 标记。"""
+        self._sandbox_game = sandbox
+        self._sandbox_active = True
+        self._sandbox_trial = trial
+        self._sandbox_source_step = step
+        authoritative = getattr(self.parent(), "game", None)
+        self._sandbox_source_history = len(authoritative.state.history) if authoritative else None
+        # 信号层隔离：复盘棋盘在这条链路上只发给沙盘自己的 move()，不碰 app.human_move。
+        # 进入路径都有 `_sandbox_active` 守卫，退出路径负责断开，无需在这里猜着 disconnect。
+        self.board.move_requested.connect(self._sandbox_move)
+        self.board.set_game(sandbox, Color.RED, True)
+        self.board.interactive = True
+        self.slider.setEnabled(False)
+        self.moves.setEnabled(False)
+        self.play.setEnabled(False)
+        # 关键手试走明确不做沙盘内悔棋：隐藏 + 禁用，底层 API 原样留给普通沙盘。
+        self.sandbox_undo.setVisible(not trial)
+        self.sandbox_undo.setEnabled(not trial)
+        self._refresh_sandbox_status()
 
     def _sandbox_enter(self) -> None:
         if self._sandbox_active or self._ai_thinking():
@@ -806,18 +849,20 @@ class ReplayDialog(QDialog):
         if sandbox is None:
             self._refresh_sandbox_status()
             return
-        self._sandbox_game = sandbox
-        self._sandbox_active = True
-        authoritative = getattr(self.parent(), "game", None)
-        self._sandbox_source_history = len(authoritative.state.history) if authoritative else None
-        # 信号层隔离：复盘棋盘在这条链路上只发给沙盘自己的 move()，不碰 app.human_move。
-        self.board.move_requested.connect(self._sandbox_move)
-        self.board.set_game(self._sandbox_game, Color.RED, True)
-        self.board.interactive = True
-        self.slider.setEnabled(False)
-        self.moves.setEnabled(False)
-        self.play.setEnabled(False)
-        self._refresh_sandbox_status()
+        self._activate_sandbox(sandbox, step=-1, trial=False)
+
+    def _try_key_move(self, ply: int) -> None:
+        """从关键手**之前**的快照试走；关掉入口时既不写谱也不碰权威局。"""
+        if self._sandbox_active or self._ai_thinking():
+            self._refresh_sandbox_status()
+            return
+        step = ply - 1
+        sandbox = self._build_sandbox(step)
+        if sandbox is None:
+            self._refresh_sandbox_status()
+            return
+        self._activate_sandbox(sandbox, step=step, trial=True)
+        self.tabs.setCurrentIndex(1)  # 试走入口在复盘侧栏，切过去才能落子
 
     def _sandbox_exit(self) -> None:
         if not self._sandbox_active:
@@ -829,6 +874,9 @@ class ReplayDialog(QDialog):
         self._sandbox_active = False
         self._sandbox_game = None
         self._sandbox_source_history = None
+        self._sandbox_trial = False
+        self._sandbox_source_step = -1
+        self.sandbox_undo.setVisible(True)
         self.board.interactive = False
         self.slider.setEnabled(True)
         self.moves.setEnabled(True)
@@ -843,7 +891,7 @@ class ReplayDialog(QDialog):
     def _sandbox_reset(self) -> None:
         if not self._sandbox_active:
             return
-        sandbox = self._build_sandbox()
+        sandbox = self._build_sandbox(self._sandbox_source_step)
         if sandbox is None:
             return  # 构造失败时保持当前沙盘不动（_build_sandbox 已提示原因）
         self._sandbox_game = sandbox
@@ -858,7 +906,7 @@ class ReplayDialog(QDialog):
         self._refresh_sandbox_status()
 
     def _sandbox_undo(self) -> None:
-        if not self._sandbox_active or self._sandbox_game is None:
+        if self._sandbox_trial or not self._sandbox_active or self._sandbox_game is None:
             return
         if not undo_sandbox_move(self._sandbox_game):
             self.sandbox_hint.setText(t("desktop.sandbox_no_undo", self.language))
@@ -867,7 +915,7 @@ class ReplayDialog(QDialog):
         """G2/G6/G7：AI 思考中置灰；对局已前进则冻结并提示，绝不自动跟随。"""
         thinking = self._ai_thinking()
         self.sandbox_enter.setEnabled(bool(self.snapshots) and not thinking and not self._sandbox_active)
-        self.sandbox_undo.setEnabled(self._sandbox_active and not thinking)
+        self.sandbox_undo.setEnabled(self._sandbox_active and not thinking and not self._sandbox_trial)
         self.sandbox_reset.setEnabled(self._sandbox_active and not thinking)
         self.sandbox_exit.setEnabled(self._sandbox_active)
         stale = False
@@ -889,6 +937,36 @@ class ReplayDialog(QDialog):
         else:
             text = t("desktop.sandbox_hint", self.language)
         self.sandbox_hint.setText(text)
+
+    def _rebuild_key_move_entries(self, key_moves: list[dict[str, object]]) -> None:
+        """把报告的关键手档位转成可点标签；构造不了的条目灰掉而不是硬开。"""
+        while self._key_move_layout.count():
+            item = self._key_move_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+        self._key_move_buttons = []
+
+        for move in key_moves:
+            ply = int(move.get("ply", 0))
+            quality = str(move.get("quality_label", ""))
+            button = QPushButton(dlf("第 {ply} 手 · {quality} · 试走", ply=ply, quality=quality))
+            button.setObjectName(f"keyMoveTrial{ply}")
+            reachable = (
+                1 <= ply < len(self.snapshots)
+                and not self._ai_thinking()
+                and self._build_sandbox(ply - 1, silent=True) is not None
+            )
+            button.setEnabled(reachable)
+            button.setToolTip(
+                dl("从该手之前的局面试走；不写回棋谱")
+                if reachable
+                else dl("该手之前局面无法构造沙盘，暂不可试走")
+            )
+            button.clicked.connect(lambda _checked=False, p=ply: self._try_key_move(p))
+            self._key_move_layout.addWidget(button)
+            self._key_move_buttons.append(button)
+        self.key_move_panel.setVisible(bool(self._key_move_buttons))
 
     def show_analysis(self) -> None:
         # 阶段0 S0-C：analyze_game 原先在 GUI 线程同步跑，复盘窗直接冻结。
@@ -929,6 +1007,7 @@ class ReplayDialog(QDialog):
             lines.append(dlf("（仅分析前 {n} 手）", n=capped))
         lines.append("")
         report = build_report(result)
+        self._rebuild_key_move_entries(report.key_moves)
         lines.extend(report.lines)
         lines.append("")
         # 呈现轻量非权威（P0-1）：逐手只留档位，不显示分值。
