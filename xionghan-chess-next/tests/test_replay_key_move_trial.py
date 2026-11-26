@@ -16,6 +16,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
 
 from xionghan_chess.core.game import Game  # noqa: E402
+from xionghan_chess.desktop.sandbox import undo_sandbox_move  # noqa: E402
 from xionghan_chess.desktop.ui import dialogs as dialogs_module  # noqa: E402
 from xionghan_chess.desktop.ui.dialogs import DocumentDialog, ReplayDialog  # noqa: E402
 
@@ -72,6 +73,13 @@ def test_key_move_tag_enters_sandbox_from_pre_move_state_and_leaves_record_untou
     before_state = _bytes(game.state)
     before_snapshots = _snapshots_bytes(game)
 
+    # E-C / P1：任一历史下标都只 clone 快照，不复用权威 state 或快照对象本身。
+    for index in {0, len(dialog.snapshots) // 2, len(dialog.snapshots) - 1}:
+        source = dialog._sandbox_source(index)
+        assert source is not None and source is not dialog.snapshots[index]
+        assert source.state is not game.state
+        assert source.state.to_dict() == dialog.snapshots[index].to_dict()
+
     _feed_analysis(monkeypatch, dialog, ply=3)
     buttons = [button for button in dialog._key_move_buttons if button.objectName() == "keyMoveTrial3"]
     assert len(buttons) == 1 and buttons[0].isEnabled()
@@ -80,6 +88,9 @@ def test_key_move_tag_enters_sandbox_from_pre_move_state_and_leaves_record_untou
     buttons[0].click()
     sandbox = dialog._sandbox_game
     assert sandbox is not None and dialog._sandbox_trial is True
+    # E-C / P3：起点只有一格快照，且此时悔棋必须返回 False（无悔棋首版不变量）。
+    assert len(sandbox._snapshots) == 1
+    assert undo_sandbox_move(sandbox) is False
     assert _pieces(sandbox.state) == _pieces(dialog.snapshots[2]), "必须从第 3 手**之前**的局面起"
     assert _pieces(sandbox.state) != _pieces(dialog.snapshots[3]), "起点不是前一格，等于把失误手走完了"
     assert dialog.sandbox_undo.isHidden() and not dialog.sandbox_undo.isEnabled()
