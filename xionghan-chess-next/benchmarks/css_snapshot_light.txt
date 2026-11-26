@@ -342,6 +342,12 @@ body|transition|background-image .25s,background-color .25s
 .preference-options .check-label|display|flex
 .preference-options .check-label|justify-content|flex-start
 .check-label input|accent-color|#9d2525
+.preference-options .first-screen-toggles|display|grid
+.preference-options .first-screen-toggles|grid-template-columns|1fr 1fr
+.preference-options .first-screen-toggles|gap|8px
+.preference-options .first-screen-toggles .check-label|display|flex
+.preference-options .first-screen-toggles .check-label|gap|6px
+.preference-options .first-screen-toggles .check-label|justify-content|flex-start
 .replay-sidebar|position|fixed
 .replay-sidebar|right|0
 .replay-sidebar|top|72px
@@ -751,6 +757,29 @@ body[data-board-background="none"] .board-shell:before|display|none
 .onboard-body|font-size|14px
 .onboard-body|line-height|1.6
 .onboard-body p|margin|0
+.onboard-badge-demo|display|flex
+.onboard-badge-demo|align-items|center
+.onboard-badge-demo|gap|10px
+.onboard-badge-demo|font-size|12px
+.onboard-badge-demo|color|#776653
+.onboard-demo-piece|position|relative
+.onboard-demo-piece|display|inline-grid
+.onboard-demo-piece|place-items|center
+.onboard-demo-piece|width|34px
+.onboard-demo-piece|height|34px
+.onboard-demo-piece|border|1px solid #9d2525
+.onboard-demo-piece|border-radius|50%
+.onboard-demo-piece|font|18px KaiTi,serif
+.onboard-demo-piece|color|#9d2525
+.onboard-demo-mark,.onboard-demo-ring|position|absolute
+.onboard-demo-mark,.onboard-demo-ring|font-style|normal
+.onboard-demo-mark,.onboard-demo-ring|line-height|1
+.onboard-demo-mark|top|-9px
+.onboard-demo-mark|left|12px
+.onboard-demo-mark|font-size|11px
+.onboard-demo-ring|top|-12px
+.onboard-demo-ring|left|9px
+.onboard-demo-ring|font-size|14px
 .training-filters|display|flex
 .training-filters|gap|6px
 .training-filters|margin|14px 0

@@ -342,6 +342,12 @@ body@board-dark|transition|background-image .25s,background-color .25s
 .preference-options .check-label@board-dark|display|flex
 .preference-options .check-label@board-dark|justify-content|flex-start
 .check-label input@board-dark|accent-color|#9d2525
+.preference-options .first-screen-toggles@board-dark|display|grid
+.preference-options .first-screen-toggles@board-dark|grid-template-columns|1fr 1fr
+.preference-options .first-screen-toggles@board-dark|gap|8px
+.preference-options .first-screen-toggles .check-label@board-dark|display|flex
+.preference-options .first-screen-toggles .check-label@board-dark|gap|6px
+.preference-options .first-screen-toggles .check-label@board-dark|justify-content|flex-start
 .replay-sidebar@board-dark|position|fixed
 .replay-sidebar@board-dark|right|0
 .replay-sidebar@board-dark|top|72px
@@ -751,6 +757,29 @@ body[data-board-background="none"] .board-shell:before@board-dark|display|none
 .onboard-body@board-dark|font-size|14px
 .onboard-body@board-dark|line-height|1.6
 .onboard-body p@board-dark|margin|0
+.onboard-badge-demo@board-dark|display|flex
+.onboard-badge-demo@board-dark|align-items|center
+.onboard-badge-demo@board-dark|gap|10px
+.onboard-badge-demo@board-dark|font-size|12px
+.onboard-badge-demo@board-dark|color|#776653
+.onboard-demo-piece@board-dark|position|relative
+.onboard-demo-piece@board-dark|display|inline-grid
+.onboard-demo-piece@board-dark|place-items|center
+.onboard-demo-piece@board-dark|width|34px
+.onboard-demo-piece@board-dark|height|34px
+.onboard-demo-piece@board-dark|border|1px solid #9d2525
+.onboard-demo-piece@board-dark|border-radius|50%
+.onboard-demo-piece@board-dark|font|18px KaiTi,serif
+.onboard-demo-piece@board-dark|color|#9d2525
+.onboard-demo-mark,.onboard-demo-ring@board-dark|position|absolute
+.onboard-demo-mark,.onboard-demo-ring@board-dark|font-style|normal
+.onboard-demo-mark,.onboard-demo-ring@board-dark|line-height|1
+.onboard-demo-mark@board-dark|top|-9px
+.onboard-demo-mark@board-dark|left|12px
+.onboard-demo-mark@board-dark|font-size|11px
+.onboard-demo-ring@board-dark|top|-12px
+.onboard-demo-ring@board-dark|left|9px
+.onboard-demo-ring@board-dark|font-size|14px
 .training-filters@board-dark|display|flex
 .training-filters@board-dark|gap|6px
 .training-filters@board-dark|margin|14px 0

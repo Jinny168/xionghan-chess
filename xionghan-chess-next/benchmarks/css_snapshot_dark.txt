@@ -342,6 +342,12 @@ body@dark|transition|background-image .25s,background-color .25s
 .preference-options .check-label@dark|display|flex
 .preference-options .check-label@dark|justify-content|flex-start
 .check-label input@dark|accent-color|#f2b8b5
+.preference-options .first-screen-toggles@dark|display|grid
+.preference-options .first-screen-toggles@dark|grid-template-columns|1fr 1fr
+.preference-options .first-screen-toggles@dark|gap|8px
+.preference-options .first-screen-toggles .check-label@dark|display|flex
+.preference-options .first-screen-toggles .check-label@dark|gap|6px
+.preference-options .first-screen-toggles .check-label@dark|justify-content|flex-start
 .replay-sidebar@dark|position|fixed
 .replay-sidebar@dark|right|0
 .replay-sidebar@dark|top|72px
@@ -751,6 +757,29 @@ body[data-board-background="none"] .board-shell:before@dark|display|none
 .onboard-body@dark|font-size|14px
 .onboard-body@dark|line-height|1.6
 .onboard-body p@dark|margin|0
+.onboard-badge-demo@dark|display|flex
+.onboard-badge-demo@dark|align-items|center
+.onboard-badge-demo@dark|gap|10px
+.onboard-badge-demo@dark|font-size|12px
+.onboard-badge-demo@dark|color|#776653
+.onboard-demo-piece@dark|position|relative
+.onboard-demo-piece@dark|display|inline-grid
+.onboard-demo-piece@dark|place-items|center
+.onboard-demo-piece@dark|width|34px
+.onboard-demo-piece@dark|height|34px
+.onboard-demo-piece@dark|border|1px solid #f2b8b5
+.onboard-demo-piece@dark|border-radius|50%
+.onboard-demo-piece@dark|font|18px KaiTi,serif
+.onboard-demo-piece@dark|color|#f2b8b5
+.onboard-demo-mark,.onboard-demo-ring@dark|position|absolute
+.onboard-demo-mark,.onboard-demo-ring@dark|font-style|normal
+.onboard-demo-mark,.onboard-demo-ring@dark|line-height|1
+.onboard-demo-mark@dark|top|-9px
+.onboard-demo-mark@dark|left|12px
+.onboard-demo-mark@dark|font-size|11px
+.onboard-demo-ring@dark|top|-12px
+.onboard-demo-ring@dark|left|9px
+.onboard-demo-ring@dark|font-size|14px
 .training-filters@dark|display|flex
 .training-filters@dark|gap|6px
 .training-filters@dark|margin|14px 0
