@@ -455,6 +455,31 @@
           "value": 3.0
         }
       }
+    },
+    {
+      "id": "VA-18",
+      "name": "将军态王格外环（× r）",
+      "unit": "ratio",
+      "compare": false,
+      "verdict": "form",
+      "note": "将军态三端线索数一致、层级仍是「上一步 < 可吃 < 选择 < 将军」。桌面三重线索不变（外框脉冲 + 王格环 0.42 格 + 「将军」描边字）；web 旧树与 webapp 被将方王格外加静态双线环：外环 1.1 r、内细环 1.22 r，间隙留白，沿用各自既有红令牌、零新增色值。单环脉冲收编为双环同步脉动（次要动效）；系统减少动态下脉冲消失、静态双环仍在，不与双线环并列成两套。本行钉外环参数与桌面王格环，内细环 1.22 r、层级顺序与 reducedMotion 静态环由 tests/test_check_ring_contract.py 自动核对；玩家是否更快发现被将属人工判断，本轮不做。",
+      "ends": {
+        "desktop": {
+          "lit": "painter.drawEllipse(center, cw * {}, ch * 0.42)",
+          "raw": 0.42,
+          "value": 0.42
+        },
+        "web": {
+          "lit": "const CHECK_RING_OUTER={}",
+          "raw": 1.1,
+          "value": 1.1
+        },
+        "webapp": {
+          "lit": "const CHECK_RING_OUTER = {};",
+          "raw": 1.1,
+          "value": 1.1
+        }
+      }
     }
   ]
 }

@@ -50,6 +50,11 @@ const CONTRAST_GRAPHIC_TARGET = 3.0;
 const _CONTRAST_LIGHT_THRESHOLD = 0.179;
 const _MIX_STEP = 0.05;
 
+// 将军态静态双线环（VA-18）：外环 1.1 r + 内细环 1.22 r，间隙留白，沿用既有红令牌、零新增色值。
+// 层级契约：上一步 < 可吃 < 选择 < 将军（将军最上）。桌面三重线索保持不变。
+const CHECK_RING_OUTER = 1.1;
+const CHECK_RING_INNER = 1.22;
+
 function _channelLinear(channel) {
   const s = channel / 255;
   return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
@@ -592,23 +597,34 @@ export class BoardRenderer {
     ctx.restore();
 
     if (view.checkSide === piece.color && piece.type === 'king') {
+      // CHECK_RING_BEGIN
       ctx.save();
       if (view.reducedMotion) {
-        // 系统减少动态：静态环，不做正弦脉冲。
+        // 系统减少动态：只画静态双线环，不做正弦脉冲。
         ctx.strokeStyle = 'rgba(200,40,30,.5)';
-        ctx.lineWidth = Math.max(2, cell * 0.05);
+        ctx.lineWidth = Math.max(1.4, r * 0.08);
         ctx.beginPath();
-        ctx.arc(x, y, r * 1.1, 0, Math.PI * 2);
+        ctx.arc(x, y, r * CHECK_RING_OUTER, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.lineWidth = Math.max(1, r * 0.04);
+        ctx.beginPath();
+        ctx.arc(x, y, r * CHECK_RING_INNER, 0, Math.PI * 2);
         ctx.stroke();
       } else {
+        // 脉冲降为次要动效：两环同步轻微呼吸，不再是独立的一套单环。
         const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 260);
         ctx.strokeStyle = `rgba(200,40,30,${0.5 + pulse * 0.45})`;
-        ctx.lineWidth = Math.max(2, cell * 0.05);
+        ctx.lineWidth = Math.max(1.4, r * 0.08);
         ctx.beginPath();
-        ctx.arc(x, y, r * (1.1 + pulse * 0.06), 0, Math.PI * 2);
+        ctx.arc(x, y, r * (CHECK_RING_OUTER + pulse * 0.06), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.lineWidth = Math.max(1, r * 0.04);
+        ctx.beginPath();
+        ctx.arc(x, y, r * (CHECK_RING_INNER + pulse * 0.06), 0, Math.PI * 2);
         ctx.stroke();
       }
       ctx.restore();
+      // CHECK_RING_END
     }
   }
 
