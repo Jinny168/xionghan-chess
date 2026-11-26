@@ -157,7 +157,7 @@ const zh = {
   'profile.traditional': '传统象棋',
 
   'onboard.step1': '先点一枚己方棋子',
-  'onboard.step2': '点一下棋子，亮点就是能走的地方',
+  'onboard.step2': '射（✦○ 四角星+细环徽记示例）：点一下棋子，亮点就是能走的地方',
   'onboard.step3': '点亮点，棋子就落过去',
 
   'puzzle.daily': '每日一题',
@@ -495,7 +495,7 @@ const en = {
   'profile.traditional': 'Xiangqi',
 
   'onboard.step1': 'Tap one of your own pieces.',
-  'onboard.step2': 'Lit squares show where it can move.',
+  'onboard.step2': 'Archer (✦○ four-point star + thin ring badge): tap a piece; lit squares show where it can move.',
   'onboard.step3': 'Tap a lit square to move.',
 
   'puzzle.daily': 'Daily Puzzle',

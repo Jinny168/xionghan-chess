@@ -37,6 +37,8 @@ EN: dict[str, str] = {
     "① 选对手：右侧面板有人机 / 双人 / 联机": "① Pick an opponent: AI / two players / online (right panel)",
     "② 走一步：点自己的棋子，再点落点": "② Move: click your piece, then its destination",
     "③ 卡住了：训练里有每日一题，做题时状态栏有提示": "③ Stuck? Training has a daily puzzle; the hint sits in the status bar",
+    # C3 第②步的静态示意棋子：不新增步数，只在这行挂一个徽记样例
+    "徽记示例：射 ✦○（四角星+细环）": "Badge sample: archer ✦○ (four-point star + thin ring)",
     # C2 两段式提示（先指子、再指招）
     "提示": "Hint",
     "先指子，再指招": "Piece first, then the move",
@@ -213,6 +215,7 @@ EN: dict[str, str] = {
     "背景音乐加载失败": "background music failed to load",
     "音效不可用：": "Audio unavailable: ",
     # ---- 设置 ----
+    "首屏显示开关": "Visible cues on start",
     "原色（无背景图片）": "Plain (no background)",
     "微软雅黑": "Microsoft YaHei",
     "楷体": "KaiTi",

@@ -137,6 +137,10 @@
       <div class="dialog-title"><h2>规则设置</h2><button value="cancel" class="icon-button" aria-label="关闭">×</button></div>
       <div class="preference-options">
         <fieldset id="appearanceSettings"><legend>界面外观</legend>
+          <div class="first-screen-toggles">
+            <label class="check-label"><input type="checkbox" id="highContrastEnabled">高对比棋子组</label>
+            <label class="check-label"><input type="checkbox" id="pieceBadgesEnabled">特色子形状徽记（默认关闭）</label>
+          </div>
           <label>系统主题<select id="systemThemeSelect"><option value="light">明亮</option><option value="dark">深色</option><option value="auto">跟随系统</option></select></label>
           <label>字体<select id="fontSelect"><option value="system">系统无衬线</option><option value="kaiti">楷体</option><option value="songti">宋体</option><option value="serif">衬线古典</option></select></label>
           <label>棋盘主题<select id="boardThemeSelect"><option value="classic">经典木纹</option><option value="green">翠绿草原</option><option value="blue">海洋蓝调</option><option value="purple">紫晶梦幻</option><option value="dark">暗黑模式</option></select></label>
@@ -158,8 +162,6 @@
           <label class="check-label"><input type="checkbox" id="legalTargetsEnabled" checked>显示可行落点</label>
           <label class="check-label"><input type="checkbox" id="captureHintsEnabled" checked>提示可吃棋子</label>
           <label class="check-label" id="starHintsLabel"><input type="checkbox" id="starHintsEnabled">射·星轨提示</label>
-          <label class="check-label"><input type="checkbox" id="highContrastEnabled">高对比棋子组</label>
-          <label class="check-label"><input type="checkbox" id="pieceBadgesEnabled">特色子形状徽记（默认关闭）</label>
           <label class="check-label"><input type="checkbox" id="tauntsEnabled" checked>棋灵挑衅短语</label>
           <label class="check-label"><input type="checkbox" id="autosaveEnabled" checked>结束后自动保存棋谱</label>
         </fieldset>
@@ -177,6 +179,10 @@
       <button class="icon-button" data-close-dialog="onboardDialog">×</button></div>
     <div class="onboard-body">
       <p id="onboardLine1"></p>
+      <div class="onboard-badge-demo" aria-label="徽记示例：射=四角星+细环">
+        <span class="onboard-demo-piece">射<i class="onboard-demo-mark">✦</i><i class="onboard-demo-ring">○</i></span>
+        <span class="onboard-demo-caption">徽记示例：射＝四角星＋细环（开启徽记后出现在棋子上方）</span>
+      </div>
       <p id="onboardLine2"></p>
       <p id="onboardLine3"></p>
     </div>

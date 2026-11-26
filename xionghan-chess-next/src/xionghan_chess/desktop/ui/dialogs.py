@@ -280,8 +280,10 @@ class SettingsDialog(QDialog):
         self.archer_star_hints.setToolTip(t("settings.star_hints_hint", self.language))
         self.high_contrast = QCheckBox(t("settings.high_contrast_pieces", self.language))
         self.high_contrast.setChecked(config.get("high_contrast_pieces", False))
+        self.high_contrast.setObjectName("firstScreenHighContrast")
         self.piece_badges = QCheckBox(t("settings.piece_badges", self.language))
         self.piece_badges.setChecked(config.get("piece_badges", False))
+        self.piece_badges.setObjectName("firstScreenPieceBadges")
         self.taunts = QCheckBox("棋灵挑衅短语" if self.language != "en" else "AI taunts")
         self.taunts.setChecked(config.get("taunts", True))
         self.autosave = QCheckBox(t("settings.autosave_desktop", self.language))
@@ -289,6 +291,14 @@ class SettingsDialog(QDialog):
 
         game_tab = QWidget()
         game_layout = QVBoxLayout(game_tab)
+        # 高对比 / 徽记从「界面」页提到默认设置页首屏：它们是玩家找得到才会用的线索，
+        # 藏在字体和背景下面等于默认态永远无人问津。两个既有开关只换位置，不改默认值。
+        shortcuts = QGroupBox(dl("首屏显示开关"))
+        shortcut_layout = QHBoxLayout(shortcuts)
+        shortcut_layout.addWidget(self.high_contrast)
+        shortcut_layout.addWidget(self.piece_badges)
+        shortcut_layout.addStretch()
+        game_layout.addWidget(shortcuts)
         game_form = QFormLayout()
         game_form.addRow(t("settings.game_mode", self.language), self.game_mode)
         game_form.addRow(t("settings.profile", self.language), self.profile)
@@ -322,8 +332,6 @@ class SettingsDialog(QDialog):
         appearance_form.addRow(t("settings.legal_targets", self.language), self.legal_targets)
         appearance_form.addRow(t("settings.capture_hints", self.language), self.capture_hints)
         appearance_form.addRow(t("settings.star_hints", self.language), self.archer_star_hints)
-        appearance_form.addRow(t("settings.high_contrast_pieces", self.language), self.high_contrast)
-        appearance_form.addRow(t("settings.piece_badges", self.language), self.piece_badges)
         appearance_form.addRow("棋灵挑衅" if self.language != "en" else "AI taunts", self.taunts)
 
         sound_tab = QWidget()
