@@ -61,6 +61,7 @@ from xionghan_chess.core.profiles import (
 )
 from xionghan_chess.core.setup import profile_slots
 from xionghan_chess.core.storage import game_from_document
+from xionghan_chess.core.training_progress import is_defense_puzzle, is_feature_puzzle
 from xionghan_chess.i18n import normalize_language, t
 
 from .. import training_store
@@ -75,6 +76,48 @@ from .workers import AnalysisWorker
 
 # 「棋子美术风格」下拉里的回退项：选中它 = 回到 1.7.0 的字形棋子（`piece_render="glyph"`）。
 GLYPH_STYLE_DATA = "glyph"  # 四值之一，见 config.PIECE_STYLES
+
+# 训练主题筛选。主题与难度是**互斥的两个视图**（见 `TrainingDialog._on_*_changed`）：
+# 窗口旧注释担心"再加一个筛选项会让人想两个筛选项怎么叠加"，所以这里不是并列 AND，
+# 而是选主题就把难度切到「全部难度」，选回具体难度就把主题清空。
+TRAINING_THEME_ALL = "all"
+TRAINING_THEMES: tuple[tuple[str, str], ...] = (
+    (TRAINING_THEME_ALL, "全部主题"),
+    ("siege", "围杀"),
+    ("defense", "守和"),
+    ("archer", "射星轨"),
+    ("pawn_resurrection", "兵复活"),
+    ("palace_rush", "入宫速胜"),
+    ("triple_capture", "三连吃"),
+)
+
+
+def _puzzle_tags(puzzle: object) -> set[str]:
+    return {str(tag) for tag in (getattr(puzzle, "tags", ()) or ())}
+
+
+def puzzle_matches_theme(puzzle: object, theme: str) -> bool:
+    """按受控标签筛主题；识别函数复用 `core.training_progress`，不复制判定口径。
+
+    题库里暂时没有「兵复活 / 入宫速胜 / 三连吃」的专题标签（补题是后续批次的事），
+    所以这三项会筛出空列表并由界面给出明确空态，而不是靠标题文字猜题。
+    """
+    if theme == TRAINING_THEME_ALL:
+        return True
+    tags = _puzzle_tags(puzzle)
+    if theme == "siege":
+        return any(tag.startswith("mate") for tag in tags) or "counter" in tags
+    if theme == "defense":
+        return is_defense_puzzle(puzzle)
+    if theme == "archer":
+        return "射" in tags or (is_feature_puzzle(puzzle) and "feature:archer" in tags)
+    # 后三项目前只预留受控标签；后续补题时按同一口径落 tag，界面代码不用再改。
+    expected = {
+        "pawn_resurrection": ("兵复活",),
+        "palace_rush": ("入宫速胜", "入宫"),
+        "triple_capture": ("三连吃",),
+    }.get(theme, ())
+    return any(tag in tags for tag in expected)
 
 
 def _fit_to_content(dialog: QDialog, ratio: float = 1.2) -> None:
@@ -974,11 +1017,23 @@ class TrainingDialog(QDialog):
         self.level.addItem(t("desktop.beginner", lang), "beginner")
         self.level.addItem(t("desktop.advanced", lang), "advanced")
         self.level.addItem(t("desktop.master", lang), "master")
+        # 主题筛选时把难度切到「全部难度」；索引 0 仍是 beginner，兼容既有导入题测试。
+        self.level.addItem(dl("全部难度（按主题）"), None)
+        self.level.setObjectName("trainingDifficulty")
+        self.theme = QComboBox()
+        for data, label in TRAINING_THEMES:
+            self.theme.addItem(dl(label), data)
+        self.theme.setObjectName("trainingTheme")
         filters.addWidget(self.level)
+        filters.addWidget(self.theme)
         import_button = QPushButton(t("desktop.import_puzzles", lang))
         import_button.clicked.connect(self.import_puzzles)
         filters.addWidget(import_button)
         layout.addLayout(filters)
+        hint = QLabel(dl("主题与难度二选一：选主题后难度不限；改回难度会清空主题"))
+        hint.setObjectName("trainingFilterHint")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
         self.list = QListWidget()
         self.list.itemDoubleClicked.connect(lambda _: self.start_selected())
         layout.addWidget(self.list, 1)
@@ -994,8 +1049,38 @@ class TrainingDialog(QDialog):
         actions.addWidget(start)
         actions.addWidget(close)
         layout.addLayout(actions)
-        self.level.currentIndexChanged.connect(self.reload)
+        self._updating_filters = False
+        self._last_difficulty_index = 0
+        self.level.currentIndexChanged.connect(self._on_level_changed)
+        self.theme.currentIndexChanged.connect(self._on_theme_changed)
         self.puzzles = []
+        self.reload()
+
+    def _on_theme_changed(self, _index: int) -> None:
+        """主题生效时难度让位；切回「全部主题」则恢复上一次的具体难度。"""
+        if self._updating_filters:
+            return
+        self._updating_filters = True
+        try:
+            if self.theme.currentData() != TRAINING_THEME_ALL:
+                self.level.setCurrentIndex(self.level.findData(None))
+            elif self.level.currentData() is None:
+                self.level.setCurrentIndex(self._last_difficulty_index)
+        finally:
+            self._updating_filters = False
+        self.reload()
+
+    def _on_level_changed(self, _index: int) -> None:
+        """选回具体难度就清空主题，始终只有一个筛选维度在生效。"""
+        if self._updating_filters:
+            return
+        self._updating_filters = True
+        try:
+            if self.level.currentData() is not None:
+                self._last_difficulty_index = self.level.currentIndex()
+                self.theme.setCurrentIndex(self.theme.findData(TRAINING_THEME_ALL))
+        finally:
+            self._updating_filters = False
         self.reload()
 
     def reload(self) -> None:
@@ -1003,7 +1088,13 @@ class TrainingDialog(QDialog):
         all_puzzles, warning = available_puzzles()
         self.daily_puzzles = all_puzzles
         self.daily_puzzle = daily_quiz.pick_daily(all_puzzles, date.today())
-        self.puzzles = [item for item in all_puzzles if item.difficulty == self.level.currentData()]
+        difficulty = self.level.currentData()
+        theme = self.theme.currentData()
+        self.puzzles = [
+            item
+            for item in all_puzzles
+            if (difficulty is None or item.difficulty == difficulty) and puzzle_matches_theme(item, theme)
+        ]
         self.list.clear()
         # 批次 A：解锁状态与星级从 training_store 读（章节顺序仍从 core.CHAPTERS）。
         state = training_store.read(self.config)
@@ -1044,6 +1135,13 @@ class TrainingDialog(QDialog):
                     # 锁定题不可选（flags 保持非 NoItemFlags，仍带 id，满足分组测试契约）
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEnabled)
                 self.list.addItem(item)
+        if not self.puzzles and theme != TRAINING_THEME_ALL:
+            name = next(label for data, label in TRAINING_THEMES if data == theme)
+            note = QListWidgetItem(
+                dlf("题库暂无「{theme}」主题的题；切回「全部主题」可看全部题目", theme=dl(name))
+            )
+            note.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.list.addItem(note)
         if warning:
             # 自定义题库坏了不该让窗口打不开 —— 但要让人知道它被忽略了
             note = QListWidgetItem("⚠ " + warning)

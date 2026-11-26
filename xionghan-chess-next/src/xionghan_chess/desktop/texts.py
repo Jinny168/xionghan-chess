@@ -191,6 +191,22 @@ EN: dict[str, str] = {
     "再想想": "Not quite",
     "过关": "Solved",
     "训练完成，可继续自由对弈": "Training complete; free play resumed",
+    # 主题筛选（与难度互斥，避免两个筛选项叠加困惑）
+    "全部难度（按主题）": "All difficulties (by theme)",
+    "全部主题": "All themes",
+    "围杀": "Siege",
+    "守和": "Defence / draw",
+    "射星轨": "Archer star lanes",
+    "兵复活": "Pawn resurrection",
+    "入宫速胜": "Palace invasion",
+    "三连吃": "Triple capture",
+    "主题与难度二选一：选主题后难度不限；改回难度会清空主题": (
+        "Theme and difficulty are one choice at a time: picking a theme drops the difficulty filter; "
+        "picking a difficulty clears the theme"
+    ),
+    "题库暂无「{theme}」主题的题；切回「全部主题」可看全部题目": (
+        "No puzzles tagged “{theme}” yet; switch back to “All themes” to see everything"
+    ),
     # ---- 音效 ----
     "部分音效无法播放：": "Some sounds could not play: ",
     "音效加载/播放失败（文件缺失或格式不支持）": "failed to load or play (missing file or unsupported format)",
